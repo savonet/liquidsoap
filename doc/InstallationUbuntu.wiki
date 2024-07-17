@@ -1,0 +1,87 @@
+=====Installation on an Ubuntu system=====
+
+**Be careful that this will not work on an Ubuntu system anterior to Edgy Eft (Ubuntu 6.10)** because of uncompatible Camomile versions. If you really want to get this working, you can follow the instructions for compiling ocaml in the "Compiling ocaml from source" in [[InstallationDebian InstallationDebian]]
+
+To install the required dependencies type:
+%%(bash)
+sudo apt-get install ocaml ocaml-base ocaml-base-nox ocaml-tools ocaml-nox ocaml-findlib \
+libpcre-ocaml libpcre-ocaml-dev libcamomile-ocaml-dev wget \
+subversion automake1.9 autoconf make gcc
+%%
+
+Optional dependencies:
+
+All optional dependencies are installed using their developpement packages. Beware that names may change, but you can easily check them with apt-cache search:
+%%(bash)
+apt-cache search lib-name dev
+%%
+
+%%(bash)
+sudo apt-get install festival libxml-dom-perl tetex-extra python-gtk2-dev python python-support
+%%
+
+For Alsa:
+%%(bash)
+sudo apt-get install libasound-dev
+%%
+
+For Ogg Vorbis:
+%%(bash)
+sudo apt-get install libvorbis-dev libogg-dev
+%%
+
+For Shout (Ogg streaming):
+%%(bash)
+sudo apt-get install libshout3-dev
+%%
+
+For Lame (MP3 encoding - you need the multiverse APT repository):
+%%(bash)
+sudo apt-get install liblame-dev
+%%
+
+For Mad (MPEG 1 Layer II/III decoding):
+%%(bash)
+sudo apt-get install libmad0-dev
+%%
+
+For AO:
+%%(bash)
+sudo apt-get install libao-dev
+%%
+
+For RTP:
+%%(bash)
+sudo apt-get install libortp4-dev
+%%
+
+or (starting from Feisty):
+%%(bash)
+sudo apt-get install libortp5-dev
+%%
+
+Then checkout the latest SVN version:
+
+%%(bash)
+svn co https://savonet.svn.sourceforge.net/svnroot/savonet/trunk savonet
+%%
+
+Edit ##savonet/PACKAGES## and select the packages you want to compile.
+
+Compile it:
+%%(bash)
+cd savonet
+./bootstrap && ./configure && make
+%%
+
+====Known bugs====
+
+Some camomile packages are broken on Ubuntu -- the latest at the time of writing this line. If your file ##/usr/lib/ocaml/*/camomile/META## (where * is your version of ocaml) is empty or non-existent, fill it with the following lines:
+%%
+name="camomile"
+version="0.6.3"
+description="Unicode library for ocaml"
+requires="bigarray"
+archive(byte)="camomile.cma"
+archive(native)="camomile.cmxa"
+%%

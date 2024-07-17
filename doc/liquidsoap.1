@@ -1,0 +1,113 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH LIQUIDSOAP 1 "June 06, 2007" "Liquidsoap 0.3.5"
+
+
+.SH NAME
+liquidsoap \- programmable audio stream generator
+.\"
+.SH SYNOPSIS
+.B liquidsoap
+.RI [ option ... ]
+.RI [ script.liq | expression | audiofile ]
+.\"
+.SH DESCRIPTION
+.B liquidsoap
+is an extensible and flexible audio stream generator, mainly used for 
+streaming to a shoutcast/icecast server. It is also possible to output in a 
+file, to speakers or as raw PCM stream.
+.BR liquidsoap
+can perform any audio processing, mixing streams together, applying filters, 
+generating sound procedurally, there is no limit but your imagination.
+Input files can be accessed through the network, using samba, ftp or speech 
+synthesis.
+Recognized formats are MP3, Ogg/Vorbis, AAC and WAV.
+Liquidsoap also inputs RTP and HTTP streams, or from a soundcard.
+The system features lots of programming operators, including user requests,
+time-based selection, sum.
+Many of these features are optional, so it is possible that they are 
+not enabled in your installation.
+
+.I script.liq
+is a
+.B liquidsoap
+script containing the settings and the source definitions.
+The script will be read from standard input if
+.B \-\-
+is given as script filename.
+Information about scripting liquidsoap is available on our wiki:
+.B http://savonet.sf.net/wiki/Liquidsoap
+
+If the parameter is an audio file then liquidsoap will attempt to decode it and 
+will display the obtained metadata.
+
+If the parameter is not a file it will be treated as an expression which will 
+be executed. It is a convenient way to test simple one-line scripts. In that 
+case, the default is to have log messages on standard output and to disable the 
+telnet server.
+
+.\"
+.SH OPTIONS
+.TP
+.B \-h
+Print the description of a plugin: format, protocol, operator, etc.
+.TP
+.B \-c, \-\-check
+Only check the syntax of the script.
+It actually does a bit more, e.g. creating the sources, which includes
+checking a few URIs.
+.TP
+.B \-q, \-\-quiet
+Do not print log messages on standard output.
+.TP
+.B \-v, \-\-verbose
+Print log messages on standard output.
+.TP
+.B \-\-debug
+Print debugging log messages.
+.TP
+.B \-d, \-\-daemon
+Run in daemon mode, i.e. detach and write a PID file.
+.TP
+.B \-t, \-\-enable-telnet
+Enable the telnet server interface.
+.TP
+.B \-T, \-\-disable-telnet
+Disable the telnet server interface.
+.TP
+.B \-u, \-\-enable-unix-socket
+Enable the UNIX socket server interface.
+.TP
+.B \-U, \-\-disable-unix-socket
+Disable the UNIX socket server interface.
+.TP
+.B \-\-
+Read script on standard input.
+.TP
+.B \-\-list\-plugins
+Human-readable List of all protocols, operators formats, metadata resolvers, outputs.
+.TP
+.B \-\-list\-plugins\-xml
+XML list of all protocols, operators formats, metadata resolvers, outputs.
+.TP
+.B \-\-no\-pervasives
+Do not load pervasives script libraries
+.TP
+.B \-\-help
+Show summary of options.
+.TP
+.B \-\-conf\-descr\-key
+Describe a configuration key.
+.TP
+.B \-\-conf\-descr
+Display a described table of the configuration keys.
+.TP
+.B \-\-conf\-dump
+Dump the configuration state
+.\"
+.SH SEE ALSO
+Our wiki
+.B http://savonet.sf.net
+and the PDF manual coming with your distribution of liquidsoap.
+.\"
+.SH AUTHOR
+David Baelde for Savonet <savonet-users@lists.sourceforge.net>

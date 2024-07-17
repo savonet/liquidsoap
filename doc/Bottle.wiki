@@ -1,0 +1,10 @@
+=====Bottle=====
+
+Bottle is a prototype IRC bot written in OCaml. It uses a modular plugin system and is in particular able to communicate with liquidsoap. Currently, it is able to:
+~- show information about the song currently playing,
+~- listen to users' song requests,
+~- skip songs.
+
+It is an example of how to write software which interacts with liquidsoap. You can get its source code via SVN: [[http://svn.sourceforge.net/savonet/trunk/bottle/]].
+
+This kind of tools doesn't need to be done in OCaml. It is quite easy to write an interface module for liquidsoap in perl, python or ruby too. We have a perl module in an unpublished bot -- available on request. A python module is available in liguidsoap.
