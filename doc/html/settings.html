@@ -1,0 +1,341 @@
+<html>
+ <head>
+  <link rel="stylesheet" type="text/css"
+        title="default" href="css/default_autodoc.css" />
+ </head>
+<body id="ad-body">
+ <div id="menu"><div id="menu-head">Sections</div><ul>
+  <li><a href="#sec-Main">Main</a></li>
+  <li><a href="#sec-Outputs">Outputs</a></li>
+  <li><a href="#sec-Icecast2">Icecast2</a></li>
+  <li><a href="#sec-Ogg output">Ogg output</a></li>
+  <li><a href="#sec-Wav output">Wav output</a></li>
+  <li><a href="#sec-Rtp output">Rtp output</a></li>
+  <li><a href="#sec-Soaptube">Soaptube</a></li>
+ </ul></div>
+
+ <div id="main">
+  <div class="section" id="sec-Main">
+   <span class="section-id">Main</span>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">bool</span> <span class="name">daemon</span>
+     <span class="item-head-right"><span class="default">false</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Run in daemon mode?</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">int</span> <span class="name">log.stdout</span>
+     <span class="item-head-right"><span class="default">false</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Print log to stdout?</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">bool</span> <span class="name">log.level.&lt;label&gt;</span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">The higher the level is, the more you see in the logs about &lt;label&gt;. The default level is <code>log.level</code>.</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">log.dir</span>
+     <span class="item-head-right"><span class="default">Configure.logdir</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">The log file will be &lt;log.dir&gt;/&lt;log.file&gt;.</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">log.file</span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Default is set to &lt;name&gt;.log if radio program is &lt;name&gt;.liq</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">daemon.piddir</span>
+     <span class="item-head-right"><span class="default">Configure.piddir</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">The pid file will be &lt;daemon.piddir&gt;/&lt;daemon.pidfile&gt;</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">daemon.pidfile</span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Default is set to &lt;name&gt;.pid if radio program is &lt;name&gt;.liq</span>
+    </p></div>
+   </div>
+  </div>
+  <div class="section" id="sec-Outputs">
+   <span class="section-id">Outputs</span>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">type</span>
+     <span class="item-head-right"><span class="default">"icecast2"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">output</span>
+     <span class="item-head-right"><span class="default">"output"</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Soaptube has a single output and uses that variable to find it.</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">list</span> <span class="name">outputs</span>
+     <span class="item-head-right"><span class="default">["output"]</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Liquidsoap accepts multiple outputs, defined in that list.</span>
+    </p></div>
+   </div>
+  </div>
+  <div class="section" id="sec-Icecast2">
+   <span class="section-id">Icecast2</span>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">host</span>
+     <span class="item-head-right"><span class="default">"localhost"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">int</span> <span class="root">&lt;name&gt;.</span><span class="name">port</span>
+     <span class="item-head-right"><span class="default">8000</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">user</span>
+     <span class="item-head-right"><span class="default">"source"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">password</span>
+     <span class="item-head-right"><span class="default">"hackme"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">genre</span>
+     <span class="item-head-right"><span class="default">"Misc"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">url</span>
+     <span class="item-head-right"><span class="default">"http://savonet.sf.net"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">description</span>
+     <span class="item-head-right"><span class="default">"OCaml Radio !"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">mount</span>
+     <span class="item-head-right"><span class="default">name</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">bool</span> <span class="root">&lt;name&gt;.</span><span class="name">public</span>
+     <span class="item-head-right"><span class="default">false</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">int</span> <span class="root">&lt;name&gt;.</span><span class="name">bitrate</span>
+     <span class="item-head-right"><span class="default">128</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">bool</span> <span class="root">&lt;name&gt;.</span><span class="name">stereo</span>
+     <span class="item-head-right"><span class="default">true</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">int</span> <span class="root">&lt;name&gt;.</span><span class="name">sample_freq</span>
+     <span class="item-head-right"><span class="default">44100</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">multicast_ip</span>
+     <span class="item-head-right"><span class="default">"no_multicast"</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">For RTP, a very efficient protocol.</span>
+    </p></div>
+   </div>
+  </div>
+  <div class="section" id="sec-Ogg output">
+   <span class="section-id">Ogg output</span>
+   <div class="par">Output in a file, using ogg/vorbis encoding </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">filename</span>
+     <span class="item-head-right"><span class="default">"/dev/null"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">int</span> <span class="root">&lt;name&gt;.</span><span class="name">bitrate</span>
+     <span class="item-head-right"><span class="default">128</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">int</span> <span class="root">&lt;name&gt;.</span><span class="name">sample_freq</span>
+     <span class="item-head-right"><span class="default">44100</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">bool</span> <span class="root">&lt;name&gt;.</span><span class="name">stereo</span>
+     <span class="item-head-right"><span class="default">true</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+  </div>
+  <div class="section" id="sec-Wav output">
+   <span class="section-id">Wav output</span>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">filename</span>
+     <span class="item-head-right"><span class="default">"/dev/null"</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+  </div>
+  <div class="section" id="sec-Rtp output">
+   <span class="section-id">Rtp output</span>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="root">&lt;name&gt;.</span><span class="name">address</span>
+     <span class="item-head-right"><span class="default">"224.0.1.20"</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Where to send the RTP stream</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">int</span> <span class="root">&lt;name&gt;.</span><span class="name">port</span>
+     <span class="item-head-right"><span class="default">8888</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+  </div>
+  <div class="section" id="sec-Soaptube">
+   <span class="section-id">Soaptube</span>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">log.dir</span>
+     <span class="item-head-right"><span class="default">Configure.logdir</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">The log file will be &lt;log.dir&gt;/&lt;log.file&gt;.</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">log.file</span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Default is set to &lt;name&gt;.log if radio program is &lt;name&gt;.liq</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">daemon.piddir</span>
+     <span class="item-head-right"><span class="default">Configure.piddir</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">The pid file will be &lt;daemon.piddir&gt;/&lt;daemon.pidfile&gt;</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">daemon.pidfile</span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Default is set to &lt;name&gt;.pid if radio program is &lt;name&gt;.liq</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">string</span> <span class="name">rtp.address</span>
+     <span class="item-head-right"><span class="default">"224.0.1.20"</span></span>
+    </div>
+    <div class="item-body"><p>
+     <span class="comment">Where to get the RTP stream</span>
+    </p></div>
+   </div>
+   <div class="item">
+    <div class="item-head">
+     <span class="type">int</span> <span class="name">rtp.port</span>
+     <span class="item-head-right"><span class="default">8888</span></span>
+    </div>
+    <div class="item-body"><p>
+    </p></div>
+   </div>
+  </div>
+ </div>
+</body>
+</html>

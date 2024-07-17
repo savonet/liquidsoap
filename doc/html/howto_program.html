@@ -1,0 +1,432 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+      <link rel="stylesheet" type="text/css" href="css/default_article.css" />
+
+	<title>Howto write your radio channel ?</title>
+
+  </head>
+
+  <body id="a-body">
+
+    <h1>How&nbsp;to write your&nbsp;radio&nbsp;channel&nbsp;?</h1>
+
+    <p class="rem center">
+      A short tutorial about liquidsoap programming.
+    </p>
+
+    <div id="tableofcontents">
+     <h1>Table of Contents</h1>
+     <ol>
+     <li><a href="#quick">Quickstart</a></li>
+     <li><a href="#programming">Programming liquidsoap</a>
+       <ol>
+        <li><a href="#types">Types</a></li>
+        <li><a href="#syntax">Syntax</a></li>
+       </ol>
+     </li>
+     <li><a href="#dtools">Dtools configuration files</a></li>
+     <li><a href="#soaptube">Soaptube settings</a></li>
+     <li><a href="#typechecking">Type checking</a></li>
+     <li><a href="#doityourself">Other docs &amp; references</a></li>
+     <li><a href="#dev">Developers</a></li>
+     <li><a href="#contact">Contact</a></li>
+     </ol>
+    </div>
+
+    <p>
+    The fastest way to actually start using liquidsoap is no more the
+    quickstart guide. The installation of liquidsoap now includes a
+    script example, together with a service script,
+    respectively installed in
+    <code>/etc/liquidsoap/radio.liq</code>
+    and <code>/etc/init.d/liquidsoap</code>
+    on Gentoo and Debian.
+    An easy change in the script should allow you to simply run your
+    first stream using <code>/etc/init.d/liquidsoap start</code>.
+    </p>
+
+    <h2 id="quick">Quickstart</h2>
+
+    <p>
+      First, a few examples will give you a good idea of how liquidsoap works.
+      A more formal tutorial will follow. In order to run one of these
+      script, put it in one file, e.g. <code>my.liq</code>, and
+      run <code>liquidsoap -i my.liq</code>. A log file <code>my.log</code>
+      will be created in <code>/var/log/liquidsoap</code> --
+      this value actually depends on the configuration of liquidsoap.
+      If you want the log file to be created in <code>/tmp</code>, simply
+      add <code>set log.dir = "/tmp"</code> to your script.
+      Let's start!
+    </p>
+
+    <ul class="program">
+      <li>set output.type = "ping"</li>
+      <li>blank</li>
+    </ul>
+
+    <p>
+      The streamer will output some silence, and send the stream ... nowhere.
+      This first test should work for everybody -- try it if the next one
+      fails.
+    </p>
+
+    <ul class="program">
+      <li>set output.type = "oggfile"</li>
+      <li>set output.filename = "output.ogg"</li>
+      <li>one_file "input.ogg"</li>
+    </ul>
+
+    <p>
+      Now, the stream is sent to the file <code>output.ogg</code>, using
+      ogg encoding.
+      It is made by looping on the file <code>input.ogg</code>.
+      This example requires that liquidsoap was compiled
+      with libvorbis and ocaml-vorbis, which is likely.
+      Basically, this script is <code>cp input.ogg output.ogg</code>,
+      so it's not yet very exciting. Let's see what's next...
+    </p>
+
+    <ul class="program">
+      <li>set output.type = "icecast"</li>
+      <li>set output.mount = "radio.ogg"</li>
+      <li>local_playlist "my_file.m3u"</li>
+    </ul>
+
+    <p>
+      This program sends the stream to an icecast2 server,
+      <code>localhost</code> by default. This is the most common use of
+      liquidsoap. The stream is made from a randomized playlist.
+    </p>
+
+    <p>
+      We know you didn't try liquidsoap for broadcasting a simple playlist.
+      So here is a full-featured example. The source is available <a 
+        href="../examples/geek.liq">here</a>, with a few <a 
+        href="../examples">other examples</a>.
+      Please note how the following script sets up two outputs, instead of only 
+      one which had the default name <code>"output"</code> in the previous 
+      examples.
+    </p>
+
+    <div class="verbatim">
+# Two icecast outputs, one for low bandwidth
+set outputs = [ "geek.ogg" ; "geek.modem.ogg" ]
+
+set geek.ogg.host = "sparc8"
+
+set geek.modem.ogg.host = "sparc8"
+set geek.modem.ogg.bitrate = 32
+set geek.modem.ogg.stereo = true
+set geek.modem.ogg.sample_freq = 22050
+
+# Telnet source for receiving some user requests
+let req = telnet in
+# Some file to fill the stream when everything else isn't ready
+let on_fail = one_file "/some/default/file.ogg" in
+
+# Many playlists, which are re-read every hour
+let def = playlist ~reload_mode:"seconds" ~reload:3600 "/home/dbaelde/playlist.local" in
+let ftp = playlist ~reload_mode:"seconds" ~reload:3600 "/home/dbaelde/playlist" in
+let techno = playlist ~reload_mode:"seconds" ~reload:3600 "/home/dbaelde/playlist.techno" in
+let jazz = playlist ~reload_mode:"seconds" ~reload:3600 "/home/nguenot/playlist.jazz" in
+let rock = playlist ~reload_mode:"seconds" ~reload:3600 "/home/vsiles/playlist.rock" in
+let oldstyle = playlist ~reload_mode:"seconds" ~reload:3600 "/home/nguenot/playlist.oldstyle" in
+let smb = playlist ~reload_mode:"seconds" ~reload:3600 "smb://footwar/mp3/playlist" in
+
+# A special playlist with jingles
+let jingle = playlist ~reload_mode:"seconds" ~reload:3600 "/home/dbaelde/playlist.jingle" in
+let jingle = change_volume 1.2 jingle in
+
+# And some clock beep
+let beep = sine 880 in
+
+ add_w [
+        # Add a "beep beep" around 0m.
+        ((date_switch [("59m & 58s", beep);("0m & 0s", beep)]),3) ;
+
+        # Playlists.
+        ((random_w [
+                # About one jingle every 9 tracks.
+                (jingle,1) ;
+                ((fallback [
+                        # User requests have the priority.
+                        req ;
+                        # Otherwise, depends on the time.
+                        (date_switch [("0-3h", techno)]) ;
+                        (date_switch [("18-19h", jazz)]) ;
+                        (date_switch [("8-9h", oldstyle)]) ;
+                        (date_switch [("22-23h",rock)]);
+                        # If nothing special planned, play our huge (remote) playlist.
+                        smb ;
+                        # Or a smaller but safer local one.
+                        def ;
+                        # Or that file.. it should never happen actually.
+                        on_fail
+                ]),8)
+        ]),1)
+ ]
+    </div>
+
+    <p><b>A note about scheduling intervals:</b> when I write
+    <code>0-1h</code> it means from midnight to two oclock. It should be
+    read as "as long as the hour digit is between 0 and 1".
+    </p>
+
+    <h2 id="programing">Programing</h2>
+
+    <h3 id="types">Data types</h3>
+
+    <p>
+    There are some usual basic data types: <code>bool</code>, <code>int</code>,
+    <code>float</code>, <code>string</code>.
+    Some corresponding values are: <code>false</code>,
+    <code>1</code>, <code>3.14</code>, <code>"Hello world!"</code>.
+    </p>
+
+    <p>
+      But there is also <code>source</code>.
+      A source is a radio, that delivers audio frames.
+      Actually, a source does not exactly give frames,
+      it <em>fills</em> the frame that is given to it. 
+      Of course, it happens that a source cannot fill any frame.
+      But you don't need to worry about that now.
+    </p>
+
+    <p>
+      You can also build some more complex data types
+      using pairing and lists. If <code>t</code> and <code>s</code>
+      are types, <code>(t*s)</code> and <code>t list</code> are types.
+      <code>[(1,3.14);(0,0.)]</code> has type <code>(int*float) list</code>.
+    </p>
+
+    <h3 id="operators">Operators</h3>
+
+    <p>
+      The purpose of programing liquidsoap is to create a source.
+      You will do this using operators.
+      An operator is a kind of a function, which builds a source.
+    </p>
+
+    <p>
+      An operator needs some parameters to build a source.
+      A parameter may have a label or not.
+      Labeled parameters may be optionnal.
+      The syntax for calling an operator is:
+      <code>op ~lbl1:val1 ~lbl2:val2 ... nolblval1 nlblval2 ...</code>.
+      Labeled parameters must come before unlabeled parameters.
+      There is no order among labeled parameters.
+    </p>
+
+    <p>
+      For example, <code>filter ~mode:"low" ~freq:440 ~q:0.3 s</code>
+      filters the output of <code>s</code>, which is the only
+      unlabeled parameter, of type <code>source</code>.
+
+    <h3 id="syntax">Syntax</h3>
+
+    <p>
+      The syntax of a <code>.liq</code> file is as follows.
+    </p>
+
+    <p>
+      First, some settings. A setting is <code>set name = value</code>.
+      <code>name</code> is a variable name, <code>value</code> can
+      be <code>int</code>, <code>bool</code>, <code>string</code> or
+      <code>string list</code>.
+      <code>value</code> can be a <code>bool</code>,
+      <code>int</code>, <code>float</code>,
+      <code>string</code> or <code>string list</code>.
+      Arbitrary lists are unavailable.
+      This restriction is because
+      these settings are just a wrapper around <code>dtools</code> settings,
+      it's actually not liquidsoap programming language.
+      It may help to read more about <a href="#dtools">dtools</a>.
+    </p>
+
+    <p>
+    After the settings, a source. It may be built using many nested operators.
+    It is possible to use a <code>let</code> binding for convenience:
+    <code>let v = s in body</code> defines a source <code>v</code>,
+    which can be used in the definition of the source <code>body</code>.
+    For example: <code>let b = blank in fallback [ telnet ; b ]</code>
+    is the same as <code>fallback [ telnet ; blank ]</code>, which plays
+    user requests, or silence.
+    </p>
+
+    <h2 id="dtools">Dtools settings files</h2>
+
+    <p>
+    Liquidsoap uses <code>ocaml-dtools</code> for logging, and can also
+    read dtools settings files. It is a good idea if you have many liquidsoap 
+    scripts in which many settings are the same.
+    If you want to use RTP streaming with liquidsoap, you will also need
+    to use soaptube, which configuration is only read from dtools settings 
+    files.
+    So here are the basics about dtools files. Details about soaptube follow.
+    </p><p>
+    Empty lines and lines beginning with <code>#</code> are ignored.
+    Not even a blank is allowed before <code>#</code>.
+    Other lines should follow the syntax <code>TYPE NAME : VALUE</code>.
+    <code>NAME</code> can basically be made of <code>[a-zA-Z0-9._-]</code>.
+    The number of blanks (spaces or tabs) doesn't matter between 
+    <code>TYPE</code> and <code>NAME</code>, and between <code>NAME</code> and
+    <code>:</code>.
+    </p><p>
+    Available data types are <code>bool</code>, <code>int</code>, 
+    <code>float</code>, <code>string</code> and <code>list</code> which stands 
+    for list of strings.
+    You shall not use quotes for strings, and <code>:</code> is the separator
+    for lists.
+    Here's a little example of how to use them:
+    </p>
+    <div class="verbatim">
+bool   example         :true
+int    ultimate.answer :42
+float  pi              :3.14
+string project.name    :liquidsoap
+
+# The following list has three items.
+# List items are always strings.
+list   names           :foo:bar:baz
+    </div>
+
+    <h2 id="soaptube">Soaptube settings</h2>
+
+    <p>
+    Soaptube setup is done using a dtools file.
+    First, you've got to specify the address and port of the RTP stream.
+    For that, define <code>string rtp.address</code> and <code>int 
+      rtp.port</code>. Then you have to setup an output.
+    Unlike liquidsoap, soaptube has a single output.
+    The name of the output is read in <code>string output</code>, which
+    defaults to <code>"output"</code>.
+    Then, the output is launched using the same convention as liquidsoap.
+    List of outputs can be found <a href="info.html">here</a>,
+    output settings can be found <a href="settings.html">there</a>.
+    </p>
+
+    <div class="verbatim">
+# An example, which is equivalent to the empty setting,
+# since icecast (equivalent to icecast2) is the default type,
+# and the default icecast host is localhost...
+string output.type   :icecast
+string output.host   :localhost
+</div>
+<p>An other one, where you can switch easily between high and low bitrate,
+by changing <code>output</code>'s value.</p>
+<div class="verbatim">
+# string output       :high
+string output         :low
+
+int low.bitrate       :32
+int low.sample_freq   :22050
+
+int high.bitrate      :128
+int high.sample_freq  :44100
+    </div>
+
+    <h2 id="typechecking">Type checking</h2>
+
+    <p>
+      <code>liquidsoap</code>
+      can perform two kinds of checkings on a scheduler.
+    </p>
+
+    <h3>Fallibility</h3>
+
+    <p>
+      A scheduler is infallible if it will be always
+      available : it will always be able to fill some frames.
+      Otherwise, it is fallible.
+    </p>
+
+    <p>
+      For example <code>request []</code> is not available when
+      there is no user request, so it is fallible. 
+      But <code>local_playlist ["my.pls"]</code>
+      is always available if <code>my.pls</code> is a valid filename
+      containing a playlist of valid local files. In that case it is
+      infallible.
+    </p>
+
+    <p>
+      Use <code>liquidsoap --check --liveness-check -i my.liq</code>.
+      You should really pay attention to those warnings.
+    </p>
+      
+    <h3>Safety</h3>
+    
+    <p>
+      We saw that the scheduler was a DAG. The problem with this is that
+      a source must never be used by two different operators at the same
+      time. <code>liquidsoap</code> tries to detect such conflicts,
+      and warns you when there is a possible one.
+    </p>
+      
+    <p>
+      To fix the ideas, <code>add [] [src;src]</code> is unsafe.
+      And <code>add [] [date_switch ["12-23h"] [src] ; 
+	date_switch ["0-11h"] [src]]</code>
+      is safe.
+    </p>
+
+    <p>
+      When <code>liquidsoap</code> points out a possible conflict,
+      it prints a warning : the first example would result in
+      <code>Source 'src' is unsafe !</code>. That means that
+      you should look for two operators that could possibly
+      use at the same time your source named <code>src</code>.
+    </p>
+
+    <p>
+      Use <code>liquidsoap --check --safety-check -i my.liq</code>.
+      If there is no warning, no problem. Otherwise, you should check
+      you program again, but if you really think it's ok, you are
+      probably true.
+    </p>
+
+    <h2 id="doityourself">Other docs &amp; references</h2>
+
+    <p>
+      I hope all you need now is a reference of
+      expected <a href="settings.html">settings</a> and available
+      <a href="lang.html">operators</a> and <a href="info.html">features</a>.
+      These files contain information which is kept up to date in the
+      source code of liquidsoap and automatically extracted
+      using <code>make doc</code>.
+    </p>
+
+    <p>
+      We are also building a <a href="troubles.html">FAQ</a>,
+      please take a look if you are in trouble.
+    </p>
+
+    <h2 id="dev">Developers</h2>
+
+    <p>
+    Little information is autogenerated from the sources.
+    If your installation of liquidsoap includes the developer's doc,
+    then it's <a href="../api/index.html">there</a>.
+    If you haven't installed the doc, but generated it using
+    <code>make doc</code>, then it's <a 
+      href="../../autodoc/liquidsoap/index.html">there</a>.
+    </p><p>
+    I'd like to have external developers
+    contributing plugins for sources, operators or protocols, so I plan
+    to write a little about this later. However, I hope that taking a look
+    at liquidsoap's sources can give a good idea of how to do it, it's
+    quite simple. Adding a file and an entry in <code>src/Makefile</code>
+    is usually enough.
+    </p>
+
+    <h2 id="contact">Contact</h2>
+
+    <p>Feel free to mail <a 
+      href="mailto:savonet-users@lists.sourceforge.net">savonet-users</a> for 
+    any question.</p>
+
+  </body>
+</html>

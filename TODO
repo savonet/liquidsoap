@@ -1,0 +1,29 @@
+
+  Core features:
+  ==============
+
+  * logrotate, re-read conf files
+  * Automatic format detection (MP3, OGG, ...)
+  * Check WAV handling, add support for incorrect WAV format.
+  * MIME-like metadatas user-set (x-nickname, x-comment, ...)
+  * Put a metadata for resolving status (todo, failed, done)
+  * Dynamic download time evaluation for queues.
+    Deal with big files download, which currently leads to timeout.
+
+  Plugins:
+  ========
+
+  * Strider could be activated, if ocaml-mysql wasn't blocking
+  * Add fading to the add operator.
+  * Permissions would allow admin requests, which could nearly replace live.
+  * Source : on-the-fly download (mainly for http) (for live and relay)
+  * A fair scheduler for user requests.
+  * Encoding in mp3 format.
+  * Binary clock.
+  * Long requests: as long as there is no request, and not much than an hour
+    long for example, play an user-requested playlist.
+
+ Documentation :
+ ===============
+
+  * Howto extend formats and protocols. And what are they ?

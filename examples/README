@@ -1,0 +1,8 @@
+
+Here are some examples of how to run liquidsoap:
+
+* unsafe.liq: example of unsafe scheduler.
+* fallible.liq: example of fallible scheduler.
+* radio.liq is an example of good radio program, easy to adapt and test.
+* geek.liq is a complex full-featured example for the curious hackers.
+

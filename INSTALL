@@ -1,0 +1,49 @@
+
+ Liquidsoap 0.2.0
+ ----------------
+
+ Dependencies :
+   mandatory:     ocaml-dtools>=0.1.1
+                  ocaml-shout>=0.2.0
+                  ocaml-vorbis>=0.2.0
+   optional:      ocaml-mad>=0.1.3         for MP3 support
+                  ocaml-mp3id3>=0.2.0      for MP3 support
+                  ocaml-fetch>=0.1.0       for remote file access
+                  libortp>=1.0.0           for RTP streaming
+                  festival, sox, normalize for speech synthesis
+   experimental:  ocaml-mysql, strider, savonet
+
+ How to install
+ --------------
+
+ % ./configure
+
+ For the speech synthesis, a "liquidtts" script will be installed.
+ It makes use of text2wave (from festival) if found. Otherwise, it uses
+ false as a synthetizer, and you can edit it.
+ sox and normalize are also used in liquitts if installed.
+
+ % make
+
+ Then, you may proceed to the installation. You may need to be root for that.
+ Also, user and group liquidsoap should be created prior to installation.
+ If you want to use other user/groups, please edit Makefile.defs.
+
+ % make install (as root if needed)
+
+ Installation does not include installation of doc, which is put
+ into $datadir/doc/$DISTDIR using:
+
+ % make install-doc
+
+ For installing developers documention, run:
+
+ % make api-install-doc
+
+ Then if you want services to be installed in $prefix/etc/init.d, run one of
+ the following. service is for a generic /bin/sh service, gentoo is for
+ a gentoo compliant service, to be used iff you've a gentoo linux.
+
+ % make (service|gentoo)-install
+
+ See /doc for understanding radio programming. I hope you'll have fun.

@@ -1,0 +1,79 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH LIQUIDSOAP 1 "April 18, 2005" "Liquidsoap 0.1.2"
+
+
+.SH NAME
+liquidsoap \- programmable audio stream generator
+.\"
+.SH SYNOPSIS
+.B liquidsoap
+.RI [ option ... ]
+.RI [ script ]
+.\"
+.SH DESCRIPTION
+.B liquidsoap
+is an extensible and programmable audio stream generator, mainly used for 
+streaming to a shoutcast/icecast server. It is also possible to output in a 
+file, or as a CD quality WAV RTP stream,
+which can then be relayed using
+.BR soaptube (1).
+.BR liquidsoap
+can perform any audio processing, mixing streams together, applying filters, 
+generating sound procedurally, there is no limit but your imagination.
+Input files can be accessed through the network, using samba, ftp or speech 
+synthesis. Recognized formats are mp3, vorbis, and wav.
+The system features lots of programming operators, including user requests,
+time-based selection, sum.
+Many of these features are optional, so it is possible that they are 
+not enabled in your installation.
+
+.I script
+is a
+.B liquidsoap
+script containing the settings and the scheduler definition.
+When not specified, script is expected on standard input.
+See
+.B HTML
+documentation to learn about
+.B liquidsoap
+scripts.
+.\"
+.SH OPTIONS
+.TP
+.B \-d, \-\-daemon
+Run in daemon mode.
+.TP
+.B \-c, \-\-check
+Only check the syntax of the script.
+It actually creates the scheduler, which includes
+checking a few URIs for example.
+.TP
+.B \-a, \-\-liveness\-check
+Check the scheduler liveness.
+.TP
+.B \-s, \-\-safety\-check
+Check the scheduler safety.
+.TP
+.B \-\-list\-plugins
+List all protocols, operators formats, metadata resolvers, outputs.
+Output is XML.
+.TP
+.B \-\-list\-plugins-human
+List all protocols, operators formats, metadata resolvers, outputs.
+Output is human-readable.
+.TP
+.BI \-l,\ \-\-load\-conf\-file " file"
+Specify the path of a dtools configuration file. Mainly used for system-wide 
+configuration. The stream-specific settings should be in the script.
+.TP
+.B \-help, \-\-help
+Show summary of options.
+.\"
+.SH SEE ALSO
+.BR soaptube (1),
+.BR HTML
+documentations for scripting tutorial, troubleshooting,
+settings and programming reference.
+.\"
+.SH AUTHOR
+David Baelde for Savonet <savonet-users@lists.sourceforge.net>

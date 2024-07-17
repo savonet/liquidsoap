@@ -1,0 +1,57 @@
+#!/bin/sh
+
+user=liquidsoap
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+confdir=@sysconfdir@/liquidsoap
+liquidsoap=@bindir@/liquidsoap
+logdir=@localstatedir@/log/liquidsoap
+rundir=@localstatedir@/run/liquidsoap
+
+case "$1" in
+    stop)
+        echo -n "Stopping channels(s) "
+        cd ${rundir}
+        if [ -f *.pid ] ; then
+          for liq in *.pid ; do
+            kill `cat $liq`
+            rm $liq
+          done
+        fi
+        echo "..."
+        ;;
+
+    start)
+        echo "Starting channels:"
+	cd $confdir
+        if [ -f *.liq ] ; then
+          for liq in *.liq ; do
+
+            echo -n " * Starting $liq..."
+            log=${liq%.liq}.log
+            if [ -f $logdir/$log ]; then
+              mv $logdir/$log $logdir/$log.$(date +%y-%m-%d.%H-%M-%S)
+            fi
+            if sudo -u $user $liquidsoap -c ${confdir}/$liq ; then
+              sudo -u $user $liquidsoap -d \
+              ${confdir}/$liq > $logdir/${log}.1 2> $logdir/${log}.2 &
+            fi
+            echo " OK."
+
+          done
+        fi
+        ;;
+
+  restart)
+        echo "Restarting channel(s) ..."
+        $0 stop
+	echo "Sleeping 5 seconds ..."
+	sleep 5
+        $0 start
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac

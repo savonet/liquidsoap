@@ -1,0 +1,242 @@
+<html>
+<head>
+ <link rel="stylesheet" title="default" href="css/default_autodoc.css" />
+</head>
+<body id="ad-body"><div id="main">
+<div class="section">
+ <div class="section-id">Delay</div>
+ <div class="par">
+  Prevents the child from being ready again too fast after a end of track
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">The source won't be ready less than this amount of seconds after any end of track</div>
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">arg_2</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Add_w</div>
+ <div class="par">
+  Sums its children, with customizable renormalization
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">(source*int) list</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Given [ ... ; (s_i,w_i) ; ... ], the source s_i will have amplitude w_i/(sum w_j) in the sum</div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Add</div>
+ <div class="par">
+  Sums its children, with renormalization
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source list</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Date_switch</div>
+ <div class="par">
+  {date_switch [I1,S1;I2,S2;..]} At the beginning of a track, selects the first source Si such than the temporal predicate Ii is true.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">(string*source) list</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Sources with the interval when they should be played</div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Telnet</div>
+ <div class="par">
+  Launches a server that performs many commands. Among them, clients can make some requests.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">port</span>
+   <span class="item-head-right">1234</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Local_playlist</div>
+ <div class="par">
+  Loops on a playlist of local files, and never fails. In order to do so, it has to check every file at the loading, so the streamer startup may take a few seconds. To avoid this, use a standard playlist, and put only a few local files in a default local_playlist in order to ensure the liveness of the streamer.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">URI where to find the playlist</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">reload_mode</span>
+   <span class="item-head-right">&quot;never&quot;</span>
+  </div><div class="item-body">never|rounds|seconds: never reload, reload every 'reload' rounds or 'reload' seconds</div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">reload</span>
+   <span class="item-head-right">69</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">mode</span>
+   <span class="item-head-right">&quot;randomize&quot;</span>
+  </div><div class="item-body">normal|random|randomize</div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Random</div>
+ <div class="par">
+  At the beginning of every track, selects a random ready child.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source list</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">One_file</div>
+ <div class="par">
+  Loops on a request. It never fails if the request is static, meaning that it can be fetched once. Typically, http, ftp, say requests are static, and time is not.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">URI where to find the file</div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Sine</div>
+ <div class="par">
+  Plays a boring sine...
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Frequency of the sine</div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Filter</div>
+ <div class="par">
+  performs some filtering of the signal
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">freq</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">q</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">mode</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">low|high|band|notch</div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Fade</div>
+</div>
+<div class="section">
+ <div class="section-id">Playlist</div>
+ <div class="par">
+  Loops on a playlist of URIs.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">URI where to find the playlist</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">reload_mode</span>
+   <span class="item-head-right">&quot;never&quot;</span>
+  </div><div class="item-body">never|rounds|seconds: never reload, reload every 'reload' rounds or 'reload' seconds</div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">reload</span>
+   <span class="item-head-right">69</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">mode</span>
+   <span class="item-head-right">&quot;randomize&quot;</span>
+  </div><div class="item-body">normal|random|randomize</div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Random_w</div>
+ <div class="par">
+  Same as random, but choice is no more equiprobable
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">(source*int) list</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Given [ ... ; (s_i,w_i) ; ... ], the source s_i will be chosen with probability w_i/(sum w_j)</div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Change_volume</div>
+ <div class="par">
+  Changes the amplitude of the signal
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">multiplicative factor</div>
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">arg_2</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Say_metadatas</div>
+ <div class="par">
+  Pronounces the title/author/... after a track.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">pattern</span>
+   <span class="item-head-right">&quot;say:lauren/@artist(It was @artist@title(, @title))&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Blank</div>
+ <div class="par">
+  This source is not very noisy :)
+ </div>
+</div>
+<div class="section">
+ <div class="section-id">Fallback</div>
+ <div class="par">
+  Selects its first ready child
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source list</span> <span class="name">arg_1</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">I will select the first ready source in this list</div>
+ </div>
+</div>

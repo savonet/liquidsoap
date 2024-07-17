@@ -1,0 +1,48 @@
+
+#ad-body { background: #F0F0F0 }
+
+/* Menu */
+
+#menu
+{ position: fixed ;
+  padding-right: 20pt ;
+  padding-left: 20pt ;
+  height: 100% ; width: 100pt }
+#menu ul { list-style: none ; padding-left: 0px }
+#menu a { text-decoration: none }
+#menu-head { margin-top: 2cm ; font-weight: bold }
+
+/* Main div */
+
+#main
+{ position: absolute ;
+  left: 160pt ; right: 0pt ; top: 2cm ;
+  padding-right: 1cm }
+
+/* A section in the settings */
+
+.section
+{ margin-top: 1cm }
+
+.section-id
+{ font-size: 2em }
+
+.item
+{ margin-left: .5cm ;
+  margin-top: .5cm ;
+  border-style: solid ;
+  border-width: 1px }
+
+.item-head
+{ position: relative ; /* In order to get the right-justified default value */
+  border-width: 1px ;
+  background: #D0D0D0 ; }
+
+.item-head-right
+{ text-align: right ;
+  display: block ; position: absolute ;
+  right: 0px ; top: 0px }
+
+.item-head .name { color: #03a }
+.item-head .type { color: #a30 }
+.item-head .root { color: #03a }

@@ -1,0 +1,42 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH SOAPTUBE 1 "April 18, 2005" "Soaptube 0.1.2"
+
+
+.SH NAME
+soaptube \- RTP relay
+.\"
+.SH SYNOPSIS
+.B soaptube
+.RI [ option ... ]
+.\"
+.SH DESCRIPTION
+.B soaptube
+receives a CD quality WAV RTP stream, and relays it to different media,
+icecast2 server or mp3/vorbis files.
+It is intended to be used together with
+.BR liquidsoap (1),
+thus making it independent of output-related failures, like icecast2 crash,
+or network lag.
+.\"
+.SH OPTIONS
+.TP
+.B \-d, \-\-daemon
+Run in daemon mode.
+.TP
+.BI \-l,\ \-\-load\-conf\-file " file"
+Specify the settings file. See
+.B HTML
+documentation to learn about
+.B soaptube
+scripts.
+.TP
+.B \-help, \-\-help
+Show summary of options.
+.\"
+.SH SEE ALSO
+.BR liquidsoap (1),
+.BR HTML
+documentations for settings reference.
+.\"
+.SH AUTHOR
+David Baelde for Savonet <savonet-users@lists.sourceforge.net>

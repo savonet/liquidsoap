@@ -1,0 +1,58 @@
+#!/sbin/runscript
+
+user=liquidsoap
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+confdir=@sysconfdir@/liquidsoap
+liquidsoap=@bindir@/liquidsoap
+logdir=@localstatedir@/log/liquidsoap
+rundir=@localstatedir@/run/liquidsoap
+
+depend() {
+  after net
+}
+
+start() {
+  einfo "Starting channels..."
+  cd $confdir
+  if [ -f *.liq ] ; then
+    for liq in *.liq ; do
+
+      ebegin " $liq"
+      log=${liq%.liq}.log
+      if [ -f $logdir/$log ]; then
+        mv $logdir/$log $logdir/$log.$(date +%y-%m-%d.%H-%M-%S)
+      fi
+      if sudo -u $user $liquidsoap -c ${confdir}/$liq ; then
+        sudo -u $user $liquidsoap -d \
+          ${confdir}/$liq > $logdir/${log}.1 2> $logdir/${log}.2 &
+        eend 0
+      else
+        echo
+        eend 1
+      fi
+
+    done
+  fi
+}
+
+stop() {
+  ebegin "Stopping channels(s) "
+  cd ${rundir}
+  if [ -f *.pid ] ; then
+    for liq in *.pid ; do
+      kill `cat $liq`
+      rm $liq
+    done
+  fi
+  eend 0
+}
+
+
+restart() {
+  einfo "Restarting channel(s) ..."
+  svc_stop
+  einfo "Sleeping 5 seconds ..."
+  sleep 5
+  svc_start
+}

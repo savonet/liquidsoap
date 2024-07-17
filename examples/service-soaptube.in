@@ -1,0 +1,49 @@
+#!/bin/sh
+
+user=liquidsoap
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+confdir=@sysconfdir@/liquidsoap
+soaptube=@bindir@/soaptube
+logdir=@localstatedir@/log/liquidsoap
+rundir=@localstatedir@/run/liquidsoap
+
+case "$1" in
+    stop)
+        echo -n "Stopping relay(s) "
+        cd ${rundir}
+        if [ -f *.out.pid ] ; then
+          for liq in *.out.pid ; do
+            kill `cat $liq`
+            rm $liq
+          done
+        fi
+        echo "..."
+        ;;
+
+    start)
+	echo "Starting soaptubes:"
+	cd $confdir
+        if [ -f *.out.conf ] ; then
+          for out in *.out.conf ; do
+            log=${out%.conf}.log
+            echo -n " * Starting relay $out..."
+            sudo -u $user $soaptube -d -l ${confdir}/$out \
+            > $logdir/${log}.1 2> $logdir/${log}.2 &
+            echo " OK."
+          done
+        fi
+        ;;
+
+  restart)
+        $0 stop
+	echo Sleeping 3 seconds...
+	sleep 3
+        $0 start
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac

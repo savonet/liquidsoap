@@ -1,0 +1,45 @@
+
+open Mixer
+
+let random () =
+  let ab = Mixer.Buffer.create () in
+  let s = Mixer.Buffer.to_string ab in
+    for i = 0 to Mixer.Buffer.size - 1 do
+      s.[i] <- char_of_int (Random.int 256)
+    done ;
+    ab
+
+let once () =
+  let ab = random () in
+  let abb = random () in
+  let abs = random () in
+    Mixer.Buffer.set_already ab Mixer.Buffer.size ;
+    Mixer.Buffer.blankify abb ;
+    ignore (Mixer.Buffer.sine abs 0 Mixer.Buffer.size 440 0.) ;
+
+    Mixer.Buffer.change_volume ab 0 Mixer.Buffer.size 0.3 ;
+    Mixer.Buffer.simple_filter abs 0 Mixer.Buffer.size 446 0.69 Mixer.Low_pass ;
+    Mixer.Buffer.add abs 0 abb 0 Mixer.Buffer.size ;
+    Mixer.Buffer.add ab 0 abs 0 Mixer.Buffer.size ;
+
+    let b = Mixer.Generator.create () in
+      Mixer.Generator.feed b
+        { channels = 2 ;
+          sample_freq = 22050 ;
+          sample_size = 8 ;
+          big_endian = true ;
+          signed = false } (Mixer.Buffer.to_string ab) ;
+      Mixer.Generator.feed b
+        { channels = 1 ;
+          sample_freq = 44100 ;
+          sample_size = 32 ;
+          big_endian = true ;
+          signed = false } (Mixer.Buffer.to_string ab) ;
+      Mixer.Buffer.free abb ;
+      Mixer.Buffer.fill abb b
+
+let _ =
+  for i = 1 to 5 do
+    once () ;
+    Gc.full_major ()
+  done ;

@@ -1,0 +1,45 @@
+#!/bin/sh
+
+user=geek
+liquidsoap=/usr/local/bin/liquidsoap
+logdir=/var/log/liquidsoap
+piddir=/var/run/liquidsoap
+
+case "$1" in
+    stop)
+        echo -n "Stopping channels(s)..."
+	for pid in /var/run/liquidsoap/*.pid ; do
+	    /sbin/start-stop-daemon -u $user --stop --pidfile $pid && \
+		rm $pid
+	done
+        echo " OK."
+        ;;
+
+    start)
+        echo "Starting channels:"
+	cd /etc/liquidsoap
+	for liq in *.liq ; do
+	    echo -n " * Starting $liq..."
+	    log=${liq%.liq}.log
+	    mv $logdir/$log $logdir/$log.$(date +%y-%m-%d.%H-%M-%S)
+	    sudo -u $user \
+		$liquidsoap \
+		-i /etc/liquidsoap/$liq \
+		>> $logdir/log.1 2>> $logdir/log.2
+	    echo " OK."
+	done
+	echo "Done."
+        ;;
+
+  restart)
+        $0 stop
+	echo "Sleeping a while: 5 seconds..."
+	sleep 5
+        $0 start
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac

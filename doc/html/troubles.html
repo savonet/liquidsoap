@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" type="text/css" href="css/default_article.css" />
+  <title>Troubleshooting</title>
+</head>
+<body id="a-body">
+
+   <h1>Troubleshooting</h1>
+
+   <p>
+     If you don't find your answer here, which is likely,
+     please email us at
+     <a href="mailto:savonet-users@lists.sourceforge.net">savonet-users</a>.
+     We are waiting for your questions, and will update this file
+     quickly.
+   </p>
+
+   <h3>Parse error</h3>
+
+   <p>
+    The parser is not very smart and currently requires you to
+    put many many parenthesis, around products and list elements.
+    When it is lost, the error message is not very informative.
+    Think about adding extra parenthesis, maybe you forgot some.
+   </p>
+
+   <p>
+    For example, we need you to write
+    <code>[ (op "foo") ; (op "bar") ]</code> <b>with</b> the parenthesis.
+    It is planned to work on that annoying stupidity.
+   </p>
+
+   <h3>Scheduler died !</h3>
+
+   <p>
+    Check the liveness of your scheduler. Maybe it just lacks a
+    source that can always deliver frames. <code>local_playlist</code>,
+    or <code>one_file</code> with a local file are perfect for that.
+    Common error: maybe you want to play a local playlist but you use it
+    via a <code>playlist</code> source ? Try <code>local_playlist</code> !
+   </p>
+
+   <p>
+    Unfortunately, this is also the most common serious bug in liquidsoap.
+    So if you still don't understand why it happens, please contact me.
+   </p>
+
+   <h3>Strange source name</h3>
+
+   <p>
+    You may see in requests metadatas a field <code>source</code> set to
+    something like <code>(nobody.110)</code>.
+    It should only happen if the request was created at the creation of
+    the source, before that the parser gives a name to the source.
+    I think it only happens for the infallible <code>one_file</code>,
+    which happens when the URI is static.
+    If you discover any other case, please tell me.
+   </p>
+
+   <h3>My scheduling intervals are misinterpreted</h3>
+
+   <p>
+   When you write <code>0-1h</code> it means
+   "from midnight until 2:00". It should be
+   read as "as long as the hour digit is between 0 and 1".
+   </p>
+
+</body>
+</html>
