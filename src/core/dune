@@ -433,6 +433,14 @@
  (modules graphics_out))
 
 (library
+ (name liquidsoap_canvas)
+ (libraries ocaml-canvas liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules canvas_out))
+
+(library
  (name liquidsoap_gstreamer)
  (libraries gstreamer liquidsoap_core)
  (library_flags -linkall)
@@ -734,6 +742,7 @@
   bjack_option
   builtins_optionals
   camlimages_option
+  canvas_option
   dssi_option
   faad_option
   fdkaac_option
@@ -846,6 +855,11 @@
    from
    (liquidsoap_graphics -> graphics_option.enabled.ml)
    (-> graphics_option.disabled.ml))
+  (select
+   canvas_option.ml
+   from
+   (liquidsoap_canvas -> canvas_option.enabled.ml)
+   (-> canvas_option.disabled.ml))
   (select
    gstreamer_option.ml
    from

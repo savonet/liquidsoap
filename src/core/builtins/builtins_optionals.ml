@@ -15,6 +15,7 @@ let () =
       ("ao", Ao_option.enabled);
       ("bjack", Bjack_option.enabled);
       ("camlimages", Camlimages_option.enabled);
+      ("canvas", Canvas_option.enabled);
       ("dssi", Dssi_option.enabled);
       ("faad", Faad_option.enabled);
       ("fdkaac", Fdkaac_option.enabled);

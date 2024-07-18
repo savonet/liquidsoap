@@ -87,6 +87,7 @@
     lo
     mad
     memtrace
+    ocaml-canvas
     ogg
     opus
     osc-unix

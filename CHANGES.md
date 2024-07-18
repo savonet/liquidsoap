@@ -238,6 +238,7 @@ New:
 - Added syntactic sugar for record spread: `let {foo, gni, ..y} = x`
   and `y = { foo = 123, gni = "aabb", ...x}` (#2737)
 - Added `file.{copy, move}` (#2771)
+- Add support for canvas video output (#2789).
 - Detect functions defining multiple arguments with the same label (#2823).
 - Added `null.map`.
 - References of type `'a` are now objects of type `(()->'a).{set : ('a) -> unit}`. This means that you should use `x()` instead of `!x` in order to get
