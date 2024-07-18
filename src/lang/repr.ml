@@ -169,7 +169,6 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | String -> `Constr ("string", [])
         | Bool -> `Constr ("bool", [])
         | Never -> `Constr ("never", [])
-        | Typeof _ -> `Constr ("typeof <var>", [])
         | Custom c -> c.repr repr g c.typ
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
@@ -196,6 +195,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
+        | Var { contents = Typeof t } -> repr g (Lazy.force t)
         | Var { contents = Free var } ->
             if List.exists (Var.eq var) g then uvar g var else evar var
         | Var { contents = Link (`Covariant, t) } when !debug || !debug_variance

@@ -113,15 +113,14 @@ let rec mk_parsed_ty ?pos ~env ~to_term = function
   | `Invoke (t, s) -> snd (Type.invoke (mk_parsed_ty ?pos ~env ~to_term t) s)
   | `Typeof v ->
       let v = to_term v in
-      Type.make
+      Type.typeof
         ?pos:(Option.map Pos.of_lexing_pos pos)
-        (Type.Typeof
-           (Lazy.from_fun (fun () ->
-                let env = List.map (fun (lbl, { t }) -> (lbl, ([], t))) env in
-                let env = env @ Environment.default_typing_environment () in
-                let check = !typecheck in
-                check ~env v;
-                v.t)))
+        (Lazy.from_fun (fun () ->
+             let env = List.map (fun (lbl, { t }) -> (lbl, ([], t))) env in
+             let env = env @ Environment.default_typing_environment () in
+             let check = !typecheck in
+             check ~env v;
+             v.t))
   | `Source (s, p) -> mk_source_ty ?pos s p
 
 and mk_meth_ty ?pos ~env ~to_term base

@@ -100,6 +100,7 @@ and var = {
 
 and invar =
   | Free of var  (** the variable is free *)
+  | Typeof of t Lazy.t
   | Link of variance * t  (** the variable has bee substituted *)
 
 (** A type scheme (i.e. a type with universally quantified variables). *)
@@ -136,7 +137,6 @@ and descr =
   | Float
   | Bool
   | Never
-  | Typeof of t Lazy.t
   | Custom of custom_handler
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)
@@ -195,7 +195,7 @@ let make ?pos d = { pos; descr = d }
 let rec deref t =
   match t.descr with
     | Var { contents = Link (_, t) } -> deref t
-    | Typeof t -> Lazy.force t
+    | Var { contents = Typeof t } -> deref (Lazy.force t)
     | _ -> t
 
 (** Remove methods. This function also removes links. *)
@@ -278,6 +278,8 @@ let var ?(constraints = []) ?(level = max_int) ?pos () =
   make ?pos
     (Var { id = var_id (); contents = Free { name; level; constraints } })
 
+let typeof ?pos v = make ?pos (Var { id = var_id (); contents = Typeof v })
+
 module Fresh = struct
   type mapper = {
     level : int option;
@@ -314,7 +316,6 @@ module Fresh = struct
       | String -> String
       | Bool -> Bool
       | Never -> Never
-      | Typeof t -> Typeof (Lazy.from_fun (fun () -> map (Lazy.force t)))
       | Custom c -> Custom { c with typ = c.copy_with map c.typ }
       | Constr { constructor; params } ->
           Constr
@@ -335,6 +336,12 @@ module Fresh = struct
               map t' )
       | Arrow (args, t) ->
           Arrow (List.map (fun (b, s, t) -> (b, s, map t)) args, map t)
+      | Var { contents = Typeof t } ->
+          Var
+            {
+              id = var_id ();
+              contents = Typeof (Lazy.from_fun (fun () -> map (Lazy.force t)));
+            }
       (* Here we keep all links. While it could be tempting to deref,
          we are using links to compute type supremum in type unification
          so we are better off keeping them. Also, we need to create fresh

@@ -80,7 +80,6 @@ let filter_vars f t =
     match t.descr with
       | Int | Float | String | Bool | Never -> l
       | Custom c -> c.filter_vars aux l c.typ
-      | Typeof t -> aux l (Lazy.force t)
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
@@ -91,7 +90,7 @@ let filter_vars f t =
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | Var { contents = Free var } ->
           if f var && not (List.exists (Var.eq var) l) then var :: l else l
-      | Var { contents = Link _ } -> assert false
+      | Var { contents = Typeof _ } | Var { contents = Link _ } -> assert false
   in
   aux [] t
 
@@ -129,7 +128,6 @@ let occur_check (a : var) =
     | { descr = Bool }
     | { descr = Never } ->
         ()
-    | { descr = Typeof t } -> occur_check (Lazy.force t)
     | { descr = Constr c } -> List.iter (fun (_, x) -> occur_check x) c.params
     | { descr = Tuple l } -> List.iter occur_check l
     | { descr = Getter t } -> occur_check t
@@ -149,6 +147,7 @@ let occur_check (a : var) =
     | { descr = Var { contents = Free x } } as b ->
         if Type.Var.eq a x then raise (Occur_check (a, b));
         x.level <- min a.level x.level
+    | { descr = Var { contents = Typeof t } } -> occur_check (Lazy.force t)
     | { descr = Var { contents = Link (_, b) } } -> occur_check b
   in
   occur_check
@@ -394,8 +393,6 @@ and ( <: ) a b =
   if a != b then (
     match (a.descr, b.descr) with
       | a, b when a == b -> ()
-      | Typeof a, _ -> Lazy.force a <: b
-      | _, Typeof b -> a <: Lazy.force b
       | Var { contents = Free v }, Var { contents = Free v' } when Var.eq v v'
         ->
           ()

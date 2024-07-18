@@ -44,7 +44,11 @@ type custom_handler = Type_base.custom_handler = {
   to_string : custom -> string;
 }
 
-type invar = Type_base.invar = Free of var | Link of variance * t
+type invar = Type_base.invar =
+  | Free of var
+  | Typeof of t Lazy.t
+  | Link of variance * t
+
 type var_t = Type_base.var_t = { id : int; mutable contents : invar }
 
 type descr = Type_base.descr =
@@ -53,7 +57,6 @@ type descr = Type_base.descr =
   | Float
   | Bool
   | Never
-  | Typeof of t Lazy.t
   | Custom of custom_handler
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)
@@ -163,6 +166,7 @@ val meths : ?pos:Pos.t -> string list -> scheme -> t -> t
 val split_meths : t -> meth list * t
 val filter_meths : t -> (meth -> bool) -> t
 val var : ?constraints:constr list -> ?level:int -> ?pos:Pos.t -> unit -> t
+val typeof : ?pos:Pos.t -> t Lazy.t -> t
 val mk_invariant : t -> unit
 val to_string_fun : (?generalized:var list -> t -> string) ref
 val to_string : ?generalized:var list -> t -> string

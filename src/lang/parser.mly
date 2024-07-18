@@ -85,6 +85,7 @@ open Parser_helper
 %nonassoc COALESCE     (* (x ?? y) == z *)
 %right SET             (* expr := (expr + expr), expr := (expr := expr) *)
 %nonassoc QUESTION     (* x ? y : z *)
+%nonassoc TYPEOF (* typeof v? *)
 %left AND             (* ((x+(y*z))==3) or ((not a)==b) *)
 %left OR
 %left QUESTION_DOT
