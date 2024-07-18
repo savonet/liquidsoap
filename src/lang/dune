@@ -65,10 +65,12 @@
     (echo
      "  | _, _ when dune_sha_len <= version_len && dune_sha_len <= parsed_sha_len && String.sub parsed_sha 0 dune_sha_len = String.sub version (version_len - dune_sha_len) dune_sha_len -> None\n")
     (echo "  |  _, s -> Some s\n")
-    (echo "let git_sha = match Sys.getenv_opt \"LIQ_GIT_SHA\" with None -> git_sha | Some v -> Some v \n")
+    (echo
+     "let git_sha = match Sys.getenv_opt \"LIQ_GIT_SHA\" with None -> git_sha | Some v -> Some v \n")
     (echo
      "let version = version ^ (if not is_snapshot then \"\" else (match git_sha with None -> \"+dev\" | Some sha -> \"+git@\" ^ sha))\n")
-    (echo "let version = match Sys.getenv_opt \"LIQ_VERSION\" with None -> version | Some v -> v \n")
+    (echo
+     "let version = match Sys.getenv_opt \"LIQ_VERSION\" with None -> version | Some v -> v \n")
     (echo "let ext_exe = \"%{ocaml-config:ext_exe}\"\n")
     (echo "let architecture = \"%{ocaml-config:architecture}\"\n")
     (echo "let host = \"%{ocaml-config:host}\"\n")
@@ -93,7 +95,7 @@
   unix
   menhirLib
   (select
-    liqmemtrace.ml
+   liqmemtrace.ml
    from
    (memtrace -> liqmemtrace.memtrace.ml)
    (-> liqmemtrace.disabled.ml)))

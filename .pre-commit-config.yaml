@@ -19,13 +19,11 @@ repos:
 
       - id: check-merge-conflict
       - id: end-of-file-fixer
+        exclude: dune.inc
       - id: mixed-line-ending
+        exclude: dune.inc
       - id: trailing-whitespace
-
-  - repo: https://github.com/savonet/pre-commit-ocamlformat
-    rev: v1.0.0
-    hooks:
-      - id: ocamlformat
+        exclude: dune.inc
 
   - repo: https://github.com/savonet/pre-commit-liquidsoap
     rev: f7e72bb
@@ -58,3 +56,17 @@ repos:
         language: docker_image
         entry: koalaman/shellcheck --color=always
         types: [shell]
+
+      - id: dunefmt
+        name: dunefmt
+        language: system
+        entry: opam exec dune -- build @fmt --auto-promote
+        pass_filenames: false
+        always_run: true
+
+      - id: dunegen
+        name: dunegen
+        language: system
+        entry: opam exec dune -- build @gendune --auto-promote
+        pass_filenames: false
+        always_run: true
