@@ -342,11 +342,11 @@ jobs:
         run: |
           opam install --cli=2.1 --confirm-level=unsafe-yes .
       - name: Install ocamlformat
-        if: matrix.compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '4.14.x'
         run: |
           opam install ocamlformat=0.25.1
       - name: Run pre-commit
-        if: matrix.compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '4.14.x'
         uses: pre-commit/action@v3.0.0
 
   build_posix:
