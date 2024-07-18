@@ -1,6 +1,6 @@
 open Liquidsoap_lang
 
-let deprecated_features = [("GStreamer", Gstreamer_option.enabled)]
+let deprecated_features = []
 
 let build_config =
   let path_mode =
@@ -79,7 +79,6 @@ let build_config =
    - ALSA              : %{Alsa_option.detected}
    - AO                : %{Ao_option.detected}
    - FFmpeg            : %{Ffmpeg_option.detected}
-   - GStreamer         : %{Gstreamer_option.detected}
    - JACK              : %{Bjack_option.detected}
    - OSS               : %{Oss_option.detected}
    - Portaudio         : %{Portaudio_option.detected}
@@ -137,7 +136,6 @@ let opam_config =
 opam-version: "2.0"
 variables {
   ffmpeg-enabled: %{string_of_bool Ffmpeg_option.enabled}
-  gstreamer-enabled: %{string_of_bool Gstreamer_option.enabled}
   ssl-enabled: %{string_of_bool Ssl_option.enabled}
   tls-enabled: %{string_of_bool Tls_option.enabled}
 }

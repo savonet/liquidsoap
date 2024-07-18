@@ -46,6 +46,7 @@ RUN cd liquidsoap && \
 
 RUN make public && make update
 
+# TODO: Remove gstreamer from liquidsoap-full
 RUN cat PACKAGES.default | grep -v gstreamer > PACKAGES
 
 RUN eval "$(opam config env)" && \

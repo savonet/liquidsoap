@@ -55,6 +55,7 @@ opam install -y tls.0.17.4 saturn_lockfree.0.4.1 ppx_hash
 
 cd /tmp/liquidsoap-full
 
+# TODO: Remove gstreamer from liquidsoap-full
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig

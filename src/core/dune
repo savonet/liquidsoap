@@ -121,7 +121,6 @@
   gate
   generated
   generator
-  gstreamer_format
   harbor
   harbor_base
   harbor_input
@@ -144,7 +143,6 @@
   lang_external_encoder
   lang_fdkaac
   lang_flac
-  lang_gstreamer
   lang_mp3
   lang_ogg
   lang_opus
@@ -431,19 +429,6 @@
  (wrapped false)
  (optional)
  (modules graphics_out))
-
-(library
- (name liquidsoap_gstreamer)
- (libraries gstreamer liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules
-  gstreamer_decoder
-  video_text_gstreamer
-  gstreamer_encoder
-  gstreamer_io
-  gstreamer_utils))
 
 (library
  (name liquidsoap_irc)
@@ -743,7 +728,6 @@
   frei0r_option
   gd_option
   graphics_option
-  gstreamer_option
   imagelib_option
   inotify_option
   irc_option
@@ -846,11 +830,6 @@
    from
    (liquidsoap_graphics -> graphics_option.enabled.ml)
    (-> graphics_option.disabled.ml))
-  (select
-   gstreamer_option.ml
-   from
-   (liquidsoap_gstreamer -> gstreamer_option.enabled.ml)
-   (-> gstreamer_option.disabled.ml))
   (select
    inotify_option.ml
    from
