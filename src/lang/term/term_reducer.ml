@@ -118,6 +118,7 @@ let rec mk_parsed_ty ?pos ~env ~to_term = function
         (Type.Typeof
            (Lazy.from_fun (fun () ->
                 let env = List.map (fun (lbl, { t }) -> (lbl, ([], t))) env in
+                let env = env @ Environment.default_typing_environment () in
                 let check = !typecheck in
                 check ~env v;
                 v.t)))
