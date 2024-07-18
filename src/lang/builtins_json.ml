@@ -118,6 +118,7 @@ let rec value_of_typed_json ~ty json =
         | _ -> ()
     in
     match (json, ty.Type.descr) with
+      | _, Type.Typeof ty -> value_of_typed_json ~ty:(Lazy.force ty) json
       | `Assoc l, Type.Var _ | `Assoc l, Type.Tuple [] ->
           Typing.(ty <: Lang.unit_t);
           let meth =

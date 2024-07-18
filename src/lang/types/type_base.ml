@@ -193,7 +193,10 @@ let make ?pos d = { pos; descr = d }
     by instantiations. One should (almost) never work on a non-dereferenced
     type. *)
 let rec deref t =
-  match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
+  match t.descr with
+    | Var { contents = Link (_, t) } -> deref t
+    | Typeof t -> Lazy.force t
+    | _ -> t
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
