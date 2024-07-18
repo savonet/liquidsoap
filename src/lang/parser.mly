@@ -40,6 +40,7 @@ open Parser_helper
 %token <Parsed_term.time_el> TIME
 %token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
 %token <string> ENCODER
+%token TYPEOF
 %token EOF
 %token <Parser_helper.lexer_let_decoration> LET
 %token <Parser_helper.lexer_let_decoration> LETLBRA
@@ -293,6 +294,7 @@ ty:
   | LCUR record_ty RCUR          { `Record $2 }
   | ty DOT VAR                   { `Invoke ($1, $3) }
   | ty DOT LCUR record_ty RCUR   { `Method ($1, $4) }
+  | TYPEOF expr                  { `Typeof $2 }
   | ty_source                    { `Source $1 }
 
 record_ty:
@@ -301,15 +303,15 @@ record_ty:
   | meth_ty COMMA record_ty { $1::$3 }
 
 meth_ty:
-  | VAR COLON ty            { { optional = false; name = $1; typ = $3; json_name = None } }
-  | VAR QUESTION COLON ty   { { optional = true; name = $1; typ = $4; json_name = None } }
+  | VAR COLON ty            { { optional_meth = false; name = $1; typ = $3; json_name = None } }
+  | VAR QUESTION COLON ty   { { optional_meth = true; name = $1; typ = $4; json_name = None } }
   | STRING VAR VAR COLON ty {
        match $2 with
-         |"as" ->             { optional = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc $1) }
+         |"as" ->             { optional_meth = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc $1) }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
   | STRING VAR VAR QUESTION COLON ty {
        match $2 with
-         |"as" ->             { optional = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
+         |"as" ->             { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:

@@ -136,6 +136,7 @@ and descr =
   | Float
   | Bool
   | Never
+  | Typeof of t Lazy.t
   | Custom of custom_handler
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)
@@ -310,6 +311,7 @@ module Fresh = struct
       | String -> String
       | Bool -> Bool
       | Never -> Never
+      | Typeof t -> Typeof (Lazy.from_fun (fun () -> map (Lazy.force t)))
       | Custom c -> Custom { c with typ = c.copy_with map c.typ }
       | Constr { constructor; params } ->
           Constr

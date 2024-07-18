@@ -53,6 +53,7 @@ type descr = Type_base.descr =
   | Float
   | Bool
   | Never
+  | Typeof of t Lazy.t
   | Custom of custom_handler
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)

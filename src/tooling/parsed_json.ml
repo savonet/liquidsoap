@@ -152,11 +152,11 @@ and json_of_type_fun_arg (b, s, t) =
     ~extra:[("optional", `Bool b); ("label", `String s)]
     (json_of_type_annotation t)
 
-and json_of_meth_annotation { optional; name; typ; json_name } =
+and json_of_meth_annotation { optional_meth; name; typ; json_name } =
   type_node ~typ:"method_annotation"
     ~extra:
       [
-        ("optional", `Bool optional);
+        ("optional", `Bool optional_meth);
         ("name", `String name);
         ("json_name", match json_name with None -> `Null | Some n -> `String n);
       ]

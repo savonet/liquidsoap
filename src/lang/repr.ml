@@ -169,6 +169,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | String -> `Constr ("string", [])
         | Bool -> `Constr ("bool", [])
         | Never -> `Constr ("never", [])
+        | Typeof _ -> `Constr ("typeof <var>", [])
         | Custom c -> c.repr repr g c.typ
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
