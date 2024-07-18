@@ -2,7 +2,7 @@
 (rule
   (alias doc)
   (deps
-
+    
     (source_tree ../src/libs))
   (target protocols.md)
   (action
@@ -52,7 +52,7 @@
 (rule
   (alias doc)
   (deps
-
+    
     (source_tree ../src/libs))
   (target settings.md)
   (action

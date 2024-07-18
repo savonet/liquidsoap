@@ -29,7 +29,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} 195.liq liquidsoap %{test_liq} 195.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -60,7 +60,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} autostart.liq liquidsoap %{test_liq} autostart.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -91,7 +91,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross-override-end.liq liquidsoap %{test_liq} cross-override-end.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -122,7 +122,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross-override-start.liq liquidsoap %{test_liq} cross-override-start.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -153,7 +153,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross-override.liq liquidsoap %{test_liq} cross-override.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -184,7 +184,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross-persist-end-override.liq liquidsoap %{test_liq} cross-persist-end-override.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -215,7 +215,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross-persist-override.liq liquidsoap %{test_liq} cross-persist-override.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -246,7 +246,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross-persist-start-override.liq liquidsoap %{test_liq} cross-persist-start-override.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -277,7 +277,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross.liq liquidsoap %{test_liq} cross.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -308,7 +308,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} crossfade-plot.liq liquidsoap %{test_liq} crossfade-plot.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -339,7 +339,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} crossfade.liq liquidsoap %{test_liq} crossfade.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -370,7 +370,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} crossfade2.liq liquidsoap %{test_liq} crossfade2.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -401,7 +401,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} ctype1.liq liquidsoap %{test_liq} ctype1.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -432,7 +432,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} ctype2.liq liquidsoap %{test_liq} ctype2.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -463,7 +463,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cue-cut.liq liquidsoap %{test_liq} cue-cut.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -494,7 +494,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} dtmf.liq liquidsoap %{test_liq} dtmf.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -525,7 +525,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} dtmf_pcm_s16.liq liquidsoap %{test_liq} dtmf_pcm_s16.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -556,7 +556,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} fades-overrides.liq liquidsoap %{test_liq} fades-overrides.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -587,7 +587,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} fades-persistent-override.liq liquidsoap %{test_liq} fades-persistent-override.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -618,7 +618,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} ffmpeg-errors.liq liquidsoap %{test_liq} ffmpeg-errors.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -649,7 +649,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} ffmpeg-trim.liq liquidsoap %{test_liq} ffmpeg-trim.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -680,7 +680,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} file_output.liq liquidsoap %{test_liq} file_output.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -711,7 +711,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} harbor_kick_client.liq liquidsoap %{test_liq} harbor_kick_client.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -742,7 +742,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} harbor_metadata.liq liquidsoap %{test_liq} harbor_metadata.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -773,7 +773,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} hls_custom_tags.liq liquidsoap %{test_liq} hls_custom_tags.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -804,7 +804,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} hls_discontinuity.liq liquidsoap %{test_liq} hls_discontinuity.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -835,7 +835,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} hls_global_headers.liq liquidsoap %{test_liq} hls_global_headers.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -866,7 +866,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} hls_id3v2.liq liquidsoap %{test_liq} hls_id3v2.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -897,7 +897,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} hls_large_frame.liq liquidsoap %{test_liq} hls_large_frame.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -928,7 +928,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} hls_main_playlist.liq liquidsoap %{test_liq} hls_main_playlist.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -959,7 +959,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} huge-playlist.liq liquidsoap %{test_liq} huge-playlist.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -990,7 +990,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} image.liq liquidsoap %{test_liq} image.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1021,7 +1021,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} many-playlists.liq liquidsoap %{test_liq} many-playlists.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1052,7 +1052,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} merge_metadata.liq liquidsoap %{test_liq} merge_metadata.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1083,7 +1083,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} metadata-override.liq liquidsoap %{test_liq} metadata-override.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1114,7 +1114,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} never.liq liquidsoap %{test_liq} never.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1145,7 +1145,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} no-cue-cut.liq liquidsoap %{test_liq} no-cue-cut.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1176,7 +1176,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} non_repeating.liq liquidsoap %{test_liq} non_repeating.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1207,7 +1207,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} on_frame.liq liquidsoap %{test_liq} on_frame.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1238,7 +1238,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} on_metadata.liq liquidsoap %{test_liq} on_metadata.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1269,7 +1269,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} on_track.liq liquidsoap %{test_liq} on_track.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1300,7 +1300,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} playlist-watch.liq liquidsoap %{test_liq} playlist-watch.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1331,7 +1331,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} radio.liq liquidsoap %{test_liq} radio.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1362,7 +1362,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} radio2.liq liquidsoap %{test_liq} radio2.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1393,7 +1393,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} random.liq liquidsoap %{test_liq} random.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1424,7 +1424,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1455,7 +1455,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} request.liq liquidsoap %{test_liq} request.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1486,7 +1486,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} rotate.liq liquidsoap %{test_liq} rotate.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1517,7 +1517,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} say.liq liquidsoap %{test_liq} say.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1548,7 +1548,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} sharing.liq liquidsoap %{test_liq} sharing.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1579,7 +1579,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} sine.detect.full_conv.liq liquidsoap %{test_liq} sine.detect.full_conv.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1610,7 +1610,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} sine.detect.liq liquidsoap %{test_liq} sine.detect.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1641,7 +1641,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} sine.detect.pcm_f32.liq liquidsoap %{test_liq} sine.detect.pcm_f32.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1672,7 +1672,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} sine.detect.pcm_s16.liq liquidsoap %{test_liq} sine.detect.pcm_s16.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1703,7 +1703,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} soundtouch-tracks.liq liquidsoap %{test_liq} soundtouch-tracks.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1734,7 +1734,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} source-cue.liq liquidsoap %{test_liq} source-cue.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1765,7 +1765,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} srt_listen_callback.liq liquidsoap %{test_liq} srt_listen_callback.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1796,7 +1796,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} srt_multiple_outputs.liq liquidsoap %{test_liq} srt_multiple_outputs.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1827,7 +1827,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} srt_passphrase.liq liquidsoap %{test_liq} srt_passphrase.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1858,7 +1858,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} srt_raw_pcm.liq liquidsoap %{test_liq} srt_raw_pcm.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
@@ -1889,3 +1889,4 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} stretch-clock-propagation.liq liquidsoap %{test_liq} stretch-clock-propagation.liq)))
+  
