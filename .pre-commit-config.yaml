@@ -65,13 +65,13 @@ repos:
       - id: dunefmt
         name: dunefmt
         language: system
-        entry: dune build @fmt --auto-promote
+        entry: opam exec dune -- build @fmt --auto-promote
         pass_filenames: false
         always_run: true
 
       - id: dunegen
         name: dunegen
         language: system
-        entry: dune build @gendune --auto-promote
+        entry: opam exec dune -- build @gendune --auto-promote
         pass_filenames: false
         always_run: true
