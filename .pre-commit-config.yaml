@@ -25,11 +25,6 @@ repos:
       - id: trailing-whitespace
         exclude: dune.inc
 
-  - repo: https://github.com/savonet/pre-commit-ocamlformat
-    rev: v1.0.0
-    hooks:
-      - id: ocamlformat
-
   - repo: https://github.com/savonet/pre-commit-liquidsoap
     rev: f7e72bb
     hooks:
