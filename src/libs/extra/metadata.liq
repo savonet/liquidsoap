@@ -21,23 +21,9 @@ def file.cover.manager(
   id = string.id.default(id, default="cover")
   temp_dir = file.temp_dir("cover-manager")
   on_cleanup({file.rmdir(temp_dir)})
+  default = request.create(persistent=true, default)
 
-  current_cover_file = ref(default)
-
-  def set_current_cover(filename) =
-    last_cover = current_cover_file()
-    current_cover_file := filename
-
-    if
-      last_cover != default
-    then
-      log.info(
-        label=id,
-        "Removing #{string.quote(last_cover)}"
-      )
-      file.remove(last_cover)
-    end
-  end
+  current_cover_request = ref(default)
 
   def save_cover_to_file(cover) =
     mime = cover.mime
@@ -93,10 +79,10 @@ def file.cover.manager(
             string.quote(cover_file)
           }."
         )
-        cover_file
+        request.create(temporary=true, cover_file)
       end
-    set_current_cover(next_cover)
+    current_cover_request := next_cover
   end
 
-  current_cover_file.{set=extract_cover_from_metadata}
+  current_cover_request.{set=extract_cover_from_metadata}
 end

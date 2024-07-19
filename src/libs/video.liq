@@ -16,7 +16,7 @@ def video.frame.rate =
   settings.frame.video.framerate
 end
 
-# Generate a source from a static image.
+# Generate a source from an image request.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
@@ -24,45 +24,86 @@ end
 # @param ~height Scale to height
 # @param ~x x position.
 # @param ~y y position.
-# @param file Path to the image.
-# @method set Change the image.
-def image(
+# @param req Image request
+# @method set Change the request.
+def request.image(
   ~id=null(),
   ~fallible=false,
   ~width=null(),
   ~height=null(),
   ~x=getter(0),
   ~y=getter(0),
-  file
+  req
 ) =
   s = source.dynamic()
 
-  def set(file) =
-    image = single(id=id, fallible=fallible, file)
+  def set(req) =
+    image = request.single(id=id, fallible=fallible, req)
     image = video.crop(image)
     image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
     s.set(image)
   end
 
-  current_file = ref(getter.get(file))
-  s.on_wake_up({set(current_file())})
+  current_req = ref(getter.get(req))
+  s.on_wake_up({set(current_req())})
 
   s =
     source.on_frame(
       s,
       fun () ->
         begin
-          new_file = getter.get(file)
+          new_req = getter.get(req)
           if
-            new_file != current_file()
+            new_req != current_req()
           then
-            set(new_file)
-            current_file.set(new_file)
+            set(new_req)
+            current_req.set(new_req)
           end
         end
     )
 
   s.{set=set}
+end
+
+# Generate a source from an image file.
+# @argsof request.image
+# @param file Path to the image.
+# @method set Change the request.
+def image(%argsof(request.image), file) =
+  r = getter.map(fun (file) -> request.create(file), file)
+
+  s = request.image(%argsof(request.image), r)
+
+  s.{set=fun (uri) -> s.set(request.create(uri))}
+end
+
+# @flag hidden
+let orig_request = request
+
+# Add a static request on the given video track.
+# @category Track / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
+# @param ~request Request to add to the video track
+def track.video.add_request(
+  ~id=null("track.video.add_request"),
+  ~fallible=false,
+  ~width=null(),
+  ~height=null(),
+  ~x=getter(0),
+  ~y=getter(0),
+  ~request,
+  v
+) =
+  image =
+    orig_request.image(id=id, fallible=fallible, x=x, y=y, width=width, height=height, request)
+
+  let {video = image} = source.tracks(image)
+  track.video.add([v, image])
 end
 
 # Add a static image on the given video track.
@@ -89,6 +130,34 @@ def track.video.add_image(
 
   let {video = image} = source.tracks(image)
   track.video.add([v, image])
+end
+
+# Add a static request on the source video channel.
+# @category Source / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
+# @param ~request Request to add to the video channel
+def video.add_request(
+  ~id=null("video.add_request"),
+  ~fallible=false,
+  ~width=null(),
+  ~height=null(),
+  ~x=getter(0),
+  ~y=getter(0),
+  ~request,
+  (s:source)
+) =
+  let {video, ...tracks} = source.tracks(s)
+  video =
+    track.video.add_request(
+      fallible=fallible, width=width, height=height, x=x, y=y, request=request, video
+    )
+
+  source(id=id, tracks.{video=video})
 end
 
 # Add a static image on the source video channel.

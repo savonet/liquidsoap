@@ -248,19 +248,16 @@ end
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param ~fallible Enforce fallibility of the request.
-# @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
-# @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
-# @param uri URI where to find the file
-def single(
-  ~id=null("single"),
+# @param r Request
+def request.single(
+  ~id=null("request.single"),
   ~prefetch=null(),
   ~timeout=20.,
   ~fallible=false,
-  ~cue_in_metadata=null("liq_cue_in"),
-  ~cue_out_metadata=null("liq_cue_out"),
-  uri
+  r
 ) =
   id = string.id.default(default="single", id)
+  uri = request.uri(r)
   infallible = request.is_static(uri) and not fallible
 
   static_request = ref(null())
@@ -274,13 +271,6 @@ def single(
         label=id,
         "#{uri} is static, resolving once for all..."
       )
-      r =
-        request.create(
-          persistent=true,
-          cue_in_metadata=cue_in_metadata,
-          cue_out_metadata=cue_out_metadata,
-          uri
-        )
       if
         not request.resolve(r, timeout=timeout)
       then
@@ -313,13 +303,7 @@ def single(
       done := true
 
       def next() =
-        static_request()
-          ??
-            request.create(
-              cue_in_metadata=cue_in_metadata,
-              cue_out_metadata=cue_out_metadata,
-              uri
-            )
+        r
       end
 
       s = request.dynamic(prefetch=prefetch, next)
@@ -335,6 +319,31 @@ def single(
   s.on_wake_up(on_wake_up)
   s.on_shutdown(on_shutdown)
   (s : source_methods)
+end
+
+# Loop on a URI. It never fails if the request is static, meaning
+# that it can be fetched once. Typically, http, ftp, say requests are
+# static, and time is not.
+# @argsof request.single
+# @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
+# @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
+# @param uri URI where to find the file
+def single(
+  %argsof(request.single[!id]),
+  ~id=null("single"),
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
+  uri
+) =
+  r =
+    request.create(
+      persistent=true,
+      cue_in_metadata=cue_in_metadata,
+      cue_out_metadata=cue_out_metadata,
+      uri
+    )
+
+  request.single(%argsof(request.single), r)
 end
 
 # Create a source on which plays immediately requests given with the `play`
