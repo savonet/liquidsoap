@@ -147,7 +147,7 @@ let aac_priority =
 
 (* Get the number of channels of audio in an AAC file. *)
 let file_type ~metadata:_ ~ctype:_ filename =
-  let fd = Decoder.openfile file in
+  let fd = Decoder.openfile filename in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)
     (fun () ->
@@ -226,7 +226,7 @@ let create_decoder input =
 (* Get the number of channels of audio in an MP4 file. *)
 let file_type ~metadata:_ ~ctype:_ filename =
   let dec = Faad.create () in
-  let fd = Decoder.openfile file in
+  let fd = Decoder.openfile filename in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)
     (fun () ->
