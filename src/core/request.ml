@@ -417,7 +417,8 @@ let destroy ?force t =
             with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)))
         t.indicators;
 
-      t.indicators <- [];
+      (* Keep the first indicator as initial_uri .*)
+      t.indicators <- [List.hd (List.rev t.indicators)];
       t.status <- `Destroyed;
       add_log t "Request destroyed.")
 
