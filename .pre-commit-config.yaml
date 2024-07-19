@@ -61,8 +61,8 @@ repos:
         name: dunefmt
         language: system
         entry: opam exec dune -- build @fmt --auto-promote
+        files: \.(ml|mli|dune|dune-project)$
         pass_filenames: false
-        always_run: true
 
       - id: dunegen
         name: dunegen
