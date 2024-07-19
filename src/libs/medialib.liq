@@ -141,13 +141,9 @@ def medialib(
         file.exists(f)
       then
         try
-          let json.parse ((v, parsed) : (int * typeof db()?)) = file.contents(f)
+          let json.parse ((v, parsed) : (int * typeof db())) = file.contents(f)
 
-          if
-            v == db_version and null.defined(parsed)
-          then
-            db := null.get(parsed)
-          end
+          if v == db_version then db := parsed end
         catch e do
           log.important(
             label=id,
