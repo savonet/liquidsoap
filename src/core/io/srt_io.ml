@@ -127,7 +127,7 @@ let common_options ~mode =
       Some Lang.null,
       Some
         "Timeout, in seconds, after which initial connection operations are \
-         aborted if no data was received. Uses library's default if `nulll`. \
+         aborted if no data was received. Uses library's default if `null`. \
          Used only in `client` mode." );
     ("payload_size", Lang.int_t, Some (Lang.int 1316), Some "Payload size.");
     ("messageapi", Lang.bool_t, Some (Lang.bool true), Some "Use message api");

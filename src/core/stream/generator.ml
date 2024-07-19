@@ -176,8 +176,8 @@ let _put gen field new_content =
   if 0 <= max_length && max_length < buffered_length then (
     gen.log
       (Printf.sprintf
-         "Generator max length exeeded (%d < %d)! Dropping content.." max_length
-         buffered_length);
+         "Generator max length exceeded (%d < %d)! Dropping content.."
+         max_length buffered_length);
     _truncate gen (buffered_length - max_length))
 
 let put gen field =

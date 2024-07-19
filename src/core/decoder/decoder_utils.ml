@@ -93,7 +93,7 @@ type fps = { num : int; den : int }
 
 (** Stupid nearest neighbour resampling.
   * For meaningful results, one should first partially apply the freq params,
-  * and re-use the resulting functions on consecutive chunks of a single
+  * and reuse the resulting functions on consecutive chunks of a single
   * input stream. *)
 let video_resample ~in_freq ~out_freq =
   (* We have something like this:

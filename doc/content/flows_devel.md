@@ -1,4 +1,4 @@
-# Developping Flows
+# Developing Flows
 
 [Flows](flows.html) is handled on the [Heroku](https://www.heroku.com/) platform.
 

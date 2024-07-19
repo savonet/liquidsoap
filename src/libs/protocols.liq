@@ -1037,7 +1037,7 @@ protocol.add(
   "synth",
   synth_protocol,
   doc=
-    "Syntesize audio. Parameters are optional.",
+    "Synthesize audio. Parameters are optional.",
   syntax="synth:shape=sine,frequency=440.,duration=10."
 )
 

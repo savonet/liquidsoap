@@ -65,7 +65,7 @@ You can use the `info` plug-in to see everything Beets knows about title(s) matc
 by typing `beet info -l [query]`.
 See also [the Beets' documentation](https://beets.readthedocs.io/en/stable/reference/query.html)
 for more details on queries operators.
-All these options should allow you to create both general and specialiazed Liquidsoap sources.
+All these options should allow you to create both general and specialized Liquidsoap sources.
 
 ## A source querying each next track from Beets
 
