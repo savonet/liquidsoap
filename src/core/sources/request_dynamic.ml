@@ -86,7 +86,6 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               | None -> ()
               | Some f -> self#log#info "Finished with %S." f);
             cur.close ();
-            Request.done_playing cur.req;
             Request.destroy cur.req
           end
 
@@ -147,7 +146,6 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         | Some cur ->
             let buf = cur.fread len in
             if first_fill then (
-              Request.is_playing cur.req;
               let m = Request.metadata cur.req in
               let buf = Frame.add_metadata buf 0 m in
               let buf = Frame.add_track_mark buf 0 in

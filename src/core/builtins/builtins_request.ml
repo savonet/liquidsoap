@@ -245,7 +245,6 @@ let _ =
           | `Idle -> "idle"
           | `Resolving _ -> "resolving"
           | `Ready -> "ready"
-          | `Playing _ -> "playing"
           | `Destroyed -> "destroyed"
           | `Failed -> "failed"
       in

@@ -83,14 +83,7 @@ let string_of_log log =
     "" log
 
 type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
-
-type status =
-  [ `Idle
-  | `Resolving of float
-  | `Ready
-  | `Playing of float
-  | `Destroyed
-  | `Failed ]
+type status = [ `Idle | `Resolving of float | `Ready | `Destroyed | `Failed ]
 
 type t = {
   id : int;
@@ -106,7 +99,7 @@ type t = {
   mutable file_metadata : Frame.Metadata.t;
 }
 
-let resolved t = match t.status with `Ready | `Playing _ -> true | _ -> false
+let resolved t = match t.status with `Ready -> true | _ -> false
 
 let initial_uri r =
   match List.rev r.indicators with { uri } :: _ -> uri | [] -> assert false
@@ -190,14 +183,6 @@ let add_root_metadata t m =
         in
         Frame.Metadata.add "status" "resolving" m
     | `Ready -> Frame.Metadata.add "status" "ready" m
-    | `Playing d ->
-        let m =
-          Frame.Metadata.add "on_air" (pretty_date (Unix.localtime d)) m
-        in
-        let m =
-          Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
-        in
-        Frame.Metadata.add "status" "playing" m
     | `Destroyed -> Frame.Metadata.add "status" "destroyed" m
     | `Failed -> Frame.Metadata.add "status" "failed" m
 
@@ -462,14 +447,6 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
   Gc.finalise finalise t;
   t
 
-let is_playing t =
-  if t.status <> `Ready then raise Invalid_state;
-  t.status <- `Playing (Unix.time ());
-  add_log t "Currently on air."
-
-let done_playing t =
-  match t.status with `Playing _ -> t.status <- `Ready | _ -> ()
-
 let get_cue ~r = function
   | None -> None
   | Some m -> (
@@ -644,7 +621,7 @@ let resolve t timeout =
 let resolve t timeout =
   match t.status with
     | `Resolving _ -> raise Invalid_state
-    | `Playing _ | `Ready -> `Resolved
+    | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
     | _ -> resolve t timeout
 
