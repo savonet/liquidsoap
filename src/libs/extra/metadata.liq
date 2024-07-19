@@ -23,23 +23,6 @@ def file.cover.manager(
 
   current_cover_request = ref(default)
 
-  def save_cover_to_file(cover) =
-    mime = cover.mime
-    extension = mime_types[mime]
-
-    cover_file =
-      if
-        extension != ""
-      then
-        cover_file = file.temp("#{id}_", ".#{extension}")
-        file.write(cover_file, data=cover)
-        cover_file
-      else
-        null()
-      end
-    (cover_file, mime)
-  end
-
   def extract_cover_from_metadata(_metadata) =
     filename = _metadata["filename"]
     log.info(
@@ -47,39 +30,41 @@ def file.cover.manager(
       "Extracting cover from #{string.quote(filename)}."
     )
     cover = metadata.cover(_metadata)
-    let (cover_file, mime) =
-      null.case(cover, {(null(), "")}, save_cover_to_file)
 
-    next_cover =
+    new_cover =
       if
-        cover == null()
+        not null.defined(cover)
       then
-        log.important(
-          label=id,
-          "File #{string.quote(filename)} has no cover."
-        )
-        default
-      elsif
-        cover_file == null()
-      then
-        log.important(
-          label=id,
-          "File #{string.quote(filename)} has unknown mime type #{
-            string.quote(mime)
-          }."
-        )
-        default
+        null()
       else
-        cover_file = null.get(cover_file)
-        log.important(
-          label=id,
-          "Cover for #{string.quote(filename)} saved to #{
-            string.quote(cover_file)
-          }."
-        )
-        request.create(temporary=true, cover_file)
+        cover = null.get(cover)
+        extension = mime_types[cover.mime]
+        if
+          extension == ""
+        then
+          log.important(
+            label=id,
+            "File #{string.quote(filename)} has unknown mime type #{
+              string.quote(cover.mime)
+            }."
+          )
+          null()
+        else
+          cover_file = file.temp("#{id}_", ".#{extension}")
+          file.write(cover_file, data=cover)
+
+          log.important(
+            label=id,
+            "Cover for #{string.quote(filename)} saved to #{
+              string.quote(cover_file)
+            }."
+          )
+
+          request.create(temporary=true, cover_file)
+        end
       end
-    current_cover_request := next_cover
+
+    current_cover_request := (new_cover ?? default)
   end
 
   current_cover_request.{set=extract_cover_from_metadata}
