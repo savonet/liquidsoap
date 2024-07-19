@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 type processor = Term_preprocessor.processor
-type env = (string * Runtime_term.t) list
 
 open Parsed_term
 include Runtime_term
@@ -112,7 +111,7 @@ let rec mk_parsed_ty ?pos ~env ~to_term = function
         l
   | `Invoke (t, s) -> snd (Type.invoke (mk_parsed_ty ?pos ~env ~to_term t) s)
   | `Typeof v ->
-      let v = to_term v in
+      let v = to_term ~env v in
       Type.typeof
         ?pos:(Option.map Pos.of_lexing_pos pos)
         (Lazy.from_fun (fun () ->
@@ -660,9 +659,7 @@ let args_of ~only ~except ~pos ~env name =
                        n))
           except;
         List.filter (fun { label } -> not (List.mem label except)) filtered_args
-    | Some tm ->
-        Printf.printf "Term: %s\n%!" (Term_base.to_string tm);
-        parse_error ~pos (Printf.sprintf "%s is not a function!" name)
+    | Some _ -> parse_error ~pos (Printf.sprintf "%s is not a function!" name)
     | None -> builtin_args_of ~only ~except ~pos name
 
 let expand_argsof ~pos ~env ~to_term args =
@@ -678,7 +675,7 @@ let expand_argsof ~pos ~env ~to_term args =
                  (match arg.typ with
                    | None -> mk_var ()
                    | Some typ -> mk_parsed_ty ~env ~to_term typ);
-               default = Option.map to_term arg.default;
+               default = Option.map (to_term ~env) arg.default;
              }
              :: args)
        [] args)
@@ -693,7 +690,7 @@ let expand_appof ~pos ~env ~to_term args =
        (fun args -> function
          | `Argsof { only; except; source } ->
              List.rev (app_of ~pos ~only ~except ~env source) @ args
-         | `Term (l, v) -> (l, to_term v) :: args)
+         | `Term (l, v) -> (l, to_term ~env v) :: args)
        [] args)
 
 (** When doing chained calls, we want to update all nested defaults so that, e.g.
@@ -771,8 +768,8 @@ and update_invoke_default ~pos ~optional expr name value =
     | _ -> expr
 
 let mk_invoke ?(default : Parsed_term.t option) ~pos ~env ~to_term expr v =
-  let expr = to_term expr in
-  let default = Option.map to_term default in
+  let expr = to_term ~env expr in
+  let default = Option.map (to_term ~env) default in
   let optional, value =
     match default with Some v -> (true, v) | None -> (false, mk ~pos `Null)
   in
@@ -811,36 +808,38 @@ let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
             (`Invoke
               { invoked = null; invoke_default = None; meth = "default" })
         in
-        let handler = mk_fun ~pos [] (to_term default) in
-        `App (op, [("", to_term computed); ("", handler)])
+        let handler = mk_fun ~pos [] (to_term ~env default) in
+        `App (op, [("", to_term ~env computed); ("", handler)])
 
-let get_reducer ~pos ~to_term = function
+let get_reducer ~pos ~env ~to_term = function
   | `Get tm ->
       Printf.eprintf
         "Warning, %s: the notation !x for references is deprecated, please use \
          x() instead.\n\
          %!"
         Pos.(to_string (of_lexing_pos pos));
-      `App (to_term tm, [])
+      `App (to_term ~env tm, [])
 
-let set_reducer ~pos ~to_term = function
+let set_reducer ~pos ~env ~to_term = function
   | `Set (tm, v) ->
       let op =
         mk ~pos
           (`Invoke
-            { invoked = to_term tm; invoke_default = None; meth = "set" })
+            { invoked = to_term ~env tm; invoke_default = None; meth = "set" })
       in
       `Cast
         {
-          cast = mk ~pos (`App (op, [("", to_term v)]));
+          cast = mk ~pos (`App (op, [("", to_term ~env v)]));
           typ = mk_ty ~pos Type.unit;
         }
 
-let if_reducer ~pos ~to_term = function
+let if_reducer ~pos ~env ~to_term = function
   | `Inline_if { if_condition; if_then; if_elsif; if_else }
   | `If { if_condition; if_then; if_elsif; if_else } ->
       let if_else =
-        match if_else with None -> mk ~pos (`Tuple []) | Some t -> to_term t
+        match if_else with
+          | None -> mk ~pos (`Tuple [])
+          | Some t -> to_term ~env t
       in
       let term =
         List.fold_left
@@ -850,8 +849,8 @@ let if_reducer ~pos ~to_term = function
               (`App
                 ( op,
                   [
-                    ("", to_term condition);
-                    ("then", mk_fun ~pos [] (to_term _then));
+                    ("", to_term ~env condition);
+                    ("then", mk_fun ~pos [] (to_term ~env _then));
                     ("else", mk_fun ~pos [] if_else);
                   ] )))
           if_else
@@ -859,11 +858,11 @@ let if_reducer ~pos ~to_term = function
       in
       term.term
 
-let while_reducer ~pos ~to_term = function
+let while_reducer ~pos ~env ~to_term = function
   | `While { while_condition; while_loop } ->
       let op = mk ~pos (`Var "while") in
-      let while_condition = mk_fun ~pos [] (to_term while_condition) in
-      let while_loop = mk_fun ~pos [] (to_term while_loop) in
+      let while_condition = mk_fun ~pos [] (to_term ~env while_condition) in
+      let while_loop = mk_fun ~pos [] (to_term ~env while_loop) in
       `App (op, [("", while_condition); ("", while_loop)])
 
 let base_for_reducer ~pos for_variable for_iterator for_loop =
@@ -882,14 +881,14 @@ let base_for_reducer ~pos for_variable for_iterator for_loop =
   in
   `App (for_op, [("", for_iterator); ("", for_loop)])
 
-let iterable_for_reducer ~pos ~to_term = function
+let iterable_for_reducer ~pos ~env ~to_term = function
   | `Iterable_for
       { iterable_for_variable; iterable_for_iterator; iterable_for_loop } ->
       base_for_reducer ~pos iterable_for_variable
-        (to_term iterable_for_iterator)
-        (to_term iterable_for_loop)
+        (to_term ~env iterable_for_iterator)
+        (to_term ~env iterable_for_loop)
 
-let for_reducer ~pos ~to_term = function
+let for_reducer ~pos ~env ~to_term = function
   | `For { for_variable; for_from; for_to; for_loop } ->
       let to_op = mk ~pos (`Var "iterator") in
       let to_op =
@@ -897,70 +896,78 @@ let for_reducer ~pos ~to_term = function
           (`Invoke { invoked = to_op; invoke_default = None; meth = "int" })
       in
       let for_condition =
-        mk ~pos (`App (to_op, [("", to_term for_from); ("", to_term for_to)]))
+        mk ~pos
+          (`App
+            (to_op, [("", to_term ~env for_from); ("", to_term ~env for_to)]))
       in
-      base_for_reducer ~pos for_variable for_condition (to_term for_loop)
+      base_for_reducer ~pos for_variable for_condition (to_term ~env for_loop)
 
-let infix_reducer ~pos ~to_term = function
+let infix_reducer ~pos ~env ~to_term = function
   | `Infix (tm, op, tm') ->
       let op = mk ~pos (`Var op) in
-      `App (op, [("", to_term tm); ("", to_term tm')])
+      `App (op, [("", to_term ~env tm); ("", to_term ~env tm')])
 
-let bool_op_reducer ~pos ~to_term = function
+let bool_op_reducer ~pos ~env ~to_term = function
   | `BoolOp (op, tm :: terms) ->
       List.fold_left
         (fun tm tm' ->
           let op = mk ~pos (`Var op) in
           let tm = mk_fun ~pos [] (mk ~pos tm) in
-          let tm' = mk_fun ~pos [] (to_term tm') in
+          let tm' = mk_fun ~pos [] (to_term ~env tm') in
           `App (op, [("", tm); ("", tm')]))
-        (to_term tm).term terms
+        (to_term ~env tm).term terms
   | `BoolOp (_, []) -> assert false
 
-let simple_fun_reducer ~pos:_ ~to_term = function
+let simple_fun_reducer ~pos:_ ~env ~to_term = function
   | `Simple_fun tm ->
-      `Fun { name = None; arguments = []; body = to_term tm; free_vars = None }
+      `Fun
+        {
+          name = None;
+          arguments = [];
+          body = to_term ~env tm;
+          free_vars = None;
+        }
 
-let negative_reducer ~pos ~to_term = function
+let negative_reducer ~pos ~env ~to_term = function
   | `Negative tm ->
       let op = mk ~pos (`Var "~-") in
-      `App (op, [("", to_term tm)])
+      `App (op, [("", to_term ~env tm)])
 
-let not_reducer ~pos ~to_term = function
+let not_reducer ~pos ~env ~to_term = function
   | `Not tm ->
       let op = mk ~pos (`Var "not") in
-      `App (op, [("", to_term tm)])
+      `App (op, [("", to_term ~env tm)])
 
 let append_term ~pos a b =
   let op = mk ~pos (`Var "_::_") in
   `App (op, [("", a); ("", b)])
 
-let append_reducer ~pos ~to_term = function
-  | `Append (tm, tm') -> append_term ~pos (to_term tm) (to_term tm')
+let append_reducer ~pos ~env ~to_term = function
+  | `Append (tm, tm') -> append_term ~pos (to_term ~env tm) (to_term ~env tm')
 
-let rec list_reducer ~pos ?(cur = `List []) ~to_term l =
+let rec list_reducer ~pos ?(cur = `List []) ~env ~to_term l =
   match (l, cur) with
     | [], cur -> cur
     | `Term v :: rem, `List cur ->
-        list_reducer ~cur:(`List (to_term v :: cur)) ~pos ~to_term rem
+        list_reducer ~cur:(`List (to_term ~env v :: cur)) ~pos ~env ~to_term rem
     | `Term v :: rem, cur ->
-        let cur = append_term ~pos (to_term v) (mk ~pos cur) in
-        list_reducer ~pos ~cur ~to_term rem
+        let cur = append_term ~pos (to_term ~env v) (mk ~pos cur) in
+        list_reducer ~pos ~cur ~env ~to_term rem
     | `Ellipsis v :: rem, cur ->
         let list = mk ~pos (`Var "list") in
         let op =
           mk ~pos
             (`Invoke { invoked = list; invoke_default = None; meth = "append" })
         in
-        let cur = `App (op, [("", to_term v); ("", mk ~pos cur)]) in
-        list_reducer ~pos ~cur ~to_term rem
+        let cur = `App (op, [("", to_term ~env v); ("", mk ~pos cur)]) in
+        list_reducer ~pos ~cur ~env ~to_term rem
 
-let assoc_reducer ~pos ~to_term = function
+let assoc_reducer ~pos ~env ~to_term = function
   | `Assoc (tm, tm') ->
       let op = mk ~pos (`Var "_[_]") in
-      `App (op, [("", to_term tm); ("", to_term tm')])
+      `App (op, [("", to_term ~env tm); ("", to_term ~env tm')])
 
-let regexp_reducer ~pos ~to_term:_ = function
+let regexp_reducer ~pos ~env:_ ~to_term:_ = function
   | `Regexp (regexp, flags) ->
       let regexp = render_string ~pos ~sep:'/' regexp in
       let regexp = mk ~pos (`String regexp) in
@@ -970,10 +977,10 @@ let regexp_reducer ~pos ~to_term:_ = function
       let op = mk ~pos (`Var "regexp") in
       `App (op, [("", regexp); ("flags", flags)])
 
-let try_reducer ~pos ~to_term = function
+let try_reducer ~pos ~env ~to_term = function
   | `Try { try_body; try_variable; try_errors_list; try_handler; try_finally }
     ->
-      let try_body = mk_fun ~pos [] (to_term try_body) in
+      let try_body = mk_fun ~pos [] (to_term ~env try_body) in
       let err_arg =
         [
           {
@@ -987,20 +994,20 @@ let try_reducer ~pos ~to_term = function
       let finally_pos, finally =
         match try_finally with
           | None -> (pos, mk ~pos (`Tuple []))
-          | Some tm -> (tm.pos, to_term tm)
+          | Some tm -> (tm.pos, to_term ~env tm)
       in
       let finally = mk_fun ~pos:finally_pos [] finally in
       let handler_pos, handler =
         match try_handler with
           | None -> (pos, mk ~pos (`Tuple []))
-          | Some tm -> (tm.pos, to_term tm)
+          | Some tm -> (tm.pos, to_term ~env tm)
       in
       let handler = mk_fun ~pos:handler_pos err_arg handler in
       let error_module = mk ~pos (`Var "error") in
       let try_errors_list =
         match try_errors_list with
           | None -> mk ~pos `Null
-          | Some tm -> to_term tm
+          | Some tm -> to_term ~env tm
       in
       let op =
         mk ~pos
@@ -1115,8 +1122,7 @@ let string_of_let_decoration = function
   | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
-    ({ decoration; pat; arglist; def; cast }, body) =
+let mk_let ~env ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
   let def = to_term ~env def in
   let mk_body def =
     let env =
@@ -1126,7 +1132,8 @@ let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
             let env =
               if decoration <> `Replaces then
                 List.filter
-                  (fun (p, _) -> not (String.starts_with ~prefix:path p))
+                  (fun (p, _) ->
+                    not (String.starts_with ~prefix:(path ^ ".") p))
                   env
               else env
             in
@@ -1135,7 +1142,6 @@ let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
     in
     to_term ~env body
   in
-  let to_term = to_term ~env in
   let cast = Option.map (mk_parsed_ty ~pos ~env ~to_term) cast in
   let arglist = Option.map (expand_argsof ~pos ~env ~to_term) arglist in
   match (arglist, decoration) with
@@ -1171,7 +1177,7 @@ let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
         let body = mk_body def in
         mk_eval ~pos (pat, def, body, cast)
     | None, `Json_parse args ->
-        let args = List.map (fun (l, v) -> (l, to_term v)) args in
+        let args = List.map (fun (l, v) -> (l, to_term ~env v)) args in
         let body = mk_body def in
         mk_let_json_parse ~pos (args, pat, def, cast) body
     | None, `Yaml_parse ->
@@ -1207,29 +1213,27 @@ and to_encoder ~env ~to_term (lbl, params) =
   (lbl, to_encoder_params ~env ~to_term params)
 
 let rec to_ast ~env ~pos ast =
-  let to_term_with_env = to_term in
-  let to_term = to_term ~env in
   match ast with
     | `Methods _ | `Block _ | `Parenthesis _ | `Eof | `Include _ -> assert false
     | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
-        (to_term (pp_if_reducer ~pos ~env ast)).term
-    | `Get _ as ast -> get_reducer ~pos ~to_term ast
-    | `Set _ as ast -> set_reducer ~pos ~to_term ast
-    | `Inline_if _ as ast -> if_reducer ~pos ~to_term ast
-    | `If _ as ast -> if_reducer ~pos ~to_term ast
-    | `While _ as ast -> while_reducer ~pos ~to_term ast
-    | `For _ as ast -> for_reducer ~pos ~to_term ast
-    | `Iterable_for _ as ast -> iterable_for_reducer ~pos ~to_term ast
-    | `Not _ as ast -> not_reducer ~pos ~to_term ast
-    | `Negative _ as ast -> negative_reducer ~pos ~to_term ast
-    | `Append _ as ast -> append_reducer ~pos ~to_term ast
-    | `Assoc _ as ast -> assoc_reducer ~pos ~to_term ast
-    | `Infix _ as ast -> infix_reducer ~pos ~to_term ast
+        (to_term ~env (pp_if_reducer ~pos ~env ast)).term
+    | `Get _ as ast -> get_reducer ~pos ~env ~to_term ast
+    | `Set _ as ast -> set_reducer ~pos ~env ~to_term ast
+    | `Inline_if _ as ast -> if_reducer ~pos ~env ~to_term ast
+    | `If _ as ast -> if_reducer ~pos ~env ~to_term ast
+    | `While _ as ast -> while_reducer ~pos ~env ~to_term ast
+    | `For _ as ast -> for_reducer ~pos ~env ~to_term ast
+    | `Iterable_for _ as ast -> iterable_for_reducer ~pos ~env ~to_term ast
+    | `Not _ as ast -> not_reducer ~pos ~env ~to_term ast
+    | `Negative _ as ast -> negative_reducer ~pos ~env ~to_term ast
+    | `Append _ as ast -> append_reducer ~pos ~env ~to_term ast
+    | `Assoc _ as ast -> assoc_reducer ~pos ~env ~to_term ast
+    | `Infix _ as ast -> infix_reducer ~pos ~env ~to_term ast
     | `Bool _ as ast -> ast
-    | `BoolOp _ as ast -> bool_op_reducer ~pos ~to_term ast
-    | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~to_term ast
-    | `Regexp _ as ast -> regexp_reducer ~pos ~to_term ast
-    | `Try _ as ast -> try_reducer ~pos ~to_term ast
+    | `BoolOp _ as ast -> bool_op_reducer ~pos ~env ~to_term ast
+    | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~env ~to_term ast
+    | `Regexp _ as ast -> regexp_reducer ~pos ~env ~to_term ast
+    | `Try _ as ast -> try_reducer ~pos ~env ~to_term ast
     | `String_interpolation (sep, l) ->
         let l =
           List.map
@@ -1251,16 +1255,15 @@ let rec to_ast ~env ~pos ast =
               })
         in
         to_ast ~env ~pos (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
-    | `Def p | `Let p | `Binding p ->
-        mk_let ~pos ~env ~to_term:to_term_with_env p
+    | `Def p | `Let p | `Binding p -> mk_let ~pos ~env ~to_term p
     | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
-    | `At (t, t') -> `App (to_term t', [("", to_term t)])
+    | `At (t, t') -> `App (to_term ~env t', [("", to_term ~env t)])
     | `Time t -> mk_time_pred ~pos (during ~pos t)
     | `Time_interval (t, t') -> mk_time_pred ~pos (between ~pos t t')
     | `Custom _ as ast -> ast
-    | `Encoder e -> `Encoder (to_encoder ~to_term:to_term_with_env ~env e)
-    | `List l -> list_reducer ~pos ~to_term (List.rev l)
-    | `Tuple l -> `Tuple (List.map to_term l)
+    | `Encoder e -> `Encoder (to_encoder ~to_term ~env e)
+    | `List l -> list_reducer ~pos ~env ~to_term (List.rev l)
+    | `Tuple l -> `Tuple (List.map (to_term ~env) l)
     | `String (sep, s) -> `String (render_string ~pos ~sep s)
     | `Int i -> `Int (int_of_string i)
     | `Float f -> (
@@ -1269,16 +1272,17 @@ let rec to_ast ~env ~pos ast =
           parse_error ~pos (Printf.sprintf "Invalid float value: %s" f))
     | `Null -> `Null
     | `Cast { cast = t; typ } ->
-        `Cast { cast = to_term t; typ = mk_parsed_ty ~pos ~env ~to_term typ }
+        `Cast
+          { cast = to_term ~env t; typ = mk_parsed_ty ~pos ~env ~to_term typ }
     | `Invoke { invoked; optional; meth } ->
         let default = if optional then Some (mk_parsed ~pos `Null) else None in
         mk_invoke ~pos ~env ?default ~to_term invoked meth
-    | `Open (t, t') -> `Open (to_term t, to_term t')
+    | `Open (t, t') -> `Open (to_term ~env t, to_term ~env t')
     | `Var s -> `Var s
-    | `Seq (t, t') -> `Seq (to_term t, to_term t')
+    | `Seq (t, t') -> `Seq (to_term ~env t, to_term ~env t')
     | `App (t, args) ->
         let args = expand_appof ~pos ~env ~to_term args in
-        `App (to_term t, args)
+        `App (to_term ~env t, args)
     | `Fun (args, body) -> `Fun (to_func ~pos ~env ~to_term args body)
     | `RFun (name, args, body) ->
         `Fun (to_func ~pos ~env ~to_term ~name args body)
@@ -1287,7 +1291,7 @@ and to_func ~pos ~env ~to_term ?name arguments body =
   {
     name;
     arguments = expand_argsof ~pos ~env ~to_term arguments;
-    body = to_term body;
+    body = to_term ~env body;
     free_vars = None;
   }
 

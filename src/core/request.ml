@@ -417,7 +417,8 @@ let destroy ?force t =
             with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)))
         t.indicators;
 
-      t.indicators <- [];
+      (* Keep the first indicator as initial_uri .*)
+      t.indicators <- [List.hd (List.rev t.indicators)];
       t.status <- `Destroyed;
       add_log t "Request destroyed.")
 
@@ -467,9 +468,7 @@ let is_playing t =
   add_log t "Currently on air."
 
 let done_playing t =
-  match t.status with
-    | `Playing _ -> t.status <- `Ready
-    | _ -> raise Invalid_state
+  match t.status with `Playing _ -> t.status <- `Ready | _ -> ()
 
 let get_cue ~r = function
   | None -> None
