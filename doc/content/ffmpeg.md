@@ -198,7 +198,7 @@ This is a global setting for now and could be refined per-stream in the future i
 
 ### Shared encoders
 
-`liquisoap` provides operators to encode data using `%ffmpeg` and re-use it across output. This is called _inline encoding_. Here's an example:
+`liquisoap` provides operators to encode data using `%ffmpeg` and reuse it across output. This is called _inline encoding_. Here's an example:
 
 ```liquidsoap
 audio_source = single(audio_url)

@@ -188,7 +188,7 @@ exprs:
   | binding s exprs          { mk_let ~pos:$loc($1) $1 $3 }
 
 (* Simple fun body, syntax: { ... }. Same as expressions except initial x = 1
-   which conflcits with record declaration: { x = 1 } *)
+   which conflicts with record declaration: { x = 1 } *)
 simple_fun_body:
   | OPEN expr s exprs        { mk ~pos:$loc (`Open ($2,$4)) }
   | expr s                   { $1 }
