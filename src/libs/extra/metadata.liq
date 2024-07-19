@@ -35,6 +35,10 @@ def file.cover.manager(
       if
         not null.defined(cover)
       then
+        log.important(
+          label=id,
+          "File #{string.quote(filename)} has no cover."
+        )
         null()
       else
         cover = null.get(cover)
