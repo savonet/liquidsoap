@@ -1,7 +1,7 @@
 ## Introduction
 
 You can use external programs in liquidsoap to decode audio files. The program must be able to
-output WAV data to its standard output (`stdout`) and, posssibly, read encoded data from its
+output WAV data to its standard output (`stdout`) and, possibly, read encoded data from its
 standard input.
 
 Please note that this feature is not available under Windows.

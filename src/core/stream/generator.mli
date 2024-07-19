@@ -85,7 +85,7 @@ val put : t -> Frame_base.field -> Content.data -> unit
 (* Return the generator's content without removing it. *)
 val peek : t -> Content.data Frame_base.Fields.t
 
-(* Return the generator's media content (all tracks exclusing metadata and track_marks) without removing it. *)
+(* Return the generator's media content (all tracks excluding metadata and track_marks) without removing it. *)
 val peek_media : t -> Content.data Frame_base.Fields.t
 
 (* Insert a metadata at the given position. To be used over [put]

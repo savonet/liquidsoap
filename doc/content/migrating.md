@@ -143,7 +143,7 @@ Legacy systems used to expect `ISO-8859-1` (also known as `latin1`) for metadata
 mechanism.
 
 It seems that, nowadays, most software expect `UTF-8` out of the box, including for legacy systems that previously
-assumed other encodings. Therefore, by changing this default value, we try to match exectations of the largest
+assumed other encodings. Therefore, by changing this default value, we try to match expectations of the largest
 number of users of our software.
 
 If you are using one of these outputs, make sure to test this assumptions with your listners' clients. If needed, the
@@ -348,7 +348,7 @@ This tells the type checker not to worry about the source methods and just focus
 
 ### Http input and operators
 
-In order to provide as much compatibility as possible with the different HTTP procotols and implementation, we have decided
+In order to provide as much compatibility as possible with the different HTTP protocols and implementation, we have decided
 to delegate HTTP support to external libraries which have large scale support and implementation. This means that,
 if you have installed `liquidsoap` using `opam`:
 
@@ -503,7 +503,7 @@ deprecated operatords. Here's a list of the most important ones:
 - `playlist.safe` is replaced by: `playlist(mksafe(..))`
 - `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
 - `rewrite_metadata` should be rewritten using `metadata.map`
-- `fade.inital` and `fade.final` are not needed anymore
+- `fade.initial` and `fade.final` are not needed anymore
 - `get_process_output` is replaced by: `process.read`
 - `get_process_lines` is replaced by: `process.read.lines`
 - `test_process` is replaced by: `process.test`

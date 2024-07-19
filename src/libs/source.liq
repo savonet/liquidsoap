@@ -165,7 +165,7 @@ end
 # Append an extra track to every track. Set the metadata ‘liq_append’ to
 # `false` to inhibit appending on one track.
 # @category Source / Track processing
-# @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent appening a new track.
+# @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent appending a new track.
 # @param ~insert_missing Treat track beginnings without metadata as having empty one.
 # @param ~merge Merge the track with its appended track.
 # @flag extra
