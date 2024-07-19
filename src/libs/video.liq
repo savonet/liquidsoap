@@ -25,7 +25,6 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param req Image request
-# @method set Change the request.
 def request.image(
   ~id=null(),
   ~fallible=false,
@@ -37,32 +36,19 @@ def request.image(
 ) =
   s = source.dynamic()
 
-  def set(req) =
+  def set((req:request)) =
     image = request.single(id=id, fallible=fallible, req)
     image = video.crop(image)
     image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
     s.set(image)
   end
 
-  current_req = ref(getter.get(req))
-  s.on_wake_up({set(current_req())})
+  s.on_wake_up({set(getter.get(req))})
 
-  s =
-    source.on_frame(
-      s,
-      fun () ->
-        begin
-          new_req = getter.get(req)
-          if
-            new_req != current_req()
-          then
-            set(new_req)
-            current_req.set(new_req)
-          end
-        end
-    )
+  on_change = getter.on_change(set, req)
+  on_change = {ignore(on_change())}
 
-  s.{set=set}
+  source.on_frame(s, on_change)
 end
 
 # Generate a source from an image file.
@@ -72,9 +58,7 @@ end
 def image(%argsof(request.image), file) =
   r = getter.map(fun (file) -> request.create(file), file)
 
-  s = request.image(%argsof(request.image), r)
-
-  s.{set=fun (uri) -> s.set(request.create(uri))}
+  request.image(%argsof(request.image), r)
 end
 
 # @flag hidden
@@ -100,7 +84,9 @@ def track.video.add_request(
   v
 ) =
   image =
-    orig_request.image(id=id, fallible=fallible, x=x, y=y, width=width, height=height, request)
+    orig_request.image(
+      id=id, fallible=fallible, x=x, y=y, width=width, height=height, request
+    )
 
   let {video = image} = source.tracks(image)
   track.video.add([v, image])
@@ -154,7 +140,13 @@ def video.add_request(
   let {video, ...tracks} = source.tracks(s)
   video =
     track.video.add_request(
-      fallible=fallible, width=width, height=height, x=x, y=y, request=request, video
+      fallible=fallible,
+      width=width,
+      height=height,
+      x=x,
+      y=y,
+      request=request,
+      video
     )
 
   source(id=id, tracks.{video=video})

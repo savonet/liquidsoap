@@ -253,11 +253,24 @@ def request.single(
   ~id=null("request.single"),
   ~prefetch=null(),
   ~timeout=20.,
-  ~fallible=false,
+  ~fallible=null(),
   r
 ) =
   id = string.id.default(default="single", id)
-  uri = request.uri(r)
+
+  fallible = fallible ?? getter.is_constant(r)
+
+  if
+    not fallible and not getter.is_constant(r)
+  then
+    error.raise(
+      error.invalid,
+      "Infallible sources cannot change their underlying file."
+    )
+  end
+
+  initial_request = getter.get(r)
+  uri = request.uri(initial_request)
   infallible = request.is_static(uri) and not fallible
 
   static_request = ref(null())
@@ -272,15 +285,15 @@ def request.single(
         "#{uri} is static, resolving once for all..."
       )
       if
-        not request.resolve(r, timeout=timeout)
+        not request.resolve(initial_request, timeout=timeout)
       then
-        request.destroy(force=true, r)
+        request.destroy(force=true, initial_request)
         error.raise(
           error.invalid,
           "Could not resolve uri: #{uri}"
         )
       else
-        static_request := r
+        static_request := initial_request
       end
     end
   end
@@ -303,7 +316,7 @@ def request.single(
       done := true
 
       def next() =
-        r
+        static_request() ?? getter.get(r)
       end
 
       s = request.dynamic(prefetch=prefetch, next)
@@ -329,19 +342,34 @@ end
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri URI where to find the file
 def single(
-  %argsof(request.single[!id]),
+  %argsof(request.single[!id,!fallible]),
   ~id=null("single"),
+  ~fallible=false,
   ~cue_in_metadata=null("liq_cue_in"),
   ~cue_out_metadata=null("liq_cue_out"),
   uri
 ) =
   r =
-    request.create(
-      persistent=true,
-      cue_in_metadata=cue_in_metadata,
-      cue_out_metadata=cue_out_metadata,
-      uri
-    )
+    if
+      fallible
+    then
+      getter(
+        {
+          request.create(
+            cue_in_metadata=cue_in_metadata,
+            cue_out_metadata=cue_out_metadata,
+            uri
+          )
+        }
+      )
+    else
+      request.create(
+        persistent=true,
+        cue_in_metadata=cue_in_metadata,
+        cue_out_metadata=cue_out_metadata,
+        uri
+      )
+    end
 
   request.single(%argsof(request.single), r)
 end
