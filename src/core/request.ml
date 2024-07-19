@@ -467,9 +467,7 @@ let is_playing t =
   add_log t "Currently on air."
 
 let done_playing t =
-  match t.status with
-    | `Playing _ -> t.status <- `Ready
-    | _ -> raise Invalid_state
+  match t.status with `Playing _ -> t.status <- `Ready | _ -> ()
 
 let get_cue ~r = function
   | None -> None

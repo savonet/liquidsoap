@@ -260,18 +260,25 @@ def request.single(
 
   fallible = fallible ?? getter.is_constant(r)
 
-  if
-    not fallible and not getter.is_constant(r)
-  then
-    error.raise(
-      error.invalid,
-      "Infallible sources cannot change their underlying file."
-    )
-  end
+  infallible =
+    if
+      not fallible
+    then
+      if
+        not getter.is_constant(r)
+      then
+        error.raise(
+          error.invalid,
+          "Infallible sources cannot change their underlying file."
+        )
+      end
 
-  initial_request = getter.get(r)
-  uri = request.uri(initial_request)
-  infallible = request.is_static(uri) and not fallible
+      initial_request = getter.get(r)
+      uri = request.uri(initial_request)
+      request.is_static(uri)
+    else
+      false
+    end
 
   static_request = ref(null())
   done = ref(false)
@@ -280,6 +287,9 @@ def request.single(
     if
       infallible
     then
+      initial_request = getter.get(r)
+      uri = request.uri(initial_request)
+
       log.important(
         label=id,
         "#{uri} is static, resolving once for all..."
@@ -337,7 +347,10 @@ end
 # Loop on a URI. It never fails if the request is static, meaning
 # that it can be fetched once. Typically, http, ftp, say requests are
 # static, and time is not.
-# @argsof request.single
+# @category Source / Input
+# @param ~prefetch How many requests should be queued in advance.
+# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~fallible Enforce fallibility of the request.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri URI where to find the file

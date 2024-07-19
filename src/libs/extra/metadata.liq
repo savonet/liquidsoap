@@ -19,8 +19,6 @@ def file.cover.manager(
   ~default
 ) =
   id = string.id.default(id, default="cover")
-  temp_dir = file.temp_dir("cover-manager")
-  on_cleanup({file.rmdir(temp_dir)})
   default = request.create(persistent=true, default)
 
   current_cover_request = ref(default)
@@ -33,7 +31,7 @@ def file.cover.manager(
       if
         extension != ""
       then
-        cover_file = file.temp(directory=temp_dir, "#{id}_", ".#{extension}")
+        cover_file = file.temp("#{id}_", ".#{extension}")
         file.write(cover_file, data=cover)
         cover_file
       else

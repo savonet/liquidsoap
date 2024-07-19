@@ -52,7 +52,13 @@ def request.image(
 end
 
 # Generate a source from an image file.
-# @argsof request.image
+# @category Source / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
 # @param file Path to the image.
 # @method set Change the request.
 def image(%argsof(request.image), file) =
