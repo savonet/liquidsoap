@@ -620,10 +620,10 @@ let resolve t timeout =
 
 let resolve t timeout =
   match t.status with
+    | `Idle -> resolve t timeout
     | `Resolving _ -> raise Invalid_state
     | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
-    | _ -> resolve t timeout
 
 (* Make a few functions more user-friendly, internal stuff is over. *)
 
