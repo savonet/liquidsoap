@@ -297,7 +297,7 @@ def request.single(
       if
         not request.resolve(initial_request, timeout=timeout)
       then
-        request.destroy(force=true, initial_request)
+        request.destroy(initial_request)
         error.raise(
           error.invalid,
           "Could not resolve uri: #{uri}"
@@ -312,7 +312,7 @@ def request.single(
     if
       null.defined(static_request())
     then
-      request.destroy(force=true, null.get(static_request()))
+      request.destroy(null.get(static_request()))
     end
     static_request := null()
   end
