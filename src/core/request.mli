@@ -64,13 +64,7 @@ val initial_uri : t -> string
 val destroy : ?force:bool -> t -> unit
 
 (** Status of a request. *)
-type status =
-  [ `Idle
-  | `Resolving of float
-  | `Ready
-  | `Playing of float
-  | `Destroyed
-  | `Failed ]
+type status = [ `Idle | `Resolving of float | `Ready | `Destroyed | `Failed ]
 
 (** Current status of a request. *)
 val status : t -> status
@@ -89,12 +83,6 @@ val all : unit -> t list
 
 (** Retrieve a request from its id. *)
 val from_id : int -> t option
-
-(** Mark the request as playing. *)
-val is_playing : t -> unit
-
-(** Mark the request as done playing. *)
-val done_playing : t -> unit
 
 (** {1 Resolving}
 

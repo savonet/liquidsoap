@@ -543,11 +543,12 @@ let file_decoder ~filename ~remaining ~ctype decoder =
   let buffer = mk_buffer ~ctype generator in
   mk_decoder ~filename ~remaining ~buffer decoder
 
-let opaque_file_decoder ~filename ~ctype create_decoder =
+let openfile filename =
   let extra_flags = if Sys.win32 then [Unix.O_SHARE_DELETE] else [] in
-  let fd =
-    Unix.openfile filename ([Unix.O_RDONLY; Unix.O_CLOEXEC] @ extra_flags) 0
-  in
+  Unix.openfile filename ([Unix.O_RDONLY; Unix.O_CLOEXEC] @ extra_flags) 0
+
+let opaque_file_decoder ~filename ~ctype create_decoder =
+  let fd = openfile filename in
 
   let file_size = (Unix.stat filename).Unix.st_size in
   let proc_bytes = ref 0 in

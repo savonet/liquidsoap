@@ -29,13 +29,6 @@ let () =
       "Liquidsoap " ^ Configure.version);
   add "request.all" ~descr:"Get the identifiers of all existing requests."
     (fun _ -> ids (Request.all ()));
-  add "request.on_air" ~descr:"Get the identifiers of requests that are on air."
-    (fun _ ->
-      ids
-        (List.filter
-           (fun r ->
-             match Request.status r with `Playing _ -> true | _ -> false)
-           (Request.all ())));
   add "request.resolving"
     ~descr:"Get the identifiers of requests that are being prepared." (fun _ ->
       ids
