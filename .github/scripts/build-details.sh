@@ -22,7 +22,7 @@ if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\
   IS_RELEASE=true
 
   echo "Building on all architectures"
-  BUILD_OS='["debian_trixie", "debian_bookworm", "debian_bullseye", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
+  BUILD_OS='["debian_trixie", "debian_bookworm" "ubuntu_oracular", "ubuntu_noble", "alpine"]'
   BUILD_PLATFORM='["amd64", "arm64"]'
   BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "bookworm"}]'
 
