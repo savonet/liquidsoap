@@ -478,7 +478,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} GH3303.liq liquidsoap %{test_liq} GH3303.liq)))
-
+  
 (rule
  (alias citest)
  (package liquidsoap)
