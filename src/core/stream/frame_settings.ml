@@ -37,7 +37,7 @@ let conf =
       ]
 
 let conf_duration =
-  Conf.float ~p:(conf#plug "duration") ~d:0.01 "Frame duration in seconds"
+  Conf.float ~p:(conf#plug "duration") ~d:0.02 "Frame duration in seconds"
     ~comments:
       [
         "Set frame duration, in seconds.";
