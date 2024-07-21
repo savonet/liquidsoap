@@ -12,6 +12,7 @@ New:
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage. See @TODO@ for more details (#3607)
 - Optimized runtime (#3927, #3928, #3919)
+- Removed gstreamer (#4036)
 - Add `video.canvas` to make it possible to position video elements independently
   of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/)
 - Add cover manager (#3651)
