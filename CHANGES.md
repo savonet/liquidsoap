@@ -11,7 +11,7 @@ New:
 - Allow frames duration shorter than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage. See @TODO@ for more details (#3607)
-- Change default frame duration to `0.01s` (#4033)
+- Change default frame duration to `0.02s` (#4033)
 - Optimized runtime (#3927, #3928, #3919)
 - Add `video.canvas` to make it possible to position video elements independently
   of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/)
