@@ -16,7 +16,42 @@ def video.frame.rate =
   settings.frame.video.framerate
 end
 
-# Generate a source from a static image.
+# Generate a source from an image request.
+# @category Source / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
+# @param req Image request
+def request.image(
+  ~id=null(),
+  ~fallible=false,
+  ~width=null(),
+  ~height=null(),
+  ~x=getter(0),
+  ~y=getter(0),
+  req
+) =
+  s = source.dynamic()
+
+  def set((req:request)) =
+    image = request.single(id=id, fallible=fallible, req)
+    image = video.crop(image)
+    image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
+    s.set(image)
+  end
+
+  s.on_wake_up({set(getter.get(req))})
+
+  on_change = getter.on_change(set, req)
+  on_change = {ignore(on_change())}
+
+  source.on_frame(s, on_change)
+end
+
+# Generate a source from an image file.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
@@ -25,44 +60,42 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param file Path to the image.
-# @method set Change the image.
-def image(
-  ~id=null(),
+# @method set Change the request.
+def image(%argsof(request.image), file) =
+  r = getter.map(fun (file) -> request.create(file), file)
+
+  request.image(%argsof(request.image), r)
+end
+
+# @flag hidden
+let orig_request = request
+
+# Add a static request on the given video track.
+# @category Track / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
+# @param ~request Request to add to the video track
+def track.video.add_request(
+  ~id=null("track.video.add_request"),
   ~fallible=false,
   ~width=null(),
   ~height=null(),
   ~x=getter(0),
   ~y=getter(0),
-  file
+  ~request,
+  v
 ) =
-  s = source.dynamic()
-
-  def set(file) =
-    image = single(id=id, fallible=fallible, file)
-    image = video.crop(image)
-    image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
-    s.set(image)
-  end
-
-  current_file = ref(getter.get(file))
-  s.on_wake_up({set(current_file())})
-
-  s =
-    source.on_frame(
-      s,
-      fun () ->
-        begin
-          new_file = getter.get(file)
-          if
-            new_file != current_file()
-          then
-            set(new_file)
-            current_file.set(new_file)
-          end
-        end
+  image =
+    orig_request.image(
+      id=id, fallible=fallible, x=x, y=y, width=width, height=height, request
     )
 
-  s.{set=set}
+  let {video = image} = source.tracks(image)
+  track.video.add([v, image])
 end
 
 # Add a static image on the given video track.
@@ -89,6 +122,40 @@ def track.video.add_image(
 
   let {video = image} = source.tracks(image)
   track.video.add([v, image])
+end
+
+# Add a static request on the source video channel.
+# @category Source / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
+# @param ~request Request to add to the video channel
+def video.add_request(
+  ~id=null("video.add_request"),
+  ~fallible=false,
+  ~width=null(),
+  ~height=null(),
+  ~x=getter(0),
+  ~y=getter(0),
+  ~request,
+  (s:source)
+) =
+  let {video, ...tracks} = source.tracks(s)
+  video =
+    track.video.add_request(
+      fallible=fallible,
+      width=width,
+      height=height,
+      x=x,
+      y=y,
+      request=request,
+      video
+    )
+
+  source(id=id, tracks.{video=video})
 end
 
 # Add a static image on the source video channel.

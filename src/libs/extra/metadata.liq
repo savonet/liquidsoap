@@ -19,42 +19,9 @@ def file.cover.manager(
   ~default
 ) =
   id = string.id.default(id, default="cover")
-  temp_dir = file.temp_dir("cover-manager")
-  on_cleanup({file.rmdir(temp_dir)})
+  default = request.create(persistent=true, default)
 
-  current_cover_file = ref(default)
-
-  def set_current_cover(filename) =
-    last_cover = current_cover_file()
-    current_cover_file := filename
-
-    if
-      last_cover != default
-    then
-      log.info(
-        label=id,
-        "Removing #{string.quote(last_cover)}"
-      )
-      file.remove(last_cover)
-    end
-  end
-
-  def save_cover_to_file(cover) =
-    mime = cover.mime
-    extension = mime_types[mime]
-
-    cover_file =
-      if
-        extension != ""
-      then
-        cover_file = file.temp(directory=temp_dir, "#{id}_", ".#{extension}")
-        file.write(cover_file, data=cover)
-        cover_file
-      else
-        null()
-      end
-    (cover_file, mime)
-  end
+  current_cover_request = ref(default)
 
   def extract_cover_from_metadata(_metadata) =
     filename = _metadata["filename"]
@@ -63,40 +30,46 @@ def file.cover.manager(
       "Extracting cover from #{string.quote(filename)}."
     )
     cover = metadata.cover(_metadata)
-    let (cover_file, mime) =
-      null.case(cover, {(null(), "")}, save_cover_to_file)
 
-    next_cover =
+    new_cover =
       if
-        cover == null()
+        not null.defined(cover)
       then
         log.important(
           label=id,
           "File #{string.quote(filename)} has no cover."
         )
-        default
-      elsif
-        cover_file == null()
-      then
-        log.important(
-          label=id,
-          "File #{string.quote(filename)} has unknown mime type #{
-            string.quote(mime)
-          }."
-        )
-        default
+        null()
       else
-        cover_file = null.get(cover_file)
-        log.important(
-          label=id,
-          "Cover for #{string.quote(filename)} saved to #{
-            string.quote(cover_file)
-          }."
-        )
-        cover_file
+        cover = null.get(cover)
+        extension = mime_types[cover.mime]
+        if
+          extension == ""
+        then
+          log.important(
+            label=id,
+            "File #{string.quote(filename)} has unknown mime type #{
+              string.quote(cover.mime)
+            }."
+          )
+          null()
+        else
+          cover_file = file.temp("#{id}_", ".#{extension}")
+          file.write(cover_file, data=cover)
+
+          log.important(
+            label=id,
+            "Cover for #{string.quote(filename)} saved to #{
+              string.quote(cover_file)
+            }."
+          )
+
+          request.create(temporary=true, cover_file)
+        end
       end
-    set_current_cover(next_cover)
+
+    current_cover_request := (new_cover ?? default)
   end
 
-  current_cover_file.{set=extract_cover_from_metadata}
+  current_cover_request.{set=extract_cover_from_metadata}
 end

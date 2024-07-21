@@ -326,7 +326,7 @@ let _after_tick ~clock x =
         let latency = Time.(end_time |-| target_time) in
         if Time.(x.max_latency |<=| latency) then (
           x.log#severe "Too much latency! Resetting active sources...";
-          _set_time x target_time;
+          _set_time x end_time;
           List.iter
             (fun s ->
               match s#source_type with

@@ -468,6 +468,21 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  GH3303.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3303.liq liquidsoap %{test_liq} GH3303.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   GH3316.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe

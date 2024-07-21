@@ -29,7 +29,7 @@ type task
 (** [init (host,port)]: Create a new task. *)
 val init : string * int -> task
 
-(** Performs a sumbission to audioscrobbler *)
+(** Performs a submission to audioscrobbler *)
 val submit :
   string * string ->
   task ->

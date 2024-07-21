@@ -113,7 +113,7 @@ let priority =
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
 let file_type filename =
-  let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
+  let fd = Decoder.openfile filename in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)
     (fun () ->
@@ -156,7 +156,7 @@ let get_tags ~metadata:_ ~extension ~mime file =
       (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
          ~extensions:(Some file_extensions#get) file)
   then raise Not_found;
-  let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
+  let fd = Decoder.openfile file in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)
     (fun () ->
@@ -186,7 +186,7 @@ let check filename =
 
 let duration ~metadata:_ file =
   if not (check file) then raise Not_found;
-  let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
+  let fd = Decoder.openfile file in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)
     (fun () ->

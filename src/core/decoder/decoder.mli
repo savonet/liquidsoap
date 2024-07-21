@@ -106,6 +106,9 @@ val conf_mime_types : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
 val conf_priorities : Dtools.Conf.ut
 
+(** Open file with readonly, cloexec and share delete on windows. *)
+val openfile : string -> Unix.file_descr
+
 (** Test file extension and mime if available *)
 val test_file :
   log:Log.t ->
