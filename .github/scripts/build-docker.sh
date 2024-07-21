@@ -12,11 +12,7 @@ DOCKER_PLATFORM="$7"
 
 cp "$DEB_FILE" "$DEB_DEBUG_FILE" .
 
-if [ "${ARCHITECTURE}" = "armhf" ]; then
-  DOCKERFILE=.github/docker/Dockerfile-armhf.production
-else
-  DOCKERFILE=.github/docker/Dockerfile.production
-fi
+DOCKERFILE=.github/docker/Dockerfile.production
 
 docker login -u "$USER" -p "$PASSWORD"
 

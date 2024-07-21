@@ -366,19 +366,6 @@ jobs:
         os: ${{ fromJson(needs.build_details.outputs.build_os) }}
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
-        exclude:
-          - os: debian_bullseye
-            platform: arm64
-          - os: debian_bullseye
-            platform: amd64
-          - os: debian_bookworm
-            platform: armhf
-          - os: debian_trixie
-            platform: armhf
-          - os: ubuntu_oracular
-            platform: armhf
-          - os: ubuntu_noble
-            platform: armhf
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
@@ -423,7 +410,7 @@ jobs:
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}" ${{ matrix.platform }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         run: |
@@ -439,20 +426,12 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
       - name: Upload debian packages artifacts
-        if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
+        if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           if-no-files-found: error
-      - name: Upload debian armhf packages artifacts
-        if: contains(matrix.os, 'debian') && matrix.platform == 'armhf'
-        uses: savonet/aws-s3-docker-action@master
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          SOURCE: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
-          TARGET: ${{ needs.build_details.outputs.s3-artifact-basepath }}
       - name: Build alpine package
         if: matrix.os == 'alpine'
         id: build_apk

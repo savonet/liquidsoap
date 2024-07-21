@@ -3,7 +3,6 @@
 set -e
 
 CPU_CORES="$1"
-PLATFORM="$2"
 
 export CPU_CORES
 
@@ -88,10 +87,6 @@ cd /tmp/liquidsoap-full/liquidsoap
 dune build --profile=release
 
 echo "::endgroup::"
-
-if [ "${PLATFORM}" = "armhf" ]; then
-  exit 0
-fi
 
 echo "::group::Print build config"
 
