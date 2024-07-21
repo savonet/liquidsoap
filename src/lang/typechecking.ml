@@ -29,6 +29,57 @@ let debug = ref false
 
 (** {1 Type checking / inference} *)
 
+(** Can a function return type be generalized after being applied?
+    Current implementation considers it safe to generalize when all
+    universal types in the function return type are specified by a non-optional
+    argument.
+
+    For instance, this can be generalized:
+      [def f() = fun (x) -> x end; fn = f() : fun ('a) -> 'a ]
+    But this cannot:
+      [s = single() : source('A) ]
+    and this cannot either:
+      [def f() = fun (x=null()) -> ref(x) end; fn = f() : (?'A?) -> ref('A) ]
+
+    When all universal types in the return are specified by a non-optional
+    argument, we are assured that anything that would be generalized is later
+    specified when the required argument is passed. If this argument is still
+    of a universal type, then the argument's universal type takes over the
+    type that was generalized. *)
+
+let function_app_value_restriction fn =
+  let rec filter_app_vars l t =
+    let t = Type.deref t in
+    match t.descr with
+      | Int | Float | String | Bool | Never -> l
+      | Custom c -> c.filter_vars filter_app_vars l c.typ
+      | Getter t -> filter_app_vars l t
+      | List { t } | Nullable t -> filter_app_vars l t
+      | Tuple aa -> List.fold_left filter_app_vars l aa
+      | Meth ({ scheme = g, t }, u) ->
+          let l =
+            List.filter (fun v -> not (List.mem v g)) (filter_app_vars l t)
+          in
+          filter_app_vars l u
+      | Constr c ->
+          List.fold_left (fun l (_, t) -> filter_app_vars l t) l c.params
+      | Var { contents = Free var } -> var :: l
+      | Var { contents = Link _ } -> assert false
+      | Arrow (p, t) ->
+          let l = filter_app_vars l t in
+          let pl =
+            List.fold_left
+              (fun pl -> function
+                | true, _, _ -> pl
+                | false, _, t -> filter_app_vars pl t)
+              [] p
+          in
+          List.filter (fun v -> not (List.memq v pl)) l
+  in
+  match Type.demeth fn.Term.t with
+    | { Type.descr = Arrow (_, t) } -> filter_app_vars [] t = []
+    | _ -> false
+
 (** Terms for which generalization is safe. *)
 let value_restriction t =
   let rec value_restriction t =
@@ -36,6 +87,7 @@ let value_restriction t =
       | `Var _ -> true
       | `Fun _ -> true
       | `Null -> true
+      | `App (fn, _) -> function_app_value_restriction fn
       | `List l | `Tuple l -> List.for_all value_restriction l
       | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> true
       | `Let l -> value_restriction l.def && value_restriction l.body
@@ -329,7 +381,6 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
       | `Let ({ pat; replace; def; body; _ } as l) ->
           check ~level:(level + 1) ~env def;
           let generalized =
-            (* Printf.printf "generalize at %d: %B\n\n!" level (value_restriction def); *)
             if value_restriction def then fst (generalize ~level def.t) else []
           in
           let penv, pa = type_of_pat ~level ~pos pat in

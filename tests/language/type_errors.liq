@@ -109,6 +109,12 @@ def f() =
   incorrect(
     'def f(x,y) = y end ignore(f(2))'
   )
+
+  # Invalid type generalization
+  incorrect(
+    'def f(x=null()) = ref(x) end r = f(); r.set(1); r.set("aabb")'
+  )
+
   incorrect('fallback(transitions=[fun(~l)->1],[blank()])')
   incorrect('fallback(transitions=[fun(~l=1)->1],[blank()])')
   incorrect('fallback(transitions=[fun(x,y=blank())->y],[blank()])')
