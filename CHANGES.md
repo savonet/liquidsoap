@@ -6,7 +6,7 @@ New:
   should greatly impact impredictable side-effect of the previous models w.r.t.
   track marks, content sharing and more. This also impacts multiple operators
   behavior. Mostly, things should be roughly the same with differences around
-  behavors related to track marks (`source.on_track` and etc). See @TODO@ for
+  behaviors related to track marks (`source.on_track` and etc). See @TODO@ for
   more details (#3577)
 - Allow frames duration shorter than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
@@ -214,7 +214,7 @@ New:
   added native type for srt sockets with methods, moved stats
   to socket methods, added `socket()` method on srt input/outputs
   (#2556)
-- HLS: Added support for ID3 in-stream metadat (#3154) and
+- HLS: Added support for ID3 in-stream metadata (#3154) and
   custom tags (#2898).
 - Added support for FLAC metadata (#2952)
 - Added support for YAML parsing and rendering (#2855)
@@ -696,7 +696,7 @@ New:
 - Added `time.{zone,zone.set,make}` (#2178)
 - Added `runtime.gc` module, rename `garbage_collect` as `runtime.gc.full_major`
   with deprecated compatibility wrapper, added `runtime.gc.stat`,
-  `runtime.gc.quick_stat`, `runtine.gc.print_stat` and `runtime.gc.{get,set}`.
+  `runtime.gc.quick_stat`, `runtime.gc.print_stat` and `runtime.gc.{get,set}`.
 - Added `runtime.sys.word_size`
 - Added optional support for `runtime.mem_usage`
 - Added `runtime.memory` wrapper to get info about the system and process'
@@ -1014,7 +1014,7 @@ Fixed:
 - Fixed parsing of http URI arguments with `=` in them (#1340).
 - Fixed fade-out in crossfades when crossfade duration is the same as fade-out
   duration (#1351).
-- Fixed osc server not workin when daemonized (#1365).
+- Fixed osc server not working when daemonized (#1365).
 - Fixed glitchy audio when using `input.harbor` (#1944)
 - Fixed `"tracknumber"` and `"year"` returning `0` in taglib (#1901)
 

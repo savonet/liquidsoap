@@ -28,7 +28,7 @@ videos for a start.
 
 ### Setting up frame size and positions
 
-We provide an abstract API to specify video frame sizes and positions that is idependent
+We provide an abstract API to specify video frame sizes and positions that is independent
 from the actual rendered size. This way, you can define all your elements and have them
 being rendered at different frame size without having to change their placement or size values!
 

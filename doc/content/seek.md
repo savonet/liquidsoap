@@ -43,7 +43,7 @@ s = playlist(prefix="annotate:liq_cue_in=\"10.\",liq_cue_out=\"45\":",
 
 As in the above example, you may use the `annotate` protocol to pass custom cue
 points along with the files passed to Liquidsoap. This is particularly useful
-in combination with `request.dymanic` as an external script can build-up
+in combination with `request.dynamic` as an external script can build-up
 the appropriate URI, including cue-points, based on information from your
 own scheduling back-end.
 

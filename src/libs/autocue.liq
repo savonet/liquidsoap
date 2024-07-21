@@ -166,6 +166,9 @@ end
 # Get frames from ffmpeg.filter.ebur128
 # @flag hidden
 def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
+  ignore(ratio)
+  ignore(timeout)
+  ignore(filename)
 %ifdef ffmpeg.filter.ebur128
   duration =
     null.get(default=0., request.duration(resolve_metadata=false, filename))

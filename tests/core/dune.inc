@@ -8,7 +8,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:content_test content_test.exe))
  (action (run %{content_test} )))
 
@@ -22,7 +22,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:decoder_test decoder_test.exe))
  (action (run %{decoder_test} )))
 
@@ -36,7 +36,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:ffmpeg_quality ffmpeg_quality.exe))
  (action (run %{ffmpeg_quality} )))
 
@@ -50,7 +50,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:frame_test frame_test.exe))
  (action (run %{frame_test} )))
 
@@ -64,7 +64,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:generator_test generator_test.exe))
  (action (run %{generator_test} )))
 
@@ -78,7 +78,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:is_url is_url.exe))
  (action (run %{is_url} )))
 
@@ -106,7 +106,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:meth meth.exe))
  (action (run %{meth} )))
 
@@ -120,7 +120,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:more_types more_types.exe))
  (action (run %{more_types} )))
 
@@ -134,7 +134,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:output_encoded_test output_encoded_test.exe))
  (action (run %{output_encoded_test} )))
 
@@ -148,7 +148,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:output_test output_test.exe))
  (action (run %{output_test} )))
 
@@ -176,7 +176,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:playlist_basic_test playlist_basic_test.exe))
  (action (run %{playlist_basic_test} )))
 
@@ -190,7 +190,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:pool_test pool_test.exe))
  (action (run %{pool_test} )))
 
@@ -204,7 +204,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:start_stop_test start_stop_test.exe))
  (action (run %{start_stop_test} )))
 
@@ -232,7 +232,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:string_test string_test.exe))
  (action (run %{string_test} )))
 
@@ -246,7 +246,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:strings_test strings_test.exe))
  (action (run %{strings_test} )))
 
@@ -260,7 +260,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:timezone timezone.exe))
  (action (run %{timezone} )))
 
@@ -274,7 +274,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:types types.exe))
  (action (run %{types} )))
 
@@ -288,7 +288,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:unifier_test unifier_test.exe))
  (action (run %{unifier_test} )))
 
@@ -302,7 +302,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:utils_test utils_test.exe))
  (action (run %{utils_test} )))
 
@@ -316,6 +316,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-
+  
   (:version_test version_test.exe))
  (action (run %{version_test} )))
+

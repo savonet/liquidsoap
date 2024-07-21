@@ -51,7 +51,7 @@ You can also pin directly using a git url:
 opam pin -ny git+https://github.com/savonet/ocaml-cry
 ```
 
-See `opam pin --help` for more defails about the available options.
+See `opam pin --help` for more details about the available options.
 
 ## Dependencies
 

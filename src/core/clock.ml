@@ -326,7 +326,7 @@ let _after_tick ~clock x =
         let latency = Time.(end_time |-| target_time) in
         if Time.(x.max_latency |<=| latency) then (
           x.log#severe "Too much latency! Resetting active sources...";
-          _set_time x target_time;
+          _set_time x end_time;
           List.iter
             (fun s ->
               match s#source_type with
@@ -349,14 +349,17 @@ let rec active_params c =
     | _ when Atomic.get global_stop -> raise Has_stopped
     | _ -> raise Invalid_state
 
-and _tick ~clock x =
+and _activate_pending_sources ~clock x =
   Queue.flush clock.pending_activations (fun s ->
       check_stopped ();
       s#wake_up;
       match s#source_type with
         | `Active _ -> WeakQueue.push x.active_sources s
         | `Output _ -> Queue.push x.outputs s
-        | `Passive -> WeakQueue.push x.passive_sources s);
+        | `Passive -> WeakQueue.push x.passive_sources s)
+
+and _tick ~clock x =
+  _activate_pending_sources ~clock x;
   let sub_clocks =
     List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
   in
@@ -519,6 +522,9 @@ let self_sync c =
   match Atomic.get clock.state with
     | `Started params -> _self_sync ~clock params
     | _ -> false
+
+let activate_pending_sources clock =
+  _activate_pending_sources ~clock:(Unifier.deref clock) (active_params clock)
 
 let tick clock = _tick ~clock:(Unifier.deref clock) (active_params clock)
 

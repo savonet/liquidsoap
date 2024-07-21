@@ -421,7 +421,7 @@ let _ =
       let auth_function = Lang.to_option (List.assoc "auth" p) in
       let login ~socket user password =
         (* We try to decode user & password here.
-         * Idealy, it would be better to decode them
+         * Ideally, it would be better to decode them
          * in tools/harbor.ml in order to use any
          * possible charset information there.
          * However:
