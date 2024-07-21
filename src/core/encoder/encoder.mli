@@ -32,7 +32,6 @@ type format =
   | Ffmpeg of Ffmpeg_format.t
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
-  | GStreamer of Gstreamer_format.t
 
 val audio_type : pcm_kind:Content.kind -> int -> Type.t Frame.Fields.t
 val video_format : unit -> Content.format

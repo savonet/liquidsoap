@@ -75,7 +75,6 @@
     frei0r
     gd
     graphics
-    gstreamer
     imagelib
     inotify
     irc-client-unix
@@ -120,7 +119,6 @@
     (ffmpeg-avutil (< 1.2.0))
     (flac (< 0.3.0))
     (frei0r (< 0.1.0))
-    (gstreamer (< 0.3.1))
     (inotify (< 1.0))
     (ladspa (< 0.2.0))
     (lame (< 0.3.7))

@@ -238,28 +238,6 @@ Bitrate can be either constant by passing: `bitrate=64` or variable: `vbr=<1-5>`
 You can consult the [Hydrogenaudio knowledge base](http://wiki.hydrogenaud.io/index.php?title=Fraunhofer_FDK_AAC) for more details
 on configuration values and meanings.
 
-## Gstreamer
-
-The `%gstreamer` encoder can be used to encode streams using the `gstreamer` multimedia framework.
-This encoder extends liquidsoap with all available GStreamer formats which includes most, if not all,
-formats available to your operating system.
-
-The encoder's parameters are as follows:
-
-```liquidsoap
-%gstreamer(channels=2,
-           audio="lamemp3enc",
-           has_video=true,
-           video="x264enc",
-           muxer="mpegtsmux",
-           metadata="metadata",
-           log=5,
-           pipeline="")
-```
-
-Please refer to the [Gstreamer encoder](gstreamer_encoder.html) page for a detailed explanation
-of this encoder.
-
 ## External encoders
 
 For a detailed presentation of external encoders, see [this page](external_encoders.html).

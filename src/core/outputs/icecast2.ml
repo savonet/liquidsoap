@@ -85,13 +85,6 @@ module Icecast = struct
             samplerate = Some (Lazy.force m.External_encoder_format.samplerate);
             channels = Some m.External_encoder_format.channels;
           }
-      | Encoder.GStreamer gst ->
-          {
-            quality = None;
-            bitrate = None;
-            samplerate = None;
-            channels = Some (Gstreamer_format.audio_channels gst);
-          }
       | Encoder.Flac m ->
           {
             quality = Some (string_of_int m.Flac_format.compression);

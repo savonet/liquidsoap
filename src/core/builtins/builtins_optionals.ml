@@ -23,7 +23,6 @@ let () =
       ("frei0r", Frei0r_option.enabled);
       ("gd", Gd_option.enabled);
       ("graphics", Graphics_option.enabled);
-      ("gstreamer", Gstreamer_option.enabled);
       ("inotify", Inotify_option.enabled);
       ("imagelib", Imagelib_option.enabled);
       ("irc", Irc_option.enabled);

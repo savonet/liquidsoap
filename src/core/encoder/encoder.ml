@@ -32,7 +32,6 @@ type format =
   | Ffmpeg of Ffmpeg_format.t
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
-  | GStreamer of Gstreamer_format.t
 
 let audio_type ~pcm_kind n =
   Frame.Fields.make
@@ -133,9 +132,6 @@ let type_of_format f =
         if e.External_encoder_format.video <> None then
           audio_video_type channels
         else audio_type channels
-    | GStreamer ({ Gstreamer_format.has_video } as gst) ->
-        let channels = Gstreamer_format.audio_channels gst in
-        if has_video then audio_video_type channels else audio_type channels
 
 let string_of_format = function
   | WAV w -> Wav_format.to_string w
@@ -147,7 +143,6 @@ let string_of_format = function
   | Ffmpeg w -> Ffmpeg_format.to_string w
   | FdkAacEnc w -> Fdkaac_format.to_string w
   | External w -> External_encoder_format.to_string w
-  | GStreamer w -> Gstreamer_format.to_string w
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->

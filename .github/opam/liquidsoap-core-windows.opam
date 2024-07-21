@@ -52,7 +52,6 @@ depopts: [
   "frei0r-windows"
   "gd-windows"
   "graphics-windows"
-  "gstreamer-windows"
   "inotify-windows"
   "irc-client-unix-windows"
   "ladspa-windows"
@@ -95,7 +94,6 @@ conflicts: [
   "ffmpeg-avutil-windows" {< "1.2.0"}
   "flac-windows" {< "0.3.0"}
   "frei0r-windows" {< "0.1.0"}
-  "gstreamer-windows" {< "0.3.1"}
   "inotify-windows" {< "1.0"}
   "ladspa-windows" {< "0.2.0"}
   "lame-windows" {< "0.3.5"}

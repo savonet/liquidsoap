@@ -452,27 +452,6 @@ def video.text.gd =
 end
 %endif
 
-%ifdef video.text.gstreamer
-video.text.available :=
-  [("gstreamer", video.text.gstreamer), ...video.text.available()]
-
-# Add a text to a stream (GStreamer implementation).
-# @category Source / Video processing
-# @param ~id Force the value of the source ID.
-# @param ~color Text color (in 0xRRGGBB format).
-# @param ~cycle Cycle text when it reaches left boundary.
-# @param ~font Path to ttf font file.
-# @param ~metadata Change text on a particular metadata (empty string means disabled).
-# @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (`0` means no scrolling and update according to `x` and `y` in case they are variable).
-# @param ~x x offset.
-# @param ~y y offset.
-# @params d Text to display.
-def video.add_text.gstreamer =
-  add_text_builder(video.text.gstreamer)
-end
-%endif
-
 %ifdef video.text.sdl
 video.text.available := [("sdl", video.text.sdl), ...video.text.available()]
 
@@ -545,7 +524,7 @@ thread.run(
   )
 )
 
-# Display a text using the first available operator in: camlimages, SDL, FFmpeg, GStreamer, gd or native.
+# Display a text using the first available operator in: camlimages, SDL, FFmpeg, gd or native.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
@@ -572,7 +551,7 @@ def replaces video.text(
 end
 
 # Add a text to a stream. Uses the first available operator in: camlimages, SDL,
-# FFmpeg, GStreamer, gd or native.
+# FFmpeg, gd or native.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).

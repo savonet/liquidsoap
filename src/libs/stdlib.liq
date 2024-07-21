@@ -52,7 +52,6 @@
 %include_extra "extra/server.liq"
 %include_extra "extra/telnet.liq"
 %include_extra "extra/interactive.liq"
-%include_extra "extra/gstreamer.liq"
 %include_extra "extra/visualization.liq"
 %include_extra "extra/openai.liq"
 %include_extra "extra/metadata.liq"
