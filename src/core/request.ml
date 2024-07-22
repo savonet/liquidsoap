@@ -637,5 +637,5 @@ module Value = Value.MkCustom (struct
       "json"
 
   let to_string r = Printf.sprintf "<request(id=%d)>" r.id
-  let compare = Stdlib.compare
+  let compare r r' = Stdlib.compare r.id r'.id
 end)
