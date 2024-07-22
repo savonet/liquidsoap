@@ -8,11 +8,22 @@ New:
   behavior. Mostly, things should be roughly the same with differences around
   behaviors related to track marks (`source.on_track` and etc). See @TODO@ for
   more details (#3577)
+- Added script caching layer for faster script startup time. See: https://www.liquidsoap.info/blog/2024-06-13-a-faster-liquidsoap/
+  for details (#3924, #3949, #3959 and #3977)
+- Rewrote the clock/streaming loop layer. This prepares our streaming system to
+  support multicore when the OCaml compiler is mature enough to allow it. Clocks
+  are now attached to sources via their `clock` methods. Returned value is a stripped
+  down `clock` variable. Users can use the `clock` function to retrieve the full
+  methods, e.g. `s = sine(); c = clock(s.clock)`. This value has advanced functions
+  for clock control such as `start`/`stop`, `ticks` and `self_sync` to check for
+  `self-sync`. See @TODO@ for more details. (#3781)
 - Allow frames duration shorter than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage. See @TODO@ for more details (#3607)
 - Change default frame duration to `0.02s` (#4033)
 - Optimized runtime (#3927, #3928, #3919)
+- Added `finally` to execute code regardless of whether or not an exception is raised
+  (see: #3895 for more details).
 - Removed gstreamer support. Gstreamer's architecture was never a good fit for us
   and created a huge maintenance and debugging burden and it had been marked as
   deprecated for a while. Most, if not all of its features should be available using
@@ -65,6 +76,11 @@ Changed:
   `runtime.gc.quick_stat()` (#3783).
 - Changed the port for the built-in Prometheus exporter to `9599` (#3801).
 - Add support for caching LV2 and LADSPA plugins (#3959).
+
+Fixed:
+
+- Fixed type generalization on values returned from function applications. Most notably,
+  this should help with HTTP endpoint registration (#3303, fixed in #4030)
 
 ---
 
