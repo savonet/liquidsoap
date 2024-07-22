@@ -36,19 +36,25 @@ def request.image(
 ) =
   s = source.dynamic()
 
-  def set((req:request)) =
-    image = request.single(id=id, fallible=fallible, req)
-    image = video.crop(image)
-    image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
-    s.set(image)
+  last_req = ref(getter.get(req))
+
+  def set_req() =
+    req = (getter.get(req) : request)
+
+    if
+      req != last_req()
+    then
+      image = request.single(id=id, fallible=fallible, req)
+      image = video.crop(image)
+      image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
+      s.set(image)
+      last_req := req
+    end
   end
 
-  s.on_wake_up({set(getter.get(req))})
+  s.on_wake_up(set_req)
 
-  on_change = getter.on_change(set, req)
-  on_change = {ignore(on_change())}
-
-  source.on_frame(s, on_change)
+  source.on_frame(s, set_req)
 end
 
 # Generate a source from an image file.
