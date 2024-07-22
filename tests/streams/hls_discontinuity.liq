@@ -17,13 +17,13 @@ has_restarted = ref(false)
 segments_count = ref(-1)
 
 first_playlist =
-  "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:0\r\n#EXT-X-DISCONTINUITY-SEQUENCE:0\r\n#EXTINF:2.000,\r\nstream_1.ts\r\n#EXTINF:2.000,\r\nstream_2.ts\r\n#EXTINF:2.000,\r\nstream_3.ts\r\n#EXTINF:2.000,\r\nstream_4.ts\r\n"
+  "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:0\r\n#EXT-X-DISCONTINUITY-SEQUENCE:0\r\n#EXTINF:2.000,\r\nstream_1.ts\r\n#EXTINF:1.980,\r\nstream_2.ts\r\n#EXTINF:1.980,\r\nstream_3.ts\r\n#EXTINF:1.960,\r\nstream_4.ts\r\n"
 
 second_playlist =
-  "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:2\r\n#EXT-X-DISCONTINUITY-SEQUENCE:0\r\n#EXTINF:2.000,\r\nstream_3.ts\r\n#EXTINF:2.000,\r\nstream_4.ts\r\n#EXTINF:0.000,\r\nstream_5.ts\r\n#EXT-X-DISCONTINUITY\r\n#EXTINF:2.000,\r\nstream_7.ts\r\n"
+  "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:2\r\n#EXT-X-DISCONTINUITY-SEQUENCE:0\r\n#EXTINF:1.980,\r\nstream_3.ts\r\n#EXTINF:1.960,\r\nstream_4.ts\r\n#EXTINF:0.040,\r\nstream_5.ts\r\n#EXT-X-DISCONTINUITY\r\n#EXTINF:2.000,\r\nstream_7.ts\r\n"
 
 third_playlist =
-  "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:6\r\n#EXT-X-DISCONTINUITY-SEQUENCE:1\r\n#EXTINF:2.000,\r\nstream_7.ts\r\n#EXTINF:2.000,\r\nstream_8.ts\r\n#EXTINF:2.000,\r\nstream_9.ts\r\n#EXTINF:2.000,\r\nstream_10.ts\r\n"
+  "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:6\r\n#EXT-X-DISCONTINUITY-SEQUENCE:1\r\n#EXTINF:2.000,\r\nstream_7.ts\r\n#EXTINF:1.980,\r\nstream_8.ts\r\n#EXTINF:1.980,\r\nstream_9.ts\r\n#EXTINF:1.960,\r\nstream_10.ts\r\n"
 
 def on_file_change(~state=_, fname) =
   if

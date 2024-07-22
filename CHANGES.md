@@ -8,9 +8,10 @@ New:
   behavior. Mostly, things should be roughly the same with differences around
   behaviors related to track marks (`source.on_track` and etc). See @TODO@ for
   more details (#3577)
-- Allow frames smaller than one video frames, typically values under `0.04s`.
+- Allow frames duration shorter than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage. See @TODO@ for more details (#3607)
+- Change default frame duration to `0.02s` (#4033)
 - Optimized runtime (#3927, #3928, #3919)
 - Removed gstreamer support. Gstreamer's architecture was never a good fit for us
   and created a huge maintenance and debugging burden and it had been marked as
