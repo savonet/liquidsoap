@@ -62,7 +62,7 @@ end
 # @param file Path to the image.
 # @method set Change the request.
 def image(%argsof(request.image), file) =
-  r = getter.map(fun (file) -> request.create(file), file)
+  r = getter.map.memoize(fun (file) -> request.create(file), file)
 
   request.image(%argsof(request.image), r)
 end
