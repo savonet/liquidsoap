@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install adduser && apt-get clean
 
 RUN addgroup --gid 10001 --system liquidsoap && \
     adduser --system --disabled-password --disabled-login --uid 10000 \
-    --home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap && \
+    --home /var/cache/liquidsoap --ingroup liquidsoap liquidsoap && \
     usermod --append --groups audio liquidsoap
 
 # For ffmpeg with libfdk-aac
