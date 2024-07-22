@@ -30,7 +30,7 @@ New:
   `ffmpeg`. (#4036)
 - Add `video.canvas` to make it possible to position video elements independently
   of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/)
-- Add cover manager (#3651)
+- Add cover manager from an original code by @vitoyucepi (#3651)
 - Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
   one stream is encoded.
 - Allow trailing commas in record definition (#3300).
@@ -51,7 +51,6 @@ New:
 - Add `list.assoc.nullable`.
 - Add `source.cue` (#3620).
 - Added atomic file write operations.
-- Added `file.cover.manager` from an original code by @vitoyucepi (#3651)
 
 Changed:
 
