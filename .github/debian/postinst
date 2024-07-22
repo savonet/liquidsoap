@@ -31,8 +31,13 @@ if ! test -d /usr/share/liquidsoap; then
   mkdir /usr/share/liquidsoap
 fi
 
+if ! test -d /var/cache/liquidsoap; then
+  mkdir -p /var/cache/liquidsoap
+fi
+
 # Fix directories ownership
 chown liquidsoap:liquidsoap /var/log/liquidsoap
+chown liquidsoap:liquidsoap /var/cache/liquidsoap
 chown root:root /usr/share/liquidsoap
 
 #DEBHELPER#
