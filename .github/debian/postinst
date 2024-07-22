@@ -22,7 +22,7 @@ fi
 # Create the new system account
 id liquidsoap > dev/null 2>&1 || (
   adduser --system --disabled-password --disabled-login \
-    --home /usr/share/liquidsoap --ingroup liquidsoap liquidsoap &&
+    --home /var/cache/liquidsoap --ingroup liquidsoap liquidsoap &&
     usermod --append --groups audio liquidsoap
 )
 
