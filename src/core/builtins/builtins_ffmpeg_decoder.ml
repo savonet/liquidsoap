@@ -285,9 +285,14 @@ let decode_video_frame ~field ~mode generator =
     let current_decoder = ref None in
 
     let mk_decoder ~params ~stream_idx ~time_base =
-      let codec_id = Avcodec.Video.get_params_id params in
+      let codec_id =
+        Avcodec.Video.get_params_id params.Ffmpeg_copy_content.params
+      in
       let codec = Avcodec.Video.find_decoder codec_id in
-      let decoder = Avcodec.Video.create_decoder ~params codec in
+      let decoder =
+        Avcodec.Video.create_decoder ~params:params.Ffmpeg_copy_content.params
+          codec
+      in
       current_decoder := Some decoder;
       current_stream_idx := Some stream_idx;
       current_params := Some params;

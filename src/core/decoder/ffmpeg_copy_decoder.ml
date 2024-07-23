@@ -72,7 +72,13 @@ let mk_audio_decoder ~stream_idx ~format ~field ~stream params =
 
 let mk_video_decoder ~stream_idx ~format ~stream ~field params =
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
-  let params = `Video params in
+  let params =
+    `Video
+      {
+        Ffmpeg_copy_content.avg_frame_rate = Av.get_avg_frame_rate stream;
+        params;
+      }
+  in
   ignore (Content.merge format (Ffmpeg_copy_content.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
   mk_decoder ~stream_idx

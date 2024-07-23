@@ -243,9 +243,15 @@ let register_filters () =
                            | `Video p -> p
                            | _ -> assert false
                          in
-                         let mk_params p = `Video p in
+                         let mk_params params =
+                           `Video
+                             {
+                               Ffmpeg_copy_content.avg_frame_rate = None;
+                               params;
+                             }
+                         in
                          let get_params = function
-                           | `Video p -> p
+                           | `Video { Ffmpeg_copy_content.params } -> params
                            | _ -> assert false
                          in
                          let current_handler, get_handler, clear_handler =

@@ -264,7 +264,14 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
               ~width:target_width ~height:target_height ~time_base codec
           in
 
-          let params = Some (`Video (Avcodec.params encoder)) in
+          let params =
+            Some
+              (`Video
+                {
+                  Ffmpeg_copy_content.avg_frame_rate = Some target_frame_rate;
+                  params = Avcodec.params encoder;
+                })
+          in
           let effective_t =
             Type.make
               (Format_type.descr
