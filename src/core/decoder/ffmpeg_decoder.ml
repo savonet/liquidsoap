@@ -651,7 +651,7 @@ let get_type ~ctype ~format ~url container =
   in
   let video_streams, descriptions =
     List.fold_left
-      (fun (video_streams, descriptions) (_, _, params) ->
+      (fun (video_streams, descriptions) (_, stream, params) ->
         try
           let field = Frame.Fields.video_n (List.length video_streams) in
           let width = Avcodec.Video.get_width params in
@@ -672,7 +672,8 @@ let get_type ~ctype ~format ~url container =
               (Frame.Fields.string_of_field field)
               codec_name width height pixel_format
           in
-          (video_streams @ [(field, params)], descriptions @ [description])
+          ( video_streams @ [(field, Av.get_avg_frame_rate stream, params)],
+            descriptions @ [description] )
         with Avutil.Error _ as exn ->
           let bt = Printexc.get_raw_backtrace () in
           Utils.log_exception ~log
@@ -735,12 +736,14 @@ let get_type ~ctype ~format ~url container =
   in
   let content_type =
     List.fold_left
-      (fun content_type (field, params) ->
+      (fun content_type (field, avg_frame_rate, params) ->
         match (params, Frame.Fields.find_opt field ctype) with
-          | p, Some format when Ffmpeg_copy_content.is_format format ->
+          | params, Some format when Ffmpeg_copy_content.is_format format ->
               ignore
                 (Content.merge format
-                   (Ffmpeg_copy_content.lift_params (Some (`Video p))));
+                   (Ffmpeg_copy_content.lift_params
+                      (Some
+                         (`Video { Ffmpeg_copy_content.avg_frame_rate; params }))));
               Frame.Fields.add field format content_type
           | p, Some format when Ffmpeg_raw_content.Video.is_format format ->
               ignore

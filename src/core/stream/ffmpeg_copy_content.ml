@@ -38,8 +38,12 @@ let conf_ffmpeg_copy_relaxed =
 
 type packet = [ `Audio of audio Packet.t | `Video of video Packet.t ]
 
-type params_payload =
-  [ `Audio of audio Avcodec.params | `Video of video Avcodec.params ]
+type video_params = {
+  avg_frame_rate : Avutil.rational option;
+  params : video Avcodec.params;
+}
+
+type params_payload = [ `Audio of audio Avcodec.params | `Video of video_params ]
 
 type packet_payload = {
   stream_idx : Int64.t;
@@ -85,7 +89,7 @@ module Specs = struct
                        | Some p -> p) );
                  ("sample_rate", string_of_int (Audio.get_sample_rate params));
                ]
-           | Some (`Video params) -> (
+           | Some (`Video { avg_frame_rate; params }) -> (
                [
                  ( "codec",
                    Printf.sprintf "%S"
@@ -95,6 +99,9 @@ module Specs = struct
                  ( "aspect_ratio",
                    string_of_rational (Video.get_sample_aspect_ratio params) );
                ]
+               @ (match avg_frame_rate with
+                   | Some r -> [("framerate", Avutil.string_of_rational r)]
+                   | None -> [])
                @
                match Video.get_pixel_format params with
                  | None -> []
@@ -125,8 +132,10 @@ module Specs = struct
                   (Audio.get_channel_layout p')
                 && Audio.get_sample_format p = Audio.get_sample_format p'
                 && Audio.get_sample_rate p = Audio.get_sample_rate p')
-      | Some (`Video p), Some (`Video p') ->
-          Video.get_params_id p = Video.get_params_id p'
+      | ( Some (`Video { avg_frame_rate = r; params = p }),
+          Some (`Video { avg_frame_rate = r'; params = p' }) ) ->
+          r = r'
+          && Video.get_params_id p = Video.get_params_id p'
           && (conf_ffmpeg_copy_relaxed#get
              || Video.get_width p = Video.get_width p'
                 && Video.get_height p = Video.get_height p'
