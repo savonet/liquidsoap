@@ -107,6 +107,7 @@ let _ =
                 if Value.compare x !last_x = 0 then !last_y
                 else (
                   let y = Lang.apply ~pos:(Lang.pos p') f [("", x)] in
+                  last_x := x;
                   last_y := y;
                   y))
         | _ -> Lang.apply ~pos:(Lang.pos p) f [("", x)])

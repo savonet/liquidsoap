@@ -36,7 +36,7 @@ def request.image(
 ) =
   s = source.dynamic()
 
-  last_req = ref(getter.get(req))
+  last_req = ref(null())
 
   def set_req() =
     req = (getter.get(req) : request)

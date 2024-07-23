@@ -71,6 +71,17 @@ def tests() =
     "foobar|foobar|foobar|gno"
   )
 
+  # Check that memoize does memoize!
+  count = ref(0)
+  def f(_) =
+    ref.incr(count)
+    if count() > 1 then test.fail() end
+  end
+  g = getter("aabb")
+  g = getter.map.memoize(f, g)
+  getter.get(g)
+  getter.get(g)
+
   test.pass()
 end
 
