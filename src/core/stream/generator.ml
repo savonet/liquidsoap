@@ -98,11 +98,16 @@ let remaining gen =
     | p :: _ when p <= length gen -> p
     | _ -> -1
 
-let _truncate gen len =
+let _truncate ?(allow_desync = false) gen len =
   Atomic.set gen.content
     (Frame_base.Fields.map
        (fun content ->
-         assert (len <= Content.length content);
+         let len =
+           if allow_desync then min len (Content.length content)
+           else (
+             assert (len <= Content.length content);
+             len)
+         in
          Content.truncate content len)
        (Atomic.get gen.content))
 
@@ -176,9 +181,19 @@ let _put gen field new_content =
   if 0 <= max_length && max_length < buffered_length then (
     gen.log
       (Printf.sprintf
-         "Generator max length exceeded (%d < %d)! Dropping content.."
+         "Generator max buffered length exceeded (%d < %d)! Dropping content.."
          max_length buffered_length);
-    _truncate gen (buffered_length - max_length))
+    let excess = buffered_length - max_length in
+    let dropped = min (length gen) excess in
+    let dropped, allow_desync =
+      if dropped = 0 then (
+        gen.log
+          "Generator does not have synchronized content to drop. Content may \
+           get out of sync!";
+        (excess, true))
+      else (dropped, false)
+    in
+    _truncate ~allow_desync gen dropped)
 
 let put gen field =
   Mutex_utils.mutexify gen.lock (fun content -> _put gen field content)
