@@ -41,7 +41,7 @@
 type t
 
 val create :
-  ?log:(string -> unit) ->
+  ?log:Log.t ->
   ?max_length:int ->
   ?length:int ->
   ?content:Frame.t ->

@@ -539,7 +539,7 @@ let mk_decoder ~filename ~remaining ~buffer decoder =
   { fread; remaining; fseek; fclose }
 
 let file_decoder ~filename ~remaining ~ctype decoder =
-  let generator = Generator.create ~log:(log#info "%s") ctype in
+  let generator = Generator.create ~log ctype in
   let buffer = mk_buffer ~ctype generator in
   mk_decoder ~filename ~remaining ~buffer decoder
 
@@ -568,7 +568,7 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
     { read; tell = Some tell; length = Some length; lseek = Some lseek }
   in
 
-  let generator = Generator.create ~log:(log#info "%s") ctype in
+  let generator = Generator.create ~log ctype in
   let buffer = mk_buffer ~ctype generator in
   let decoder = create_decoder input in
 
