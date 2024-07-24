@@ -29,7 +29,7 @@ let log = Log.make ["decoder"; "sdlimage"]
 let priority =
   Dtools.Conf.int
     ~p:(Decoder.conf_image_priorities#plug "sdl")
-    "Priority for the sdl image decoder" ~d:1
+    "Priority for the sdl image decoder" ~d:5
 
 let decode_image filename =
   let surface = Sdl_utils.check Tsdl_image.Image.load filename in
