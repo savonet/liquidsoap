@@ -40,7 +40,9 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
       s#wake_up;
-      Atomic.set source (Some s);
+      (match Atomic.exchange source (Some s) with
+        | Some s -> s#sleep
+        | None -> ());
       if s#is_ready then Some s else None
 
     method private get_next reselect =
@@ -82,7 +84,11 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
           Lang.iter_sources
             (fun s -> Typing.(s#frame_type <: self#frame_type))
             f;
-          ignore (self#get_source ~reselect:`Force ()))
+          ignore (self#get_source ~reselect:`Force ()));
+      self#on_sleep (fun () ->
+          match Atomic.exchange source None with
+            | Some s -> s#sleep
+            | None -> ())
 
     method remaining =
       match Atomic.get source with Some s -> s#remaining | None -> -1
