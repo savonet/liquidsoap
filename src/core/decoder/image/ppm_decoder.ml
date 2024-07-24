@@ -24,6 +24,11 @@ open Mm
 
 let log = Log.make ["decoder"; "ppm"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Decoder.conf_image_priorities#plug "ppm")
+    "Priority for the ppm image decoder" ~d:1
+
 let decode_image fname =
   let ic = open_in_bin fname in
   let len = in_channel_length ic in
@@ -35,4 +40,8 @@ let decode_image fname =
 let () =
   Plug.register Decoder.image_file_decoders "ppm"
     ~doc:"Native decoding of PPM images."
-    { Decoder.check_image = (fun _ -> true); decode_image }
+    {
+      Decoder.image_decoder_priority = (fun () -> priority#get);
+      check_image = (fun filename -> Filename.extension filename = ".ppm");
+      decode_image;
+    }

@@ -24,6 +24,11 @@ module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 
 let log = Log.make ["decoder"; "ffmpeg"; "image"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Decoder.conf_image_priorities#plug "ffmpeg")
+    "Priority for the ffmpeg image decoder" ~d:10
+
 let check_container fname =
   let container = Av.open_input fname in
   try
@@ -72,4 +77,8 @@ let decode_image fname =
 let () =
   Plug.register Decoder.image_file_decoders "ffmpeg"
     ~doc:"Decode images using Ffmpeg."
-    { Decoder.check_image; decode_image }
+    {
+      Decoder.image_decoder_priority = (fun () -> priority#get);
+      check_image;
+      decode_image;
+    }

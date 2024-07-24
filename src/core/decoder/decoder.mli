@@ -72,6 +72,7 @@ type file_decoder_ops = {
 type stream_decoder = input -> decoder
 
 type image_decoder = {
+  image_decoder_priority : unit -> int;
   check_image : file -> bool;
   decode_image : file -> Video.Image.t;
 }
@@ -109,6 +110,7 @@ val conf_decoder : Dtools.Conf.ut
 val conf_mime_types : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
 val conf_priorities : Dtools.Conf.ut
+val conf_image_priorities : Dtools.Conf.ut
 
 (** Open file with readonly, cloexec and share delete on windows. *)
 val openfile : string -> Unix.file_descr

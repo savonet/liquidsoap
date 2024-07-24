@@ -26,6 +26,11 @@ module P = Image.Generic.Pixel
 
 let log = Log.make ["decoder"; "sdlimage"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Decoder.conf_image_priorities#plug "sdl")
+    "Priority for the sdl image decoder" ~d:1
+
 let decode_image filename =
   let surface = Sdl_utils.check Tsdl_image.Image.load filename in
   Fun.protect
@@ -45,4 +50,8 @@ let check_image filename =
 let () =
   Plug.register Decoder.image_file_decoders "sdl"
     ~doc:"Use SDL to decode images."
-    { Decoder.check_image; decode_image }
+    {
+      Decoder.image_decoder_priority = (fun () -> priority#get);
+      check_image;
+      decode_image;
+    }
