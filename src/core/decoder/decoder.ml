@@ -102,7 +102,10 @@ type file_decoder =
     close function. *)
 type stream_decoder = input -> decoder
 
-type image_decoder = file -> Video.Image.t
+type image_decoder = {
+  check_image : file -> bool;
+  decode_image : file -> Video.Image.t;
+}
 
 (** Decoder description. *)
 type decoder_specs = {
@@ -155,7 +158,7 @@ let conf_image_file_decoders =
     ~p:(conf_decoder#plug "image_file_decoders")
     ~d:[] "Decoders and order used to decode image files."
 
-let image_file_decoders : (file -> Video.Image.t option) Plug.t =
+let image_file_decoders : image_decoder Plug.t =
   Plug.create
     ~register_hook:(fun name _ -> f conf_image_file_decoders name)
     ~doc:"Image file decoding methods." "image file decoding"
@@ -333,33 +336,33 @@ let get_file_decoder ~metadata ~ctype filename =
             fun () -> (Option.get specs.file_decoder) ~metadata ~ctype filename
           )))
 
+(** Check if decoder can decode image. *)
+let check_image_file_decoder filename =
+  List.exists
+    (fun (name, { check_image }) ->
+      log#info "Trying decoder %S" name;
+      if check_image filename then (
+        log#important "Image decoder %S accepted %s" name
+          (Lang_string.quote_string filename);
+        true)
+      else false)
+    (get_image_file_decoders ())
+
 (** Get a valid image decoder creator for [filename]. *)
 let get_image_file_decoder filename =
-  let ans = ref None in
-  try
-    List.iter
-      (fun (name, decoder) ->
+  match
+    List.find_map
+      (fun (name, { decode_image }) ->
         log#info "Trying method %S for %s..." name
           (Lang_string.quote_string filename);
-        match
-          try decoder filename
-          with e ->
-            log#info "Decoder %S failed on %s: %s!" name
-              (Lang_string.quote_string filename)
-              (Printexc.to_string e);
-            None
-        with
-          | Some img ->
-              log#important "Method %S accepted %s." name
-                (Lang_string.quote_string filename);
-              ans := Some img;
-              raise Stdlib.Exit
-          | None -> ())
-      (get_image_file_decoders ());
-    log#important "Unable to decode %s using image decoder(s)!"
-      (Lang_string.quote_string filename);
-    !ans
-  with Exit -> !ans
+        try Some (decode_image filename) with _ -> None)
+      (get_image_file_decoders ())
+  with
+    | None ->
+        log#important "Unable to decode %s using image decoder(s)!"
+          (Lang_string.quote_string filename);
+        raise Not_found
+    | Some d -> d
 
 let get_stream_decoder ~ctype mime =
   let decoders =

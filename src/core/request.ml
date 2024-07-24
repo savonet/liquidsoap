@@ -84,6 +84,7 @@ let string_of_log log =
 
 type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
 type status = [ `Idle | `Resolving of float | `Ready | `Destroyed | `Failed ]
+type decoder = string * (unit -> Decoder.file_decoder_ops)
 
 type t = {
   id : int;
@@ -92,6 +93,7 @@ type t = {
   cue_in_metadata : string option;
   cue_out_metadata : string option;
   persistent : bool;
+  decoders : (Frame.content_type, decoder option) Hashtbl.t;
   mutable status : status;
   logger : Log.t;
   log : log;
@@ -374,6 +376,7 @@ module Pool = Pool.Make (struct
       status = `Destroyed;
       logger = Log.make [];
       log = Queue.create ();
+      decoders = Hashtbl.create 1;
       indicators = [];
       file_metadata = Frame.Metadata.empty;
     }
@@ -436,6 +439,7 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
         status = `Idle;
         logger = Log.make [];
         log = Queue.create ();
+        decoders = Hashtbl.create 1;
         indicators = [];
         file_metadata = Frame.Metadata.empty;
       }
@@ -459,12 +463,21 @@ let get_cue ~r = function
                   None
               | Some v -> Some v))
 
+exception Found_decoder of decoder option
+
 let get_base_decoder ~ctype r =
   if not (resolved r) then None
   else (
-    let filename = (List.hd r.indicators).uri in
-    let metadata = metadata r in
-    Decoder.get_file_decoder ~metadata ~ctype filename)
+    try
+      Hashtbl.iter
+        (fun c d -> if Frame.compatible c ctype then raise (Found_decoder d))
+        r.decoders;
+      let filename = (List.hd r.indicators).uri in
+      let metadata = metadata r in
+      let d = Decoder.get_file_decoder ~metadata ~ctype filename in
+      Hashtbl.replace r.decoders ctype d;
+      d
+    with Found_decoder d -> d)
 
 let has_decoder ~ctype r = get_base_decoder ~ctype r <> None
 

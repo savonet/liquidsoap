@@ -24,7 +24,7 @@ open Mm
 
 let log = Log.make ["decoder"; "ppm"]
 
-let load_image fname =
+let decode_image fname =
   let ic = open_in_bin fname in
   let len = in_channel_length ic in
   let data = Bytes.create len in
@@ -34,6 +34,5 @@ let load_image fname =
 
 let () =
   Plug.register Decoder.image_file_decoders "ppm"
-    ~doc:"Native decoding of PPM images." (fun filename ->
-      let img = load_image filename in
-      Some img)
+    ~doc:"Native decoding of PPM images."
+    { Decoder.check_image = (fun _ -> true); decode_image }
