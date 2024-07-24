@@ -26,8 +26,13 @@ module P = Image.Generic.Pixel
 
 let log = Log.make ["decoder"; "camlimages"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Decoder.conf_image_priorities#plug "camlimages")
+    "Priority for the camlimages image decoder" ~d:1
+
 (* TODO: find something more efficient? *)
-let load_image filename =
+let decode_image filename =
   let img = OImages.load filename [] in
   let width, height = (img#width, img#height) in
   let p =
@@ -54,8 +59,21 @@ let load_image filename =
   done;
   img
 
+let check_image filename =
+  try
+    ignore (decode_image filename);
+    true
+  with exn ->
+    log#info "Failed to decode %s: %s"
+      (Lang_string.quote_string filename)
+      (Printexc.to_string exn);
+    false
+
 let () =
   Plug.register Decoder.image_file_decoders "camlimages"
-    ~doc:"Use camlimages library to decode images." (fun filename ->
-      let img = load_image filename in
-      Some img)
+    ~doc:"Use camlimages library to decode images."
+    {
+      Decoder.image_decoder_priority = (fun () -> priority#get);
+      check_image;
+      decode_image;
+    }

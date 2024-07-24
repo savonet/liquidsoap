@@ -161,7 +161,7 @@ let () =
       file_type =
         (fun ~metadata:_ ~ctype filename ->
           if
-            Decoder.get_image_file_decoder filename <> None
+            Decoder.check_image_file_decoder filename
             && is_audio_compatible ctype && is_video_compatible ctype
           then
             Some
@@ -173,7 +173,7 @@ let () =
       file_decoder =
         Some
           (fun ~metadata ~ctype filename ->
-            let img = Option.get (Decoder.get_image_file_decoder filename) in
+            let img = Decoder.get_image_file_decoder filename in
             let width, height =
               Content.Video.dimensions_of_format
                 (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))

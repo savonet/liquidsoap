@@ -26,7 +26,12 @@
 
 let log = Log.make ["decoder"; "imagelib"]
 
-let load_image fname =
+let priority =
+  Dtools.Conf.int
+    ~p:(Decoder.conf_image_priorities#plug "imagelib")
+    "Priority for the imagelib image decoder" ~d:1
+
+let decode_image fname =
   let f = ImageLib_unix.openfile fname in
   let width = f.width in
   let height = f.height in
@@ -39,6 +44,21 @@ let load_image fname =
   done;
   img
 
+let check_image filename =
+  try
+    ignore (decode_image filename);
+    true
+  with exn ->
+    log#info "Failed to decode %s: %s"
+      (Lang_string.quote_string filename)
+      (Printexc.to_string exn);
+    false
+
 let () =
   Plug.register Decoder.image_file_decoders "imagelib"
-    ~doc:"Use ImageLib to decode images." (fun fname -> Some (load_image fname))
+    ~doc:"Use ImageLib to decode images."
+    {
+      Decoder.image_decoder_priority = (fun () -> priority#get);
+      check_image;
+      decode_image;
+    }

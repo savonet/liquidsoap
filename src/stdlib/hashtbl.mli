@@ -12,5 +12,6 @@ val iter : ('a -> 'b -> unit) -> ('a, 'b) t -> unit
 val filter_map_inplace : ('a -> 'b -> 'b option) -> ('a, 'b) t -> unit
 val fold : ('a -> 'b -> 'acc -> 'acc) -> ('a, 'b) t -> 'acc -> 'acc
 val hash : 'a -> int
+val reset : ('a, 'b) t -> unit
 
 module Make : module type of Stdlib.Hashtbl.Make

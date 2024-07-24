@@ -70,7 +70,12 @@ type file_decoder_ops = {
 }
 
 type stream_decoder = input -> decoder
-type image_decoder = file -> Video.Image.t
+
+type image_decoder = {
+  image_decoder_priority : unit -> int;
+  check_image : file -> bool;
+  decode_image : file -> Video.Image.t;
+}
 
 type file_decoder =
   metadata:Frame.metadata ->
@@ -105,6 +110,7 @@ val conf_decoder : Dtools.Conf.ut
 val conf_mime_types : Dtools.Conf.ut
 val conf_file_extensions : Dtools.Conf.ut
 val conf_priorities : Dtools.Conf.ut
+val conf_image_priorities : Dtools.Conf.ut
 
 (** Open file with readonly, cloexec and share delete on windows. *)
 val openfile : string -> Unix.file_descr
@@ -132,8 +138,9 @@ val get_file_decoder :
 val get_stream_decoder :
   ctype:Frame.content_type -> string -> stream_decoder option
 
-val image_file_decoders : (file -> Video.Image.t option) Plug.t
-val get_image_file_decoder : file -> Video.Image.t option
+val image_file_decoders : image_decoder Plug.t
+val check_image_file_decoder : file -> bool
+val get_image_file_decoder : file -> Video.Image.t
 
 (* Initialize a decoding buffer *)
 val mk_buffer : ctype:Frame.content_type -> Generator.t -> buffer
