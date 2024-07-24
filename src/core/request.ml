@@ -407,6 +407,7 @@ let destroy ?force t =
 
       (* Keep the first indicator as initial_uri .*)
       t.indicators <- [List.hd (List.rev t.indicators)];
+      Hashtbl.reset t.decoders;
       t.status <- `Destroyed;
       add_log t "Request destroyed.")
 
