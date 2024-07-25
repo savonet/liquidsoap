@@ -8,8 +8,7 @@ New:
   behavior. Mostly, things should be roughly the same with differences around
   behaviors related to track marks (`source.on_track` and etc). See @TODO@ for
   more details (#3577)
-- Added script caching layer for faster script startup time. See: https://www.liquidsoap.info/blog/2024-06-13-a-faster-liquidsoap/
-  for details (#3924, #3949, #3959 and #3977)
+- Added script caching layer for faster script startup time. See: https://www.liquidsoap.info/blog/2024-06-13-a-faster-liquidsoap/ for details (#3924, #3949, #3959 and #3977)
 - Rewrote the clock/streaming loop layer. This prepares our streaming system to
   support multicore when the OCaml compiler is mature enough to allow it. Clocks
   are now attached to sources via their `clock` methods. Returned value is a stripped
@@ -29,7 +28,7 @@ New:
   deprecated for a while. Most, if not all of its features should be available using
   `ffmpeg`. (#4036)
 - Add `video.canvas` to make it possible to position video elements independently
-  of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/)
+  of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/))
 - Add cover manager from an original code by @vitoyucepi (#3651)
 - Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
   one stream is encoded.
