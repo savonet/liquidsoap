@@ -63,8 +63,10 @@ val initial_uri : t -> string
     staticity, and in [src/sources/one_file.ml] for an example of use). *)
 val destroy : ?force:bool -> t -> unit
 
+type resolving
+
 (** Status of a request. *)
-type status = [ `Idle | `Resolving of float | `Ready | `Destroyed | `Failed ]
+type status = [ `Idle | `Resolving of resolving | `Ready | `Destroyed | `Failed ]
 
 (** Current status of a request. *)
 val status : t -> status
