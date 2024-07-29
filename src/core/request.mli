@@ -34,9 +34,6 @@ val conf : Dtools.Conf.ut
 val indicator :
   ?metadata:Frame.metadata -> ?temporary:bool -> string -> indicator
 
-(** Raised when trying to set an invalid status, e.g. playing when not ready. *)
-exception Invalid_state
-
 (** Type of requests, which are devices for obtaining a local file from an
     URI. *)
 type t

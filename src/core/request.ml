@@ -25,7 +25,6 @@
 
 exception No_indicator
 exception Request_resolved
-exception Invalid_state
 exception Duration of float
 
 let conf =
