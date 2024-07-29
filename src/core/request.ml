@@ -83,7 +83,8 @@ let string_of_log log =
     "" log
 
 type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
-type status = [ `Idle | `Resolving of float | `Ready | `Destroyed | `Failed ]
+type resolving = { until : float; pending : (Condition.t * Mutex.t) list }
+type status = [ `Idle | `Resolving of resolving | `Ready | `Destroyed | `Failed ]
 type decoder = string * (unit -> Decoder.file_decoder_ops)
 
 type t = {
@@ -94,19 +95,19 @@ type t = {
   cue_out_metadata : string option;
   persistent : bool;
   decoders : (Frame.content_type, decoder option) Hashtbl.t;
-  mutable status : status;
+  status : status Atomic.t;
   logger : Log.t;
   log : log;
   mutable indicators : indicator list;
   mutable file_metadata : Frame.Metadata.t;
 }
 
-let resolved t = match t.status with `Ready -> true | _ -> false
+let resolved t = match Atomic.get t.status with `Ready -> true | _ -> false
 
 let initial_uri r =
   match List.rev r.indicators with { uri } :: _ -> uri | [] -> assert false
 
-let status { status } = status
+let status { status } = Atomic.get status
 
 let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
   { uri = home_unrelate s; temporary = temporary = Some true; metadata }
@@ -177,11 +178,11 @@ let add_root_metadata t m =
   in
 
   (* STATUS *)
-  match t.status with
+  match Atomic.get t.status with
     | `Idle -> Frame.Metadata.add "status" "idle" m
-    | `Resolving d ->
+    | `Resolving { until } ->
         let m =
-          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime d)) m
+          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime until)) m
         in
         Frame.Metadata.add "status" "resolving" m
     | `Ready -> Frame.Metadata.add "status" "ready" m
@@ -373,7 +374,7 @@ module Pool = Pool.Make (struct
       resolve_metadata = false;
       excluded_metadata_resolvers = [];
       persistent = false;
-      status = `Destroyed;
+      status = Atomic.make `Destroyed;
       logger = Log.make [];
       log = Queue.create ();
       decoders = Hashtbl.create 1;
@@ -382,7 +383,7 @@ module Pool = Pool.Make (struct
     }
 
   let destroyed id = { destroyed with id }
-  let is_destroyed { status } = status = `Destroyed
+  let is_destroyed { status } = Atomic.get status = `Destroyed
 end)
 
 let id { id } = id
@@ -396,7 +397,7 @@ let leak_warning =
     "Number of requests at which a leak warning should be issued."
 
 let destroy ?force t =
-  if t.status <> `Destroyed then
+  if Atomic.get t.status <> `Destroyed then
     if force = Some true || not t.persistent then (
       List.iter
         (fun i ->
@@ -408,13 +409,14 @@ let destroy ?force t =
       (* Keep the first indicator as initial_uri .*)
       t.indicators <- [List.hd (List.rev t.indicators)];
       Hashtbl.reset t.decoders;
-      t.status <- `Destroyed;
+      Atomic.set t.status `Destroyed;
       add_log t "Request destroyed.")
 
 let finalise = destroy ~force:true
 
 let cleanup () =
-  Pool.iter (fun _ r -> if r.status <> `Destroyed then destroy ~force:true r);
+  Pool.iter (fun _ r ->
+      if Atomic.get r.status <> `Destroyed then destroy ~force:true r);
   Pool.clear ()
 
 let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
@@ -437,7 +439,7 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
         excluded_metadata_resolvers;
         (* This is fixed when resolving the request. *)
         persistent;
-        status = `Idle;
+        status = Atomic.make `Idle;
         logger = Log.make [];
         log = Queue.create ();
         decoders = Hashtbl.create 1;
@@ -562,9 +564,9 @@ let () =
   Lifecycle.before_core_shutdown ~name:"Requests shutdown" (fun () ->
       Atomic.set should_fail true)
 
-let resolve t timeout =
+let resolve_req t timeout =
   log#debug "Resolving request %s." (string_of_indicators t);
-  t.status <- `Resolving (Unix.time ());
+  Atomic.set t.status (`Resolving { until = Unix.time (); pending = [] });
   let maxtime = Unix.time () +. timeout in
   let rec resolve i =
     if Atomic.get should_fail then raise No_indicator;
@@ -629,13 +631,30 @@ let resolve t timeout =
   log#debug "Resolved to %s." (string_of_indicators t);
   let excess = Unix.time () -. maxtime in
   if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
-  if result <> `Resolved then t.status <- `Failed else t.status <- `Ready;
+  let status = if result <> `Resolved then `Failed else `Ready in
+  (match Atomic.exchange t.status status with
+    | `Resolving { pending } ->
+        List.iter
+          (fun (c, m) ->
+            Mutex_utils.mutexify m (fun () -> Condition.signal c) ())
+          pending
+    | _ -> assert false);
   result
 
-let resolve t timeout =
-  match t.status with
-    | `Idle -> resolve t timeout
-    | `Resolving _ -> raise Invalid_state
+let rec resolve t timeout =
+  match Atomic.get t.status with
+    | `Idle -> resolve_req t timeout
+    | `Resolving ({ pending } as r) as status ->
+        let m = Mutex.create () in
+        let c = Condition.create () in
+        Mutex_utils.mutexify m
+          (fun () ->
+            if
+              Atomic.compare_and_set t.status status
+                (`Resolving { r with pending = (c, m) :: pending })
+            then Condition.wait c m)
+          ();
+        resolve t timeout
     | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
 
