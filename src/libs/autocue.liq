@@ -50,7 +50,6 @@ let settings.autocue.internal.metadata_override =
     [
       "liq_cue_in",
       "liq_cue_out",
-      "liq_cross_start_next",
       "liq_fade_in",
       "liq_fade_in_delay",
       "liq_fade_out",
