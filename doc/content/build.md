@@ -91,6 +91,21 @@ the latest version when compilign the latest `liquidsoap` code. You may also hav
 branch when compiling `liquidsoap` from a specific development branch when the changes in the liquidsoap code are paired with
 changes in one of our dependencies. Typically, this happens a lof with the `ffmpeg` binding.
 
+## Environment variables
+
+When compiling Liquidsoap from source, certain environment variables can be set to control the build process and customize the build
+configuration. Here’s a brief overview of the relevant environment variables and their purposes:
+
+- `IS_SNAPSHOT`: Set this variable to indicate whether you are building a snapshot version of Liquidsoap. It affects the version suffix and
+  whether the Git commit is displayed.
+- `LIQ_GIT_SHA`: Override Git commit hash (SHA) if the build system cannot automatically extract it from the repository.
+- `LIQ_VERSION`: Override the displayed version of Liquidsoap.
+- `LIQUIDSOAP_ENABLE_BUILD_CONFIG`: Determines whether the build configuration details are displayed during the build process.
+- `LIQUIDSOAP_BUILD_TARGET`: Controls the runtime lookup paths for Liquidsoap components.
+  - Set to `default`: Uses paths detected in the OPAM switch directory.
+  - Set to `standalone`: Uses paths relative to the binary location, ideal for self-contained deployments.
+  - Set to `posix`: Configures paths to standard system directories.
+
 ## Compiling
 
 Once you have all dependencies installed, you should be able to compile via:
