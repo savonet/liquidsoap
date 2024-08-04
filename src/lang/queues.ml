@@ -35,10 +35,6 @@ module Queue = struct
     in
     f ()
 
-  let unpop q x =
-    push q x;
-    flush_iter q (fun v -> if v != x then push q v)
-
   let flush_fold q fn ret =
     let rec f ret =
       match pop_opt q with Some el -> f (fn el ret) | None -> ret

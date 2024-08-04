@@ -70,27 +70,23 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     method fallible = not infallible
     method! source_type : source_type = `Output (self :> Source.active)
 
+    method private add_on_air m =
+      let d = Unix.gettimeofday () in
+      let m =
+        Frame.Metadata.add "on_air" (Request.pretty_date (Unix.localtime d)) m
+      in
+      Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
+
     (* Metadata stuff: keep track of what was streamed. *)
     val q_length = 10
     val metadata_queue = Queue.create ()
 
     method private add_metadata m =
-      let d = Unix.gettimeofday () in
-      let m =
-        Frame.Metadata.add "on_air" (Request.pretty_date (Unix.localtime d)) m
-      in
-      let m =
-        Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
-      in
+      let m = self#add_on_air m in
       let m = Frame.Metadata.Export.from_metadata ~cover:false m in
       Queue.push metadata_queue m;
       if Queue.length metadata_queue > q_length then
         ignore (Queue.pop metadata_queue)
-
-    method! last_metadata =
-      match Queue.elements metadata_queue with
-        | m :: _ -> Some (Frame.Metadata.Export.to_metadata m)
-        | [] -> None
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)
@@ -134,9 +130,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           ["skip"; "metadata"; "remaining"];
       registered_telnet <- false
 
-    method private can_generate_frame =
-      if infallible then true else source#is_ready
-
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -167,19 +161,17 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     (* The output process *)
     val mutable skip = false
     method private skip = skip <- true
-    method private generate_frame = source#get_frame
+
+    method private generate_frame =
+      Frame.map_metadata source#get_frame (fun (pos, m) ->
+          Some (pos, self#add_on_air m))
 
     method output =
-      if self#can_generate_frame && state = `Idle then (
-        start_stop#transition_to `Started;
-        self#add_metadata Frame.Metadata.empty);
+      if source#is_ready && state = `Idle then start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         let data =
-          if source#is_ready then source#get_frame else self#end_of_track
+          if self#is_ready then self#get_frame else self#end_of_track
         in
-        List.iter
-          (fun (_, m) -> self#add_metadata m)
-          (Frame.get_all_metadata data);
 
         (* Output that frame if it has some data *)
         if Frame.position data > 0 then self#send_frame data;

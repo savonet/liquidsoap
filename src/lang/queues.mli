@@ -26,7 +26,6 @@ module Queue : sig
   val create : unit -> 'a t
   val is_empty : 'a t -> bool
   val push : 'a t -> 'a -> unit
-  val unpop : 'a t -> 'a -> unit
 
   (** Raises [Not_found] when no element can be found. *)
   val pop : 'a t -> 'a

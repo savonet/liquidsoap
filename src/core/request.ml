@@ -106,10 +106,15 @@ type t = {
 
 let resolved t = match Atomic.get t.status with `Ready -> true | _ -> false
 
-let initial_uri r =
+let last_indicator r =
   match List.rev (Queue.elements r.indicators) with
-    | { uri } :: _ -> uri
+    | el :: _ -> el
     | [] -> assert false
+
+let initial_uri r =
+  match Queue.peek_opt r.indicators with
+    | Some { uri } -> uri
+    | None -> assert false
 
 let status { status } = Atomic.get status
 
@@ -157,8 +162,7 @@ let duration ~metadata file =
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
   * [None] otherwise. *)
-let get_filename t =
-  if resolved t then Some (Queue.peek t.indicators).uri else None
+let get_filename t = if resolved t then Some (last_indicator t).uri else None
 
 (** Manage requests' metadata *)
 
@@ -169,9 +173,9 @@ let add_root_metadata t m =
   (* TOP INDICATOR *)
   let m =
     Frame.Metadata.add "temporary"
-      (match Queue.peek_opt t.indicators with
-        | Some h -> if h.temporary then "true" else "false"
-        | None -> "false")
+      (match last_indicator t with
+        | h -> if h.temporary then "true" else "false"
+        | exception _ -> "false")
       m
   in
 
@@ -181,49 +185,46 @@ let add_root_metadata t m =
       | None -> m
   in
 
-  let m =
+  let timestamp =
     if conf_add_on_air#get then (
       if 1 < Queue.length t.on_air then
         log#important
           "Request %d is used by multiple sources, `on_air` and \
            `on_air_timestamp` are not accurate!"
           t.id;
-      let timestamp =
-        Queue.fold t.on_air
-          (fun { timestamp } cur ->
-            match cur with
-              | Some cur -> Some (min cur timestamp)
-              | None -> Some timestamp)
-          None
-      in
-      match timestamp with
-        | None -> m
-        | Some d ->
-            let m =
-              Frame.Metadata.add "on_air" (pretty_date (Unix.localtime d)) m
-            in
-            Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m)
-    else m
+      Queue.fold t.on_air
+        (fun { timestamp } cur ->
+          match cur with
+            | Some cur -> Some (min cur timestamp)
+            | None -> Some timestamp)
+        None)
+    else None
   in
 
   (* STATUS *)
-  match Atomic.get t.status with
-    | `Idle -> Frame.Metadata.add "status" "idle" m
-    | `Resolving { until } ->
+  match (timestamp, Atomic.get t.status) with
+    | Some d, _ ->
+        let m =
+          Frame.Metadata.add "on_air" (pretty_date (Unix.localtime d)) m
+        in
+        Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
+    | _, `Idle -> Frame.Metadata.add "status" "idle" m
+    | _, `Resolving { until } ->
         let m =
           Frame.Metadata.add "resolving" (pretty_date (Unix.localtime until)) m
         in
         Frame.Metadata.add "status" "resolving" m
-    | `Ready -> Frame.Metadata.add "status" "ready" m
-    | `Destroyed -> Frame.Metadata.add "status" "destroyed" m
-    | `Failed -> Frame.Metadata.add "status" "failed" m
+    | _, `Ready -> Frame.Metadata.add "status" "ready" m
+    | _, `Destroyed -> Frame.Metadata.add "status" "destroyed" m
+    | _, `Failed -> Frame.Metadata.add "status" "failed" m
 
-let metadata t =
-  add_root_metadata t
-    (List.fold_left
-       (fun m h -> Frame.Metadata.append h.metadata m)
-       (Atomic.get t.file_metadata)
-       (List.rev (Queue.elements t.indicators)))
+let plain_metadata t =
+  List.fold_left
+    (fun m h -> Frame.Metadata.append h.metadata m)
+    (Atomic.get t.file_metadata)
+    (Queue.elements t.indicators)
+
+let metadata t = add_root_metadata t (plain_metadata t)
 
 (** Logging *)
 
@@ -239,7 +240,7 @@ let () =
     | _ -> None)
 
 let string_of_indicators t =
-  let i = Queue.elements t.indicators in
+  let i = List.rev (Queue.elements t.indicators) in
   let string_of_list l = "[" ^ String.concat ", " l ^ "]" in
   let i = (List.map (fun i -> i.uri)) i in
   string_of_list i
@@ -375,16 +376,16 @@ let file_is_readable name =
   with Unix.Unix_error _ -> false
 
 let read_metadata r =
-  let i = Queue.peek r.indicators in
+  let i = last_indicator r in
   let metadata =
-    resolve_metadata ~initial_metadata:(metadata r)
+    resolve_metadata ~initial_metadata:(plain_metadata r)
       ~excluded:r.excluded_metadata_resolvers i.uri
   in
   Atomic.set r.file_metadata metadata
 
 let push_indicator t i =
   add_log t (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string i.uri));
-  Queue.unpop t.indicators i
+  Queue.push t.indicators i
 
 (** Global management *)
 
@@ -433,10 +434,7 @@ let destroy ?force t =
             try Unix.unlink i.uri
             with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)));
 
-      (* Keep the first indicator as initial_uri .*)
-      let fst = Queue.pop t.indicators in
-      Queue.flush_iter t.indicators (fun v ->
-          if v == fst then Queue.push t.indicators v);
+      Queue.flush_iter t.indicators (fun _ -> ());
       Hashtbl.reset t.decoders;
       Atomic.set t.status `Destroyed;
       add_log t "Request destroyed.")
@@ -505,7 +503,7 @@ let get_base_decoder ~ctype r =
       Hashtbl.iter
         (fun c d -> if Frame.compatible c ctype then raise (Found_decoder d))
         r.decoders;
-      let filename = (Queue.pop r.indicators).uri in
+      let filename = (last_indicator r).uri in
       let metadata = metadata r in
       let d = Decoder.get_file_decoder ~metadata ~ctype filename in
       Hashtbl.replace r.decoders ctype d;
@@ -650,7 +648,7 @@ let resolve_req t timeout =
   let result =
     try
       if Atomic.get should_fail then raise No_indicator;
-      resolve (Queue.pop t.indicators)
+      resolve (Queue.peek t.indicators)
     with
       | Request_resolved -> `Resolved
       | ExnTimeout -> `Timeout
