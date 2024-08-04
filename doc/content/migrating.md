@@ -17,6 +17,44 @@ so, always best to first to a trial run before putting things to production!
 
 ## From 2.2.x to 2.3.x
 
+### Script caching
+
+A mechanism for caching script was added. There are two caches, one for the standard library
+that is shared by all scripts, and one for individual scripts.
+
+Scripts should run the same way with or without caching. However, caching your script has two advantage:
+
+- The script starts much faster.
+- Much less memory is used when starting. This memory is used the first time running the script to typecheck it and more. This is what we're caching.
+
+You can pre-cache a script using the `--cache-only` command:
+
+```liquidsoap
+$ liquidsoap --cache-only /path/to/script.liq
+```
+
+The location of the two caches can be found by running `liquidsoap --build-config`. You can also set them using the
+`$LIQ_CACHE_USER_DIR` and `$LIQ_CACHE_SYSTEM_DIR` environment variables.
+
+Typically, inside a docker container, to pre-cache a script you would set `$LIQ_CACHE_SYSTEM_DIR` to the appropriate
+location and then run `liquidsoap --cache-only`:
+
+```dockerfile
+ENV LIQ_CACHE_USER_DIR=/path/to/liquidsoap/cache
+
+RUN mkdir -p $LIQ_CACHE_USER_DIR && \
+    liquidsoap --cache-only /path/to/script.liq
+```
+
+See [the language page](language.html#caching) for more details!
+
+### Default frame size
+
+Default frame size has been set to `0.02s`, down from `0.04s` in previous releases. This should lower the latency
+of your liquidsoap script.
+
+See [this PR](https://github.com/savonet/liquidsoap/pull/4033) for more details.
+
 ### Crossfade transitions and track marks
 
 Track marks can now be properly passed through crossfade transitions. This means that you also have to make sure
@@ -68,7 +106,7 @@ outputs or even not be actually being on the air if, for instance, it not select
 
 Instead, it is recommended to get this data directly from the outputs.
 
-Starting with `2.3.x`, all output now add `on_air` and `on_air_timestamp` to the metadata returned by `on_track`, `on_metadata` and `last_metadata` and the telnet `metadata` command.
+Starting with `2.3.0`, all output now add `on_air` and `on_air_timestamp` to the metadata returned by `on_track`, `on_metadata` and `last_metadata` and the telnet `metadata` command.
 
 For the telnet `metadata` command, these metadata need to be added to the `settings.encoder.metadata.export` setting first.
 
@@ -81,6 +119,11 @@ request.deprecated_on_air_metadata := true
 ```
 
 However, it is highly recommended to migrate your script to use one of the new method.
+
+### Gstreamer
+
+`gstreamer` was removed. It had been deprecated for a while. We expect `ffmpeg` to carry most, if not all
+of gstreamer's features. See [this PR](https://github.com/savonet/liquidsoap/pull/4036) for more details.
 
 ### Prometheus
 
