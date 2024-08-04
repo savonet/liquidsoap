@@ -74,7 +74,7 @@ For the telnet `metadata` command, these metadata need to be added to the `setti
 
 If you are looking for an event-based API, you can use the output's `on_track` methods to track the metadata currently being played and the time at which it started being played.
 
-For backward compatibility and easier migration, `on_air` and `on_air_timestamp` metadata can be enabled using the `request.deprecated_on_air_metadata` setting:
+For backward compatibility and easier migration, `on_air` and `on_air_timestamp` metadata can be enabled using the `settings.request.deprecated_on_air_metadata` setting:
 
 ```liquidsoap
 request.deprecated_on_air_metadata := true
