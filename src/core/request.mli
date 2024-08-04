@@ -34,6 +34,9 @@ val conf : Dtools.Conf.ut
 val indicator :
   ?metadata:Frame.metadata -> ?temporary:bool -> string -> indicator
 
+(** Return a prettified string. *)
+val pretty_date : Unix.tm -> string
+
 (** Type of requests, which are devices for obtaining a local file from an
     URI. *)
 type t

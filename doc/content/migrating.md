@@ -62,12 +62,18 @@ into a valid tile, however, you might need to call `request.resolve` inside your
 
 ### `on_air` metadata
 
-`on_air` and `on_air_timestamp` metadata are deprecated. These values were never reliable. They are set at the request level when `request.dynamic`
+Request `on_air` and `on_air_timestamp` metadata are deprecated. These values were never reliable. They are set at the request level when `request.dynamic`
 and all its derived sources start playing a request. However, a request can be used in multiple sources and the source using it can be used in multiple
 outputs or even not be actually being on the air if, for instance, it not selected by a `switch` or `fallback`.
 
-Instead, it is recommended to use output's `on_track` methods to track the metadata currently being played and the time at which it started being played.
-If needed, outputs (like sources) also have a `last_metadata` method to return the metadata last seen on any given output.
+Instead, it is recommended to get this data directly from the outputs.
+
+Starting with `2.3.x`, all output now add `on_air` and `on_air_timestamp` to the metadata returned by `last_metadata` and the telnet `metadata` command.
+
+These metadata need to be added to the `settings.encoder.metadata.export` setting. This is done by default but, if you are setting a custom value
+and rely on them, make sure to add `on_air` and/or `on_air_timestamp` to the setting.
+
+If you are looking for an event-based API, you can use the output's `on_track` methods to track the metadata currently being played and the time at which it started being played.
 
 For backward compatibility and easier migration, `on_air` and `on_air_timestamp` metadata can be enabled using the `request.deprecated_on_air_metadata` setting:
 
@@ -75,7 +81,7 @@ For backward compatibility and easier migration, `on_air` and `on_air_timestamp`
 request.deprecated_on_air_metadata := true
 ```
 
-However, it is highly recommended to migrate your script to use output's `on_track` instead.
+However, it is highly recommended to migrate your script to use one of the new method.
 
 ### Prometheus
 

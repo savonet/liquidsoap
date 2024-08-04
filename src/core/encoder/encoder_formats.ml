@@ -56,6 +56,8 @@ let conf_export_metadata =
         "metadata_url";
         "metadata_block_picture";
         "coverart";
+        "on_air";
+        "on_air_timestamp";
       ]
     ~comments:["The list of labels of exported metadata."]
 
