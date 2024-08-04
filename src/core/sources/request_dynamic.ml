@@ -94,7 +94,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       assert (self#current = None);
       try
         match self#get_next_file with
-          | `Retry _ | `Empty ->
+          | `Retry ->
               self#log#debug "Failed to prepare track: no file.";
               false
           | `Request req
@@ -183,7 +183,6 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     method seek_source = (self :> Source.source)
     method abort_track = Atomic.set should_skip true
-    val mutable retry_status = None
 
     method can_generate_frame =
       let is_ready =
@@ -191,32 +190,11 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           self#current <> None || try self#fetch_request with _ -> false)
           ()
       in
-      match (is_ready, retry_status) with
-        | true, _ -> true
-        | false, Some d when Unix.gettimeofday () < d -> false
-        | false, _ ->
+      match is_ready with
+        | true -> true
+        | false ->
             if available () then self#notify_new_request;
             false
-
-    method private get_next_request =
-      let retry () =
-        let delay = retry_delay () in
-        retry_status <- Some (Unix.gettimeofday () +. delay);
-        `Empty
-      in
-      if available () then (
-        match
-          Lang.to_valued_option Request.Value.of_value (Lang.apply f [])
-        with
-          | Some r -> `Request r
-          | None -> retry ()
-          | exception exn ->
-              let bt = Printexc.get_backtrace () in
-              Utils.log_exception ~log:self#log ~bt
-                (Printf.sprintf "Failed to obtain a media request: %s"
-                   (Printexc.to_string exn));
-              retry ())
-      else `Empty
 
     val retrieved : queue_item Queue.t = Queue.create ()
     method private queue_size = Queue.length retrieved
@@ -241,31 +219,15 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
             log_failed_request self#log i.request ans;
             false
 
-    (* Seconds *)
-    val mutable resolving = None
-
-    (** State should be `Sleeping on awakening, and is then turned to `Running.
-      Eventually #sleep puts it to `Tired, then waits for it to be `Sleeping,
-      meaning that the feeding task exited. *)
-    val mutable state = `Sleeping
-
-    val state_lock = Mutex.create ()
-    val state_cond = Condition.create ()
-    val mutable task = None
+    val state = Atomic.make `Sleeping
 
     initializer
       self#on_wake_up (fun () ->
-          assert (task = None);
-          Mutex_utils.mutexify state_lock
-            (fun () ->
-              assert (state = `Sleeping);
-              let t =
-                Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
-              in
-              Duppy.Async.wake_up t;
-              task <- Some t;
-              state <- `Starting)
-            ())
+          let t = Duppy.Async.add Tutils.scheduler ~priority self#feed_queue in
+          Duppy.Async.wake_up t;
+          assert (
+            Atomic.compare_and_set state `Sleeping
+              (`Started (Unix.gettimeofday (), t))))
 
     method private clear_retrieved =
       let rec clear () =
@@ -279,145 +241,93 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     initializer
       self#on_sleep (fun () ->
-          if state = `Running then (
-            (* We need to be sure that the feeding task stopped filling the queue
-               before we destroy all requests from that queue.  Async.stop only
-               promises us that on the next round the task will stop but won't tell us
-               if it's currently resolving a file or not.  So we first put the queue
-               into an harmless state: we put the state to `Tired and wait for it to
-               acknowledge it by setting it to `Sleeping. *)
-            Mutex_utils.mutexify state_lock (fun () -> state <- `Tired) ();
-
-            (* Make sure the task is awake so that it can see our signal. *)
-            Duppy.Async.wake_up (Option.get task);
-            self#log#info "Waiting for feeding task to stop...";
-            Tutils.wait state_cond state_lock (fun () -> state = `Sleeping));
-          Duppy.Async.stop (Option.get task);
-          task <- None;
-
-          (* No more feeding task, we can go to sleep. *)
-          self#end_request;
-          self#log#info "Cleaning up request queue...";
-          self#clear_retrieved)
+          match Atomic.exchange state `Sleeping with
+            | `Started (_, t) ->
+                Duppy.Async.stop t;
+                (* No more feeding task, we can go to sleep. *)
+                self#end_request;
+                self#log#info "Cleaning up request queue...";
+                self#clear_retrieved
+            | _ -> assert false)
 
     (** This method should be called whenever the feeding task has a new
       opportunity to feed the queue, in case it is sleeping. *)
     method private notify_new_request =
-      (* Avoid trying to wake up the task during the shutdown process where it
-         might have been stopped already, in which case we'd get an
-         exception. *)
-      Mutex_utils.mutexify state_lock
-        (fun () ->
-          if state = `Running then Duppy.Async.wake_up (Option.get task))
-        ()
-
-    (** A function that returns delays for tasks, making sure that these tasks
-      don't repeat too fast. The current scheme is to return 0. as long as there
-      are no more than [max] consecutive occurrences separated by less than
-      [delay], otherwise return [delay]. *)
-    val adaptative_delay =
-      let last = ref 0. in
-      let excess = ref 0 in
-      let delay = 2. in
-      let max = 3 in
-      let next () =
-        let now = Unix.gettimeofday () in
-        if now -. !last < delay then incr excess else excess := 0;
-        last := now;
-        if !excess >= max then delay else 0.
-      in
-      next
+      match Atomic.get state with
+        | `Started (d, t) when d <= Unix.gettimeofday () ->
+            Duppy.Async.wake_up t
+        | _ -> ()
 
     (** The body of the feeding task *)
     method private feed_queue () =
-      if
-        (* Is the source running? And does it need prefetching? If the test fails,
-           the task sleeps. *)
-        Mutex_utils.mutexify state_lock
-          (fun () ->
-            match state with
-              | `Starting ->
-                  state <- `Running;
-                  true
-              | `Running -> true
-              | `Tired ->
-                  state <- `Sleeping;
-                  Condition.signal state_cond;
-                  false
-              | `Sleeping ->
-                  (* Because many calls to wake_up result in waking up
-                   * many times, it is possible that we wake up twice
-                   * after #sleep initiates sleeping by setting `Tired.
-                   * The second time we see `Sleeping, and we should not
-                   * do anything.
-                   * At some point the task will be stopped and it will
-                   * disappear.
-                   * What we need is:
-                   *  - That the task disappears once the source sleeps,
-                   *    and we pretty much get it (modulo small delay).
-                   *  - That the request queue can be emptied for good,
-                   *    and be not re-fed at the same time. This is the
-                   *    case because state = Sleeping in all rounds of
-                   *    the task when the queue can be cleaned. (It is
-                   *    possible to start a round before Async.stop and
-                   *    execute its content while the queue is being
-                   *    emptied, but Sleeping saves us). *)
-                  false)
-          ()
-        && self#queue_size < prefetch
-      then (
-        match self#fetch with
-          | `Finished ->
-              (* Retry again in order to make sure that we have enough data *)
-              0.5
-          | `Retry d -> d ()
-          | `Empty -> -1.)
-      else -1.
+      match (self#queue_size < prefetch, Atomic.get state) with
+        | true, `Started (d, t) when d <= Unix.gettimeofday () -> (
+            match self#fetch with
+              | `Finished -> if self#queue_size < prefetch then 0. else -1.
+              | `Retry ->
+                  let d = retry_delay () in
+                  Atomic.set state (`Started (Unix.gettimeofday () +. d, t));
+                  d)
+        | _ -> -1.
 
-    (** Try to feed the queue with a new request. Return a resolution status:
-      Empty if there was no new request to try,
-      Retry if there was a new one but it failed to be resolved,
-      Finished if all went OK. *)
     method fetch =
-      match self#get_next_request with
-        | `Empty -> `Empty
-        | `Retry fn -> `Retry fn
-        | `Request req -> (
-            resolving <- Some req;
-            match Request.resolve req timeout with
-              | `Resolved when Request.has_decoder ~ctype:self#content_type req
-                ->
-                  let rec remove_expired ret =
-                    match Queue.pop_opt retrieved with
-                      | None -> List.rev ret
-                      | Some r ->
-                          let ret =
-                            if r.expired then (
-                              self#log#info "Dropping expired request.";
-                              Request.destroy r.request;
-                              ret)
-                            else r :: ret
-                          in
-                          remove_expired ret
-                  in
-                  List.iter
-                    (fun r -> Queue.push retrieved r)
-                    (remove_expired []);
-                  Queue.push retrieved { request = req; expired = false };
-                  self#log#info "Queued %d requests" self#queue_size;
-                  resolving <- None;
-                  `Finished
-              | _ ->
-                  resolving <- None;
-                  Request.destroy req;
-                  `Retry adaptative_delay)
+      try
+        let r =
+          if available () then (
+            match
+              Lang.to_valued_option Request.Value.of_value (Lang.apply f [])
+            with
+              | Some r -> `Request r
+              | None -> `Retry
+              | exception exn ->
+                  let bt = Printexc.get_backtrace () in
+                  Utils.log_exception ~log:self#log ~bt
+                    (Printf.sprintf "Failed to obtain a media request: %s"
+                       (Printexc.to_string exn));
+                  `Retry)
+          else `Retry
+        in
+        match r with
+          | `Retry -> `Retry
+          | `Request req -> (
+              match Request.resolve req timeout with
+                | `Resolved
+                  when Request.has_decoder ~ctype:self#content_type req ->
+                    let rec remove_expired ret =
+                      match Queue.pop_opt retrieved with
+                        | None -> List.rev ret
+                        | Some r ->
+                            let ret =
+                              if r.expired then (
+                                self#log#info "Dropping expired request.";
+                                Request.destroy r.request;
+                                ret)
+                              else r :: ret
+                            in
+                            remove_expired ret
+                    in
+                    List.iter
+                      (fun r -> Queue.push retrieved r)
+                      (remove_expired []);
+                    Queue.push retrieved { request = req; expired = false };
+                    self#log#info "Queued %d requests" self#queue_size;
+                    `Finished
+                | _ ->
+                    Request.destroy req;
+                    `Retry)
+      with exn ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Error while fetching next request: %s"
+             (Printexc.to_string exn));
+        `Retry
 
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
       match Queue.pop_opt retrieved with
         | None ->
             self#log#debug "Queue is empty!";
-            `Empty
+            `Retry
         | Some r ->
             self#log#info "Remaining %d requests" self#queue_size;
             `Request r.request
@@ -434,8 +344,8 @@ let _ =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 0.1),
         Some
-          "Retry after a given time (in seconds) when callback returns `null`."
-      );
+          "Retry after a given time (in seconds) when callback returns `null` \
+           or an error occurs while resolving a returned request." );
       ( "available",
         Lang.getter_t Lang.bool_t,
         Some (Lang.bool true),
@@ -462,11 +372,8 @@ let _ =
             Lang.val_fun [] (fun _ ->
                 match s#fetch with
                   | `Finished -> Lang.bool true
-                  | `Retry _ ->
-                      log#important "Fetch failed: retry.";
-                      Lang.bool false
-                  | `Empty ->
-                      log#important "Fetch failed: empty.";
+                  | `Retry ->
+                      log#important "Fetch failed";
                       Lang.bool false) );
         ( "queue",
           ([], Lang.fun_t [] (Lang.list_t Request.Value.t)),
