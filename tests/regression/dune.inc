@@ -843,6 +843,36 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  output_on_metadata.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} output_on_metadata.liq liquidsoap %{test_liq} output_on_metadata.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  output_on_track.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} output_on_track.liq liquidsoap %{test_liq} output_on_track.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   playlist-id.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe

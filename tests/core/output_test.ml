@@ -13,25 +13,32 @@ class dummy ~clock ~autostart ~on_start source =
     method test_output = self#output
   end
 
-class failed =
-  object
-    inherit Debug_sources.fail "failed"
+class test_source =
+  object (self)
+    inherit Debug_sources.fail "test_source"
+    val mutable test_can_generate_frame = false
+    method test_set_can_generate_frame = test_can_generate_frame <- true
+    method! can_generate_frame = test_can_generate_frame
+    method! generate_frame = self#empty_frame
   end
 
 let () =
   Frame_settings.lazy_config_eval := true;
   let started = ref false in
   let on_start () = started := true in
-  let failed = new failed in
+  let test_source = new test_source in
   let clock = Clock.create ~sync:`Passive () in
   Clock.start ~force:true clock;
-  let o = new dummy ~clock ~on_start ~autostart:true failed in
+  let o = new dummy ~clock ~on_start ~autostart:true test_source in
   o#content_type_computation_allowed;
   assert (not o#can_generate_frame);
   o#test_wake_up;
   assert (not !started);
+  Clock.tick clock;
   o#test_set_can_generate_frame;
-  assert o#can_generate_frame;
+  assert o#is_ready;
+  test_source#test_set_can_generate_frame;
+  assert test_source#is_ready;
   o#test_output;
   assert !started;
   ()

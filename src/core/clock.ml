@@ -312,7 +312,7 @@ let _set_time { time_implementation; t0; frame_duration; ticks } t =
   Atomic.set ticks (int_of_float (delta /. Time.to_float frame_duration))
 
 let _after_tick ~clock x =
-  Queue.flush x.after_tick (fun fn ->
+  Queue.flush_iter x.after_tick (fun fn ->
       check_stopped ();
       fn ());
   let module Time = (val x.time_implementation : Liq_time.T) in
@@ -350,7 +350,7 @@ let rec active_params c =
     | _ -> raise Invalid_state
 
 and _activate_pending_sources ~clock x =
-  Queue.flush clock.pending_activations (fun s ->
+  Queue.flush_iter clock.pending_activations (fun s ->
       check_stopped ();
       s#wake_up;
       match s#source_type with
@@ -381,7 +381,7 @@ and _tick ~clock x =
           else _detach clock s)
         else Queue.iter clock.on_error (fun fn -> fn exn bt))
     sources;
-  Queue.flush x.on_tick (fun fn ->
+  Queue.flush_iter x.on_tick (fun fn ->
       check_stopped ();
       fn ());
   List.iter

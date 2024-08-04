@@ -154,6 +154,11 @@ let add_all_metadata frame l =
        (l @ Content.Metadata.get_data old_metadata));
   Fields.add Fields.metadata new_metadata frame
 
+let map_metadata frame fn =
+  let metadata = get_all_metadata frame in
+  let metadata = List.filter_map fn metadata in
+  add_all_metadata frame metadata
+
 let add_metadata frame pos m = add_all_metadata frame [(pos, m)]
 
 let free_metadata frame pos =
