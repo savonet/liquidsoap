@@ -473,12 +473,12 @@ let _ =
           "Get the requests currently in the queue.",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                let rec fetch cur =
-                  match Queue.pop_opt s#queue with
-                    | None -> List.rev cur
-                    | Some r -> fetch (Request.Value.to_value r.request :: cur)
+                let requests =
+                  List.map
+                    (fun r -> Request.Value.to_value r.request)
+                    (Queue.elements s#queue)
                 in
-                Lang.list (fetch [])) );
+                Lang.list requests) );
         ( "add",
           ([], Lang.fun_t [(false, "", Request.Value.t)] Lang.bool_t),
           "Add a request to the queue. Requests are resolved before being \
