@@ -26,11 +26,13 @@ module Queue : sig
   val create : unit -> 'a t
   val is_empty : 'a t -> bool
   val push : 'a t -> 'a -> unit
+
+  (** Raises [Not_found] when no element can be found. *)
   val pop : 'a t -> 'a
+
   val pop_opt : 'a t -> 'a option
   val peek : 'a t -> 'a
   val peek_opt : 'a t -> 'a option
-  val flush : 'a t -> ('a -> unit) -> unit
   val flush_iter : 'a t -> ('a -> unit) -> unit
   val flush_fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
   val flush_elements : 'a t -> 'a list
@@ -47,7 +49,7 @@ module WeakQueue : sig
 
   val create : unit -> 'a t
   val push : 'a t -> 'a -> unit
-  val flush : 'a t -> ('a -> unit) -> unit
+  val flush_iter : 'a t -> ('a -> unit) -> unit
   val elements : 'a t -> 'a list
   val exists : 'a t -> ('a -> bool) -> bool
   val iter : 'a t -> ('a -> unit) -> unit

@@ -86,6 +86,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               | None -> ()
               | Some f -> self#log#info "Finished with %S." f);
             cur.close ();
+            Request.done_playing ~source:(self :> Source.source) cur.req;
             Request.destroy cur.req
           end
 
@@ -126,6 +127,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                      close = decoder.Decoder.fclose;
                    });
               remaining <- decoder.Decoder.remaining ();
+              Request.on_air ~source:(self :> Source.source) req;
               first_fill <- true;
               true
           | `Request req ->

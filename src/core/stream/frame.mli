@@ -184,6 +184,9 @@ val get_all_metadata : t -> (int * metadata) list
 (** Attach multiple metadata to a frame. *)
 val add_all_metadata : t -> (int * metadata) list -> t
 
+(** Map a function over the frame's metadata. *)
+val map_metadata : t -> (int * metadata -> (int * metadata) option) -> t
+
 (** {2 Content operations} *)
 
 val string_of_content_type : content_type -> string
