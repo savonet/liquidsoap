@@ -60,6 +60,23 @@ end
 unwanted requests before consuming process time. If you need to see the request's metadata or if the request resolves
 into a valid tile, however, you might need to call `request.resolve` inside your `check_next` script.
 
+### `on_air` metadata
+
+`on_air` and `on_air_timestamp` metadata are deprecated. These values were never reliable. They are set at the request level when `request.dynamic`
+and all its derived sources start playing a request. However, a request can be used in multiple sources and the source using it can be used in multiple
+outputs or even not be actually being on the air if, for instance, it not selected by a `switch` or `fallback`.
+
+Instead, it is recommended to use output's `on_track` methods to track the metadata currently being played and the time at which it started being played.
+If needed, outputs (like sources) also have a `last_metadata` method to return the metadata last seen on any given output.
+
+For backward compatibility and easier migration, `on_air` and `on_air_timestamp` metadata can be enabled using the `request.deprecated_on_air_metadata` setting:
+
+```liquidsoap
+request.deprecated_on_air_metadata := true
+```
+
+However, it is highly recommended to migrate your script to use output's `on_track` instead.
+
 ### Prometheus
 
 The default port for the Prometheus metrics exporter has changed from `9090` to `9599`.

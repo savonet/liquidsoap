@@ -134,11 +134,7 @@ val metadata : t -> Frame.metadata
 (** {1 Logging}
     Every request has a separate log in which its history can be written. *)
 
-type log = (Unix.tm * string) Queue.t
-
-val string_of_log : log -> string
-val add_log : t -> string -> unit
-val get_log : t -> log
+val log : t -> string
 
 (** {1 Media operations}
 
@@ -157,6 +153,12 @@ val has_decoder : ctype:Frame.content_type -> t -> bool
     available data to deliver. *)
 val get_decoder :
   ctype:Frame.content_type -> t -> Decoder.file_decoder_ops option
+
+(** Mark the request as being on_air for the given source. *)
+val on_air : source:Source.source -> t -> unit
+
+(** Mark the request as being done playing by the given source. *)
+val done_playing : source:Source.source -> t -> unit
 
 (** {1 Plugs} *)
 

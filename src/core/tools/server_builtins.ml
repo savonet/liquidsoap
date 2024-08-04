@@ -40,9 +40,7 @@ let () =
     ~descr:"Print the log associated to a request." (fun args ->
       let id = int_of_string args in
       match Request.from_id id with
-        | Some r ->
-            let log = Request.get_log r in
-            Request.string_of_log log
+        | Some r -> Request.log r
         | None -> "No such request.");
   add "request.metadata" ~usage:"request.metadata <rid>"
     ~descr:"Display the metadata associated to a request." (fun args ->

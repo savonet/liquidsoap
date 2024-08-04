@@ -125,7 +125,7 @@ let _ =
     Lang.string_t ~descr:"Get log data associated to a request."
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.string (Request.string_of_log (Request.get_log r)))
+      Lang.string (Request.log r))
 
 let _ =
   Lang.add_builtin ~base:request "resolved" ~category:`Liquidsoap
