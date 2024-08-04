@@ -18,6 +18,7 @@ let rec trim_type t =
         { t with descr = List { repr with t = trim_type repr.t } }
     | { descr = Tuple l } as t ->
         { t with descr = Tuple (List.map trim_type l) }
+    | { descr = Var { contents = Typeof t } } -> trim_type (Lazy.force t)
     | { descr = Var { contents = Link (_, t) } } -> trim_type t
     | { descr = Var { contents = Free _ } } as t -> t
     | ( { descr = Constr _ }
