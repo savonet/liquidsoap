@@ -82,11 +82,12 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     val metadata_queue = Queue.create ()
 
     method private add_metadata m =
-      let m = self#add_on_air m in
       let m = Frame.Metadata.Export.from_metadata ~cover:false m in
       Queue.push metadata_queue m;
       if Queue.length metadata_queue > q_length then
         ignore (Queue.pop metadata_queue)
+
+    initializer self#on_metadata self#add_metadata
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)
