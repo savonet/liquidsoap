@@ -68,10 +68,9 @@ outputs or even not be actually being on the air if, for instance, it not select
 
 Instead, it is recommended to get this data directly from the outputs.
 
-Starting with `2.3.x`, all output now add `on_air` and `on_air_timestamp` to the metadata returned by `last_metadata` and the telnet `metadata` command.
+Starting with `2.3.x`, all output now add `on_air` and `on_air_timestamp` to the metadata returned by `on_track`, `on_metadata` and `last_metadata` and the telnet `metadata` command.
 
-These metadata need to be added to the `settings.encoder.metadata.export` setting. This is done by default but, if you are setting a custom value
-and rely on them, make sure to add `on_air` and/or `on_air_timestamp` to the setting.
+For the telnet `metadata` command, these metadata need to be added to the `settings.encoder.metadata.export` setting first.
 
 If you are looking for an event-based API, you can use the output's `on_track` methods to track the metadata currently being played and the time at which it started being played.
 

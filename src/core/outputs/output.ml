@@ -167,7 +167,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           Some (pos, self#add_on_air m))
 
     method output =
-      if source#is_ready && state = `Idle then start_stop#transition_to `Started;
+      if self#is_ready && state = `Idle then start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         let data =
           if self#is_ready then self#get_frame else self#end_of_track
