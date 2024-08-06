@@ -992,8 +992,8 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
       self#mutexify (fun () -> Atomic.set should_stop true) ();
       self#disconnect
 
-    method private encode frame ofs len =
-      if self#is_connected then self#get_encoder.Encoder.encode frame ofs len
+    method private encode frame =
+      if self#is_connected then self#get_encoder.Encoder.encode frame
       else Strings.empty
 
     method private insert_metadata m =

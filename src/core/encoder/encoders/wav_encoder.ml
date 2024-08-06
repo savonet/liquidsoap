@@ -45,13 +45,12 @@ let encoder ~pos wav =
     Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
   in
   let need_header = ref wav.header in
-  let encode frame start len =
+  let encode frame =
     let b = AFrame.pcm frame in
-    let start = Frame.audio_of_main start in
-    let len = Frame.audio_of_main len in
+    let len = AFrame.position frame in
     (* Resample if needed. *)
     let b, start, len =
-      Audio_converter.Samplerate.resample converter ratio b start len
+      Audio_converter.Samplerate.resample converter ratio b 0 len
     in
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =

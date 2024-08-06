@@ -25,7 +25,7 @@
 open Mm
 
 type track = {
-  encode : Ogg_muxer.t -> nativeint -> Frame.t -> int -> int -> unit;
+  encode : Ogg_muxer.t -> nativeint -> Frame.t -> unit;
   reset : Ogg_muxer.t -> Frame.Metadata.Export.t -> nativeint;
   mutable id : nativeint option;
 }
@@ -37,13 +37,12 @@ let theora_encoder = ref None
 let encode_audio ~channels ~src_freq ~dst_freq () =
   let samplerate_converter = Audio_converter.Samplerate.create channels in
   (* start and len are in main ticks. *)
-  let encode encoder id frame start len =
+  let encode encoder id frame =
     let b = AFrame.pcm frame in
-    let start = Frame.audio_of_main start in
-    let len = Frame.audio_of_main len in
+    let len = AFrame.position frame in
     let buf, start, len =
       Audio_converter.Samplerate.resample samplerate_converter
-        (dst_freq /. src_freq) b start len
+        (dst_freq /. src_freq) b 0 len
     in
     let data =
       Ogg_muxer.Audio_data
@@ -54,8 +53,8 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
   encode
 
 (** Helper to encode video. *)
-let encode_video encoder id frame start len =
-  let content = Content.sub (Frame.get frame Frame.Fields.video) start len in
+let encode_video encoder id frame =
+  let content = Frame.get frame Frame.Fields.video in
   let buf = Content.Video.get_data content in
   let data =
     List.map
@@ -110,7 +109,7 @@ let encoder ~pos { Ogg_format.audio; video } =
     let rec enc =
       {
         Encoder.insert_metadata;
-        hls = Encoder.dummy_hls (fun _ _ -> assert false);
+        hls = Encoder.dummy_hls (fun _ -> assert false);
         encode;
         header = (fun () -> Ogg_muxer.get_header ogg_enc);
         stop;
@@ -123,13 +122,11 @@ let encoder ~pos { Ogg_format.audio; video } =
       in
       List.iter f tracks;
       Ogg_muxer.streams_start ogg_enc
-    and encode frame start len =
+    and encode frame =
       (* We do a lazy start, to
        * avoid empty streams at beginning.. *)
       if Ogg_muxer.state ogg_enc <> Ogg_muxer.Streaming then streams_start ();
-      let f track =
-        track.encode ogg_enc (Option.get track.id) frame start len
-      in
+      let f track = track.encode ogg_enc (Option.get track.id) frame in
       List.iter f tracks;
       Ogg_muxer.get_data ogg_enc
     and ogg_stop () =

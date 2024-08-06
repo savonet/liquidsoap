@@ -95,10 +95,9 @@ let () =
                 (Frame.Metadata.to_list
                    (Frame.Metadata.Export.to_metadata metadata))))
          mp3.id3v2);
-    let encode frame start len =
-      let b = AFrame.pcm frame in
+    let encode frame =
       Generator.put pending_data Frame.Fields.audio
-        (Content.sub (Content.Audio.lift_data b) start len);
+        (Frame.get frame Frame.Fields.audio);
       while Generator.length pending_data > frame_size do
         let pcm =
           Content.Audio.get_data

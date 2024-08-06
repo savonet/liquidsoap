@@ -289,8 +289,8 @@ type hls = {
   (* Returns true if id3 is enabled. *)
   init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
   (* Returns (init_segment, first_bytes) *)
-  init_encode : Frame.t -> int -> int -> Strings.t option * Strings.t;
-  split_encode : Frame.t -> int -> int -> split_result;
+  init_encode : Frame.t -> Strings.t option * Strings.t;
+  split_encode : Frame.t -> split_result;
   codec_attrs : unit -> string option;
   insert_id3 :
     frame_position:int ->
@@ -305,8 +305,8 @@ type hls = {
 let dummy_hls encode =
   {
     init = (fun ?id3_enabled:_ ?id3_version:_ _ -> false);
-    init_encode = (fun f o l -> (None, encode f o l));
-    split_encode = (fun f o l -> `Ok (Strings.empty, encode f o l));
+    init_encode = (fun f -> (None, encode f));
+    split_encode = (fun f -> `Ok (Strings.empty, encode f));
     codec_attrs = (fun () -> None);
     insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
     bitrate = (fun () -> None);
@@ -317,7 +317,7 @@ type encoder = {
   insert_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   hls : hls;
-  encode : Frame.t -> int -> int -> Strings.t;
+  encode : Frame.t -> Strings.t;
   stop : unit -> Strings.t;
 }
 
@@ -362,11 +362,11 @@ let get_factory fmt =
       let init ?id3_enabled ?id3_version () =
         Mutex_utils.mutexify m (fun () -> init ?id3_enabled ?id3_version ()) ()
       in
-      let init_encode frame ofs len =
-        Mutex_utils.mutexify m (fun () -> init_encode frame ofs len) ()
+      let init_encode frame =
+        Mutex_utils.mutexify m (fun () -> init_encode frame) ()
       in
-      let split_encode frame ofs len =
-        Mutex_utils.mutexify m (fun () -> split_encode frame ofs len) ()
+      let split_encode frame =
+        Mutex_utils.mutexify m (fun () -> split_encode frame) ()
       in
       let codec_attrs = Mutex_utils.mutexify m codec_attrs in
       let insert_id3 ~frame_position ~sample_position meta =
@@ -387,8 +387,6 @@ let get_factory fmt =
           video_size;
         }
       in
-      let encode frame ofs len =
-        Mutex_utils.mutexify m (fun () -> encode frame ofs len) ()
-      in
+      let encode frame = Mutex_utils.mutexify m (fun () -> encode frame) () in
       let stop = Mutex_utils.mutexify m stop in
       { insert_metadata; hls; encode; stop; header }

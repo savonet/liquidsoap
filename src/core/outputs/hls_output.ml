@@ -1065,7 +1065,8 @@ class hls_output p =
           false )
       else (false, "", false)
 
-    method encode frame ofs len =
+    method encode frame =
+      let len = Frame.position frame in
       let frame_pos, samples_pos = current_position in
       let frame_size = Lazy.force Frame.size in
       let samples_pos = samples_pos + len in
@@ -1077,14 +1078,12 @@ class hls_output p =
           let b =
             if s.init_state = `Todo then (
               try
-                let init, encoded =
-                  Encoder.(s.encoder.hls.init_encode frame ofs len)
-                in
+                let init, encoded = Encoder.(s.encoder.hls.init_encode frame) in
                 self#process_init ~init ~segment s;
                 (len, None, encoded)
               with Encoder.Not_enough_data -> (len, None, Strings.empty))
             else (
-              match Encoder.(s.encoder.hls.split_encode frame ofs len) with
+              match Encoder.(s.encoder.hls.split_encode frame) with
                 | `Ok (flushed, encoded) -> (len, Some flushed, encoded)
                 | `Nope encoded -> (len, None, encoded))
           in

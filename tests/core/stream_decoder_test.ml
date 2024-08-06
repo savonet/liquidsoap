@@ -42,7 +42,7 @@ let () =
           decoder.Decoder.decode buffer
         done;
         let frame = Generator.slice generator size in
-        write (encoder.Encoder.encode frame 0 (Frame.position frame))
+        write (encoder.Encoder.encode frame)
       with Avutil.Error `Invalid_data -> ()
     done
   with Ffmpeg_decoder.End_of_file ->

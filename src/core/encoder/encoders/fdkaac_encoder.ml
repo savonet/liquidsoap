@@ -78,13 +78,12 @@ let encoder ~pos aac =
   let dst_freq = float samplerate in
   let n = Utils.pagesize in
   let buf = Strings.Mutable.empty () in
-  let encode frame start len =
+  let encode frame =
     let b = AFrame.pcm frame in
-    let start = Frame.audio_of_main start in
-    let len = Frame.audio_of_main len in
+    let len = AFrame.position frame in
     let b, start, len =
       Audio_converter.Samplerate.resample samplerate_converter
-        (dst_freq /. src_freq) b start len
+        (dst_freq /. src_freq) b 0 len
     in
     let encoded = Strings.Mutable.empty () in
     Strings.Mutable.add buf (Audio.S16LE.make b start len);
