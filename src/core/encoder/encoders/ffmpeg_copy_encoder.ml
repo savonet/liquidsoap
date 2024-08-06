@@ -177,8 +177,8 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
       push ~time_base ~stream ~idx:stream_idx packet
   in
 
-  let encode frame start len =
-    let content = Content.sub (Frame.get frame field) start len in
+  let encode frame =
+    let content = Frame.get frame field in
     let data = (Ffmpeg_copy_content.get_data content).Content.Video.data in
 
     List.iter

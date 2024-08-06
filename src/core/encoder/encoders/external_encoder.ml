@@ -115,7 +115,7 @@ let encoder id ext =
   let ratio =
     float (Lazy.force ext.samplerate) /. float (Frame.audio_of_seconds 1.)
   in
-  let encode frame start len =
+  let encode frame =
     let channels = ext.channels in
     let samplerate = Lazy.force ext.samplerate in
     let sbuf =
@@ -124,14 +124,13 @@ let encoder id ext =
         let width = Lazy.force width in
         let height = Lazy.force height in
         Avi_encoder.encode_frame ~channels ~samplerate ~converter ~width ~height
-          frame start len)
+          frame)
       else (
         let b = AFrame.pcm frame in
-        let start = Frame.audio_of_main start in
-        let len = Frame.audio_of_main len in
+        let len = AFrame.position frame in
         (* Resample if needed. *)
         let b, start, len =
-          Audio_converter.Samplerate.resample converter ratio b start len
+          Audio_converter.Samplerate.resample converter ratio b 0 len
         in
         let slen = 2 * len * Array.length b in
         let sbuf = Bytes.create slen in

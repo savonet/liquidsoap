@@ -47,13 +47,12 @@ let encoder flac meta =
   let cb = Flac.Encoder.get_callbacks write in
   let enc = Flac.Encoder.create ~comments p cb in
   let enc = ref enc in
-  let encode frame start len =
+  let encode frame =
     let b = AFrame.pcm frame in
-    let start = Frame.audio_of_main start in
-    let len = Frame.audio_of_main len in
+    let len = AFrame.position frame in
     let b, start, len =
       Audio_converter.Samplerate.resample samplerate_converter
-        (dst_freq /. src_freq) b start len
+        (dst_freq /. src_freq) b 0 len
     in
     let b = Audio.sub b start len in
     Flac.Encoder.process !enc cb b;

@@ -73,7 +73,7 @@ class virtual ['a] encoded :
   -> object
        inherit output
        method private send_frame : Frame.t -> unit
-       method virtual private encode : Frame.t -> int -> int -> 'a
+       method virtual private encode : Frame.t -> 'a
        method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
        method virtual private send : 'a -> unit
        method private reset : unit

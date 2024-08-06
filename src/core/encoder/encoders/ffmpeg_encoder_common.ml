@@ -26,7 +26,7 @@ let log = Ffmpeg_utils.log
 
 type encoder = {
   mk_stream : Frame.t -> unit;
-  encode : Frame.t -> int -> int -> unit;
+  encode : Frame.t -> unit;
   flush : unit -> unit;
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
@@ -99,10 +99,10 @@ let mk_format ffmpeg =
     | Some short_name, _ -> Av.Format.guess_output_format ~short_name ()
     | _ -> None
 
-let encode ~encoder frame start len =
+let encode ~encoder frame =
   if not (Atomic.exchange encoder.started true) then
     Frame.Fields.iter (fun _ { mk_stream } -> mk_stream frame) encoder.streams;
-  Frame.Fields.iter (fun _ { encode } -> encode frame start len) encoder.streams
+  Frame.Fields.iter (fun _ { encode } -> encode frame) encoder.streams
 
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
@@ -246,11 +246,11 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
     let encoder = Atomic.get encoder in
     encoder.insert_id3 ~frame_position ~sample_position m
   in
-  let init_encode frame start len =
+  let init_encode frame =
     let encoder = Atomic.get encoder in
     match ffmpeg.Ffmpeg_format.format with
       | Some "mp4" ->
-          encode ~encoder frame start len;
+          encode ~encoder frame;
           let frame =
             Frame.Fields.filter
               (fun _ c ->
@@ -263,9 +263,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
             (fun field c ->
               match Frame.Fields.find_opt field sent with
                 | None -> ()
-                | Some sent ->
-                    let d = Content.sub c start len in
-                    sent := !sent || not (Content.is_empty d))
+                | Some sent -> sent := !sent || not (Content.is_empty c))
             frame;
           if Frame.Fields.exists (fun _ c -> not !c) sent then
             raise Encoder.Not_enough_data;
@@ -275,13 +273,13 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
       | Some "webm" ->
           Av.flush encoder.output;
           let init = Strings.Mutable.flush buf in
-          encode ~encoder frame start len;
+          encode ~encoder frame;
           (Some init, Strings.Mutable.flush buf)
       | _ ->
-          encode ~encoder frame start len;
+          encode ~encoder frame;
           (None, Strings.Mutable.flush buf)
   in
-  let split_encode frame start len =
+  let split_encode frame =
     let encoder = Atomic.get encoder in
     let can_split () =
       List.for_all (fun (_, keyframe) -> Atomic.get keyframe) keyframes
@@ -298,7 +296,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
         flushed)
     in
     Fun.protect
-      (fun () -> encode ~encoder frame start len)
+      (fun () -> encode ~encoder frame)
       ~finally:(fun () -> Atomic.set on_keyframe (fun () -> ()));
     let encoded = Strings.Mutable.flush buf in
     match Atomic.get flushed with
@@ -307,8 +305,8 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
           `Ok (flushed, encoded)
       | None -> `Nope encoded
   in
-  let encode frame start len =
-    encode ~encoder:(Atomic.get encoder) frame start len;
+  let encode frame =
+    encode ~encoder:(Atomic.get encoder) frame;
     Strings.Mutable.flush buf
   in
   let flush () =

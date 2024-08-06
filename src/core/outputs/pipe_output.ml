@@ -91,10 +91,10 @@ class virtual base ?clock ~source ~name p =
 
     method! reset = ()
 
-    method encode frame ofs len =
+    method encode frame =
       match encoder with
         | None -> Strings.empty
-        | Some encoder -> encoder.Encoder.encode frame ofs len
+        | Some encoder -> encoder.Encoder.encode frame
 
     method virtual write_pipe : string -> int -> int -> unit
     method send b = Strings.iter self#write_pipe b
@@ -195,14 +195,14 @@ class url_output p =
     method start = self#connect
     method stop = ignore self#close_encoder
 
-    method! encode frame ofs len =
+    method! encode frame =
       try
         match encoder with
           | None when self#can_connect ->
               self#connect;
-              base#encode frame ofs len
+              base#encode frame
           | None -> Strings.empty
-          | Some _ -> base#encode frame ofs len
+          | Some _ -> base#encode frame
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         self#on_error ~bt exn;
@@ -370,7 +370,7 @@ class virtual piped_output ?clock ~name p =
 
     method! send b = if self#is_open then base#send b
 
-    method! encode frame ofs len =
+    method! encode frame =
       (match self#is_open with
         | false when open_date <= Unix.gettimeofday () -> self#prepare_pipe
         | true when Atomic.get need_reopen ->
@@ -380,7 +380,7 @@ class virtual piped_output ?clock ~name p =
                && reopen_when () ->
             self#reopen
         | _ -> ());
-      base#encode frame ofs len
+      base#encode frame
 
     method! insert_metadata metadata =
       if reopen_on_metadata (Frame.Metadata.Export.to_metadata metadata) then

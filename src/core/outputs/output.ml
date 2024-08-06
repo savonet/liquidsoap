@@ -233,13 +233,13 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible ~on_start
           ~register_telnet source autostart
 
     method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
-    method virtual private encode : Frame.t -> int -> int -> 'a
+    method virtual private encode : Frame.t -> 'a
     method virtual private send : 'a -> unit
 
     method private send_frame frame =
       let rec output_chunks frame =
         let f start stop =
-          let data = self#encode frame start (stop - start) in
+          let data = self#encode (Frame.sub frame start (stop - start)) in
           self#send data;
           match Frame.get_metadata frame start with
             | None -> ()

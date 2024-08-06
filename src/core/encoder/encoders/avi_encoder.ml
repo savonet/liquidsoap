@@ -28,17 +28,15 @@ open Avi_format
 
 let log = Log.make ["avi"; "encoder"]
 
-let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
-    =
+let encode_frame ~channels ~samplerate ~width ~height ~converter frame =
   let target_width = width in
   let target_height = height in
   let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
   let audio =
-    let astart = Frame.audio_of_main start in
-    let alen = Frame.audio_of_main len in
+    let alen = AFrame.position frame in
     let pcm = AFrame.pcm frame in
     let pcm, astart, alen =
-      Audio_converter.Samplerate.resample converter ratio pcm astart alen
+      Audio_converter.Samplerate.resample converter ratio pcm 0 alen
     in
     let data = Bytes.create (2 * channels * alen) in
     Audio.S16LE.of_audio pcm astart data 0 alen;
@@ -101,10 +99,9 @@ let encoder avi =
   (* TODO: use duration *)
   let header = Avi.header ~width ~height ~channels ~samplerate () in
   let need_header = ref true in
-  let encode frame start len =
+  let encode frame =
     let ans =
-      encode_frame ~channels ~samplerate ~width ~height ~converter frame start
-        len
+      encode_frame ~channels ~samplerate ~width ~height ~converter frame
     in
     if !need_header then (
       need_header := false;

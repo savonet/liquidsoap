@@ -41,13 +41,12 @@ let encoder ~pos shine =
       (Frame.Fields.make ~audio:(Content.Audio.format_of_channels channels) ())
   in
   let encoded = Strings.Mutable.empty () in
-  let encode frame start len =
+  let encode frame =
     let b = AFrame.pcm frame in
-    let start = Frame.audio_of_main start in
-    let len = Frame.audio_of_main len in
+    let len = AFrame.position frame in
     let b, start, len =
       Audio_converter.Samplerate.resample samplerate_converter
-        (dst_freq /. src_freq) b start len
+        (dst_freq /. src_freq) b 0 len
     in
     let start = Frame.main_of_audio start in
     let len = Frame.main_of_audio len in

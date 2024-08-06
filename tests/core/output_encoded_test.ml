@@ -19,7 +19,7 @@ class encoded_test =
       assert !send_called;
       insert_metadata_called := true
 
-    method encode _ _ _ =
+    method encode _ =
       encode_called := true;
       ()
 

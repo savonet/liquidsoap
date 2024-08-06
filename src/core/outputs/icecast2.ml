@@ -496,12 +496,12 @@ class output p =
 
     val mutable encoder = None
 
-    method encode frame ofs len =
+    method encode frame =
       (* We assume here that there always is
        * an encoder available when the source
        * is connected. *)
       match (Cry.get_status connection, encoder) with
-        | Cry.Connected _, Some enc -> enc.Encoder.encode frame ofs len
+        | Cry.Connected _, Some enc -> enc.Encoder.encode frame
         | _ -> Strings.empty
 
     method insert_metadata m =

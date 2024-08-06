@@ -79,15 +79,9 @@ let create ~length content_type =
     (Frame_base.Fields.map (Content.make ~length) content_type)
 
 let content_type = Fields.map Content.format
-
-let after frame offset =
-  let len = position frame - offset in
-  Fields.map (fun c -> Content.sub c offset len) frame
-
-let slice frame len =
-  Fields.map
-    (fun c -> if Content.length c <= len then c else Content.sub c 0 len)
-    frame
+let sub frame ofs len = Fields.map (fun c -> Content.sub c ofs len) frame
+let slice frame len = sub frame 0 len
+let after frame offset = sub frame offset (position frame - offset)
 
 let append f f' =
   Fields.mapi (fun field c -> Content.append c (Fields.find field f')) f

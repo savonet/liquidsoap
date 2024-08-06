@@ -169,10 +169,9 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
         src_channel_layout src_samplerate target_channel_layout
         target_samplerate
     in
-    fun frame start len ->
-      let astart = Frame.audio_of_main start in
-      let alen = Frame.audio_of_main len in
-      let content = Content.sub (Frame.get frame field) astart alen in
+    fun frame ->
+      let alen = AFrame.position frame in
+      let content = Frame.get frame field in
       let pcm = InternalResampler.Content.get_data content in
       [InternalResampler.convert ~length:alen ~offset:0 resampler pcm]
   in
@@ -212,14 +211,13 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       in
       resampler frame
     in
-    fun frame start len ->
+    fun frame ->
       let frames =
         Ffmpeg_raw_content.Audio.(get_data (Frame.get frame field))
           .Content.Video.data
       in
-      let frames =
-        List.filter (fun (pos, _) -> start <= pos && pos < start + len) frames
-      in
+      let len = Frame.position frame in
+      let frames = List.filter (fun (pos, _) -> 0 <= pos && pos < len) frames in
       List.map (fun (_, { Ffmpeg_raw_content.frame }) -> resample frame) frames
   in
 
@@ -300,9 +298,7 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       raise e
   in
 
-  let encode frame start len =
-    List.iter write_frame (converter frame start len)
-  in
+  let encode frame = List.iter write_frame (converter frame) in
 
   {
     Ffmpeg_encoder_common.mk_stream;
@@ -464,8 +460,8 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in
     let stream_idx = 1L in
 
-    fun frame offset length ->
-      let content = Content.sub (Frame.get frame field) offset length in
+    fun frame ->
+      let content = Frame.get frame field in
       let buf = Content.Video.get_data content in
       List.iter
         (fun (_, img) ->
@@ -513,15 +509,14 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       in
       scaler frame
     in
-    fun frame start len ->
-      let stop = start + len in
+    fun frame ->
+      let len = Frame.position frame in
       let { Ffmpeg_raw_content.VideoSpecs.data } =
         Ffmpeg_raw_content.Video.get_data (Frame.get frame field)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.time_base; frame; stream_idx }) ->
-          if start <= pos && pos < stop then
-            cb ~stream_idx ~time_base (scale frame))
+          if 0 <= pos && pos < len then cb ~stream_idx ~time_base (scale frame))
         data
   in
 
