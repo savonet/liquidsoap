@@ -73,6 +73,7 @@ Changed:
 - Added `forced_major_collections` record field to the result of `runtime.gc.stat()` and
   `runtime.gc.quick_stat()` (#3783).
 - Changed the port for the built-in Prometheus exporter to `9599` (#3801).
+- Set `segments_overheader` in HLS outputs to disable segments cleanup altogether.
 - Add support for caching LV2 and LADSPA plugins (#3959).
 
 Fixed:
