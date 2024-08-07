@@ -1,3 +1,5 @@
+module Http = Liq_http
+
 module Filename = struct
   include Filename
 

@@ -23,6 +23,8 @@
 let log = Log.make ["process"]
 let process = Modules.process
 
+module Http = Liq_http
+
 let _ =
   if Sys.os_type <> "Win32" then
     ignore

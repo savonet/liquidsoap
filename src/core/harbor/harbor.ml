@@ -23,7 +23,7 @@
 open Harbor_base
 module Monad = Duppy.Monad
 module Type = Liquidsoap_lang.Type
-module Http_base = Http
+module Http = Liq_http
 
 let ( let* ) = Duppy.Monad.bind
 
