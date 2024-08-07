@@ -1,4 +1,4 @@
 let () =
-  assert (Http.is_url "http://www.test.com/");
-  assert (Http.is_url "https://www.test.com/");
-  assert (not (Http.is_url "/tmp/test"))
+  assert (Liq_http.is_url "http://www.test.com/");
+  assert (Liq_http.is_url "https://www.test.com/");
+  assert (not (Liq_http.is_url "/tmp/test"))

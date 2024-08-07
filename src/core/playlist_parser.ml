@@ -22,6 +22,8 @@
 
 (** Plug for playlist parsing, in which [src/playlists] plugins come. *)
 
+module Http = Liq_http
+
 let log = Log.make ["playlist parser"]
 
 let conf_playlist =

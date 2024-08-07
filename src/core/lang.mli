@@ -175,7 +175,7 @@ val to_ref : value -> (unit -> value) * (value -> unit)
 val to_valued_ref :
   (value -> 'a) -> ('a -> value) -> value -> (unit -> 'a) * ('a -> unit)
 
-val to_http_transport : value -> Http.transport
+val to_http_transport : value -> Liq_http.transport
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
   * This is useful for retrieving arguments of a function. *)
@@ -258,8 +258,8 @@ val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
 val reference : (unit -> value) -> (value -> unit) -> value
-val http_transport : Http.transport -> value
-val base_http_transport : Http.transport -> value
+val http_transport : Liq_http.transport -> value
+val base_http_transport : Liq_http.transport -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
     the label and optional values. Second string value is used when renaming

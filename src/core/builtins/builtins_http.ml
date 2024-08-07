@@ -22,6 +22,8 @@
 
 type request = Get | Post | Put | Head | Delete
 
+module Http = Liq_http
+
 let string_of_request = function
   | Get -> "get"
   | Post -> "post"

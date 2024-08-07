@@ -22,6 +22,8 @@
 
 let ( let* ) = Duppy.Monad.bind
 
+module Http = Liq_http
+
 (** Output to an harbor server. *)
 module type T = sig
   include Harbor.Transport_t

@@ -3,6 +3,7 @@ include Lang_source
 include Lang_encoder.L
 module Doc = Liquidsoap_lang.Doc
 module Flags = Liquidsoap_lang.Flags
+module Http = Liq_http
 
 let source_t = source_t ?pos:None
 let () = Hooks_implementations.register ()

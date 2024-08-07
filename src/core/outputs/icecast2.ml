@@ -22,6 +22,8 @@
 
 (** Output to an icecast server. *)
 
+module Http = Liq_http
+
 let error_translator = function
   | Cry.Error _ as e -> Some (Cry.string_of_error e)
   | _ -> None

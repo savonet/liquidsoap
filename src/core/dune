@@ -127,7 +127,6 @@
   harbor_output
   hooks_implementations
   hls_output
-  http
   icecast_utils
   icecast2
   id3_plug
@@ -156,6 +155,7 @@
   latest_metadata
   liqcurl
   lifecycle
+  liq_http
   liq_time
   liquidsoap_paths
   log

@@ -22,6 +22,8 @@
 
 let ( let* ) = Duppy.Monad.bind
 
+module Http = Liq_http
+
 exception Bind_error of string
 
 let () =
