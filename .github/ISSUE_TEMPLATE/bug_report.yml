@@ -44,110 +44,118 @@ body:
       description: Output of `liquidsoap --build-config`.
       render: text
       placeholder: |
-        * Liquidsoap version  : 2.2.5
+        * Liquidsoap version  : 2.3.0+git@60b9dece8
 
         * Compilation options
-        - Release build       : true
-        - Git SHA             : (none)
-        - OCaml version       : 4.14.1
-        - OS type             : Unix
-        - Libs versions       : alsa=0.3.0 angstrom=0.15.0 ao=0.2.4 asetmap=0.8.1 asn1-combinators=0.2.6 astring=0.8.5 base64=3.5.1 bigarray=[distributed with Ocaml] bigarray-compat=1.1.0 bigstringaf=0.9.1 bjack=0.1.6 bos=0.2.1 bytes=[distributed with OCaml 4.02 or above] ca-certs=v0.2.3 camlimages.all_formats=4.2.6 camlimages.core=5.0.4 camlimages.exif=5.0.4 camlimages.gif=5.0.4 camlimages.jpeg=5.0.4 camlimages.png=5.0.4 camlimages.tiff=5.0.4 camlimages.xpm=5.0.4 camlp-streams camomile.lib=2.0 cohttp=5.3.0 cohttp-lwt=5.3.0 cohttp-lwt-unix=5.3.0 conduit=6.2.0 conduit-lwt=6.2.0 conduit-lwt-unix=6.2.0 cry=1.0.3 cstruct=6.2.0 ctypes=0.21.1 ctypes-foreign=0.21.1 ctypes.stubs=0.21.1 curl=0.9.2 domain-name=0.4.0 domain_shims dssi=0.1.5 dtools=0.4.5 dune-build-info=3.11.1 dune-private-libs.dune-section=3.11.1 dune-site=3.11.1 dune-site.private=3.11.1 duppy=0.9.4 eqaf=0.9 eqaf.bigstring=0.9 eqaf.cstruct=0.9 faad=0.5.2 fdkaac=0.3.3 ffmpeg-av=1.1.10 ffmpeg-avcodec=1.1.10 ffmpeg-avdevice=1.1.10 ffmpeg-avfilter=1.1.10 ffmpeg-avutil=1.1.10 ffmpeg-swresample=1.1.10 ffmpeg-swscale=1.1.10 fileutils=0.6.4 flac=0.5.1 flac.decoder=0.5.1 flac.ogg=0.5.1 fmt=0.9.0 fpath=0.7.3 frei0r=0.1.2 gd=1.0a5 gen=1.1 gmap=0.3.0 hkdf=1.0.4 inotify=2.4.1 integers ipaddr=5.5.0 ipaddr-sexp=5.5.0 ipaddr.unix=5.5.0 irc-client irc-client-unix jemalloc ladspa=0.2.2 lame=0.3.7 lastfm=0.3.4 lilv=0.1.0 liquidsoap-lang=2.2.5 liquidsoap-lang.console=2.2.5 liquidsoap_alsa=f0fdb0e-dirty liquidsoap_ao=f0fdb0e-dirty liquidsoap_bjack=f0fdb0e-dirty liquidsoap_builtins=f0fdb0e-dirty liquidsoap_camlimages=f0fdb0e-dirty liquidsoap_core=f0fdb0e-dirty liquidsoap_dssi=f0fdb0e-dirty liquidsoap_faad=f0fdb0e-dirty liquidsoap_fdkaac=f0fdb0e-dirty liquidsoap_ffmpeg=f0fdb0e-dirty liquidsoap_flac=f0fdb0e-dirty liquidsoap_frei0r=f0fdb0e-dirty liquidsoap_gd=f0fdb0e-dirty liquidsoap_irc=f0fdb0e-dirty liquidsoap_jemalloc=f0fdb0e-dirty liquidsoap_ladspa=f0fdb0e-dirty liquidsoap_lame=f0fdb0e-dirty liquidsoap_lastfm=f0fdb0e-dirty liquidsoap_lilv=f0fdb0e-dirty liquidsoap_lo=f0fdb0e-dirty liquidsoap_mad=f0fdb0e-dirty liquidsoap_mem_usage=f0fdb0e-dirty liquidsoap_memtrace=f0fdb0e-dirty liquidsoap_ogg=f0fdb0e-dirty liquidsoap_ogg_flac=f0fdb0e-dirty liquidsoap_optionals=f0fdb0e-dirty liquidsoap_opus=f0fdb0e-dirty liquidsoap_osc=f0fdb0e-dirty liquidsoap_oss=f0fdb0e-dirty liquidsoap_portaudio=f0fdb0e-dirty liquidsoap_posix_time=f0fdb0e-dirty liquidsoap_prometheus=f0fdb0e-dirty liquidsoap_pulseaudio=f0fdb0e-dirty liquidsoap_runtime=f0fdb0e-dirty liquidsoap_samplerate=f0fdb0e-dirty liquidsoap_sdl=f0fdb0e-dirty liquidsoap_shine=f0fdb0e-dirty liquidsoap_soundtouch=f0fdb0e-dirty liquidsoap_speex=f0fdb0e-dirty liquidsoap_srt=f0fdb0e-dirty liquidsoap_ssl=f0fdb0e-dirty liquidsoap_stereotool=f0fdb0e-dirty liquidsoap_theora=f0fdb0e-dirty liquidsoap_tls=f0fdb0e-dirty liquidsoap_vorbis=f0fdb0e-dirty liquidsoap_xmlplaylist=f0fdb0e-dirty liquidsoap_yaml=f0fdb0e-dirty lo=0.2.0 logs=0.7.0 logs.fmt=0.7.0 logs.lwt=0.7.0 lwt=5.7.0 lwt.unix=5.7.0 macaddr=5.5.0 mad=0.5.3 magic-mime=1.3.1 mem_usage=0.1.1 memtrace=0.2.3 menhirLib=20230608 metadata=0.3.0 mirage-crypto=0.11.2 mirage-crypto-ec=0.11.2 mirage-crypto-pk=0.11.2 mirage-crypto-rng=0.11.2 mirage-crypto-rng.unix=0.11.2 mm=0.8.5 mm.audio=0.8.5 mm.base=0.8.5 mm.image=0.8.5 mm.midi=0.8.5 mm.video=0.8.5 ocplib-endian ocplib-endian.bigstring ogg=0.7.4 ogg.decoder=0.7.4 opus=0.2.3 opus.decoder=0.2.3 osc osc-unix parsexp=v0.16.0 pbkdf pcre=7.5.0 portaudio=0.2.3 posix-base=5a7f328 posix-socket=5a7f328 posix-socket.constants=5a7f328 posix-socket.stubs=5a7f328 posix-socket.types=5a7f328 posix-time2=5a7f328 posix-time2.constants=5a7f328 posix-time2.stubs=5a7f328 posix-time2.types=5a7f328 posix-types=5a7f328 posix-types.constants=5a7f328 ppx_sexp_conv.runtime-lib=v0.16.0 prometheus=1.2 prometheus-app=1.2 ptime=1.1.0 ptime.clock.os=1.1.0 pulseaudio=0.1.6 re=1.11.0 result=1.5 rresult=0.7.0 samplerate=0.1.7 saturn_lockfree=0.4.1 sedlex=ccd3dea seq=[distributed with OCaml 4.07 or above] sexplib=v0.16.0 sexplib0=v0.16.0 shine=0.2.3 soundtouch=0.1.9 speex=0.4.2 speex.decoder=0.4.2 srt=0.3.1 srt.constants=0.3.1 srt.stubs=0.3.1 srt.stubs.locked=0.3.1 srt.types=0.3.1 ssl=0.7.0 stdlib-shims=0.3.0 stereotool=f0fdb0e-dirty str=[distributed with Ocaml] stringext=1.6.0 theora=0.4.1 theora.decoder=0.4.1 threads=[distributed with Ocaml] threads.posix=[internal] tls=0.17.1 tsdl=v1.0.0 tsdl-image=0.5 tsdl-ttf=0.6 unix=[distributed with Ocaml] unix-errno=52c6ecb unix-errno.errno_bindings=52c6ecb unix-errno.errno_types=52c6ecb unix-errno.errno_types_detected=52c6ecb unix-errno.unix=52c6ecb uri=4.4.0 uri-sexp=4.4.0 uri.services=4.4.0 vorbis=0.8.1 vorbis.decoder=0.8.1 x509=0.16.5 xmlm=1.4.0 xmlplaylist=0.1.5 yaml=3.1.0 yaml.bindings=3.1.0 yaml.bindings.types=3.1.0 yaml.c=3.1.0 yaml.ffi=3.1.0 yaml.types=3.1.0 zarith=1.13
-        - architecture        : amd64
-        - host                : x86_64-pc-linux-gnu
-        - target              : x86_64-pc-linux-gnu
-        - system              : linux
-        - ocamlopt_cflags     : -O2 -fno-strict-aliasing -fwrapv -pthread -fPIC
-        - native_c_compiler   : gcc -O2 -fno-strict-aliasing -fwrapv -pthread -fPIC -D_FILE_OFFSET_BITS=64
-        - native_c_libraries  : -lm
+          - Release build       : false
+          - Git SHA             : 60b9dece8
+          - OCaml version       : 4.14.2
+          - OS type             : Unix
+          - Libs versions       : angstrom=0.16.0 ao=0.2.4 asetmap=0.8.1 asn1-combinators=0.2.6 astring=0.8.5 base=v0.16.3 base.base_internalhash_types=v0.16.3 base.caml=v0.16.3 base.shadow_stdlib=v0.16.3 base64=3.5.1 bigarray=[distributed with Ocaml] bigarray-compat=1.1.0 bigstringaf=0.9.1 bjack=0.1.6 bos=0.2.1 bytes=[distributed with OCaml 4.02 or above] ca-certs=v0.2.3 camlimages.all_formats=4.2.6 camlimages.core=5.0.5 camlimages.exif=5.0.5 camlimages.gif=5.0.5 camlimages.jpeg=5.0.5 camlimages.png=5.0.5 camlimages.tiff=5.0.5 camlimages.xpm=5.0.5 camlp-streams camomile.lib=2.0 checkseum.ocaml=0.5.2 cohttp=5.3.1 cohttp-lwt=5.3.0 cohttp-lwt-unix=5.3.0 conduit=6.2.2 conduit-lwt=6.2.2 conduit-lwt-unix=6.2.2 cry=1.0.3 cstruct=6.2.0 ctypes=0.22.0 ctypes-foreign=0.22.0 ctypes.stubs=0.22.0 curl=0.9.2 decompress.de=1.5.3 decompress.zl=1.5.3 domain-name=0.4.0 domain_shims dtools=0.4.5 dune-build-info=3.15.0 dune-private-libs.dune-section=3.15.0 dune-site=3.15.0 dune-site.private=3.15.0 duppy=0.9.4 eqaf=0.9 eqaf.bigstring=0.9 eqaf.cstruct=0.9 faad=0.5.1 fdkaac=0.3.3 ffmpeg-av=91527f5 ffmpeg-avcodec=91527f5 ffmpeg-avdevice=91527f5 ffmpeg-avfilter=91527f5 ffmpeg-avutil=91527f5 ffmpeg-swresample=91527f5 ffmpeg-swscale=91527f5 fileutils=0.6.4 flac=0.5.0 flac.decoder=0.5.0 flac.ogg=0.5.0 fmt=0.9.0 fpath=0.7.3 frei0r=0.1.2 gen=1.1 gmap=0.3.0 hkdf=1.0.4 imagelib=20221222 imagelib.unix=20221222 integers ipaddr=5.5.0 ipaddr-sexp=5.5.0 ipaddr.unix=5.5.0 lame=0.3.7 lastfm=0.3.4 liquidsoap-lang=2.3.0 liquidsoap-lang.console=2.3.0 liquidsoap_ao liquidsoap_bjack liquidsoap_builtins liquidsoap_camlimages liquidsoap_core liquidsoap_faad liquidsoap_fdkaac liquidsoap_ffmpeg liquidsoap_flac liquidsoap_frei0r liquidsoap_imagelib liquidsoap_lame liquidsoap_lastfm liquidsoap_lo liquidsoap_mad liquidsoap_ogg liquidsoap_ogg_flac liquidsoap_optionals liquidsoap_opus liquidsoap_osc liquidsoap_posix_time liquidsoap_prometheus liquidsoap_runtime liquidsoap_samplerate liquidsoap_sdl liquidsoap_sdl_log_level liquidsoap_shine liquidsoap_soundtouch liquidsoap_speex liquidsoap_sqlite liquidsoap_srt liquidsoap_ssl liquidsoap_stdlib liquidsoap_stereotool liquidsoap_theora liquidsoap_tls liquidsoap_vorbis liquidsoap_xmlplaylist liquidsoap_yaml lo=0.2.0 logs=0.7.0 logs.fmt=0.7.0 logs.lwt=0.7.0 lwt=5.7.0 lwt.unix=5.7.0 macaddr=5.5.0 mad=0.5.2 magic-mime=1.3.1 mem_usage=0.1.1 memtrace=0.2.3 menhirLib=20231231 metadata=0.3.0 mirage-crypto=0.11.3 mirage-crypto-ec=0.11.3 mirage-crypto-pk=0.11.3 mirage-crypto-rng=0.11.3 mirage-crypto-rng.unix=0.11.3 mm=0.8.5 mm.audio=0.8.5 mm.base=0.8.5 mm.image=0.8.5 mm.midi=0.8.5 mm.video=0.8.5 ocplib-endian ocplib-endian.bigstring ogg=0.7.4 ogg.decoder=0.7.4 optint=0.3.0 opus=0.2.2 opus.decoder=0.2.2 osc osc-unix parsexp=v0.16.0 pbkdf posix-base=2.0.2 posix-socket=2.0.2 posix-socket.constants=2.0.2 posix-socket.stubs=2.0.2 posix-socket.types=2.0.2 posix-time2=2.0.2 posix-time2.constants=2.0.2 posix-time2.stubs=2.0.2 posix-time2.types=2.0.2 posix-types=2.0.2 posix-types.constants=2.0.2 ppx_compare.runtime-lib=v0.16.0 ppx_hash.runtime-lib=v0.16.0 ppx_sexp_conv.runtime-lib=v0.16.0 prometheus=1.2 prometheus-app=1.2 ptime=1.1.0 ptime.clock.os=1.1.0 re=1.11.0 result=1.5 rresult=0.7.0 samplerate=0.1.6 saturn_lockfree=0.4.1 sedlex=3.2 seq=[distributed with OCaml 4.07 or above] sexplib=v0.16.0 sexplib0=v0.16.0 shine=0.2.3 soundtouch=0.1.9 speex=0.4.1 speex.decoder=0.4.1 sqlite3=5.1.0 srt=24e0c0a srt.constants=24e0c0a srt.stubs=24e0c0a srt.stubs.locked=24e0c0a srt.types=24e0c0a ssl=0.7.0 stdlib-shims=0.3.0 stereotool str=[distributed with Ocaml] stringext=1.6.0 theora=0.4.0 theora.decoder=0.4.0 threads=[distributed with Ocaml] threads.posix=[internal] tls=0.17.5 tsdl=v1.0.0 tsdl-image=0.5 tsdl-ttf=0.6 unix=[distributed with Ocaml] unix-errno=0.6.2 unix-errno.errno_bindings=0.6.2 unix-errno.errno_types=0.6.2 unix-errno.errno_types_detected=0.6.2 unix-errno.unix=0.6.2 uri=4.4.0 uri-sexp=4.4.0 uri.services=4.4.0 vorbis=0.8.0 vorbis.decoder=0.8.0 x509=0.16.5 xmlm=1.4.0 xmlplaylist=0.1.5 yaml=3.2.0 yaml.bindings=3.2.0 yaml.bindings.types=3.2.0 yaml.c=3.2.0 yaml.ffi=3.2.0 yaml.types=3.2.0 zarith=1.13
+          - architecture        : arm64
+          - host                : aarch64-apple-darwin23.3.0
+          - target              : aarch64-apple-darwin23.3.0
+          - system              : macosx
+          - ocamlopt_cflags     : -O2 -fno-strict-aliasing -fwrapv -pthread
+          - native_c_compiler   : cc -O2 -fno-strict-aliasing -fwrapv -pthread -D_FILE_OFFSET_BITS=64
+          - native_c_libraries  : -lm
 
         * Configured paths
-        - mode              : posix
-        - standard library  : /usr/share/liquidsoap/libs
-        - scripted binaries : /usr/share/liquidsoap/bin
-        - rundir            : /var/run/liquidsoap
-        - logdir            : /var/log/liquidsoap
-        - camomile files    : /usr/share/liquidsoap/camomile
+          - mode              : default
+          - standard library  : (set by dune-site)
+          - scripted binaries : (set by dune-site)
+          - rundir            : (set by dune-site)
+          - logdir            : (set by dune-site)
+          - user cache        : $HOME/.cache/liquidsoap (override with $LIQ_CACHE_USER_DIR)
+          - system cache      : (set by dune-site) (override with $LIQ_CACHE_SYSTEM_DIR)
+          - camomile files    : (set by dune-site)
 
         * Supported input formats
-        - MP3               : yes
-        - AAC               : yes
-        - Ffmpeg            : yes
-        - Flac (native)     : yes
-        - Flac (ogg)        : yes
-        - Opus              : yes
-        - Speex             : yes
-        - Theora            : yes
-        - Vorbis            : yes
+          - MP3               : yes
+          - AAC               : yes
+          - Ffmpeg            : yes
+          - Flac (native)     : yes
+          - Flac (ogg)        : yes
+          - Opus              : yes
+          - Speex             : yes
+          - Theora            : yes
+          - Vorbis            : yes
+          - WAV/AIFF          : yes (native)
 
         * Supported output formats
-        - FDK-AAC           : yes
-        - Ffmpeg            : yes
-        - MP3               : yes
-        - MP3 (fixed-point) : yes
-        - Flac (native)     : yes
-        - Flac (ogg)        : yes
-        - Opus              : yes
-        - Speex             : yes
-        - Theora            : yes
-        - Vorbis            : yes
+          - FDK-AAC           : yes
+          - FFmpeg            : yes
+          - MP3               : yes
+          - MP3 (fixed-point) : yes
+          - Flac (native)     : yes
+          - Flac (ogg)        : yes
+          - Opus              : yes
+          - Speex             : yes
+          - Theora            : yes
+          - Vorbis            : yes
+          - WAV/AIFF          : yes (native)
 
         * Tags
-        - Vorbis            : yes
+          - AAC               : yes
+          - FFmpeg            : yes
+          - FLAC (native)     : yes
+          - Flac (ogg)        : yes
+          - Native decoder    : yes
+          - Vorbis            : yes
 
         * Input / output
-        - ALSA              : yes
-        - AO                : yes
-        - FFmpeg            : yes
-        - GStreamer         : no (requires gstreamer)
-        - JACK              : yes
-        - OSS               : yes
-        - Portaudio         : yes
-        - Pulseaudio        : yes
-        - SRT               : yes
+          - ALSA              : no (requires alsa)
+          - AO                : yes
+          - FFmpeg            : yes
+          - JACK              : yes
+          - OSS               : no (requires oss)
+          - Portaudio         : no (requires portaudio)
+          - Pulseaudio        : no (requires pulseaudio)
+          - SRT               : yes
 
         * Audio manipulation
-        - FFmpeg            : yes
-        - LADSPA            : yes
-        - Lilv              : yes
-        - Samplerate        : yes
-        - SoundTouch        : yes
-        - StereoTool        : yes
+          - FFmpeg            : yes
+          - LADSPA            : no (requires ladspa)
+          - Lilv              : no (requires lilv)
+          - Samplerate        : yes
+          - SoundTouch        : yes
+          - StereoTool        : yes
 
         * Video manipulation
-        - camlimages        : yes
-        - FFmpeg            : yes
-        - frei0r            : yes
-        - ImageLib          : no (requires imagelib)
-        - SDL               : yes
+          - camlimages        : yes
+          - FFmpeg            : yes
+          - frei0r            : yes
+          - ImageLib          : yes
+          - SDL               : yes
 
         * MIDI manipulation
-        - DSSI              : yes
+          - DSSI              : no (requires dssi)
 
         * Visualization
-        - GD                : yes
-        - Graphics          : no (requires graphics)
-        - SDL               : yes
+          - GD                : no (requires gd)
+          - Graphics          : no (requires graphics)
+          - SDL               : yes
 
         * Additional libraries
-        - FFmpeg filters    : yes
-        - FFmpeg devices    : yes
-        - inotify           : yes
-        - irc               : yes
-        - jemalloc          : yes
-        - lastfm            : yes
-        - lo                : yes
-        - memtrace          : yes
-        - mem_usage         : yes
-        - osc               : yes
-        - ssl               : yes
-        - tls               : yes
-        - posix-time2       : yes
-        - windows service   : no (requires winsvc)
-        - YAML support      : yes
-        - XML playlists     : yes
+          - FFmpeg filters    : yes
+          - FFmpeg devices    : yes
+          - inotify           : no (requires inotify)
+          - irc               : no (requires irc-client-unix)
+          - jemalloc          : no (requires jemalloc)
+          - lastfm            : yes
+          - lo                : yes
+          - memtrace          : no (requires memtrace)
+          - osc               : yes
+          - ssl               : yes
+          - sqlite3           : yes
+          - tls               : yes
+          - posix-time2       : yes
+          - windows service   : no (requires winsvc)
+          - YAML support      : yes
+          - XML playlists     : yes
 
         * Monitoring
-        - Prometheus        : yes
+          - Prometheus        : yes
     validations:
       required: true
   - type: dropdown
