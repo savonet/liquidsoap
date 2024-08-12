@@ -1,10 +1,10 @@
 (env
  (release
   (ocamlopt_flags
-   (:standard -O2)))
+   (:standard -g -O2)))
  (dev
   (flags
-   (:standard -w -9))))
+   (:standard -g -w -9))))
 
 (include_subdirs unqualified)
 
