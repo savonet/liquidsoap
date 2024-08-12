@@ -49,7 +49,6 @@ let () =
       ("srt", Srt_option.enabled);
       ("ssl", Ssl_option.enabled);
       ("tls", Tls_option.enabled);
-      ("taglib", Taglib_option.enabled);
       ("theora", Theora_option.enabled);
       ("vorbis", Vorbis_option.enabled);
       ("winsvc", Winsvc_option.enabled);

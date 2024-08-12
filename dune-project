@@ -100,7 +100,6 @@
     sqlite3
     srt
     ssl
-    taglib
     tls-liquidsoap
     theora
     sdl-liquidsoap
@@ -137,7 +136,6 @@
     (speex (< 0.4.0))
     (srt (< 0.3.0))
     (ssl (< 0.7.0))
-    (taglib (< 0.3.10))
     (tls (< 0.17.4))
     (sdl-liquidsoap (< 2))
     (theora (< 0.4.0))

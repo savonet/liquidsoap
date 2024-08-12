@@ -66,7 +66,7 @@ Parameters common to each flavor are:
 - `stereo_mode`: One of: `"stereo"`, `"joint_stereo"` or `"default"` (default: `"default"`). Default means that the underlying library (`libmp3lame`) will pick the stereo mode based on compression ration and input channels.
 - `samplerate=44100`: Encoded data samplerate (default: `44100`)
 - `internal_quality=2`: Lame algorithms internal quality. A value between `0` and `9`, `0` being highest quality and `9` the worst (default: `2`).
-- `id3v2=true`: Add an `id3v2` tag to encoded data (default: `false`). This option is only valid if liquidsoap has been compiled with taglib support.
+- `id3v2=true`: Add an `id3v2` tag to encoded data (default: `false`).
 
 Parameters for `%mp3` are:
 

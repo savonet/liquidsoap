@@ -75,7 +75,6 @@ depopts: [
   "speex-windows"
   "srt-windows"
   "ssl-windows"
-  "taglib-windows"
   "theora-windows"
   "tsdl-windows"
   "tsdl-image-windows"
@@ -113,7 +112,6 @@ conflicts: [
   "speex-windows" {< "0.4.0"}
   "srt-windows" {< "0.3.0"}
   "ssl-windows" {< "0.5.2"}
-  "taglib-windows" {< "0.3.7"}
   "sdl-liquidsoap-windows" {< "2"}
   "tsdl-image-windows" {< "0.3.2"}
   "theora-windows" {< "0.4.0"}
@@ -152,10 +150,6 @@ users want. You might need to install the mad or ffmpeg package."""
 We noticed that you did not install any mp3 encoder. This is a feature most
 users want. You might need to install the lame or shine package."""
     {success & !lame-enabled & !shine-enabled & !ffmpeg-enabled}
-  """\
-We noticed that you did not install the taglib package that provides support
-for reading metadata in audio files. This is a feature most users want."""
-    {success & !taglib-enabled}
   """\
 We noticed that you did not install the samplerate package. We strongly
 recommend this package for audio samplerate conversion."""

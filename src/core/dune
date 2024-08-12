@@ -644,14 +644,6 @@
  (modules stereotool_op))
 
 (library
- (name liquidsoap_taglib)
- (libraries taglib liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules taglib_plug taglib_id3v2))
-
-(library
  (name liquidsoap_theora)
  (libraries theora theora.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
@@ -756,7 +748,6 @@
   ssl_option
   stereotool_option
   sqlite3_option
-  taglib_option
   theora_option
   tls_option
   vorbis_option
@@ -970,11 +961,6 @@
    from
    (liquidsoap_sqlite -> sqlite3_option.enabled.ml)
    (-> sqlite3_option.disabled.ml))
-  (select
-   taglib_option.ml
-   from
-   (liquidsoap_taglib -> taglib_option.enabled.ml)
-   (-> taglib_option.disabled.ml))
   (select
    theora_option.ml
    from
