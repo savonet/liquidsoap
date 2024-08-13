@@ -282,20 +282,23 @@ let _self_sync ~clock x =
         match s#self_sync with
           | _, None -> self_sync_sources
           | _, Some sync_source ->
-              SelfSyncSet.add
-                { sync_source; name = s#id; stack = s#stack }
-                self_sync_sources)
-      SelfSyncSet.empty (_animated_sources x)
+              { sync_source; name = s#id; stack = s#stack } :: self_sync_sources)
+      [] (_animated_sources x)
   in
-  if SelfSyncSet.cardinal self_sync_sources > 1 then
+  let self_sync_sources =
+    List.sort_uniq
+      (fun { sync_source = s } { sync_source = s' } -> Stdlib.compare s s')
+      self_sync_sources
+  in
+  if List.length self_sync_sources > 1 then
     raise
       (Sync_error
          {
            name = Printf.sprintf "clock %s" (_id clock);
            stack = Atomic.get clock.stack;
-           sync_sources = SelfSyncSet.elements self_sync_sources;
+           sync_sources = self_sync_sources;
          });
-  SelfSyncSet.cardinal self_sync_sources = 1
+  List.length self_sync_sources = 1
 
 let ticks c =
   match Atomic.get (Unifier.deref c).state with
