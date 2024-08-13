@@ -75,12 +75,10 @@ let conf_log_delay_threshold =
     ~p:(conf_clock#plug "log_delay_threshold")
     ~d:0.2 "Notify latency issues after delay exceeds this threshold."
 
-let conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "root") "Streaming clock settings"
-
 let conf_max_latency =
-  Dtools.Conf.float ~p:(conf#plug "max_latency") ~d:60.
-    "Maximum latency in seconds"
+  Dtools.Conf.float
+    ~p:(conf_clock#plug "max_latency")
+    ~d:60. "Maximum latency in seconds"
     ~comments:
       [
         "If the latency gets higher than this value, the outputs will be reset,";
@@ -92,6 +90,18 @@ let conf_clock_preferred =
   Dtools.Conf.string ~d:"posix"
     ~p:(conf_clock#plug "preferred")
     "Preferred clock implementation. One if: \"posix\" or \"ocaml\"."
+
+let conf_clock_sleep_latency =
+  Dtools.Conf.int
+    ~p:(conf_clock#plug "sleep_latency")
+    ~d:1
+    "How much time ahead (in frame duration) we should be until we let the \
+     streaming loop sleep."
+    ~comments:
+      [
+        "Once we have computed the given amount of time time in advance,";
+        "we wait until re-starting the streaming loop.";
+      ]
 
 let time_implementation () =
   try Hashtbl.find Liq_time.implementations conf_clock_preferred#get
@@ -321,7 +331,12 @@ let _after_tick ~clock x =
   check_stopped ();
   match (x.sync, _self_sync ~clock x, Time.(end_time |<| target_time)) with
     | `Unsynced, _, _ | `Passive, _, _ | `Automatic, true, _ -> ()
-    | `Automatic, false, true | `CPU, _, true -> Time.sleep_until target_time
+    | `Automatic, false, true | `CPU, _, true ->
+        if
+          Time.(
+            of_float (float conf_clock_sleep_latency#get)
+            |*| x.frame_duration |<=| (target_time |-| end_time))
+        then Time.sleep_until target_time
     | _ ->
         let latency = Time.(end_time |-| target_time) in
         if Time.(x.max_latency |<=| latency) then (
