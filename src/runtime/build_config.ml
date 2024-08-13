@@ -58,10 +58,11 @@ let build_config =
    - Speex             : %{Speex_option.detected}
    - Theora            : %{Theora_option.detected}
    - Vorbis            : %{Vorbis_option.detected}
+   - WAV/AIFF          : yes (native)
 
  * Supported output formats
    - FDK-AAC           : %{Fdkaac_option.detected}
-   - Ffmpeg            : %{Ffmpeg_option.detected}
+   - FFmpeg            : %{Ffmpeg_option.detected}
    - MP3               : %{Lame_option.detected}
    - MP3 (fixed-point) : %{Shine_option.detected}
    - Flac (native)     : %{Flac_option.detected}
@@ -70,9 +71,14 @@ let build_config =
    - Speex             : %{Speex_option.detected}
    - Theora            : %{Theora_option.detected}
    - Vorbis            : %{Vorbis_option.detected}
+   - WAV/AIFF          : yes (native)
 
  * Tags
-   - Taglib (ID3 tags) : %{Taglib_option.detected}
+   - AAC               : %{Faad_option.detected}
+   - FFmpeg            : %{Ffmpeg_option.detected}
+   - FLAC (native)     : %{Flac_option.detected}
+   - Flac (ogg)        : %{Ogg_flac_option.detected}
+   - Native decoder    : yes
    - Vorbis            : %{Vorbis_option.detected}
 
  * Input / output

@@ -27,6 +27,10 @@ New:
   and created a huge maintenance and debugging burden and it had been marked as
   deprecated for a while. Most, if not all of its features should be available using
   `ffmpeg`. (#4036)
+- Removed `taglib` support. It is superseded by the internal `ocaml-metadata` module
+  and taglib, with its dependency on the C++ runtime library, has been causing issues
+  with binary builds portability and crashes with the (not yet supported) OCaml 5
+  compiler. (#4087)
 - Add `video.canvas` to make it possible to position video elements independently
   of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/))
 - Add cover manager from an original code by @vitoyucepi (#3651)
