@@ -215,7 +215,9 @@ end
 # @category Source / Conversion
 # @param t Track to extract from
 def track.audio.stereo.left(~id=null("track.audio.stereo.left"), t) =
-  track.audio.mean(id=id, track.audio.stereo.pan(pan=-1., t))
+  track.audio.amplify(
+    id=id, override=null(), 2., track.audio.mean(track.audio.stereo.pan(-1., t))
+  )
 end
 
 # Extract the left channel of a stereo source
@@ -230,7 +232,9 @@ end
 # @category Source / Conversion
 # @param s Track to extract from
 def track.audio.stereo.right(~id=null("track.audio.stereo.right"), t) =
-  track.audio.mean(id=id, track.audio.stereo.pan(pan=1., t))
+  track.audio.amplify(
+    id=id, override=null(), 2., track.audio.mean(track.audio.stereo.pan(1., t))
+  )
 end
 
 # Extract the right channel of a stereo source
@@ -252,9 +256,11 @@ end
 # Pan a stereo sound.
 # @category Source / Audio processing
 # @argsof track.audio.stereo.pan
+# @param pan Pan value. Should be between `-1` (left side) and `1` (right side).
 def stereo.pan(
   ~id=null("stereo.pan"),
   %argsof(track.audio.stereo.pan[!id]),
+  pan,
   (s:source)
 ) =
   tracks = source.tracks(s)
@@ -262,7 +268,9 @@ def stereo.pan(
     id=id,
     tracks.{
       audio=
-        track.audio.stereo.pan(%argsof(track.audio.stereo.pan), tracks.audio)
+        track.audio.stereo.pan(
+          %argsof(track.audio.stereo.pan), pan, tracks.audio
+        )
     }
   )
 end
