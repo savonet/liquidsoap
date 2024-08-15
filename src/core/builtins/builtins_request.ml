@@ -23,6 +23,12 @@
 let request = Modules.request
 
 let _ =
+  Lang.add_builtin ~base:request "all" ~category:`Liquidsoap
+    ~descr:"Return all the requests currently available." []
+    (Lang.list_t Request.Value.t) (fun _ ->
+      Lang.list (List.map Request.Value.to_value (Request.all ())))
+
+let _ =
   Lang.add_builtin ~base:request "is_static" ~category:`Liquidsoap
     ~descr:"`true` if the given URI is assumed to be static, e.g. a file."
     [("", Lang.string_t, None, None)]
