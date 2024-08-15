@@ -48,6 +48,7 @@ let rec concat_term (t : t) (t' : t) =
         { t with term = `Binding (def, concat_term body t') }
     | { term = `Seq (t1, t2) } as tm ->
         { tm with term = `Seq (t1, concat_term t2 t') }
+    | { term = `Eof } | { term = `Tuple [] } -> t'
     | _ -> Parsed_term.make ~pos:t.Parsed_term.pos (`Seq (t, t'))
 
 let includer_reducer ~pos = function
@@ -113,14 +114,21 @@ and expand_term tm =
       | `Term arg -> `Term (expand_func_arg arg)
       | `Argsof _ as v -> v)
   in
+  let comments = ref tm.Parsed_term.comments in
   let term =
     match tm.Parsed_term.term with
       | `Include _ as ast ->
-          (expand_term (includer_reducer ~pos:tm.Parsed_term.pos ast)).term
+          let { term; comments = expanded_comments } =
+            expand_term (includer_reducer ~pos:tm.Parsed_term.pos ast)
+          in
+          comments := expanded_comments;
+          term
       | `Seq ({ pos; term = `Include _ as ast }, t') ->
           let t = expand_term (includer_reducer ~pos ast) in
           let t' = expand_term t' in
-          (concat_term t t').term
+          let { term; comments = expanded_comments } = concat_term t t' in
+          comments := expanded_comments;
+          term
       | `Seq (t, t') -> `Seq (expand_term t, expand_term t')
       | `If_def ({ if_def_then; if_def_else } as if_def) ->
           `If_def
@@ -288,4 +296,4 @@ and expand_term tm =
       | `Var _ as ast -> ast
       | `Null -> `Null
   in
-  { tm with Parsed_term.term }
+  { tm with Parsed_term.term; comments = !comments }
