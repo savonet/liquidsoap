@@ -444,8 +444,9 @@ and _clock_thread ~clock x =
        ()
        ("Clock " ^ _id clock))
 
-and start ?(force = false) c =
-  let clock = Unifier.deref c in
+and start ?force c = _start ?force (Unifier.deref c)
+
+and _start ?(force = false) clock =
   let has_output =
     force
     || Queue.exists clock.pending_activations (fun s ->
@@ -513,12 +514,9 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
   c
 
 let start_pending () =
-  List.iter (Queue.push clocks)
-    (Queue.flush_fold clocks
-       (fun c clocks ->
-         start c;
-         c :: clocks)
-       [])
+  Queue.iter clocks (fun c ->
+      let clock = Unifier.deref c in
+      match Atomic.get clock.state with `Stopped _ -> _start clock | _ -> ())
 
 let () =
   Lifecycle.before_start ~name:"Clocks start" (fun () ->
