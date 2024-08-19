@@ -514,9 +514,14 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
   c
 
 let start_pending () =
-  Queue.iter clocks (fun c ->
-      let clock = Unifier.deref c in
-      match Atomic.get clock.state with `Stopped _ -> _start clock | _ -> ())
+  let c = Queue.flush_elements clocks in
+  let c = List.map (fun c -> (c, Unifier.deref c)) c in
+  let c = List.sort_uniq (fun (_, c) (_, c') -> Stdlib.compare c c') c in
+  List.iter
+    (fun (c, clock) ->
+      (match Atomic.get clock.state with `Stopped _ -> _start clock | _ -> ());
+      Queue.push clocks c)
+    c
 
 let () =
   Lifecycle.before_start ~name:"Clocks start" (fun () ->
