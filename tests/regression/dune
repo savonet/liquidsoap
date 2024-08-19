@@ -37,3 +37,16 @@
    liquidsoap
    --check
    "harbor.http.register.simple(port=2000,method=\"GET\",\"/foo\",(fun (_) -> \"test\"))")))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (pipe-stdout
+   (echo "print(123)")
+   (run %{run_test} "stdin script" liquidsoap --check "-"))))

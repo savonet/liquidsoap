@@ -24,13 +24,17 @@ let () = Liqmemtrace.install ()
 
 (* Resolve a path. *)
 let resolve_path ?current_dir path =
-  let path = Lang_string.home_unrelate path in
-  let current_dir =
-    match current_dir with
-      | None -> Sys.getcwd ()
-      | Some current_dir -> current_dir
-  in
-  if Filename.is_relative path then Filename.concat current_dir path else path
+  match path with
+    | "-" -> "-"
+    | path ->
+        let path = Lang_string.home_unrelate path in
+        let current_dir =
+          match current_dir with
+            | None -> Sys.getcwd ()
+            | Some current_dir -> current_dir
+        in
+        if Filename.is_relative path then Filename.concat current_dir path
+        else path
 
 let readable f =
   try
@@ -40,18 +44,23 @@ let readable f =
   with _ -> false
 
 let check_readable ?current_dir ~pos path =
-  let resolved_path = resolve_path ?current_dir path in
-  let details =
-    if path = resolved_path then "Given path: " ^ path
-    else "Given path: " ^ path ^ ", resolved path: " ^ resolved_path
-  in
-  if not (Sys.file_exists resolved_path) then
-    Runtime_error.raise ~pos ~message:("File not found! " ^ details) "not_found";
-  if not (readable resolved_path) then
-    Runtime_error.raise ~pos
-      ~message:("File is not readable!" ^ details)
-      "not_found";
-  resolved_path
+  match path with
+    | "-" -> "-"
+    | path ->
+        let resolved_path = resolve_path ?current_dir path in
+        let details =
+          if path = resolved_path then "Given path: " ^ path
+          else "Given path: " ^ path ^ ", resolved path: " ^ resolved_path
+        in
+        if not (Sys.file_exists resolved_path) then
+          Runtime_error.raise ~pos
+            ~message:("File not found! " ^ details)
+            "not_found";
+        if not (readable resolved_path) then
+          Runtime_error.raise ~pos
+            ~message:("File is not readable!" ^ details)
+            "not_found";
+        resolved_path
 
 let string_of_float f =
   let s = string_of_float f in
