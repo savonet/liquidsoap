@@ -263,12 +263,20 @@ class cross val_source ~end_duration_getter ~override_end_duration
         | `Before -> Generator.append gen_before buf_frame
         | `After -> Generator.append gen_after buf_frame
 
+    method private assign_status new_status =
+      (match status with
+        | `After s | `Before s ->
+            s#sleep;
+            Clock.detach s#clock (s :> Clock.source)
+        | _ -> ());
+      status <- new_status
+
     method private prepare_before =
       self#log#info "Buffering end of track...";
       let before = new consumer ~clock:source#clock gen_before in
       Typing.(before#frame_type <: self#frame_type);
       self#prepare_source before;
-      status <- `Before (before :> Source.source);
+      self#assign_status (`Before (before :> Source.source));
       self#buffer_before ~is_first:true ();
       before
 
@@ -402,7 +410,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
       in
       self#prepare_source compound;
       self#reset_analysis;
-      status <- `After compound
+      self#assign_status (`After compound)
 
     method remaining =
       match status with

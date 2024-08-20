@@ -157,7 +157,9 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           if not autostart then start_stop#transition_to `Stopped;
 
           self#register_telnet);
-      self#on_sleep (fun () -> start_stop#transition_to `Stopped)
+      self#on_sleep (fun () ->
+          self#cleanup_telnet;
+          start_stop#transition_to `Stopped)
 
     (* The output process *)
     val mutable skip = false
