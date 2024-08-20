@@ -98,6 +98,15 @@ end
 unwanted requests before consuming process time. If you need to see the request's metadata or if the request resolves
 into a valid tile, however, you might need to call `request.resolve` inside your `check_next` script.
 
+### Regular expressions
+
+The backend to interpret regular expressions has been changed. For the most part, all existing regular expressions should be supported
+but you might experience some incompatibilities with advanced/complex one.
+
+Known incompatibilities include:
+
+- `(?P<name>pattern)` for named captures is not supported. `(?<name>pattern)` should be used instead.
+
 ### `on_air` metadata
 
 Request `on_air` and `on_air_timestamp` metadata are deprecated. These values were never reliable. They are set at the request level when `request.dynamic`
