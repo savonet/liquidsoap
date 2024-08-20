@@ -3,21 +3,27 @@ cam = input.v4l2()
 
 # Detect faces (this generates a white disk over faces)
 mask = video.frei0r.opencvfacedetect(cam)
+
 # Pixellize the video
 censored = video.frei0r.pixeliz0r(block_width=0.1, block_height=0.1, cam)
+
 # Generate a mask for video without the face
 unmask = video.frei0r.invert0r(mask)
+
 # Put the pixellized face over the video
 s = video.frei0r.addition(
       video.frei0r.multiply(mask, censored),
       video.frei0r.multiply(unmask, cam))
-# We have to bufferize the source because its clock it GStreamer's clock
+
+# We have to bufferize the source
 s = buffer(buffer=0.1,mksafe(s))
 
 # Input audio from microphone
 mic = input.pulseaudio()
+
 # Transpose sound to generate a funny voice
 mic = soundtouch(pitch=1.5, buffer(mic))
+
 # Add sound to video
 s = source.mux.audio(audio=mic, s)
 

@@ -82,17 +82,17 @@ open Parser_helper
 %token WHILE FOR TO
 
 %nonassoc YIELDS       (* fun x -> (x+x) *)
-%nonassoc COALESCE     (* (x ?? y) == z *)
 %right SET             (* expr := (expr + expr), expr := (expr := expr) *)
 %nonassoc QUESTION     (* x ? y : z *)
 %nonassoc TYPEOF (* typeof v? *)
 %left AND             (* ((x+(y*z))==3) or ((not a)==b) *)
 %left OR
-%left QUESTION_DOT
 %nonassoc NOT
 %left BIN1 AT
 %left BIN2 MINUS
 %left BIN3 TIMES
+%nonassoc COALESCE     (* (x ?? y) == z *)
+%nonassoc QUESTION_DOT (* (x ?. y) == z *)
 %right COLONCOLON
 %nonassoc GET          (* (!x)+2 *)
 %left DOT

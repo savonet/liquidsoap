@@ -22,6 +22,8 @@
 
 type request = Get | Post | Put | Head | Delete
 
+module Http = Liq_http
+
 let string_of_request = function
   | Get -> "get"
   | Post -> "post"
@@ -125,12 +127,12 @@ let add_http_request ~base ~stream_body ~descr ~request name =
         if normalize_url then Uri.(to_string (of_string original_url))
         else original_url
       in
-      if url <> original_url then
+      if Uri.pct_decode url <> original_url then
         log#important
           "Requested url %s different from normalized url: %s. Either fix it \
            or use `normalize_url=false` to disable url normalization!"
           (Lang_string.quote_utf8_string original_url)
-          (Lang_string.quote_utf8_string url);
+          (Lang_string.quote_utf8_string (Uri.pct_decode url));
       let redirect = Lang.to_bool (List.assoc "redirect" p) in
       let on_body_data, get_body =
         if stream_body then (

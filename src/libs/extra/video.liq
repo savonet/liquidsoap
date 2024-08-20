@@ -27,7 +27,13 @@ def video.add_cover(
 ) =
   cover_file = file.cover.manager(mime_types=mime_types, default=default)
   s = source.on_metadata(s, cover_file.set)
-  video.add_image(
-    fallible=fallible, x=x, y=y, width=width, height=height, file=cover_file, s
+  video.add_request(
+    fallible=fallible,
+    x=x,
+    y=y,
+    width=width,
+    height=height,
+    request=cover_file,
+    s
   )
 end

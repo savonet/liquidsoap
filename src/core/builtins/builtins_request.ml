@@ -23,6 +23,12 @@
 let request = Modules.request
 
 let _ =
+  Lang.add_builtin ~base:request "all" ~category:`Liquidsoap
+    ~descr:"Return all the requests currently available." []
+    (Lang.list_t Request.Value.t) (fun _ ->
+      Lang.list (List.map Request.Value.to_value (Request.all ())))
+
+let _ =
   Lang.add_builtin ~base:request "is_static" ~category:`Liquidsoap
     ~descr:"`true` if the given URI is assumed to be static, e.g. a file."
     [("", Lang.string_t, None, None)]
@@ -125,7 +131,7 @@ let _ =
     Lang.string_t ~descr:"Get log data associated to a request."
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.string (Request.string_of_log (Request.get_log r)))
+      Lang.string (Request.log r))
 
 let _ =
   Lang.add_builtin ~base:request "resolved" ~category:`Liquidsoap
@@ -245,7 +251,6 @@ let _ =
           | `Idle -> "idle"
           | `Resolving _ -> "resolving"
           | `Ready -> "ready"
-          | `Playing _ -> "playing"
           | `Destroyed -> "destroyed"
           | `Failed -> "failed"
       in

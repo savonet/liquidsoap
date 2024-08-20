@@ -25,7 +25,7 @@ let () =
   let decoder =
     create_decoder { Decoder.read; tell = None; length = None; lseek = None }
   in
-  let log = Printf.printf "Generator log: %s" in
+  let log = Log.make ["generator"] in
   let generator = Generator.create ~log ctype in
   let buffer = Decoder.mk_buffer ~ctype generator in
   let mp3_format = Lang_mp3.mp3_base_defaults () in
@@ -42,7 +42,7 @@ let () =
           decoder.Decoder.decode buffer
         done;
         let frame = Generator.slice generator size in
-        write (encoder.Encoder.encode frame 0 (Frame.position frame))
+        write (encoder.Encoder.encode frame)
       with Avutil.Error `Invalid_data -> ()
     done
   with Ffmpeg_decoder.End_of_file ->

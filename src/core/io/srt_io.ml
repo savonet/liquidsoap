@@ -369,26 +369,28 @@ module Poll = struct
       Srt.Poll.remove_usock t.p socket
 end
 
-let () =
-  Lifecycle.on_start ~name:"srt initialization" (fun () ->
-      Srt.startup ();
-      if conf_log#get then (
-        let level =
-          match conf_verbosity#get with
-            | "critical" -> `Critical
-            | "error" -> `Error
-            | "warning" -> `Warning
-            | "notice" -> `Notice
-            | "debug" -> `Debug
-            | _ ->
-                log#severe "Invalid value for \"srt.log.verbosity\"!";
-                `Error
-        in
-        Srt.Log.setloglevel level;
-        Srt.Log.set_handler log_handler));
-  Lifecycle.on_final_cleanup ~name:"set cleanup" (fun () ->
-      Srt.Poll.release Poll.t.Poll.p;
-      Srt.cleanup ())
+let init =
+  lazy
+    (Lifecycle.on_start ~name:"srt initialization" (fun () ->
+         Srt.startup ();
+         if conf_log#get then (
+           let level =
+             match conf_verbosity#get with
+               | "critical" -> `Critical
+               | "error" -> `Error
+               | "warning" -> `Warning
+               | "notice" -> `Notice
+               | "debug" -> `Debug
+               | _ ->
+                   log#severe "Invalid value for \"srt.log.verbosity\"!";
+                   `Error
+           in
+           Srt.Log.setloglevel level;
+           Srt.Log.set_handler log_handler));
+
+     Lifecycle.on_final_cleanup ~name:"set cleanup" (fun () ->
+         Srt.Poll.release Poll.t.Poll.p;
+         Srt.cleanup ()))
 
 let string_of_address = function
   | Unix.ADDR_UNIX _ -> assert false
@@ -414,7 +416,8 @@ let id =
   let counter = Atomic.make 0 in
   fun () -> Atomic.fetch_and_add counter 1
 
-class virtual base =
+class virtual base () =
+  let () = Lazy.force init in
   object
     val should_stop = Atomic.make false
     val id = id ()
@@ -666,7 +669,7 @@ class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit input_networking_agent
-    inherit base
+    inherit base ()
 
     inherit
       Start_stop.active_source
@@ -918,7 +921,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
   let tmp = Bytes.create payload_size in
   object (self)
     inherit output_networking_agent
-    inherit base
+    inherit base ()
 
     inherit
       [Strings.t] Output.encoded
@@ -989,8 +992,8 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
       self#mutexify (fun () -> Atomic.set should_stop true) ();
       self#disconnect
 
-    method private encode frame ofs len =
-      if self#is_connected then self#get_encoder.Encoder.encode frame ofs len
+    method private encode frame =
+      if self#is_connected then self#get_encoder.Encoder.encode frame
       else Strings.empty
 
     method private insert_metadata m =

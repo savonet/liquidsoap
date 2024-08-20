@@ -34,8 +34,8 @@ val conf : Dtools.Conf.ut
 val indicator :
   ?metadata:Frame.metadata -> ?temporary:bool -> string -> indicator
 
-(** Raised when trying to set an invalid status, e.g. playing when not ready. *)
-exception Invalid_state
+(** Return a prettified string. *)
+val pretty_date : Unix.tm -> string
 
 (** Type of requests, which are devices for obtaining a local file from an
     URI. *)
@@ -63,14 +63,10 @@ val initial_uri : t -> string
     staticity, and in [src/sources/one_file.ml] for an example of use). *)
 val destroy : ?force:bool -> t -> unit
 
+type resolving
+
 (** Status of a request. *)
-type status =
-  [ `Idle
-  | `Resolving of float
-  | `Ready
-  | `Playing of float
-  | `Destroyed
-  | `Failed ]
+type status = [ `Idle | `Resolving of resolving | `Ready | `Destroyed | `Failed ]
 
 (** Current status of a request. *)
 val status : t -> status
@@ -89,12 +85,6 @@ val all : unit -> t list
 
 (** Retrieve a request from its id. *)
 val from_id : int -> t option
-
-(** Mark the request as playing. *)
-val is_playing : t -> unit
-
-(** Mark the request as done playing. *)
-val done_playing : t -> unit
 
 (** {1 Resolving}
 
@@ -147,11 +137,7 @@ val metadata : t -> Frame.metadata
 (** {1 Logging}
     Every request has a separate log in which its history can be written. *)
 
-type log = (Unix.tm * string) Queue.t
-
-val string_of_log : log -> string
-val add_log : t -> string -> unit
-val get_log : t -> log
+val log : t -> string
 
 (** {1 Media operations}
 
@@ -170,6 +156,12 @@ val has_decoder : ctype:Frame.content_type -> t -> bool
     available data to deliver. *)
 val get_decoder :
   ctype:Frame.content_type -> t -> Decoder.file_decoder_ops option
+
+(** Mark the request as being on_air for the given source. *)
+val on_air : source:Source.source -> t -> unit
+
+(** Mark the request as being done playing by the given source. *)
+val done_playing : source:Source.source -> t -> unit
 
 (** {1 Plugs} *)
 

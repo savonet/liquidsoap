@@ -56,11 +56,6 @@ We noticed that you did not install any ssl or tls support. Liquidsoap won't
 be able to use SSL encryption in its input or output operators. You might want
 to install one of ssl or tls-liquidsoap package."""
     {success & !ssl-enabled & !tls-enabled}
-  """\
-We noticed that your build includes GStreamer support. This support is DEPRECATED.
-We suggest you consider moving to FFmpeg, which should provide same the same level
-of functionalities."""
-    {success & gstreamer-enabled}
 ]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"

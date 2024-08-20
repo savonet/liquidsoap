@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Http = Liq_http
+
 module Liq_tls = struct
   type t = {
     read_pending : Buffer.t;

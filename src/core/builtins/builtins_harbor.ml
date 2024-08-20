@@ -24,6 +24,8 @@ let resp_t = Lang.nullable_t (Lang.getter_t Lang.string_t)
 let harbor = Modules.harbor
 let harbor_http = Lang.add_module ~base:harbor "http"
 
+module Http = Liq_http
+
 let request_t =
   Lang.record_t
     [

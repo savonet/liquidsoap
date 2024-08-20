@@ -102,7 +102,11 @@ type file_decoder =
     close function. *)
 type stream_decoder = input -> decoder
 
-type image_decoder = file -> Video.Image.t
+type image_decoder = {
+  image_decoder_priority : unit -> int;
+  check_image : file -> bool;
+  decode_image : file -> Video.Image.t;
+}
 
 (** Decoder description. *)
 type decoder_specs = {
@@ -155,7 +159,7 @@ let conf_image_file_decoders =
     ~p:(conf_decoder#plug "image_file_decoders")
     ~d:[] "Decoders and order used to decode image files."
 
-let image_file_decoders : (file -> Video.Image.t option) Plug.t =
+let image_file_decoders : image_decoder Plug.t =
   Plug.create
     ~register_hook:(fun name _ -> f conf_image_file_decoders name)
     ~doc:"Image file decoding methods." "image file decoding"
@@ -168,7 +172,10 @@ let get_image_file_decoders () =
           log#severe "Cannot find decoder %s" name;
           cur
   in
-  List.fold_left f [] conf_image_file_decoders#get
+  List.sort
+    (fun (_, { image_decoder_priority = p })
+         (_, { image_decoder_priority = p' }) -> Stdlib.compare (p' ()) (p ()))
+    (List.fold_left f [] conf_image_file_decoders#get)
 
 let conf_debug =
   Dtools.Conf.bool
@@ -205,6 +212,11 @@ let conf_priorities =
   Dtools.Conf.void
     ~p:(conf_decoder#plug "priorities")
     "Priorities used for choosing audio and video file decoders"
+
+let conf_image_priorities =
+  Dtools.Conf.void
+    ~p:(conf_priorities#plug "image")
+    "Priorities used for choosing image file decoders"
 
 let base_mime s = List.hd (String.split_on_char ';' s)
 
@@ -333,33 +345,42 @@ let get_file_decoder ~metadata ~ctype filename =
             fun () -> (Option.get specs.file_decoder) ~metadata ~ctype filename
           )))
 
+(** Check if decoder can decode image. *)
+let check_image_file_decoder filename =
+  let decoders = get_image_file_decoders () in
+  log#info "Available image decoders: %s"
+    (String.concat ", "
+       (List.map
+          (fun (name, specs) ->
+            Printf.sprintf "%s (priority: %d)" name
+              (specs.image_decoder_priority ()))
+          decoders));
+  List.exists
+    (fun (name, { image_decoder_priority; check_image }) ->
+      log#info "Trying image decoder %S (priority: %d)" name
+        (image_decoder_priority ());
+      if check_image filename then (
+        log#important "Image decoder %S accepted %s" name
+          (Lang_string.quote_string filename);
+        true)
+      else false)
+    decoders
+
 (** Get a valid image decoder creator for [filename]. *)
 let get_image_file_decoder filename =
-  let ans = ref None in
-  try
-    List.iter
-      (fun (name, decoder) ->
+  match
+    List.find_map
+      (fun (name, { decode_image }) ->
         log#info "Trying method %S for %s..." name
           (Lang_string.quote_string filename);
-        match
-          try decoder filename
-          with e ->
-            log#info "Decoder %S failed on %s: %s!" name
-              (Lang_string.quote_string filename)
-              (Printexc.to_string e);
-            None
-        with
-          | Some img ->
-              log#important "Method %S accepted %s." name
-                (Lang_string.quote_string filename);
-              ans := Some img;
-              raise Stdlib.Exit
-          | None -> ())
-      (get_image_file_decoders ());
-    log#important "Unable to decode %s using image decoder(s)!"
-      (Lang_string.quote_string filename);
-    !ans
-  with Exit -> !ans
+        try Some (decode_image filename) with _ -> None)
+      (get_image_file_decoders ())
+  with
+    | None ->
+        log#important "Unable to decode %s using image decoder(s)!"
+          (Lang_string.quote_string filename);
+        raise Not_found
+    | Some d -> d
 
 let get_stream_decoder ~ctype mime =
   let decoders =
@@ -382,11 +403,12 @@ let get_stream_decoder ~ctype mime =
       (Frame.string_of_content_type ctype);
     None)
   else (
-    log#info "Available decoders:";
-    List.iter
-      (fun (name, specs) ->
-        log#info "%s (priority: %d)" name (specs.priority ()))
-      decoders;
+    log#info "Available stream decoders: %s"
+      (String.concat ", "
+         (List.map
+            (fun (name, specs) ->
+              Printf.sprintf "%s (priority: %d)" name (specs.priority ()))
+            decoders));
     let name, decoder = List.hd decoders in
     log#info "Selected decoder %s for mime-type %s with expected content %s"
       name mime
@@ -539,15 +561,16 @@ let mk_decoder ~filename ~remaining ~buffer decoder =
   { fread; remaining; fseek; fclose }
 
 let file_decoder ~filename ~remaining ~ctype decoder =
-  let generator = Generator.create ~log:(log#info "%s") ctype in
+  let generator = Generator.create ~log ctype in
   let buffer = mk_buffer ~ctype generator in
   mk_decoder ~filename ~remaining ~buffer decoder
 
-let opaque_file_decoder ~filename ~ctype create_decoder =
+let openfile filename =
   let extra_flags = if Sys.win32 then [Unix.O_SHARE_DELETE] else [] in
-  let fd =
-    Unix.openfile filename ([Unix.O_RDONLY; Unix.O_CLOEXEC] @ extra_flags) 0
-  in
+  Unix.openfile filename ([Unix.O_RDONLY; Unix.O_CLOEXEC] @ extra_flags) 0
+
+let opaque_file_decoder ~filename ~ctype create_decoder =
+  let fd = openfile filename in
 
   let file_size = (Unix.stat filename).Unix.st_size in
   let proc_bytes = ref 0 in
@@ -567,7 +590,7 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
     { read; tell = Some tell; length = Some length; lseek = Some lseek }
   in
 
-  let generator = Generator.create ~log:(log#info "%s") ctype in
+  let generator = Generator.create ~log ctype in
   let buffer = mk_buffer ~ctype generator in
   let decoder = create_decoder input in
 

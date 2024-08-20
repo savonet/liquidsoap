@@ -25,13 +25,31 @@
 
 exception No_indicator
 exception Request_resolved
-exception Invalid_state
 exception Duration of float
+
+module Queue = Liquidsoap_lang.Queues.Queue
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 
+let conf_add_on_air =
+  Dtools.Conf.bool
+    ~p:(conf#plug "deprecated_on_air_metadata")
+    ~d:false "DEPRECATED: Add `on_air` and `on_air_timestamp` request metadata."
+    ~comments:
+      [
+        "`on_air` and `on_air_timestamp` are DEPRECATED! Requests can be used in";
+        "multiple sources and/or outputs. Its recommended to use output's";
+        "`on_track` method to track the latest metadata currently being played";
+        "by an output.";
+      ]
+
 let log = Log.make ["request"]
+
+let pretty_date date =
+  Printf.sprintf "%d/%02d/%02d %02d:%02d:%02d" (date.Unix.tm_year + 1900)
+    (date.Unix.tm_mon + 1) date.Unix.tm_mday date.Unix.tm_hour date.Unix.tm_min
+    date.Unix.tm_sec
 
 (** File utilities. *)
 
@@ -64,33 +82,11 @@ type metadata_resolver = {
     (string * string) list;
 }
 
-(** Log *)
-
-type log = (Unix.tm * string) Queue.t
-
-let pretty_date date =
-  Printf.sprintf "%d/%02d/%02d %02d:%02d:%02d" (date.Unix.tm_year + 1900)
-    (date.Unix.tm_mon + 1) date.Unix.tm_mday date.Unix.tm_hour date.Unix.tm_min
-    date.Unix.tm_sec
-
-let string_of_log log =
-  Queue.fold
-    (fun s (date, msg) ->
-      s
-      ^
-      if s = "" then Printf.sprintf "[%s] %s" (pretty_date date) msg
-      else Printf.sprintf "\n[%s] %s" (pretty_date date) msg)
-    "" log
-
 type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
-
-type status =
-  [ `Idle
-  | `Resolving of float
-  | `Ready
-  | `Playing of float
-  | `Destroyed
-  | `Failed ]
+type resolving = { until : float; pending : (Condition.t * Mutex.t) list }
+type status = [ `Idle | `Resolving of resolving | `Ready | `Destroyed | `Failed ]
+type decoder = string * (unit -> Decoder.file_decoder_ops)
+type on_air = { source : Source.source; timestamp : float }
 
 type t = {
   id : int;
@@ -99,19 +95,28 @@ type t = {
   cue_in_metadata : string option;
   cue_out_metadata : string option;
   persistent : bool;
-  mutable status : status;
+  decoders : (Frame.content_type, decoder option) Hashtbl.t;
+  status : status Atomic.t;
   logger : Log.t;
-  log : log;
-  mutable indicators : indicator list;
-  mutable file_metadata : Frame.Metadata.t;
+  log : (Unix.tm * string) Queue.t;
+  indicators : indicator Queue.t;
+  file_metadata : Frame.Metadata.t Atomic.t;
+  on_air : on_air Queue.t;
 }
 
-let resolved t = match t.status with `Ready | `Playing _ -> true | _ -> false
+let resolved t = match Atomic.get t.status with `Ready -> true | _ -> false
+
+let last_indicator r =
+  match List.rev (Queue.elements r.indicators) with
+    | el :: _ -> el
+    | [] -> assert false
 
 let initial_uri r =
-  match List.rev r.indicators with { uri } :: _ -> uri | [] -> assert false
+  match Queue.peek_opt r.indicators with
+    | Some { uri } -> uri
+    | None -> assert false
 
-let status { status } = status
+let status { status } = Atomic.get status
 
 let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
   { uri = home_unrelate s; temporary = temporary = Some true; metadata }
@@ -157,8 +162,7 @@ let duration ~metadata file =
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
   * [None] otherwise. *)
-let get_filename t =
-  if resolved t then Some (List.hd t.indicators).uri else None
+let get_filename t = if resolved t then Some (last_indicator t).uri else None
 
 (** Manage requests' metadata *)
 
@@ -169,9 +173,9 @@ let add_root_metadata t m =
   (* TOP INDICATOR *)
   let m =
     Frame.Metadata.add "temporary"
-      (match t.indicators with
-        | h :: _ -> if h.temporary then "true" else "false"
-        | _ -> "false")
+      (match last_indicator t with
+        | h -> if h.temporary then "true" else "false"
+        | exception _ -> "false")
       m
   in
 
@@ -181,39 +185,52 @@ let add_root_metadata t m =
       | None -> m
   in
 
+  let timestamp =
+    if conf_add_on_air#get then (
+      if 1 < Queue.length t.on_air then
+        log#important
+          "Request %d is used by multiple sources, `on_air` and \
+           `on_air_timestamp` are not accurate!"
+          t.id;
+      Queue.fold t.on_air
+        (fun { timestamp } cur ->
+          match cur with
+            | Some cur -> Some (min cur timestamp)
+            | None -> Some timestamp)
+        None)
+    else None
+  in
+
   (* STATUS *)
-  match t.status with
-    | `Idle -> Frame.Metadata.add "status" "idle" m
-    | `Resolving d ->
-        let m =
-          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime d)) m
-        in
-        Frame.Metadata.add "status" "resolving" m
-    | `Ready -> Frame.Metadata.add "status" "ready" m
-    | `Playing d ->
+  match (timestamp, Atomic.get t.status) with
+    | Some d, _ ->
         let m =
           Frame.Metadata.add "on_air" (pretty_date (Unix.localtime d)) m
         in
+        Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
+    | _, `Idle -> Frame.Metadata.add "status" "idle" m
+    | _, `Resolving { until } ->
         let m =
-          Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
+          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime until)) m
         in
-        Frame.Metadata.add "status" "playing" m
-    | `Destroyed -> Frame.Metadata.add "status" "destroyed" m
-    | `Failed -> Frame.Metadata.add "status" "failed" m
+        Frame.Metadata.add "status" "resolving" m
+    | _, `Ready -> Frame.Metadata.add "status" "ready" m
+    | _, `Destroyed -> Frame.Metadata.add "status" "destroyed" m
+    | _, `Failed -> Frame.Metadata.add "status" "failed" m
 
-let metadata t =
-  add_root_metadata t
-    (List.fold_left
-       (fun m h -> Frame.Metadata.append h.metadata m)
-       t.file_metadata (List.rev t.indicators))
+let plain_metadata t =
+  List.fold_left
+    (fun m h -> Frame.Metadata.append h.metadata m)
+    (Atomic.get t.file_metadata)
+    (Queue.elements t.indicators)
+
+let metadata t = add_root_metadata t (plain_metadata t)
 
 (** Logging *)
 
 let add_log t i =
   t.logger#info "%s" i;
-  Queue.add (Unix.localtime (Unix.time ()), i) t.log
-
-let get_log t = t.log
+  Queue.push t.log (Unix.localtime (Unix.time ()), i)
 
 (* Indicator tree management *)
 
@@ -223,7 +240,7 @@ let () =
     | _ -> None)
 
 let string_of_indicators t =
-  let i = t.indicators in
+  let i = List.rev (Queue.elements t.indicators) in
   let string_of_list l = "[" ^ String.concat ", " l ^ "]" in
   let i = (List.map (fun i -> i.uri)) i in
   string_of_list i
@@ -359,16 +376,16 @@ let file_is_readable name =
   with Unix.Unix_error _ -> false
 
 let read_metadata r =
-  let i = List.hd r.indicators in
+  let i = last_indicator r in
   let metadata =
-    resolve_metadata ~initial_metadata:(metadata r)
+    resolve_metadata ~initial_metadata:(plain_metadata r)
       ~excluded:r.excluded_metadata_resolvers i.uri
   in
-  r.file_metadata <- metadata
+  Atomic.set r.file_metadata metadata
 
 let push_indicator t i =
   add_log t (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string i.uri));
-  t.indicators <- i :: t.indicators
+  Queue.push t.indicators i
 
 (** Global management *)
 
@@ -386,15 +403,17 @@ module Pool = Pool.Make (struct
       resolve_metadata = false;
       excluded_metadata_resolvers = [];
       persistent = false;
-      status = `Destroyed;
+      status = Atomic.make `Destroyed;
       logger = Log.make [];
       log = Queue.create ();
-      indicators = [];
-      file_metadata = Frame.Metadata.empty;
+      decoders = Hashtbl.create 1;
+      indicators = Queue.create ();
+      file_metadata = Atomic.make Frame.Metadata.empty;
+      on_air = Queue.create ();
     }
 
   let destroyed id = { destroyed with id }
-  let is_destroyed { status } = status = `Destroyed
+  let is_destroyed { status } = Atomic.get status = `Destroyed
 end)
 
 let id { id } = id
@@ -408,24 +427,23 @@ let leak_warning =
     "Number of requests at which a leak warning should be issued."
 
 let destroy ?force t =
-  if t.status <> `Destroyed then
+  if Atomic.get t.status <> `Destroyed then
     if force = Some true || not t.persistent then (
-      List.iter
-        (fun i ->
+      Queue.iter t.indicators (fun i ->
           if i.temporary && file_exists i.uri then (
             try Unix.unlink i.uri
-            with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)))
-        t.indicators;
+            with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)));
 
-      (* Keep the first indicator as initial_uri .*)
-      t.indicators <- [List.hd (List.rev t.indicators)];
-      t.status <- `Destroyed;
+      Queue.flush_iter t.indicators (fun _ -> ());
+      Hashtbl.reset t.decoders;
+      Atomic.set t.status `Destroyed;
       add_log t "Request destroyed.")
 
 let finalise = destroy ~force:true
 
 let cleanup () =
-  Pool.iter (fun _ r -> if r.status <> `Destroyed then destroy ~force:true r);
+  Pool.iter (fun _ r ->
+      if Atomic.get r.status <> `Destroyed then destroy ~force:true r);
   Pool.clear ()
 
 let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
@@ -448,11 +466,13 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
         excluded_metadata_resolvers;
         (* This is fixed when resolving the request. *)
         persistent;
-        status = `Idle;
+        status = Atomic.make `Idle;
         logger = Log.make [];
         log = Queue.create ();
-        indicators = [];
-        file_metadata = Frame.Metadata.empty;
+        decoders = Hashtbl.create 1;
+        indicators = Queue.create ();
+        file_metadata = Atomic.make Frame.Metadata.empty;
+        on_air = Queue.create ();
       }
     in
     Pool.add (fun id ->
@@ -461,14 +481,6 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
   push_indicator t (indicator ?metadata ?temporary uri);
   Gc.finalise finalise t;
   t
-
-let is_playing t =
-  if t.status <> `Ready then raise Invalid_state;
-  t.status <- `Playing (Unix.time ());
-  add_log t "Currently on air."
-
-let done_playing t =
-  match t.status with `Playing _ -> t.status <- `Ready | _ -> ()
 
 let get_cue ~r = function
   | None -> None
@@ -482,12 +494,21 @@ let get_cue ~r = function
                   None
               | Some v -> Some v))
 
+exception Found_decoder of decoder option
+
 let get_base_decoder ~ctype r =
   if not (resolved r) then None
   else (
-    let filename = (List.hd r.indicators).uri in
-    let metadata = metadata r in
-    Decoder.get_file_decoder ~metadata ~ctype filename)
+    try
+      Hashtbl.iter
+        (fun c d -> if Frame.compatible c ctype then raise (Found_decoder d))
+        r.decoders;
+      let filename = (last_indicator r).uri in
+      let metadata = metadata r in
+      let d = Decoder.get_file_decoder ~metadata ~ctype filename in
+      Hashtbl.replace r.decoders ctype d;
+      d
+    with Found_decoder d -> d)
 
 let has_decoder ~ctype r = get_base_decoder ~ctype r <> None
 
@@ -571,9 +592,9 @@ let () =
   Lifecycle.before_core_shutdown ~name:"Requests shutdown" (fun () ->
       Atomic.set should_fail true)
 
-let resolve t timeout =
+let resolve_req t timeout =
   log#debug "Resolving request %s." (string_of_indicators t);
-  t.status <- `Resolving (Unix.time ());
+  Atomic.set t.status (`Resolving { until = Unix.time (); pending = [] });
   let maxtime = Unix.time () +. timeout in
   let rec resolve i =
     if Atomic.get should_fail then raise No_indicator;
@@ -627,7 +648,7 @@ let resolve t timeout =
   let result =
     try
       if Atomic.get should_fail then raise No_indicator;
-      match t.indicators with i :: [] -> resolve i | _ -> assert false
+      resolve (Queue.peek t.indicators)
     with
       | Request_resolved -> `Resolved
       | ExnTimeout -> `Timeout
@@ -638,17 +659,48 @@ let resolve t timeout =
   log#debug "Resolved to %s." (string_of_indicators t);
   let excess = Unix.time () -. maxtime in
   if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
-  if result <> `Resolved then t.status <- `Failed else t.status <- `Ready;
+  let status = if result <> `Resolved then `Failed else `Ready in
+  (match Atomic.exchange t.status status with
+    | `Resolving { pending } ->
+        List.iter
+          (fun (c, m) ->
+            Mutex_utils.mutexify m (fun () -> Condition.signal c) ())
+          pending
+    | _ -> assert false);
   result
 
-let resolve t timeout =
-  match t.status with
-    | `Resolving _ -> raise Invalid_state
-    | `Playing _ | `Ready -> `Resolved
+let rec resolve t timeout =
+  match Atomic.get t.status with
+    | `Idle -> resolve_req t timeout
+    | `Resolving ({ pending } as r) as status ->
+        let m = Mutex.create () in
+        let c = Condition.create () in
+        Mutex_utils.mutexify m
+          (fun () ->
+            if
+              Atomic.compare_and_set t.status status
+                (`Resolving { r with pending = (c, m) :: pending })
+            then Condition.wait c m)
+          ();
+        resolve t timeout
+    | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
-    | _ -> resolve t timeout
 
-(* Make a few functions more user-friendly, internal stuff is over. *)
+let log r =
+  Queue.fold r.log
+    (fun (date, msg) s ->
+      s
+      ^
+      if s = "" then Printf.sprintf "[%s] %s" (pretty_date date) msg
+      else Printf.sprintf "\n[%s] %s" (pretty_date date) msg)
+    ""
+
+let on_air ~source r =
+  Queue.push r.on_air { source; timestamp = Unix.gettimeofday () }
+
+let done_playing ~source r =
+  Queue.flush_iter r.on_air (fun v ->
+      if v.source != source then Queue.push r.on_air v)
 
 module Value = Value.MkCustom (struct
   type content = t
@@ -660,5 +712,5 @@ module Value = Value.MkCustom (struct
       "json"
 
   let to_string r = Printf.sprintf "<request(id=%d)>" r.id
-  let compare = Stdlib.compare
+  let compare r r' = Stdlib.compare r.id r'.id
 end)

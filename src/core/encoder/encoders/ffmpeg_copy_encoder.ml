@@ -56,10 +56,12 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
     in
     match Option.get params with
       | `Audio params -> stream := Some (`Audio (mk_stream params))
-      | `Video params ->
+      | `Video { Ffmpeg_copy_content.avg_frame_rate; params } ->
           let width = Avcodec.Video.get_width params in
           let height = Avcodec.Video.get_height params in
           video_size_ref := Some (width, height);
+          let s = mk_stream params in
+          Av.set_avg_frame_rate s avg_frame_rate;
           stream := Some (`Video (mk_stream params))
   in
 
@@ -175,8 +177,8 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
       push ~time_base ~stream ~idx:stream_idx packet
   in
 
-  let encode frame start len =
-    let content = Content.sub (Frame.get frame field) start len in
+  let encode frame =
+    let content = Frame.get frame field in
     let data = (Ffmpeg_copy_content.get_data content).Content.Video.data in
 
     List.iter

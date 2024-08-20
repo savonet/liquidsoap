@@ -154,7 +154,7 @@ let external_input_oblivious process filename prebuf =
   let ctype =
     Frame.Fields.make ~audio:(audio_n (Lazy.force Frame.audio_channels)) ()
   in
-  let gen = Generator.create ~log:(log#info "%s") ctype in
+  let gen = Generator.create ~log ctype in
   let buffer = Decoder.mk_buffer ~ctype gen in
   let prebuf = Frame.main_of_seconds prebuf in
   let decoder = Wav_aiff_decoder.create input in

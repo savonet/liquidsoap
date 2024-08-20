@@ -23,6 +23,8 @@
 let icy = Lang.add_module "icy"
 let log = Log.make ["icy"; "update_metadata"]
 
+module Http = Liq_http
+
 let _ =
   let user_agent =
     Lang.product (Lang.string "User-Agent") (Lang.string Http.user_agent)

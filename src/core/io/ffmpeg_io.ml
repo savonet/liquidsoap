@@ -22,6 +22,8 @@
 
 exception Not_connected
 
+module Http = Liq_http
+
 module Metadata = struct
   include Map.Make (struct
     type t = string

@@ -23,68 +23,50 @@
 module Queue = struct
   include Saturn_lockfree.Queue
 
-  let flush q fn =
-    let rec f () =
-      match pop_opt q with
-        | Some el ->
-            fn el;
-            f ()
-        | None -> ()
+  let flush_elements q =
+    let rec flush_elements_f elements =
+      try flush_elements_f (pop q :: elements) with Empty -> List.rev elements
     in
-    f ()
+    flush_elements_f []
+
+  let pop q = try pop q with Empty -> raise Not_found
+  let flush_iter q fn = List.iter fn (flush_elements q)
 
   let flush_fold q fn ret =
-    let rec f ret =
-      match pop_opt q with Some el -> f (fn el ret) | None -> ret
-    in
-    f ret
-
-  let flush_iter q fn =
-    let rec f () =
-      match pop_opt q with
-        | Some el ->
-            fn el;
-            f ()
-        | None -> ()
-    in
-    f ()
-
-  let flush_elements q =
-    List.rev (flush_fold q (fun el elements -> el :: elements) [])
+    let flush_fold_f ret el = fn el ret in
+    List.fold_left flush_fold_f ret (flush_elements q)
 
   let elements q =
-    let rec f l cursor =
+    let rec elements_f l cursor =
       match next cursor with
-        | Some (el, cursor) -> f (el :: l) cursor
+        | Some (el, cursor) -> elements_f (el :: l) cursor
         | None -> List.rev l
     in
-    f [] (snapshot q)
+    elements_f [] (snapshot q)
 
   let exists q fn =
-    let rec f l cursor =
+    let rec exists_f l cursor =
       match next cursor with
         | Some (el, _) when fn el -> true
-        | Some (el, cursor) -> f (el :: l) cursor
+        | Some (el, cursor) -> exists_f (el :: l) cursor
         | None -> false
     in
-    f [] (snapshot q)
+    exists_f [] (snapshot q)
 
   let length q =
-    let rec f pos cursor =
+    let rec length_f pos cursor =
       match next cursor with
-        | Some (_, cursor) -> f (pos + 1) cursor
+        | Some (_, cursor) -> length_f (pos + 1) cursor
         | None -> pos
     in
-    f 0 (snapshot q)
+    length_f 0 (snapshot q)
 
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let rec f elements =
-      match pop_opt q with Some el -> f (el :: elements) | None -> elements
-    in
-    List.iter (fun el -> if fn el then push q el) (f [])
+    let filter_f el = if fn el then push q el in
+    List.iter filter_f (flush_elements q)
 end
 
 module WeakQueue = struct
@@ -98,8 +80,8 @@ module WeakQueue = struct
     Weak.set w 0 (Some v);
     push q w
 
-  let flush q fn =
-    flush q (fun x ->
+  let flush_iter q fn =
+    flush_iter q (fun x ->
         for i = 0 to Weak.length x - 1 do
           match Weak.get x i with Some v -> fn v | None -> ()
         done)
@@ -120,7 +102,7 @@ module WeakQueue = struct
     done
 
   let elements q =
-    let rec f rem =
+    let rec elements_f rem =
       match Queue.pop_opt q with
         | Some entry ->
             let len = Weak.length entry in
@@ -134,10 +116,10 @@ module WeakQueue = struct
                 in
                 get_weak_entries (pos + 1) ret)
             in
-            f (get_weak_entries 0 rem)
+            elements_f (get_weak_entries 0 rem)
         | None -> rem
     in
-    let rem = f [] in
+    let rem = elements_f [] in
     push_batches q rem;
     rem
 
@@ -147,7 +129,7 @@ module WeakQueue = struct
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let rec f cursor =
+    let rec filter_f cursor =
       match next cursor with
         | Some (el, cursor) ->
             for i = 0 to Weak.length el - 1 do
@@ -155,8 +137,8 @@ module WeakQueue = struct
                 | Some p when fn p -> ()
                 | _ -> Weak.set el i None
             done;
-            f cursor
+            filter_f cursor
         | None -> ()
     in
-    f (snapshot q)
+    filter_f (snapshot q)
 end

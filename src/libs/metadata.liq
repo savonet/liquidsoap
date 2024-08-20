@@ -130,7 +130,6 @@ def metadata.cover(~coverart_mime=null(), m) =
         m
       else
         # Try the builtin tag reader because APIC tags are not read by default,
-        # e.g. with taglib
         log.debug(
           label="metadata.cover",
           "APIC or PIC not found for #{fname}, trying builtin tag reader."

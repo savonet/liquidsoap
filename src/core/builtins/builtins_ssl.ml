@@ -23,6 +23,8 @@
 
 let log = Log.make ["ssl"]
 
+module Http = Liq_http
+
 let protocol_of_value protocol_val =
   match Lang.to_string protocol_val with
     | "ssl.3" -> Ssl.SSLv3 [@alert "-deprecated"]

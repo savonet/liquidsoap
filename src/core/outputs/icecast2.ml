@@ -22,6 +22,8 @@
 
 (** Output to an icecast server. *)
 
+module Http = Liq_http
+
 let error_translator = function
   | Cry.Error _ as e -> Some (Cry.string_of_error e)
   | _ -> None
@@ -84,13 +86,6 @@ module Icecast = struct
             bitrate = None;
             samplerate = Some (Lazy.force m.External_encoder_format.samplerate);
             channels = Some m.External_encoder_format.channels;
-          }
-      | Encoder.GStreamer gst ->
-          {
-            quality = None;
-            bitrate = None;
-            samplerate = None;
-            channels = Some (Gstreamer_format.audio_channels gst);
           }
       | Encoder.Flac m ->
           {
@@ -503,12 +498,12 @@ class output p =
 
     val mutable encoder = None
 
-    method encode frame ofs len =
+    method encode frame =
       (* We assume here that there always is
        * an encoder available when the source
        * is connected. *)
       match (Cry.get_status connection, encoder) with
-        | Cry.Connected _, Some enc -> enc.Encoder.encode frame ofs len
+        | Cry.Connected _, Some enc -> enc.Encoder.encode frame
         | _ -> Strings.empty
 
     method insert_metadata m =

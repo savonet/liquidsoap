@@ -23,7 +23,6 @@ let () =
       ("frei0r", Frei0r_option.enabled);
       ("gd", Gd_option.enabled);
       ("graphics", Graphics_option.enabled);
-      ("gstreamer", Gstreamer_option.enabled);
       ("inotify", Inotify_option.enabled);
       ("imagelib", Imagelib_option.enabled);
       ("irc", Irc_option.enabled);
@@ -50,7 +49,6 @@ let () =
       ("srt", Srt_option.enabled);
       ("ssl", Ssl_option.enabled);
       ("tls", Tls_option.enabled);
-      ("taglib", Taglib_option.enabled);
       ("theora", Theora_option.enabled);
       ("vorbis", Vorbis_option.enabled);
       ("winsvc", Winsvc_option.enabled);

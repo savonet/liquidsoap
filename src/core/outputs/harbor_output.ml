@@ -22,6 +22,8 @@
 
 let ( let* ) = Duppy.Monad.bind
 
+module Http = Liq_http
+
 (** Output to an harbor server. *)
 module type T = sig
   include Harbor.Transport_t
@@ -428,9 +430,7 @@ class output p =
     val mutable chunk_len = 0
     val burst_data = Strings.Mutable.empty ()
     val metadata = { metadata = None; metadata_m = Mutex.create () }
-
-    method encode frame ofs len =
-      (Option.get encoder).Encoder.encode frame ofs len
+    method encode frame = (Option.get encoder).Encoder.encode frame
 
     method insert_metadata m =
       let m = Frame.Metadata.Export.to_metadata m in

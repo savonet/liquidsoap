@@ -24,7 +24,7 @@ let log = Log.make ["generator"]
 
 type t = {
   lock : Mutex.t;
-  log : string -> unit;
+  log : Log.t;
   content_type : Frame_base.content_type;
   max_length : int option Atomic.t;
   content : Content.data Frame_base.Fields.t Atomic.t;
@@ -34,8 +34,7 @@ let make_content ?length content_type =
   Frame_base.add_timed_content
     (Frame_base.Fields.map (Content.make ?length) content_type)
 
-let create ?(log = fun s -> log#info "%s" s) ?max_length ?length ?content
-    content_type =
+let create ?(log = log) ?max_length ?length ?content content_type =
   {
     lock = Mutex.create ();
     max_length = Atomic.make max_length;
@@ -98,11 +97,16 @@ let remaining gen =
     | p :: _ when p <= length gen -> p
     | _ -> -1
 
-let _truncate gen len =
+let _truncate ?(allow_desync = false) gen len =
   Atomic.set gen.content
     (Frame_base.Fields.map
        (fun content ->
-         assert (len <= Content.length content);
+         let len =
+           if allow_desync then min len (Content.length content)
+           else (
+             assert (len <= Content.length content);
+             len)
+         in
          Content.truncate content len)
        (Atomic.get gen.content))
 
@@ -174,11 +178,20 @@ let _put gen field new_content =
   let max_length = Option.value ~default:(-1) (Atomic.get gen.max_length) in
   let buffered_length = buffered_length gen in
   if 0 <= max_length && max_length < buffered_length then (
-    gen.log
-      (Printf.sprintf
-         "Generator max length exceeded (%d < %d)! Dropping content.."
-         max_length buffered_length);
-    _truncate gen (buffered_length - max_length))
+    gen.log#severe
+      "Generator max buffered length exceeded (%d < %d)! Dropping content.."
+      max_length buffered_length;
+    let excess = buffered_length - max_length in
+    let dropped = min (length gen) excess in
+    let dropped, allow_desync =
+      if dropped = 0 then (
+        gen.log#severe
+          "Generator does not have synchronized content to drop. Content may \
+           get out of sync!";
+        (excess, true))
+      else (dropped, false)
+    in
+    _truncate ~allow_desync gen dropped)
 
 let put gen field =
   Mutex_utils.mutexify gen.lock (fun content -> _put gen field content)

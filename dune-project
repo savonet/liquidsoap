@@ -75,7 +75,6 @@
     frei0r
     gd
     graphics
-    gstreamer
     imagelib
     inotify
     irc-client-unix
@@ -101,7 +100,6 @@
     sqlite3
     srt
     ssl
-    taglib
     tls-liquidsoap
     theora
     sdl-liquidsoap
@@ -120,7 +118,6 @@
     (ffmpeg-avutil (< 1.2.0))
     (flac (< 0.3.0))
     (frei0r (< 0.1.0))
-    (gstreamer (< 0.3.1))
     (inotify (< 1.0))
     (ladspa (< 0.2.0))
     (lame (< 0.3.7))
@@ -139,7 +136,6 @@
     (speex (< 0.4.0))
     (srt (< 0.3.0))
     (ssl (< 0.7.0))
-    (taglib (< 0.3.10))
     (tls (< 0.17.4))
     (sdl-liquidsoap (< 2))
     (theora (< 0.4.0))

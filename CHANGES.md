@@ -8,13 +8,32 @@ New:
   behavior. Mostly, things should be roughly the same with differences around
   behaviors related to track marks (`source.on_track` and etc). See @TODO@ for
   more details (#3577)
-- Allow frames smaller than one video frames, typically values under `0.04s`.
+- Added script caching layer for faster script startup time. See: https://www.liquidsoap.info/blog/2024-06-13-a-faster-liquidsoap/ for details (#3924, #3949, #3959 and #3977)
+- Rewrote the clock/streaming loop layer. This prepares our streaming system to
+  support multicore when the OCaml compiler is mature enough to allow it. Clocks
+  are now attached to sources via their `clock` methods. Returned value is a stripped
+  down `clock` variable. Users can use the `clock` function to retrieve the full
+  methods, e.g. `s = sine(); c = clock(s.clock)`. This value has advanced functions
+  for clock control such as `start`/`stop`, `ticks` and `self_sync` to check for
+  `self-sync`. See @TODO@ for more details. (#3781)
+- Allow frames duration shorter than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage. See @TODO@ for more details (#3607)
+- Change default frame duration to `0.02s` (#4033)
 - Optimized runtime (#3927, #3928, #3919)
+- Added `finally` to execute code regardless of whether or not an exception is raised
+  (see: #3895 for more details).
+- Removed gstreamer support. Gstreamer's architecture was never a good fit for us
+  and created a huge maintenance and debugging burden and it had been marked as
+  deprecated for a while. Most, if not all of its features should be available using
+  `ffmpeg`. (#4036)
+- Removed `taglib` support. It is superseded by the internal `ocaml-metadata` module
+  and taglib, with its dependency on the C++ runtime library, has been causing issues
+  with binary builds portability and crashes with the (not yet supported) OCaml 5
+  compiler. (#4087)
 - Add `video.canvas` to make it possible to position video elements independently
-  of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/)
-- Add cover manager (#3651)
+  of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/))
+- Add cover manager from an original code by @vitoyucepi (#3651)
 - Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
   one stream is encoded.
 - Allow trailing commas in record definition (#3300).
@@ -35,7 +54,6 @@ New:
 - Add `list.assoc.nullable`.
 - Add `source.cue` (#3620).
 - Added atomic file write operations.
-- Added `file.cover.manager` from an original code by @vitoyucepi (#3651)
 
 Changed:
 
@@ -59,7 +77,13 @@ Changed:
 - Added `forced_major_collections` record field to the result of `runtime.gc.stat()` and
   `runtime.gc.quick_stat()` (#3783).
 - Changed the port for the built-in Prometheus exporter to `9599` (#3801).
+- Set `segments_overheader` in HLS outputs to disable segments cleanup altogether.
 - Add support for caching LV2 and LADSPA plugins (#3959).
+
+Fixed:
+
+- Fixed type generalization on values returned from function applications. Most notably,
+  this should help with HTTP endpoint registration (#3303, fixed in #4030)
 
 ---
 

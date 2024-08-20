@@ -85,12 +85,6 @@ type clock_sync_error = {
 
 exception Sync_error of clock_sync_error
 
-module SelfSyncSet = Set.Make (struct
-  type t = sync_source_entry
-
-  let compare { sync_source = a } { sync_source = b } = Stdlib.compare a b
-end)
-
 let () =
   Printexc.register_printer (function
     | Sync_error { name; stack; sync_sources } ->
@@ -154,14 +148,16 @@ let self_sync sources =
           if s#is_ready then (
             match s#self_sync with
               | _, Some sync_source ->
-                  SelfSyncSet.add
-                    { name = s#id; stack = s#stack; sync_source }
-                    sync_sources
+                  { name = s#id; stack = s#stack; sync_source } :: sync_sources
               | _ -> sync_sources)
           else sync_sources)
-        SelfSyncSet.empty sources
+        [] sources
     in
-    match SelfSyncSet.elements sync_sources with
+    match
+      List.sort_uniq
+        (fun { sync_source = s } { sync_source = s' } -> Stdlib.compare s s')
+        sync_sources
+    with
       | [] -> (Lazy.force self_sync_type, None)
       | [{ sync_source }] -> (Lazy.force self_sync_type, Some sync_source)
       | sync_sources ->

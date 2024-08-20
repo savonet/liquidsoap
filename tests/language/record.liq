@@ -335,6 +335,10 @@ def f() =
   end
   test.equal(f({foo=123}), "aabb")
 
+  # Test priority for ?.
+  x = ({} : {bla?: int})
+  test.equal(x?.bla == x?.bla, true)
+
   test.pass()
 end
 

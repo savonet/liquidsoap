@@ -29,13 +29,6 @@ let () =
       "Liquidsoap " ^ Configure.version);
   add "request.all" ~descr:"Get the identifiers of all existing requests."
     (fun _ -> ids (Request.all ()));
-  add "request.on_air" ~descr:"Get the identifiers of requests that are on air."
-    (fun _ ->
-      ids
-        (List.filter
-           (fun r ->
-             match Request.status r with `Playing _ -> true | _ -> false)
-           (Request.all ())));
   add "request.resolving"
     ~descr:"Get the identifiers of requests that are being prepared." (fun _ ->
       ids
@@ -47,9 +40,7 @@ let () =
     ~descr:"Print the log associated to a request." (fun args ->
       let id = int_of_string args in
       match Request.from_id id with
-        | Some r ->
-            let log = Request.get_log r in
-            Request.string_of_log log
+        | Some r -> Request.log r
         | None -> "No such request.");
   add "request.metadata" ~usage:"request.metadata <rid>"
     ~descr:"Display the metadata associated to a request." (fun args ->

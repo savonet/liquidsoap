@@ -408,6 +408,21 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  GH3134.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3134.liq liquidsoap %{test_liq} GH3134.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   GH3224.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
@@ -463,6 +478,21 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} GH3276.liq liquidsoap %{test_liq} GH3276.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  GH3303.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3303.liq liquidsoap %{test_liq} GH3303.liq)))
   
 (rule
  (alias citest)
@@ -568,6 +598,36 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} GH3960.liq liquidsoap %{test_liq} GH3960.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  GH4071.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH4071.liq liquidsoap %{test_liq} GH4071.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  GH4090.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH4090.liq liquidsoap %{test_liq} GH4090.liq)))
   
 (rule
  (alias citest)
@@ -808,6 +868,36 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} metadata_cache.liq liquidsoap %{test_liq} metadata_cache.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  output_on_metadata.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} output_on_metadata.liq liquidsoap %{test_liq} output_on_metadata.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  output_on_track.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} output_on_track.liq liquidsoap %{test_liq} output_on_track.liq)))
   
 (rule
  (alias citest)

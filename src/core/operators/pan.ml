@@ -39,8 +39,8 @@ class pan ~field (source : source) phi phi_0 =
       let phi_0 = phi_0 () *. Float.pi /. 360. in
       (* Map -1 / 1 to radians. *)
       let phi = phi () *. phi_0 in
-      let gain_left = (tan phi_0 +. tan phi) /. 2. in
-      let gain_right = (tan phi_0 -. tan phi) /. 2. in
+      let gain_left = (tan phi_0 -. tan phi) /. 2. in
+      let gain_right = (tan phi_0 +. tan phi) /. 2. in
       let len = source#frame_audio_position in
       Audio.Mono.amplify gain_left buffer.(0) 0 len;
       Audio.Mono.amplify gain_right buffer.(1) 0 len;
@@ -51,19 +51,21 @@ let _ =
   let track_t = Format_type.audio_stereo () in
   Lang.add_track_operator ~base:Stereo.stereo "pan"
     [
-      ( "pan",
-        Lang.getter_t Lang.float_t,
-        Some (Lang.float 0.),
-        Some "Pan ranges between -1 and 1." );
       ( "field",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 90.),
         Some "Field width in degrees (between 0 and 90)." );
+      ( "",
+        Lang.getter_t Lang.float_t,
+        None,
+        Some
+          "Pan value. Should be between `-1` (left side) and `1` (right side)."
+      );
       ("", track_t, None, None);
     ]
     ~return_t:track_t ~category:`Audio ~descr:"Pan a stereo sound."
     (fun p ->
-      let field, s = Lang.to_track (Lang.assoc "" 1 p) in
-      let phi_0 = Lang.to_float_getter (Lang.assoc "field" 1 p) in
-      let phi = Lang.to_float_getter (Lang.assoc "pan" 1 p) in
+      let phi_0 = Lang.to_float_getter (List.assoc "field" p) in
+      let phi = Lang.to_float_getter (Lang.assoc "" 1 p) in
+      let field, s = Lang.to_track (Lang.assoc "" 2 p) in
       (field, new pan ~field s phi phi_0))

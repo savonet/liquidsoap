@@ -32,7 +32,6 @@ type format =
   | Ffmpeg of Ffmpeg_format.t
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
-  | GStreamer of Gstreamer_format.t
 
 val audio_type : pcm_kind:Content.kind -> int -> Type.t Frame.Fields.t
 val video_format : unit -> Content.format
@@ -93,8 +92,8 @@ type hls = {
   (* Returns true if id3 is enabled. *)
   init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
   (* Returns (init_segment, first_bytes) *)
-  init_encode : Frame.t -> int -> int -> Strings.t option * Strings.t;
-  split_encode : Frame.t -> int -> int -> split_result;
+  init_encode : Frame.t -> Strings.t option * Strings.t;
+  split_encode : Frame.t -> split_result;
   codec_attrs : unit -> string option;
   insert_id3 :
     frame_position:int ->
@@ -106,13 +105,13 @@ type hls = {
   video_size : unit -> (int * int) option;
 }
 
-val dummy_hls : (Frame.t -> int -> int -> Strings.t) -> hls
+val dummy_hls : (Frame.t -> Strings.t) -> hls
 
 type encoder = {
   insert_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   hls : hls;
-  encode : Frame.t -> int -> int -> Strings.t;
+  encode : Frame.t -> Strings.t;
   stop : unit -> Strings.t;
 }
 

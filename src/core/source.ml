@@ -401,9 +401,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
       match buffer with
         | Some buffer -> buffer
         | None ->
-            let buf =
-              Generator.create ~log:(self#log#info "%s") self#content_type
-            in
+            let buf = Generator.create ~log:self#log self#content_type in
             buffer <- Some buf;
             buf
 

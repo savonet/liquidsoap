@@ -120,11 +120,11 @@ let hls_proto frame_t =
           "Segment name. Default: `fun (~position,~extname,stream_name) -> \
            \"#{stream_name}_#{position}.#{extname}\"`" );
       ( "segments_overhead",
-        Lang.int_t,
+        Lang.nullable_t Lang.int_t,
         Some (Lang.int 5),
         Some
           "Number of segments to keep after they have been featured in the \
-           live playlist." );
+           live playlist. Set to `null` to disable." );
       ( "segments",
         Lang.int_t,
         Some (Lang.int 10),
@@ -605,8 +605,13 @@ class hls_output p =
       (Lang.to_list (List.assoc "extra_tags" p))
   in
   let segments_per_playlist = Lang.to_int (List.assoc "segments" p) in
+  let segments_overhead =
+    Lang.to_valued_option Lang.to_int (List.assoc "segments_overhead" p)
+  in
   let max_segments =
-    segments_per_playlist + Lang.to_int (List.assoc "segments_overhead" p)
+    Option.map
+      (fun segments_overhead -> segments_per_playlist + segments_overhead)
+      segments_overhead
   in
   object (self)
     inherit
@@ -698,7 +703,11 @@ class hls_output p =
           segment.out_channel <- None;
           let segments = List.assoc s.name segments in
           push_segment segment segments;
-          if List.length !segments >= max_segments then (
+          if
+            match max_segments with
+              | None -> false
+              | Some max_segments -> List.length !segments >= max_segments
+          then (
             let segment = remove_segment segments in
             self#unlink segment.filename;
             match segment.init_filename with
@@ -1056,7 +1065,8 @@ class hls_output p =
           false )
       else (false, "", false)
 
-    method encode frame ofs len =
+    method encode frame =
+      let len = Frame.position frame in
       let frame_pos, samples_pos = current_position in
       let frame_size = Lazy.force Frame.size in
       let samples_pos = samples_pos + len in
@@ -1068,14 +1078,12 @@ class hls_output p =
           let b =
             if s.init_state = `Todo then (
               try
-                let init, encoded =
-                  Encoder.(s.encoder.hls.init_encode frame ofs len)
-                in
+                let init, encoded = Encoder.(s.encoder.hls.init_encode frame) in
                 self#process_init ~init ~segment s;
                 (len, None, encoded)
               with Encoder.Not_enough_data -> (len, None, Strings.empty))
             else (
-              match Encoder.(s.encoder.hls.split_encode frame ofs len) with
+              match Encoder.(s.encoder.hls.split_encode frame) with
                 | `Ok (flushed, encoded) -> (len, Some flushed, encoded)
                 | `Nope encoded -> (len, None, encoded))
           in

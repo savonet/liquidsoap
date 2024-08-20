@@ -2,7 +2,7 @@
 
 ## Forewords
 
-Installing liquidsoap can be a difficult task. The software relies on a up-to date
+Installing liquidsoap can be a difficult task. The software relies on an up-to date
 OCaml compiler, as well as a bunch of OCaml modules and, for most of them, corresponding
 C library dependencies.
 
@@ -29,7 +29,7 @@ If a dependency is outdated, `dune` compilation will simply fail, at which point
 you need to update a dependency.
 
 Each branch of liquidsoap is compiled using [github actions](https://github.com/savonet/liquidsoap/actions). When trying
-to build a specific branch, if the CI passes with it then, most likely, you are missing a dependency or it is not
+to build a specific branch, if the CI passes with it then, most likely, you are missing a dependency, or it is not
 the latest version.
 
 ## `opam` pinning
@@ -70,7 +70,7 @@ Then, ask `opam` to list all the dependencies for `liquidsoap`:
 ```shell
 opam info liquidsoap
 opam info liquidsoap-core
-opam info liquidsoa-lang
+opam info liquidsoap-lang
 ```
 
 This should give you a (long!) list of all dependencies. Then, you can query `opam` to see
@@ -86,10 +86,25 @@ Lastly, there are two types of dependencies:
 For dependencies not maintained by us, most of the time, we rely on the latest published version. Very rarely should you
 have to fetch/pin the latest version of these dependencies.
 
-For dependencies maintained by us, we may break their API during our development cycle and you maybe have to fetch/pin
-the latest version when compilign the latest `liquidsoap` code. You may also have to check out a specific
+For dependencies maintained by us, we may break their API during our development cycle, and you maybe have to fetch/pin
+the latest version when compiling the latest `liquidsoap` code. You may also have to check out a specific
 branch when compiling `liquidsoap` from a specific development branch when the changes in the liquidsoap code are paired with
 changes in one of our dependencies. Typically, this happens a lof with the `ffmpeg` binding.
+
+## Environment variables
+
+When compiling Liquidsoap from source, certain environment variables can be set to control the build process and customize the build
+configuration. Here’s a brief overview of the relevant environment variables and their purposes:
+
+- `IS_SNAPSHOT`: Set this variable to indicate whether you are building a snapshot version of Liquidsoap. It affects the version suffix and
+  whether the Git commit is displayed.
+- `LIQ_GIT_SHA`: Override Git commit hash (SHA) if the build system cannot automatically extract it from the repository.
+- `LIQ_VERSION`: Override the displayed version of Liquidsoap.
+- `LIQUIDSOAP_ENABLE_BUILD_CONFIG`: Determines whether the build configuration details are displayed during the build process.
+- `LIQUIDSOAP_BUILD_TARGET`: Controls the runtime lookup paths for Liquidsoap components.
+  - Set to `default`: Uses paths detected in the OPAM switch directory.
+  - Set to `standalone`: Uses paths relative to the binary location, ideal for self-contained deployments.
+  - Set to `posix`: Configures paths to standard system directories.
 
 ## Compiling
 

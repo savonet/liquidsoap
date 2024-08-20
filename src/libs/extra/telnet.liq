@@ -25,64 +25,6 @@ def replaces request.dynamic(%argsof(request.dynamic), fn) =
   s
 end
 
-%ifdef input.gstreamer.audio_video
-# @docof input.gstreamer.audio_video
-def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
-  s = input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video))
-  s.on_wake_up(
-    memoize(
-      {
-        begin
-          server.register(
-            namespace=source.id(s),
-            description=
-              "Set gstreamer pipeline state to play",
-            "play",
-            fun (_) ->
-              try
-                s.play()
-                "Done."
-              catch err do
-                "Error while setting state to play: #{err}"
-              end
-          )
-
-          server.register(
-            namespace=source.id(s),
-            description=
-              "Set gstreamer pipeline state to paused",
-            "pause",
-            fun (_) ->
-              try
-                s.pause()
-                "Done."
-              catch err do
-                "Error while setting state to paused: #{err}"
-              end
-          )
-
-          server.register(
-            namespace=source.id(s),
-            description=
-              "Restart gstreamer pipeline",
-            "restart",
-            fun (_) ->
-              try
-                s.restart()
-                "Done."
-              catch err do
-                "Error while restarting pipeline: #{err}"
-              end
-          )
-        end
-      }
-    )
-  )
-
-  s
-end
-%endif
-
 # @docof blank.strip
 def replaces blank.strip(%argsof(blank.strip), s) =
   s = blank.strip(%argsof(blank.strip), s)

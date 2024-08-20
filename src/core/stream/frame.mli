@@ -106,6 +106,10 @@ val slice : t -> int -> t
 (** Get the content after a given offset. *)
 val after : t -> int -> t
 
+(** [sub frame ofs len]: get the a subset of length [len]
+    of the frame content, starting at [ofs]. *)
+val sub : t -> int -> int -> t
+
 (** Get a frame's content type. *)
 val content_type : t -> content_type
 
@@ -183,6 +187,9 @@ val get_all_metadata : t -> (int * metadata) list
 
 (** Attach multiple metadata to a frame. *)
 val add_all_metadata : t -> (int * metadata) list -> t
+
+(** Map a function over the frame's metadata. *)
+val map_metadata : t -> (int * metadata -> (int * metadata) option) -> t
 
 (** {2 Content operations} *)
 

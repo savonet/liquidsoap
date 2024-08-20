@@ -1122,7 +1122,8 @@ let string_of_let_decoration = function
   | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~env ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
+let mk_let ~env ~pos ~to_term ~comments
+    ({ decoration; pat; arglist; def; cast }, body) =
   let def = to_term ~env def in
   let mk_body def =
     let env =
@@ -1144,6 +1145,17 @@ let mk_let ~env ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
   in
   let cast = Option.map (mk_parsed_ty ~pos ~env ~to_term) cast in
   let arglist = Option.map (expand_argsof ~pos ~env ~to_term) arglist in
+  let doc =
+    match
+      List.rev
+        (List.filter_map
+           (function pos, `Before c -> Some (pos, c) | _ -> None)
+           comments)
+    with
+      | (pos, doc) :: _ ->
+          Doc.parse_doc ~pos:(Pos.of_lexing_pos pos) (String.concat "\n" doc)
+      | _ -> None
+  in
   match (arglist, decoration) with
     | Some arglist, `None | Some arglist, `Replaces ->
         let replace = decoration = `Replaces in
@@ -1154,7 +1166,7 @@ let mk_let ~env ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
             | None -> def
         in
         let body = mk_body def in
-        pattern_reducer ~body ~pat ~replace def
+        pattern_reducer ?doc ~body ~pat ~replace def
     | Some arglist, `Recursive ->
         let def = mk_rec_fun ~pos pat.pat_entry arglist def in
         let def =
@@ -1163,7 +1175,7 @@ let mk_let ~env ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
             | None -> def
         in
         let body = mk_body def in
-        pattern_reducer ~body ~pat def
+        pattern_reducer ?doc ~body ~pat def
     | None, `None | None, `Replaces ->
         let replace = decoration = `Replaces in
         let def =
@@ -1172,7 +1184,7 @@ let mk_let ~env ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
             | None -> def
         in
         let body = mk_body def in
-        pattern_reducer ~body ~pat ~replace def
+        pattern_reducer ?doc ~body ~pat ~replace def
     | None, `Eval ->
         let body = mk_body def in
         mk_eval ~pos (pat, def, body, cast)
@@ -1212,7 +1224,7 @@ let rec to_encoder_params ~env ~to_term l =
 and to_encoder ~env ~to_term (lbl, params) =
   (lbl, to_encoder_params ~env ~to_term params)
 
-let rec to_ast ~env ~pos ast =
+let rec to_ast ~env ~pos ~comments ast =
   match ast with
     | `Methods _ | `Block _ | `Parenthesis _ | `Eof | `Include _ -> assert false
     | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
@@ -1254,8 +1266,9 @@ let rec to_ast ~env ~pos ast =
                 optional = false;
               })
         in
-        to_ast ~env ~pos (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
-    | `Def p | `Let p | `Binding p -> mk_let ~pos ~env ~to_term p
+        to_ast ~env ~pos ~comments
+          (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
+    | `Def p | `Let p | `Binding p -> mk_let ~pos ~env ~to_term ~comments p
     | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
     | `At (t, t') -> `App (to_term ~env t', [("", to_term ~env t)])
     | `Time t -> mk_time_pred ~pos (during ~pos t)
@@ -1346,11 +1359,6 @@ and to_term ~env (tm : Parsed_term.t) : Term.t =
                 })
           term methods
     | term ->
-        let comments =
-          List.filter_map
-            (function pos, `Before c -> Some (pos, c) | _ -> None)
-            tm.comments
-        in
         let flags =
           match term with
             | `Int i
@@ -1363,18 +1371,7 @@ and to_term ~env (tm : Parsed_term.t) : Term.t =
                 Flags.(add empty octal_int)
             | _ -> Flags.empty
         in
-        let term =
-          match (to_ast ~env ~pos:tm.pos term, List.rev comments) with
-            | `Let p, (pos, doc) :: _ ->
-                `Let
-                  {
-                    p with
-                    doc =
-                      Doc.parse_doc ~pos:(Pos.of_lexing_pos pos)
-                        (String.concat "\n" doc);
-                  }
-            | ast, _ -> ast
-        in
+        let term = to_ast ~env ~pos:tm.pos ~comments:tm.comments term in
         { t = mk_var ~pos:tm.pos (); term; methods = Methods.empty; flags }
 
 let to_encoder_params = to_encoder_params ~env:[] ~to_term

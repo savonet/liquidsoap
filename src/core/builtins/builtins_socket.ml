@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Http = Liq_http
+
 module Socket_domain = struct
   include Value.MkCustom (struct
     type content = Unix.socket_domain

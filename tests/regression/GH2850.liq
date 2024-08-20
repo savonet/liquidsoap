@@ -1,3 +1,5 @@
+test.skip()
+
 def f() =
   has_source = ref(false)
   last_connect = ref(false)

@@ -43,6 +43,8 @@ let proto =
 
 let meth = Start_stop.meth ()
 
+module Queue = Liquidsoap_lang.Queues.Queue
+
 (** Given abstract start stop and send methods, creates an output.  Takes care
     of pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including
@@ -68,6 +70,25 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     method fallible = not infallible
     method! source_type : source_type = `Output (self :> Source.active)
 
+    method private add_on_air m =
+      let d = Unix.gettimeofday () in
+      let m =
+        Frame.Metadata.add "on_air" (Request.pretty_date (Unix.localtime d)) m
+      in
+      Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
+
+    (* Metadata stuff: keep track of what was streamed. *)
+    val q_length = 10
+    val metadata_queue = Queue.create ()
+
+    method private add_metadata m =
+      let m = Frame.Metadata.Export.from_metadata ~cover:false m in
+      Queue.push metadata_queue m;
+      if Queue.length metadata_queue > q_length then
+        ignore (Queue.pop metadata_queue)
+
+    initializer self#on_metadata self#add_metadata
+
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)
     val mutable registered_telnet = false
@@ -83,10 +104,9 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
             "Done")
           ~descr:"Skip current song.";
         Server.add ~ns "metadata" ~descr:"Print current metadata." (fun _ ->
-            let q = self#metadata_queue in
             fst
-              (Queue.fold
-                 (fun (s, i) m ->
+              (Queue.fold metadata_queue
+                 (fun m (s, i) ->
                    let s =
                      s
                      ^ (if s = "" then "--- " else "\n--- ")
@@ -95,8 +115,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
                          (Frame.Metadata.Export.to_metadata m)
                    in
                    (s, i - 1))
-                 ("", Queue.length q)
-                 q));
+                 ("", Queue.length metadata_queue)));
         Server.add ~ns "remaining" ~descr:"Display estimated remaining time."
           (fun _ ->
             let r = source#remaining in
@@ -112,9 +131,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           ["skip"; "metadata"; "remaining"];
       registered_telnet <- false
 
-    method private can_generate_frame =
-      if infallible then true else source#is_ready
-
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -140,35 +157,24 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           if not autostart then start_stop#transition_to `Stopped;
 
           self#register_telnet);
-      self#on_sleep (fun () -> start_stop#transition_to `Stopped)
-
-    (* Metadata stuff: keep track of what was streamed. *)
-    val q_length = 10
-    val metadata_q = Queue.create ()
-
-    method private add_metadata m =
-      Queue.add m metadata_q;
-      if Queue.length metadata_q > q_length then ignore (Queue.take metadata_q)
-
-    method private metadata_queue = Queue.copy metadata_q
+      self#on_sleep (fun () ->
+          self#cleanup_telnet;
+          start_stop#transition_to `Stopped)
 
     (* The output process *)
     val mutable skip = false
     method private skip = skip <- true
-    method private generate_frame = source#get_frame
+
+    method private generate_frame =
+      Frame.map_metadata source#get_frame (fun (pos, m) ->
+          Some (pos, self#add_on_air m))
 
     method output =
-      if self#can_generate_frame && state <> `Stopped then
-        start_stop#transition_to `Started;
+      if self#is_ready && state = `Idle then start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         let data =
-          if source#is_ready then source#get_frame else self#end_of_track
+          if self#is_ready then self#get_frame else self#end_of_track
         in
-        List.iter
-          (fun (_, m) ->
-            self#add_metadata
-              (Frame.Metadata.Export.from_metadata ~cover:false m))
-          (Frame.get_all_metadata data);
 
         (* Output that frame if it has some data *)
         if Frame.position data > 0 then self#send_frame data;
@@ -229,13 +235,13 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible ~on_start
           ~register_telnet source autostart
 
     method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
-    method virtual private encode : Frame.t -> int -> int -> 'a
+    method virtual private encode : Frame.t -> 'a
     method virtual private send : 'a -> unit
 
     method private send_frame frame =
       let rec output_chunks frame =
         let f start stop =
-          let data = self#encode frame start (stop - start) in
+          let data = self#encode (Frame.sub frame start (stop - start)) in
           self#send data;
           match Frame.get_metadata frame start with
             | None -> ()

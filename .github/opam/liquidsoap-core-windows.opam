@@ -52,7 +52,6 @@ depopts: [
   "frei0r-windows"
   "gd-windows"
   "graphics-windows"
-  "gstreamer-windows"
   "inotify-windows"
   "irc-client-unix-windows"
   "ladspa-windows"
@@ -76,7 +75,6 @@ depopts: [
   "speex-windows"
   "srt-windows"
   "ssl-windows"
-  "taglib-windows"
   "theora-windows"
   "tsdl-windows"
   "tsdl-image-windows"
@@ -95,7 +93,6 @@ conflicts: [
   "ffmpeg-avutil-windows" {< "1.2.0"}
   "flac-windows" {< "0.3.0"}
   "frei0r-windows" {< "0.1.0"}
-  "gstreamer-windows" {< "0.3.1"}
   "inotify-windows" {< "1.0"}
   "ladspa-windows" {< "0.2.0"}
   "lame-windows" {< "0.3.5"}
@@ -115,7 +112,6 @@ conflicts: [
   "speex-windows" {< "0.4.0"}
   "srt-windows" {< "0.3.0"}
   "ssl-windows" {< "0.5.2"}
-  "taglib-windows" {< "0.3.7"}
   "sdl-liquidsoap-windows" {< "2"}
   "tsdl-image-windows" {< "0.3.2"}
   "theora-windows" {< "0.4.0"}
@@ -154,10 +150,6 @@ users want. You might need to install the mad or ffmpeg package."""
 We noticed that you did not install any mp3 encoder. This is a feature most
 users want. You might need to install the lame or shine package."""
     {success & !lame-enabled & !shine-enabled & !ffmpeg-enabled}
-  """\
-We noticed that you did not install the taglib package that provides support
-for reading metadata in audio files. This is a feature most users want."""
-    {success & !taglib-enabled}
   """\
 We noticed that you did not install the samplerate package. We strongly
 recommend this package for audio samplerate conversion."""
