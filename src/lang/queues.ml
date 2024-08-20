@@ -65,12 +65,8 @@ module Queue = struct
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let rec filter_f elements =
-      match pop_opt q with
-        | Some el -> filter_f (el :: elements)
-        | None -> elements
-    in
-    List.iter (fun el -> if fn el then push q el) (filter_f [])
+    let filter_f el = if fn el then push q el in
+    List.iter filter_f (flush_elements q)
 end
 
 module WeakQueue = struct

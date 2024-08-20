@@ -213,12 +213,14 @@ let _sync ?(pending = false) x =
 
 let sync c = _sync (Unifier.deref c)
 let cleanup_source s = s#force_sleep
+let clocks = Queue.create ()
 
 let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
   Queue.iter outputs cleanup_source;
   WeakQueue.iter passive_sources cleanup_source;
   WeakQueue.iter active_sources cleanup_source;
-  Queue.iter clock.sub_clocks stop
+  Queue.iter clock.sub_clocks stop;
+  Queue.filter clocks (fun c -> Unifier.deref c == clock)
 
 and stop c =
   let clock = Unifier.deref c in
@@ -232,7 +234,6 @@ and stop c =
         x.log#debug "Clock stopping";
         Atomic.set clock.state (`Stopping x)
 
-let clocks = Queue.create ()
 let started = Atomic.make false
 let global_stop = Atomic.make false
 
