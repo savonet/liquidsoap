@@ -213,12 +213,14 @@ let _sync ?(pending = false) x =
 
 let sync c = _sync (Unifier.deref c)
 let cleanup_source s = s#force_sleep
+let clocks = Queue.create ()
 
 let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
   Queue.iter outputs cleanup_source;
   WeakQueue.iter passive_sources cleanup_source;
   WeakQueue.iter active_sources cleanup_source;
-  Queue.iter clock.sub_clocks stop
+  Queue.iter clock.sub_clocks stop;
+  Queue.filter clocks (fun c -> Unifier.deref c == clock)
 
 and stop c =
   let clock = Unifier.deref c in
@@ -232,7 +234,6 @@ and stop c =
         x.log#debug "Clock stopping";
         Atomic.set clock.state (`Stopping x)
 
-let clocks = Queue.create ()
 let started = Atomic.make false
 let global_stop = Atomic.make false
 
@@ -444,8 +445,7 @@ and _clock_thread ~clock x =
        ()
        ("Clock " ^ _id clock))
 
-and start ?(force = false) c =
-  let clock = Unifier.deref c in
+and _can_start ?(force = false) clock =
   let has_output =
     force
     || Queue.exists clock.pending_activations (fun s ->
@@ -456,42 +456,51 @@ and start ?(force = false) c =
   in
   match (can_start, has_output, Atomic.get clock.state) with
     | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
-        Unifier.set clock.id (Lang_string.generate_id (Unifier.deref clock.id));
-        let id = _id clock in
-        log#important "Starting clock %s with %d source(s) and sync: %s" id
-          (Queue.length clock.pending_activations)
-          (string_of_sync_mode sync);
-        let time_implementation = time_implementation () in
-        let module Time = (val time_implementation : Liq_time.T) in
-        let frame_duration = Time.of_float (Lazy.force Frame.duration) in
-        let max_latency = Time.of_float conf_max_latency#get in
-        let log_delay = Time.of_float conf_log_delay#get in
-        let log_delay_threshold = Time.of_float conf_log_delay_threshold#get in
-        let t0 = Time.time () in
-        let last_catchup_log = Atomic.make t0 in
-        let x =
-          {
-            frame_duration;
-            log_delay;
-            log_delay_threshold;
-            max_latency;
-            time_implementation;
-            t0;
-            log = Log.make (["clock"] @ String.split_on_char '.' id);
-            last_catchup_log;
-            sync;
-            active_sources = WeakQueue.create ();
-            passive_sources = WeakQueue.create ();
-            on_tick = Queue.create ();
-            after_tick = Queue.create ();
-            outputs = Queue.create ();
-            ticks = Atomic.make 0;
-          }
-        in
-        Queue.iter clock.sub_clocks (fun c -> start c);
-        Atomic.set clock.state (`Started x);
-        if sync <> `Passive then _clock_thread ~clock x
-    | _ -> ()
+        `True sync
+    | _ -> `False
+
+and _start ~sync clock =
+  Unifier.set clock.id (Lang_string.generate_id (Unifier.deref clock.id));
+  let id = _id clock in
+  log#important "Starting clock %s with %d source(s) and sync: %s" id
+    (Queue.length clock.pending_activations)
+    (string_of_sync_mode sync);
+  let time_implementation = time_implementation () in
+  let module Time = (val time_implementation : Liq_time.T) in
+  let frame_duration = Time.of_float (Lazy.force Frame.duration) in
+  let max_latency = Time.of_float conf_max_latency#get in
+  let log_delay = Time.of_float conf_log_delay#get in
+  let log_delay_threshold = Time.of_float conf_log_delay_threshold#get in
+  let t0 = Time.time () in
+  let last_catchup_log = Atomic.make t0 in
+  let x =
+    {
+      frame_duration;
+      log_delay;
+      log_delay_threshold;
+      max_latency;
+      time_implementation;
+      t0;
+      log = Log.make (["clock"] @ String.split_on_char '.' id);
+      last_catchup_log;
+      sync;
+      active_sources = WeakQueue.create ();
+      passive_sources = WeakQueue.create ();
+      on_tick = Queue.create ();
+      after_tick = Queue.create ();
+      outputs = Queue.create ();
+      ticks = Atomic.make 0;
+    }
+  in
+  Queue.iter clock.sub_clocks (fun c -> start c);
+  Atomic.set clock.state (`Started x);
+  if sync <> `Passive then _clock_thread ~clock x
+
+and start ?force c =
+  let clock = Unifier.deref c in
+  match _can_start ?force clock with
+    | `True sync -> _start ~sync clock
+    | `False -> ()
 
 let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
     ?(sync = `Automatic) () =
@@ -513,12 +522,19 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
   c
 
 let start_pending () =
-  List.iter (Queue.push clocks)
-    (Queue.flush_fold clocks
-       (fun c clocks ->
-         start c;
-         c :: clocks)
-       [])
+  let c = Queue.flush_elements clocks in
+  let c = List.map (fun c -> (c, Unifier.deref c)) c in
+  let c = List.sort_uniq (fun (_, c) (_, c') -> Stdlib.compare c c') c in
+  List.iter
+    (fun (c, clock) ->
+      (match Atomic.get clock.state with
+        | `Stopped _ -> (
+            match _can_start clock with
+              | `True sync -> _start ~sync clock
+              | `False -> ())
+        | _ -> ());
+      Queue.push clocks c)
+    c
 
 let () =
   Lifecycle.before_start ~name:"Clocks start" (fun () ->

@@ -50,6 +50,7 @@ class virtual base ~check_self_sync children_val =
           (Clock.create_sub_clock
              ~id:(Clock.id self#clock ^ ".child")
              self#clock);
+
       self#on_before_streaming_cycle (fun () ->
           Clock.activate_pending_sources self#child_clock)
 
