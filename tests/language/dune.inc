@@ -519,6 +519,18 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  various.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} various.liq liquidsoap %{test_liq} various.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   yaml.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
