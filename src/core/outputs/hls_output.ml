@@ -747,6 +747,7 @@ class hls_output p =
         else (false, s.discontinuity_count)
       in
       state <- `Started;
+      let segment_extra_tags = Atomic.exchange s.pending_extra_tags [] in
       let segment =
         {
           id = s.position;
@@ -754,7 +755,7 @@ class hls_output p =
           current_discontinuity;
           len = 0;
           filename;
-          segment_extra_tags = Atomic.get s.pending_extra_tags;
+          segment_extra_tags;
           init_filename =
             (match s.init_state with `Has_init f -> Some f | _ -> None);
           out_channel = Some out_channel;
@@ -764,7 +765,6 @@ class hls_output p =
       s.current_segment <- Some segment;
       s.discontinuity_count <- current_discontinuity;
       s.position <- s.position + 1;
-      Atomic.set s.pending_extra_tags [];
       if s.id3_enabled then (
         let m =
           match s.metadata with
@@ -1132,6 +1132,25 @@ class hls_output p =
         streams
   end
 
+let insert_tag_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t
+
+let insert_tag pending_extra_tags_list =
+  Lang.val_fun
+    [("", "", None)]
+    (fun p ->
+      let tag = String.trim (Lang.to_string (List.assoc "" p)) in
+      List.iter
+        (fun pending_extra_tags ->
+          let rec append () =
+            let tags = Atomic.get pending_extra_tags in
+            if
+              not (Atomic.compare_and_set pending_extra_tags tags (tag :: tags))
+            then append ()
+          in
+          append ())
+        pending_extra_tags_list;
+      Lang.unit)
+
 let stream_t kind =
   Lang.record_t
     [
@@ -1147,7 +1166,7 @@ let stream_t kind =
       ("replay_id3", Lang.bool_t);
       ("extra_tags", Lang.list_t Lang.string_t);
       ("discontinuity_count", Lang.int_t);
-      ("insert_tag", Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t);
+      ("insert_tag", insert_tag_t);
     ]
 
 let value_of_stream
@@ -1180,13 +1199,7 @@ let value_of_stream
       ("replay_id3", Lang.bool replay_id3);
       ("extra_tags", Lang.list (List.map Lang.string stream_extra_tags));
       ("discontinuity_count", Lang.int discontinuity_count);
-      ( "insert_tag",
-        Lang.val_fun
-          [("", "", None)]
-          (fun p ->
-            let tag = String.trim (Lang.to_string (List.assoc "" p)) in
-            Atomic.set pending_extra_tags (tag :: Atomic.get pending_extra_tags);
-            Lang.unit) );
+      ("insert_tag", insert_tag [pending_extra_tags]);
     ]
 
 let _ =
@@ -1195,6 +1208,14 @@ let _ =
     ~return_t ~category:`Output
     ~meth:
       ([
+         ( "insert_tag",
+           ([], insert_tag_t),
+           "Insert the same tag into all the streams",
+           fun s ->
+             insert_tag
+               (List.map
+                  (fun { pending_extra_tags } -> pending_extra_tags)
+                  s#streams) );
          ( "streams",
            ([], Lang.fun_t [] (Lang.list_t (stream_t return_t))),
            "Output streams",
