@@ -101,7 +101,7 @@ into a valid tile, however, you might need to call `request.resolve` inside your
 ### Regular expressions
 
 The backend to interpret regular expressions has been changed. For the most part, all existing regular expressions should be supported
-but you might experience some incompatibilities with advanced/complex one.
+but you might experience some incompatibilities with advanced/complex ones.
 
 Known incompatibilities include:
 
