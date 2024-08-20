@@ -23,27 +23,18 @@
 module Queue = struct
   include Saturn_lockfree.Queue
 
-  let pop q = try pop q with Empty -> raise Not_found
-
-  let flush_iter q fn =
-    let rec flush_iter_f () =
-      match pop_opt q with
-        | Some el ->
-            fn el;
-            flush_iter_f ()
-        | None -> ()
+  let flush_elements q =
+    let rec flush_elements_f elements =
+      try flush_elements_f (pop q :: elements) with Empty -> List.rev elements
     in
-    flush_iter_f ()
+    flush_elements_f []
+
+  let pop q = try pop q with Empty -> raise Not_found
+  let flush_iter q fn = List.iter fn (flush_elements q)
 
   let flush_fold q fn ret =
-    let rec flush_fold_f ret =
-      match pop_opt q with Some el -> flush_fold_f (fn el ret) | None -> ret
-    in
-    flush_fold_f ret
-
-  let flush_elements q =
-    let flush_elements_f el elements = el :: elements in
-    List.rev (flush_fold q flush_elements_f [])
+    let flush_fold_f ret el = fn el ret in
+    List.fold_left flush_fold_f ret (flush_elements q)
 
   let elements q =
     let rec elements_f l cursor =
@@ -74,12 +65,8 @@ module Queue = struct
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let rec filter_f elements =
-      match pop_opt q with
-        | Some el -> filter_f (el :: elements)
-        | None -> elements
-    in
-    List.iter (fun el -> if fn el then push q el) (filter_f [])
+    let filter_f el = if fn el then push q el in
+    List.iter filter_f (flush_elements q)
 end
 
 module WeakQueue = struct
