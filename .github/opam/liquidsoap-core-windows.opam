@@ -24,7 +24,7 @@ depends: [
   "mm-windows" {>= "0.8.4"}
   "re-windows" {>= "1.11.0"}
   "cry-windows" {>= "1.0.1"}
-  "saturn_lockfree-windows"
+  "saturn_lockfree-windows" {>= "0.4.1" & < "0.5.0"}
   "sedlex" {>= "3.2"}
   "sedlex-windows" {>= "3.2"}
   "magic-mime-windows"
