@@ -80,7 +80,7 @@ let create ~length content_type =
 
 let content_type = Fields.map Content.format
 let sub frame ofs len = Fields.map (fun c -> Content.sub c ofs len) frame
-let slice frame len = sub frame 0 len
+let slice frame len = sub frame 0 (min len (position frame))
 let after frame offset = sub frame offset (position frame - offset)
 
 let append f f' =
