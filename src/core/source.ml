@@ -619,7 +619,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       assert s#is_ready;
       let buf = self#continue_frame s in
       let size = Lazy.force Frame.size in
-      let rec f ~last_source ~last_chunk buf =
+      let rec f ~excluded_sources ~last_source ~last_chunk buf =
         let pos = Frame.position buf in
         let last_chunk_pos = Frame.position last_chunk in
         self#set_last_metadata last_chunk;
@@ -628,13 +628,18 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
           match
             self#get_source ~reselect:(`After_position last_chunk_pos) ()
           with
+            | Some s when List.memq s excluded_sources -> (s, buf)
             | Some s' when last_source == s' ->
                 let remainder =
                   s#get_partial_frame (fun frame ->
                       Frame.slice frame (last_chunk_pos + rem))
                 in
                 let new_track = Frame.after remainder last_chunk_pos in
-                f ~last_source ~last_chunk:remainder
+                let excluded_sources =
+                  if Frame.position new_track = 0 then s :: excluded_sources
+                  else excluded_sources
+                in
+                f ~excluded_sources ~last_source ~last_chunk:remainder
                   (Frame.append buf new_track)
             | Some s ->
                 assert s#is_ready;
@@ -645,12 +650,18 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                             Frame.slice frame rem
                         | buf, _ -> Frame.slice buf rem)
                 in
-                f ~last_source:s ~last_chunk:new_track
+                let excluded_sources =
+                  if Frame.position new_track = 0 then s :: excluded_sources
+                  else excluded_sources
+                in
+                f ~excluded_sources ~last_source:s ~last_chunk:new_track
                   (Frame.append buf (self#begin_track new_track))
-            | _ -> (last_source, buf))
+            | None -> (last_source, buf))
         else (last_source, buf)
       in
-      let last_source, buf = f ~last_source:s ~last_chunk:buf buf in
+      let last_source, buf =
+        f ~excluded_sources:[] ~last_source:s ~last_chunk:buf buf
+      in
       current_source <- Some last_source;
       buf
   end
