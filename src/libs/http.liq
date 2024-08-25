@@ -802,10 +802,6 @@ def http.put.file(
 end
 
 let harbor.http.request = ()
-let settings.http =
-  settings.make.void(
-    "Settings for HTTP requests"
-  )
 let settings.http.mime =
   settings.make.void(
     "MIME-related settings for HTTP requests"
