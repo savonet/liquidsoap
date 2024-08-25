@@ -105,15 +105,17 @@ let escape_char ~escape_fun s pos len =
     | '\'', 1 -> "\\'"
     | _ -> escape_fun s pos len
 
-let escape_utf8_char =
+let escape_utf8_char ~strict =
   let utf8_char_code s pos len =
-    try utf8_char_code s pos len with _ -> Uchar.to_int Uchar.rep
+    try utf8_char_code s pos len
+    with _ when not strict -> Uchar.to_int Uchar.rep
   in
   escape_char ~escape_fun:(fun s pos len ->
       Printf.sprintf "\\u%04X" (utf8_char_code s pos len))
 
-let escape_utf8_formatter ?(special_char = utf8_special_char) =
-  escape ~special_char ~escape_char:escape_utf8_char ~next:utf8_next
+let escape_utf8_formatter ?(strict = false) ?(special_char = utf8_special_char)
+    =
+  escape ~special_char ~escape_char:(escape_utf8_char ~strict) ~next:utf8_next
 
 let escape_hex_char =
   escape_char ~escape_fun:(fun s pos len ->
@@ -153,15 +155,15 @@ let escape_string escape s =
          len segments);
     Bytes.unsafe_to_string b)
 
-let escape_utf8_string ?special_char =
-  escape_string (escape_utf8_formatter ?special_char)
+let escape_utf8_string ?strict ?special_char =
+  escape_string (escape_utf8_formatter ?strict ?special_char)
 
 let escape_ascii_string ?special_char =
   escape_string (escape_ascii_formatter ?special_char)
 
-let quote_utf8_string s =
+let quote_utf8_string ?strict s =
   Printf.sprintf "\"%s\""
-    (escape_utf8_string
+    (escape_utf8_string ?strict
        ~special_char:(fun s pos len ->
          if s.[pos] = '\'' && len = 1 then false
          else utf8_special_char s pos len)
@@ -175,7 +177,9 @@ let quote_ascii_string s =
          else ascii_special_char s pos len)
        s)
 
-let quote_string s = try quote_utf8_string s with _ -> quote_ascii_string s
+let quote_string s =
+  try quote_utf8_string ~strict:true s with _ -> quote_ascii_string s
+
 let unescape_utf8_pattern = "\\\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
 let unescape_hex_pattern = "\\\\x[0-9a-fA-F][0-9a-fA-F]"
 let unescape_octal_pattern = "\\\\[0-9][0-9][0-9]"

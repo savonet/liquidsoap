@@ -180,8 +180,9 @@ def http.response(
       getter.get(data)
     else
       data = getter.get(data)
+      len = string.length(encoding="ascii", data)
       response_ended := data == ""
-      "#{string.hex_of_int(string.length(data))}\r\n#{data}\r\n"
+      "#{string.hex_of_int(len)}\r\n#{data}\r\n"
     end
   end
 
@@ -307,7 +308,7 @@ end
 # @flag hidden
 def harbor.http.regexp_of_path(path) =
   def named_capture(s) =
-    name = string.sub(s, start=1, length=string.length(s) - 1)
+    name = string.sub(encoding="ascii", s, start=1, length=string.length(encoding="ascii", s) - 1)
     "(?<#{name}>[^/]+)"
   end
 
@@ -500,7 +501,7 @@ def harbor.http.static.base(
   directory = path.home.unrelate(directory)
   basepath =
     if
-      string.sub(basepath, start=0, length=1) != "/"
+      string.sub(encoding="ascii", basepath, start=0, length=1) != "/"
     then
       "/#{basepath}"
     else
@@ -509,7 +510,7 @@ def harbor.http.static.base(
 
   basepath =
     if
-      string.sub(basepath, start=string.length(basepath) - 1, length=1) != "/"
+      string.sub(encoding="ascii", basepath, start=string.length(encoding="ascii", basepath) - 1, length=1) != "/"
     then
       basepath ^ "/"
     else
@@ -584,8 +585,8 @@ end
 # @flag hidden
 def http.string_of_float(x) =
   s = string(x)
-  n = string.length(s)
-  if string.sub(s, start=n - 1, length=1) == "." then s ^ "0" else s end
+  n = string.length(encoding="ascii", s)
+  if string.sub(encoding="ascii", s, start=n - 1, length=1) == "." then s ^ "0" else s end
 end
 
 # @flag hidden

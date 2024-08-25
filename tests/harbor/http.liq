@@ -134,7 +134,7 @@ def f() =
     )
 
     test.equal(req.path, "/large_non_chunked")
-    test.equal(string.length(req.body(timeout=5.0)), 10_000)
+    test.equal(string.length(encoding="ascii", req.body(timeout=5.0)), 10_000)
   end
 
   harbor.http.register("/large_non_chunked", method="POST", port=3456, handler)
@@ -213,7 +213,13 @@ def f() =
 
     def rec f(count) =
       ret = req.data()
-      if ret != "" then f(count + string.length(ret)) else count end
+      if
+        ret != ""
+      then
+        f(count + string.length(encoding="ascii", ret))
+      else
+        count
+      end
     end
 
     test.equal(f(0), 10_000_000)

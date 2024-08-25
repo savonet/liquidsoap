@@ -92,6 +92,14 @@ end
   However, EBU R128 data is now extracted directly from metadata when available.
   So `replaygain` cannot control the gain type via this parameter anymore.
 
+### String functions
+
+Some string functions have been updated to account for string encoding. In particular, `string.length` and `string.sub` now assume that their
+given string is in `utf8` by default.
+
+While this is what most user expect, this can lead to backward incompatibilities and new exceptions. You can change back to the old default by
+passing `encoding="ascii"` to these functions or using the `settings.string.default_encoding` settings.
+
 ### `check_next`
 
 `check_next` in playlist operators is now called _before_ the request is resolved, to make it possible to cut out
