@@ -260,7 +260,8 @@ def file.metadata.flac.cover.decode(s) =
   def read_int() =
     ret =
       string.binary.to_int(
-        little_endian=false, string.sub(s, start=i(), length=4)
+        little_endian=false,
+        string.sub(encoding="ascii", s, start=i(), length=4)
       )
 
     i := i() + 4
@@ -268,7 +269,7 @@ def file.metadata.flac.cover.decode(s) =
   end
 
   def read_string(len) =
-    ret = string.sub(s, start=i(), length=len)
+    ret = string.sub(encoding="ascii", s, start=i(), length=len)
     i := i() + len
     (ret : string)
   end
@@ -284,7 +285,7 @@ def file.metadata.flac.cover.decode(s) =
   number_of_colors = read_int()
   number_of_colors = number_of_colors > 0 ? null(number_of_colors) : null()
   data_len = read_int()
-  data = string.sub(s, start=i(), length=data_len)
+  data = string.sub(encoding="ascii", s, start=i(), length=data_len)
   if
     data == ""
   then
@@ -320,10 +321,10 @@ def file.metadata.flac.cover.encode(
   data
 ) =
   def encode_string(s) =
-    len = 1 + (string.length(s) / 8)
+    len = 1 + (string.length(encoding="ascii", s) / 8)
     str_len = string.binary.of_int(little_endian=false, pad=4, len)
     if
-      string.length(str_len) > 4
+      string.length(encoding="ascii", str_len) > 4
     then
       error.raise(
         error.invalid,
@@ -331,7 +332,7 @@ def file.metadata.flac.cover.encode(
       )
     end
 
-    pad = string.make(char_code=0, len * 8 - string.length(s))
+    pad = string.make(char_code=0, len * 8 - string.length(encoding="ascii", s))
     (str_len, "#{s}#{pad}")
   end
 
