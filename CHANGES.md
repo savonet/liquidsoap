@@ -53,6 +53,7 @@ New:
 - Add `string.of_int` and `string.spaces`.
 - Add `list.assoc.nullable`.
 - Add `source.cue` (#3620).
+- Add `string.chars` (#4111)
 - Added atomic file write operations.
 
 Changed:
@@ -64,6 +65,7 @@ Changed:
 - Changed internal metadata format to be immutable (#3297).
 - Allow a getter for the offset of `on_offset` and dropped the metadata
   mechanism for updating it (#3355).
+- `string.length` and `string.sub` now default to `utf8` encoding (#4109)
 - Disable output paging when `TERM` environment variable is not set.
 - Allow running as `root` user inside `docker` container by default (#3406).
 - Run `check_next` before playlist's requests resolutions (#3625)

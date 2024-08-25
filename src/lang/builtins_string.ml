@@ -52,6 +52,86 @@ let _ =
       let l = List.map Lang.to_string l in
       Lang.string (String.concat sep l))
 
+let split ~encoding s =
+  let buf = Buffer.create 1 in
+  let to_string add c =
+    Buffer.clear buf;
+    add buf c;
+    Buffer.contents buf
+  in
+  let get =
+    match encoding with
+      | `Ascii -> fun pos -> (to_string Buffer.add_char (String.get s pos), 1)
+      | `Utf8 ->
+          fun pos ->
+            let d = String.get_utf_8_uchar s pos in
+            if not (Uchar.utf_decode_is_valid d) then
+              failwith "Decoding failed!";
+            ( to_string Buffer.add_utf_8_uchar (Uchar.utf_decode_uchar d),
+              Uchar.utf_decode_length d )
+  in
+  let len = String.length s in
+  let rec f chars pos =
+    if pos = len then List.rev chars
+    else (
+      let char, len = get pos in
+      f (char :: chars) (pos + len))
+  in
+  f [] 0
+
+let default_encoding = ref `Utf8
+
+let encoding_option =
+  ( "encoding",
+    Lang.nullable_t Lang.string_t,
+    Some Lang.null,
+    Some
+      "Encoding used to split characters. Should be one of: `\"utf8\"` or \
+       `\"ascii\"`" )
+
+let get_encoding p =
+  match Lang.to_valued_option Lang.to_string (List.assoc "encoding" p) with
+    | None -> ("utf8", !default_encoding)
+    | Some "utf8" -> ("utf8", `Utf8)
+    | Some "ascii" -> ("ascii", `Ascii)
+    | _ ->
+        Runtime_error.raise ~pos:(Lang.pos p) ~message:"Invalid encoding!"
+          "invalid"
+
+let _ =
+  Lang.add_builtin ~base:string "chars" ~category:`String
+    ~descr:"Split string into characters. Raises `error.invalid` on errors."
+    [encoding_option; ("", Lang.string_t, None, None)]
+    (Lang.list_t Lang.string_t)
+    (fun p ->
+      let enc, encoding = get_encoding p in
+      let s = Lang.to_string (List.assoc "" p) in
+      try Lang.list (List.map Lang.string (split ~encoding s))
+      with _ ->
+        Runtime_error.raise ~pos:(Lang.pos p)
+          ~message:
+            (Printf.sprintf "String cannot be split using encoding `\"%s\"`!"
+               enc)
+          "invalid")
+
+let _ =
+  Lang.add_builtin ~base:string "length" ~category:`String
+    ~descr:
+      "Return the string's length using the given encoding. Raises \
+       `error.invalid` on errors."
+    [encoding_option; ("", Lang.string_t, None, None)]
+    Lang.int_t
+    (fun p ->
+      let enc, encoding = get_encoding p in
+      let s = Lang.to_string (List.assoc "" p) in
+      try Lang.int (List.length (split ~encoding s))
+      with _ ->
+        Runtime_error.raise ~pos:(Lang.pos p)
+          ~message:
+            (Printf.sprintf "String cannot be split using encoding `\"%s\"`!"
+               enc)
+          "invalid")
+
 let _ =
   Lang.add_builtin ~base:string "nth" ~category:`String
     ~descr:
@@ -165,7 +245,7 @@ let string_escape =
                          ("", Lang.string (String.sub s ofs len));
                        ])
             | None, `Ascii -> Lang_string.escape_hex_char
-            | None, `Utf8 -> Lang_string.escape_utf8_char
+            | None, `Utf8 -> Lang_string.escape_utf8_char ~strict:false
         in
         let next =
           match encoding with
@@ -213,7 +293,8 @@ let _ =
         match Lang.to_string format with
           | "octal" -> (Lang_string.escape_octal_char, Lang_string.ascii_next)
           | "hex" -> (Lang_string.escape_hex_char, Lang_string.ascii_next)
-          | "utf8" -> (Lang_string.escape_utf8_char, Lang_string.utf8_next)
+          | "utf8" ->
+              (Lang_string.escape_utf8_char ~strict:false, Lang_string.utf8_next)
           | _ ->
               raise
                 (Error.Invalid_value
@@ -265,15 +346,6 @@ let _ =
       Lang.string (Lang_string.unescape_string s))
 
 let _ =
-  Lang.add_builtin ~base:string "length" ~category:`String
-    ~descr:"Get the length of a string."
-    [("", Lang.string_t, None, None)]
-    Lang.int_t
-    (fun p ->
-      let string = Lang.to_string (List.assoc "" p) in
-      Lang.int (String.length string))
-
-let _ =
   Lang.add_builtin ~base:string "sub" ~category:`String
     ~descr:
       "Get a substring of a string. Returns \"\" if no such substring exists."
@@ -285,6 +357,7 @@ let _ =
         Some
           "Return a sub string starting at this position. First position is 0."
       );
+      encoding_option;
       ( "length",
         Lang.int_t,
         None,
@@ -294,9 +367,24 @@ let _ =
     (fun p ->
       let start = Lang.to_int (List.assoc "start" p) in
       let len = Lang.to_int (List.assoc "length" p) in
+      let _, encoding = get_encoding p in
       let string = Lang.to_string (List.assoc "" p) in
-      Lang.string
-        (try String.sub string start len with Invalid_argument _ -> ""))
+      let s =
+        match encoding with
+          | `Ascii -> (
+              try String.sub string start len with Invalid_argument _ -> "")
+          | `Utf8 -> (
+              try
+                let chars = split ~encoding string in
+                if List.length chars < len + start then ""
+                else
+                  String.concat ""
+                    (List.filteri
+                       (fun pos _ -> start <= pos && pos < start + len)
+                       chars)
+              with _ -> "")
+      in
+      Lang.string s)
 
 let _ =
   Lang.add_builtin ~base:string "index" ~category:`String

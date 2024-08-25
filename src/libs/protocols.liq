@@ -429,7 +429,7 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
     end
 
     m = string.concat(separator=",", list.map(f, m))
-    if string.length(m) > 0 then "annotate:#{m}:" else "" end
+    if string.length(encoding="ascii", m) > 0 then "annotate:#{m}:" else "" end
   end
 
   def parse_metadata(file) =
