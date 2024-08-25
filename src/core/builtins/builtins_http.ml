@@ -147,7 +147,7 @@ let add_http_request ~base ~stream_body ~descr ~request name =
            normalized by default to ensure maximum compatibility with e.g. \
            URLs with spaces in them. However, this can also cause issues so we \
            recommend passing normalized URLs. Url normalization can be \
-           disabled on a case-by-case basis using the  `normalize_url=false` \
+           disabled on a case-by-case basis using the `normalize_url` \
            parameter or globally using the `settings.http.normalize_url` \
            setting."
           (Lang_string.quote_utf8_string original_url)
