@@ -143,6 +143,37 @@ def f() =
     "blo#{(1, 2, 3)}",
     "blo(1, 2, 3)"
   )
+
+  s = "王^小東="
+  test.equal(string.length(s), 5)
+  test.equal(string.chars(s), ["王", "^", "小", "東", "="])
+  test.equal(string.sub(start=1, length=2, s), "^小")
+  test.equal(string.length(encoding="ascii", s), 11)
+  test.equal(
+    string.chars(encoding="ascii", s),
+    [
+      "\xE7",
+      "\x8E",
+      "\x8B",
+      "^",
+      "\xE5",
+      "\xB0",
+      "\x8F",
+      "\xE6",
+      "\x9D",
+      "\xB1",
+      "="
+    ]
+  )
+  test.equal(string.sub(encoding="ascii", start=1, length=2, s), "\x8E\x8B")
+
+  try
+    string.chars(encoding="utf16le", s)
+    test.fail()
+  catch e : [error.invalid] do
+    ()
+  end
+
   test.pass()
 end
 
@@ -171,6 +202,7 @@ def test_escape_html() =
   test.equal(string.escape.html("\\"), "\\")
   test.equal(string.escape.html("/"), "/")
   test.equal(string.escape.html("`"), "`")
+
   test.pass()
 end
 

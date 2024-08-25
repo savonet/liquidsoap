@@ -20,6 +20,32 @@
 
  *****************************************************************************)
 
+let log = Log.make ["lang"; "string"]
+
+let conf_string =
+  Dtools.Conf.void ~p:(Configure.conf#plug "string") "String settings"
+
+let () =
+  let conf_default_encoding =
+    Dtools.Conf.string
+      ~p:(conf_string#plug "default_encoding")
+      ~d:"utf8"
+      "Default encoding for `string.length`, `string.chars` and `string.sub`"
+  in
+  conf_default_encoding#on_change (fun v ->
+      let enc =
+        match v with
+          | "ascii" -> `Ascii
+          | "utf8" -> `Utf8
+          | _ ->
+              log#important
+                "Invalid value %s for `settings.string.default_encoding`! \
+                 Should be one of: \"ascii\" or \"utf8\"."
+                v;
+              `Utf8
+      in
+      Liquidsoap_lang.Builtins_string.default_encoding := enc)
+
 let string = Liquidsoap_lang.Builtins_string.string
 let string_annotate = Lang.add_module ~base:string "annotate"
 
