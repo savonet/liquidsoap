@@ -26,4 +26,7 @@ package() {
         mv "$pkgdir/usr/share/liquidsoap-lang" "$pkgdir/usr/share/liquidsoap"
         rm -rf "$pkgdir/usr/share/liquidsoap/libs/extra"
         cp -rf "$(opam var share)/camomile" "$pkgdir/usr/share/liquidsoap"
+
+        export LIQ_CACHE_SYSTEM_DIR=$pkgdir/var/cache/liquidsoap
+        dune exec src/bin/liquidsoap.exe -- --cache-only '()'
 }

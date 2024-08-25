@@ -40,9 +40,6 @@ chown liquidsoap:liquidsoap /var/log/liquidsoap
 chown liquidsoap:liquidsoap /var/cache/liquidsoap
 chown root:root /usr/share/liquidsoap
 
-echo "Generating liquidsoap standard library cache.."
-liquidsoap --cache-only '()'
-
 #DEBHELPER#
 
 exit 0
