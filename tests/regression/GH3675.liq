@@ -17,7 +17,7 @@ def reopen_when() =
     fd.close()
 
     if
-      string.sub(s, start=0, length=4) != "RIFF"
+      string.sub(encoding="ascii", s, start=0, length=4) != "RIFF"
     then
       test.fail()
     else
