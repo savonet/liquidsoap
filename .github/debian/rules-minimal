@@ -25,6 +25,8 @@ override_dh_auto_install:
 	mkdir -p $(DESTDIR)/share/liquidsoap
 	cp -rf `opam var share`/camomile $(DESTDIR)/share/liquidsoap
 	dh_install
+	export LIQ_CACHE_SYSTEM_DIR=$(DESTDIR)/var/cache/liquidsoap
+	dune exec src/bin/liquidsoap.exe -- --cache-only '()'
 
 override_dh_auto_clean:
 	/bin/true
