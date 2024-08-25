@@ -53,22 +53,22 @@ let _ =
       Lang.string (String.concat sep l))
 
 let split ~encoding s =
+  let buf = Buffer.create 1 in
+  let to_string add c =
+    Buffer.clear buf;
+    add buf c;
+    Buffer.contents buf
+  in
   let get =
     match encoding with
-      | `Ascii ->
-          fun pos ->
-            let buf = Buffer.create 1 in
-            Buffer.add_char buf (String.get s pos);
-            (Buffer.contents buf, 1)
+      | `Ascii -> fun pos -> (to_string Buffer.add_char (String.get s pos), 1)
       | `Utf8 ->
           fun pos ->
             let d = String.get_utf_8_uchar s pos in
             if not (Uchar.utf_decode_is_valid d) then
               failwith "Decoding failed!";
-            let c = Uchar.utf_decode_uchar d in
-            let buf = Buffer.create 1 in
-            Buffer.add_utf_8_uchar buf c;
-            (Buffer.contents buf, Uchar.utf_decode_length d)
+            ( to_string Buffer.add_utf_8_uchar (Uchar.utf_decode_uchar d),
+              Uchar.utf_decode_length d )
   in
   let len = String.length s in
   let rec f chars pos =
