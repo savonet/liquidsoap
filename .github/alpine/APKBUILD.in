@@ -5,7 +5,7 @@ pkgdesc="Swiss-army knife for multimedia streaming"
 url="https://github.com/savonet/liquidsoap"
 arch="all"
 license="GPL-2.0-only"
-install="@APK_PACKAGE@.pre-install"
+install="@APK_PACKAGE@.post-install"
 options="!check textrels"
 depends="sdl2 sdl2_image sdl2_ttf"
 
