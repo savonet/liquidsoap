@@ -37,7 +37,6 @@ sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" liquidsoap/.github/alpine/APKBUILD.in |
   sed -e "s#@APK_RELEASE@#${APK_RELEASE}#" \
     > APKBUILD
 
-cp "liquidsoap/.github/alpine/liquidsoap.pre-install" "${APK_PACKAGE}.pre-install"
 cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post-install"
 
 abuild-keygen -a -n
@@ -84,7 +83,6 @@ sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" liquidsoap/.github/alpine/APKBU
   sed -e "s#@APK_RELEASE@#${APK_RELEASE}#" \
     > APKBUILD
 
-cp "liquidsoap/.github/alpine/liquidsoap.pre-install" "${APK_PACKAGE}-minimal.pre-install"
 cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}-minimal.post-install"
 
 abuild-keygen -a -n
