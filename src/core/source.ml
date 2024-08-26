@@ -631,6 +631,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
             | Some s' when last_source == s' ->
                 let remainder =
                   s#get_partial_frame (fun frame ->
+                      assert (last_chunk_pos < Frame.position frame);
                       Frame.slice frame (last_chunk_pos + rem))
                 in
                 let new_track = Frame.after remainder last_chunk_pos in
