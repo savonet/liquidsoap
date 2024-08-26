@@ -89,6 +89,12 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
     val mutable transition_length = transition_length
     val mutable selected : selection option = None
 
+    (* We cannot reselect the same source twice during a streaming cycle. *)
+    val mutable excluded_sources = []
+
+    initializer
+      self#on_before_streaming_cycle (fun () -> excluded_sources <- [])
+
     method private is_selected_generated =
       match selected with
         | None -> false
@@ -96,18 +102,18 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
             source != effective_source
 
     method private select ~reselect () =
-      let may_reselect ~single s =
+      let may_select ~single s =
         match selected with
           | Some { child; effective_source } when child.source == s.source ->
               (not single) && self#can_reselect ~reselect effective_source
-          | _ -> true
+          | _ -> not (List.memq s excluded_sources)
       in
       try
         Some
           (pick_selection
              (find ~strict:all_predicates
                 (fun (d, single, s) ->
-                  satisfied d && may_reselect ~single s && s.source#is_ready)
+                  satisfied d && may_select ~single s && s.source#is_ready)
                 children))
       with Not_found -> None
 
@@ -218,6 +224,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
             end;
             match selected with
               | Some s when s.effective_source#is_ready ->
+                  excluded_sources <- s.child :: excluded_sources;
                   Some s.effective_source
               | _ -> None)
 
