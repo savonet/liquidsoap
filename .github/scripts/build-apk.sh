@@ -38,6 +38,7 @@ sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" liquidsoap/.github/alpine/APKBUILD.in |
     > APKBUILD
 
 cp "liquidsoap/.github/alpine/liquidsoap.pre-install" "${APK_PACKAGE}.pre-install"
+cp "liquidsoap/.github/alpine/liquidsoap.post-install
 
 abuild-keygen -a -n
 abuild
