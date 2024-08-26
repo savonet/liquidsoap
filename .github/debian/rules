@@ -24,7 +24,6 @@ override_dh_auto_install:
 	mkdir -p $(DESTDIR)/share/liquidsoap
 	cp -rf `opam var share`/camomile $(DESTDIR)/share/liquidsoap
 	dh_install
-	mkdir -p $(DESTDIR)/var/cache/liquidsoap
 
 override_dh_auto_clean:
 	/bin/true
