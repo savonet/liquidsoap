@@ -5,7 +5,12 @@ adduser -S -D -h /var/liquidsoap -s /sbin/nologin -G liquidsoap -g liquidsoap li
 addgroup liquidsoap audio 2> /dev/null
 mkdir -p /var/log/liquidsoap
 mkdir -p /var/cache/liquidspap
-chown liquidsoap:liquidsoap /var/log/liquidsoap
+
+echo "Generating cache for the standard library.."
+LIQ_CACHE_SYSTEM_DIR=/var/cache/liquidsoap liquidsoap --cache-only '()'
+
+chown -R liquidsoap:liquidsoap /var/log/liquidsoap
 chown liquidsoap:liquidsoap /var/cache/liquidsoap
+chmod -R +r /var/cache/liquidsoap
 
 exit 0
