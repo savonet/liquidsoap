@@ -35,10 +35,14 @@ if ! test -d /var/cache/liquidsoap; then
   mkdir -p /var/cache/liquidsoap
 fi
 
+echo "Generating cache for the standard library.."
+LIQ_CACHE_SYSTEM_DIR=/var/cache/liquidsoap liquidsoap --cache-only '()'
+
 # Fix directories ownership
-chown liquidsoap:liquidsoap /var/log/liquidsoap
-chown liquidsoap:liquidsoap /var/cache/liquidsoap
-chown root:root /usr/share/liquidsoap
+chown -R liquidsoap:liquidsoap /var/log/liquidsoap
+chmod -R +r /var/log/liquidsoap
+chown -R liquidsoap:liquidsoap /var/cache/liquidsoap
+chown -R root:root /usr/share/liquidsoap
 
 #DEBHELPER#
 

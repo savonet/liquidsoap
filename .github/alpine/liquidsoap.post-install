@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo "Generating cache for the standard library.."
+LIQ_CACHE_SYSTEM_DIR=/var/cache/liquidsoap liquidsoap --cache-only '()'
+
+chown -R liquidsoap:liquidsoap /var/cache/liquidsoap
+chmod -R +r /var/cache/liquidsoap
+
+exit 0
