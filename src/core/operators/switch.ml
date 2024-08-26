@@ -98,9 +98,10 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
     method private select ~reselect () =
       let may_reselect ~single s =
         match selected with
-          | Some { child; effective_source } when child.source == s.source ->
-              (not single) && self#can_reselect ~reselect effective_source
-          | _ -> true
+          | Some { child; effective_source } ->
+              self#can_reselect ~reselect effective_source
+              && (child.source != s.source || not single)
+          | None -> true
       in
       try
         Some
