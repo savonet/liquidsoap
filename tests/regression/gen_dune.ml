@@ -18,6 +18,7 @@ let () =
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
   ../streams/file1.mp3
+  ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
   (:test_liq ../test.liq)
