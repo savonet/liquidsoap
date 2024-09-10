@@ -15,8 +15,16 @@ let eval_check ~env:_ ~tm v =
   if Lang_source.Source_val.is_value v then (
     let s = Lang_source.Source_val.of_value v in
     if not s#has_content_type then (
-      let ty = Type.fresh (deep_demeth tm.Term.t) in
-      Typing.(Lang_source.source_t ~methods:false s#frame_type <: ty);
+      let ty =
+        { (Type.fresh (deep_demeth tm.Term.t)) with pos = tm.Term.t.Type.pos }
+      in
+      let source_t =
+        {
+          (Lang_source.source_t ~methods:false s#frame_type) with
+          pos = s#frame_type.Type.pos;
+        }
+      in
+      Typing.(source_t <: ty);
       s#content_type_computation_allowed))
   else if Track.is_value v then (
     let field, source = Lang_source.to_track v in
@@ -25,9 +33,14 @@ let eval_check ~env:_ ~tm v =
         | _ when field = Frame.Fields.metadata -> ()
         | _ when field = Frame.Fields.track_marks -> ()
         | _ ->
-            let ty = Type.fresh (deep_demeth tm.Term.t) in
+            let ty =
+              {
+                (Type.fresh (deep_demeth tm.Term.t)) with
+                pos = tm.Term.t.Type.pos;
+              }
+            in
             let frame_t =
-              Frame_type.make (Lang.univ_t ())
+              Frame_type.make ?pos:tm.Term.t.Type.pos (Lang.univ_t ())
                 (Frame.Fields.add field ty Frame.Fields.empty)
             in
             Typing.(source#frame_type <: frame_t)))

@@ -80,7 +80,7 @@ end
 
 type custom
 
-type t = { pos : Pos.Option.t; descr : descr }
+type t = { mutable pos : Pos.Option.t; descr : descr }
 
 and constr = {
   constr_descr : string;

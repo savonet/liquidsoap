@@ -29,7 +29,7 @@ val debug_variance : bool ref
 open Type_base
 
 type variance = [ `Covariant | `Invariant ]
-type t = Type_base.t = { pos : Pos.Option.t; descr : descr }
+type t = Type_base.t = { mutable pos : Pos.Option.t; descr : descr }
 type custom = Type_base.custom
 
 type custom_handler = Type_base.custom_handler = {

@@ -519,7 +519,12 @@ let _meth = meth
 
 let check_arguments ~env ~return_t arguments =
   let handler = Type.Fresh.init () in
-  let return_t = Type.Fresh.make handler return_t in
+  let return_t =
+    {
+      (Type.Fresh.make handler return_t) with
+      pos = (match Lang.pos env with p :: _ -> Some p | [] -> None);
+    }
+  in
   let arguments =
     List.map (fun (lbl, t, _, _) -> (lbl, Type.Fresh.make handler t)) arguments
   in
@@ -601,6 +606,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     let src : < Source.source ; .. > = f env in
     src#set_stack (Liquidsoap_lang.Lang_core.pos env);
     Typing.(src#frame_type <: return_t);
+    src#frame_type.Type.pos <- return_t.Type.pos;
     ignore
       (Option.map
          (fun id -> src#set_id id)
