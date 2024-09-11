@@ -165,7 +165,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   let last_start_time = ref 0. in
   let last_end_time = ref 0. in
   let last_data = Gauge.labels (get_last_data ~label_names) labels in
-  let wake_up ~fallible:_ ~source_type:_ ~id:_ ~ctype:_ ~clock_id:_ = () in
+  let wake_up ~fallible:_ ~source_type:_ ~id:_ ~clock_id:_ = () in
   let sleep () = () in
   let generate_frame ~start_time ~end_time ~length ~has_track_mark:_ ~metadata:_
       =

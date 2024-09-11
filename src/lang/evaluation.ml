@@ -95,7 +95,7 @@ let rec prepare_fun fv ~eval_check p env =
   let env = Env.restrict env fv in
   (p, env)
 
-and apply ?(pos = []) ~eval_check f l =
+and apply ?(pos = []) ?typ ~eval_check f l =
   let apply_pos = match pos with [] -> None | p :: _ -> Some p in
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
@@ -104,6 +104,15 @@ and apply ?(pos = []) ~eval_check f l =
           ( p,
             fun pe ->
               let env = Env.adds e pe in
+              let body =
+                match typ with
+                  | None -> body
+                  | Some typ ->
+                      let handler = Type.Fresh.init () in
+                      let body = Term.fresh ~handler body in
+                      Typing.(body.Term.t <: typ);
+                      body
+              in
               eval ~eval_check env body )
       | Value.FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
@@ -264,7 +273,12 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                       (n, v))
                     p
                 in
-                apply ~eval_check (mk_fun ()) args
+                let typ =
+                  match Type.((demeth tm.Term.t).descr) with
+                    | Type.Arrow (_, t) -> Some t
+                    | _ -> None
+                in
+                apply ~eval_check ?typ (mk_fun ()) args
               and mk_fun () =
                 let ffi = mk (`FFI { Value.ffi_args = p; ffi_fn }) in
                 let env = Env.add env name ffi in
@@ -290,7 +304,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                        (Lang_core.to_list (List.assoc Lang_core.pos_var env))
                    with _ -> [])
           in
-          apply ~pos ~eval_check f l
+          apply ~pos ~typ:tm.Term.t ~eval_check f l
         in
         if !profile then (
           match f.term with

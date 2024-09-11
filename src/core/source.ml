@@ -48,7 +48,6 @@ type watcher = {
     fallible:bool ->
     source_type:source_type ->
     id:string ->
-    ctype:Frame.content_type ->
     clock_id:string ->
     unit;
   sleep : unit -> unit;
@@ -176,7 +175,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
             self#log#debug "Assigning source content type for frame type: %s"
               (Type.to_string self#frame_type);
             let ct = Frame_type.content_type self#frame_type in
-            self#log#debug "Content type: %s" (Frame.string_of_content_type ct);
+            self#log#info "Content type: %s" (Frame.string_of_content_type ct);
             ctype <- Some ct;
             ct
 
@@ -203,8 +202,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
           List.iter (fun s -> s#wake_up) sources;
           self#iter_watchers (fun w ->
               w.wake_up ~fallible:self#fallible ~source_type:self#source_type
-                ~id:self#id ~ctype:self#content_type
-                ~clock_id:(Clock.id self#clock)))
+                ~id:self#id ~clock_id:(Clock.id self#clock)))
 
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
@@ -215,11 +213,8 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
         try
           self#content_type_computation_allowed;
           if log == source_log then self#create_log;
-          source_log#info "Source %s gets up with content type: %s." id
-            (Frame.string_of_content_type self#content_type);
+          source_log#info "Source %s gets up." id;
           self#log#debug "Clock is %s." (Clock.id self#clock);
-          self#log#important "Content type is %s."
-            (Frame.string_of_content_type self#content_type);
           List.iter (fun fn -> fn ()) on_wake_up
         with exn ->
           Atomic.set is_up `Error;

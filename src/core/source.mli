@@ -57,7 +57,6 @@ type watcher = {
     fallible:bool ->
     source_type:source_type ->
     id:string ->
-    ctype:Frame.content_type ->
     clock_id:string ->
     unit;
   sleep : unit -> unit;

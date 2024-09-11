@@ -263,22 +263,6 @@ let _ =
 
 let _ =
   let a = Lang.univ_t () in
-  let b = Lang.univ_t () in
-  Lang.add_builtin ~base:list "map" ~category:`List
-    ~descr:"Map a function on every element of a list."
-    [
-      ("", Lang.fun_t [(false, "", a)] b, None, None);
-      ("", Lang.list_t a, None, None);
-    ]
-    (Lang.list_t b)
-    (fun p ->
-      let fn = Lang.assoc "" 1 p in
-      let l = Lang.to_list (Lang.assoc "" 2 p) in
-      Lang.list
-        (List.map (fun v -> Lang.apply ~pos:(Lang.pos p) fn [("", v)]) l))
-
-let _ =
-  let a = Lang.univ_t () in
   Lang.add_builtin ~base:list "remove" ~category:`List
     ~descr:"Remove the first occurrence of a value from a list."
     [("", a, None, None); ("", Lang.list_t a, None, None)]

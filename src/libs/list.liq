@@ -62,6 +62,14 @@ def list.iter(f, l) =
   list.iteri(fun (_, v) -> f(v), l)
 end
 
+# Map a function on every element of a list.
+# @category List
+def list.map(fn, l) =
+  ret = ref([])
+  list.iter(fun (v) -> ret := [...ret(), fn(v)], l)
+  ret()
+end
+
 # Check whether an element belongs to a list.
 # @category List
 def list.mem(x, l) =

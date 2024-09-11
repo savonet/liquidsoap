@@ -37,8 +37,8 @@ let eval ?(toplevel = false) ?(typecheck = true) ?cache ?deprecated ?ty ?name
   let toplevel = effective_toplevel ~stdlib toplevel in
   let term =
     if typecheck then
-      type_term ?name ?cache ?deprecated ?ty ~trim:(not toplevel) ~stdlib
-        ~parsed_term term
+      type_term ?name ?cache ?deprecated ?ty ~trim:false ~stdlib ~parsed_term
+        term
     else term
   in
   Runtime.eval_term ?name ~toplevel term
