@@ -35,7 +35,6 @@ val type_term :
   ?ty:Type.t ->
   ?cache_dirtype:Cache.dirtype ->
   cache:bool ->
-  trim:bool ->
   lib:bool ->
   Parsed_term.t ->
   Term.t

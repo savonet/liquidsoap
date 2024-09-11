@@ -312,7 +312,6 @@ type stdlib = [ `Disabled | `If_present | `Force | `Override of string ]
 val type_term :
   ?name:string ->
   ?cache:bool ->
-  ?trim:bool ->
   ?deprecated:bool ->
   ?ty:t ->
   stdlib:stdlib ->

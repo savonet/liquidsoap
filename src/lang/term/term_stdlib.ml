@@ -69,8 +69,8 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
   let append () =
     let stdlib = append_ref stdlib in
     let stdlib =
-      Runtime.type_term ~cache_dirtype:`System ~name:"stdlib" ~cache ~trim:false
-        ~lib:true ~term:stdlib parsed_stdlib
+      Runtime.type_term ~cache_dirtype:`System ~name:"stdlib" ~cache ~lib:true
+        ~term:stdlib parsed_stdlib
     in
     let { Runtime_term.var_name; var_id; env } = extract_ref stdlib in
     Atomic.set Type_base.var_name_atom var_name;

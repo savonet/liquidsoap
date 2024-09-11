@@ -159,7 +159,6 @@
   term_preprocessor
   term_reducer
   term_stdlib
-  term_trim
   type
   type_base
   type_constraints

@@ -224,11 +224,9 @@ let report :
       throw exn;
       default ())
 
-let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
-    parsed_term =
+let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~lib parsed_term =
   let cached_term =
-    if cache then
-      Term_cache.retrieve ?name ?dirtype:cache_dirtype ~trim parsed_term
+    if cache then Term_cache.retrieve ?name ?dirtype:cache_dirtype parsed_term
     else None
   in
   match cached_term with
@@ -277,11 +275,8 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
         report
           ~default:(fun () -> ())
           (fun ~throw () -> Term.check_unused ~throw ~lib full_term);
-        let full_term =
-          if trim then Term_trim.trim_term full_term else full_term
-        in
         if cache then
-          Term_cache.cache ?dirtype:cache_dirtype ~trim ~parsed_term full_term;
+          Term_cache.cache ?dirtype:cache_dirtype ~parsed_term full_term;
         full_term
 
 let eval_term ?name ~toplevel ast =
@@ -411,8 +406,7 @@ let load_libs ?stdlib () =
               (fun ~throw:_ () -> Term_reducer.mk_expr ~fname program lexbuf)
           in
           let term =
-            type_term ~name:"stdlib" ~trim:true ~cache:true ~lib:true
-              parsed_term
+            type_term ~name:"stdlib" ~cache:true ~lib:true parsed_term
           in
           ignore (eval_term ~name:"stdlib" ~toplevel:true term)))
     (libs ?stdlib ())
