@@ -361,17 +361,6 @@ let source_tracks_t frame_t =
     ([], Format_type.track_marks)
     (Type.meth "metadata" ([], Format_type.metadata) frame_t)
 
-let source_tracks s =
-  meth unit
-    (( Frame.Fields.string_of_field Frame.Fields.metadata,
-       Track.to_value (Frame.Fields.metadata, s) )
-    :: ( Frame.Fields.string_of_field Frame.Fields.track_marks,
-         Track.to_value (Frame.Fields.track_marks, s) )
-    :: List.map
-         (fun (field, _) ->
-           (Frame.Fields.string_of_field field, Track.to_value (field, s)))
-         (Frame.Fields.bindings s#content_type))
-
 let source_methods ~base s =
   meth base (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
 

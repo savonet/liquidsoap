@@ -187,9 +187,13 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     | `Cast { cast = e } -> Value.set_pos (eval ~eval_check env e) tm.t.Type.pos
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
-        match
-          (Value.Methods.find_opt meth (Value.methods v), invoke_default)
-        with
+        let invoked_value =
+          match (Value.Methods.find_opt meth (Value.methods v), v) with
+            | Some v, _ -> Some v
+            | None, Value.Custom { dynamic_methods = Some fn } -> fn meth
+            | _ -> None
+        in
+        match (invoked_value, invoke_default) with
           (* If method returns `null` and a default is provided, pick default. *)
           | Some (Value.Null { methods }), Some default
             when Methods.is_empty methods ->
