@@ -92,23 +92,28 @@ class muxer ~pos ~base tracks =
                 | None -> []
             in
             let tracks =
-              List.fold_left
-                (fun tracks ({ source = s; fields } as t) ->
-                  match List.find_opt (fun { source = s' } -> s == s') base with
-                    | Some track ->
-                        let track_fields =
-                          List.filter
+              match
+                ( base,
+                  List.partition
+                    (fun { source = s } ->
+                      List.exists (fun { source = s' } -> s == s') base)
+                    tracks )
+              with
+                | _, ([], _) -> base @ tracks
+                | [{ fields = f }], ([({ fields = f' } as p)], tracks) ->
+                    {
+                      p with
+                      fields =
+                        f'
+                        @ List.filter
                             (fun { target_field = t } ->
-                              not
-                                (List.exists
-                                   (fun { target_field = t' } -> t = t')
-                                   fields))
-                            track.fields
-                        in
-                        track.fields <- track_fields @ fields;
-                        tracks
-                    | None -> t :: tracks)
-                base tracks
+                              List.exists
+                                (fun { target_field = t' } -> t = t')
+                                f')
+                            f;
+                    }
+                    :: tracks
+                | _ -> assert false
             in
             if
               List.for_all
