@@ -23,5 +23,6 @@
 type content = Source.source
 
 val to_value : ?pos:Pos.t -> content -> Value.t
-val of_value : Value.t -> content
+val source : Value.t -> content
 val is_value : Value.t -> bool
+val fields : Value.t -> Frame.Fields.field list

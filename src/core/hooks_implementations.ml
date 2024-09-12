@@ -19,7 +19,7 @@ let eval_check ~env:_ ~tm v =
       Typing.(Lang_source.source_t ~methods:false s#frame_type <: ty);
       s#content_type_computation_allowed))
   else if Source_tracks.is_value v then (
-    let s = Source_tracks.of_value v in
+    let s = Source_tracks.source v in
     Typing.(s#frame_type <: tm.Term.t))
   else if Track.is_value v then (
     let field, source = Lang_source.to_track v in

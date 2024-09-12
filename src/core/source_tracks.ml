@@ -43,3 +43,18 @@ let to_value ?pos s =
               Some (fun v -> Some (Track.to_value (Frame.Fields.register v, s)));
           }
     | _ -> assert false
+
+let source = of_value
+
+let fields = function
+  | Liquidsoap_lang.Value.Custom { hidden_methods } as v when is_value v ->
+      let source = of_value v in
+      let fields =
+        Frame.Fields.metadata :: Frame.Fields.track_marks
+        :: List.map fst (Frame.Fields.bindings source#content_type)
+      in
+      List.filter
+        (fun field ->
+          not (List.mem (Frame.Fields.string_of_field field) hidden_methods))
+        fields
+  | _ -> assert false

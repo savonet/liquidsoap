@@ -57,6 +57,7 @@ and t =
       pos : Pos.Option.t; [@hash.ignore]
       value : Custom.t; [@hash.ignore]
       methods : t Methods.t;
+      hidden_methods : string list;
       dynamic_methods : (string -> t option) option; [@hash.ignore]
       mutable flags : Flags.flags; [@hash.ignore]
     }
@@ -202,7 +203,15 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
   | `String s -> String { pos; methods; value = s }
   | `Bool b -> Bool { pos; methods; value = b }
   | `Custom c ->
-      Custom { pos; methods; flags; dynamic_methods = None; value = c }
+      Custom
+        {
+          pos;
+          methods;
+          flags;
+          hidden_methods = [];
+          dynamic_methods = None;
+          value = c;
+        }
   | `Null -> Null { pos; methods }
   | `Tuple l -> Tuple { pos; methods; flags; value = l }
   | `List l -> List { pos; methods; flags; value = l }
@@ -257,7 +266,9 @@ let invoke x l =
   try
     match (Methods.find_opt l (methods x), x) with
       | Some v, _ -> v
-      | None, Custom { dynamic_methods = Some fn } -> Option.get (fn l)
+      | None, Custom { hidden_methods; dynamic_methods = Some fn }
+        when not (List.mem l hidden_methods) ->
+          Option.get (fn l)
       | _ -> raise Not_found
   with _ -> failwith ("Could not find method " ^ l ^ " of " ^ to_string x)
 

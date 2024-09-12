@@ -28,7 +28,7 @@ class muxer ~pos ~base tracks =
     List.fold_left
       (fun sources { source } ->
         if List.memq source sources then sources else source :: sources)
-      (match base with Some s -> [s] | None -> [])
+      (match base with Some s -> [Source_tracks.source s] | None -> [])
       tracks
   in
   let fallible = List.exists (fun s -> s#fallible) sources in
@@ -76,19 +76,14 @@ class muxer ~pos ~base tracks =
         | None ->
             let base =
               match base with
-                | Some source ->
-                    let fields =
-                      Frame.Fields.metadata :: Frame.Fields.track_marks
-                      :: List.map fst
-                           (Frame.Fields.bindings source#content_type)
-                    in
+                | Some source_tracks ->
                     let fields =
                       List.map
                         (fun source_field ->
                           { source_field; target_field = source_field })
-                        fields
+                        (Source_tracks.fields source_tracks)
                     in
-                    [{ source; fields }]
+                    [{ source = Source_tracks.source source_tracks; fields }]
                 | None -> []
             in
             let tracks =
@@ -156,7 +151,7 @@ let muxer_operator p =
     match List.assoc "" p with
       | Liquidsoap_lang.Value.Custom { methods } as v
         when Source_tracks.is_value v ->
-          (Some (Source_tracks.of_value v), methods)
+          (Some v, methods)
       | v -> (None, Liquidsoap_lang.Value.methods v)
   in
   let tracks =
@@ -201,7 +196,9 @@ let muxer_operator p =
   Typing.(
     s#frame_type
     <: Lang.frame_t
-         (match base with Some s -> s#frame_type | None -> Lang.univ_t ())
+         (match base with
+           | Some s -> (Source_tracks.source s)#frame_type
+           | None -> Lang.univ_t ())
          target_fields);
   s
 
