@@ -168,7 +168,7 @@ let muxer_operator p =
       []
       (Liquidsoap_lang.Methods.bindings tracks)
   in
-  let s = new muxer ~pos:(Lang.pos p) ~base tracks in
+  let s = new muxer ~pos:(try Lang.pos p with _ -> []) ~base tracks in
   let target_fields =
     List.fold_left
       (fun target_fields { source; fields } ->
