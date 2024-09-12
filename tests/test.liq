@@ -108,9 +108,9 @@ def test.equal(v, v') =
       }"
     print(msg)
 
-    error.raise(error.failure, msg)
+    thread.run({test.fail()})
 
-    test.fail()
+    error.raise(error.failure, msg)
   end
 end
 
@@ -128,9 +128,9 @@ def test.not.equal(first, second) =
 
     print(msg)
 
-    error.raise(error.failure, msg)
+    thread.run({test.fail()})
 
-    test.fail()
+    error.raise(error.failure, msg)
   end
 end
 
@@ -159,6 +159,8 @@ def test.almost_equal(~digits=7, first, second) =
   if
     not is_almost_equal
   then
+    thread.run({test.fail()})
+
     error.raise(
       error.failure,
       "#{string.quote(string(first))} != #{
@@ -166,8 +168,6 @@ def test.almost_equal(~digits=7, first, second) =
       }
        up to #{digits} digits, diff = #{is_almost_equal.diff}."
     )
-
-    test.fail()
   end
 end
 
@@ -180,6 +180,8 @@ def test.not_almost_equal(~digits=7, first, second) =
   if
     is_almost_equal
   then
+    thread.run({test.fail()})
+
     error.raise(
       error.failure,
       "#{string.quote(string(first))} == #{
@@ -187,8 +189,6 @@ def test.not_almost_equal(~digits=7, first, second) =
       }
        up to #{digits} digits, diff = #{is_almost_equal.diff}."
     )
-
-    test.fail()
   end
 end
 
