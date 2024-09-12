@@ -62,7 +62,7 @@ and t =
       pos : Pos.Option.t; [@hash.ignore]
       value : Custom.t; [@hash.ignore]
       methods : t Methods.t;
-      dynamic_methods : dynamic_methods option; [@hash.ignore]
+      dynamic_methods : dynamic_methods option;
       mutable flags : Flags.flags; [@hash.ignore]
     }
   | List of {
