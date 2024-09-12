@@ -40,14 +40,22 @@ let to_value ?pos s =
           {
             p with
             dynamic_methods =
-              Some (fun v -> Some (Track.to_value (Frame.Fields.register v, s)));
+              Some
+                {
+                  hidden_methods = [];
+                  methods =
+                    (fun v ->
+                      Some (Track.to_value (Frame.Fields.register v, s)));
+                };
           }
     | _ -> assert false
 
 let source = of_value
 
 let fields = function
-  | Liquidsoap_lang.Value.Custom { hidden_methods } as v when is_value v ->
+  | Liquidsoap_lang.Value.Custom { dynamic_methods = Some { hidden_methods } }
+    as v
+    when is_value v ->
       let source = of_value v in
       let fields =
         Frame.Fields.metadata :: Frame.Fields.track_marks

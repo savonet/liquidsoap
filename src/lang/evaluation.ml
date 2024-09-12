@@ -187,12 +187,18 @@ and eval_base_term ~eval_check (env : Env.t) tm =
             (Methods.filter (fun n _ -> not (List.mem n methods)))
         in
         match v with
-          | Value.Custom p ->
+          | Value.Custom ({ dynamic_methods = Some d } as p) ->
               Value.Custom
                 {
                   p with
-                  hidden_methods =
-                    List.sort_uniq Stdlib.compare (methods @ p.hidden_methods);
+                  dynamic_methods =
+                    Some
+                      {
+                        d with
+                        hidden_methods =
+                          List.sort_uniq Stdlib.compare
+                            (methods @ d.hidden_methods);
+                      };
                 }
           | v -> v)
     | `Cast { cast = e } -> Value.set_pos (eval ~eval_check env e) tm.t.Type.pos
@@ -201,9 +207,11 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let invoked_value =
           match (Value.Methods.find_opt meth (Value.methods v), v) with
             | Some v, _ -> Some v
-            | None, Value.Custom { hidden_methods; dynamic_methods = Some fn }
+            | ( None,
+                Value.Custom
+                  { dynamic_methods = Some { hidden_methods; methods } } )
               when not (List.mem meth hidden_methods) ->
-                fn meth
+                methods meth
             | _ -> None
         in
         match (invoked_value, invoke_default) with
