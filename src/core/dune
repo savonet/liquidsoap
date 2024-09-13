@@ -233,6 +233,7 @@
   theora_format
   time_warp
   track
+  source_tracks
   track_map
   tutils
   type

@@ -30,6 +30,11 @@ module Methods = Runtime_term.Methods
     when the builtin env change. We mostly keep name and methods. *)
 type env = (string * t) list
 
+and dynamic_methods = {
+  hidden_methods : string list;
+  methods : string -> t option; [@hash.ignore]
+}
+
 and t =
   | Int of {
       pos : Pos.Option.t; [@hash.ignore]
@@ -57,6 +62,7 @@ and t =
       pos : Pos.Option.t; [@hash.ignore]
       value : Custom.t; [@hash.ignore]
       methods : t Methods.t;
+      dynamic_methods : dynamic_methods option;
       mutable flags : Flags.flags; [@hash.ignore]
     }
   | List of {
@@ -200,7 +206,8 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
   | `Float f -> Float { pos; methods; value = f }
   | `String s -> String { pos; methods; value = s }
   | `Bool b -> Bool { pos; methods; value = b }
-  | `Custom c -> Custom { pos; methods; flags; value = c }
+  | `Custom c ->
+      Custom { pos; methods; flags; dynamic_methods = None; value = c }
   | `Null -> Null { pos; methods }
   | `Tuple l -> Tuple { pos; methods; flags; value = l }
   | `List l -> List { pos; methods; flags; value = l }
@@ -252,14 +259,25 @@ let rec to_string v =
 
 (** Find a method in a value. *)
 let invoke x l =
-  try Methods.find l (methods x)
-  with Not_found ->
-    failwith ("Could not find method " ^ l ^ " of " ^ to_string x)
+  try
+    match (Methods.find_opt l (methods x), x) with
+      | Some v, _ -> v
+      | None, Custom { dynamic_methods = Some { hidden_methods; methods } }
+        when not (List.mem l hidden_methods) ->
+          Option.get (methods l)
+      | _ -> raise Not_found
+  with _ -> failwith ("Could not find method " ^ l ^ " of " ^ to_string x)
 
 (** Perform a sequence of invokes: invokes x [l1;l2;l3;...] is x.l1.l2.l3... *)
 let rec invokes x = function l :: ll -> invokes (invoke x l) ll | [] -> x
 
-let demeth e = map_methods e (fun _ -> Methods.empty)
+let demeth e =
+  map_methods
+    (match e with
+      | Custom p ->
+          Custom { p with methods = Methods.empty; dynamic_methods = None }
+      | _ -> e)
+    (fun _ -> Methods.empty)
 
 let remeth t u =
   let t_methods = methods t in
