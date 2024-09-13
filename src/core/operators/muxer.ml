@@ -20,30 +20,22 @@
 
  *****************************************************************************)
 
-type field = {
-  target_field : Frame.field;
-  source_field : Frame.field;
-  processor : Content.data -> Content.data;
-}
-
+type field = { target_field : Frame.field; source_field : Frame.field }
 type track = { mutable fields : field list; source : Source.source }
 
-class muxer tracks =
+class muxer ~pos ~base tracks =
   let sources =
     List.fold_left
       (fun sources { source } ->
         if List.memq source sources then sources else source :: sources)
-      [] tracks
+      (match base with Some s -> [Source_tracks.source s] | None -> [])
+      tracks
   in
   let fallible = List.exists (fun s -> s#fallible) sources in
   let self_sync = Clock_base.self_sync sources in
   object (self)
     (* Pass duplicated list to operator to make sure caching is properly enabled. *)
-    inherit
-      Source.operator
-        ~name:"source"
-        (List.map (fun { source } -> source) tracks)
-
+    inherit Source.operator ~name:"source" sources
     method self_sync = self_sync ~source:self ()
     method fallible = fallible
     method abort_track = List.iter (fun s -> s#abort_track) sources
@@ -76,6 +68,66 @@ class muxer tracks =
         (-1)
         (List.filter (fun (s : Source.source) -> s#is_ready) sources)
 
+    val mutable muxed_tracks = None
+
+    method private tracks =
+      match muxed_tracks with
+        | Some s -> s
+        | None ->
+            let base =
+              match base with
+                | Some source_tracks ->
+                    let fields =
+                      List.map
+                        (fun source_field ->
+                          { source_field; target_field = source_field })
+                        (Source_tracks.fields source_tracks)
+                    in
+                    [{ source = Source_tracks.source source_tracks; fields }]
+                | None -> []
+            in
+            let tracks =
+              match
+                ( base,
+                  List.partition
+                    (fun { source = s } ->
+                      List.exists (fun { source = s' } -> s == s') base)
+                    tracks )
+              with
+                | _, ([], _) -> base @ tracks
+                | [{ fields = f }], ([({ fields = f' } as p)], tracks) ->
+                    {
+                      p with
+                      fields =
+                        f'
+                        @ List.filter
+                            (fun { target_field = t } ->
+                              List.exists
+                                (fun { target_field = t' } -> t = t')
+                                f')
+                            f;
+                    }
+                    :: tracks
+                | _ -> assert false
+            in
+            if
+              List.for_all
+                (fun { fields } ->
+                  List.for_all
+                    (fun { target_field } ->
+                      target_field = Frame.Fields.metadata
+                      || target_field = Frame.Fields.track_marks)
+                    fields)
+                tracks
+            then
+              Runtime_error.raise ~pos
+                ~message:
+                  "source muxer needs at least one track with content that is \
+                   not metadata or track_marks!"
+                "invalid";
+            muxed_tracks <- Some tracks;
+            tracks
+
     method generate_frame =
       let length = Lazy.force Frame.size in
       let pos, frame =
@@ -84,49 +136,39 @@ class muxer tracks =
             let buf = source#get_frame in
             ( min pos (Frame.position buf),
               List.fold_left
-                (fun frame { source_field; target_field; processor } ->
-                  let c = processor (Frame.get buf source_field) in
+                (fun frame { source_field; target_field } ->
+                  let c = Frame.get buf source_field in
                   Frame.set frame target_field c)
                 frame fields ))
           (length, Frame.create ~length Frame.Fields.empty)
-          tracks
+          self#tracks
       in
       Frame.slice frame pos
   end
 
 let muxer_operator p =
-  let tracks = List.assoc "" p in
-  let processor c = c in
+  let base, tracks =
+    match List.assoc "" p with
+      | Liquidsoap_lang.Value.Custom { methods } as v
+        when Source_tracks.is_value v ->
+          (Some v, methods)
+      | v -> (None, Liquidsoap_lang.Value.methods v)
+  in
   let tracks =
     List.fold_left
       (fun tracks (label, t) ->
         let source_field, s = Lang.to_track t in
         let target_field = Frame.Fields.register label in
-        let field = { source_field; target_field; processor } in
+        let field = { source_field; target_field } in
         match List.find_opt (fun { source } -> source == s) tracks with
           | Some track ->
               track.fields <- field :: track.fields;
               tracks
           | None -> { source = s; fields = [field] } :: tracks)
       []
-      (fst (Lang.split_meths tracks))
+      (Liquidsoap_lang.Methods.bindings tracks)
   in
-  if
-    List.for_all
-      (fun { fields } ->
-        List.for_all
-          (fun { target_field } ->
-            target_field = Frame.Fields.metadata
-            || target_field = Frame.Fields.track_marks)
-          fields)
-      tracks
-  then
-    Runtime_error.raise ~pos:(Lang.pos p)
-      ~message:
-        "source muxer needs at least one track with content that is not \
-         metadata or track_marks!"
-      "invalid";
-  let s = new muxer tracks in
+  let s = new muxer ~pos:(try Lang.pos p with _ -> []) ~base tracks in
   let target_fields =
     List.fold_left
       (fun target_fields { source; fields } ->
@@ -151,7 +193,13 @@ let muxer_operator p =
         target_fields)
       Frame.Fields.empty tracks
   in
-  Typing.(s#frame_type <: Lang.frame_t (Lang.univ_t ()) target_fields);
+  Typing.(
+    s#frame_type
+    <: Lang.frame_t
+         (match base with
+           | Some s -> (Source_tracks.source s)#frame_type
+           | None -> Lang.univ_t ())
+         target_fields);
   s
 
 let source =
@@ -199,6 +247,7 @@ let _ =
         Type.filter_meths return_t (fun { Type.meth } ->
             meth <> "metadata" && meth <> "track_marks")
       in
-      let s = Lang.to_source (List.assoc "" env) in
+      let source_val = List.assoc "" env in
+      let s = Lang.to_source source_val in
       Typing.(s#frame_type <: return_t);
-      Lang_source.source_tracks s)
+      Source_tracks.to_value s)
