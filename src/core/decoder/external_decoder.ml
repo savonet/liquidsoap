@@ -120,13 +120,18 @@ let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =
       stream_decoder = Some (fun ~ctype:_ _ -> create_stream process);
     };
 
-  let duration ~metadata:_ filename =
+  let dresolver ~metadata:_ filename =
     let process =
       Printf.sprintf "cat %s | %s" (Filename.quote filename) process
     in
     duration process
   in
-  Plug.register Request.dresolvers name ~doc duration
+  Plug.register Request.dresolvers name ~doc
+    {
+      dpriority = (fun () -> priority);
+      file_extensions = (fun () -> Option.value ~default:[] file_extensions);
+      dresolver;
+    }
 
 (** Now an external decoder that directly operates
   * on the file. The remaining time in this case
@@ -196,5 +201,10 @@ let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
       stream_decoder = None;
     };
 
-  let duration ~metadata:_ filename = duration (process filename) in
-  Plug.register Request.dresolvers name ~doc duration
+  let dresolver ~metadata:_ filename = duration (process filename) in
+  Plug.register Request.dresolvers name ~doc
+    {
+      dpriority = (fun () -> priority);
+      file_extensions = (fun () -> Option.value ~default:[] file_extensions);
+      dresolver;
+    }

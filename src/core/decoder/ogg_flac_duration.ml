@@ -22,7 +22,7 @@
 
 (** Read duration of ogg/flac files. *)
 
-let duration ~metadata:_ file =
+let dresolver ~metadata:_ file =
   let sync, fd = Ogg.Sync.create_from_file file in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)
@@ -63,4 +63,10 @@ let duration ~metadata:_ file =
       if samples <= 0. then raise Not_found;
       samples /. float info.Flac.Decoder.sample_rate)
 
-let () = Plug.register Request.dresolvers "ogg/flac" ~doc:"" duration
+let () =
+  Plug.register Request.dresolvers "ogg/flac" ~doc:""
+    {
+      dpriority = (fun () -> Liq_ogg_decoder.priority#get);
+      file_extensions = (fun () -> Liq_ogg_decoder.file_extensions#get);
+      dresolver;
+    }
