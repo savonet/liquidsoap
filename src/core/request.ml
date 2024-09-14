@@ -121,20 +121,59 @@ let status { status } = Atomic.get status
 let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
   { uri = home_unrelate s; temporary = temporary = Some true; metadata }
 
-(** Length *)
+type dresolver = {
+  dpriority : unit -> int;
+  file_extensions : unit -> string list;
+  dresolver : metadata:Frame.metadata -> string -> float;
+}
+
 let dresolvers_doc = "Methods to extract duration from a file."
 
-let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
+let conf_dresolvers =
+  Dtools.Conf.list ~p:(conf#plug "dresolvers") ~d:[]
+    "Methods to extract file duration."
+
+let f c v =
+  match c#get_d with
+    | None -> c#set_d (Some [v])
+    | Some d -> c#set_d (Some (d @ [v]))
+
+let dresolvers =
+  Plug.create ~doc:dresolvers_doc
+    ~register_hook:(fun name _ -> f conf_dresolvers name)
+    "audio file formats (duration)"
+
+let get_dresolvers ~file () =
+  let extension = try Utils.get_ext file with _ -> "" in
+  let f cur name =
+    match Plug.get dresolvers name with
+      | Some ({ file_extensions } as p)
+        when List.mem extension (file_extensions ()) ->
+          (name, p) :: cur
+      | Some _ -> cur
+      | None ->
+          log#severe "Cannot find duration resolver %s" name;
+          cur
+  in
+  let resolvers = List.fold_left f [] conf_dresolvers#get in
+  List.sort
+    (fun (_, a) (_, b) -> compare (b.dpriority ()) (a.dpriority ()))
+    resolvers
 
 let compute_duration ~metadata file =
   try
-    Plug.iter dresolvers (fun _ resolver ->
+    List.iter
+      (fun (name, { dpriority; dresolver }) ->
         try
-          let ans = resolver ~metadata file in
+          log#info "Trying duration resolver %s (priority: %d) for file %s.."
+            name (dpriority ())
+            (Lang_string.quote_string file);
+          let ans = dresolver ~metadata file in
           raise (Duration ans)
         with
           | Duration e -> raise (Duration e)
-          | _ -> ());
+          | _ -> ())
+      (get_dresolvers ~file ());
     raise Not_found
   with Duration d -> d
 

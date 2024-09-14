@@ -219,14 +219,19 @@ let () =
     }
 
 let () =
-  let duration ~metadata:_ file =
+  let dresolver ~metadata:_ file =
     let w = Wav_aiff.fopen file in
     let ret = Wav_aiff.duration w in
     Wav_aiff.close w;
     ret
   in
   Plug.register Request.dresolvers "wav/aiff"
-    ~doc:"Native computation of wav and aiff files duration." duration
+    ~doc:"Native computation of wav and aiff files duration."
+    {
+      dpriority = (fun () -> aiff_priorities#get);
+      file_extensions = (fun () -> aiff_file_extensions#get);
+      dresolver;
+    }
 
 let basic_mime_types =
   Dtools.Conf.list
