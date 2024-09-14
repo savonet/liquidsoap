@@ -113,6 +113,9 @@ type resolve_flag = [ `Resolved | `Failed | `Timeout ]
 (** Metadata resolvers priorities. *)
 val conf_metadata_decoder_priorities : Dtools.Conf.ut
 
+(** Read the request's metadata. *)
+val read_metadata : t -> unit
+
 (** [resolve request timeout] tries to resolve the request within
     [timeout] seconds. *)
 val resolve : t -> float -> resolve_flag
@@ -165,8 +168,14 @@ val done_playing : source:Source.source -> t -> unit
 
 (** {1 Plugs} *)
 
+type dresolver = {
+  dpriority : unit -> int;
+  file_extensions : unit -> string list;
+  dresolver : metadata:Frame.metadata -> string -> float;
+}
+
 (** Functions for computing duration. *)
-val dresolvers : (metadata:Frame.metadata -> string -> float) Plug.t
+val dresolvers : dresolver Plug.t
 
 (** Type for a metadata resolver. Resolvers are executed in priority
     order and the first returned metadata take precedence over any other

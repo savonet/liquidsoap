@@ -22,10 +22,16 @@
 
 (** Read duration of ogg/vorbis files. *)
 
-let duration ~metadata:_ file =
+let dresolver ~metadata:_ file =
   let dec, fd = Vorbis.File.Decoder.openfile file in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)
     (fun _ -> Vorbis.File.Decoder.duration dec (-1))
 
-let () = Plug.register Request.dresolvers "vorbis" ~doc:"" duration
+let () =
+  Plug.register Request.dresolvers "vorbis" ~doc:""
+    {
+      dpriority = (fun () -> Liq_ogg_decoder.priority#get);
+      file_extensions = (fun () -> Liq_ogg_decoder.file_extensions#get);
+      dresolver;
+    }

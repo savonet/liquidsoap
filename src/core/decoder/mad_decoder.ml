@@ -189,11 +189,16 @@ let check filename =
     true
   with _ -> false
 
-let duration ~metadata:_ file =
+let dresolver ~metadata:_ file =
   if not (check file) then raise Not_found;
   let ans = Mad.duration file in
   match ans with 0. -> raise Not_found | _ -> ans
 
 let () =
   Plug.register Request.dresolvers "mad"
-    ~doc:"Compute duration of mp3 files using MAD library." duration
+    ~doc:"Compute duration of mp3 files using MAD library."
+    {
+      dpriority = (fun () -> priority#get);
+      file_extensions = (fun () -> file_extensions#get);
+      dresolver;
+    }
