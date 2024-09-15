@@ -115,6 +115,19 @@ Known incompatibilities include:
 
 - `(?P<name>pattern)` for named captures is not supported. `(?<name>pattern)` should be used instead.
 
+### `segment_name` in HLS outputs
+
+To make segment name more flexible, `duration` (segment duration in seconds) and `ticks` (segment exact duration in liquidsoap's main ticks) have been added
+to the data available when calling `segment_name`.
+
+To prevent any further breakage of this function, its arguments have been changed to a single record containing all the available attributes:
+
+```liquidsoap
+def segment_name(metadata) =
+  "#{metadata.stream_name}_#{metadata.position}.#{metadata.extname}"
+end
+```
+
 ### `on_air` metadata
 
 Request `on_air` and `on_air_timestamp` metadata are deprecated. These values were never reliable. They are set at the request level when `request.dynamic`
