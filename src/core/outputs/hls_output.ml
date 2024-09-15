@@ -779,11 +779,11 @@ class hls_output p =
           last_segmentable_position = None;
         }
       in
+      let { position; extname } = s in
       let filename () =
         let ticks = segment.len in
         let duration = Frame.seconds_of_main ticks in
-        segment_name ~position:s.position ~extname:s.extname ~duration ~ticks
-          s.name
+        segment_name ~position ~extname ~duration ~ticks s.name
       in
       let out_channel = self#open_out filename in
       Strings.iter out_channel#output_substring (s.encoder.Encoder.header ());

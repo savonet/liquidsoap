@@ -20,7 +20,7 @@ streams =
 
 def segment_name(metadata) =
   timestamp = int_of_float(time())
-  let {stream_name, duration, timestamp, position, extname} = metadata
+  let {stream_name, duration, position, extname} = metadata
   "#{stream_name}_#{duration}_#{timestamp}_#{position}.#{extname}"
 end
 
