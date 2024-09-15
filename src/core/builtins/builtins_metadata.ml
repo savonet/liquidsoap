@@ -45,7 +45,10 @@ let _ =
     ~descr:
       "Parse an amplify metadata. Parsing is the same as in the `amplify` \
        operator. Metadata can be of the form: \"<db> dB\" for a decibel-based \
-       value or \"<float>\" for a linear-based value. Returns a linear value."
+       value or \"<float>\" for a linear-based value. Returns a decibel value."
     [("", Lang.string_t, None, None)]
     Lang.float_t
-    (fun p -> Lang.float (Amplify.parse_db (Lang.to_string (List.assoc "" p))))
+    (fun p ->
+      Lang.float
+        (Mm.Audio.dB_of_lin
+           (Amplify.parse_db (Lang.to_string (List.assoc "" p)))))
