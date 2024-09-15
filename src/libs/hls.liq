@@ -254,8 +254,8 @@ end
 def replaces output.harbor.hls(
   %argsof(output.file.hls[!segment_name]),
   ~segment_name=(
-    fun (~position, ~extname, stream_name) ->
-      "#{stream_name}_#{position}.#{extname}"
+    fun (metadata) ->
+      "#{metadata.stream_name}_#{metadata.position}.#{metadata.extname}"
   ),
   ~headers=[("Access-Control-Allow-Origin", "*")],
   ~port=8000,
@@ -298,8 +298,8 @@ end
 def output.harbor.hls.https(
   %argsof(output.file.hls[!segment_name]),
   ~segment_name=(
-    fun (~position, ~extname, stream_name) ->
-      "#{stream_name}_#{position}.#{extname}"
+    fun (metadata) ->
+      "#{metadata.stream_name}_#{metadata.position}.#{metadata.extname}"
   ),
   ~headers=[("Access-Control-Allow-Origin", "*")],
   ~port=8000,
