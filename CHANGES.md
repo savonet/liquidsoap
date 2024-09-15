@@ -31,13 +31,13 @@ New:
   and taglib, with its dependency on the C++ runtime library, has been causing issues
   with binary builds portability and crashes with the (not yet supported) OCaml 5
   compiler. (#4087)
-- Add `video.canvas` to make it possible to position video elements independently
+- Added `video.canvas` to make it possible to position video elements independently
   of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/))
-- Add cover manager from an original code by @vitoyucepi (#3651)
+- Added cover manager from an original code by @vitoyucepi (#3651)
 - Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
   one stream is encoded.
 - Allow trailing commas in record definition (#3300).
-- Add `metadata.getter.source.float` (#3356).
+- Added `metadata.getter.source.float` (#3356).
 - BREAKING: Added `duration` and `ticks` to metadata available when computing HLS segment names (#4135)
 - Added optional `main_playlist_writer` to `output.file.hls` and
   derivated operator (#3484)
@@ -45,16 +45,17 @@ New:
 - Added `%track.drop` to the `%ffmpeg` encoder to allow partial encoding
   of a source's available tracks (#3480)
 - Added `let { foo? } = ...` pattern matching (#3481)
-- Add `metadata.replaygain` method to extract unified replay gain value from metadata (#3438).
-- Add `compute` parameter to `file.replaygain` to control gain calculation (#3438).
-- Add `compute` parameter to `enable_replaygain_metadata` to control replay gain calculation (#3438).
-- Add `copy:` protocol (#3506)
-- Add `file.touch`.
-- Add support for sqlite databases (#3575).
-- Add `string.of_int` and `string.spaces`.
-- Add `list.assoc.nullable`.
-- Add `source.cue` (#3620).
-- Add `string.chars` (#4111)
+- Added `metadata.replaygain` method to extract unified replay gain value from metadata (#3438).
+- Added `metadata.parse.amplify` to manually parse amplify override metadata.
+- Added `compute` parameter to `file.replaygain` to control gain calculation (#3438).
+- Added `compute` parameter to `enable_replaygain_metadata` to control replay gain calculation (#3438).
+- Added `copy:` protocol (#3506)
+- Added `file.touch`.
+- Added support for sqlite databases (#3575).
+- Added `string.of_int` and `string.spaces`.
+- Added `list.assoc.nullable`.
+- Added `source.cue` (#3620).
+- Added `string.chars` (#4111)
 - Added atomic file write operations.
 
 Changed:
@@ -81,7 +82,7 @@ Changed:
   `runtime.gc.quick_stat()` (#3783).
 - Changed the port for the built-in Prometheus exporter to `9599` (#3801).
 - Set `segments_overheader` in HLS outputs to disable segments cleanup altogether.
-- Add support for caching LV2 and LADSPA plugins (#3959).
+- Added support for caching LV2 and LADSPA plugins (#3959).
 
 Fixed:
 

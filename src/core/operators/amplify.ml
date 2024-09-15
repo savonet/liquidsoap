@@ -23,6 +23,9 @@
 open Mm
 open Source
 
+let parse_db s =
+  try Scanf.sscanf s " %f dB" Audio.lin_of_dB with _ -> float_of_string s
+
 class amplify ~field (source : source) override_field coeff =
   object (self)
     inherit operator ~name:"track.audio.amplify" [source]
@@ -68,11 +71,7 @@ class amplify ~field (source : source) override_field coeff =
             List.iter
               (fun (_, m) ->
                 try
-                  let s = Frame.Metadata.find f m in
-                  let k =
-                    try Scanf.sscanf s " %f dB" Audio.lin_of_dB
-                    with _ -> float_of_string s
-                  in
+                  let k = parse_db (Frame.Metadata.find f m) in
                   self#log#info "Overriding amplification: %f." k;
                   override <- Some k
                 with _ -> ())
