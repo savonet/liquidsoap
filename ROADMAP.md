@@ -63,5 +63,3 @@
   - we want to get rid of the assumption clock = thread (Feasible but problem with OCaml 5)
 - ~~Optimize runtime: start time, typing and memory usage~~
 - ~~javascrtipt/browser support using [WebCodecs](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API)!~~
-
-
