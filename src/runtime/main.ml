@@ -113,7 +113,7 @@ let eval_script expr =
           (Lang.eval ~toplevel ~cache:!cache ~stdlib ~deprecated:!deprecated
              ~name:"main script" expr);
         if not (Lang_eval.effective_toplevel ~stdlib toplevel) then
-          Environment.clear_environments ()
+          Environment.clear_toplevel_environments ()
 
 (** Evaluate the user script. *)
 let eval () =
