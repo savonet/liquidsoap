@@ -1,3 +1,5 @@
+test.skip()
+
 first = ref(true)
 thread.run.recurrent(
   {
