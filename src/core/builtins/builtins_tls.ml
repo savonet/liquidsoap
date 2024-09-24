@@ -44,12 +44,12 @@ module Liq_tls = struct
       (Tls.Packet.alert_type_to_string typ)
 
   let write_all ~timeout fd data =
-    Tutils.write_all ~timeout fd (Cstruct.to_bytes data)
+    Tutils.write_all ~timeout fd (Bytes.unsafe_of_string data)
 
   let read ~timeout h len =
     Tutils.wait_for (`Read h.fd) timeout;
     let n = Unix.read h.fd h.buf 0 (min len buf_len) in
-    Cstruct.of_bytes ~len:n h.buf
+    Bytes.sub_string h.buf 0 n
 
   let read_pending h = function
     | None -> ()
@@ -69,7 +69,7 @@ module Liq_tls = struct
                 "tls"
           | Ok (state, None, `Response response, `Data data) ->
               h.state <- state;
-              read_pending h data;
+              read_pending h (Option.map Cstruct.of_string data);
               write_response ~timeout h response;
               f ()
           | Error (error, `Response response) ->
@@ -101,7 +101,7 @@ module Liq_tls = struct
   let write ?timeout h b off len =
     let timeout = Option.value ~default:Harbor_base.conf_timeout#get timeout in
     match
-      Tls.Engine.send_application_data h.state [Cstruct.of_bytes ~off ~len b]
+      Tls.Engine.send_application_data h.state [Bytes.sub_string b off len]
     with
       | None -> len
       | Some (state, data) ->
@@ -136,12 +136,11 @@ module Liq_tls = struct
                 | Some `Eof, None -> 0
                 | _, None -> f ()
                 | _, Some data ->
-                    let data_len = Cstruct.length data in
+                    let data_len = String.length data in
                     let n = min data_len len in
-                    Cstruct.blit_to_bytes data 0 b off n;
+                    Bytes.blit_string data 0 b off n;
                     if n < data_len then
-                      Buffer.add_string h.read_pending
-                        (Cstruct.to_string data ~off:n ~len:(data_len - n));
+                      Buffer.add_substring h.read_pending data n (data_len - n);
                     n)
           | Error (error, `Response response) ->
               write_all ~timeout:write_timeout h.fd response;
@@ -182,16 +181,18 @@ let tls_socket ~session transport =
 let server ~read_timeout ~write_timeout ~certificate ~key transport =
   let server =
     try
-      let certificate = Cstruct.of_string (Utils.read_all (certificate ())) in
+      let certificate = Utils.read_all (certificate ()) in
       let certificates =
         Result.get_ok (X509.Certificate.decode_pem_multiple certificate)
       in
       let key =
-        Result.get_ok
-          (X509.Private_key.decode_pem
-             (Cstruct.of_string (Utils.read_all (key ()))))
+        Result.get_ok (X509.Private_key.decode_pem (Utils.read_all (key ())))
       in
-      Tls.Config.server ~certificates:(`Single (certificates, key)) ()
+      match
+        Tls.Config.server ~certificates:(`Single (certificates, key)) ()
+      with
+        | Ok server -> server
+        | Error (`Msg message) -> Runtime_error.raise ~pos:[] ~message "tls"
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
       Lang.raise_as_runtime ~bt ~kind:"tls" exn
@@ -226,7 +227,7 @@ let transport ~read_timeout ~write_timeout ~certificate ~key () =
           let certificates =
             Result.get_ok
               (X509.Certificate.decode_pem_multiple
-                 (Cstruct.of_string (Utils.read_all (certificate ()))))
+                 (Utils.read_all (certificate ())))
           in
           Some
             (X509.Authenticator.chain_of_trust
@@ -241,7 +242,11 @@ let transport ~read_timeout ~write_timeout ~certificate ~key () =
               let r = auth ?ip ~host certs in
               if Result.is_ok r then r else authenticator ?ip ~host certs
       in
-      let client = Tls.Config.client ~authenticator ~peer_name:domain () in
+      let client =
+        match Tls.Config.client ~authenticator ~peer_name:domain () with
+          | Ok client -> client
+          | Error (`Msg message) -> Runtime_error.raise ~pos:[] ~message "tls"
+      in
       let fd = Http.connect ?bind_address ~timeout ?prefer host port in
       let session = Liq_tls.init_client ~timeout ~client fd in
       tls_socket ~session self
