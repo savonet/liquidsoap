@@ -139,7 +139,7 @@ def http.response(
         getter.is_constant(data)
       then
         data = getter.get(data)
-        len = string.length(encoding="ascii", data)
+        len = string.bytes.length(data)
         if
           data != ""
         then
@@ -181,7 +181,7 @@ def http.response(
       getter.get(data)
     else
       data = getter.get(data)
-      len = string.length(encoding="ascii", data)
+      len = string.bytes.length(data)
       response_ended := data == ""
       "#{string.hex_of_int(len)}\r\n#{data}\r\n"
     end
@@ -311,10 +311,7 @@ def harbor.http.regexp_of_path(path) =
   def named_capture(s) =
     name =
       string.sub(
-        encoding="ascii",
-        s,
-        start=1,
-        length=string.length(encoding="ascii", s) - 1
+        encoding="ascii", s, start=1, length=string.bytes.length(s) - 1
       )
     "(?<#{name}>[^/]+)"
   end
@@ -520,7 +517,7 @@ def harbor.http.static.base(
       string.sub(
         encoding="ascii",
         basepath,
-        start=string.length(encoding="ascii", basepath) - 1,
+        start=string.bytes.length(basepath) - 1,
         length=1
       ) !=
         "/"
@@ -598,7 +595,7 @@ end
 # @flag hidden
 def http.string_of_float(x) =
   s = string(x)
-  n = string.length(encoding="ascii", s)
+  n = string.bytes.length(s)
   if
     string.sub(encoding="ascii", s, start=n - 1, length=1) == "."
   then
@@ -967,7 +964,7 @@ def http.headers.content_disposition(headers) =
             type: string,
             filename?: string,
             name?: string,
-            args: [(string*string?)]
+            args: [(string * string?)]
           }
         )
       end,

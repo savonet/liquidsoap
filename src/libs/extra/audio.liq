@@ -303,7 +303,7 @@ end
 def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf) =
   l = ref([])
   for i = 0 to
-    string.length(encoding="ascii", dtmf) - 1
+    string.bytes.length(dtmf) - 1
   do
     c = string.sub(encoding="ascii", dtmf, start=i, length=1)
     let (row, col) =
