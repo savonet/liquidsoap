@@ -139,10 +139,11 @@ def http.response(
         getter.is_constant(data)
       then
         data = getter.get(data)
+        len = string.length(encoding="ascii", data)
         if
           data != ""
         then
-          ("Content-Length", "#{string.length(data)}")::headers
+          ("Content-Length", "#{len}")::headers
         else
           headers
         end
@@ -308,7 +309,13 @@ end
 # @flag hidden
 def harbor.http.regexp_of_path(path) =
   def named_capture(s) =
-    name = string.sub(encoding="ascii", s, start=1, length=string.length(encoding="ascii", s) - 1)
+    name =
+      string.sub(
+        encoding="ascii",
+        s,
+        start=1,
+        length=string.length(encoding="ascii", s) - 1
+      )
     "(?<#{name}>[^/]+)"
   end
 
@@ -510,7 +517,13 @@ def harbor.http.static.base(
 
   basepath =
     if
-      string.sub(encoding="ascii", basepath, start=string.length(encoding="ascii", basepath) - 1, length=1) != "/"
+      string.sub(
+        encoding="ascii",
+        basepath,
+        start=string.length(encoding="ascii", basepath) - 1,
+        length=1
+      ) !=
+        "/"
     then
       basepath ^ "/"
     else
@@ -586,7 +599,13 @@ end
 def http.string_of_float(x) =
   s = string(x)
   n = string.length(encoding="ascii", s)
-  if string.sub(encoding="ascii", s, start=n - 1, length=1) == "." then s ^ "0" else s end
+  if
+    string.sub(encoding="ascii", s, start=n - 1, length=1) == "."
+  then
+    s ^ "0"
+  else
+    s
+  end
 end
 
 # @flag hidden
