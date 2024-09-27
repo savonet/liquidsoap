@@ -321,10 +321,10 @@ def file.metadata.flac.cover.encode(
   data
 ) =
   def encode_string(s) =
-    len = 1 + (string.length(encoding="ascii", s) / 8)
+    len = 1 + (string.bytes.length(s) / 8)
     str_len = string.binary.of_int(little_endian=false, pad=4, len)
     if
-      string.length(encoding="ascii", str_len) > 4
+      string.bytes.length(str_len) > 4
     then
       error.raise(
         error.invalid,
@@ -332,7 +332,7 @@ def file.metadata.flac.cover.encode(
       )
     end
 
-    pad = string.make(char_code=0, len * 8 - string.length(encoding="ascii", s))
+    pad = string.make(char_code=0, len * 8 - string.bytes.length(s))
     (str_len, "#{s}#{pad}")
   end
 

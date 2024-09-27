@@ -139,10 +139,11 @@ def http.response(
         getter.is_constant(data)
       then
         data = getter.get(data)
+        len = string.bytes.length(data)
         if
           data != ""
         then
-          ("Content-Length", "#{string.length(data)}")::headers
+          ("Content-Length", "#{len}")::headers
         else
           headers
         end
@@ -180,7 +181,7 @@ def http.response(
       getter.get(data)
     else
       data = getter.get(data)
-      len = string.length(encoding="ascii", data)
+      len = string.bytes.length(data)
       response_ended := data == ""
       "#{string.hex_of_int(len)}\r\n#{data}\r\n"
     end
@@ -308,7 +309,10 @@ end
 # @flag hidden
 def harbor.http.regexp_of_path(path) =
   def named_capture(s) =
-    name = string.sub(encoding="ascii", s, start=1, length=string.length(encoding="ascii", s) - 1)
+    name =
+      string.sub(
+        encoding="ascii", s, start=1, length=string.bytes.length(s) - 1
+      )
     "(?<#{name}>[^/]+)"
   end
 
@@ -510,7 +514,13 @@ def harbor.http.static.base(
 
   basepath =
     if
-      string.sub(encoding="ascii", basepath, start=string.length(encoding="ascii", basepath) - 1, length=1) != "/"
+      string.sub(
+        encoding="ascii",
+        basepath,
+        start=string.bytes.length(basepath) - 1,
+        length=1
+      ) !=
+        "/"
     then
       basepath ^ "/"
     else
@@ -585,8 +595,14 @@ end
 # @flag hidden
 def http.string_of_float(x) =
   s = string(x)
-  n = string.length(encoding="ascii", s)
-  if string.sub(encoding="ascii", s, start=n - 1, length=1) == "." then s ^ "0" else s end
+  n = string.bytes.length(s)
+  if
+    string.sub(encoding="ascii", s, start=n - 1, length=1) == "."
+  then
+    s ^ "0"
+  else
+    s
+  end
 end
 
 # @flag hidden
@@ -948,7 +964,7 @@ def http.headers.content_disposition(headers) =
             type: string,
             filename?: string,
             name?: string,
-            args: [(string*string?)]
+            args: [(string * string?)]
           }
         )
       end,
