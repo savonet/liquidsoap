@@ -35,6 +35,18 @@ def string.split(~separator, s) =
   regexp(separator).split(s)
 end
 
+# Return an array of the string's bytes.
+# @category String
+def string.bytes(s) =
+  string.split(separator="", s)
+end
+
+# Return the length of the string in bytes.
+# @category String
+def string.bytes.length(s) =
+  string.length(encoding="ascii", s)
+end
+
 # Split a string in two at first "separator".
 # @category String
 def string.split.first(~encoding=null(), ~separator, s) =
@@ -170,7 +182,7 @@ def string.of_int(~digits=0, n) =
   then
     s
   else
-    string.make(char_code=48, digits - string.length(s)) ^ s
+    string.make(char_code=48, digits - string.bytes.length(s)) ^ s
   end
 end
 
@@ -189,7 +201,7 @@ let string.binary = ()
 # @param s String containing the binary representation.
 def string.binary.to_int(~little_endian=true, s) =
   ans = ref(0)
-  n = string.length(encoding="ascii", s)
+  n = string.bytes.length(s)
   for i = 0 to
     n - 1
   do
@@ -225,7 +237,7 @@ def string.binary.of_int(~pad=0, ~little_endian=true, d) =
 
   ret = d == 0 ? "\\x00" : f(d, "")
   ret = string.unescape(ret)
-  len = string.length(encoding="ascii", ret)
+  len = string.bytes.length(ret)
   if
     len < pad
   then
