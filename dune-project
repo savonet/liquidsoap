@@ -18,7 +18,9 @@
   (depends
     (liquidsoap-core (= :version))
     (liquidsoap-libs (and (>= 2.3.0) (< 2.3.1)))
-    (liquidsoap-libs-extra (and (>= 2.3.0) (< 2.3.1))))
+    (liquidsoap-libs-extra (and (>= 2.3.0) (< 2.3.1)))
+    (pandoc :with-doc)
+    (pandoc-include :with-doc))
   (synopsis "Swiss-army knife for multimedia streaming")
   (description
 "\| Liquidsoap is a powerful and flexible language for describing your

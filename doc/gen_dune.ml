@@ -33,6 +33,7 @@ let mk_subst_rule f =
       {|
 (rule
   (alias doc)
+  (package liquidsoap)
   (deps
     (:subst_md ./subst_md.exe)
     (:in_md content/%s))
@@ -48,6 +49,7 @@ let mk_html_rule ~liq ~content f =
     {|
 (rule
   (alias doc)
+  (package liquidsoap)
   (enabled_if (not %%{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target %s)
@@ -56,6 +58,7 @@ let mk_html_rule ~liq ~content f =
 
 (rule
   (alias doc)
+  (package liquidsoap)
   (enabled_if %%{bin-available:pandoc})
   (deps
     liquidsoap.xml
@@ -95,6 +98,7 @@ let mk_generated_rule (file, option, header) =
     {|
 (rule
   (alias doc)
+  (package liquidsoap)
   (deps
     %s
     (source_tree ../src/libs))
