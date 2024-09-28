@@ -234,7 +234,7 @@ and stop c =
         x.log#debug "Clock stopping";
         Atomic.set clock.state (`Stopping x)
 
-let started = Atomic.make false
+let clocks_started = Atomic.make false
 let global_stop = Atomic.make false
 
 exception Has_stopped
@@ -362,6 +362,11 @@ let _after_tick ~clock x =
           x.log#severe "We must catchup %.2f seconds!"
             Time.(to_float (end_time |-| target_time)))
 
+let started c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Stopping _ | `Started _ -> true
+    | `Stopped _ -> false
+
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
@@ -452,7 +457,7 @@ and _can_start ?(force = false) clock =
            match s#source_type with `Output _ -> true | _ -> false)
   in
   let can_start =
-    (not (Atomic.get global_stop)) && (force || Atomic.get started)
+    (not (Atomic.get global_stop)) && (force || Atomic.get clocks_started)
   in
   match (can_start, has_output, Atomic.get clock.state) with
     | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
@@ -538,7 +543,7 @@ let start_pending () =
 
 let () =
   Lifecycle.before_start ~name:"Clocks start" (fun () ->
-      Atomic.set started true;
+      Atomic.set clocks_started true;
       start_pending ())
 
 let on_tick c fn =

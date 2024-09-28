@@ -238,8 +238,8 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep =
-      match Atomic.get streaming_state with
-        | `Ready _ | `Unavailable ->
+      match (Clock.started self#clock, Atomic.get streaming_state) with
+        | true, (`Ready _ | `Unavailable) ->
             Clock.after_tick self#clock (fun () -> self#force_sleep)
         | _ -> self#force_sleep
 
