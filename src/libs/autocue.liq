@@ -28,11 +28,12 @@ let settings.autocue.preferred =
 let settings.autocue.amplify_behavior =
   settings.make(
     description=
-      "How to proceed with amplify data when `\"liq_amplify\"` is set. One of: \
-       `\"keep\"` (prefer user-provided value), `\"override\"` (always override \
-       with computed value), `\"ignore\"` (ignore/suppress loudness \
-       adjustment).",
-    "keep"
+      "How to proceed with loudness adjustment. Set to `\"override\"` to always prefer
+      the value provided by the `autocue` provider. Set to `\"ignore\"` to ignore all
+      loudness correction provided via the `autocue` provider. Set to
+      `\"keep\"` to always prefer user-provided values (via request annotation or file tags)
+      over values provided by the `autocue` provider.",
+    "override"
   )
 
 let settings.autocue.amplify_aliases =
@@ -976,10 +977,12 @@ def enable_autocue_metadata() =
               label="autocue.metadata",
               "User-supplied amplify metadata detected: #{
                 user_supplied_amplify_labels
-              }, overriding with data."
+              }, overriding with autocue data."
             )
             [
-              ...list.assoc.remove("liq_amplify", autocue_metadata),
+              ...autocue_metadata,
+              # This replaces all user-provided tags with the value returned by
+              # the autocue implementation.
               ...list.map(
                 fun (lbl) -> (lbl, autocue_metadata["liq_amplify"]),
                 user_supplied_amplify
