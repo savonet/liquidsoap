@@ -92,6 +92,7 @@ val id : t -> string
 val descr : t -> string
 val sync : t -> sync_mode
 val start : ?force:bool -> t -> unit
+val started : t -> bool
 val stop : t -> unit
 val set_stack : t -> Liquidsoap_lang.Pos.t list -> unit
 val self_sync : t -> bool
