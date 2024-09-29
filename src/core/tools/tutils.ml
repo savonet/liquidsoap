@@ -71,7 +71,7 @@ let exit () =
 let generic_queues =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "generic_queues")
-    ~d:2 "Generic queues"
+    ~d:5 "Generic queues"
     ~comments:
       [
         "Number of event queues accepting any kind of task.";
