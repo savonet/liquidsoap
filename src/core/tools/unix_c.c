@@ -1,18 +1,20 @@
 #include <caml/alloc.h>
+#include <caml/memory.h>
 #include <caml/misc.h>
 #include <caml/mlvalues.h>
 #include <caml/unixsupport.h>
-#include <caml/memory.h>
-#include <locale.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <time.h>
 #include <errno.h>
+#include <locale.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <time.h>
 
 #ifdef WIN32
-#include <windows.h>
+#include <processthreadsapi.h>
 #include <stdio.h>
+#include <windows.h>
 #else
+#include <pthread.h>
 #include <unistd.h>
 #endif
 
@@ -20,10 +22,9 @@
  * be "C", otherwise float_of_string and other functions do not behave
  * as expected. This issues arises in particular when using telnet
  * commands that need floats and when loading modules in bytecode mode.. */
-CAMLprim value liquidsoap_set_locale(value _locale)
-{
+CAMLprim value liquidsoap_set_locale(value _locale) {
   CAMLparam1(_locale);
-  const char* locale = String_val(_locale);
+  const char *locale = String_val(_locale);
 
 #ifdef WIN32
   char var[LOCALE_NAME_MAX_LENGTH];
@@ -32,11 +33,11 @@ CAMLprim value liquidsoap_set_locale(value _locale)
   snprintf(var, LOCALE_NAME_MAX_LENGTH, "LC_ALL=%s", locale);
   putenv(var);
 #else
-  setenv("LANG",locale,1);
-  setenv("LC_ALL",locale,1);
+  setenv("LANG", locale, 1);
+  setenv("LC_ALL", locale, 1);
 #endif
   /* This set the locale. */
-  setlocale (LC_ALL, locale);
+  setlocale(LC_ALL, locale);
   CAMLreturn(Val_unit);
 }
 
@@ -68,9 +69,11 @@ CAMLprim value liquidsoap_mktime(value _tm) {
   tm.tm_year = Int_val(Field(_tm, 5));
   tm.tm_wday = 0;
   tm.tm_yday = 0;
-  tm.tm_isdst = Field(_tm, 6) == Val_int(0) ? -1 : Bool_val(Field(Field(_tm, 6), 0));
+  tm.tm_isdst =
+      Field(_tm, 6) == Val_int(0) ? -1 : Bool_val(Field(Field(_tm, 6), 0));
   time = mktime(&tm);
-  if (time == -1) unix_error(ERANGE, "mktime", Nothing);
+  if (time == -1)
+    unix_error(ERANGE, "mktime", Nothing);
 
   CAMLreturn(caml_copy_double((double)time));
 }
@@ -83,4 +86,15 @@ CAMLprim value liquidsoap_get_pagesize() {
 #else
   return Val_int(getpagesize());
 #endif
+}
+
+CAMLprim value liquidsoap_set_thread_name(value _name) {
+#ifdef WIN32
+  SetThreadName(GetCurrentThreadId(), String_val(_name));
+#elif __APPLE__
+  pthread_setname_np(String_val(_name));
+#else
+  pthread_setname_np(gettid(), String_val(_name));
+#endif
+  return Val_unit;
 }
