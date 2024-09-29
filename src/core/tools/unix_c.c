@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <windows.h>
 #else
+#define _GNU_SOURCE
 #include <pthread.h>
 #include <unistd.h>
 #endif
@@ -90,7 +91,7 @@ CAMLprim value liquidsoap_get_pagesize() {
 
 CAMLprim value liquidsoap_set_thread_name(value _name) {
 #ifdef WIN32
-  SetThreadName(GetCurrentThreadId(), String_val(_name));
+  SetThreadDescription(GetCurrentThreadId(), String_val(_name));
 #elif __APPLE__
   pthread_setname_np(String_val(_name));
 #else
