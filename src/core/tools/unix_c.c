@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <windows.h>
 #else
-#define _GNU_SOURCE
 #include <pthread.h>
 #include <unistd.h>
 #endif
@@ -95,7 +94,7 @@ CAMLprim value liquidsoap_set_thread_name(value _name) {
 #elif __APPLE__
   pthread_setname_np(String_val(_name));
 #else
-  pthread_setname_np(gettid(), String_val(_name));
+  pthread_setname_np(pthread_self(), String_val(_name));
 #endif
   return Val_unit;
 }
