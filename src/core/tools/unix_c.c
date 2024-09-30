@@ -1,6 +1,5 @@
-#ifdef WIN32
+#ifdef _WIN32
 #include <processthreadsapi.h>
-#include <stdio.h>
 #include <windows.h>
 #else
 #define _GNU_SOURCE
@@ -8,7 +7,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <pthread_np.h>
 #endif
 #endif
@@ -17,6 +16,7 @@
 #include <caml/memory.h>
 #include <caml/misc.h>
 #include <caml/mlvalues.h>
+#include <caml/osdeps.h>
 #include <caml/unixsupport.h>
 #include <errno.h>
 #include <locale.h>
@@ -32,7 +32,7 @@ CAMLprim value liquidsoap_set_locale(value _locale) {
   CAMLparam1(_locale);
   const char *locale = String_val(_locale);
 
-#ifdef WIN32
+#ifdef _WIN32
   char var[LOCALE_NAME_MAX_LENGTH];
   snprintf(var, LOCALE_NAME_MAX_LENGTH, "LANG=%s", locale);
   putenv(var);
@@ -85,7 +85,7 @@ CAMLprim value liquidsoap_mktime(value _tm) {
 }
 
 CAMLprim value liquidsoap_get_pagesize() {
-#ifdef WIN32
+#ifdef _WIN32
   SYSTEM_INFO systemInfo;
   GetSystemInfo(&systemInfo);
   return Val_int(systemInfo.dwPageSize);
@@ -95,10 +95,14 @@ CAMLprim value liquidsoap_get_pagesize() {
 }
 
 CAMLprim value liquidsoap_set_thread_name(value _name) {
-#ifdef WIN32
-  SetThreadDescription(GetCurrentThreadId(), String_val(_name));
-#elif __APPLE__
+#if defined(_WIN32)
+  char_os *thread_name = caml_stat_strdup_to_os(String_val(_name));
+  SetThreadDescription(GetCurrentThread(), thread_name);
+  caml_stat_free(thread_name);
+#elif defined(__APPLE__)
   pthread_setname_np(String_val(_name));
+#elif defined(__NetBSD__)
+  pthread_setname_np(pthread_self(), "%s", String_val(_name));
 #else
   pthread_setname_np(pthread_self(), String_val(_name));
 #endif
