@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <windows.h>
 #else
+#define _GNU_SOURCE
 #include <pthread.h>
 #include <unistd.h>
 #endif
