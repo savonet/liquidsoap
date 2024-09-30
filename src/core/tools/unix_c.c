@@ -1,3 +1,21 @@
+#ifdef WIN32
+#include <processthreadsapi.h>
+#include <stdio.h>
+#include <windows.h>
+#else
+
+#ifdef __linux_
+#define _GNU_SOURCE
+#endif
+
+#ifdef __FreeBSD__
+#include <pthread_np.h>
+#endif
+
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
 #include <caml/alloc.h>
 #include <caml/memory.h>
 #include <caml/misc.h>
@@ -8,16 +26,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <time.h>
-
-#ifdef WIN32
-#include <processthreadsapi.h>
-#include <stdio.h>
-#include <windows.h>
-#else
-#define _GNU_SOURCE
-#include <pthread.h>
-#include <unistd.h>
-#endif
 
 /* Some libraries mess with locale. In OCaml, locale should always
  * be "C", otherwise float_of_string and other functions do not behave
