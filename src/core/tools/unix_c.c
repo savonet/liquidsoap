@@ -3,17 +3,14 @@
 #include <stdio.h>
 #include <windows.h>
 #else
-
-#ifdef __linux_
 #define _GNU_SOURCE
-#endif
+
+#include <pthread.h>
+#include <unistd.h>
 
 #ifdef __FreeBSD__
 #include <pthread_np.h>
 #endif
-
-#include <pthread.h>
-#include <unistd.h>
 #endif
 
 #include <caml/alloc.h>
