@@ -194,18 +194,19 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
     p = pending()
     pending := null()
     last_meta := null()
+
     if
       null.defined(p)
     then
       p = null.get(p)
       sequence(merge=merge, [p, s])
     else
-      s
+      null()
     end
   end
 
-  d = source.dynamic(track_sensitive=true, next)
-  s = fallback(id=id, track_sensitive=true, [d, s])
+  d = source.dynamic(track_sensitive=false, next)
+  s = fallback(id=id, track_sensitive=false, [d, s])
   s.{
     pending=
       # Return the pending source

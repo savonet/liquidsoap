@@ -819,6 +819,38 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  append-merge.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} append-merge.liq liquidsoap %{test_liq} append-merge.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  append.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} append.liq liquidsoap %{test_liq} append.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   default_format.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
