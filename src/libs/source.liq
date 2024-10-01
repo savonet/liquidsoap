@@ -205,8 +205,8 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
     end
   end
 
-  d = source.dynamic(track_sensitive=false, next)
-  s = fallback(id=id, track_sensitive=false, [d, s])
+  d = source.dynamic(track_sensitive=true, next)
+  s = fallback(id=id, track_sensitive=true, [d, s])
   s.{
     pending=
       # Return the pending source

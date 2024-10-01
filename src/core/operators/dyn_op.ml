@@ -72,7 +72,8 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
 
     method private get_source ~reselect () =
       match (Atomic.get source, reselect) with
-        | None, _ | _, `Force -> self#get_next reselect
+        | None, _ | _, `Force | Some _, `After_position _ ->
+            self#get_next reselect
         | Some s, _ when self#can_reselect ~reselect s -> Some s
         | Some _, _ when Unix.gettimeofday () -. last_select < resurection_time
           ->
