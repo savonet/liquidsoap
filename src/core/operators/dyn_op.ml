@@ -44,7 +44,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                "Infallible source.dynamic %s was not able to prepare a source \
                 in time! Make sure to eithe define infallible sources in the \
                 source's dynamic function or mark the source as fallible.."
-               s#id)
+               self#id)
           "failure";
       None
 
