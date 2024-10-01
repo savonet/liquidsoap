@@ -36,6 +36,18 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
     val proposed = Atomic.make None
     method propose s = Atomic.set proposed (Some s)
 
+    method private no_source =
+      if infallible then
+        Lang.raise_error ~pos:[]
+          ~message:
+            (Printf.sprintf
+               "Infallible source.dynamic %s was not able to prepare a source \
+                in time! Make sure to eithe define infallible sources in the \
+                source's dynamic function or mark the source as fallible.."
+               s#id)
+          "failure";
+      None
+
     method private prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
@@ -43,7 +55,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
       (match Atomic.exchange source (Some s) with
         | Some s -> s#sleep
         | None -> ());
-      if s#is_ready then Some s else None
+      if s#is_ready then Some s else self#no_source
 
     method private get_next reselect =
       self#mutexify
@@ -66,7 +78,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                                      | v -> v)
                                  s ->
                             Some s
-                        | _ -> None)
+                        | _ -> self#no_source)
                   | Some s -> self#prepare s))
         ()
 
