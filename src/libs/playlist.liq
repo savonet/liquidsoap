@@ -185,6 +185,7 @@ let stdlib_native = native
 #  whole round ("randomize" mode), or pick a random file in the playlist each time \
 #  ("random" mode).
 # @param ~native Use native implementation, when available.
+# @param ~thread_queue Queue used to resolve requests.
 # @param ~on_loop Function executed when the playlist is about to loop.
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
@@ -197,6 +198,7 @@ let stdlib_native = native
 # @method remaining_files Songs remaining to be played.
 def playlist.list(
   ~id=null(),
+  ~thread_queue="generic",
   ~check_next=null(),
   ~prefetch=null(),
   ~loop=true,
@@ -263,6 +265,7 @@ def playlist.list(
     fun () ->
       request.dynamic(
         id=id,
+        thread_queue=thread_queue,
         prefetch=prefetch,
         timeout=timeout,
         retry_delay=1.,
@@ -272,7 +275,13 @@ def playlist.list(
 
   s =
 %ifdef native
-    if native then stdlib_native.request.dynamic(id=id, next) else default() end
+    if
+      native
+    then
+      stdlib_native.request.dynamic(id=id, thread_queue=thread_queue, next)
+    else
+      default()
+    end
 %else
     default()
 %endif
@@ -455,6 +464,7 @@ end
 #  the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is \
 #  changed).
 # @param ~timeout Timeout (in sec.) for a single download.
+# @param ~thread_queue Queue used to resolve requests.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri Playlist URI.
@@ -463,6 +473,7 @@ end
 # @method remaining_files Songs remaining to be played.
 def replaces playlist(
   ~id=null(),
+  ~thread_queue="generic",
   ~check_next=null(),
   ~prefetch=null(),
   ~loop=true,
@@ -582,6 +593,7 @@ def replaces playlist(
   s =
     playlist.list(
       id=id,
+      thread_queue=thread_queue,
       check_next=check_next,
       prefetch=prefetch,
       loop=loop,

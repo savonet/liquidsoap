@@ -170,7 +170,7 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     if list.length(queue()) < prefetch then ignore(fetch()) end
   end
 
-  thread.run(every=retry_delay, fill)
+  thread.run(queue=thread_queue, every=retry_delay, fill)
 
   # Source
   def s() =
