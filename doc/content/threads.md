@@ -23,7 +23,7 @@ By convention, tasks that are known to be executing very fast should be sent to 
 
 You can decide which queue to send tasks to by using the `queue` parameter of the
 `thread.run` functions. Some other operators who also use threads can have a similar
-parameter such as `queue_name` for `request.dynamic` and `playlist`.
+parameter such as `thread_queue` for `request.dynamic` and `playlist`.
 
 ```{.liquidsoap include="task-with-queue.liq"}
 
