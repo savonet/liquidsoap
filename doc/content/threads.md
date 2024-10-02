@@ -28,6 +28,7 @@ parameter such as `thread_queue` for `request.dynamic` and `playlist`.
 You can also define your own named queue using the `settings.scheduler.queues` setting.
 
 ```{.liquidsoap include="task-with-queue.liq"}
+
 ```
 
 This is particularly useful for two applications:
