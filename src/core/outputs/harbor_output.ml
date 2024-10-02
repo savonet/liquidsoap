@@ -261,7 +261,7 @@ let add_meta c data =
 
 let rec client_task c =
   let* data =
-    Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
+    Duppy.Monad.Io.exec ~priority:`Generic c.handler
       (Mutex_utils.mutexify c.mutex
          (fun () ->
            let buflen = Strings.Mutable.length c.buffer in
@@ -283,7 +283,7 @@ let rec client_task c =
         c.handler (Strings.to_bytes data)
   in
   let* state =
-    Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
+    Duppy.Monad.Io.exec ~priority:`Generic c.handler
       (let ret = Mutex_utils.mutexify c.mutex (fun () -> c.state) () in
        Duppy.Monad.return ret)
   in
@@ -521,7 +521,7 @@ class output p =
              || auth_function <> None
            then (
              let default_user = Option.value default_user ~default:"" in
-             Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
+             Duppy.Monad.Io.exec ~priority:`Generic handler
                (Harbor.http_auth_check ~query ~login:(default_user, login) s
                   headers))
            else Duppy.Monad.return ())
@@ -532,7 +532,7 @@ class output p =
                 Harbor.reply s
             | _ -> assert false)
       in
-      Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
+      Duppy.Monad.Io.exec ~priority:`Generic handler
         (Harbor.relayed reply (fun () ->
              self#log#info "Client %s connected" ip;
              Mutex_utils.mutexify clients_m

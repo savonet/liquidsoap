@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+module Methods = Liquidsoap_lang.Methods
+module Lang = Liquidsoap_lang.Lang
+
 let conf_scheduler =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "scheduler")
@@ -68,43 +71,6 @@ let exit () =
     | `Done (`Error (bt, err)) -> Printexc.raise_with_backtrace err bt
     | _ -> exit (exit_code ())
 
-let generic_queues =
-  Dtools.Conf.int
-    ~p:(conf_scheduler#plug "generic_queues")
-    ~d:5 "Generic queues"
-    ~comments:
-      [
-        "Number of event queues accepting any kind of task.";
-        "There should at least be one. Having more can be useful to make sure";
-        "that trivial request resolutions (local files) are not delayed";
-        "because of a stalled download. But N stalled download can block";
-        "N queues anyway.";
-      ]
-
-let fast_queues =
-  Dtools.Conf.int
-    ~p:(conf_scheduler#plug "fast_queues")
-    ~d:0 "Fast queues"
-    ~comments:
-      [
-        "Number of queues that are dedicated to fast tasks.";
-        "It might be useful to create some if your request resolutions,";
-        "or some user defined tasks (cf `thread.run`), are";
-        "delayed too much because of slow tasks blocking the generic queues,";
-        "such as last.fm submissions or slow `thread.run` handlers.";
-      ]
-
-let non_blocking_queues =
-  Dtools.Conf.int
-    ~p:(conf_scheduler#plug "non_blocking_queues")
-    ~d:2 "Non-blocking queues"
-    ~comments:
-      [
-        "Number of queues dedicated to internal non-blocking tasks.";
-        "These are only started if such tasks are needed.";
-        "There should be at least one.";
-      ]
-
 let scheduler_log =
   Dtools.Conf.bool
     ~p:(conf_scheduler#plug "log")
@@ -133,6 +99,26 @@ end)
 
 let all = ref Set.empty
 let queues = ref Set.empty
+let queues_conf_ref = Atomic.make [("generic", 2); ("non_blocking", 2)]
+
+let queues_conf =
+  Lang.reference
+    (fun () ->
+      let v = Atomic.get queues_conf_ref in
+      Lang.list
+        (List.map
+           (fun (lbl, c) -> Lang.product (Lang.string lbl) (Lang.int c))
+           v))
+    (fun v ->
+      let v = Lang.to_list v in
+      let v =
+        List.map
+          (fun v ->
+            let lbl, c = Lang.to_product v in
+            (Lang.to_string lbl, Lang.to_int c))
+          v
+      in
+      Atomic.set queues_conf_ref v)
 
 let join_all ~set () =
   let rec f () =
@@ -226,8 +212,8 @@ let create ~queue f x s =
     ()
 
 type priority =
-  [ `Blocking  (** For example a last.fm submission. *)
-  | `Maybe_blocking  (** Request resolutions vary a lot. *)
+  [ `Generic  (** Generic queues accept all tasks. *)
+  | `Named of string  (** Named queues only accept tasks with their priority. *)
   | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
 let error_handlers = Stack.create ()
@@ -266,13 +252,14 @@ let scheduler_log n =
     fun m -> log#info "%s" m)
   else fun _ -> ()
 
-let new_queue ?priorities ~name () =
+let new_queue ~priority ~name () =
   let qlog = scheduler_log name in
-  let queue () =
-    match priorities with
-      | None -> Duppy.queue scheduler ~log:qlog name
-      | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
+  let priorities p =
+    match (priority, p) with
+      | `Generic, (`Generic | `Non_blocking) -> true
+      | v, v' -> v = v'
   in
+  let queue () = Duppy.queue scheduler ~log:qlog ~priorities name in
   ignore (create ~queue:true queue () name)
 
 let create f x name = create ~queue:false f x name
@@ -280,18 +267,27 @@ let join_all () = join_all ~set:all ()
 
 let start () =
   if Atomic.compare_and_set state `Idle `Starting then (
-    for i = 1 to generic_queues#get do
-      let name = Printf.sprintf "generic queue #%d" i in
-      new_queue ~name ()
-    done;
-    for i = 1 to fast_queues#get do
-      let name = Printf.sprintf "fast queue #%d" i in
-      new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
-    done;
-    for i = 1 to non_blocking_queues#get do
-      let name = Printf.sprintf "non-blocking queue #%d" i in
-      new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
-    done)
+    let queues = Methods.from_list (Atomic.get queues_conf_ref) in
+    Methods.iter
+      (fun priority count ->
+        let priority =
+          match priority with
+            | "generic" -> `Generic
+            | "non_blocking" -> `Non_blocking
+            | n -> `Named n
+        in
+        for i = 1 to count do
+          let name =
+            Printf.sprintf "%s queue #%d"
+              (match priority with
+                | `Generic -> "generic"
+                | `Named n -> n
+                | `Non_blocking -> "non-blocking")
+              i
+          in
+          new_queue ~priority ~name ()
+        done)
+      queues)
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =

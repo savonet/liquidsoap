@@ -28,7 +28,7 @@ def vumeter(~rms_min=-25., ~rms_max=-5., ~window=0.5, ~scroll=false, s) =
     print(newline=false, bar())
   end
 
-  thread.run(fast=true, every=window, display)
+  thread.run(queue="non_blocking", every=window, display)
   s
 end
 
@@ -62,7 +62,7 @@ def video.vumeter(
     width := int_of_float(x * float_of_int(video.frame.width()))
   end
 
-  thread.run(fast=true, every=window, update)
+  thread.run(queue="non_blocking", every=window, update)
   s = video.add_rectangle(width=width, height=height, color=color, s)
   video.persistence(duration=persistence, s)
 end

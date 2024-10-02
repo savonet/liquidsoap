@@ -254,7 +254,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
             Some
               (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
                  ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
-                 ~priority:`Blocking ~on_stderr:self#on_stderr ~log process))
+                 ~priority:`Generic ~on_stderr:self#on_stderr ~log process))
 
     method! abort_track = source#abort_track
 

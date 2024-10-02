@@ -26,9 +26,6 @@ module Queue = Liquidsoap_lang.Queues.Queue
 let conf_prefetch =
   Dtools.Conf.int ~p:(Request.conf#plug "prefetch") ~d:1 "Default prefetch"
 
-(* Scheduler priority for request resolutions. *)
-let priority = `Maybe_blocking
-
 type queue_item = {
   request : Request.t;
   (* in seconds *)
@@ -62,7 +59,8 @@ let () =
   Lifecycle.before_core_shutdown ~name:"request.dynamic shutdown" (fun () ->
       Atomic.set should_fail true)
 
-class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
+class dynamic ~priority ~retry_delay ~available (f : Lang.value) prefetch
+  timeout =
   let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
     inherit source ~name:"request.dynamic" ()
@@ -340,6 +338,10 @@ let _ =
     ~descr:"Play request dynamically created by a given function."
     [
       ("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None);
+      ( "thread_queue",
+        Lang.string_t,
+        Some (Lang.string "generic"),
+        Some "Queue used to resolve requests." );
       ( "retry_delay",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 0.1),
@@ -429,5 +431,11 @@ let _ =
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
+      let priority =
+        match Lang.to_string (List.assoc "thread_queue" p) with
+          | "generic" -> `Generic
+          | "non_blocking" -> `Non_blocking
+          | n -> `Named n
+      in
       let l, t = extract_queued_params p in
-      new dynamic ~available ~retry_delay f l t)
+      new dynamic ~available ~priority ~retry_delay f l t)

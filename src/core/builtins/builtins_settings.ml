@@ -92,22 +92,32 @@ let settings_module =
          | ty, true -> Lang.fun_t [] ty
          | ty, false -> Lang.fun_t [] (Lang.nullable_t ty)
      in
-     let rec get_type ?(sub = []) conf =
+     let rec get_type ?(sub = []) ~label conf =
        let ty, has_default_value = get_conf_type conf in
        Lang.method_t
          (get_t ~has_default_value ty)
-         (set_t ty @ leaf_types conf @ sub)
+         (set_t ty @ leaf_types conf @ sub
+         @
+         if label = "scheduler" then
+           [
+             ( "queues",
+               ( [],
+                 Lang.ref_t
+                   (Lang.list_t (Lang.product_t Lang.string_t Lang.int_t)) ),
+               "Scheduler queue configuration." );
+           ]
+         else [])
      and leaf_types conf =
        List.map
          (fun label ->
-           let ty = get_type (conf#path [label]) in
+           let ty = get_type ~label (conf#path [label]) in
            let label = Utils.normalize_parameter_string label in
            ( label,
              ([], ty),
              Printf.sprintf "Entry for configuration key %s" label ))
          conf#subs
      in
-     let settings_t = get_type Configure.conf in
+     let settings_t = get_type ~label:"settings" Configure.conf in
      let get_v fn conv_to conv_from conf =
        let get =
          Lang.val_fun [] (fun _ ->
@@ -122,7 +132,7 @@ let settings_module =
        in
        (get, Some set)
      in
-     let rec get_value ?(sub = []) conf =
+     let rec get_value ?(sub = []) ~label conf =
        let to_v fn conv_to conv_from =
          try
            ignore (fn conf);
@@ -144,7 +154,8 @@ let settings_module =
          with Found v -> v
        in
        Lang.meth get_v
-         ((if set_v <> None then [("set", Option.get set_v)] else [])
+         ((if label = "scheduler" then [("queues", Tutils.queues_conf)] else [])
+         @ (if set_v <> None then [("set", Option.get set_v)] else [])
          @ [
              ("description", Lang.string (String.trim conf#descr));
              ( "comments",
@@ -154,11 +165,11 @@ let settings_module =
      and leaf_values conf =
        List.map
          (fun label ->
-           let v = get_value (conf#path [label]) in
+           let v = get_value ~label (conf#path [label]) in
            (Utils.normalize_parameter_string label, v))
          conf#subs
      in
-     settings := get_value Configure.conf;
+     settings := get_value ~label:"settings" Configure.conf;
      ignore
        (Lang.add_builtin_value ~category:`Settings "settings"
           ~descr:"All settings." ~flags:[`Hidden] !settings settings_t))
