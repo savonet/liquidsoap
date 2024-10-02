@@ -1,13 +1,15 @@
 # Run a function in a separate thread.
 # @category Programming
-# @param ~fast Whether the thread is supposed to return quickly or not. Typically, blocking tasks (e.g. fetching data over the internet) should not be considered to be fast. When set to `false` its priority will be lowered below that of request resolutions and fast timeouts. This is only effective if you set a dedicated queue for fast tasks, see the "scheduler" settings for more details.
+# @param ~queue Queue to use for the task. Should be one of: `"generic"` or `"non_blocking"`. \
+#               Non blocking should be reserved for tasks that are known to complete quickly. \
+#               You can also use a dedicated queue name declared via `settings.scheduler.queues`.
 # @param ~delay Delay (in seconds) after which the thread should be launched.
 # @param ~every How often (in seconds) the thread should be run. If negative or `null`, run once.
 # @param ~on_error Error callback executed when an error occurred while running the given function. When passed, \
 #                  all raised errors are silenced unless re-raised by the callback.
 # @param f Function to execute.
 def replaces thread.run(
-  ~fast=true,
+  ~queue="generic",
   ~delay=0.,
   ~on_error=null(),
   ~every=null(),
@@ -31,7 +33,7 @@ def replaces thread.run(
       on_error
     )
 
-  thread.run.recurrent(fast=fast, delay=delay, on_error=on_error, f)
+  thread.run.recurrent(queue=queue, delay=delay, on_error=on_error, f)
 end
 
 # Execute a callback when a predicate is `true`. The predicate
@@ -39,7 +41,9 @@ end
 # called when the predicate returns `true` after having been
 # `false`, following the same semantics as `predicate.activates`.
 # @category Programming
-# @param ~fast Whether the callback is supposed to return quickly or not.
+# @param ~queue Queue to use for the task. Should be one of: `"generic"` or `"non_blocking"`. \
+#               Non blocking should be reserved for tasks that are known to complete quickly. \
+#               You can also use a dedicated queue name declared via `settings.scheduler.queues`.
 # @param ~init Detect at beginning.
 # @param ~every How often (in sec.) to check for the predicate.
 # @param ~once Execute the function only once.
@@ -49,7 +53,7 @@ end
 # @param p Predicate indicating when to execute the function, typically a time interval such as `{10h-10h30}`.
 # @param f Function to execute when the predicate is true.
 def thread.when(
-  ~fast=true,
+  ~queue="generic",
   ~init=true,
   ~every=getter(0.5),
   ~once=false,
@@ -71,7 +75,7 @@ def thread.when(
     end
   end
 
-  thread.run.recurrent(fast=fast, delay=0., on_error=on_error, check)
+  thread.run.recurrent(queue=queue, delay=0., on_error=on_error, check)
 end
 
 # @flag hidden

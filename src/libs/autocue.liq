@@ -58,6 +58,25 @@ let settings.autocue.internal.metadata_override =
     ]
   )
 
+let settings.autocue.internal.queues_count =
+  settings.make(
+    description=
+      "Number of dedicated queues for resolving autocue data using the internal \
+       implementation",
+    1
+  )
+
+def settings.autocue.internal.queues_count.set(c) =
+  settings.scheduler.queues :=
+    [
+      ...list.assoc.remove("autocue", settings.scheduler.queues()),
+      ("autocue", c)
+    ]
+  settings.autocue.internal.queues_count.set(c)
+end
+
+settings.autocue.internal.queues_count.set(1)
+
 let settings.autocue.internal.lufs_target =
   settings.make(
     description=
@@ -187,7 +206,10 @@ def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
     )
     []
   else
-    s = request.once(request.create(resolve_metadata=false, filename))
+    s =
+      request.once(
+        thread_queue="autocue", request.create(resolve_metadata=false, filename)
+      )
     frames = ref([])
 
     def ebur128(s) =
