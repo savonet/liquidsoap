@@ -432,10 +432,20 @@ def request.player(~simultaneous=true) =
         }
     }
   else
-    s = source.dynamic()
+    next_source = ref(null())
+
+    def next() =
+      s = next_source()
+      next_source := null()
+      s
+    end
+
+    s = source.dynamic(next)
 
     def play(r) =
-      s.set(request.once(r))
+      r = request.once(r)
+      s.prepare(s)
+      next_source := r
     end
 
     s.{play=play, length={1}}

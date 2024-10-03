@@ -173,39 +173,42 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   last_meta = ref(null())
   pending = ref(null())
 
-  def f(m) =
-    if
-      m["liq_append"] == "false"
-    then
-      last_meta := null()
-      pending := null()
-    elsif
-      last_meta() != m
-    then
-      last_meta := m
-      pending := (f(m) : source?)
-    end
-  end
-
-  s = if insert_missing then source.on_track(s, f) else s end
-  s = source.on_metadata(s, f)
-
   def next() =
     p = pending()
     pending := null()
     last_meta := null()
 
+    if null.defined(p) then null.get(p) else (s : source) end
+  end
+
+  d =
+    source.dynamic(
+      track_sensitive=true, merge={merge and null.defined(pending)}, next
+    )
+
+  def f(m) =
     if
-      null.defined(p)
+      d.current_source() == (s : source)
     then
-      p = null.get(p)
-      sequence(merge=merge, [p, s])
-    else
-      null()
+      if
+        m["liq_append"] == "false"
+      then
+        last_meta := null()
+        pending := null()
+      elsif
+        last_meta() != m
+      then
+        last_meta := m
+        s = f(m)
+        d.prepare(s)
+        pending := s
+      end
     end
   end
 
-  d = source.dynamic(track_sensitive=false, next)
+  d = if insert_missing then source.on_track(d, f) else d end
+  d = source.on_metadata(d, f)
+
   s = fallback(id=id, track_sensitive=false, [d, s])
   s.{
     pending=
