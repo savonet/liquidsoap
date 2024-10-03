@@ -308,7 +308,7 @@ class dynamic ~priority ~retry_delay ~available (f : Lang.value) prefetch
                       (fun r -> Queue.push retrieved r)
                       (remove_expired []);
                     Queue.push retrieved { request = req; expired = false };
-                    self#log#info "Queued %d requests" self#queue_size;
+                    self#log#info "Queued %d request(s)" self#queue_size;
                     `Finished
                 | _ ->
                     Request.destroy req;
