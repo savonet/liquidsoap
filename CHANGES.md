@@ -62,6 +62,9 @@ New:
 
 Changed:
 
+- Reimplemented `request.once`, `single` and more using `source.dynamic`. Removed experiment
+  flag on `source.dynamic`. The operator is considered stable enough to define advanced sources
+  but the user should be careful when using it.
 - Mute SDL startup messages (#2913).
 - `int` can optionally raises an error when passing `nan` or `infinity`, `int(infinity)`
   now returns `max_int` and `int(-infinity)` returns `min_int`. (#3407)

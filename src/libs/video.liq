@@ -34,27 +34,24 @@ def request.image(
   ~y=getter(0),
   req
 ) =
-  s = source.dynamic()
-
   last_req = ref(null())
 
-  def set_req() =
+  def next() =
     req = (getter.get(req) : request)
 
     if
       req != last_req()
     then
+      last_req := req
       image = request.single(id=id, fallible=fallible, req)
       image = video.crop(image)
-      image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
-      s.set(image)
-      last_req := req
+      video.resize(id=id, x=x, y=y, width=width, height=height, image)
+    else
+      null()
     end
   end
 
-  s.on_wake_up(set_req)
-
-  source.on_frame(s, set_req)
+  source.dynamic(id=id, track_sensitive=false, next)
 end
 
 # Generate a source from an image file.
@@ -197,34 +194,45 @@ end
 # @category Source / Video processing
 # @param s Audio source whose metadata contain cover-art.
 def video.cover(s) =
-  video = source.dynamic()
+  last_filename = ref(null())
+  fail = (source.fail() : source)
 
-  def read_cover(m) =
+  def next() =
+    m = source.last_metadata(s ?? fail) ?? []
+
     filename = m["filename"]
-    cover =
-      if file.exists(filename) then file.cover(filename) else "".{mime=""} end
 
     if
-      null.defined(cover)
+      filename != last_filename()
     then
-      cover = null.get(cover)
-      ext = if cover.mime == "image/png" then ".png" else ".jpg" end
-      f = file.temp("cover", ext)
-      log.debug(
-        "Found cover for #{filename}."
-      )
-      file.write(data=cover, f)
-      video.set(request.once(request.create(temporary=true, f)))
+      last_filename := filename
+
+      cover =
+        if file.exists(filename) then file.cover(filename) else "".{mime=""} end
+
+      if
+        null.defined(cover)
+      then
+        cover = null.get(cover)
+        ext = if cover.mime == "image/png" then ".png" else ".jpg" end
+        f = file.temp("cover", ext)
+        log.debug(
+          "Found cover for #{filename}."
+        )
+        file.write(data=cover, f)
+        request.once(request.create(temporary=true, f))
+      else
+        log.debug(
+          "No cover for #{filename}."
+        )
+        fail
+      end
     else
-      log.debug(
-        "No cover for #{filename}."
-      )
-      video.set(source.fail())
+      null()
     end
   end
 
-  s.on_track(read_cover)
-  (video : source(video=canvas))
+  source.dynamic(track_sensitive=false, next)
 end
 
 let output.youtube = ()
@@ -652,7 +660,16 @@ def video.slideshow(
   id = string.id.default(default="video.slideshow", id)
   l = ref(l)
   n = ref(-1)
-  s = source.dynamic()
+
+  next_source = ref(null())
+
+  def next() =
+    s = next_source()
+    next_source := null()
+    s
+  end
+
+  s = source.dynamic(next)
 
   def current() =
     list.nth(l(), n())
@@ -664,7 +681,9 @@ def video.slideshow(
       0 <= n' and n' < list.length(l()) and n' != n()
     then
       n := n'
-      s.set(request.once(request.create(current())))
+      new_source = request.once(request.create(current()))
+      s.prepare(new_source)
+      next_source := new_source
     end
   end
 
