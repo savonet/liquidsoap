@@ -43,9 +43,10 @@ def request.queue(
 ) =
   ignore(native)
   id = string.id.default(default="request.queue", id)
-  initial_queue = queue
+  initial_queue = ref(queue)
   queue = ref([])
   fetch = ref(fun () -> true)
+  started = ref(false)
 
   def next() =
     if
@@ -60,13 +61,23 @@ def request.queue(
   end
 
   def push(r) =
-    log.info(
-      label=id,
-      "Pushing #{r} on the queue."
-    )
-    queue := [...queue(), r]
-    fn = fetch()
-    ignore(fn())
+    if
+      started()
+    then
+      log.info(
+        label=id,
+        "Pushing #{r} on the queue."
+      )
+      queue := [...queue(), r]
+      fn = fetch()
+      ignore(fn())
+    else
+      log.info(
+        label=id,
+        "Pushing #{r} on the initial queue."
+      )
+      initial_queue := [...initial_queue(), r]
+    end
   end
 
   def push_uri(uri) =
@@ -110,12 +121,12 @@ def request.queue(
   end
 
   def set_queue(q) =
-    queue := q
+    if started() then queue := q else initial_queue := q end
     s.set_queue([])
   end
 
   def get_queue() =
-    [...s.queue(), ...(queue())]
+    [...s.queue(), ...initial_queue(), ...queue()]
   end
 
   s =
@@ -127,7 +138,14 @@ def request.queue(
       queue=get_queue
     }
 
-  s.on_wake_up({s.set_queue(initial_queue)})
+  s.on_wake_up(
+    fun () ->
+      begin
+        started := true
+        s.set_queue(initial_queue())
+        initial_queue := []
+      end
+  )
 
   source.set_name(s, "request.queue")
   fetch := s.fetch
@@ -432,10 +450,20 @@ def request.player(~simultaneous=true) =
         }
     }
   else
-    s = source.dynamic()
+    next_source = ref(null())
+
+    def next() =
+      s = next_source()
+      next_source := null()
+      s
+    end
+
+    s = source.dynamic(next)
 
     def play(r) =
-      s.set(request.once(r))
+      r = request.once(r)
+      s.prepare(r)
+      next_source := r
     end
 
     s.{play=play, length={1}}
