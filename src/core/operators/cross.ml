@@ -82,7 +82,10 @@ class cross val_source ~end_duration_getter ~override_end_duration
            self#log#important
              "Cannot set crossfade end duration to negative value %f!"
              end_duration;
-           frame_size)
+           frame_size
+           (* Accept zero as simplify disabled crossfade. Set to frame_size. *))
+         else if _end_main_duration = 0 then frame_size
+           (* For any non-zero too short value, warn the user. *)
          else if _end_main_duration < frame_size then (
            self#log#important
              "Cannot set crossfade end duration to less than the frame size!";
@@ -99,7 +102,10 @@ class cross val_source ~end_duration_getter ~override_end_duration
            self#log#important
              "Cannot set crossfade start duration to negative value %f!"
              start_duration;
-           frame_size)
+           frame_size
+           (* Accept zero as simplify disabled crossfade. Set to frame_size. *))
+         else if _start_main_duration = 0 then frame_size
+           (* For any non-zero too short value, warn the user. *)
          else if _start_main_duration < frame_size then (
            self#log#important
              "Cannot set crossfade start duration to less than the frame size!";
