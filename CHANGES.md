@@ -23,6 +23,7 @@ New:
 - Optimized runtime (#3927, #3928, #3919)
 - Added `finally` to execute code regardless of whether or not an exception is raised
   (see: #3895 for more details).
+- Added support for Spinitron submission API (#4158)
 - Removed gstreamer support. Gstreamer's architecture was never a good fit for us
   and created a huge maintenance and debugging burden and it had been marked as
   deprecated for a while. Most, if not all of its features should be available using
