@@ -591,7 +591,10 @@ let get_decoder ~ctype r =
                   else (
                     if Frame.is_partial buf then
                       r.logger#important
-                        "End of track reached before cue-out point!";
+                        "End of track reached at %.02f before cue-out point at \
+                         %.02f!"
+                        (Frame.seconds_of_main new_pos)
+                        (Frame.seconds_of_main cue_out);
                     buf))
               in
               let remaining () =
