@@ -8,7 +8,7 @@ let spinitron = {submit=()}
 def spinitron.submit.raw(
   ~host="https://spinitron.com/api",
   ~api_key,
-  ~live=true,
+  ~live=false,
   ~start=null(),
   ~duration=null(),
   ~artist,
@@ -37,7 +37,7 @@ def spinitron.submit.raw(
       fold_optional_string_params,
       params,
       [
-        ("live", null.map(string, (live : bool?))),
+        ("live", null.map(fun (b) -> b ? "1" : "0" , (live : bool?))),
         ("start", start),
         ("duration", null.map(string, (duration : int?))),
         ("release", release),
@@ -90,13 +90,13 @@ def replaces spinitron.submit(%argsof(spinitron.submit.raw)) =
         duration: int?,
         timezone: string?,
         image: string?,
-        classical: bool,
+        classical: bool?,
         artist: string,
         "artist-custom" as artist_custom: string?,
         composer: string?,
         release: string?,
         "release-custom" as release_custom: string?,
-        va: bool,
+        va: bool?,
         label: string?,
         "label-custom" as label_custom: string?,
         released: int?,
@@ -104,9 +104,9 @@ def replaces spinitron.submit(%argsof(spinitron.submit.raw)) =
         genre: string?,
         song: string,
         note: string?,
-        request: bool,
-        local: bool,
-        new: bool,
+        request: bool?,
+        local: bool?,
+        new: bool?,
         work: string?,
         conductor: string?,
         performers: string?,
@@ -170,13 +170,28 @@ end
 # @category Interaction
 # @flag extra
 # @param m Metadata to submit. Overrides optional arguments when present.
+# @param ~mapper Metadata mapper that can be used to map metadata fields to spinitron's expected. \
+#                Returned metadata are added to the submitted metadata. By default, `title` is \
+#                mapped to `song` and `album` to `release` if neither of those passed otherwise.
 # @param ~api_key API key
 def spinitron.submit.metadata(
   %argsof(spinitron.submit[!artist,!song]),
+  ~mapper=(
+    fun (m) ->
+      [
+        ...(m["song"] != "" or m["title"] == "" ? [] : [("song", m["title"])] ),
+        ...(
+          m["release"] != "" or m["album"] == ""
+          ? [] : [("release", m["album"])]
+        )
+      ]
+  ),
   ~artist=null(),
   ~song=null(),
   m
 ) =
+  m = [...m, ...mapper(m)]
+
   def conv_opt_arg(convert, label, default) =
     list.assoc.mem(label, m) ? convert(m[label]) : default
   end
@@ -191,7 +206,6 @@ def spinitron.submit.metadata(
   release = opt_arg("release", release)
   label = opt_arg("label", label)
   genre = opt_arg("genre", genre)
-  song = opt_arg("title", song)
   song = opt_arg("song", song)
   composer = opt_arg("composer", composer)
   isrc = opt_arg("isrc", isrc)
@@ -208,7 +222,11 @@ def spinitron.submit.metadata(
   artist = null.get(artist)
   song = null.get(song)
 
-  spinitron.submit(%argsof(spinitron.submit))
+  res = spinitron.submit(%argsof(spinitron.submit))
+
+  print(res)
+
+  res
 end
 
 # Specialized version of `source.on_metadata` that submits spins using
@@ -227,7 +245,7 @@ def spinitron.submit.on_metadata(
     if
       m["title"] == "" and m["song"] == ""
     then
-      log.important(
+      log.severe(
         label=source.id(s),
         "Field \"song\" or \"title\" missing, skipping metadata spinitron \
          submission."
@@ -235,19 +253,19 @@ def spinitron.submit.on_metadata(
     elsif
       m["artist"] == ""
     then
-      log.important(
+      log.severe(
         label=source.id(s),
         "Field \"artist\" missing, skipping metadata spinitron submission."
       )
     else
       try
         ignore(spinitron.submit.metadata(%argsof(spinitron.submit.metadata), m))
-        log.info(
+        log.important(
           label=source.id(s),
           "Successfully submitted spin from metadata"
         )
       catch err do
-        log.important(
+        log.severe(
           label=source.id(s),
           "Error while submitting spin from metadata: #{err}"
         )
