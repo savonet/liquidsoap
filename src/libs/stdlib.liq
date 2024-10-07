@@ -54,6 +54,7 @@
 %include_extra "extra/interactive.liq"
 %include_extra "extra/visualization.liq"
 %include_extra "extra/openai.liq"
+%include_extra "extra/spinitron.liq"
 %include_extra "extra/metadata.liq"
 %include_extra "extra/fades.liq"
 %include_extra "extra/video.liq"
