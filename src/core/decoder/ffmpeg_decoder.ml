@@ -558,7 +558,7 @@ let dresolver ~metadata file =
       Option.map (fun d -> Int64.to_float d /. 1000.) duration)
 
 let () =
-  Plug.register Request.dresolvers "ffmepg" ~doc:""
+  Plug.register Request.dresolvers "ffmpeg" ~doc:""
     {
       dpriority = (fun () -> priority#get);
       file_extensions = (fun () -> file_extensions#get);
