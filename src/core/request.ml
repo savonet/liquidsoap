@@ -160,7 +160,7 @@ let get_dresolvers ~file () =
     (fun (_, a) (_, b) -> compare (b.dpriority ()) (a.dpriority ()))
     resolvers
 
-let compute_duration ~metadata file =
+let compute_duration ?resolvers ~metadata file =
   try
     List.iter
       (fun (name, { dpriority; dresolver }) ->
@@ -168,6 +168,9 @@ let compute_duration ~metadata file =
           log#info "Trying duration resolver %s (priority: %d) for file %s.."
             name (dpriority ())
             (Lang_string.quote_string file);
+          (match resolvers with
+            | Some l when not (List.mem name l) -> raise Not_found
+            | _ -> ());
           let ans = dresolver ~metadata file in
           raise (Duration ans)
         with
@@ -177,7 +180,7 @@ let compute_duration ~metadata file =
     raise Not_found
   with Duration d -> d
 
-let duration ~metadata file =
+let duration ?resolvers ~metadata file =
   try
     match
       ( Frame.Metadata.find_opt "duration" metadata,
@@ -189,7 +192,7 @@ let duration ~metadata file =
       | _, None, Some cue_out -> Some (float_of_string cue_out)
       | Some v, _, _ -> Some (float_of_string v)
       | None, cue_in, None ->
-          let duration = compute_duration ~metadata file in
+          let duration = compute_duration ?resolvers ~metadata file in
           let duration =
             match cue_in with
               | Some cue_in -> duration -. float_of_string cue_in

@@ -150,7 +150,7 @@ Fixed:
 - Make sure reconnection errors are router through the regulat `on_error` callback in `output.icecast` (#3635)
 - Fixed discontinuity count after a restart in HLS outputs.
 - Fixed file header logic when reopening in `output.file` (#3675)
-- Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmepg`, SRT sources and `request.dynamic`)
+- Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmpeg`, SRT sources and `request.dynamic`)
 - Fixed invalid array fill in `add` (#3678)
 - Fixed deadlock when connecting to a non-SSL icecast using the TLS transport (#3681)
 - Fixed crash when closing external process (#3685)

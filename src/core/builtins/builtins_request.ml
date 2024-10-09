@@ -185,48 +185,77 @@ let _ =
       Lang.unit)
 
 let _ =
-  Lang.add_builtin ~base:request "duration" ~category:`Liquidsoap
-    [
-      ( "resolve_metadata",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Set to `false` to prevent metadata resolution on this request." );
-      ( "metadata",
-        Lang.metadata_t,
-        Some (Lang.list []),
-        Some "Optional metadata used to decode the file, e.g. `ffmpeg_options`."
-      );
-      ( "timeout",
-        Lang.float_t,
-        Some (Lang.float 30.),
-        Some "Limit in seconds to the duration of the resolving." );
-      ("", Lang.string_t, None, None);
-    ]
-    (Lang.nullable_t Lang.float_t)
-    ~descr:
-      "Compute the duration in seconds of audio data contained in a request. \
-       The computation may be expensive. Returns `null` if computation failed, \
-       typically if the file was not recognized as valid audio."
-    (fun p ->
-      let f = Lang.to_string (List.assoc "" p) in
-      let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
-      let metadata = Lang.to_metadata (List.assoc "metadata" p) in
-      let timeout = Lang.to_float (List.assoc "timeout" p) in
-      let r =
-        Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
-          ~cue_out_metadata:None f
-      in
-      if Request.resolve r timeout = `Resolved then (
-        match
-          Request.duration ~metadata:(Request.metadata r)
-            (Option.get (Request.get_filename r))
-        with
-          | Some f -> Lang.float f
-          | None -> Lang.null
-          | exception exn ->
-              let bt = Printexc.get_raw_backtrace () in
-              Lang.raise_as_runtime ~bt ~kind:"failure" exn)
-      else Lang.null)
+  let add_duration_resolver ~base ~name ~resolver () =
+    Lang.add_builtin ~base name ~category:`Liquidsoap
+      ((if resolver = None then
+          [
+            ( "resolvers",
+              Lang.nullable_t (Lang.list_t Lang.string_t),
+              Some Lang.null,
+              Some
+                "Set to a list of resolvers to only resolve duration using a \
+                 specific decoder." );
+          ]
+        else [])
+      @ [
+          ( "resolve_metadata",
+            Lang.bool_t,
+            Some (Lang.bool true),
+            Some
+              "Set to `false` to prevent metadata resolution on this request."
+          );
+          ( "metadata",
+            Lang.metadata_t,
+            Some (Lang.list []),
+            Some
+              "Optional metadata used to decode the file, e.g. \
+               `ffmpeg_options`." );
+          ( "timeout",
+            Lang.float_t,
+            Some (Lang.float 30.),
+            Some "Limit in seconds to the duration of the resolving." );
+          ("", Lang.string_t, None, None);
+        ])
+      (Lang.nullable_t Lang.float_t)
+      ~descr:
+        "Compute the duration in seconds of audio data contained in a request. \
+         The computation may be expensive. Returns `null` if computation \
+         failed, typically if the file was not recognized as valid audio."
+      (fun p ->
+        let f = Lang.to_string (List.assoc "" p) in
+        let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
+        let resolvers =
+          match resolver with
+            | None ->
+                Option.map (List.map Lang.to_string)
+                  (Lang.to_valued_option Lang.to_list (List.assoc "resolvers" p))
+            | Some r -> Some [r]
+        in
+        let metadata = Lang.to_metadata (List.assoc "metadata" p) in
+        let timeout = Lang.to_float (List.assoc "timeout" p) in
+        let r =
+          Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
+            ~cue_out_metadata:None f
+        in
+        if Request.resolve r timeout = `Resolved then (
+          match
+            Request.duration ?resolvers ~metadata:(Request.metadata r)
+              (Option.get (Request.get_filename r))
+          with
+            | Some f -> Lang.float f
+            | None -> Lang.null
+            | exception exn ->
+                let bt = Printexc.get_raw_backtrace () in
+                Lang.raise_as_runtime ~bt ~kind:"failure" exn)
+        else Lang.null)
+  in
+  let base =
+    add_duration_resolver ~base:request ~name:"duration" ~resolver:None ()
+  in
+  List.iter
+    (fun name ->
+      ignore (add_duration_resolver ~base ~name ~resolver:(Some name) ()))
+    Request.conf_dresolvers#get
 
 let _ =
   Lang.add_builtin ~base:request "id" ~category:`Liquidsoap

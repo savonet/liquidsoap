@@ -715,36 +715,57 @@ def autocue.internal.implementation(
         end
       end
 
-      # Get very last frame for precise track duration
-      frame = list.last(frames)
-      frame_duration =
-        float_of_string(
-          list.assoc(default="0.", "lavfi.liq.duration_time", frame)
-        )
-
-      frame_duration =
-        if
-          frame_duration != 100.
-        then
-          log.important(
-            label="autocue",
-            "Warning: reported frame duration should be 100ms. Either the FFmpeg \
-             ebur128 filter has changed its internals or the version/build of \
-             FFmpeg you are using is buggy. We recommend using a fairly recent \
-             distribution with FFmpeg version 7 or above. Backported packages \
-             can be tricky."
-          )
-          100.
-        else
-          frame_duration
-        end
-
-      duration =
-        float_of_string(list.assoc(default="0.", "lavfi.liq.pts_time", frame)) +
-          frame_duration
-
       # Finalize cue/cross/fade values now...
-      if cue_out() == 0. then cue_out := duration end
+      if
+        cue_out() == 0.
+      then
+        file_duration =
+          begin
+            # Duration from the filter frames can be tricky so we first try a proper duration:
+            request_duration =
+%ifdef request.duration.ffmpeg
+              request.duration.ffmpeg(resolve_metadata=false, filename)
+%else
+              null()
+%endif
+
+            if
+              null.defined(request_duration)
+            then
+              null.get(request_duration)
+            else
+              # Get very last frame for precise track duration
+              frame_duration =
+                float_of_string(
+                  list.assoc(default="0.", "lavfi.liq.duration_time", frame)
+                )
+
+              frame_duration =
+                if
+                  frame_duration != 0.1
+                then
+                  log.important(
+                    label="autocue",
+                    "Warning: reported frame duration should be 100ms. Either \
+                     the FFmpeg ebur128 filter has changed its internals or the \
+                     version/build of FFmpeg you are using is buggy. We \
+                     recommend using a fairly recent distribution with FFmpeg \
+                     version 7 or above. Backported packages can be tricky."
+                  )
+                  0.1
+                else
+                  frame_duration
+                end
+
+              float_of_string(
+                list.assoc(default="0.", "lavfi.liq.pts_time", frame)
+              ) +
+                frame_duration
+            end
+          end
+
+        cue_out := file_duration
+      end
 
       # Calc cross/overlap duration
       if

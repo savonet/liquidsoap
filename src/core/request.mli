@@ -147,10 +147,15 @@ val log : t -> string
     These operations are only meaningful for media requests, and might raise
     exceptions otherwise. *)
 
-(** [duration ~metadata filename] computes the duration of audio data contained in
-    [filename]. The computation may be expensive.
+(** Duration resolvers. *)
+val conf_dresolvers : string list Dtools.Conf.t
+
+(** [duration ?resolvers ~metadata filename] computes the duration of audio data contained in
+    [filename]. The computation may be expensive. Set [resolvers] to a list of specific decoders
+    to use for getting duration.
     @raise Not_found if no duration computation method is found. *)
-val duration : metadata:Frame.metadata -> string -> float option
+val duration :
+  ?resolvers:string list -> metadata:Frame.metadata -> string -> float option
 
 (** [true] is a decoder exists for the given content-type. *)
 val has_decoder : ctype:Frame.content_type -> t -> bool
