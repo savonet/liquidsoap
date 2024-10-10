@@ -156,7 +156,16 @@ let source_methods =
       "Indicate if a source is ready to stream. This does not mean that the \
        source is currently streaming, just that its resources are all properly \
        initialized.",
-      fun (s : Source.source) -> val_fun [] (fun _ -> bool s#is_ready) );
+      fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+    ( "reset_last_metadata_on_track",
+      ([], ref_t bool_t),
+      "If `true`, the source's `last_metadata` is reset on each new track. If \
+       a metadata is present along with the track mark, then it becomes the \
+       new `last_metadata`, otherwise, `last_metadata becomes `null`.",
+      fun s ->
+        reference
+          (fun () -> bool s#reset_last_metadata_on_track)
+          (fun b -> s#set_reset_last_metadata_on_track (to_bool b)) );
     ( "buffered",
       ([], fun_t [] (list_t (product_t string_t float_t))),
       "Length of buffered data.",
