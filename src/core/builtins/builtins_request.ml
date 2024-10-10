@@ -218,9 +218,14 @@ let _ =
         ])
       (Lang.nullable_t Lang.float_t)
       ~descr:
-        "Compute the duration in seconds of audio data contained in a request. \
-         The computation may be expensive. Returns `null` if computation \
-         failed, typically if the file was not recognized as valid audio."
+        (Printf.sprintf
+           "Compute the duration in seconds of audio data contained in a \
+            request%s. The computation may be expensive. Returns `null` if \
+            computation failed, typically if the file was not recognized as \
+            valid audio."
+           (match resolver with
+             | Some r -> " using the " ^ r ^ " decoder"
+             | None -> ""))
       (fun p ->
         let f = Lang.to_string (List.assoc "" p) in
         let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
