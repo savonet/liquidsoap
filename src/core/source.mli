@@ -216,6 +216,9 @@ class virtual source :
        (** The source's last metadata. *)
        method last_metadata : Frame.metadata option
 
+       method reset_last_metadata_on_track : bool
+       method set_reset_last_metadata_on_track : bool -> unit
+
        (** Register a callback to be called on new metadata *)
        method on_metadata : (Frame.metadata -> unit) -> unit
 

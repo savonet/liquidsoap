@@ -425,6 +425,14 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     initializer
       self#on_before_streaming_cycle (fun () -> on_track_called <- false)
 
+    val mutable reset_last_metadata_on_track = Atomic.make true
+
+    method reset_last_metadata_on_track =
+      Atomic.get reset_last_metadata_on_track
+
+    method set_reset_last_metadata_on_track =
+      Atomic.set reset_last_metadata_on_track
+
     val mutable on_track : (Frame.metadata -> unit) List.t = []
     method on_track fn = on_track <- fn :: on_track
 
@@ -436,6 +444,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
+        if self#reset_last_metadata_on_track then last_metadata <- None;
         self#set_last_metadata buf;
         let m = Option.value ~default:Frame.Metadata.empty last_metadata in
         self#log#debug "calling on_track handlers..";
