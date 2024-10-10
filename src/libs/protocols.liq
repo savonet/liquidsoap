@@ -791,14 +791,52 @@ protocol.add(
     "gtts:Text to read"
 )
 
+# MacOS say
+let settings.protocol.macos_say = settings.make.protocol("macos_say")
+let settings.protocol.macos_say.path =
+  settings.make(
+    description=
+      "Path to the say binary",
+    "say"
+  )
+
+let settings.protocol.macos_say.options =
+  settings.make(
+    description=
+      "Command line options.",
+    ""
+  )
+
+# Register the macos_say: protocol using the say command available on macos
+# @flag hidden
+def protocol.macos_say(~rlog=_, ~maxtime=_, arg) =
+  binary = settings.protocol.macos_say.path()
+  options = settings.protocol.macos_say.options()
+  process.uri(
+    extname="aiff",
+    "#{binary} #{options} -o $(output) #{process.quote(arg)}"
+  )
+end
+
+protocol.add(
+  static=true,
+  "macos_say",
+  protocol.macos_say,
+  doc=
+    "Generate speech synthesis using the `say` command available on macos.",
+  syntax=
+    "macos_say:Text to read"
+)
+
 # Say
 
 let settings.protocol.say = settings.make.protocol("say")
 let settings.protocol.say.implementation =
   settings.make(
     description=
-      "Implementation to use. One of: \"pico2wave\", \"gtts\" or \"text2wave\".",
-    "pico2wave"
+      "Implementation to use. One of: \"pico2wave\", \"gtts\", \"text2wave\" or \
+       \"macos_say\".",
+    liquidsoap.build_config.system == "macosx" ? "macos_say" : "pico2wave"
   )
 
 # Register the legacy say: protocol

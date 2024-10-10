@@ -60,6 +60,8 @@ New:
 - Added `source.cue` (#3620).
 - Added `string.chars` (#4111)
 - Added atomic file write operations.
+- Added new `macos_say` speech synthesis protocol. Make it the default implementation for the `say:`
+  protocol on `macos`.
 
 Changed:
 
