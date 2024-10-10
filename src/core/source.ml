@@ -637,7 +637,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
           match
             self#get_source ~reselect:(`After_position last_chunk_pos) ()
           with
-            | Some s' when last_source == s' ->
+            | Some s when last_source == s ->
                 let remainder =
                   s#get_partial_frame (fun frame ->
                       assert (last_chunk_pos < Frame.position frame);

@@ -79,7 +79,9 @@ class sequence ?(merge = false) ?(single_track = true) sources =
             else (
               self#log#info "Finished with %s" s#id;
               Atomic.set seq_sources rest;
-              self#get_source ~reselect:`Ok ())
+              self#get_source
+                ~reselect:(match reselect with `Force -> `Ok | v -> v)
+                ())
         | _ -> None
 
     method remaining =
