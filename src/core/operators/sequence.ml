@@ -57,7 +57,7 @@ class sequence ?(merge = false) ?(single_track = true) sources =
             has_started <- List.exists (fun s -> s#is_ready) self#queue;
             has_started
 
-    method private get_source ~reselect () =
+    method private get_stateful_source ?(source_skipped = false) ~reselect () =
       match (self#has_started, self#queue) with
         | _, [] -> None
         | true, s :: [] ->
@@ -72,15 +72,22 @@ class sequence ?(merge = false) ?(single_track = true) sources =
               self#can_reselect
                 ~reselect:
                   (match reselect with
-                    | `After_position _ when single_track -> `Force
+                    | `After_position _
+                      when (not source_skipped) && single_track ->
+                        `Force
                     | v -> v)
                 s
             then Some s
             else (
               self#log#info "Finished with %s" s#id;
               Atomic.set seq_sources rest;
-              self#get_source ~reselect:`Ok ())
+              self#get_stateful_source ~source_skipped:true
+                ~reselect:(match reselect with `Force -> `Ok | v -> v)
+                ())
         | _ -> None
+
+    method private get_source ~reselect () =
+      self#get_stateful_source ~reselect ()
 
     method remaining =
       if merge then (
