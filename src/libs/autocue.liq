@@ -227,17 +227,7 @@ def autocue.internal.ebur128(~duration, ~ratio=50., ~timeout=10., filename) =
     s = source.on_metadata(s, fun (m) -> frames := [...frames(), m])
     source.drop(ratio=ratio, s)
 
-    list.sort(
-      fun (m, m') ->
-        begin
-          pos =
-            float_of_string(list.assoc(default="0.", "lavfi.liq.pts_time", m))
-          pos' =
-            float_of_string(list.assoc(default="0.", "lavfi.liq.pts_time", m'))
-          if pos < pos' then -1 elsif pos < pos' then 1 else 0 end
-        end,
-      frames()
-    )
+    frames()
   end
 %else
   ignore(ratio)
@@ -417,9 +407,7 @@ def autocue.internal.implementation(
           # Get current frame loudness level and timestamp
           db_level = list.assoc(default="nan", string("lavfi.r128.M"), frame)
           current_ts :=
-            float_of_string(
-              list.assoc(default="0.", "lavfi.liq.pts_time", frame)
-            )
+            float_of_string(list.assoc(default="0.", "lavfi.liq.pts", frame))
 
           # Process only valid level values
           if

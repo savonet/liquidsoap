@@ -195,10 +195,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
         (fun result (label, fn) ->
           match fn frame with
             | None -> result
-            | Some v ->
-                ("lavfi.liq." ^ label, Int64.to_string v)
-                :: ("lavfi.liq." ^ label ^ "_time", get_time v)
-                :: result)
+            | Some v -> ("lavfi.liq." ^ label, get_time v) :: result)
         []
         [
           ("pts", Avutil.Frame.pts);
