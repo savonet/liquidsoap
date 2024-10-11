@@ -201,11 +201,14 @@ def chop(~id=null(), ~every=getter(3.), ~metadata=getter([]), s) =
   # Track time in the source's context:
   time = ref(0.)
 
+  is_first = ref(true)
+
   def f() =
     time := time() + settings.frame.duration()
     if
-      getter.get(every) <= time()
+      is_first() or getter.get(every) <= time()
     then
+      is_first := false
       time := 0.
       s.insert_metadata(new_track=true, getter.get(metadata))
     end

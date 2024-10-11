@@ -644,6 +644,10 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                       Frame.slice frame (last_chunk_pos + rem))
                 in
                 let new_track = Frame.after remainder last_chunk_pos in
+                let new_track =
+                  if merge () then Frame.drop_track_marks new_track
+                  else new_track
+                in
                 f ~last_source ~last_chunk:remainder
                   (Frame.append buf new_track)
             | Some s ->
