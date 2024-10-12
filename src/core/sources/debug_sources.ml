@@ -58,4 +58,28 @@ let _ =
     ~descr:
       "A source that errors during its initialization phase, used for testing \
        and debugging." ~flags:[`Experimental] ~return_t [] (fun _ ->
-      (new fail_init :> Source.source))
+      new fail_init)
+
+class is_ready s =
+  object (self)
+    inherit Source.operator ~name:"is_ready" [s]
+    method seek_source = (self :> Source.source)
+    method fallible = true
+    method private can_generate_frame = true
+    method self_sync = (`Static, None)
+    method remaining = 0
+    method abort_track = ()
+    method generate_frame = if s#is_ready then s#get_frame else self#empty_frame
+  end
+
+let _ =
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  Lang.add_operator ~base:Modules.debug "is_ready" ~category:`Input
+    ~descr:
+      "A source that always produces an empty frame when the underlying source \
+       is not ready, used for testing and debugging."
+    ~flags:[`Experimental] ~return_t
+    [("", Lang.source_t return_t, None, None)]
+    (fun p ->
+      let s = Lang.to_source (List.assoc "" p) in
+      new is_ready s)

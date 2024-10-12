@@ -28,7 +28,6 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     val mutable activation = []
     val current_source : Source.source option Atomic.t = Atomic.make init
     method current_source = Atomic.get current_source
-    val mutable last_select = Unix.gettimeofday ()
 
     method private no_source =
       if infallible then
@@ -48,29 +47,35 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       s#wake_up
 
     method private exchange s =
-      self#log#info "Switching to source %s" s#id;
-      self#prepare s;
-      Atomic.set current_source (Some s);
-      if s#is_ready then Some s else self#no_source
+      match self#current_source with
+        | Some s' when s == s' -> Some s
+        | _ ->
+            self#log#info "Switching to source %s" s#id;
+            self#prepare s;
+            Atomic.set current_source (Some s);
+            if s#is_ready then Some s else self#no_source
 
     method private get_next reselect =
       self#mutexify
         (fun () ->
-          last_select <- Unix.gettimeofday ();
           let s =
             Lang.apply next_fn [] |> Lang.to_option |> Option.map Lang.to_source
           in
-          match s with
-            | None -> (
-                match self#current_source with
-                  | Some s
-                    when self#can_reselect
-                           ~reselect:
-                             (match reselect with `Force -> `Ok | v -> v)
-                           s ->
-                      Some s
-                  | _ -> self#no_source)
-            | Some s -> self#exchange s)
+          match (s, self#current_source) with
+            | None, Some s
+              when self#can_reselect
+                     ~reselect:(match reselect with `Force -> `Ok | v -> v)
+                     s ->
+                Some s
+            | Some s, Some s' when s == s' ->
+                if
+                  self#can_reselect
+                    ~reselect:(match reselect with `Force -> `Ok | v -> v)
+                    s
+                then Some s
+                else self#no_source
+            | Some s, _ -> self#exchange s
+            | _ -> self#no_source)
         ()
 
     method private get_source ~reselect () =
