@@ -1,7 +1,6 @@
 include Liquidsoap_lang.Lang
 include Lang_source
 include Lang_encoder.L
-module Doc = Liquidsoap_lang.Doc
 module Flags = Liquidsoap_lang.Flags
 module Http = Liq_http
 
@@ -11,7 +10,7 @@ let () = Hooks_implementations.register ()
 (** Helpers for defining protocols. *)
 
 let add_protocol ~syntax ~doc ~static name resolver =
-  Doc.Protocol.add ~name ~doc ~syntax ~static;
+  Doc.Protocol.add ~name ~doc ~syntax;
   let spec = { Request.static; resolve = resolver } in
   Plug.register Request.protocols ~doc name spec
 

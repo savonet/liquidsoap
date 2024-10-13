@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 module Runtime = Liquidsoap_lang.Runtime
-module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
 module Queue = Liquidsoap_lang.Queues.Queue

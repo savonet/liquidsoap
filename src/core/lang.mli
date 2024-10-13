@@ -62,7 +62,7 @@ val apply : ?pos:Liquidsoap_lang.Pos.t list -> value -> env -> value
 val add_protocol :
   syntax:string ->
   doc:string ->
-  static:bool ->
+  static:(string -> bool) ->
   string ->
   Request.resolver ->
   unit
