@@ -91,6 +91,7 @@ Changed:
 - Changed the port for the built-in Prometheus exporter to `9599` (#3801).
 - Set `segments_overheader` in HLS outputs to disable segments cleanup altogether.
 - Added support for caching LV2 and LADSPA plugins (#3959).
+- Pulseaudio input and output now restart on pulseaudio errors (#4174).
 
 Fixed:
 
