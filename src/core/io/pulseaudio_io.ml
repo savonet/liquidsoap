@@ -57,6 +57,9 @@ class virtual base ~self_sync ~client ~device =
 class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
+  let retry_delay = Lang.to_float (List.assoc "retry_delay" p) in
+  let on_error = List.assoc "on_error" p in
+  let on_error s = ignore (Lang.apply on_error [("", Lang.string s)]) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
   let val_source = List.assoc "" p in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -70,19 +73,32 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
           ~output_kind:"output.pulseaudio" val_source start
 
     val mutable stream = None
+    val mutable last_try = 0.
 
-    method open_device =
-      let ss =
-        {
-          sample_format = Sample_format_float32le;
-          sample_rate = samples_per_second;
-          sample_chans = self#audio_channels;
-        }
-      in
-      stream <-
-        Some
-          (Pulseaudio.Simple.create ~client_name ~stream_name:self#id ?dev
-             ~dir:Dir_playback ~sample:ss ())
+    method private open_device =
+      let now = Unix.gettimeofday () in
+      try
+        if last_try +. retry_delay < now then (
+          last_try <- now;
+          let ss =
+            {
+              sample_format = Sample_format_float32le;
+              sample_rate = samples_per_second;
+              sample_chans = self#audio_channels;
+            }
+          in
+          stream <-
+            Some
+              (Pulseaudio.Simple.create ~client_name ~stream_name:self#id ?dev
+                 ~dir:Dir_playback ~sample:ss ()))
+      with exn ->
+        let bt = Printexc.get_backtrace () in
+        let error =
+          Printf.sprintf "Failed to open pulse audio device: %s"
+            (Printexc.to_string exn)
+        in
+        on_error error;
+        Utils.log_exception ~log:self#log ~bt error
 
     method close_device =
       match stream with
@@ -99,15 +115,30 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
       self#open_device
 
     method send_frame memo =
-      let stream = Option.get stream in
-      let buf = AFrame.pcm memo in
-      let len = Audio.length buf in
-      Simple.write stream buf 0 len
+      if stream = None then self#open_device;
+      match stream with
+        | Some stream -> (
+            let buf = AFrame.pcm memo in
+            let len = Audio.length buf in
+            try Simple.write stream buf 0 len
+            with exn ->
+              let bt = Printexc.get_backtrace () in
+              self#close_device;
+              let error =
+                Printf.sprintf "Failed to send pulse audio data: %s"
+                  (Printexc.to_string exn)
+              in
+              on_error error;
+              Utils.log_exception ~log:self#log ~bt error)
+        | None -> ()
   end
 
 class input p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
+  let retry_delay = Lang.to_float (List.assoc "retry_delay" p) in
+  let on_error = List.assoc "on_error" p in
+  let on_error s = ignore (Lang.apply on_error [("", Lang.string s)]) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let start = Lang.to_bool (List.assoc "start" p) in
   let fallible = Lang.to_bool (List.assoc "fallible" p) in
@@ -133,33 +164,73 @@ class input p =
     method remaining = -1
     method abort_track = ()
     method seek_source = (self :> Source.source)
-    method private can_generate_frame = active_source#started
+
+    method private can_generate_frame =
+      match (active_source#started, stream) with
+        | true, None ->
+            self#open_device;
+            stream <> None
+        | v, _ -> v
+
+    val mutable last_try = 0.
 
     method private open_device =
-      let ss =
-        {
-          sample_format = Sample_format_float32le;
-          sample_rate = samples_per_second;
-          sample_chans = self#audio_channels;
-        }
-      in
-      stream <-
-        Some
-          (Pulseaudio.Simple.create ~client_name ~stream_name:self#id
-             ~dir:Dir_record ?dev ~sample:ss ())
+      let now = Unix.gettimeofday () in
+      if last_try +. retry_delay < now then (
+        last_try <- now;
+        let ss =
+          {
+            sample_format = Sample_format_float32le;
+            sample_rate = samples_per_second;
+            sample_chans = self#audio_channels;
+          }
+        in
+        try
+          stream <-
+            Some
+              (Pulseaudio.Simple.create ~client_name ~stream_name:self#id
+                 ~dir:Dir_record ?dev ~sample:ss ())
+        with exn when fallible ->
+          let bt = Printexc.get_backtrace () in
+          let error =
+            Printf.sprintf "Error while connecting to pulseaudio: %s"
+              (Printexc.to_string exn)
+          in
+          on_error error;
+          Utils.log_exception ~log:self#log ~bt error)
 
     method private close_device =
-      Pulseaudio.Simple.free (Option.get stream);
-      stream <- None
+      match stream with
+        | Some device ->
+            Pulseaudio.Simple.free device;
+            stream <- None
+        | None -> ()
 
     method generate_frame =
-      let size = Lazy.force Frame.size in
-      let frame = Frame.create ~length:size self#content_type in
-      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
-      let stream = Option.get stream in
-      Simple.read stream buf 0 (Frame.audio_of_main size);
-      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
+      try
+        let size = Lazy.force Frame.size in
+        let frame = Frame.create ~length:size self#content_type in
+        let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
+        let stream = Option.get stream in
+        Simple.read stream buf 0 (Frame.audio_of_main size);
+        Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        if fallible then (
+          let error =
+            Printf.sprintf "Error while reading from pulseaudio: %s"
+              (Printexc.to_string exn)
+          in
+          on_error error;
+          Utils.log_exception ~log:self#log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            error;
+          self#empty_frame)
+        else Printexc.raise_with_backtrace exn bt
   end
+
+let on_error =
+  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled "fun (_) -> ()"
 
 let proto =
   [
@@ -168,6 +239,16 @@ let proto =
       Lang.string_t,
       Some (Lang.string ""),
       Some "Device to use. Uses default if set to \"\"." );
+    ( "retry_delay",
+      Lang.float_t,
+      Some (Lang.float 1.),
+      Some "When fallible, time to wait before trying to connect again." );
+    ( "on_error",
+      Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t,
+      Some on_error,
+      Some
+        "Function executed when an operation with the pulseaudio server \
+         returns an error." );
     ( "self_sync",
       Lang.bool_t,
       Some (Lang.bool true),
@@ -204,7 +285,7 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Modules.input "pulseaudio"
-    (Start_stop.active_source_proto ~fallible_opt:(`Yep false) @ proto)
+    (Start_stop.active_source_proto ~fallible_opt:(`Yep true) @ proto)
     ~return_t ~category:`Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a pulseaudio input device."
     (fun p -> new input p)
