@@ -54,7 +54,8 @@ let settings.autocue.internal.metadata_override =
       "liq_fade_in",
       "liq_fade_in_delay",
       "liq_fade_out",
-      "liq_fade_out_delay"
+      "liq_fade_out_delay",
+      "liq_disable_autocue"
     ]
   )
 
