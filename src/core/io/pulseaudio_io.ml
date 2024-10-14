@@ -216,6 +216,7 @@ class input p =
         Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
+        self#close_device;
         if fallible then (
           let error =
             Printf.sprintf "Error while reading from pulseaudio: %s"
