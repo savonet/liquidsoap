@@ -124,6 +124,7 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
             with exn ->
               let bt = Printexc.get_backtrace () in
               self#close_device;
+              last_try <- Unix.gettimeofday ();
               let error =
                 Printf.sprintf "Failed to send pulse audio data: %s"
                   (Printexc.to_string exn)
@@ -217,6 +218,7 @@ class input p =
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         self#close_device;
+        last_try <- Unix.gettimeofday ();
         if fallible then (
           let error =
             Printf.sprintf "Error while reading from pulseaudio: %s"
