@@ -85,6 +85,9 @@ Changed:
   `nan != x` is always `true`. Use `float.is_nan` to test if a float is `nan`.
 - BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
 - BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
+- BREAKING: protocols can now check for nested static uri. Typically, this means
+  that requests for an uri of the form: `annotate:key="value",...:/path/to/file.mp3`
+  is now considered infallible if `/path/to/file.mp3` can be decoded.
 - Added `parents` option of `file.mkdir` (#3600, #3601).
 - Added `forced_major_collections` record field to the result of `runtime.gc.stat()` and
   `runtime.gc.quick_stat()` (#3783).

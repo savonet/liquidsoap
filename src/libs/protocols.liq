@@ -388,6 +388,23 @@ protocol.add(
   syntax="tmp:uri"
 )
 
+# Register fallible
+# @flag hidden
+def protocol.fallible(~rlog=_, ~maxtime=_, arg) =
+  arg
+end
+
+protocol.add(
+  "fallible",
+  protocol.fallible,
+  doc=
+    "Mark the given uri as being fallible. This can be used to prevent a request \
+     or source from being resolved once and for all and considered infallible \
+     for the duration of the script, typically when debugging.",
+  static=fun (_) -> false,
+  syntax="fallible:uri"
+)
+
 let settings.protocol.ffmpeg = settings.make.protocol("FFmpeg")
 let settings.protocol.ffmpeg.path =
   settings.make(
@@ -651,7 +668,7 @@ def protocol.stereo(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   temporary=true,
   "stereo",
   protocol.stereo,
@@ -671,7 +688,7 @@ def protocol.copy(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "copy",
   protocol.copy,
   doc=
@@ -699,7 +716,7 @@ def protocol.text2wave(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "text2wave",
   protocol.text2wave,
   doc=
@@ -736,7 +753,7 @@ def protocol.pico2wave(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "pico2wave",
   protocol.pico2wave,
   doc=
@@ -781,7 +798,7 @@ def protocol.gtts(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "gtts",
   protocol.gtts,
   doc=
@@ -819,7 +836,7 @@ def protocol.macos_say(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "macos_say",
   protocol.macos_say,
   doc=
@@ -846,7 +863,7 @@ def protocol.say(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "say",
   protocol.say,
   doc=
@@ -993,7 +1010,7 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "polly",
   polly_protocol,
   doc=
@@ -1070,7 +1087,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   temporary=true,
   "synth",
   synth_protocol,
@@ -1101,7 +1118,7 @@ def file_protocol(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   temporary=false,
   "file",
   file_protocol,

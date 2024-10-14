@@ -146,4 +146,6 @@ let mpd s ~log _ =
 let () =
   Lang.add_protocol
     ~doc:"Finds all files with a tag equal to a given value using mpd."
-    ~syntax:"mpd:tag=value" ~static:false "mpd" mpd
+    ~syntax:"mpd:tag=value"
+    ~static:(fun _ -> false)
+    "mpd" mpd

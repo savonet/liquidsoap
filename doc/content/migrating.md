@@ -120,6 +120,22 @@ for more details.
   However, EBU R128 data is now extracted directly from metadata when available.
   So `replaygain` cannot control the gain type via this parameter anymore.
 
+### Static requests
+
+Static requests detection can now work with nested requests.
+
+Typically, a request for this URI: `annotate:key="value",...:/path/to/file.mp3` will be
+considered static if `/path/to/file.mp3` can be decoded.
+
+Practically, this means that more source will now be considered infallible, for instance
+a `single` using the above uri.
+
+In most cases, this should improve the user experience when building new scripts and streaming
+systems.
+
+In rare cases where you actually wanted a fallible source, you can still pass `fallible=true` to e.g.
+the `single` operator or use the `fallible:` protocol.
+
 ### String functions
 
 Some string functions have been updated to account for string encoding. In particular, `string.length` and `string.sub` now assume that their

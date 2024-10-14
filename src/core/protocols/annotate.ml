@@ -66,5 +66,10 @@ let annotate s ~log _ =
 
 let () =
   Lang.add_protocol ~doc:"Add metadata to a request"
-    ~syntax:"annotate:key=\"val\",key2=\"val2\",...:uri" ~static:false
+    ~syntax:"annotate:key=\"val\",key2=\"val2\",...:uri"
+    ~static:(fun uri ->
+      try
+        let _, uri = parse uri in
+        Request.is_static uri
+      with _ -> false)
     "annotate" annotate
