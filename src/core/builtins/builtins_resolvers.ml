@@ -133,6 +133,9 @@ let _ =
         { Playlist_parser.strict; Playlist_parser.parser = fn };
       Lang.unit)
 
+let default_static =
+  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled "fun (_) -> false"
+
 let _ =
   let log_p = [("", "", None)] in
   let log_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t in
@@ -153,11 +156,12 @@ let _ =
         Some (Lang.bool false),
         Some "if true, file is removed when it is finished." );
       ( "static",
-        Lang.bool_t,
-        Some (Lang.bool false),
+        Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t,
+        Some default_static,
         Some
-          "if true, then requests can be resolved once and for all. Typically, \
-           static protocols can be used to create infallible sources." );
+          "When given an uri for the protocol, if it returns `true`, then \
+           requests can be resolved once and for all. Typically, static \
+           protocols can be used to create infallible sources." );
       ( "syntax",
         Lang.string_t,
         Some (Lang.string "Undocumented"),
@@ -185,7 +189,8 @@ let _ =
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let temporary = Lang.to_bool (List.assoc "temporary" p) in
-      let static = Lang.to_bool (List.assoc "static" p) in
+      let static = List.assoc "static" p in
+      let static s = Lang.to_bool (Lang.apply static [("", Lang.string s)]) in
       let doc = Lang.to_string (List.assoc "doc" p) in
       let syntax = Lang.to_string (List.assoc "syntax" p) in
       Lang.add_protocol ~syntax ~doc ~static name (fun arg ~log timeout ->

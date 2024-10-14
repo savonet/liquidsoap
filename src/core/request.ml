@@ -610,7 +610,7 @@ let get_decoder ~ctype r =
 (** Plugins registration. *)
 
 type resolver = string -> log:(string -> unit) -> float -> indicator option
-type protocol = { resolve : resolver; static : bool }
+type protocol = { resolve : resolver; static : string -> bool }
 
 let protocols_doc =
   "Methods to get a file. They are the first part of URIs: 'protocol:args'."
@@ -621,9 +621,9 @@ let is_static s =
   if file_exists (home_unrelate s) then true
   else (
     match parse_uri s with
-      | Some (proto, _) -> (
+      | Some (proto, uri) -> (
           match Plug.get protocols proto with
-            | Some handler -> handler.static
+            | Some handler -> handler.static uri
             | None -> false)
       | None -> false)
 
