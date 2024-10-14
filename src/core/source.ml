@@ -640,7 +640,12 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
             | Some s when last_source == s ->
                 let remainder =
                   s#get_partial_frame (fun frame ->
-                      assert (last_chunk_pos < Frame.position frame);
+                      if Frame.position frame <= last_chunk_pos then (
+                        self#log#critical
+                          "Source %s was re-selected but did not produce \
+                           enough data: %d <! %d"
+                          s#id (Frame.position frame) last_chunk_pos;
+                        assert false);
                       Frame.slice frame (last_chunk_pos + rem))
                 in
                 let new_track = Frame.after remainder last_chunk_pos in
@@ -651,7 +656,9 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                 f ~last_source ~last_chunk:remainder
                   (Frame.append buf new_track)
             | Some s ->
-                assert s#is_ready;
+                if not s#is_ready then (
+                  self#log#critical "Underlying source %s is not ready!" s#id;
+                  assert false);
                 let new_track =
                   s#get_partial_frame (fun frame ->
                       match self#split_frame frame with
