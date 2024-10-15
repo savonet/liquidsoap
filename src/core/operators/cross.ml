@@ -276,12 +276,12 @@ class cross val_source ~end_duration_getter ~override_end_duration
       self#prepare_source before;
       status <- `Before (before :> Source.source);
       self#buffer_before ~is_first:true ();
-      before
+      if before#is_ready then Some before else None
 
     method private get_source ~reselect () =
       let reselect = match reselect with `Force -> `Ok | _ -> reselect in
       match status with
-        | `Idle when source#is_ready -> Some self#prepare_before
+        | `Idle when source#is_ready -> self#prepare_before
         | `Idle -> None
         | `Before _ -> (
             self#buffer_before ~is_first:false ();
@@ -294,7 +294,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
               | `After after_source -> Some after_source)
         | `After after_source when self#can_reselect ~reselect after_source ->
             Some after_source
-        | `After _ -> Some self#prepare_before
+        | `After _ -> self#prepare_before
 
     method private buffer_before ~is_first () =
       if Generator.length gen_before < end_main_duration && source#is_ready then (
