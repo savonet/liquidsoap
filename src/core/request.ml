@@ -83,7 +83,7 @@ type metadata_resolver = {
 }
 
 type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
-type resolving = { until : float; pending : (Condition.t * Mutex.t) list }
+type resolving = { since : float; pending : (Condition.t * Mutex.t) list }
 type status = [ `Idle | `Resolving of resolving | `Ready | `Destroyed | `Failed ]
 type decoder = string * (unit -> Decoder.file_decoder_ops)
 type on_air = { source : Source.source; timestamp : float }
@@ -251,9 +251,9 @@ let add_root_metadata t m =
         in
         Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
     | _, `Idle -> Frame.Metadata.add "status" "idle" m
-    | _, `Resolving { until } ->
+    | _, `Resolving { since } ->
         let m =
-          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime until)) m
+          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime since)) m
         in
         Frame.Metadata.add "status" "resolving" m
     | _, `Ready -> Frame.Metadata.add "status" "ready" m
@@ -272,7 +272,7 @@ let metadata t = add_root_metadata t (plain_metadata t)
 
 let add_log t i =
   t.logger#info "%s" i;
-  Queue.push t.log (Unix.localtime (Unix.time ()), i)
+  Queue.push t.log (Unix.localtime (Unix.gettimeofday ()), i)
 
 (* Indicator tree management *)
 
@@ -639,11 +639,12 @@ let () =
 
 let resolve_req t timeout =
   log#debug "Resolving request %s." (string_of_indicators t);
-  Atomic.set t.status (`Resolving { until = Unix.time (); pending = [] });
-  let maxtime = Unix.time () +. timeout in
+  let since = Unix.gettimeofday () in
+  Atomic.set t.status (`Resolving { since; pending = [] });
+  let maxtime = since +. timeout in
   let rec resolve i =
     if Atomic.get should_fail then raise No_indicator;
-    let timeleft = maxtime -. Unix.time () in
+    let timeleft = maxtime -. Unix.gettimeofday () in
     if timeleft <= 0. then (
       add_log t "Global timeout.";
       raise ExnTimeout);
@@ -702,7 +703,7 @@ let resolve_req t timeout =
           `Failed
   in
   log#debug "Resolved to %s." (string_of_indicators t);
-  let excess = Unix.time () -. maxtime in
+  let excess = Unix.gettimeofday () -. maxtime in
   if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
   let status = if result <> `Resolved then `Failed else `Ready in
   (match Atomic.exchange t.status status with
