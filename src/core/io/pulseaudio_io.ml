@@ -42,25 +42,37 @@ let error_translator e =
 let () = Printexc.register_printer error_translator
 
 class virtual base ~self_sync ~client ~device =
-  let device = if device = "" then None else Some device in
   object
     val client_name = client
     val dev = device
+    val mutable stream = None
     method virtual log : Log.t
 
     method self_sync : Clock.self_sync =
       if self_sync then
-        (`Dynamic, if dev <> None then Some sync_source else None)
+        (`Dynamic, if stream <> None then Some sync_source else None)
       else (`Static, None)
   end
 
+let log = Log.make ["pulseaudio"]
+
 class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
   let client = Lang.to_string (List.assoc "client" p) in
-  let device = Lang.to_string (List.assoc "device" p) in
+  let device = Lang.to_valued_option Lang.to_string (List.assoc "device" p) in
+  let device =
+    if device = Some "" then (
+      log#important
+        "Empty device name \"\" is deprecated! Please use `null()` instead..";
+      None)
+    else device
+  in
   let retry_delay = Lang.to_float (List.assoc "retry_delay" p) in
   let on_error = List.assoc "on_error" p in
   let on_error s = ignore (Lang.apply on_error [("", Lang.string s)]) in
-  let name = Printf.sprintf "pulse_out(%s:%s)" client device in
+  let name =
+    Printf.sprintf "pulse_out(%s:%s)" client
+      (match device with None -> "(default)" | Some s -> s)
+  in
   let val_source = List.assoc "" p in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
@@ -72,7 +84,6 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
         ~infallible ~register_telnet ~on_stop ~on_start ~name
           ~output_kind:"output.pulseaudio" val_source start
 
-    val mutable stream = None
     val mutable last_try = 0.
 
     method private open_device =
@@ -136,7 +147,14 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
 
 class input p =
   let client = Lang.to_string (List.assoc "client" p) in
-  let device = Lang.to_string (List.assoc "device" p) in
+  let device = Lang.to_valued_option Lang.to_string (List.assoc "device" p) in
+  let device =
+    if device = Some "" then (
+      log#important
+        "Empty device name \"\" is deprecated! Please use `null()` instead..";
+      None)
+    else device
+  in
   let retry_delay = Lang.to_float (List.assoc "retry_delay" p) in
   let on_error = List.assoc "on_error" p in
   let on_error s = ignore (Lang.apply on_error [("", Lang.string s)]) in
@@ -161,7 +179,6 @@ class input p =
     inherit base ~self_sync ~client ~device
     method private start = self#open_device
     method private stop = self#close_device
-    val mutable stream = None
     method remaining = -1
     method abort_track = ()
     method seek_source = (self :> Source.source)
@@ -239,9 +256,9 @@ let proto =
   [
     ("client", Lang.string_t, Some (Lang.string "liquidsoap"), None);
     ( "device",
-      Lang.string_t,
-      Some (Lang.string ""),
-      Some "Device to use. Uses default if set to \"\"." );
+      Lang.nullable_t Lang.string_t,
+      Some Lang.null,
+      Some "Device to use. Uses default if set to `null`." );
     ( "retry_delay",
       Lang.float_t,
       Some (Lang.float 1.),
