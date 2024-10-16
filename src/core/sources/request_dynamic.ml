@@ -92,9 +92,7 @@ class dynamic ~priority ~retry_delay ~available (f : Lang.value) prefetch
       assert (self#current = None);
       try
         match self#get_next_file with
-          | `Retry ->
-              self#log#debug "Failed to prepare track: no file.";
-              false
+          | `Empty -> false
           | `Request req
             when Request.resolved req
                  && Request.has_decoder ~ctype:self#content_type req ->
@@ -323,9 +321,7 @@ class dynamic ~priority ~retry_delay ~available (f : Lang.value) prefetch
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
       match Queue.pop_opt retrieved with
-        | None ->
-            self#log#debug "Queue is empty!";
-            `Retry
+        | None -> `Empty
         | Some r ->
             self#log#info "Remaining %d requests" self#queue_size;
             `Request r.request
