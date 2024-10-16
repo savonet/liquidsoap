@@ -80,6 +80,8 @@ module Icecast = struct
             samplerate = Some (Lazy.force m.Fdkaac_format.samplerate);
             channels = Some m.Fdkaac_format.channels;
           }
+      | Encoder.NDI _ ->
+          { quality = None; bitrate = None; samplerate = None; channels = None }
       | Encoder.External m ->
           {
             quality = None;
