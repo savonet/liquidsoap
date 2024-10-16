@@ -808,6 +808,7 @@ let file.autocue = ()
 def file.autocue.metadata(~metadata, uri) =
   preferred_implementation = settings.autocue.preferred()
   implementations = settings.autocue.implementations()
+
   let (implementation_name, implementation) =
     if
       list.assoc.mem(preferred_implementation, implementations)
@@ -974,77 +975,92 @@ def enable_autocue_metadata() =
   if settings.request.prefetch() == 1 then settings.request.prefetch := 2 end
 
   def autocue_metadata(~metadata, fname) =
-    autocue_metadata = file.autocue.metadata(metadata=metadata, fname)
+    metadata_overrides = settings.autocue.internal.metadata_override()
 
-    all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
-    user_supplied_amplify =
-      list.filter_map(
-        fun (el) ->
-          if list.mem(fst(el), all_amplify) then snd(el) else null() end,
-        metadata
+    if
+      list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
+    then
+      log(
+        level=2,
+        label="autocue.metadata",
+        "Override metadata detected for #{fname}, disabling autocue!"
       )
-    user_supplied_amplify_labels =
-      string.concat(
-        separator=
-          ", ",
-        user_supplied_amplify
-      )
+      []
+    else
+      autocue_metadata = file.autocue.metadata(metadata=metadata, fname)
 
-    autocue_metadata =
-      if
-        settings.autocue.amplify_behavior() == "ignore"
-      then
-        [...list.assoc.remove("liq_amplify", autocue_metadata)]
-      else
+      all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
+
+      user_supplied_amplify =
+        list.filter_map(
+          fun (el) ->
+            if list.mem(fst(el), all_amplify) then snd(el) else null() end,
+          metadata
+        )
+
+      user_supplied_amplify_labels =
+        string.concat(
+          separator=
+            ", ",
+          user_supplied_amplify
+        )
+
+      autocue_metadata =
         if
-          user_supplied_amplify != []
+          settings.autocue.amplify_behavior() == "ignore"
         then
+          [...list.assoc.remove("liq_amplify", autocue_metadata)]
+        else
           if
-            settings.autocue.amplify_behavior() == "keep"
+            user_supplied_amplify != []
           then
-            log(
-              level=3,
-              label="autocue.metadata",
-              "User-supplied amplify metadata detected: #{
-                user_supplied_amplify_labels
-              }, keeping user-provided data."
-            )
-            list.assoc.remove("liq_amplify", autocue_metadata)
-          elsif
-            settings.autocue.amplify_behavior() == "override"
-          then
-            log(
-              level=3,
-              label="autocue.metadata",
-              "User-supplied amplify metadata detected: #{
-                user_supplied_amplify_labels
-              }, overriding with autocue data."
-            )
-            [
-              ...autocue_metadata,
-              # This replaces all user-provided tags with the value returned by
-              # the autocue implementation.
-              ...list.map(
-                fun (lbl) -> (lbl, autocue_metadata["liq_amplify"]),
-                user_supplied_amplify
+            if
+              settings.autocue.amplify_behavior() == "keep"
+            then
+              log(
+                level=3,
+                label="autocue.metadata",
+                "User-supplied amplify metadata detected: #{
+                  user_supplied_amplify_labels
+                }, keeping user-provided data."
               )
-            ]
+              list.assoc.remove("liq_amplify", autocue_metadata)
+            elsif
+              settings.autocue.amplify_behavior() == "override"
+            then
+              log(
+                level=3,
+                label="autocue.metadata",
+                "User-supplied amplify metadata detected: #{
+                  user_supplied_amplify_labels
+                }, overriding with autocue data."
+              )
+              [
+                ...autocue_metadata,
+                # This replaces all user-provided tags with the value returned by
+                # the autocue implementation.
+                ...list.map(
+                  fun (lbl) -> (lbl, autocue_metadata["liq_amplify"]),
+                  user_supplied_amplify
+                )
+              ]
+            else
+              log(
+                level=2,
+                label="autocue.metadata",
+                "Invalid value for `settings.autocue.amplify_behavior`: #{
+                  settings.autocue.amplify_behavior()
+                }"
+              )
+              autocue_metadata
+            end
           else
-            log(
-              level=2,
-              label="autocue.metadata",
-              "Invalid value for `settings.autocue.amplify_behavior`: #{
-                settings.autocue.amplify_behavior()
-              }"
-            )
             autocue_metadata
           end
-        else
-          autocue_metadata
         end
-      end
-    log(level=4, label="autocue.metadata", "#{autocue_metadata}")
-    autocue_metadata
+      log(level=4, label="autocue.metadata", "#{autocue_metadata}")
+      autocue_metadata
+    end
   end
   decoder.metadata.add(
     priority=settings.autocue.metadata.priority, "autocue", autocue_metadata
