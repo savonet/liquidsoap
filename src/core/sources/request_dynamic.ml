@@ -357,7 +357,7 @@ let _ =
       ( "timeout",
         Lang.float_t,
         Some (Lang.float 20.),
-        Some "Timeout (in sec.) for a single download." );
+        Some "Timeout (in sec.) to resolve the request." );
     ]
     ~meth:
       [

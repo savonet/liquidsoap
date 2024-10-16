@@ -704,7 +704,9 @@ let resolve_req t timeout =
   in
   log#debug "Resolved to %s." (string_of_indicators t);
   let excess = Unix.gettimeofday () -. maxtime in
-  if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
+  if excess > 0. then
+    log#severe "Time limit exceeded by %.2f secs (timeout: %.2f)!" excess
+      timeout;
   let status = if result <> `Resolved then `Failed else `Ready in
   (match Atomic.exchange t.status status with
     | `Resolving { pending } ->
