@@ -171,10 +171,18 @@ let _ =
       let preset = Lang.to_valued_option Lang.to_string preset_val in
       let handler =
         let library = Utils.check_readable ~pos:(Lang.pos p) library in
-        try Stereotool.init ?license_key ~filename:library ()
-        with Stereotool.Library_not_found ->
-          Runtime_error.raise ~pos:(Lang.pos p)
-            ~message:"Invalid stereotool library" "invalid"
+        try Stereotool.init ?license_key ~filename:library () with
+          | Stereotool.Library_not_found ->
+              Runtime_error.raise ~pos:(Lang.pos p)
+                ~message:"Invalid stereotool library" "invalid"
+          | Stereotool.Library_initialized f ->
+              Runtime_error.raise ~pos:(Lang.pos p)
+                ~message:
+                  (Printf.sprintf
+                     "Stereotool already initialized with a different library: \
+                      %s"
+                     (Lang_string.quote_string f))
+                "invalid"
       in
       (match preset with
         | None -> ()
