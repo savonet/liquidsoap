@@ -190,7 +190,7 @@ let stdlib_native = native
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
 # @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param playlist Playlist.
@@ -463,7 +463,7 @@ end
 # @param ~reload_mode Unit of the reload parameter, either "never" (never reload \
 #  the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is \
 #  changed).
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~thread_queue Queue used to resolve requests.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
