@@ -15,6 +15,7 @@ type load_type =
   | `Sublevel_pnr ]
 
 exception Library_not_found
+exception Library_initialized of string
 
 val init : ?license_key:string -> filename:string -> unit -> t
 val software_version : t -> int
