@@ -23,6 +23,16 @@
 open Mm
 open Source
 
+let conf =
+  Dtools.Conf.void ~p:(Configure.conf#plug "crossfade") "Crossfade settings"
+
+let conf_assume_autocue =
+  Dtools.Conf.bool
+    ~p:(conf#plug "assume_autocue")
+    ~d:false
+    "Assume autocue when all 4 cue in/out and fade in/out metadata override \
+     are present."
+
 class consumer ~clock buffer =
   object (self)
     inherit Source.source ~clock ~name:"cross.buffer" ()
@@ -42,7 +52,8 @@ class consumer ~clock buffer =
   * [cross_length] is in ticks (like #remaining estimations) and must be at least one frame. *)
 class cross val_source ~end_duration_getter ~override_end_duration
   ~override_duration ~start_duration_getter ~override_start_duration
-  ~override_max_start_duration ~persist_override ~rms_width transition =
+  ~override_max_start_duration ~persist_override ~rms_width ~assume_autocue
+  transition =
   let s = Lang.to_source val_source in
   let original_end_duration_getter = end_duration_getter in
   let original_start_duration_getter = start_duration_getter in
@@ -158,6 +169,34 @@ class cross val_source ~end_duration_getter ~override_end_duration
     val mutable rms_after = 0.
     val mutable rmsi_after = 0
     val mutable after_metadata = None
+
+    method private autocue_enabled mode =
+      let metadata, set_metadata =
+        match mode with
+          | `Before -> (before_metadata, fun m -> before_metadata <- Some m)
+          | `After -> (after_metadata, fun m -> after_metadata <- Some m)
+      in
+      match metadata with
+        | Some h -> (
+            let has_metadata =
+              List.for_all
+                (fun v -> Frame.Metadata.mem v h)
+                ["liq_cue_in"; "liq_cue_out"; "liq_fade_in"; "liq_fade_out"]
+            in
+            let has_marker = Frame.Metadata.mem "liq_autocue" h in
+            match (has_marker, has_metadata, assume_autocue) with
+              | true, true, _ -> true
+              | true, false, _ ->
+                  self#log#critical
+                    "`\"liq_autocue\"` metadata is present but some of the cue \
+                     in/out and fade in/out metadata are missing!";
+                  false
+              | false, true, true ->
+                  self#log#info "Assuming autocue";
+                  set_metadata (Frame.Metadata.add "liq_autocue" "assumed" h);
+                  true
+              | _ -> false)
+        | None -> false
 
     method private reset_analysis =
       gen_before <- Generator.create self#content_type;
@@ -351,8 +390,78 @@ class cross val_source ~end_duration_getter ~override_end_duration
       in
       f ~is_first:true ()
 
+    method private append_before_metadata lbl value =
+      before_metadata <-
+        Some
+          (Frame.Metadata.add lbl value
+             (Option.value ~default:Frame.Metadata.empty before_metadata))
+
+    method private append_after_metadata lbl value =
+      after_metadata <-
+        Some
+          (Frame.Metadata.add lbl value
+             (Option.value ~default:Frame.Metadata.empty after_metadata))
+
+    method private autocue_adjustements =
+      let before_autocue = self#autocue_enabled `Before in
+      let after_autocue = self#autocue_enabled `After in
+      let before_metadata =
+        Option.value ~default:Frame.Metadata.empty before_metadata
+      in
+      let buffered_before = Generator.length gen_before in
+      let buffered_after = Generator.length gen_after in
+      let buffered = min buffered_before buffered_after in
+      let extra_cross_duration = buffered_before - buffered_after in
+      if after_autocue then (
+        if before_autocue && 0 < extra_cross_duration then (
+          let new_cross_duration = buffered_before - extra_cross_duration in
+          Generator.keep gen_before new_cross_duration;
+          let new_cross_duration = Frame.seconds_of_main new_cross_duration in
+          let extra_cross_duration =
+            Frame.seconds_of_main extra_cross_duration
+          in
+          self#log#info
+            "Shortening ending track by %.2f to match the starting track's \
+             buffer."
+            extra_cross_duration;
+          let fade_out =
+            float_of_string (Frame.Metadata.find "liq_fade_out" before_metadata)
+          in
+          let fade_out = min new_cross_duration fade_out in
+          let fade_out_delay = max (new_cross_duration -. fade_out) 0. in
+          self#append_before_metadata "liq_fade_out" (string_of_float fade_out);
+          self#append_before_metadata "liq_fade_out_delay"
+            (string_of_float fade_out_delay));
+        (try
+           let cross_duration = Frame.seconds_of_main buffered in
+           let cue_out =
+             float_of_string (Frame.Metadata.find "liq_cue_out" before_metadata)
+           in
+           let start_next =
+             float_of_string
+               (Frame.Metadata.find "liq_cross_start_next" before_metadata)
+           in
+           if cue_out -. start_next < cross_duration then (
+             self#log#info "Adding fade-in delay to match start next";
+             self#append_after_metadata "liq_fade_in_delay"
+               (string_of_float (cross_duration -. cue_out +. start_next)))
+         with _ -> ());
+        let fade_out_delay =
+          try
+            float_of_string
+              (Frame.Metadata.find "liq_fade_out_delay" before_metadata)
+          with _ -> 0.
+        in
+        if 0. < fade_out_delay then (
+          self#log#info
+            "Adding %.2f fade-in delay to match the ending track's buffer"
+            fade_out_delay;
+          self#append_after_metadata "liq_fade_in_delay"
+            (string_of_float fade_out_delay)))
+
     (* Sum up analysis and build the transition *)
     method private create_after =
+      self#autocue_adjustements;
       let db_after =
         Audio.dB_of_lin
           (sqrt (rms_after /. float rmsi_after /. float self#audio_channels))
@@ -466,6 +575,13 @@ let _ =
         Some
           "Duration (in seconds) of buffered data from the end and start of \
            each track that is used to compute the transition between tracks." );
+      ( "assume_autocue",
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
+        Some
+          "Assume that a track has autocue enabled when all four cue in/out \
+           and fade in/out override metadata are present. Defaults to \
+           `settings.crossfade.assume_autocue` when `null`." );
       ( "override_start_duration",
         Lang.string_t,
         Some (Lang.string "liq_cross_start_duration"),
@@ -529,6 +645,12 @@ let _ =
        depending on the relative power of the signal before and after the end \
        of track."
     (fun p ->
+      let assume_autocue =
+        Lang.to_valued_option Lang.to_bool (List.assoc "assume_autocue" p)
+      in
+      let assume_autocue =
+        Option.value ~default:conf_assume_autocue#get assume_autocue
+      in
       let start_duration_getter =
         Lang.to_valued_option Lang.to_float_getter
           (List.assoc "start_duration" p)
@@ -563,4 +685,5 @@ let _ =
       new cross
         source transition ~start_duration_getter ~end_duration_getter ~rms_width
         ~override_start_duration ~override_max_start_duration
-        ~override_end_duration ~override_duration ~persist_override)
+        ~override_end_duration ~override_duration ~persist_override
+        ~assume_autocue)
