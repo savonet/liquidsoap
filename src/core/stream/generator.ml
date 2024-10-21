@@ -112,6 +112,16 @@ let _truncate ?(allow_desync = false) gen len =
 
 let truncate gen = Mutex_utils.mutexify gen.lock (_truncate gen)
 
+let _keep gen len =
+  Atomic.set gen.content
+    (Frame_base.Fields.map
+       (fun content ->
+         assert (len <= Content.length content);
+         Content.sub content 0 len)
+       (Atomic.get gen.content))
+
+let keep gen = Mutex_utils.mutexify gen.lock (_keep gen)
+
 let _slice gen len =
   let content = Atomic.get gen.content in
   let len =
