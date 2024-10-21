@@ -402,15 +402,11 @@ class cross val_source ~end_duration_getter ~override_end_duration
           (Frame.Metadata.add lbl value
              (Option.value ~default:Frame.Metadata.empty after_metadata))
 
-    method private autocue_adjustements =
-      let before_autocue = self#autocue_enabled `Before in
-      let after_autocue = self#autocue_enabled `After in
+    method private autocue_adjustements ~before_autocue ~after_autocue
+        ~buffered_before ~buffered_after ~buffered () =
       let before_metadata =
         Option.value ~default:Frame.Metadata.empty before_metadata
       in
-      let buffered_before = Generator.length gen_before in
-      let buffered_after = Generator.length gen_after in
-      let buffered = min buffered_before buffered_after in
       let extra_cross_duration = buffered_before - buffered_after in
       if after_autocue then (
         if before_autocue && 0 < extra_cross_duration then (
@@ -461,7 +457,11 @@ class cross val_source ~end_duration_getter ~override_end_duration
 
     (* Sum up analysis and build the transition *)
     method private create_after =
-      self#autocue_adjustements;
+      let before_autocue = self#autocue_enabled `Before in
+      let after_autocue = self#autocue_enabled `After in
+      let buffered_before = Generator.length gen_before in
+      let buffered_after = Generator.length gen_after in
+      let buffered = min buffered_before buffered_after in
       let db_after =
         Audio.dB_of_lin
           (sqrt (rms_after /. float rmsi_after /. float self#audio_channels))
@@ -470,20 +470,51 @@ class cross val_source ~end_duration_getter ~override_end_duration
         Audio.dB_of_lin
           (sqrt (rms_before /. float rmsi_before /. float self#audio_channels))
       in
-      let buffered_before = Generator.length gen_before in
-      let buffered_after = Generator.length gen_after in
+      self#autocue_adjustements ~before_autocue ~after_autocue ~buffered_before
+        ~buffered_after ~buffered ();
       let compound =
         let metadata = function None -> Frame.Metadata.empty | Some m -> m in
         let before_metadata = metadata before_metadata in
         let after_metadata = metadata after_metadata in
-        let before = new consumer ~clock:source#clock gen_before in
+        let before_head =
+          if (not after_autocue) && buffered < buffered_before then (
+            let head =
+              Generator.slice gen_before (buffered_before - buffered)
+            in
+            let head_gen =
+              Generator.create ~content:head (Generator.content_type gen_before)
+            in
+            let s = new consumer ~clock:source#clock head_gen in
+            s#set_id (self#id ^ "_before_head");
+            Typing.(s#frame_type <: self#frame_type);
+            Some s)
+          else None
+        in
+        let before =
+          new Insert_metadata.replay
+            before_metadata
+            (new consumer ~clock:source#clock gen_before)
+        in
         Typing.(before#frame_type <: self#frame_type);
-        let before = new Insert_metadata.replay before_metadata before in
-        Typing.(before#frame_type <: self#frame_type);
-        before#set_id (self#id ^ "_before");
-        let after = new consumer ~clock:source#clock gen_after in
-        Typing.(after#frame_type <: self#frame_type);
-        let after = new Insert_metadata.replay after_metadata after in
+        let after_tail =
+          if (not after_autocue) && buffered < buffered_after then (
+            let head = Generator.slice gen_after buffered in
+            let head_gen =
+              Generator.create ~content:head (Generator.content_type gen_after)
+            in
+            let tail_gen = gen_after in
+            gen_after <- head_gen;
+            let s = new consumer ~clock:source#clock tail_gen in
+            Typing.(s#frame_type <: self#frame_type);
+            s#set_id (self#id ^ "_after_tail");
+            Some s)
+          else None
+        in
+        let after =
+          new Insert_metadata.replay
+            after_metadata
+            (new consumer ~clock:source#clock gen_after)
+        in
         Typing.(after#frame_type <: self#frame_type);
         before#set_id (self#id ^ "_before");
         after#set_id (self#id ^ "_after");
@@ -512,6 +543,19 @@ class cross val_source ~end_duration_getter ~override_end_duration
           in
           Lang.to_source (Lang.apply transition params)
         in
+        Typing.(compound#frame_type <: self#frame_type);
+        let compound =
+          match (before_head, after_tail) with
+            | None, None -> (compound :> Source.source)
+            | Some s, None ->
+                (new Sequence.sequence ~merge:true [s; compound]
+                  :> Source.source)
+            | None, Some s ->
+                (new Sequence.sequence ~single_track:false [compound; s]
+                  :> Source.source)
+            | Some _, Some _ -> assert false
+        in
+        Clock.unify ~pos:self#pos compound#clock s#clock;
         Typing.(compound#frame_type <: self#frame_type);
         compound
       in
