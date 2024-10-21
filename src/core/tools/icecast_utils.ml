@@ -171,6 +171,7 @@ module Icecast_v (M : Icecast_t) = struct
             | Some v -> ffmpeg_mime_of_format v)
     | Encoder.FdkAacEnc _ -> Some aac
     | Encoder.External _ -> None
+    | Encoder.NDI _ -> None
     | Encoder.Flac _ -> Some flac
     | Encoder.WAV _ -> Some wav
     | Encoder.AVI _ -> Some avi

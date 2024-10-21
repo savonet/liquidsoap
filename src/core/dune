@@ -143,6 +143,7 @@
   lang_fdkaac
   lang_flac
   lang_mp3
+  lang_ndi
   lang_ogg
   lang_opus
   lang_source
@@ -178,6 +179,8 @@
   mutex_utils
   native_audio_converter
   native_video_converter
+  ndi_format
+  ndi_encoder
   noblank
   noise
   normalize
@@ -645,6 +648,14 @@
  (modules stereotool_op))
 
 (library
+ (name liquidsoap_ndi)
+ (libraries ndi liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules ndi_out))
+
+(library
  (name liquidsoap_theora)
  (libraries theora theora.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
@@ -732,6 +743,7 @@
   lo_option
   mad_option
   memtrace_option
+  ndi_option
   ogg_option
   opus_option
   osc_option
@@ -897,6 +909,11 @@
    from
    (liquidsoap_portaudio -> portaudio_option.enabled.ml)
    (-> portaudio_option.disabled.ml))
+  (select
+   ndi_option.ml
+   from
+   (liquidsoap_ndi -> ndi_option.enabled.ml)
+   (-> ndi_option.disabled.ml))
   (select
    posix_time_option.ml
    from

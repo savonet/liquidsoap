@@ -63,7 +63,7 @@ module InternalResampler_pcm_f32 = struct
 end
 
 module RawResampler = Swresample.Make (Swresample.Frame) (Swresample.Frame)
-module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
+module InternalScaler = Swscale.Make (Swscale.PackedBigArray) (Swscale.Frame)
 module RawScaler = Swscale.Make (Swscale.Frame) (Swscale.Frame)
 
 let log = Log.make ["ffmpeg"; "encoder"; "internal"]

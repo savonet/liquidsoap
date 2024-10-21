@@ -25,6 +25,7 @@
 type format =
   | WAV of Wav_format.t
   | AVI of Avi_format.t
+  | NDI of Ndi_format.t
   | Ogg of Ogg_format.t
   | MP3 of Mp3_format.t
   | Shine of Shine_format.t
