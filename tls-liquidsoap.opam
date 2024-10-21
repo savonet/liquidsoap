@@ -12,6 +12,8 @@ depends: [
   "dune" {>= "3.6"}
   "tls"
   "ca-certs"
+  "mirage-crypto-rng"
+  "cstruct"
   "odoc" {with-doc}
 ]
 build: [
