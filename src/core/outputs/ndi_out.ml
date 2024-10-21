@@ -118,19 +118,8 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~on_start
             |> Video.Canvas.Image.viewport video_width video_height
             |> Video.Canvas.Image.render ~transparent:false
           in
-          let y, u, v = Image.YUV420.data img in
-          let y_dim = Bigarray.Array1.dim y in
-          let u_dim = Bigarray.Array1.dim u in
-          let v_dim = Bigarray.Array1.dim v in
           let stride = Image.YUV420.y_stride img in
-          let data =
-            Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout
-              (y_dim + u_dim + v_dim)
-          in
-          Bigarray.Array1.blit y (Bigarray.Array1.sub data 0 y_dim);
-          Bigarray.Array1.blit u (Bigarray.Array1.sub data y_dim u_dim);
-          Bigarray.Array1.blit v
-            (Bigarray.Array1.sub data (y_dim + u_dim) v_dim);
+          let data = Image.YUV420.packed_data img in
           let video_frame =
             {
               Ndi.Frame.Video.xres = video_width;

@@ -31,7 +31,7 @@ let ffmpeg_raw_decode =
 module InternalResampler =
   Swresample.Make (Swresample.Frame) (Swresample.PlanarFloatArray)
 
-module InternalScaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
+module InternalScaler = Swscale.Make (Swscale.Frame) (Swscale.PackedBigArray)
 
 let log = Log.make ["ffmpeg"; "internal"; "decoder"]
 

@@ -34,10 +34,10 @@ val liq_video_sample_time_base : unit -> Avutil.rational
 val liq_frame_time_base : unit -> Avutil.rational
 val liq_frame_pixel_format : unit -> Avutil.Pixel_format.t
 val pixel_format : 'a Avcodec.Video.t -> string option -> Avutil.Pixel_format.t
-val pack_image : Image.YUV420.t -> (Image.Data.t * int) array
+val pack_image : Image.YUV420.t -> Swscale.PackedBigArray.t
 
 val unpack_image :
-  width:int -> height:int -> (Image.Data.t * int) array -> Image.YUV420.t
+  width:int -> height:int -> Swscale.PackedBigArray.t -> Image.YUV420.t
 
 val convert_time_base :
   src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
