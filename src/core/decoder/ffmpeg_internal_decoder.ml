@@ -66,7 +66,7 @@ module Converter_pcm_f32 = struct
   include ConverterInput (Swresample.FltPlanarBigArray)
 end
 
-module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
+module Scaler = Swscale.Make (Swscale.Frame) (Swscale.PackedBigArray)
 
 let mk_audio_decoder ~channels ~stream ~field ~pcm_kind codec =
   let converter =

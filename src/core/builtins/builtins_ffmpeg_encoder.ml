@@ -31,7 +31,7 @@ let ffmpeg_raw_encode =
 module InternalResampler =
   Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
 
-module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
+module InternalScaler = Swscale.Make (Swscale.PackedBigArray) (Swscale.Frame)
 
 type source_idx = { source : Source.source; idx : int64 }
 

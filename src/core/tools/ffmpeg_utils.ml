@@ -102,15 +102,47 @@ let pack_image f =
   let y, u, v = Image.YUV420.data f in
   let sy = Image.YUV420.y_stride f in
   let s = Image.YUV420.uv_stride f in
-  [| (y, sy); (u, s); (v, s) |]
+  {
+    Swscale.PackedBigArray.data;
+    planes =
+      [|
+        { plane_size = Image.Data.length y; stride = sy };
+        { plane_size = Image.Data.length u; stride = s };
+        { plane_size = Image.Data.length v; stride = s };
+      |];
+  }
 
 let unpack_image ~width ~height = function
-  | [| (y, sy); (u, su); (v, sv) |] ->
+  | {
+      Swscale.PackedBigArray.data;
+      planes =
+        [|
+          { plane_size = y_len; stride = sy };
+          { plane_size = u_len; stride = su };
+          { plane_size = v_len; stride = sv };
+        |];
+    } ->
       assert (su = sv);
+      let y = Image.Data.sub data 0 y_len in
+      let u = Image.Data.sub data y_len u_len in
+      let v = Image.Data.sub data (y_len + u_len) v_len in
       Image.YUV420.make width height y sy u v su
-  | [| (y, sy); (u, su); (v, sv); (alpha, sa) |] ->
+  | {
+      Swscale.PackedBigArray.data;
+      planes =
+        [|
+          { plane_size = y_len; stride = sy };
+          { plane_size = u_len; stride = su };
+          { plane_size = v_len; stride = sv };
+          { plane_size = alpha_len; stride = sa };
+        |];
+    } ->
       assert (su = sv);
       assert (sa = sy);
+      let y = Image.Data.sub data 0 y_len in
+      let u = Image.Data.sub data y_len u_len in
+      let v = Image.Data.sub data (y_len + u_len) v_len in
+      let alpha = Image.Data.sub data (y_len + u_len + v_len) alpha_len in
       Image.YUV420.make width height ~alpha y sy u v su
   | _ -> assert false
 
