@@ -17,9 +17,9 @@ def cross.plot(~png=null(), ~dir=null(), s) =
   new_txt = path.concat(dir, "new.txt")
 
   def gnuplot_cmd(filename) =
-    'set term png; set output "#{filename}"; plot "#{new_txt}" using 1:2 with \
-     lines title "new track", "#{old_txt}" using 1:2 with lines title "old \
-     track"'
+    'set term png; set output "#{(filename : string)}"; plot "#{new_txt}" using \
+     1:2 with lines title "new track", "#{old_txt}" using 1:2 with lines title \
+     "old track"'
   end
 
   def store_rms(~id, s) =
