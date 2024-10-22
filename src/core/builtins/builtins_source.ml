@@ -218,21 +218,24 @@ let _ =
       in
       let s = Pipe_output.new_file_output ~clock p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
-      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
       let timeout = Time.of_float (Lang.to_float (List.assoc "timeout" p)) in
       Clock.start ~force:true clock;
       log#info "Start dumping source (ratio: %.02fx)" ratio;
-      let timeout_time = Time.(time () |+| timeout) in
+      let start_time = Time.time () in
+      let timeout_time = Time.(start_time |+| timeout) in
+      let target_time () =
+        Time.(start_time |+| of_float (Clock.time clock /. ratio))
+      in
       (try
          while (not (Atomic.get should_stop)) && not !stopped do
-           let start_time = Time.time () in
            if not !started then started := s#is_ready;
            if (not !started) && Time.(timeout_time |<=| start_time) then (
              log#important "Timeout while waiting for the source to start!";
              stopped := true)
            else (
              Clock.tick clock;
-             sleep_until (start_time |+| latency))
+             let target_time = target_time () in
+             if Time.(time () < target_time) then sleep_until target_time)
          done
        with Clock.Has_stopped -> ());
       log#info "Source dumped.";
@@ -284,11 +287,14 @@ let _ =
           ~register_telnet:false ~autostart:true (Lang.source s)
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
-      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
       let timeout = Time.of_float (Lang.to_float (List.assoc "timeout" p)) in
       Clock.start ~force:true clock;
       log#info "Start dropping source (ratio: %.02fx)" ratio;
-      let timeout_time = Time.(time () |+| timeout) in
+      let start_time = Time.time () in
+      let timeout_time = Time.(start_time |+| timeout) in
+      let target_time () =
+        Time.(start_time |+| of_float (Clock.time clock /. ratio))
+      in
       (try
          while (not (Atomic.get should_stop)) && not !stopped do
            let start_time = Time.time () in
@@ -298,9 +304,14 @@ let _ =
              stopped := true)
            else (
              Clock.tick clock;
-             sleep_until (start_time |+| latency))
+             let target_time = target_time () in
+             if Time.(time () < target_time) then sleep_until target_time)
          done
        with Clock.Has_stopped -> ());
-      log#info "Source dropped.";
+      let processing_time = Time.(to_float (time () |-| start_time)) in
+      let effective_ratio = Clock.time clock /. processing_time in
+      log#info
+        "Source dropped. Total processing time: %.02fs, effective ratio: %.02fx"
+        processing_time effective_ratio;
       Clock.stop clock;
       Lang.unit)

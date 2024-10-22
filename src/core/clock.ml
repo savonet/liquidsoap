@@ -316,9 +316,13 @@ let ticks c =
     | `Stopped _ -> 0
     | `Stopping { ticks } | `Started { ticks } -> Atomic.get ticks
 
-let _target_time { time_implementation; t0; frame_duration; ticks } =
+let _time { time_implementation; frame_duration; ticks } =
   let module Time = (val time_implementation : Liq_time.T) in
-  Time.(t0 |+| (frame_duration |*| of_float (float_of_int (Atomic.get ticks))))
+  Time.(frame_duration |*| of_float (float_of_int (Atomic.get ticks)))
+
+let _target_time ({ time_implementation; t0 } as c) =
+  let module Time = (val time_implementation : Liq_time.T) in
+  Time.(t0 |+| _time c)
 
 let _set_time { time_implementation; t0; frame_duration; ticks } t =
   let module Time = (val time_implementation : Liq_time.T) in
@@ -525,6 +529,11 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
   in
   Queue.push clocks c;
   c
+
+let time c =
+  let ({ time_implementation } as c) = active_params c in
+  let module Time = (val time_implementation : Liq_time.T) in
+  Time.to_float (_time c)
 
 let start_pending () =
   let c = Queue.flush_elements clocks in
