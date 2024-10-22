@@ -184,6 +184,12 @@ let _ =
         Some
           "Stop processing the source if it has not started after the given \
            timeout." );
+      ( "sleep_latency",
+        Lang.float_t,
+        Some (Lang.float 0.1),
+        Some
+          "How much time ahead, in seconds, should we should be before pausing \
+           the processing." );
     ]
     Lang.unit_t
     (fun p ->
@@ -219,12 +225,16 @@ let _ =
       let s = Pipe_output.new_file_output ~clock p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let timeout = Time.of_float (Lang.to_float (List.assoc "timeout" p)) in
+      let sleep_latency =
+        Time.of_float (Lang.to_float (List.assoc "sleep_latency" p))
+      in
       Clock.start ~force:true clock;
       log#info "Start dumping source (ratio: %.02fx)" ratio;
       let start_time = Time.time () in
       let timeout_time = Time.(start_time |+| timeout) in
       let target_time () =
-        Time.(start_time |+| of_float (Clock.time clock /. ratio))
+        Time.(
+          start_time |+| sleep_latency |+| of_float (Clock.time clock /. ratio))
       in
       (try
          while (not (Atomic.get should_stop)) && not !stopped do
@@ -235,7 +245,8 @@ let _ =
            else (
              Clock.tick clock;
              let target_time = target_time () in
-             if Time.(time () < target_time) then sleep_until target_time)
+             if Time.(time () |<| (target_time |+| sleep_latency)) then
+               sleep_until target_time)
          done
        with Clock.Has_stopped -> ());
       log#info "Source dumped.";
@@ -261,6 +272,12 @@ let _ =
         Some
           "Stop processing the source if it has not started after the given \
            timeout." );
+      ( "sleep_latency",
+        Lang.float_t,
+        Some (Lang.float 0.1),
+        Some
+          "How much time ahead, in seconds, should we should be before pausing \
+           the processing." );
     ]
     Lang.unit_t
     (fun p ->
@@ -288,6 +305,9 @@ let _ =
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let timeout = Time.of_float (Lang.to_float (List.assoc "timeout" p)) in
+      let sleep_latency =
+        Time.of_float (Lang.to_float (List.assoc "sleep_latency" p))
+      in
       Clock.start ~force:true clock;
       log#info "Start dropping source (ratio: %.02fx)" ratio;
       let start_time = Time.time () in
@@ -305,7 +325,8 @@ let _ =
            else (
              Clock.tick clock;
              let target_time = target_time () in
-             if Time.(time () < target_time) then sleep_until target_time)
+             if Time.(time () |<| (target_time |+| sleep_latency)) then
+               sleep_until target_time)
          done
        with Clock.Has_stopped -> ());
       let processing_time = Time.(to_float (time () |-| start_time)) in
