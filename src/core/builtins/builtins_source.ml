@@ -178,11 +178,18 @@ let _ =
         Some
           "Time ratio. A value of `50` means process data at `50x` real rate, \
            when possible." );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some
+          "Stop processing the source if it has not started after the given \
+           timeout." );
     ]
     Lang.unit_t
     (fun p ->
       let module Time = (val Clock.time_implementation () : Liq_time.T) in
       let open Time in
+      let started = ref false in
       let stopped = ref false in
       let proto =
         let p = Pipe_output.file_proto (Lang.univ_t ()) in
@@ -209,16 +216,23 @@ let _ =
                  (Printexc.to_string exn)))
           ()
       in
-      let _ = Pipe_output.new_file_output ~clock p in
+      let s = Pipe_output.new_file_output ~clock p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
+      let timeout = Time.of_float (Lang.to_float (List.assoc "timeout" p)) in
       Clock.start ~force:true clock;
       log#info "Start dumping source (ratio: %.02fx)" ratio;
+      let timeout_time = Time.(time () |+| timeout) in
       (try
          while (not (Atomic.get should_stop)) && not !stopped do
            let start_time = Time.time () in
-           Clock.tick clock;
-           sleep_until (start_time |+| latency)
+           if not !started then started := s#is_ready;
+           if (not !started) && Time.(timeout_time |<=| start_time) then (
+             log#important "Timeout while waiting for the source to start!";
+             stopped := true)
+           else (
+             Clock.tick clock;
+             sleep_until (start_time |+| latency))
          done
        with Clock.Has_stopped -> ());
       log#info "Source dumped.";
@@ -238,12 +252,19 @@ let _ =
         Some
           "Time ratio. A value of `50` means process data at `50x` real rate, \
            when possible." );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some
+          "Stop processing the source if it has not started after the given \
+           timeout." );
     ]
     Lang.unit_t
     (fun p ->
       let module Time = (val Clock.time_implementation () : Liq_time.T) in
       let open Time in
       let s = List.assoc "" p |> Lang.to_source in
+      let started = ref false in
       let stopped = ref false in
       let clock =
         Clock.create ~id:"source_dumper" ~sync:`Passive
@@ -264,13 +285,20 @@ let _ =
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
+      let timeout = Time.of_float (Lang.to_float (List.assoc "timeout" p)) in
       Clock.start ~force:true clock;
       log#info "Start dropping source (ratio: %.02fx)" ratio;
+      let timeout_time = Time.(time () |+| timeout) in
       (try
          while (not (Atomic.get should_stop)) && not !stopped do
            let start_time = Time.time () in
-           Clock.tick clock;
-           sleep_until (start_time |+| latency)
+           if not !started then started := s#is_ready;
+           if (not !started) && Time.(timeout_time |<=| start_time) then (
+             log#important "Timeout while waiting for the source to start!";
+             stopped := true)
+           else (
+             Clock.tick clock;
+             sleep_until (start_time |+| latency))
          done
        with Clock.Has_stopped -> ());
       log#info "Source dropped.";
