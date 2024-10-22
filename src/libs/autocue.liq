@@ -217,7 +217,10 @@ def autocue.internal.ebur128(~duration, ~ratio=50., ~timeout=10., filename) =
         let {audio = a} = source.tracks(s)
         a = ffmpeg.filter.audio.input(graph, a)
         let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
-        a = ffmpeg.filter.audio.output(graph, a)
+
+        # ebur filter seems to generate invalid PTS.
+        a = ffmpeg.filter.asetpts(expr="N/SR/TB", graph, a)
+        a = ffmpeg.filter.audio.output(id="filter_output", graph, a)
         source({audio=a, metadata=track.metadata(a)})
       end
 

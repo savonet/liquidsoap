@@ -199,17 +199,28 @@ let _ =
       in
       let proto = ("fallible", Lang.bool true) :: proto in
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
-      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
+      let clock =
+        Clock.create ~id:"source_dumper" ~sync:`Passive
+          ~on_error:(fun exn bt ->
+            stopped := true;
+            Utils.log_exception ~log
+              ~bt:(Printexc.raw_backtrace_to_string bt)
+              (Printf.sprintf "Error while dropping source: %s"
+                 (Printexc.to_string exn)))
+          ()
+      in
       let _ = Pipe_output.new_file_output ~clock p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      Clock.start clock;
+      Clock.start ~force:true clock;
       log#info "Start dumping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && not !stopped do
-        let start_time = Time.time () in
-        Clock.tick clock;
-        sleep_until (start_time |+| latency)
-      done;
+      (try
+         while (not (Atomic.get should_stop)) && not !stopped do
+           let start_time = Time.time () in
+           Clock.tick clock;
+           sleep_until (start_time |+| latency)
+         done
+       with Clock.Has_stopped -> ());
       log#info "Source dumped.";
       Clock.stop clock;
       Lang.unit)
@@ -234,7 +245,16 @@ let _ =
       let open Time in
       let s = List.assoc "" p |> Lang.to_source in
       let stopped = ref false in
-      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
+      let clock =
+        Clock.create ~id:"source_dumper" ~sync:`Passive
+          ~on_error:(fun exn bt ->
+            stopped := true;
+            Utils.log_exception ~log
+              ~bt:(Printexc.raw_backtrace_to_string bt)
+              (Printf.sprintf "Error while dropping source: %s"
+                 (Printexc.to_string exn)))
+          ()
+      in
       let _ =
         new Output.dummy
           ~clock ~infallible:false
@@ -244,13 +264,15 @@ let _ =
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      Clock.start clock;
+      Clock.start ~force:true clock;
       log#info "Start dropping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && not !stopped do
-        let start_time = Time.time () in
-        Clock.tick clock;
-        sleep_until (start_time |+| latency)
-      done;
+      (try
+         while (not (Atomic.get should_stop)) && not !stopped do
+           let start_time = Time.time () in
+           Clock.tick clock;
+           sleep_until (start_time |+| latency)
+         done
+       with Clock.Has_stopped -> ());
       log#info "Source dropped.";
       Clock.stop clock;
       Lang.unit)

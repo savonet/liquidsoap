@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 exception Invalid_state
+exception Has_stopped
 
 type t
 type active_source = < reset : unit ; output : unit >

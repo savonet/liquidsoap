@@ -464,7 +464,7 @@ and _can_start ?(force = false) clock =
         `True sync
     | _ -> `False
 
-and _start ~sync clock =
+and _start ?force ~sync clock =
   Unifier.set clock.id (Lang_string.generate_id (Unifier.deref clock.id));
   let id = _id clock in
   log#important "Starting clock %s with %d source(s) and sync: %s" id
@@ -497,14 +497,14 @@ and _start ~sync clock =
       ticks = Atomic.make 0;
     }
   in
-  Queue.iter clock.sub_clocks (fun c -> start c);
+  Queue.iter clock.sub_clocks (fun c -> start ?force c);
   Atomic.set clock.state (`Started x);
   if sync <> `Passive then _clock_thread ~clock x
 
 and start ?force c =
   let clock = Unifier.deref c in
   match _can_start ?force clock with
-    | `True sync -> _start ~sync clock
+    | `True sync -> _start ?force ~sync clock
     | `False -> ()
 
 let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
