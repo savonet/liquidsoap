@@ -808,7 +808,7 @@ let file.autocue = ()
 
 # Return the file's autocue values as metadata suitable for metadata override.
 # @category Source / Audio processing
-def file.autocue.metadata(~metadata, uri) =
+def file.autocue.metadata(~request_metadata, uri) =
   preferred_implementation = settings.autocue.preferred()
   implementations = settings.autocue.implementations()
 
@@ -859,7 +859,7 @@ def file.autocue.metadata(~metadata, uri) =
       try
         autocue =
           implementation(
-            request_metadata=metadata,
+            request_metadata=request_metadata,
             file_metadata=request.metadata(r),
             request.filename(r)
           )
@@ -990,7 +990,7 @@ def enable_autocue_metadata() =
       )
       []
     else
-      autocue_metadata = file.autocue.metadata(metadata=metadata, fname)
+      autocue_metadata = file.autocue.metadata(request_metadata=metadata, fname)
 
       all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
 
@@ -1086,7 +1086,7 @@ end
 # Define autocue protocol
 # @flag hidden
 def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
-  cue_metadata = file.autocue.metadata(metadata=[], arg)
+  cue_metadata = file.autocue.metadata(request_metadata=[], arg)
 
   if
     cue_metadata != []
