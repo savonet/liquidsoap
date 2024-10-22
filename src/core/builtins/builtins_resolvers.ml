@@ -67,7 +67,7 @@ let _ =
       let extensions =
         Lang.to_valued_option
           (fun v -> List.map Lang.to_string (Lang.to_list v))
-          (List.assoc "extensions" p)
+          (List.assoc "file_extensions" p)
       in
       let log = Log.make ["decoder"; "metadata"] in
       let priority = Lang.to_int_getter (List.assoc "priority" p) in
