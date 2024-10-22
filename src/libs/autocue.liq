@@ -1062,8 +1062,21 @@ def enable_autocue_metadata() =
       autocue_metadata
     end
   end
+
+%ifdef settings.decoder.mime_types.ffmpeg
+  mime_types = settings.decoder.mime_types.ffmpeg()
+  file_extensions = settings.decoder.file_extensions.ffmpeg()
+%else
+  mime_types = null()
+  file_extensions = null()
+%endif
+
   decoder.metadata.add(
-    priority=settings.autocue.metadata.priority, "autocue", autocue_metadata
+    mime_types=mime_types,
+    file_extensions=file_extensions,
+    priority=settings.autocue.metadata.priority,
+    "autocue",
+    autocue_metadata
   )
 end
 

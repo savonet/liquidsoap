@@ -35,6 +35,18 @@ let _ =
         Lang.getter_t Lang.int_t,
         Some (Lang.int 1),
         Some "Resolver's priority." );
+      ( "mime_types",
+        Lang.nullable_t (Lang.list_t Lang.string_t),
+        Some Lang.null,
+        Some
+          "Decode files that match the mime types in this list. Accept any \
+           file if `null`." );
+      ( "file_extensions",
+        Lang.nullable_t (Lang.list_t Lang.string_t),
+        Some Lang.null,
+        Some
+          "Decode files that have the file extensions in this list. Accept any \
+           file if `null`." );
       ("", Lang.string_t, None, Some "Format/resolver's name.");
       ( "",
         resolver_t,
@@ -47,11 +59,25 @@ let _ =
     (fun p ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
+      let mimes =
+        Lang.to_valued_option
+          (fun v -> List.map Lang.to_string (Lang.to_list v))
+          (List.assoc "mime_types" p)
+      in
+      let extensions =
+        Lang.to_valued_option
+          (fun v -> List.map Lang.to_string (Lang.to_list v))
+          (List.assoc "extensions" p)
+      in
+      let log = Log.make ["decoder"; "metadata"] in
       let priority = Lang.to_int_getter (List.assoc "priority" p) in
-      let resolver ~metadata ~extension:_ ~mime:_ name =
+      let resolver ~metadata ~extension ~mime fname =
+        if
+          not (Decoder.test_file ~log ~extension ~mime ~mimes ~extensions fname)
+        then raise Metadata.Invalid;
         let ret =
           Lang.apply f
-            [("metadata", Lang.metadata metadata); ("", Lang.string name)]
+            [("metadata", Lang.metadata metadata); ("", Lang.string fname)]
         in
         let ret = Lang.to_list ret in
         let ret = List.map Lang.to_product ret in
