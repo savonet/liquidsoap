@@ -94,7 +94,7 @@ let conf_clock_preferred =
 let conf_clock_sleep_latency =
   Dtools.Conf.int
     ~p:(conf_clock#plug "sleep_latency")
-    ~d:1
+    ~d:5
     "How much time ahead (in frame duration) we should be until we let the \
      streaming loop sleep."
     ~comments:
