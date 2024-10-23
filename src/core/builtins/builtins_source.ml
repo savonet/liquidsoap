@@ -178,11 +178,24 @@ let _ =
         Some
           "Time ratio. A value of `50` means process data at `50x` real rate, \
            when possible." );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some
+          "Stop processing the source if it has not started after the given \
+           timeout." );
+      ( "sleep_latency",
+        Lang.float_t,
+        Some (Lang.float 0.1),
+        Some
+          "How much time ahead, in seconds, should we should be before pausing \
+           the processing." );
     ]
     Lang.unit_t
     (fun p ->
       let module Time = (val Clock.time_implementation () : Liq_time.T) in
       let open Time in
+      let started = ref false in
       let stopped = ref false in
       let proto =
         let p = Pipe_output.file_proto (Lang.univ_t ()) in
@@ -198,18 +211,44 @@ let _ =
           p
       in
       let proto = ("fallible", Lang.bool true) :: proto in
-      let p = (("id", Lang.string "source_dumper") :: p) @ proto in
-      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
-      let _ = Pipe_output.new_file_output ~clock p in
+      let p = (("id", Lang.string "source.drop") :: p) @ proto in
+      let clock =
+        Clock.create ~id:"source.dump" ~sync:`Passive
+          ~on_error:(fun exn bt ->
+            stopped := true;
+            Utils.log_exception ~log
+              ~bt:(Printexc.raw_backtrace_to_string bt)
+              (Printf.sprintf "Error while dropping source: %s"
+                 (Printexc.to_string exn)))
+          ()
+      in
+      let s = Pipe_output.new_file_output ~clock p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
-      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      Clock.start clock;
+      let timeout = Time.of_float (Lang.to_float (List.assoc "timeout" p)) in
+      let sleep_latency =
+        Time.of_float (Lang.to_float (List.assoc "sleep_latency" p))
+      in
+      Clock.start ~force:true clock;
       log#info "Start dumping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && not !stopped do
-        let start_time = Time.time () in
-        Clock.tick clock;
-        sleep_until (start_time |+| latency)
-      done;
+      let start_time = Time.time () in
+      let timeout_time = Time.(start_time |+| timeout) in
+      let target_time () =
+        Time.(
+          start_time |+| sleep_latency |+| of_float (Clock.time clock /. ratio))
+      in
+      (try
+         while (not (Atomic.get should_stop)) && not !stopped do
+           if not !started then started := s#is_ready;
+           if (not !started) && Time.(timeout_time |<=| start_time) then (
+             log#important "Timeout while waiting for the source to start!";
+             stopped := true)
+           else (
+             Clock.tick clock;
+             let target_time = target_time () in
+             if Time.(time () |<| (target_time |+| sleep_latency)) then
+               sleep_until target_time)
+         done
+       with Clock.Has_stopped -> ());
       log#info "Source dumped.";
       Clock.stop clock;
       Lang.unit)
@@ -227,14 +266,36 @@ let _ =
         Some
           "Time ratio. A value of `50` means process data at `50x` real rate, \
            when possible." );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some
+          "Stop processing the source if it has not started after the given \
+           timeout." );
+      ( "sleep_latency",
+        Lang.float_t,
+        Some (Lang.float 0.1),
+        Some
+          "How much time ahead, in seconds, should we should be before pausing \
+           the processing." );
     ]
     Lang.unit_t
     (fun p ->
       let module Time = (val Clock.time_implementation () : Liq_time.T) in
       let open Time in
       let s = List.assoc "" p |> Lang.to_source in
+      let started = ref false in
       let stopped = ref false in
-      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
+      let clock =
+        Clock.create ~id:"source.dump" ~sync:`Passive
+          ~on_error:(fun exn bt ->
+            stopped := true;
+            Utils.log_exception ~log
+              ~bt:(Printexc.raw_backtrace_to_string bt)
+              (Printf.sprintf "Error while dropping source: %s"
+                 (Printexc.to_string exn)))
+          ()
+      in
       let _ =
         new Output.dummy
           ~clock ~infallible:false
@@ -243,14 +304,35 @@ let _ =
           ~register_telnet:false ~autostart:true (Lang.source s)
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
-      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      Clock.start clock;
+      let timeout = Time.of_float (Lang.to_float (List.assoc "timeout" p)) in
+      let sleep_latency =
+        Time.of_float (Lang.to_float (List.assoc "sleep_latency" p))
+      in
+      Clock.start ~force:true clock;
       log#info "Start dropping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && not !stopped do
-        let start_time = Time.time () in
-        Clock.tick clock;
-        sleep_until (start_time |+| latency)
-      done;
-      log#info "Source dropped.";
+      let start_time = Time.time () in
+      let timeout_time = Time.(start_time |+| timeout) in
+      let target_time () =
+        Time.(start_time |+| of_float (Clock.time clock /. ratio))
+      in
+      (try
+         while (not (Atomic.get should_stop)) && not !stopped do
+           let start_time = Time.time () in
+           if not !started then started := s#is_ready;
+           if (not !started) && Time.(timeout_time |<=| start_time) then (
+             log#important "Timeout while waiting for the source to start!";
+             stopped := true)
+           else (
+             Clock.tick clock;
+             let target_time = target_time () in
+             if Time.(time () |<| (target_time |+| sleep_latency)) then
+               sleep_until target_time)
+         done
+       with Clock.Has_stopped -> ());
+      let processing_time = Time.(to_float (time () |-| start_time)) in
+      let effective_ratio = Clock.time clock /. processing_time in
+      log#info
+        "Source dropped. Total processing time: %.02fs, effective ratio: %.02fx"
+        processing_time effective_ratio;
       Clock.stop clock;
       Lang.unit)
