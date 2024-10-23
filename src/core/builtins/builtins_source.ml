@@ -211,9 +211,9 @@ let _ =
           p
       in
       let proto = ("fallible", Lang.bool true) :: proto in
-      let p = (("id", Lang.string "source_dumper") :: p) @ proto in
+      let p = (("id", Lang.string "source.drop") :: p) @ proto in
       let clock =
-        Clock.create ~id:"source_dumper" ~sync:`Passive
+        Clock.create ~id:"source.dump" ~sync:`Passive
           ~on_error:(fun exn bt ->
             stopped := true;
             Utils.log_exception ~log
@@ -287,7 +287,7 @@ let _ =
       let started = ref false in
       let stopped = ref false in
       let clock =
-        Clock.create ~id:"source_dumper" ~sync:`Passive
+        Clock.create ~id:"source.dump" ~sync:`Passive
           ~on_error:(fun exn bt ->
             stopped := true;
             Utils.log_exception ~log
