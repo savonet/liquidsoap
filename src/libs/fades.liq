@@ -47,14 +47,14 @@ let settings.fade.out.type =
   settings.make(
     description=
       "Default fade.out type",
-    "exp"
+    "lin"
   )
 
 let settings.fade.out.curve =
   settings.make(
     description=
       "Default fade.out curve",
-    3.
+    10.
   )
 
 # Make a fade function based on a source's clock.
