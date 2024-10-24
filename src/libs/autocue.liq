@@ -82,7 +82,7 @@ let settings.autocue.internal.lufs_target =
   settings.make(
     description=
       "Loudness target",
-    -16.0
+    -14.0
   )
 
 let settings.autocue.internal.cue_in_threshold =
