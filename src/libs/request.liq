@@ -28,7 +28,7 @@ end
 # @param ~native Use native implementation, when available.
 # @param ~queue Initial queue of requests.
 # @param ~thread_queue Queue used to resolve requests.
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request.
 # @method add This method is internal and should not be used. Consider using `push` instead.
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
@@ -276,7 +276,7 @@ end
 # @category Source / Input
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~thread_queue Queue used to resolve requests.
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.
 # @param r Request
 def request.single(
@@ -380,7 +380,7 @@ end
 # static, and time is not.
 # @category Source / Input
 # @param ~prefetch How many requests should be queued in advance.
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.

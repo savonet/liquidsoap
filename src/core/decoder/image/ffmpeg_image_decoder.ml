@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
+module Scaler = Swscale.Make (Swscale.Frame) (Swscale.PackedBigArray)
 
 let log = Log.make ["decoder"; "ffmpeg"; "image"]
 
