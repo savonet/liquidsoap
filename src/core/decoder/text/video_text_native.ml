@@ -21,12 +21,14 @@
  *****************************************************************************)
 
 open Mm
+open Extralib
 
 let log = Log.make ["video"; "text"; "native"]
 
 let render_text ~font ~size text =
   if font <> Configure.conf_default_font#get then
-    log#important "video.text.native does not support custom fonts yet!";
+    Fun.once (fun () ->
+        log#important "video.text.native does not support custom fonts yet!");
   let () = ignore font in
   let font = Image.Bitmap.Font.native in
   let bmp = Image.Bitmap.Font.render text in

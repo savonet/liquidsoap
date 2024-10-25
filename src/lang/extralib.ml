@@ -88,3 +88,15 @@ module Int = struct
       assert false
     with Exit -> !ans
 end
+
+module Fun = struct
+  include Fun
+
+  (** Execute a function at most once. *)
+  let once =
+    let already = ref false in
+    fun f ->
+      if not !already then (
+        already := true;
+        f ())
+end
