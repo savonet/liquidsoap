@@ -215,8 +215,10 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
         try
           self#content_type_computation_allowed;
           if log == source_log then self#create_log;
-          source_log#info "Source %s gets up with content type: %s." id
-            (Frame.string_of_content_type self#content_type);
+          source_log#info
+            "Source %s gets up with content type: %s and frame type: %s." id
+            (Frame.string_of_content_type self#content_type)
+            (Type.to_string self#frame_type);
           self#log#debug "Clock is %s." (Clock.id self#clock);
           self#log#important "Content type is %s."
             (Frame.string_of_content_type self#content_type);

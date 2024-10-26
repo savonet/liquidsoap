@@ -53,7 +53,7 @@ module FormatSpecs = struct
   let subtype _ f f' = Content_base.merge f f'
 
   let sup _ f f' =
-    Content_base.merge f f';
+    Content_base.(merge (duplicate f) (duplicate f'));
     f
 
   let to_string _ = assert false
