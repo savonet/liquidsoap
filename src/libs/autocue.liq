@@ -82,7 +82,7 @@ let settings.autocue.internal.lufs_target =
   settings.make(
     description=
       "Loudness target",
-    -16.0
+    -14.0
   )
 
 let settings.autocue.internal.cue_in_threshold =
@@ -155,7 +155,7 @@ let settings.autocue.internal.ratio =
   settings.make(
     description=
       "Maximum real time ratio to control speed of LUFS data analysis",
-    50.
+    223.
   )
 
 let settings.autocue.internal.timeout =
@@ -217,7 +217,10 @@ def autocue.internal.ebur128(~duration, ~ratio=50., ~timeout=10., filename) =
         let {audio = a} = source.tracks(s)
         a = ffmpeg.filter.audio.input(graph, a)
         let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
-        a = ffmpeg.filter.audio.output(graph, a)
+
+        # ebur filter seems to generate invalid PTS.
+        a = ffmpeg.filter.asetpts(expr="N/SR/TB", graph, a)
+        a = ffmpeg.filter.audio.output(id="filter_output", graph, a)
         source({audio=a, metadata=track.metadata(a)})
       end
 
@@ -805,7 +808,7 @@ let file.autocue = ()
 
 # Return the file's autocue values as metadata suitable for metadata override.
 # @category Source / Audio processing
-def file.autocue.metadata(~metadata, uri) =
+def file.autocue.metadata(~request_metadata, uri) =
   preferred_implementation = settings.autocue.preferred()
   implementations = settings.autocue.implementations()
 
@@ -856,7 +859,7 @@ def file.autocue.metadata(~metadata, uri) =
       try
         autocue =
           implementation(
-            request_metadata=metadata,
+            request_metadata=request_metadata,
             file_metadata=request.metadata(r),
             request.filename(r)
           )
@@ -987,7 +990,7 @@ def enable_autocue_metadata() =
       )
       []
     else
-      autocue_metadata = file.autocue.metadata(metadata=metadata, fname)
+      autocue_metadata = file.autocue.metadata(request_metadata=metadata, fname)
 
       all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
 
@@ -1062,15 +1065,28 @@ def enable_autocue_metadata() =
       autocue_metadata
     end
   end
+
+%ifdef settings.decoder.mime_types.ffmpeg
+  mime_types = settings.decoder.mime_types.ffmpeg()
+  file_extensions = settings.decoder.file_extensions.ffmpeg()
+%else
+  mime_types = null()
+  file_extensions = null()
+%endif
+
   decoder.metadata.add(
-    priority=settings.autocue.metadata.priority, "autocue", autocue_metadata
+    mime_types=mime_types,
+    file_extensions=file_extensions,
+    priority=settings.autocue.metadata.priority,
+    "autocue",
+    autocue_metadata
   )
 end
 
 # Define autocue protocol
 # @flag hidden
 def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
-  cue_metadata = file.autocue.metadata(metadata=[], arg)
+  cue_metadata = file.autocue.metadata(request_metadata=[], arg)
 
   if
     cue_metadata != []

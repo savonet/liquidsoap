@@ -181,7 +181,7 @@
    (name tls-liquidsoap)
    (version 1)
    (allow_empty)
-   (depends tls ca-certs)
+   (depends tls ca-certs mirage-crypto-rng cstruct)
    (synopsis "Virtual package install liquidosap dependencies for TLS optional features")
 )
 

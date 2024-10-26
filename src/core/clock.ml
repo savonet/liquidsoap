@@ -94,7 +94,7 @@ let conf_clock_preferred =
 let conf_clock_sleep_latency =
   Dtools.Conf.int
     ~p:(conf_clock#plug "sleep_latency")
-    ~d:1
+    ~d:5
     "How much time ahead (in frame duration) we should be until we let the \
      streaming loop sleep."
     ~comments:
@@ -316,9 +316,13 @@ let ticks c =
     | `Stopped _ -> 0
     | `Stopping { ticks } | `Started { ticks } -> Atomic.get ticks
 
-let _target_time { time_implementation; t0; frame_duration; ticks } =
+let _time { time_implementation; frame_duration; ticks } =
   let module Time = (val time_implementation : Liq_time.T) in
-  Time.(t0 |+| (frame_duration |*| of_float (float_of_int (Atomic.get ticks))))
+  Time.(frame_duration |*| of_float (float_of_int (Atomic.get ticks)))
+
+let _target_time ({ time_implementation; t0 } as c) =
+  let module Time = (val time_implementation : Liq_time.T) in
+  Time.(t0 |+| _time c)
 
 let _set_time { time_implementation; t0; frame_duration; ticks } t =
   let module Time = (val time_implementation : Liq_time.T) in
@@ -464,7 +468,7 @@ and _can_start ?(force = false) clock =
         `True sync
     | _ -> `False
 
-and _start ~sync clock =
+and _start ?force ~sync clock =
   Unifier.set clock.id (Lang_string.generate_id (Unifier.deref clock.id));
   let id = _id clock in
   log#important "Starting clock %s with %d source(s) and sync: %s" id
@@ -497,14 +501,14 @@ and _start ~sync clock =
       ticks = Atomic.make 0;
     }
   in
-  Queue.iter clock.sub_clocks (fun c -> start c);
+  Queue.iter clock.sub_clocks (fun c -> start ?force c);
   Atomic.set clock.state (`Started x);
   if sync <> `Passive then _clock_thread ~clock x
 
 and start ?force c =
   let clock = Unifier.deref c in
   match _can_start ?force clock with
-    | `True sync -> _start ~sync clock
+    | `True sync -> _start ?force ~sync clock
     | `False -> ()
 
 let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
@@ -525,6 +529,11 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
   in
   Queue.push clocks c;
   c
+
+let time c =
+  let ({ time_implementation } as c) = active_params c in
+  let module Time = (val time_implementation : Liq_time.T) in
+  Time.to_float (_time c)
 
 let start_pending () =
   let c = Queue.flush_elements clocks in
