@@ -48,7 +48,8 @@ let rec watchdog () =
           (fun (wd, _, _, _) ->
             match List.assoc wd !handlers with
               | f -> f ()
-              | exception Not_found -> ())
+              | exception Not_found -> (
+                  try Inotify.rm_watch fd wd with _ -> ()))
           events;
         [watchdog ()])
   in
@@ -76,6 +77,7 @@ let watch : watch =
       let e = List.flatten (List.map event_conv e) in
       let wd = Inotify.add_watch fd file e in
       handlers := (wd, f) :: !handlers;
+      let finalise fn = fn () in
       let unwatch =
         Mutex_utils.mutexify m (fun () ->
             (try Inotify.rm_watch fd wd
@@ -86,5 +88,6 @@ let watch : watch =
                     (Printexc.to_string exn)));
             handlers := List.remove_assoc wd !handlers)
       in
+      Gc.finalise finalise unwatch;
       unwatch)
     ()
