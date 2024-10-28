@@ -18,7 +18,7 @@ New:
   `self-sync`. See @TODO@ for more details. (#3781)
 - Allow frames duration shorter than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
-  a higher CPU usage. See @TODO@ for more details (#3607)
+  a higher CPU usage (#3607)
 - Change default frame duration to `0.02s` (#4033)
 - Optimized runtime (#3927, #3928, #3919)
 - Added `finally` to execute code regardless of whether or not an exception is raised
