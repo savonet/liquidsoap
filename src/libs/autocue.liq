@@ -155,7 +155,7 @@ let settings.autocue.internal.ratio =
   settings.make(
     description=
       "Maximum real time ratio to control speed of LUFS data analysis",
-    223.
+    70.
   )
 
 let settings.autocue.internal.timeout =
