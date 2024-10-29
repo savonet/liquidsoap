@@ -230,8 +230,6 @@ let report :
       throw exn;
       default ())
 
-let compact_after_typecheck = ref false
-
 let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
     parsed_term =
   let cached_term =
@@ -281,6 +279,7 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
 
         if Lazy.force Term.debug then
           Printf.eprintf "Checking for unused variables...\n%!";
+        (* Check for unused variables, relies on types *)
         report
           ~default:(fun () -> ())
           (fun ~throw () -> Term.check_unused ~throw ~lib full_term);
@@ -289,8 +288,6 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
         in
         if cache then
           Term_cache.cache ?dirtype:cache_dirtype ~trim ~parsed_term full_term;
-        (* Check for unused variables, relies on types *)
-        if !compact_after_typecheck then Gc.compact ();
         full_term
 
 let eval_term ?name ~toplevel ast =
