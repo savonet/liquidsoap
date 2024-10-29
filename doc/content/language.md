@@ -1500,6 +1500,18 @@ that are available through your scripts. We recommend to:
 
 The default creation permissions for user cache files is: `0o600` so only the user creating them should be able to read them. You should make sure that your script permissions are also similarly restricted.
 
+### Cache and memory usage
+
+One side-benefit from loading a script from cache is that the entire typechecking process is skipped.
+
+This can result is significant reduction in the initial memory consumption, typically down from about `375MB` to about `80MB`!
+
+If memory consumption is a concern but you are not sure you can cache your script, you can also set the environment variable
+`LIQ_COMPACT_AFTER_TYPECHECK` to `true`.
+
+This will run the OCaml memory compaction algorithm after typechecking your script but before running it. This will result
+in a similar memory footprint when running the script but will delay its initial startup time.
+
 ### Cache environment variables
 
 The following environment variables control the cache behavior:
@@ -1513,3 +1525,4 @@ The following environment variables control the cache behavior:
 - `LIQ_CACHE_USER_FILE_PERMS`: set the permissions used when creating a user cache file. Default: `0o600`
 - `LIQ_CACHE_MAX_DAYS`: set the maximum days a cache file can be stored before it is eligible to be deleted during the next cache maintenance pass.
 - `LIQ_CACHE_MAX_FILES`: set the maximum number of files in each cache directory. Older files are removed first.
+- `LIQ_COMPACT_AFTER_TYPECHECK`: Set to compact memory after typechecking when caching is not available.

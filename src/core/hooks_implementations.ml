@@ -146,6 +146,10 @@ let cache_max_files =
 
 let () =
   (try
+     Liquidsoap_lang.Runtime.compact_after_typecheck :=
+       bool_of_string (Sys.getenv "LIQ_COMPACT_AFTER_TYPECHECK")
+   with _ -> ());
+  (try
      Liquidsoap_lang.Cache.system_dir_perms :=
        int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_DIR_PERMS")
    with _ -> ());

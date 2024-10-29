@@ -40,6 +40,9 @@ val type_term :
   Parsed_term.t ->
   Term.t
 
+(* If [true], OCaml memory is compacted after typecheck. *)
+val compact_after_typecheck : bool ref
+
 (** Evaluate a term. *)
 val eval_term : ?name:string -> toplevel:bool -> Term.t -> Value.t
 
