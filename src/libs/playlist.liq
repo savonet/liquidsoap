@@ -106,7 +106,7 @@ end
 def playlist.files(
   ~id=null(),
   ~mime_type=null(),
-  ~timeout=20.,
+  ~timeout=null(),
   ~cue_in_metadata=null("liq_cue_in"),
   ~cue_out_metadata=null("liq_cue_out"),
   uri
@@ -190,7 +190,7 @@ let stdlib_native = native
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
 # @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
-# @param ~timeout Timeout (in sec.) to resolve the request.
+# @param ~timeout Timeout (in sec.) to resolve the request. Defaults to `settings.request.timeout` when `null`.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param playlist Playlist.
@@ -208,7 +208,7 @@ def playlist.list(
   ~on_done={()},
   ~max_fail=10,
   ~on_fail=null(),
-  ~timeout=20.,
+  ~timeout=null(),
   ~cue_in_metadata=null("liq_cue_in"),
   ~cue_out_metadata=null("liq_cue_out"),
   playlist
@@ -463,7 +463,7 @@ end
 # @param ~reload_mode Unit of the reload parameter, either "never" (never reload \
 #  the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is \
 #  changed).
-# @param ~timeout Timeout (in sec.) to resolve the request.
+# @param ~timeout Timeout (in sec.) to resolve the request. Defaults to `settings.request.timeout` when `null`.
 # @param ~thread_queue Queue used to resolve requests.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
@@ -487,7 +487,7 @@ def replaces playlist(
   ~prefix="",
   ~reload=0,
   ~reload_mode="seconds",
-  ~timeout=20.,
+  ~timeout=null(),
   ~cue_in_metadata=null("liq_cue_in"),
   ~cue_out_metadata=null("liq_cue_out"),
   uri

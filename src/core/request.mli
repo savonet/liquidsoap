@@ -116,9 +116,10 @@ val conf_metadata_decoder_priorities : Dtools.Conf.ut
 (** Read the request's metadata. *)
 val read_metadata : t -> unit
 
-(** [resolve request timeout] tries to resolve the request within
-    [timeout] seconds. *)
-val resolve : t -> float -> resolve_flag
+(** [resolve ?timeout request] tries to resolve the request within
+    [timeout] seconds. Defaults to [settings.request.timeout] when
+    [timeout] is not passed. *)
+val resolve : ?timeout:float -> t -> resolve_flag
 
 (** [resolved r] if there's an available local filename. It can be true even if
     the resolving hasn't been run, if the initial URI was already a local
