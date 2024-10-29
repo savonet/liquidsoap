@@ -62,6 +62,7 @@ New:
 - Added atomic file write operations.
 - Added new `macos_say` speech synthesis protocol. Make it the default implementation for the `say:`
   protocol on `macos`.
+- Added `settings.request.timeout` to set the request timeout globally.
 
 Changed:
 

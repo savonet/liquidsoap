@@ -100,9 +100,11 @@ let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap
     [
       ( "timeout",
-        Lang.float_t,
-        Some (Lang.float 30.),
-        Some "Limit in seconds to the duration of the resolving." );
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some
+          "Limit in seconds to the duration of the request resolution. \
+           Defaults to `settings.request.timeout` when `null`." );
       ("", Request.Value.t, None, None);
     ]
     Lang.bool_t
@@ -113,9 +115,11 @@ let _ =
        should not be decoded afterward: this is mostly useful to download \
        files such as playlists, etc."
     (fun p ->
-      let timeout = Lang.to_float (List.assoc "timeout" p) in
+      let timeout =
+        Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+      in
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.bool (try Request.resolve r timeout = `Resolved with _ -> false))
+      Lang.bool (try Request.resolve ?timeout r = `Resolved with _ -> false))
 
 let _ =
   Lang.add_builtin ~base:request "metadata" ~category:`Liquidsoap
@@ -211,9 +215,11 @@ let _ =
               "Optional metadata used to decode the file, e.g. \
                `ffmpeg_options`." );
           ( "timeout",
-            Lang.float_t,
-            Some (Lang.float 30.),
-            Some "Limit in seconds to the duration of the resolving." );
+            Lang.nullable_t Lang.float_t,
+            Some Lang.null,
+            Some
+              "Limit in seconds to the duration of request resolution. \
+               Defaults to `settings.request.timeout` when `null`." );
           ("", Lang.string_t, None, None);
         ])
       (Lang.nullable_t Lang.float_t)
@@ -237,12 +243,14 @@ let _ =
             | Some r -> Some [r]
         in
         let metadata = Lang.to_metadata (List.assoc "metadata" p) in
-        let timeout = Lang.to_float (List.assoc "timeout" p) in
+        let timeout =
+          Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+        in
         let r =
           Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
             ~cue_out_metadata:None f
         in
-        if Request.resolve r timeout = `Resolved then (
+        if Request.resolve ?timeout r = `Resolved then (
           match
             Request.duration ?resolvers ~metadata:(Request.metadata r)
               (Option.get (Request.get_filename r))
