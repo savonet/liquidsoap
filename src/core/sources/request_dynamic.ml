@@ -50,7 +50,7 @@ let log_failed_request (log : Log.t) request ans =
 let extract_queued_params p =
   let l = Lang.to_valued_option Lang.to_int (List.assoc "prefetch" p) in
   let l = Option.value ~default:conf_prefetch#get l in
-  let t = Lang.to_float (List.assoc "timeout" p) in
+  let t = Lang.to_valued_option Lang.to_float (List.assoc "timeout" p) in
   (l, t)
 
 let should_fail = Atomic.make false
@@ -199,14 +199,14 @@ class dynamic ~priority ~retry_delay ~available (f : Lang.value) prefetch
     method set_queue =
       self#clear_retrieved;
       List.iter (fun request ->
-          match Request.resolve request timeout with
+          match Request.resolve ?timeout request with
             | `Resolved
               when Request.has_decoder ~ctype:self#content_type request ->
                 Queue.push retrieved { request; expired = false }
             | ans -> log_failed_request self#log request ans)
 
     method add i =
-      match Request.resolve i.request timeout with
+      match Request.resolve ?timeout i.request with
         | `Resolved when Request.has_decoder ~ctype:self#content_type i.request
           ->
             Queue.push retrieved i;
@@ -286,7 +286,7 @@ class dynamic ~priority ~retry_delay ~available (f : Lang.value) prefetch
         match r with
           | `Retry -> `Retry
           | `Request req -> (
-              match Request.resolve req timeout with
+              match Request.resolve ?timeout req with
                 | `Resolved
                   when Request.has_decoder ~ctype:self#content_type req ->
                     let rec remove_expired ret =
@@ -355,9 +355,11 @@ let _ =
         Some Lang.null,
         Some "How many requests should be queued in advance." );
       ( "timeout",
-        Lang.float_t,
-        Some (Lang.float 20.),
-        Some "Timeout (in sec.) to resolve the request." );
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some
+          "Timeout (in sec.) to resolve the request. Defaults to \
+           `settings.request.timeout` when `null`." );
     ]
     ~meth:
       [

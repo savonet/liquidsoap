@@ -44,6 +44,10 @@ let conf_add_on_air =
         "by an output.";
       ]
 
+let conf_timeout =
+  Dtools.Conf.float ~p:(conf#plug "timeout") ~d:29.
+    "Default request resolution timeout."
+
 let log = Log.make ["request"]
 
 let pretty_date date =
@@ -638,6 +642,7 @@ let () =
       Atomic.set should_fail true)
 
 let resolve_req t timeout =
+  let timeout = Option.value ~default:conf_timeout#get timeout in
   log#debug "Resolving request %s." (string_of_indicators t);
   let since = Unix.gettimeofday () in
   Atomic.set t.status (`Resolving { since; pending = [] });
@@ -717,7 +722,7 @@ let resolve_req t timeout =
     | _ -> assert false);
   result
 
-let rec resolve t timeout =
+let rec resolve ?timeout t =
   match Atomic.get t.status with
     | `Idle -> resolve_req t timeout
     | `Resolving ({ pending } as r) as status ->
@@ -730,7 +735,7 @@ let rec resolve t timeout =
                 (`Resolving { r with pending = (c, m) :: pending })
             then Condition.wait c m)
           ();
-        resolve t timeout
+        resolve ?timeout t
     | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
 

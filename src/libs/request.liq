@@ -39,7 +39,7 @@ def request.queue(
   ~native=false,
   ~queue=[],
   ~thread_queue="generic",
-  ~timeout=20.
+  ~timeout=null()
 ) =
   ignore(native)
   id = string.id.default(default="request.queue", id)
@@ -233,7 +233,7 @@ end
 def request.once(
   ~id=null("request.once"),
   ~thread_queue="generic",
-  ~timeout=20.,
+  ~timeout=null(),
   r
 ) =
   id = string.id.default(default="request.once", id)
@@ -282,7 +282,7 @@ end
 def request.single(
   ~id=null("request.single"),
   ~prefetch=null(),
-  ~timeout=20.,
+  ~timeout=null(),
   ~thread_queue="generic",
   ~fallible=null(),
   r
