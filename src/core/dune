@@ -882,7 +882,7 @@
   (select
    memtrace_option.ml
    from
-   (liquidsoap_memtrace -> memtrace_option.enabled.ml)
+   (memtrace -> memtrace_option.enabled.ml)
    (-> memtrace_option.disabled.ml))
   (select
    ogg_option.ml
