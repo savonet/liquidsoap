@@ -212,7 +212,7 @@ let _sync ?(pending = false) x =
     | `Started { sync } -> (sync :> sync_mode)
 
 let sync c = _sync (Unifier.deref c)
-let cleanup_source s = s#force_sleep
+let cleanup_source s = try s#force_sleep with _ -> ()
 let clocks = Queue.create ()
 
 let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
