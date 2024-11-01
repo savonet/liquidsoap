@@ -284,8 +284,7 @@ let unify =
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
       Atomic.set global_stop true;
-      Queue.iter active_clocks stop;
-      WeakQueue.iter passive_clocks stop)
+      Queue.iter active_clocks stop)
 
 let _animated_sources { outputs; active_sources } =
   Queue.elements outputs @ WeakQueue.elements active_sources
