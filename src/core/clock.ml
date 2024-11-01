@@ -527,7 +527,7 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
         on_error = on_error_queue;
       }
   in
-  Queue.push clocks c;
+  if sync <> `Passive then Queue.push clocks c;
   c
 
 let time c =
