@@ -46,7 +46,7 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
     method set_output_enabled v = output_enabled <- v
     method! reset = ()
     method start = ()
-    method stop = write_frame producer_buffer `Flush
+    method stop = ()
     method! output = if always_enabled || output_enabled then super#output
     method private send_frame frame = write_frame producer_buffer (`Frame frame)
   end
