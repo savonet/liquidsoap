@@ -312,7 +312,6 @@ def request.single(
     end
 
   static_request = ref(null())
-  done = ref(false)
 
   def on_wake_up() =
     if
@@ -349,21 +348,13 @@ def request.single(
   end
 
   def next() =
-    if
-      done()
-    then
-      null()
-    else
-      done := true
-
-      def next() =
-        static_request() ?? getter.get(r)
-      end
-
-      s = request.dynamic(prefetch=prefetch, thread_queue=thread_queue, next)
-      if infallible then s.set_queue([next()]) end
-      s
+    def next() =
+      static_request() ?? getter.get(r)
     end
+
+    s = request.dynamic(prefetch=prefetch, thread_queue=thread_queue, next)
+    if infallible then s.set_queue([next()]) end
+    s
   end
 
   s =
