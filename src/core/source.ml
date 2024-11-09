@@ -69,7 +69,7 @@ let source_log = Log.make ["source"]
 
 let finalise s =
   source_log#debug "Source %s is collected." s#id;
-  try s#sleep
+  try s#force_sleep
   with e ->
     let bt = Printexc.get_backtrace () in
     Utils.log_exception ~log:source_log ~bt
