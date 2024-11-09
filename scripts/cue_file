@@ -1,0 +1,1275 @@
+#!/usr/bin/env python3
+# encoding: utf-8
+
+# cue_file
+# 2024-02-08 Moonbase59 - first unpublished test versions
+# 2024-03-23 Moonbase59 - first published version
+# 2024-04-11 Moonbase59 - Added liq_cross_start_next
+# 2024-04-12 Moonbase59 - Rename `liq_duration` -> `liq_cue_duration`
+#                       - Change to create correctly typed JSON (thanks @toots!)
+# 2024-04-20 Moonbase59 - optimized skip_analysis for different loudness targets
+#                       - allow loudness values as floats
+# 2024-04-24 Moonbase59 - completely remove `liq_cross_duration`, so it won’t
+#                         be written to file’s tags
+# 2024-04-25 Moonbase59 - handle old RG1/mp3gain positive loudness reference
+#                       - more sanity checks & adjustments
+#                       - add -n/--nice option, increases nice value by 10
+# 2024-05-01 Moonbase59 - Add (future) ramp & hook points to `tags_to_check`
+# 2024-05-02 Moonbase59 - Add -k/--noclip option, prevents clipping by
+#                         correcting liq_amplify. Correction shown in
+#                         liq_amplify_adjustment. Adds liq_true_peak in dBFS.
+# 2024-05-04 Moonbase59 - Fix liq_loudness unit: It is LUFS, not dB
+#                       - Add (informational) liq_loudness_range
+# 2024-06-02 Moonbase59 - use Mutagen for writing tags to MP4-type files
+#                       - v1.1.0 add version numbering (semver)
+# 2024-06-04 Moonbase59 - v1.2.0 Ensure all supported file types tagged safely.
+#                       - Show Mutagen status, supported file types in help.
+#                       - v1.2.1 Much more informative help, nicer formatting.
+#                       - v1.2.2 Limit -t/--target input range to -23.0..0.0
+#                       - v1.2.3 Limit all params to sensible ranges
+#                       - v2.0.0 Breaking: Add -r/--replaygain overwrite
+#                       - Changed `liq_true_peak` to `liq_true_peak_db`,
+#                         add new `liq_true_peak` (linear, like RG)
+#                       - v2.0.1 Fix `liq_true_peak` reading when it still
+#                         contains ` dBFS` from v1.2.3.
+# 2024-06-05 Moonbase59 - No change, just version number.
+# 2024-06-08 Moonbase59 - v2.0.3 Fix ffmpeg treating `.ogg` with cover as video
+# 2024-06-09 Moonbase59 - v2.1.0 Read/override tags from JSON file (can be stdin)
+#                       - Make variable checking more robust (bool & unit suffixes)
+#                       - Add `liq_fade_in` & `liq_fade_out` tags for reading/writing,
+#                         in case a preprocessor needs to set fade durations.
+# 2024-06-11 Moonbase59 - v2.2.0 Sync version number with autocue.cue_file
+# 2024-06-11 Moonbase59 - v2.2.1 Sync version number with autocue.cue_file
+# 2024-06-11 Moonbase59 - v3.0.0 Add variable blankskip (0.0=off)
+#                       - BREAKING: `liq_blankskip` now flot, not bool anymore!
+#                         Pre-v3.0.0 tags will be read graciously.
+# 2024-06-12 Moonbase59 - v3.0.1 Increase default min. silence to 5.0 s
+# 2024-06-13 Moonbase59 - Add `liq_sustained_ending`.
+# 2024-06-13 Moonbase59 & RM-FM - v4.0.0 Add sustained ending analysis,
+#                         a collaborative work.
+#                         Breaking: JSON & metadata (`liq_sustained_ending`)
+# 2024-06-14 Moonbase59 - Add mutagen vserion to `-V`/`--version`.
+# 2024-06-15 Moonbase59 - v4.0.1 Catch IndexError in sustained calculation if we are
+#                         already at the end of the track.
+#                       - Remove eprint in slope
+# 2024-06-16 Moonbase59 - v4.0.2 Cleanup ending calculation code
+#                       - Use max. LUGS of longtail & right end for sustained
+#                       - Default SUSTAINED_LOUDNESS_DROP to 40.0% instead of 60.0%,
+#                         for slightly tighter/denser playout (community wish)
+# 2024-06-18 Moonbase59 - v4.0.3 Change LONGTAIL_EXTRA_LU from -15 to -12,
+#                         most people seem to want transitions a bit tighter
+# 2024-07-01 Moonbase59 - v4.0.4 Fix JSON override after analysis
+#                       - Add `-nostdin` to ffmpeg commands, prevents strange
+#                         errors when piping something to cue_file
+#                       - streamline tag conversion code a little
+#                       - only write known tags, not all `liq_*`
+# 2024-07-02 Moonbase59 - v4.0.5 Fix minor bugs with file duration
+# 2024-07-04 Moonbase59 - v4.0.6 Sync version with autocue.cue_file.liq
+# 2024-07-05 Moonbase59 - v4.1.0 Add `liq_cue_file` to known tags, so we can
+#                         forbid external processes to call us again and
+#                         possibly deliver outdated metadata to us.
+# 2024-08-05 Moonbase59 - v4.1.1 Fix JSON overriding if `liq_cue_file` is true
+#
+# Originally based on an idea and some code by John Warburton (@Warblefly):
+#   https://github.com/Warblefly/TrackBoundaries
+# Some collaborative work with RM-FM (@RM-FM): Sustained ending analysis.
+
+__author__ = 'Matthias C. Hormann'
+__version__ = '4.1.1'
+
+import os
+import sys
+import tempfile
+import subprocess
+import argparse
+import json
+import re
+import math
+from pathlib import Path
+import textwrap
+
+# like print(), but prints to stderr
+
+
+def eprint(*args, **kwargs):
+    """Print to stderr, nicely."""
+    print(*args, file=sys.stderr, **kwargs)
+
+
+# see if we have Mutagen and import it if available
+try:
+    import mutagen
+    import mutagen.id3
+    import mutagen.apev2
+    import mutagen.mp4
+    import mutagen.aiff
+    import mutagen.wave
+    import mutagen.oggvorbis
+    MUTAGEN_AVAILABLE = True
+    MUTAGEN_VERSION = mutagen.version_string
+except ImportError:
+    MUTAGEN_AVAILABLE = False
+    MUTAGEN_VERSION = "(not installed)"
+
+# Default presets
+FFMPEG = "ffmpeg"  # location of the ffmpeg binary
+FFPROBE = "ffprobe"  # location of the ffprobe binary
+TARGET_LUFS = -18.0  # Reference Loudness Target
+# -96 dB/LU is "digital silence" for 16-bit audio.
+# A "noise floor" of -60 dB/LU (42 dB/LU below -18 target) is a good value
+# to use.
+SILENCE = -42.0  # LU below average for cue-in/cue-out trigger ("silence")
+OVERLAY_LU = -8.0  # LU below average for overlay trigger (start next song)
+# more than LONGTAIL_SECONDS below OVERLAY_LU are considered a "long tail"
+LONGTAIL_SECONDS = 15.0
+LONGTAIL_EXTRA_LU = -12.0  # reduce 15 dB extra on long tail songs to find overlap point
+SUSTAINED_LOUDNESS_DROP = 40.0  # max. percent drop to be considered sustained
+BLANKSKIP = 5.0  # min. seconds silence to detect blank
+NICE = False  # use Linux/MacOS nice?
+
+# These file types can be handled correctly by ffmpeg
+safe_ext = [
+    ".mp3",  # ID3
+    ".flac", ".spx", ".opus",  # Vorbis Comment
+    ".oga", ".ogv",  # Vorbis Comment
+    ".wma", ".wmv", ".asf",  # ASF/WMA tags
+]
+
+# For all file types below we need Mutagen; ffmpeg corrupts these
+
+# MP4-like files using Apple iTunes-type tags
+mp4_ext = [".m4a", ".m4b", ".m4p", ".m4v", ".m4r", ".mp4", ".alac"]
+
+# Ogg Vorbis files using VorbisComment tags
+ogg_ext = [".ogg"]
+
+# ID3v2 file types
+id3_ext = [".mp2", ".m2a"]
+
+# AIFF, non-compat ID3 tags
+aiff_ext = [".aiff", ".aif", ".aifc"]
+
+# WAVE, RIFF, LIST INFO chunk, 'ID3 '/'id3 ' chunks; no 'BWF_'
+wav_ext = [".wav"]
+
+# File types using APEv2 tags
+ape_ext = [
+    ".mpc", ".mp+",  # Musepack
+    ".wv",  # WavPack
+    ".ofr", ".ofs",  # OptimFROG
+    ".ape",  # Monkey's Audio
+    ".aac",  # ADTS/ADIF AAC (raw)
+]
+
+if MUTAGEN_AVAILABLE:
+    # Add the file types we can't tag safely.with ffmpeg
+    safe_ext.extend(mp4_ext)
+    safe_ext.extend(ogg_ext)
+    safe_ext.extend(id3_ext)
+    safe_ext.extend(aiff_ext)
+    safe_ext.extend(ape_ext)
+    safe_ext.extend(wav_ext)
+
+# minimum set of tags after "read_tags" that must be there before skipping
+# analysis
+tags_mandatory = set([
+    "duration",
+    "liq_cue_in",
+    "liq_cue_out",
+    "liq_cross_start_next",
+    "replaygain_track_gain",
+])
+
+
+# bool() returns True for every nonempty string, so use a function
+def is_true(v):
+    if isinstance(v, str):
+        return v.lower() == 'true'
+    elif isinstance(v, bool):
+        return v
+    else:
+        raise ValueError('must be bool or str')
+
+# Need to handle pre-version 3.0.0 `liq_blankskip`: was bool, is now float`
+
+
+def float_blankskip(v):
+    if isinstance(v, bool):
+        return float(v) * args.blankskip  # True=1, False=0
+    elif isinstance(v, str):
+        try:
+            return float(v)
+        except ValueError:
+            if v.lower() == 'true':
+                return args.blankskip
+            else:
+                return 0.0
+    else:
+        return v
+
+
+# these are the tags to check when reading/writing tags from/to files
+tags_to_check = {
+    "duration": float,
+    "liq_amplify_adjustment": float,
+    "liq_amplify": float,  # like replaygain_track_gain
+    "liq_blankskip": float_blankskip,  # backwards-compatibility, was bool
+    "liq_blank_skipped": is_true,
+    "liq_cross_duration": float,
+    "liq_cross_start_next": float,
+    "liq_cue_duration": float,
+    "liq_cue_file": is_true,
+    "liq_cue_in": float,
+    "liq_cue_out": float,
+    "liq_fade_in": float,
+    "liq_fade_out": float,
+    "liq_longtail": is_true,
+    "liq_loudness": float,
+    "liq_loudness_range": float,  # like replaygain_track_range
+    "liq_reference_loudness": float,  # like replaygain_reference_loudness
+    "liq_sustained_ending": is_true,
+    "liq_true_peak_db": float,
+    "liq_true_peak": float,
+    "r128_track_gain": int,
+    "replaygain_reference_loudness": float,
+    "replaygain_track_gain": float,
+    "replaygain_track_peak": float,
+    "replaygain_track_range": float,
+    # reserved for future expansion
+    "liq_hook1_in": float,
+    "liq_hook1_out": float,
+    "liq_hook2_in": float,
+    "liq_hook2_out": float,
+    "liq_hook3_in": float,
+    "liq_hook3_out": float,
+    "liq_ramp1": float,
+    "liq_ramp2": float,
+    "liq_ramp3": float,
+}
+
+
+def amplify_correct(target, loudness, true_peak_dB, noclip):
+    # check if we need to reduce the gain for true peaks
+    amplify_correction = 0.0
+    if noclip:
+        amplify = target - loudness
+        max_amp = -1.0 - true_peak_dB  # difference to EBU recommended -1 dBFS
+        if amplify > max_amp:
+            amplify_correction = max_amp - amplify
+            amplify = max_amp
+    else:
+        amplify = target - loudness
+    return amplify, amplify_correction
+
+
+# remove " dB", " LU", " dBFS", " dBTP" and " LUFS" suffixes from
+# tags_found
+def remove_suffix(tags):
+    suffixed_tags = [
+        "liq_amplify", "liq_amplify_adjustment",
+        "liq_loudness", "liq_loudness_range", "liq_reference_loudness",
+        "replaygain_track_gain", "replaygain_track_range",
+        "replaygain_reference_loudness",
+        "liq_true_peak_db",
+        "liq_true_peak",  # in case old " dBFS" values were stored in v1.2.3
+    ]
+    for tag in suffixed_tags:
+        if tag in tags and isinstance(tags[tag], str):
+            # No need to check for unit name, only using defined tags
+            m = re.search(r'([+-]?\d*\.?\d+)', tags[tag])
+            if m is not None:
+                tags[tag] = m.group()
+
+    return tags
+
+
+# convert tags into their typed variants, ready for calculations
+def convert_tags(tags):
+    items = tags.items()
+
+    # make keys lowercase, include only tags in tags_to_check
+    tags = {
+        k.lower(): v for k,
+        v in items if k.lower() in tags_to_check}
+
+    # remove suffixes from several tags
+    tags = remove_suffix(tags)
+
+    # convert tag string values to the correct types, listed in tags_to_check
+    tags = {k: tags_to_check[k](v) for k, v in tags.items()}
+
+    return tags
+
+# override a (typed) result with JSON overrides
+def override_from_JSON(tags, tags_json={}):
+    # get tags in JSON override file
+    tags_in_json = convert_tags(tags_json)
+
+    # do NOT overwrite from JSON if `liq_cue_file` is true
+    if "liq_cue_file" in tags and tags["liq_cue_file"] == True:
+        pass
+    else:
+        # unify, right overwrites left if key in both
+        tags = {**tags, **tags_in_json}
+
+    return tags
+
+
+def read_tags(
+        filename,
+        tags_json={},
+        target=TARGET_LUFS,
+        blankskip=0.0,
+        noclip=False):
+    # NOTE: Older ffmpeg/ffprobe don’t read ID3 tags if RIFF chunk found,
+    #   see https://trac.ffmpeg.org/ticket/9848
+    # ffprobe -v quiet -show_entries
+    # 'stream=codec_name:stream_tags:format_tags' -print_format json=compact=1
+    # filename
+    r = subprocess.run(
+        [
+            FFPROBE,
+            "-v",
+            "quiet",
+            "-show_entries",
+            "stream=codec_name,duration:stream_tags:format_tags",
+            "-of",
+            "json=compact=1",
+            filename,
+        ],
+        stdout=subprocess.PIPE,
+        # stderr=subprocess.STDOUT,
+        check=True,
+        text=True).stdout
+
+    result = json.loads(r)
+    # eprint(json.dumps(result, indent=2))
+
+    # get tags in stream #0 (mka, opus, etc.)
+    try:
+        stream_tags = result['streams'][0]['tags']
+    except KeyError:
+        stream_tags = {}
+
+    # get tags in format (flac, mp3, etc.)
+    try:
+        format_tags = result['format']['tags']
+    except KeyError:
+        format_tags = {}
+
+    tags_in_stream = convert_tags(stream_tags)
+    tags_in_format = convert_tags(format_tags)
+    tags_in_json = convert_tags(tags_json)
+
+    # unify, right overwrites left if key in both
+    # tags_found = tags_in_stream | tags_in_format | tags_in_json
+    tags_found = {**tags_in_stream, **tags_in_format, **tags_in_json}
+    # eprint(json.dumps(tags_found, indent=2, sort_keys=True))
+
+    # add duration of stream #0 if it exists and can be converted to float
+    try:
+        tags_found["duration"] = float(result['streams'][0]['duration'])
+    except (KeyError, ValueError):
+        try:
+            # we might have a video duration (.mka) like "00:07:01.117000000",
+            # ignore
+            del tags_found["duration"]
+        except KeyError:
+            pass
+
+    # create replaygain_track_gain from Opus R128_TRACK_GAIN (ref: -23 LUFS)
+    if "r128_track_gain" in tags_found:
+        rg = float(tags_found["r128_track_gain"]) / 256 + (target - -23.0)
+        tags_found["replaygain_track_gain"] = rg
+
+    # add missing liq_amplify, if we have replaygain_track_gain
+    if ("liq_amplify" not in tags_found) and (
+            "replaygain_track_gain" in tags_found):
+        tags_found["liq_amplify"] = tags_found["replaygain_track_gain"]
+
+    # Handle old RG1/mp3gain positive loudness reference
+    # "89 dB" (SPL) should actually be -14 LUFS, but as a reference
+    # it is usually set equal to the RG2 -18 LUFS reference point
+    if (("replaygain_reference_loudness" in tags_found)
+            and tags_found["replaygain_reference_loudness"] > 0.0):
+        tags_found["replaygain_reference_loudness"] -= 107.0
+
+    # add missing liq_reference_loudness, if we have
+    # replaygain_reference_loudness
+    if (("liq_reference_loudness" not in tags_found)
+            and ("replaygain_reference_loudness" in tags_found)):
+        tags_found["liq_reference_loudness"] = tags_found["replaygain_reference_loudness"]
+
+    # if both liq_cue_in & liq_cue_out available, we can calculate
+    # liq_cue_duration
+    if "liq_cue_in" in tags_found and "liq_cue_out" in tags_found:
+        tags_found["liq_cue_duration"] = tags_found["liq_cue_out"] - \
+            tags_found["liq_cue_in"]
+
+    # see if we need a re-analysis
+    skip_analysis = tags_mandatory.issubset(tags_found.keys())
+
+    # try to avoid re-analysis if we have enough data but different loudness
+    # target
+    if (
+        skip_analysis
+        and "liq_amplify" in tags_found
+        and "liq_reference_loudness" in tags_found
+    ):
+        # adjust liq_amplify by loudness target difference, set reference
+        tags_found["liq_amplify"] += (target -
+                                      tags_found["liq_reference_loudness"])
+        tags_found["liq_reference_loudness"] = target
+    else:
+        # liq_amplify or liq_reference_loudness missing, must re-analyse
+        skip_analysis = False
+
+    # we need liq_true_peak_db if noclip is requested
+    if (
+        skip_analysis
+        and "liq_true_peak_db" in tags_found
+        and "liq_true_peak" in tags_found  # for RG tag writing
+        and "liq_loudness" in tags_found
+    ):
+        tags_found["liq_amplify"], tags_found["liq_amplify_adjustment"] = \
+            amplify_correct(
+                target,
+                tags_found["liq_loudness"],
+                tags_found["liq_true_peak_db"],
+                noclip
+        )
+    else:
+        skip_analysis = False
+
+    # if liq_blankskip different from requested, we need a re-analysis
+    if (skip_analysis
+            and "liq_blankskip" in tags_found
+            and (tags_found["liq_blankskip"] != blankskip)
+        ):
+        skip_analysis = False
+
+    # liq_loudness_range is only informational but we want to show correct values
+    # can’t blindly take replaygain_track_range—it might be in different unit
+    if (skip_analysis
+            and "liq_loudness_range" not in tags_found
+        ):
+        skip_analysis = False
+
+    # eprint(skip_analysis, json.dumps(tags_found, indent=2, sort_keys=True))
+    return skip_analysis, tags_found
+
+
+def add_missing(tags_found, target=TARGET_LUFS, blankskip=0.0, noclip=False):
+    # we need not check those in tags_mandatory and those calculated by
+    # read_tags
+
+    if "liq_longtail" not in tags_found:
+        tags_found["liq_longtail"] = False
+
+    if "liq_sustained_ending" not in tags_found:
+        tags_found["liq_sustained_ending"] = False
+
+    # if not "liq_cross_duration" in tags_found:
+    #    tags_found["liq_cross_duration"] = tags_found["liq_cue_out"] - tags_found["liq_cross_start_next"]
+
+    if "liq_amplify" not in tags_found:
+        tags_found["liq_amplify"] = tags_found["replaygain_track_gain"]
+
+    if "liq_amplify_adjustment" not in tags_found:
+        tags_found["liq_amplify_adjustment"] = 0.00  # dB
+
+    if "liq_loudness" not in tags_found:
+        tags_found["liq_loudness"] = target - \
+            tags_found["replaygain_track_gain"]
+
+    if "liq_blankskip" not in tags_found:
+        tags_found["liq_blankskip"] = blankskip
+
+    if "liq_blank_skipped" not in tags_found:
+        tags_found["liq_blank_skipped"] = False
+
+    if "liq_reference_loudness" not in tags_found:
+        tags_found["liq_reference_loudness"] = target
+
+    # for RG tag writing
+    if "replaygain_track_gain" not in tags_found:
+        tags_found["replaygain_track_gain"] = tags_found["liq_amplify"]
+    if "replaygain_track_peak" not in tags_found:
+        tags_found["replaygain_track_peak"] = tags_found["liq_true_peak"]
+    if "replaygain_track_range" not in tags_found:
+        tags_found["replaygain_track_range"] = tags_found["liq_loudness_range"]
+    if "replaygain_reference_loudness" not in tags_found:
+        tags_found["replaygain_reference_loudness"] = tags_found["liq_reference_loudness"]
+
+    return tags_found
+
+
+def analyse(
+        filename,
+        target=TARGET_LUFS,
+        overlay=OVERLAY_LU,
+        silence=SILENCE,
+        longtail_seconds=LONGTAIL_SECONDS,
+        extra=LONGTAIL_EXTRA_LU,
+        drop=SUSTAINED_LOUDNESS_DROP,
+        blankskip=0.0,
+        nice=NICE,
+        noclip=False):
+    # ffmpeg -v quiet -y -i audiofile.ext -vn -af ebur128=target=-18:metadata=1,ametadata=mode=print:file=- -f null null
+    # ffmpeg -v quiet -y -i audiofile.ext -vn -af ebur128=target=-18:peak=true:metadata=1,ametadata=mode=print:file=- -f null null
+    # Output:
+    # frame:448  pts:2150400 pts_time:44.8
+    # lavfi.r128.M=-78.490
+    # lavfi.r128.S=-78.566
+    # lavfi.r128.I=-18.545
+    # lavfi.r128.LRA=5.230
+    # lavfi.r128.LRA.low=-23.470
+    # lavfi.r128.LRA.high=-18.240
+    # lavfi.r128.true_peaks_ch0=1.537
+    # lavfi.r128.true_peaks_ch1=1.632
+
+    args = [
+        FFMPEG,
+        "-v",
+        "quiet",
+        "-nostdin",
+        "-y",
+        "-i",
+        filename,
+        "-vn",
+        "-af",
+        "ebur128=target=" +
+        str(target) +
+        ":peak=true:metadata=1,ametadata=mode=print:file=-",
+        "-f",
+        "null",
+        "null"]
+    if nice:
+        # adds 18 to nice value (almost "ultimately nice", max. is 19)
+        args.insert(0, "nice")
+        args.insert(1, "-n")
+        args.insert(2, "18")
+
+    result = subprocess.run(
+        args,
+        stdout=subprocess.PIPE,
+        # stderr=subprocess.STDOUT,
+        check=True,
+        text=True).stdout
+
+    measure = []
+    # Extract time "t", momentary (last 400ms) loudness "M" and "I" integrated loudness
+    # from ebur128 filter. Measured every 100ms.
+    # With some file types, like MP3, M can become "nan" (not-a-number),
+    # which is a valid float in Python. Usually happens on very silent parts.
+    # We convert these to float("-inf") for comparability in silence detection.
+    # FIXME: This relies on "I" coming two lines after "M"
+    pattern = re.compile(
+        # r"frame:.*pts_time:\s*(?P<t>\d+\.?\d*)\s*lavfi\.r128\.M=(?P<M>nan|[+-]?\d+\.?\d*)\s*.*\s*lavfi\.r128\.I=(?P<I>nan|[+-]?\d+\.?\d*)",
+        r"frame:.*pts_time:\s*(?P<t>\d+\.?\d*)\s*lavfi\.r128\.M=(?P<M>nan|[+-]?\d+\.?\d*)\s*.*\s*lavfi\.r128\.I=(?P<I>nan|[+-]?\d+\.?\d*)\s*(?P<rest>(\s*(?!frame:).*)*)",
+        flags=re.M)
+
+    for match in re.finditer(pattern, result):
+        m = match.groupdict()
+        measure.append([
+            float(m["t"]),
+            float(m["M"]) if not math.isnan(float(m["M"])) else float("-inf"),
+            float(m["I"]),
+            m["rest"]])
+
+    # range to watch (for later blank skip)
+    start = 0
+    end = len(measure)
+
+    # get actual duration from last PTS (Presentation Time Stamp)
+    # This is the last frame, so the total duration is its PTS + frame length
+    # (100ms)
+    duration = measure[end - 1][0] + 0.1
+
+    # get integrated song loudness from last frame, so we can calculate liq_amplify
+    # (the "ReplayGain") from it (difference to desired loudness target)
+    loudness = measure[end - 1][2]
+
+    # get true peak and LRA values from last frame
+    # for multi-channel audio, this takes the highest channel value
+    # true peak result is in dBFS, LRA in LU
+    last_lines = measure[end - 1][3].splitlines()
+    true_peak = 0.0  # absolute silence
+    loudness_range = 0.0
+    for line in last_lines:
+        if line.startswith("lavfi.r128.true_peaks_ch"):
+            k, v = line.split("=")
+            true_peak = max(true_peak, float(v))
+        if line.startswith("lavfi.r128.LRA="):
+            k, v = line.split("=")
+            loudness_range = float(v)
+    if true_peak > 0.0:
+        true_peak_dB = 20.0 * math.log10(true_peak)
+    else:
+        true_peak_dB = float('-inf')
+    # eprint(true_peak, true_peak_dB)
+
+    # Find cue-in point (loudness above "silence")
+    silence_level = loudness + silence
+    cue_in_time = 0.0
+    for i in range(start, end):
+        if measure[i][1] > silence_level:
+            cue_in_time = measure[i][0]
+            start = i
+            break
+    # EBU R.128 measures loudness over the last 400ms,
+    # adjust to zero if we land before 400ms for cue-in
+    cue_in_time = 0.0 if cue_in_time < 0.4 else cue_in_time
+
+    # Instead of simply reversing the list (measure.reverse()), we henceforth
+    # use "start" and "end" pointers into the measure list, so we can easily
+    # check forwards and backwards, and handle partial ranges better.
+    # This is mainly for early cue-outs due to blanks in file ("hidden tracks"),
+    # as we need to handle overlaying and long tails correctly in this case.
+
+    cue_out_time = 0.0
+    cue_out_time_blank = 0.0
+
+    # Cue-out when silence starts within a song, like "hidden tracks".
+    # Check forward in this case, looking for a silence of specified length.
+    if blankskip:
+        # eprint("Checking for blank")
+        end_blank = end
+        i = start
+        while i in range(start, end):
+            if measure[i][1] <= silence_level:
+                cue_out_time_blank_start = measure[i][0]
+                cue_out_time_blank_stop = measure[i][0] + blankskip
+                end_blank = i + 1
+                while i < end and measure[i][1] <= silence_level and measure[i][0] <= cue_out_time_blank_stop:
+                    i += 1
+                if i >= end:
+                    # ran into end of track, reset end_blank
+                    # eprint(f"Blank at {cue_out_time_blank_start} too short: {measure[end-1][0] - cue_out_time_blank_start}")
+                    end_blank = end
+                    break
+                if measure[i][0] >= cue_out_time_blank_stop:
+                    # found silence long enough, set cue-out to its begin
+                    cue_out_time_blank = cue_out_time_blank_start
+                    # eprint(f"Found blank: {cue_out_time_blank_start}–{measure[i][0]} ({measure[i][0] - cue_out_time_blank_start} s)")
+                    break
+                else:
+                    # found silence too short, continue search
+                    # eprint(f"Blank at {cue_out_time_blank_start} too short: {measure[i][0] - cue_out_time_blank_start}")
+                    i += 1
+                    continue
+            else:
+                i += 1
+
+    # Normal cue-out: check backwards, from the end, for loudness above
+    # "silence"
+    for i in reversed(range(start, end)):
+        if measure[i][1] > silence_level:
+            cue_out_time = measure[i][0]
+            end = i + 1
+            # eprint(f"Found cue-out: {end}, {cue_out_time}")
+            break
+    # cue out PAST the current frame (100ms) -- no, reverse that
+    cue_out_time = max(cue_out_time, duration - cue_out_time)
+
+    # Adjust cue-out and "end" point if we're working with blank detection.
+    # Also set a flag (`liq_blank_skipped`) so we can later see if cue-out is
+    # early.
+    blank_skipped = False
+    if blankskip:
+        # cue out PAST the current frame (100ms) -- no, reverse that
+        # cue_out_time_blank = cue_out_time_blank + 0.1
+        # eprint(f"cue-out blank: {cue_out_time_blank}, cue-out: {cue_out_time}")
+        if 0.0 < cue_out_time_blank < cue_out_time:
+            cue_out_time = cue_out_time_blank
+            blank_skipped = True
+        end = end_blank
+
+    # Find overlap point (where to start next song), backwards from end,
+    # by checking if song loudness goes below overlay start volume
+    cue_duration = cue_out_time - cue_in_time
+    start_next_level = loudness + overlay
+    start_next_time = 0.0
+    start_next_idx = end
+    for i in reversed(range(start, end)):
+        if measure[i][1] > start_next_level:
+            start_next_time = measure[i][0]
+            start_next_idx = i
+            break
+    start_next_time = max(start_next_time, cue_out_time - start_next_time)
+    # eprint(f"Start next: {start_next_time:.2f}")
+
+    # Calculate loudness drop over arbitrary number of measure elements
+    # Split into left & right part, use avg momentary loudness & time of each
+    def calc_ending(elements):
+        l = len(elements)
+        if l < 1:
+            raise ValueError("need at least one measure point to calculate")
+        l2 = l // 2
+        p1 = elements[:l2] if l >= 2 else elements[:]
+        # leave out midpoint if we have an odd number of elements
+        # this is mainly for sliding window techniques
+        # and guarantees both halves are the same size
+        p2 = elements[l2 + l % 2:] if l >= 2 else elements[:]
+        # eprint(l, l2, len(p1), len(p2))
+        t = elements[l2][0]  # time of midpoint
+        x1 = sum(i[0] for i in p1)  # sum time
+        x2 = sum(i[0] for i in p2)  # sum time
+        y1 = sum(i[1] for i in p1)  # sum momentary loudness
+        y2 = sum(i[1] for i in p2)  # sum momentary loudness
+        # calculate averages
+        if l2 > 0:
+            x1 /= len(p1)
+            x2 /= len(p2)
+            y1 /= len(p1)
+            y2 /= len(p2)
+        dx = x2 - x1
+        dy = y2 - y1
+        # removed slope (m = dy/dx), not really needed
+        # use math.atan2 instead of math.atan, determines quadrant, handles
+        # errors
+        # slope angle clockwise in degrees
+        angle = math.degrees(math.atan2(dy, dx))
+        mid_time = elements[l2][0]  # midpoint time in seconds
+        mid_lufs = elements[l2][1]  # midpoint momentary loudness in LUFS
+        try:
+            lufs_ratio_pct = (1 - (y1 / y2)) * 100.0  # ending LUFS ratio in %
+        except ZeroDivisionError:
+            lufs_ratio_pct = (1 - float("inf")) * 100.0
+        # eprint(
+        #     f"Left: {x1:.2f} s, {y1:.2f} LUFS avg ({len(p1)/10:.2f} s), "
+        #     f"Right: {x2:.2f} s, {y2:.2f} LUFS avg ({len(p2)/10:.2f} s), "
+        #     f"angle={angle:.2f}°, "
+        #     f"Drop: {lufs_ratio_pct:.2f}%"
+        # )
+        return mid_time, mid_lufs, angle, lufs_ratio_pct, y2
+
+    # Check for "sustained ending", comparing loudness ratios at end of song
+    sustained = False
+    start_next_time_sustained = 0.0
+    # eprint(f"Index: {start_next_idx}–{end}, Silence: {silence_level:.2f} LUFS, Start Next Level: {start_next_level:.2f} LUFS")
+
+    # Calculation can only be done if we have at least one measure point.
+    # We don’t if we’re already at the end. (Badly cut file?)
+    if range(start_next_idx, end):
+        _, _, _, lufs_ratio_pct, end_lufs = calc_ending(
+            measure[start_next_idx:end])
+        eprint(f"Overlay: {loudness+overlay:.2f} LUFS, Longtail: {loudness + overlay + extra:.2f} LUFS, Measured end avg: {end_lufs:.2f} LUFS, Drop: {lufs_ratio_pct:.2f}%")
+        # We want to keep songs with a sustained ending intact, so if the
+        # calculated loudness drop at the end (LUFS ratio) is smaller than
+        # the set percentage, we check again, by reducing the loudness
+        # to look for by the maximum of end loudness and set extre longtail
+        # loudness
+        if lufs_ratio_pct < drop:
+            sustained = True
+            start_next_level = max(end_lufs, loudness + overlay + extra)
+            # eprint(f"Sustained; Recalc with {start_next_level} LUFS")
+            start_next_time_sustained = 0.0
+            for i in reversed(range(start, end)):
+                if measure[i][1] > start_next_level:
+                    start_next_time_sustained = measure[i][0]
+                    break
+            start_next_time_sustained = max(
+                start_next_time_sustained,
+                cue_out_time - start_next_time_sustained)
+    else:
+        eprint("Already at end of track (badly cut?), no ending to analyse.")
+
+    # We want to keep songs with a long fade-out intact, so if the calculated
+    # overlap is longer than the "longtail_seconds" time, we check again, by reducing
+    # the loudness to look for by an additional "extra" amount of LU
+    longtail = False
+    start_next_time_longtail = 0.0
+    if (cue_out_time - start_next_time) > longtail_seconds:
+        longtail = True
+        start_next_level = loudness + overlay + extra
+        start_next_time_longtail = 0.0
+        for i in reversed(range(start, end)):
+            if measure[i][1] > start_next_level:
+                start_next_time_longtail = measure[i][0]
+                break
+        start_next_time_longtail = max(
+            start_next_time_longtail,
+            cue_out_time - start_next_time_longtail)
+
+    # Consolidate results from sustained and longtail
+    start_next_time_new = max(
+        start_next_time,
+        start_next_time_sustained,
+        start_next_time_longtail
+    )
+    eprint(
+        f"Overlay times: {start_next_time:.2f}/"
+        f"{start_next_time_sustained:.2f}/"
+        f"{start_next_time_longtail:.2f} s "
+        f"(normal/sustained/longtail), "
+        f"using: {start_next_time_new:.2f} s."
+    )
+    start_next_time = start_next_time_new
+    eprint(f"Cue out time: {cue_out_time:.2f} s")
+
+    # Now that we know where to start the next song, calculate Liquidsoap's
+    # cross duration from it, allowing for an extra 0.1s of overlap -- no, reverse
+    # (a value of 0.0 is invalid in Liquidsoap)
+    cross_duration = cue_out_time - start_next_time
+
+    amplify, amplify_correction = amplify_correct(
+        target, loudness, true_peak_dB, noclip)
+
+    # We now also return start_next_time
+
+    # NOTE: Liquidsoap doesn’t currently accept `liq_cross_duration=0.`,
+    # or `liq_cross_start_next == liq_cue_out`, but this can happen.
+    # We adjust for that in the Liquidsoap protocol, because other AutoDJ
+    # applications might want the correct values.
+
+    # return a dict
+    return ({
+        "duration": duration,
+        "liq_cue_duration": cue_duration,
+        "liq_cue_in": cue_in_time,
+        "liq_cue_out": cue_out_time,
+        "liq_cross_start_next": start_next_time,
+        "liq_longtail": longtail,
+        "liq_sustained_ending": sustained,
+        # "liq_cross_duration": cross_duration,
+        "liq_loudness": loudness,
+        "liq_loudness_range": loudness_range,
+        "liq_amplify": amplify,
+        "liq_amplify_adjustment": amplify_correction,
+        "liq_reference_loudness": target,
+        "liq_blankskip": blankskip,
+        "liq_blank_skipped": blank_skipped,
+        "liq_true_peak": true_peak,
+        "liq_true_peak_db": true_peak_dB,
+        # for RG writing
+        "replaygain_track_gain": amplify,
+        "replaygain_track_peak": true_peak,
+        "replaygain_track_range": loudness_range,
+        "replaygain_reference_loudness": target
+    })
+
+
+def write_tags(filename, tags={}, replaygain=False):
+    # Add the liq_* tags (and only these)
+    # Only touch replaygain_track_gain or R128_TRACK_GAIN if so requested.
+    # Only write tags to files if we can safely do so.
+    filename = Path(filename)
+
+    # Only write if "safe" file type and file is writable.
+    if filename.suffix.casefold() in safe_ext and os.access(filename, os.W_OK):
+        # This doesn’t work cross-device!
+        # temp_file_handle, temp = tempfile.mkstemp(prefix="cue_file.", suffix=filename.suffix)
+        # So we use the same folder, to be able to do an atomic move.
+        temp = filename.with_suffix('.tmp' + filename.suffix)
+        # eprint(temp)
+
+        rg_tags = [
+            "replaygain_track_gain",
+            "replaygain_track_peak",
+            "replaygain_track_range",
+            "replaygain_reference_loudness"
+        ]
+        # copy only `liq_*`, float with 2 decimals, bools and strings lowercase
+        tags_new = {k: "{:.2f}".format(v)
+                    if isinstance(v, float) else str(v).lower()
+                    for k, v in tags.items() if k in tags_to_check or k in rg_tags
+                    }
+        # liq_true_peak & replaygain_track_peak have 6 decimals, fix it
+        if "liq_true_peak" in tags_new:
+            tags_new["liq_true_peak"] = "{:.6f}".format(tags["liq_true_peak"])
+        if "replaygain_track_peak" in tags_new:
+            tags_new["replaygain_track_peak"] = "{:.6f}".format(
+                tags["replaygain_track_peak"])
+
+        # pre-calculate Opus R128_TRACK_GAIN (ref: -23 LUFS), just in case
+        target = tags["liq_reference_loudness"]
+        og = str(int((tags["liq_amplify"] - (target - -23.0)) * 256))
+        tags_new["R128_TRACK_GAIN"] = og
+
+        # add the units
+        tags_new["liq_amplify"] += " dB"
+        tags_new["liq_amplify_adjustment"] += " dB"
+        tags_new["liq_loudness"] += " LUFS"
+        tags_new["liq_loudness_range"] += " LU"
+        tags_new["liq_reference_loudness"] += " LUFS"
+        tags_new["liq_true_peak_db"] += " dBFS"
+        tags_new["replaygain_track_gain"] += " dB"
+        tags_new["replaygain_track_range"] += " dB"
+        tags_new["replaygain_reference_loudness"] += " LUFS"
+
+        if replaygain:
+            # delete unwanted tags
+            if filename.suffix.casefold() == ".opus":
+                # for Opus, delete the `replaygain_*` tags
+                for k in rg_tags:
+                    tags_new.pop(k, None)
+            else:
+                # for all others, delete Opus Track Gain tag
+                del tags_new["R128_TRACK_GAIN"]
+        else:
+            # no ReplayGain override, remove all "gain" type tags
+            for k in rg_tags:
+                tags_new.pop(k, None)
+            del tags_new["R128_TRACK_GAIN"]
+
+        # Never write "duration" to tags
+        if "duration" in tags_new:
+            del tags_new["duration"]
+
+        # eprint(replaygain, temp, json.dumps(tags_new, indent=2))
+
+        if MUTAGEN_AVAILABLE and filename.suffix.casefold() in mp4_ext:
+            # MP4-like files using Apple iTunes type tags
+            f = mutagen.mp4.MP4(filename)
+            if f.tags is None:
+                f.add_tags()
+            for k, v in tags_new.items():
+                f[f'----:com.apple.iTunes:{k}'] = bytes(v, 'utf-8')
+            f.save()
+
+        elif MUTAGEN_AVAILABLE and filename.suffix.casefold() in id3_ext:
+            # Additional file types that use ID3v2 tags; abstract
+            try:
+                t = mutagen.id3.ID3(filename)
+            except mutagen.id3.ID3NoHeaderError:
+                # No ID3 tags? Create an empty block.
+                t = mutagen.id3.ID3()
+            for k, v in tags_new.items():
+                # encoding: LATIN1 (ISO-8859-1)
+                t.add(mutagen.id3.TXXX(encoding=0, desc=k, text=[v]))
+            t.save(filename, v2_version=4, v23_sep='; ')
+
+        elif MUTAGEN_AVAILABLE and filename.suffix.casefold() in ape_ext:
+            # File types using APEv2 tags; abstract
+            try:
+                t = mutagen.apev2.APEv2(filename)
+            except mutagen.apev2.APENoHeaderError:
+                # No APE tags? Create an empty block.
+                t = mutagen.apev2.APEv2()
+            for k, v in tags_new.items():
+                t[k] = v
+            t.save(filename)
+
+        elif MUTAGEN_AVAILABLE and filename.suffix.casefold() in ogg_ext:
+            # Ogg file types using VorbisComment tags
+            f = mutagen.oggvorbis.OggVorbis(filename)
+            if f.tags is None:
+                f.add_tags()
+            for k, v in tags_new.items():
+                f[k] = v
+            f.save(filename)
+
+        elif MUTAGEN_AVAILABLE and filename.suffix.casefold() in aiff_ext:
+            # AIFF with ID3 tags needs special handling
+            f = mutagen.aiff.AIFF(filename)
+            if f.tags is None:
+                f.add_tags()
+            for k, v in tags_new.items():
+                # encoding: LATIN1 (ISO-8859-1)
+                f.tags.add(mutagen.id3.TXXX(encoding=0, desc=k, text=[v]))
+            f.save(filename, v2_version=4, v23_sep='; ')
+
+        elif MUTAGEN_AVAILABLE and filename.suffix.casefold() in wav_ext:
+            # WAV special 'id3 '/'ID3 ' RIFF chunk containing ID3v2 tags
+            # non-standard, but we can’t use 'BWF_' broadcasting yet
+            f = mutagen.wave.WAVE(filename)
+            if f.tags is None:
+                f.add_tags()
+            for k, v in tags_new.items():
+                # encoding: LATIN1 (ISO-8859-1)
+                f.tags.add(mutagen.id3.TXXX(encoding=0, desc=k, text=[v]))
+            f.save(filename, v2_version=4, v23_sep='; ')
+
+        else:
+            # Use ffmpeg for the "safe" file types it doesn’t corrupt.
+            metadata_args = []
+            for k, v in tags_new.items():
+                metadata_args.extend(['-metadata', f'{k}={v}'])
+            # eprint(metadata_args)
+
+            args = [
+                FFMPEG,
+                '-v', 'quiet',
+                '-nostdin',
+                '-y',
+                '-i', str(filename.absolute()),
+                '-map_metadata', '0',
+                # '-movflags', 'use_metadata_tags',
+                *metadata_args,
+                '-c', 'copy',
+                str(temp)
+            ]
+            proc = subprocess.run(args, stdout=subprocess.PIPE, check=True)
+
+            # mv temp original; atomic
+            os.replace(str(temp), str(filename.absolute()))
+
+    return
+
+
+# CLI command parser and help text
+class Range(argparse.Action):
+    def __init__(self, minimum=None, maximum=None, *args, **kwargs):
+        self.min = minimum
+        self.max = maximum
+        # kwargs["metavar"] = "[%d-%d]" % (self.min, self.max)
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        if not (self.min <= value <= self.max):
+            msg = "invalid choice: %r (range %.1f to %.1f)" % (
+                value,
+                self.min,
+                self.max,
+            )
+            raise argparse.ArgumentError(self, msg)
+        setattr(namespace, self.dest, value)
+
+
+class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    """Format output of help text nicely.
+
+    This works like ``ArgumentDefaultsHelpFormatter`` plus
+    ``RawDescriptionHelpFormatter`` in one: It wraps arguments, prolog
+    and epilog nicely at terminal width and also keeps newlines in
+    prolog and epilog intact.
+    """
+
+    def _fill_text(self, text, width, indent):
+        lines = text.strip().splitlines(keepends=True)
+        new = []
+        # if 'replace_whitespace=False' is used, textwrap makes a mess
+        # we need to call it line by line
+        for line in lines:
+            new.append(
+                "\n".join(
+                    textwrap.wrap(
+                        line,
+                        width,
+                        initial_indent=indent,
+                        subsequent_indent=indent,
+                        replace_whitespace=False,
+                    )
+                )
+            )
+        return "\n".join(new)
+
+
+parser = argparse.ArgumentParser(
+    description=f"""
+Analyse audio file for cue-in, cue-out, overlay and EBU R128 loudness data, results as JSON. Optionally writes tags to original audio file, avoiding unnecessary re-analysis and getting results MUCH faster. This software is mainly intended for use with my Liquidsoap \"autocue:\" protocol.
+
+%(prog)s {__version__} supports writing tags to these file types:
+{', '.join(sorted(safe_ext))}.
+More file types are available when Mutagen is installed ({MUTAGEN_AVAILABLE}).
+""",
+    epilog=f"""
+Note %(prog)s will use the LARGER value from the sustained ending and longtail calculations to set the next track overlay point. This ensures special song endings are always kept intact in transitions.
+
+%(prog)s {__version__} knows about these tags:
+{', '.join(sorted(tags_to_check.keys()))}.
+
+The absolute minimum set to (possibly) avoid a re-analysis is:
+{', '.join(sorted(tags_mandatory))}.
+
+A full audio file analysis can take some time. %(prog)s tries to avoid a (re-)analysis if all required data can be read from existing tags in the file.
+
+Please report any issues to https://github.com/Moonbase59/autocue/issues
+""",
+    formatter_class=CustomFormatter)
+
+parser.add_argument(
+    "-V",
+    "--version",
+    action='version',
+    version=f"%(prog)s {__version__}\nmutagen {MUTAGEN_VERSION}")
+# version='%(prog)s {version}'.format(
+#     version=__version__))
+parser.add_argument("file", help="File to be processed")
+parser.add_argument(
+    "-t",
+    "--target",
+    minimum=-23.0,
+    maximum=0.0,
+    action=Range,
+    default=TARGET_LUFS,
+    help="LUFS reference target; %(min).1f to %(max).1f",
+    type=float)
+parser.add_argument(
+    "-s",
+    "--silence",
+    minimum=-96.0,
+    maximum=0.0,
+    action=Range,
+    default=SILENCE,
+    help="LU below integrated track loudness for cue-in & cue-out points "
+    "(silence removal at beginning & end of a track)",
+    type=float)
+parser.add_argument(
+    "-o",
+    "--overlay",
+    minimum=-96.0,
+    maximum=0.0,
+    action=Range,
+    default=OVERLAY_LU,
+    help="LU below integrated track loudness to trigger next track",
+    type=float)
+parser.add_argument(
+    "-l",
+    "--longtail",
+    minimum=0.0,
+    maximum=60.0,
+    action=Range,
+    default=LONGTAIL_SECONDS,
+    help="More than so many seconds of calculated overlay duration are considered "
+    "a long tail, and will force a recalculation using --extra, thus keeping long "
+    "song endings intact",
+    type=float)
+parser.add_argument(
+    "-x",
+    "--extra",
+    minimum=-96.0,
+    maximum=0.0,
+    action=Range,
+    default=LONGTAIL_EXTRA_LU,
+    help="Extra LU below overlay loudness to trigger next track for songs "
+    "with long tail",
+    type=float)
+parser.add_argument(
+    "-d",
+    "--drop",
+    minimum=0,
+    maximum=100.0,
+    action=Range,
+    default=SUSTAINED_LOUDNESS_DROP,
+    help="Max. percent loudness drop at the end to be still considered "
+    "having a sustained ending. Such tracks will be recalculated using "
+    "--extra, keeping the song ending intact. Zero (0.0) to switch off.",
+    type=float)
+parser.add_argument(
+    "-k",
+    "--noclip",
+    help="Clipping prevention: Lowers track gain if needed, to avoid peaks "
+    "going above -1 dBFS. Uses true peak values of all audio channels.",
+    default=False,
+    action='store_true')
+parser.add_argument(
+    "-b",
+    "--blankskip",
+    minimum=0.0,
+    maximum=60.0,
+    action=Range,
+    nargs='?',
+    default=0.0,  # zero = no blankskip
+    const=BLANKSKIP,  # default if only `-b` used (backwards compatibility)
+    help=f"Skip blank (silence) within track if longer than [BLANKSKIP] seconds "
+    f"(get rid of \"hidden tracks\"). "
+    f"Sets the cue-out point to where the silence begins. Don't use this with "
+    f"spoken or TTS-generated text, as it will often cut the message short. "
+    f"Zero (0.0) to switch off. "
+    f"Omitting [BLANKSKIP] defaults to {BLANKSKIP} s.",
+    type=float)
+parser.add_argument(
+    "-w",
+    "--write",
+    help="Write Liquidsoap liq_* tags to file. Ensure you have enough "
+    "free space to hold a copy of the original file.",
+    default=False,
+    action='store_true')
+parser.add_argument(
+    "-r",
+    "--replaygain",
+    help="Write ReplayGain tags to file (track only, no album). Useful if "
+    "your files have no previous RG tags. Only valid if -w/--write is also "
+    "specified.",
+    default=False,
+    action='store_true')
+parser.add_argument(
+    "-f",
+    "--force",
+    help="Force re-analysis, even if tags exist",
+    default=False,
+    action='store_true')
+parser.add_argument(
+    "-n",
+    "--nice",
+    help="Linux/MacOS only: Use nice? Will run analysis at nice level 18.",
+    default=False,
+    action='store_true')
+parser.add_argument(
+    "-j",
+    "--json",
+    help="Read/override tags from a JSON file. Use - to read from stdin. "
+    "Intended for pre-processing software which can, for instance, fill in "
+    "values from their database here.",
+    type=argparse.FileType('r'),
+)
+
+args = parser.parse_args()
+
+# read JSON from stdin or file, containing "overriding" or missing tags
+# intended for pre-processing software
+tags_json = {}
+if args.json:
+    try:
+        tags_json = json.load(args.json)
+    except json.decoder.JSONDecodeError:
+        pass
+    args.json.close()
+
+skip_analysis, tags_found = read_tags(
+    args.file, tags_json, args.target, args.blankskip, args.noclip)
+
+if args.force or not skip_analysis:
+    result = analyse(
+        filename=args.file,
+        target=args.target,
+        overlay=args.overlay,
+        silence=args.silence,
+        longtail_seconds=args.longtail,
+        extra=args.extra,
+        drop=args.drop,
+        blankskip=args.blankskip,
+        nice=args.nice,
+        noclip=args.noclip
+    )
+    # allow to override even the analysis results (not if `liq_cue_file=true`)
+    if args.json:
+        result = override_from_JSON(result, tags_json)
+    # override duration, seems ffprobe can be more exact
+    if "duration" in tags_found:
+        result["duration"] = tags_found["duration"]
+else:
+    result = add_missing(tags_found, args.target, args.blankskip, args.noclip)
+
+# eprint(result)
+
+if args.write:
+    write_tags(args.file, result, args.replaygain)
+
+# prepare JSON result
+# we use "dB" instead of "LU" units, because LS & others don’t understand "LU"
+liq_result = {
+    "duration": result['duration'],
+    "liq_cue_duration": result['liq_cue_duration'],
+    "liq_cue_in": result['liq_cue_in'],
+    "liq_cue_out": result['liq_cue_out'],
+    "liq_cross_start_next": result['liq_cross_start_next'],
+    "liq_longtail": result["liq_longtail"],
+    "liq_sustained_ending": result['liq_sustained_ending'],
+    # "liq_cross_duration": result['liq_cross_duration'],
+    "liq_loudness": f"{result['liq_loudness']:.2f} LUFS",
+    "liq_loudness_range": f"{result['liq_loudness_range']:.2f} LU",
+    "liq_amplify": f"{result['liq_amplify']:.2f} dB",
+    "liq_amplify_adjustment": f"{result['liq_amplify_adjustment']:.2f} dB",
+    "liq_reference_loudness": f"{result['liq_reference_loudness']:.2f} LUFS",
+    "liq_blankskip": result['liq_blankskip'],
+    "liq_blank_skipped": result['liq_blank_skipped'],
+    "liq_true_peak": result['liq_true_peak'],
+    "liq_true_peak_db": f"{result['liq_true_peak_db']:.2f} dBFS",
+}
+
+# output compact (one line) JSON, for use in Liquidsoap "autocue:" protocol
+json_output = json.dumps(liq_result)
+print(json_output)

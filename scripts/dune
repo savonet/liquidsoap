@@ -28,3 +28,8 @@
   (liquidsoap-mode.el as emacs/site-lisp/liquidsoap-mode.el)
   (liquidsoap-completion.el as emacs/site-lisp/liquidsoap-completion.el)
   (liquidsoap-completions.el as emacs/site-lisp/liquidsoap-completions.el)))
+
+(install
+  (section bin)
+  (package liquidsoap-core)
+  (files cue_file))

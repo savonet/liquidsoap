@@ -809,7 +809,7 @@ let file.autocue = ()
 # Return the file's autocue values as metadata suitable for metadata override.
 # @category Source / Audio processing
 def file.autocue.metadata(~request_metadata, uri) =
-  preferred_implementation = settings.autocue.preferred()
+  preferred_implementation = "cue_file" # settings.autocue.preferred()
   implementations = settings.autocue.implementations()
 
   let (implementation_name, implementation) =

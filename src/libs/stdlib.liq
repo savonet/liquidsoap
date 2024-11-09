@@ -23,6 +23,7 @@
 %include "audio.liq"
 %include "fades.liq"
 %include "autocue.liq"
+%include "autocue.cue_file.liq"
 %include "replaygain.liq"
 %include "http_codes.liq"
 %include "http.liq"

@@ -1,4 +1,5 @@
 bin/liquidsoap usr/bin
+bin/cue_file usr/bin
 share/bash_completion/completions/liquidsoap etc/bash_completion.d
 share/liquidsoap-lang/libs usr/share/liquidsoap
 share/liquidsoap/camomile usr/share/liquidsoap
