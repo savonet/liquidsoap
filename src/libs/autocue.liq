@@ -1111,3 +1111,14 @@ protocol.add(
     "Adding automatically computed cues/crossfade metadata",
   syntax="autocue:uri"
 )
+
+# Cue_file implementation
+
+%include "autocue.cue_file.liq"
+
+settings.autocue.cue_file.path :=
+  path.concat(liquidsoap.sites.scripts, "cue_file")
+on_start(
+  fun () ->
+    if is_cue_file_available() then settings.autocue.preferred := "cue_file" end
+)

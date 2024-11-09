@@ -276,3 +276,22 @@ let _ =
     [("", Lang.univ_t (), Some Lang.null, None)]
     (Lang.univ_t ())
     (fun p -> List.assoc "" p)
+
+let sites = Lang.add_module ~base:liquidsoap "sites"
+
+let _ =
+  List.iter
+    (function
+      | name, path :: _ ->
+          ignore
+            (Lang.add_builtin_base ~category:`Configuration
+               ~descr:("Path to configured location site " ^ name)
+               ~base:sites name (`String path) Lang.string_t)
+      | _ -> assert false)
+    [
+      ("bin", Sites.Sites.bin);
+      ("cache", Sites.Sites.cache);
+      ("lib_root", Sites.Sites.lib_root);
+      ("libs", Sites.Sites.libs);
+      ("scripts", Sites.Sites.scripts);
+    ]

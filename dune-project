@@ -157,7 +157,7 @@
     (sedlex (>= 3.2))
     (menhir (>= 20180703))
   )
-  (sites (share libs) (share bin) (share cache) (lib_root lib_root))
+  (sites (share libs) (share bin) (share cache) (lib_root lib_root) (libexec scripts))
   (synopsis "Liquidsoap language library"))
 
 (package

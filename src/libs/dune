@@ -1,3 +1,14 @@
+(rule
+  (alias gen_cue_file)
+  (target autocue.cue_file.liq.new)
+  (action
+    (run wget https://raw.githubusercontent.com/savonet/autocue.cue_file/refs/heads/main/autocue.cue_file.liq -O %{target})))
+
+(rule
+ (alias gen_cue_file)
+ (action
+  (diff autocue.cue_file.liq autocue.cue_file.liq.new)))
+
 (install
  (section
   (site
