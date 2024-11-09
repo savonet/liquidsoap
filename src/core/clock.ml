@@ -259,9 +259,9 @@ let unify =
       (Queue.push clock'.pending_activations);
     Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
     Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
-    Queue.filter clocks (fun el -> el != c);
     Unifier.(clock.id <-- clock'.id);
-    Unifier.(c <-- c')
+    Unifier.(c <-- c');
+    Queue.filter clocks (fun el -> sync el <> `Passive && el != c)
   in
   fun ~pos c c' ->
     let _c = Unifier.deref c in

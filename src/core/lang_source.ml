@@ -188,6 +188,37 @@ let source_methods =
       fun s ->
         val_fun [] (fun _ ->
             match s#last_metadata with None -> null | Some m -> metadata m) );
+    ( "register_command",
+      ( [],
+        fun_t
+          [
+            (true, "usage", Lang.nullable_t Lang.string_t);
+            (false, "description", Lang.string_t);
+            (false, "", Lang.string_t);
+            (false, "", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t);
+          ]
+          unit_t ),
+      "Register a server command for this source. Command is registered under \
+       the source's id namespace when it gets up and de-registered when it \
+       gets down.",
+      fun s ->
+        val_fun
+          [
+            ("usage", "usage", Some Lang.null);
+            ("description", "description", None);
+            ("", "", None);
+            ("", "", None);
+          ]
+          (fun p ->
+            let usage =
+              Lang.to_valued_option Lang.to_string (List.assoc "usage" p)
+            in
+            let descr = Lang.to_string (List.assoc "description" p) in
+            let command = Lang.to_string (Lang.assoc "" 1 p) in
+            let f = Lang.assoc "" 2 p in
+            let f x = Lang.to_string (Lang.apply f [("", Lang.string x)]) in
+            s#register_command ?usage ~descr command f;
+            unit) );
     ( "on_metadata",
       ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
       "Call a given handler on metadata packets.",
