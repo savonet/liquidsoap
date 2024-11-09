@@ -24,6 +24,8 @@ open Mm
 
 exception Unavailable
 
+module Queue = Liquidsoap_lang.Queues.Queue
+
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
@@ -65,8 +67,8 @@ type watcher = {
 
 let source_log = Log.make ["source"]
 
-let sleep s =
-  source_log#info "Source %s gets down." s#id;
+let finalise s =
+  source_log#debug "Source %s is collected." s#id;
   try s#sleep
   with e ->
     let bt = Printexc.get_backtrace () in
@@ -132,6 +134,18 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
 
     method virtual fallible : bool
     method source_type : source_type = `Passive
+    val mutable registered_commands = Queue.create ()
+
+    method register_command ?usage ~descr name cmd =
+      self#on_wake_up (fun () ->
+          let ns = [self#id] in
+          Server.add ~ns ?usage ~descr name cmd;
+          Queue.push registered_commands (ns, name))
+
+    initializer
+      self#on_sleep (fun () ->
+          Queue.flush_iter registered_commands (fun (ns, name) ->
+              Server.remove ~ns name))
 
     method active =
       match self#source_type with
@@ -246,7 +260,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
         | _ -> self#force_sleep
 
     initializer
-      Gc.finalise sleep self;
+      Gc.finalise finalise self;
       self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
 
     (** Streaming *)

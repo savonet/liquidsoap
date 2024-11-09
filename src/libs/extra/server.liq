@@ -10,19 +10,12 @@ def server.rms(~id=null(), s) =
     "#{rms}"
   end
 
-  s.on_wake_up(
-    memoize(
-      {
-        server.register(
-          namespace="#{source.id(s)}",
-          description=
-            "Return the current RMS of the source.",
-          usage="rms",
-          "rms",
-          rms
-        )
-      }
-    )
+  s.register_command(
+    description=
+      "Return the current RMS of the source.",
+    usage="rms",
+    "rms",
+    rms
   )
 
   s
@@ -50,20 +43,13 @@ def server.insert_metadata(~id=null(), s) =
     end
   end
 
-  s.on_wake_up(
-    memoize(
-      {
-        server.register(
-          namespace="#{source.id(s)}",
-          description=
-            "Insert a metadata chunk.",
-          usage=
-            "insert key1=\"val1\",key2=\"val2\",..",
-          "insert",
-          insert
-        )
-      }
-    )
+  s.register_command(
+    description=
+      "Insert a metadata chunk.",
+    usage=
+      "insert key1=\"val1\",key2=\"val2\",..",
+    "insert",
+    insert
   )
 
   s
