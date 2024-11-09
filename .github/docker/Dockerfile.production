@@ -20,6 +20,8 @@ RUN apt-get update && apt install -y ca-certificates && \
     apt-get update -oAcquire::AllowInsecureRepositories=true && \
     apt-get install -y --allow-unauthenticated deb-multimedia-keyring
 
+RUN apt-get install -y python3
+
 COPY $DEB_FILE liquidsoap.deb
 COPY $DEB_DEBUG_FILE liquidsoap-debug.deb
 

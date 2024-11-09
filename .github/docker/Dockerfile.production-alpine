@@ -4,6 +4,8 @@ ARG APK_FILE
 
 USER root
 
+RUN apk add --no-cache --allow-untrusted ffmpeg python3
+
 COPY $APK_FILE /tmp/liquidsoap.apk
 
 RUN apk add --allow-untrusted --no-cache \
