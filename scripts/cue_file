@@ -38,7 +38,7 @@
 #                       - Make variable checking more robust (bool & unit suffixes)
 #                       - Add `liq_fade_in` & `liq_fade_out` tags for reading/writing,
 #                         in case a preprocessor needs to set fade durations.
-# 2024-06-11 Moonbase59 - v2.2.0 Sync version number with autocue.cue_file
+# 2024-06-11 Moonbase59 - v2.2.0 Sync version numver with autocue.cue_file
 # 2024-06-11 Moonbase59 - v2.2.1 Sync version number with autocue.cue_file
 # 2024-06-11 Moonbase59 - v3.0.0 Add variable blankskip (0.0=off)
 #                       - BREAKING: `liq_blankskip` now flot, not bool anymore!
