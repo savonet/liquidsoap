@@ -33,7 +33,9 @@
   (alias update_cue_file)
   (target cue_file.new)
   (action
-    (run wget https://raw.githubusercontent.com/savonet/autocue.cue_file/refs/heads/main/cue_file -O %{target})))
+    (progn
+      (run wget https://raw.githubusercontent.com/savonet/autocue.cue_file/refs/heads/main/cue_file -O %{target})
+      (run chmod +x %{target}))))
 
 (rule
  (alias update_cue_file)

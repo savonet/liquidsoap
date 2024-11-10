@@ -334,7 +334,7 @@ def is_cue_file_available(~shutdown=false, ~print=false) =
   if
     ffmpeg_version != ""
   and
-    ffprove_version != ""
+    ffprobe_version != ""
   and
     semver(version)?.major == semver(cli_version)?.major
   then
@@ -543,9 +543,9 @@ def cue_file(~request_metadata, ~file_metadata, filename) =
           string.float(overlay_longtail, decimal_places=2),
           '-d',
           string.float(drop, decimal_places=2),
-          '-ffmpeg',
+          '--ffmpeg',
 	  settings.autocue.cue_file.ffmpeg(),
-          '-ffprobe',
+          '--ffprobe',
 	  settings.autocue.cue_file.ffprobe(),
           filename
         ]
