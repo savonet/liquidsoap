@@ -290,14 +290,26 @@ def cli_version(command) =
   )
 end
 
+def ffmpeg_version() =
+  list.hd(
+    default="",
+    process.read.lines(
+      "ffmpeg -version"
+    )
+  )
+end
+
 # Check Autocue setup, shutdown if desired, print to terminal if desired
 stdlib_shutdown = shutdown
 stdlib_print = print
 
 def is_cue_file_available(~shutdown=false, ~print=false) =
   cli_version = cli_version(settings.autocue.cue_file.path())
+  ffmpeg_version = ffmpeg_version()
 
   if
+    ffmpeg_version != ""
+  and
     semver(version)?.major == semver(cli_version)?.major
   then
     # Let user know what version (s)he is running
@@ -1176,3 +1188,40 @@ def cue_file(~request_metadata, ~file_metadata, filename) =
 end
 
 autocue.register(name="cue_file", cue_file)
+
+# --- Copy-paste Azuracast LS Config, second input box END ---
+
+# Don't forget to add your settings after this and do the check!
+# Here's a list of all possible settings with their defaults
+
+# settings.autocue.cue_file.path := "cue_file"
+# settings.autocue.cue_file.fade_in := 0.1  # seconds
+# settings.autocue.cue_file.fade_out := 2.5  # seconds
+# settings.autocue.cue_file.timeout := 60.0  # seconds
+# settings.autocue.cue_file.target := -18.0  # LUFS
+# settings.autocue.cue_file.silence := -42.0  # LU below track loudness
+# settings.autocue.cue_file.overlay := -8.0  # LU below track loudness
+# settings.autocue.cue_file.longtail := 15.0  # seconds
+# settings.autocue.cue_file.overlay_longtail := -15.0  # extra LU
+# settings.autocue.cue_file.sustained_loudness_drop := 40.0  # max. percent drop to be considered sustained
+# settings.autocue.cue_file.noclip := false  # clipping prevention like loudgain's `-k`
+# settings.autocue.cue_file.blankskip := 0.0  # skip silence in tracks
+# settings.autocue.cue_file.unify_loudness_correction := true  # unify `replaygain_track_gain` & `cue_file_amplify`
+# settings.autocue.cue_file.write_tags := false  # write cue_file_* tags back to file
+# settings.autocue.cue_file.write_replaygain := false  # write ReplayGain tags back to file
+# settings.autocue.cue_file.force_analysis := false  # force re-analysis even if tags found
+# settings.autocue.cue_file.nice := false  # Linux/MacOS only: Use NI=18 for analysis
+# settings.autocue.cue_file.use_json_metadata := true  # pass metadata to `cue_file` as JSON
+
+# Check Autocue setup, print result, shutdown if problems
+# The check results will also be in the log.
+# Returns a bool: true=ok, false=error. We ignore that here.
+# set `print=true` for standalone scripts, `false` for AzuraCast
+# ignore(is_cue_file_available(shutdown=true, print=false))
+
+# `enable_autocue_metadata()` will autocue ALL files Liquidsoap processes.
+# You can disable it for selected sources using 'annotate:cue_file=false'.
+# Remember you won't get `cue_file_amplify` data then -- expect loudness jumps!
+# enable_autocue_metadata()
+
+()
