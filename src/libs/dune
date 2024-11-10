@@ -1,8 +1,12 @@
 (rule
-  (alias update_cue_file)
-  (target autocue.cue_file.liq.new)
-  (action
-    (run wget https://raw.githubusercontent.com/savonet/autocue.cue_file/refs/heads/main/autocue.cue_file.liq -O %{target})))
+ (alias update_cue_file)
+ (target autocue.cue_file.liq.new)
+ (action
+  (run
+   wget
+   https://raw.githubusercontent.com/savonet/autocue.cue_file/refs/heads/main/autocue.cue_file.liq
+   -O
+   %{target})))
 
 (rule
  (alias update_cue_file)
