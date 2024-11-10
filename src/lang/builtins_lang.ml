@@ -287,7 +287,7 @@ let _ =
             (Lang.add_builtin_base ~category:`Configuration
                ~descr:("Path to configured location site " ^ name)
                ~base:sites name (`String path) Lang.string_t)
-      | _ -> assert false)
+      | _ -> ())
     [
       ("bin", Sites.Sites.bin);
       ("cache", Sites.Sites.cache);
