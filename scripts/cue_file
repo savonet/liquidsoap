@@ -38,7 +38,7 @@
 #                       - Make variable checking more robust (bool & unit suffixes)
 #                       - Add `liq_fade_in` & `liq_fade_out` tags for reading/writing,
 #                         in case a preprocessor needs to set fade durations.
-# 2024-06-11 Moonbase59 - v2.2.0 Sync version numver with autocue.cue_file
+# 2024-06-11 Moonbase59 - v2.2.0 Sync version number with autocue.cue_file
 # 2024-06-11 Moonbase59 - v2.2.1 Sync version number with autocue.cue_file
 # 2024-06-11 Moonbase59 - v3.0.0 Add variable blankskip (0.0=off)
 #                       - BREAKING: `liq_blankskip` now flot, not bool anymore!
@@ -318,6 +318,7 @@ def override_from_JSON(tags, tags_json={}):
 
 def read_tags(
         filename,
+        ffprobe=FFPROBE,
         tags_json={},
         target=TARGET_LUFS,
         blankskip=0.0,
@@ -329,7 +330,7 @@ def read_tags(
     # filename
     r = subprocess.run(
         [
-            FFPROBE,
+            ffprobe,
             "-v",
             "quiet",
             "-show_entries",
@@ -507,6 +508,7 @@ def add_missing(tags_found, target=TARGET_LUFS, blankskip=0.0, noclip=False):
 
 def analyse(
         filename,
+        ffmpeg=FFMPEG,
         target=TARGET_LUFS,
         overlay=OVERLAY_LU,
         silence=SILENCE,
@@ -530,7 +532,7 @@ def analyse(
     # lavfi.r128.true_peaks_ch1=1.632
 
     args = [
-        FFMPEG,
+        ffmpeg,
         "-v",
         "quiet",
         "-nostdin",
@@ -990,7 +992,7 @@ def write_tags(filename, tags={}, replaygain=False):
             # eprint(metadata_args)
 
             args = [
-                FFMPEG,
+                ffmpeg,
                 '-v', 'quiet',
                 '-nostdin',
                 '-y',
@@ -1206,6 +1208,14 @@ parser.add_argument(
     "values from their database here.",
     type=argparse.FileType('r'),
 )
+parser.add_argument(
+    "--ffmpeg",
+    default=FFMPEG,
+    help="Path to the ffmpeg command line binary")
+parser.add_argument(
+    "--ffprobe",
+    default=FFPROBE,
+    help="Path to the ffprobe command line binary")
 
 args = parser.parse_args()
 
@@ -1220,11 +1230,12 @@ if args.json:
     args.json.close()
 
 skip_analysis, tags_found = read_tags(
-    args.file, tags_json, args.target, args.blankskip, args.noclip)
+    args.file, args.ffprobe, tags_json, args.target, args.blankskip, args.noclip)
 
 if args.force or not skip_analysis:
     result = analyse(
         filename=args.file,
+        ffmpeg=args.ffmpeg,
         target=args.target,
         overlay=args.overlay,
         silence=args.silence,
