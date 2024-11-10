@@ -463,6 +463,7 @@ end
 # @param ~reload_mode Unit of the reload parameter, either "never" (never reload \
 #  the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is \
 #  changed).
+# @param ~register_server_commands Register corresponding server commands
 # @param ~timeout Timeout (in sec.) to resolve the request. Defaults to `settings.request.timeout` when `null`.
 # @param ~thread_queue Queue used to resolve requests.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
@@ -490,6 +491,7 @@ def replaces playlist(
   ~timeout=null(),
   ~cue_in_metadata=null("liq_cue_in"),
   ~cue_out_metadata=null("liq_cue_out"),
+  ~register_server_commands=true,
   uri
 ) =
   id = id ?? playlist.id(default="playlist", uri)
@@ -675,97 +677,101 @@ def replaces playlist(
     s.on_shutdown(watcher_shutdown)
   end
 
-  # Set up telnet commands
-  s.register_command(
-    description=
-      "Skip current song in the playlist.",
-    usage="skip",
-    "skip",
-    fun (_) ->
-      begin
-        s.skip()
-        "OK"
-      end
-  )
+  if
+    register_server_commands
+  then
+    # Set up telnet commands
+    s.register_command(
+      description=
+        "Skip current song in the playlist.",
+      usage="skip",
+      "skip",
+      fun (_) ->
+        begin
+          s.skip()
+          "OK"
+        end
+    )
 
-  s.register_command(
-    description=
-      "Return up to 10 next URIs to be played.",
-    usage="next",
-    "next",
-    fun (n) ->
-      begin
-        n = max(10, int_of_string(default=10, n))
-        requests =
-          list.fold(
-            (fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur ),
-            [],
-            s.queue()
+    s.register_command(
+      description=
+        "Return up to 10 next URIs to be played.",
+      usage="next",
+      "next",
+      fun (n) ->
+        begin
+          n = max(10, int_of_string(default=10, n))
+          requests =
+            list.fold(
+              (fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur ),
+              [],
+              s.queue()
+            )
+
+          string.concat(
+            separator="\n",
+            list.map(
+              (
+                fun (r) ->
+                  begin
+                    m = request.metadata(r)
+                    get = fun (lbl) -> list.assoc(default="?", lbl, m)
+                    status = get("status")
+                    uri = get("initial_uri")
+                    "[#{status}] #{uri}"
+                  end
+              ),
+              requests
+            )
           )
+        end
+    )
 
-        string.concat(
-          separator="\n",
-          list.map(
-            (
-              fun (r) ->
-                begin
-                  m = request.metadata(r)
-                  get = fun (lbl) -> list.assoc(default="?", lbl, m)
-                  status = get("status")
-                  uri = get("initial_uri")
-                  "[#{status}] #{uri}"
-                end
-            ),
-            requests
-          )
-        )
-      end
-  )
+    s.register_command(
+      description=
+        "Reload the playlist, unless already being loaded.",
+      usage="reload",
+      "reload",
+      fun (_) ->
+        begin
+          s.reload()
+          "OK"
+        end
+    )
 
-  s.register_command(
-    description=
-      "Reload the playlist, unless already being loaded.",
-    usage="reload",
-    "reload",
-    fun (_) ->
-      begin
-        s.reload()
-        "OK"
-      end
-  )
-
-  def uri_cmd(uri') =
-    if
-      uri' == ""
-    then
-      playlist_uri()
-    else
+    def uri_cmd(uri') =
       if
-        reload_mode == "watch"
+        uri' == ""
       then
-        log.important(
-          label=id,
-          "Warning: the watched file is not updated for now when changing the \
-           uri!"
-        )
+        playlist_uri()
+      else
+        if
+          reload_mode == "watch"
+        then
+          log.important(
+            label=id,
+            "Warning: the watched file is not updated for now when changing the \
+             uri!"
+          )
+        end
+
+        # TODO
+        playlist_uri := uri'
+        s.reload(uri=uri')
+        "OK"
       end
-
-      # TODO
-      playlist_uri := uri'
-      s.reload(uri=uri')
-      "OK"
     end
-  end
 
-  s.register_command(
-    description=
-      "Print playlist URI if called without an argument, otherwise set a new one \
-       and load it.",
-    usage=
-      "uri [<uri>]",
-    "uri",
-    uri_cmd
-  )
+    s.register_command(
+      description=
+        "Print playlist URI if called without an argument, otherwise set a new \
+         one and load it.",
+      usage=
+        "uri [<uri>]",
+      "uri",
+      uri_cmd
+    )
+  end
 
   s
 end

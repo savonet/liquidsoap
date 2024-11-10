@@ -34,7 +34,7 @@ end
 # @method length Length of the queue.
 def request.queue(
   ~id=null(),
-  ~interactive=true,
+  ~interactive=false,
   ~prefetch=null(),
   ~native=false,
   ~queue=[],
