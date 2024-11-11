@@ -180,7 +180,7 @@ let flush_source ~log ~name ~ratio ~timeout ~sleep_latency s =
   let _ =
     new Output.dummy
       ~clock ~infallible:false
-      ~on_start:(fun () -> ())
+      ~on_start:(fun () -> started := true)
       ~on_stop:(fun () -> stopped := true)
       ~register_telnet:false ~autostart:true (Lang.source s)
   in
@@ -195,7 +195,6 @@ let flush_source ~log ~name ~ratio ~timeout ~sleep_latency s =
   in
   (try
      while (not (Atomic.get should_stop)) && not !stopped do
-       if not !started then started := s#is_ready;
        if (not !started) && Time.(timeout_time |<=| start_time) then (
          log#important "Timeout while waiting for the source to start!";
          stopped := true)
@@ -212,6 +211,11 @@ let flush_source ~log ~name ~ratio ~timeout ~sleep_latency s =
     "Source processed. Total processing time: %.02fs, effective ratio: %.02fx"
     processing_time effective_ratio;
   Clock.stop clock
+
+let flush_source ~log ~name ~ratio ~timeout ~sleep_latency s =
+  if Tutils.running () then
+    flush_source ~log ~name ~ratio ~timeout ~sleep_latency s
+  else log#important "Cannot run %s: scheduler not started!" name
 
 let _ =
   let log = Log.make ["source"; "dump"] in
