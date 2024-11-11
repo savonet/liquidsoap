@@ -156,7 +156,7 @@ let create ~queue f x s =
     (fun () ->
       let id =
         let process x =
-          Utils.set_thread_name s;
+          Utils.Thread.set_current_thread_name s;
           try
             f x;
             Mutex_utils.mutexify lock
