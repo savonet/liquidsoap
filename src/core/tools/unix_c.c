@@ -94,7 +94,7 @@ CAMLprim value liquidsoap_get_pagesize() {
 #endif
 }
 
-CAMLprim value liquidsoap_set_thread_name(value _name) {
+CAMLprim value liquidsoap_set_current_thread_name(value _name) {
 #if defined(_WIN32)
   char_os *thread_name = caml_stat_strdup_to_os(String_val(_name));
   SetThreadDescription(GetCurrentThread(), thread_name);

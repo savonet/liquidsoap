@@ -32,7 +32,12 @@ let log_exception ~(log : Log.t) ~bt msg =
   log#severe "%s" msg;
   if log#active 4 (* info *) then log#info "%s" bt
 
-external set_thread_name : string -> unit = "liquidsoap_set_thread_name"
+module Thread = struct
+  external set_current_thread_name : string -> unit
+    = "liquidsoap_set_current_thread_name"
+
+  include Thread
+end
 
 (* Force locale *)
 external force_locale : string -> unit = "liquidsoap_set_locale"
