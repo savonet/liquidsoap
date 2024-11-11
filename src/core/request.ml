@@ -60,10 +60,10 @@ let pretty_date date =
 let remove_file_proto s =
   (* First remove file:// 🤮 *)
   let s =
-    Pcre.substitute ~rex:(Pcre.regexp "^file://") ~subst:(fun _ -> "") s
+    Re.Pcre.substitute ~rex:(Re.Pcre.regexp "^file://") ~subst:(fun _ -> "") s
   in
   (* Then remove file: 😇 *)
-  Pcre.substitute ~rex:(Pcre.regexp "^file:") ~subst:(fun _ -> "") s
+  Re.Pcre.substitute ~rex:(Re.Pcre.regexp "^file:") ~subst:(fun _ -> "") s
 
 let home_unrelate s = Lang_string.home_unrelate (remove_file_proto s)
 

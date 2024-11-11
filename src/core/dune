@@ -25,7 +25,6 @@
   fileutils
   liquidsoap-lang
   liquidsoap-lang.console
-  liquidsoap_stdlib
   menhirLib
   camomile.lib
   curl

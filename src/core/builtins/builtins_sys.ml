@@ -216,7 +216,8 @@ let _ =
     let a = Lang.to_string (Lang.assoc "" 2 p) in
     let s = match a with "" -> c | _ -> c ^ " " ^ a in
     let r = try Server.exec s with Not_found -> "Command not found!" in
-    Lang.list (List.map Lang.string (Pcre.split ~rex:(Pcre.regexp "\r?\n") r))
+    Lang.list
+      (List.map Lang.string (Re.Pcre.split ~rex:(Re.Pcre.regexp "\r?\n") r))
   in
   Lang.add_builtin ~base:Modules.server "execute" ~category ~descr params
     return_t execute

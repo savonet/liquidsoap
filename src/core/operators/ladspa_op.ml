@@ -366,7 +366,7 @@ let register_descr d =
   in
   let maker = d.plugin_maker in
   let maker =
-    Pcre.substitute ~rex:(Pcre.regexp "@") ~subst:(fun _ -> "(at)") maker
+    Re.Pcre.substitute ~rex:(Re.Pcre.regexp "@") ~subst:(fun _ -> "(at)") maker
   in
   let descr = Printf.sprintf "%s by %s." d.plugin_name maker in
   let return_t =

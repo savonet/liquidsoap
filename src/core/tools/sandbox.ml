@@ -41,7 +41,7 @@ let conf_setenv =
 let get_setenv () =
   List.fold_left
     (fun cur s ->
-      match Pcre.split ~rex:(Pcre.regexp "=") s with
+      match Re.Pcre.split ~rex:(Re.Pcre.regexp "=") s with
         | [] -> cur
         | lbl :: l -> (lbl, String.concat "=" l) :: cur)
     [] conf_setenv#get

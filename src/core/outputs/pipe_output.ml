@@ -446,7 +446,7 @@ class virtual ['a] file_output_base p =
       let filename = Lang_string.home_unrelate filename in
       (* Avoid / in metas for filename.. *)
       let subst m =
-        Pcre.substitute ~rex:(Pcre.regexp "/") ~subst:(fun _ -> "-") m
+        Re.Pcre.substitute ~rex:(Re.Pcre.regexp "/") ~subst:(fun _ -> "-") m
       in
       self#interpolate ~subst filename
 
