@@ -26,8 +26,8 @@ let error fmt =
     fmt
 
 let escape =
-  let rex = Pcre.regexp "'" in
-  fun s -> "'" ^ Pcre.substitute ~rex ~subst:(fun _ -> "''") s ^ "'"
+  let rex = Re.Pcre.regexp "'" in
+  fun s -> "'" ^ Re.Pcre.substitute ~rex ~subst:(fun _ -> "''") s ^ "'"
 
 let insert_value_constr =
   let open Type in

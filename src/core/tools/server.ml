@@ -238,7 +238,9 @@ let () =
     ~descr:"Get information on available commands." (fun args ->
       try
         let args =
-          Pcre.substitute ~rex:(Pcre.regexp "\\s*") ~subst:(fun _ -> "") args
+          Re.Pcre.substitute ~rex:(Re.Pcre.regexp "\\s*")
+            ~subst:(fun _ -> "")
+            args
         in
         let _, us, d = Mutex_utils.mutexify lock (Hashtbl.find commands) args in
         Printf.sprintf "Usage: %s\r\n  %s" us d

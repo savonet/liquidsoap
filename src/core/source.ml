@@ -115,7 +115,10 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
 
     method set_id ?(definitive = true) s =
       let s =
-        Pcre.substitute ~rex:(Pcre.regexp "[ \t\n.]") ~subst:(fun _ -> "_") s
+        Re.Pcre.substitute
+          ~rex:(Re.Pcre.regexp "[ \t\n.]")
+          ~subst:(fun _ -> "_")
+          s
       in
       if not definitive_id then (
         id <- Lang_string.generate_id s;

@@ -4,7 +4,6 @@
   (pps ppx_string))
  (libraries
   liquidsoap_core
-  liquidsoap_stdlib
   liquidsoap_optionals
   liquidsoap_builtins
   (select

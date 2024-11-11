@@ -117,8 +117,8 @@ let stream_media_type ~to_pos ~to_static_string name args =
   match (name, args) with
     | _ when has_content ~to_static_string "audio_content" args -> `Audio
     | _ when has_content ~to_static_string "video_content" args -> `Video
-    | _ when Pcre.pmatch ~rex:(Pcre.regexp "audio") name -> `Audio
-    | _ when Pcre.pmatch ~rex:(Pcre.regexp "video") name -> `Video
+    | _ when Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "audio") name -> `Audio
+    | _ when Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "video") name -> `Video
     | _ -> (
         match List.assoc_opt "codec" args with
           | Some t -> (
