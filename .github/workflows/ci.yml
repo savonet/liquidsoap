@@ -235,10 +235,6 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
-      - name: Install sqlite
-        run: |
-          sudo apt-get -y install libsqlite3-dev
-          sudo -u opam -E opam install -y sqlite3
       - name: Install pandoc
         run: |
           cd /tmp
