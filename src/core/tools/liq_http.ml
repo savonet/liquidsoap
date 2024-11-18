@@ -211,6 +211,6 @@ type auth = { user : string; password : string }
 
 let parse_auth s =
   match Re.Pcre.split ~rex:(Re.Pcre.regexp ":") s with
-    | user :: password :: rem ->
-        { user; password = String.concat ":" (password :: rem) }
+    | user :: (_ :: _ as password) ->
+        { user; password = String.concat ":" password }
     | _ -> raise Not_found
