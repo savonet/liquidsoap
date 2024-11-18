@@ -361,11 +361,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let websocket_error n msg = Websocket.to_string (`Close (Some (n, msg)))
 
   let parse_icy_request_line ~port h r =
-    let auth_data = Re.Pcre.split ~rex:(Re.Pcre.regexp ":") r in
-    let requested_user, password =
-      match auth_data with
-        | user :: password :: _ -> (user, password)
-        | _ -> ("", r)
+    let { Liq_http.user = requested_user; password } =
+      try Liq_http.parse_auth r
+      with Not_found -> { Liq_http.user = ""; password = r }
     in
     let* s =
       try Duppy.Monad.return (find_source "/" (port - 1))
@@ -451,14 +449,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let auth = assoc_uppercase "AUTHORIZATION" headers in
           let data = Re.Pcre.split ~rex:(Re.Pcre.regexp "[ \t]+") auth in
           match data with
-            | "Basic" :: x :: _ -> (
-                let auth_data =
-                  Re.Pcre.split ~rex:(Re.Pcre.regexp ":")
-                    (Lang_string.decode64 x)
+            | "Basic" :: x :: _ ->
+                let { Liq_http.user; password } =
+                  Liq_http.parse_auth (Lang_string.decode64 x)
                 in
-                match auth_data with
-                  | x :: y :: _ -> (x, y)
-                  | _ -> raise Not_found)
+                (user, password)
             | _ -> raise Not_found
         with Not_found -> (
           match query with
