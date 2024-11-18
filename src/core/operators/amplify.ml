@@ -26,14 +26,6 @@ open Source
 let parse_db s =
   try Scanf.sscanf s " %f dB" Audio.lin_of_dB with _ -> float_of_string s
 
-let conf_amplify =
-  Dtools.Conf.void ~p:(Configure.conf#plug "amplify") "Amplify configuration"
-
-let conf_amplify_metadata =
-  Dtools.Conf.string
-    ~p:(conf_amplify#plug "metadata")
-    ~d:"liq_amplify" "Amplify metadata"
-
 class amplify ~field ~override_field (source : source) coeff =
   object (self)
     inherit operator ~name:"track.audio.amplify" [source]
@@ -96,18 +88,13 @@ class amplify ~field ~override_field (source : source) coeff =
             Frame.append buf (self#process new_track)
   end
 
-let default_override =
-  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled
-    "{settings.amplify.metadata()}"
-
 let _ =
   let frame_t = Lang.pcm_audio_t () in
   Lang.add_track_operator ~base:Modules.track_audio "amplify"
     [
-      ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");
       ( "override",
         Lang.getter_t (Lang.nullable_t Lang.string_t),
-        Some default_override,
+        Some (Lang.string "liq_amplify"),
         Some
           "Specify the name of a metadata field that, when present and \
            well-formed, overrides the amplification factor for the current \
@@ -116,6 +103,7 @@ let _ =
            values can be passed in decibels with the suffix `dB` (e.g. `-8.2 \
            dB`, but the spaces do not matter). Defaults to \
            `settings.amplify.metadata`. Set to `null` to disable." );
+      ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");
       ("", frame_t, None, None);
     ]
     ~return_t:frame_t ~category:`Audio
