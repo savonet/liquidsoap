@@ -420,3 +420,22 @@ let rec mk_invariant t =
         c.contents <- Link (`Invariant, t);
         mk_invariant t
     | _ -> ()
+
+let rec hide_meth l a =
+  match (deref a).descr with
+    | Meth ({ meth = l' }, u) when l' = l -> hide_meth l u
+    | Meth (m, u) -> make ?pos:a.pos (Meth (m, hide_meth l u))
+    | _ -> a
+
+let rec opt_meth l a =
+  match (deref a).descr with
+    | Meth (({ meth = l' } as m), u) when l' = l ->
+        make ?pos:a.pos (Meth ({ m with optional = true }, u))
+    | Meth (m, u) -> make ?pos:a.pos (Meth (m, opt_meth l u))
+    | _ -> a
+
+let rec get_meth l a =
+  match (deref a).descr with
+    | Meth (({ meth = l' } as meth), _) when l = l' -> meth
+    | Meth (_, a) -> get_meth l a
+    | _ -> assert false
