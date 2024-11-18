@@ -206,3 +206,11 @@ let set_socket_default ~read_timeout ~write_timeout fd =
   Unix.set_close_on_exec fd;
   Unix.setsockopt_float fd Unix.SO_RCVTIMEO read_timeout;
   Unix.setsockopt_float fd Unix.SO_SNDTIMEO write_timeout
+
+type auth = { user : string; password : string }
+
+let parse_auth s =
+  match Re.Pcre.split ~rex:(Re.Pcre.regexp ":") s with
+    | user :: (_ :: _ as password) ->
+        { user; password = String.concat ":" password }
+    | _ -> raise Not_found
