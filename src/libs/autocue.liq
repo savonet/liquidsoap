@@ -997,7 +997,7 @@ def enable_autocue_metadata() =
       user_supplied_amplify =
         list.filter_map(
           fun (el) ->
-            if list.mem(fst(el), all_amplify) then snd(el) else null() end,
+            if list.mem(fst(el), all_amplify) then fst(el) else null() end,
           metadata
         )
 
