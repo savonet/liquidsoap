@@ -84,6 +84,20 @@
 
 
 (executable
+ (name http_test)
+ (modules http_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  
+  (:http_test http_test.exe))
+ (action (run %{http_test} )))
+
+
+(executable
  (name is_url)
  (modules is_url)
  (libraries liquidsoap_core liquidsoap_optionals))
