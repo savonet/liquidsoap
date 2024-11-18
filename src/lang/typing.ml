@@ -36,25 +36,6 @@ let forget_arguments = true
 
 type env = (string * scheme) list
 
-let rec hide_meth l a =
-  match (deref a).descr with
-    | Meth ({ meth = l' }, u) when l' = l -> hide_meth l u
-    | Meth (m, u) -> Type.make ?pos:a.pos (Meth (m, hide_meth l u))
-    | _ -> a
-
-let rec opt_meth l a =
-  match (deref a).descr with
-    | Meth (({ meth = l' } as m), u) when l' = l ->
-        Type.make ?pos:a.pos (Meth ({ m with optional = true }, u))
-    | Meth (m, u) -> Type.make ?pos:a.pos (Meth (m, opt_meth l u))
-    | _ -> a
-
-let rec get_meth l a =
-  match (deref a).descr with
-    | Meth (({ meth = l' } as meth), _) when l = l' -> meth
-    | Meth (_, a) -> get_meth l a
-    | _ -> assert false
-
 (** {1 Type generalization and instantiation}
 
     We don't have type schemes per se, but we compute generalizable variables
