@@ -94,6 +94,13 @@ module ClockValue = struct
               let c' = of_value (List.assoc "" p) in
               Clock.unify ~pos c c';
               Lang.unit) );
+      ( "tick",
+        Lang.fun_t [] Lang.unit_t,
+        "Animate the clock and run one tick",
+        fun c ->
+          Lang.val_fun [] (fun _ ->
+              Clock.tick c;
+              Lang.unit) );
       ( "ticks",
         Lang.fun_t [] Lang.int_t,
         "The total number of times the clock has ticked.",

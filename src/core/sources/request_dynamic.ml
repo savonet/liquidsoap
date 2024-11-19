@@ -59,11 +59,11 @@ let () =
   Lifecycle.before_core_shutdown ~name:"request.dynamic shutdown" (fun () ->
       Atomic.set should_fail true)
 
-class dynamic ~priority ~retry_delay ~available (f : Lang.value) prefetch
-  timeout =
+class dynamic ?(name = "request.dynamic") ~priority ~retry_delay ~available
+  (f : Lang.value) prefetch timeout =
   let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
-    inherit source ~name:"request.dynamic" ()
+    inherit source ~name ()
     method fallible = true
     val mutable remaining = 0
     method remaining = remaining
