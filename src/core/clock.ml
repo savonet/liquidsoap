@@ -45,26 +45,6 @@ let log = Log.make ["clock"]
 let conf_clock =
   Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
 
-(** If true, a clock keeps running when an output fails. Other outputs may
-  * still be useful. But there may also be some useless inputs left.
-  * If no active output remains, the clock will exit without triggering
-  * shutdown. We may need some device to allow this (but active and passive
-  * clocks will have to be treated separately). *)
-let allow_streaming_errors =
-  Dtools.Conf.bool
-    ~p:(conf_clock#plug "allow_streaming_errors")
-    ~d:false "Handling of streaming errors"
-    ~comments:
-      [
-        "Control the behaviour of clocks when an error occurs during streaming.";
-        "This has no effect on errors occurring during source initializations.";
-        "By default, any error will cause liquidsoap to shutdown. If errors";
-        "are allowed, faulty sources are simply removed and clocks keep \
-         running.";
-        "Allowing errors can result in complex surprising situations;";
-        "use at your own risk!";
-      ]
-
 let conf_log_delay =
   Dtools.Conf.float
     ~p:(conf_clock#plug "log_delay")
@@ -380,6 +360,20 @@ let started c =
     | `Stopping _ | `Started _ -> true
     | `Stopped _ -> false
 
+let wrap_errors clock fn s =
+  try fn s
+  with exn when exn <> Has_stopped ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printf.printf "Error: %s\n%s\n%!" (Printexc.to_string exn)
+      (Printexc.raw_backtrace_to_string bt);
+    log#severe "Source %s failed while streaming: %s!\n%s" s#id
+      (Printexc.to_string exn)
+      (Printexc.raw_backtrace_to_string bt);
+    _detach clock s;
+    if Queue.length clock.on_error > 0 then
+      Queue.iter clock.on_error (fun fn -> fn exn bt)
+    else Printexc.raise_with_backtrace exn bt
+
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
@@ -387,13 +381,14 @@ let rec active_params c =
     | _ -> raise Invalid_state
 
 and _activate_pending_sources ~clock x =
-  Queue.flush_iter clock.pending_activations (fun s ->
-      check_stopped ();
-      s#wake_up;
-      match s#source_type with
-        | `Active _ -> WeakQueue.push x.active_sources s
-        | `Output _ -> Queue.push x.outputs s
-        | `Passive -> WeakQueue.push x.passive_sources s)
+  Queue.flush_iter clock.pending_activations
+    (wrap_errors clock (fun s ->
+         check_stopped ();
+         s#wake_up;
+         match s#source_type with
+           | `Active _ -> WeakQueue.push x.active_sources s
+           | `Output _ -> Queue.push x.outputs s
+           | `Passive -> WeakQueue.push x.passive_sources s))
 
 and _tick ~clock x =
   _activate_pending_sources ~clock x;
@@ -402,21 +397,11 @@ and _tick ~clock x =
   in
   let sources = _animated_sources x in
   List.iter
-    (fun s ->
-      check_stopped ();
-      try
-        match s#source_type with
-          | `Output s | `Active s -> s#output
-          | _ -> assert false
-      with exn when exn <> Has_stopped ->
-        let bt = Printexc.get_raw_backtrace () in
-        if Queue.is_empty clock.on_error then (
-          log#severe "Source %s failed while streaming: %s!\n%s" s#id
-            (Printexc.to_string exn)
-            (Printexc.raw_backtrace_to_string bt);
-          if not allow_streaming_errors#get then Tutils.shutdown 1
-          else _detach clock s)
-        else Queue.iter clock.on_error (fun fn -> fn exn bt))
+    (wrap_errors clock (fun s ->
+         check_stopped ();
+         match s#source_type with
+           | `Output s | `Active s -> s#output
+           | _ -> assert false))
     sources;
   Queue.flush_iter x.on_tick (fun fn ->
       check_stopped ();

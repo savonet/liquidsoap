@@ -660,9 +660,7 @@ def protocol.stereo(~rlog=_, ~maxtime=_, arg) =
     )
     null()
   else
-    # TODO: the following sometimes hangs, so we resolve twice...
-    # source.dump(%wav, file, source.stereo(once(request.queue(queue=[r]))))
-    source.dump(%wav, file, stereo(once(single(arg))))
+    request.dump(%wav, file, request.create(arg))
     file
   end
 end
@@ -1066,7 +1064,19 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
         label="synth",
         "Synthesizing #{shape()} in #{file}."
       )
-      source.dump(%wav, file, once(s))
+
+      clock.assign_new(sync="passive", [s])
+
+      stopped = ref(false)
+      output.file(
+        fallible=true, on_stop={stopped.set(true)}, %wav, file, once(s)
+      )
+
+      c = clock(s.clock)
+      c.start()
+      while not stopped() do c.tick() end
+      c.stop()
+
       file
     end
 

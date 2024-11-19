@@ -34,6 +34,8 @@ def source.mux.midi(~id=null(), ~(midi:source), s) =
   source(id=id, source.tracks(s).{midi=source.tracks(midi).midi})
 end
 
+let source.drop = ()
+
 # Remove the audio track of a source.
 # @category Source / Track processing
 def source.drop.audio(~id=null(), s) =

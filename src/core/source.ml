@@ -242,11 +242,12 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
           List.iter (fun fn -> fn ()) on_wake_up
         with exn ->
           Atomic.set is_up `Error;
-          let bt = Printexc.get_backtrace () in
-          Utils.log_exception ~log ~bt
-            (Printf.sprintf "Error when starting source %s: %s!" self#id
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Error while starting source %s: %s!" self#id
                (Printexc.to_string exn));
-          Tutils.shutdown 1)
+          Printexc.raise_with_backtrace exn bt)
 
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- fn :: on_sleep
