@@ -74,7 +74,7 @@ Changed:
   now returns `max_int` and `int(-infinity)` returns `min_int`. (#3407)
 - Made default font a setting (#3507)
 - Changed internal metadata format to be immutable (#3297).
-- Removed `source.dump` and `source.drop` in favor safer `request.dump` and `request.drop`.
+- Removed `source.dump` and `source.drop` in favor of safer `request.dump` and `request.drop`.
   `source.{dump, drop}` can still be implemented manually when needed and with the proper
   knowledge of what's going on.
 - Allow a getter for the offset of `on_offset` and dropped the metadata
