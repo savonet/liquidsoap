@@ -330,7 +330,7 @@ module MkContentBase (C : ContentSpecs) :
   let consolidate_chunks =
     let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
       let length = chunk_length chunk in
-      C.blit data offset buf pos length;
+      if length > 0 then C.blit data offset buf pos length;
       pos + length
     in
     fun ~copy d ->
