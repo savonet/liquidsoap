@@ -59,25 +59,6 @@ let settings.autocue.internal.metadata_override =
     ]
   )
 
-let settings.autocue.internal.queues_count =
-  settings.make(
-    description=
-      "Number of dedicated queues for resolving autocue data using the internal \
-       implementation",
-    1
-  )
-
-def settings.autocue.internal.queues_count.set(c) =
-  settings.scheduler.queues :=
-    [
-      ...list.assoc.remove("autocue", settings.scheduler.queues()),
-      ("autocue", c)
-    ]
-  settings.autocue.internal.queues_count.set(c)
-end
-
-settings.autocue.internal.queues_count.set(1)
-
 let settings.autocue.internal.lufs_target =
   settings.make(
     description=
@@ -206,30 +187,30 @@ def autocue.internal.ebur128(~duration, ~ratio=50., ~timeout=10., filename) =
     )
     []
   else
-    s =
-      request.once(
-        thread_queue="autocue", request.create(resolve_metadata=false, filename)
-      )
+    r = request.create(resolve_metadata=false, filename)
     frames = ref([])
 
-    def ebur128(s) =
-      def mk_filter(graph) =
-        let {audio = a} = source.tracks(s)
-        a = ffmpeg.filter.audio.input(graph, a)
-        let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
+    def process(s) =
+      def ebur128(s) =
+        def mk_filter(graph) =
+          let {audio = a} = source.tracks(s)
+          a = ffmpeg.filter.audio.input(graph, a)
+          let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
 
-        # ebur filter seems to generate invalid PTS.
-        a = ffmpeg.filter.asetpts(expr="N/SR/TB", graph, a)
-        a = ffmpeg.filter.audio.output(id="filter_output", graph, a)
-        source({audio=a, metadata=track.metadata(a)})
+          # ebur filter seems to generate invalid PTS.
+          a = ffmpeg.filter.asetpts(expr="N/SR/TB", graph, a)
+          a = ffmpeg.filter.audio.output(id="filter_output", graph, a)
+          source({audio=a, metadata=track.metadata(a)})
+        end
+
+        ffmpeg.filter.create(mk_filter)
       end
 
-      ffmpeg.filter.create(mk_filter)
+      s = ebur128(s)
+      source.on_metadata(s, fun (m) -> frames := [...frames(), m])
     end
 
-    s = ebur128(s)
-    s = source.on_metadata(s, fun (m) -> frames := [...frames(), m])
-    source.drop(ratio=ratio, s)
+    request.process(ratio=ratio, process=process, r)
 
     frames()
   end
@@ -794,7 +775,7 @@ def autocue.internal.implementation(
             fade_out_type?: string,
             fade_out_curve?: float,
             start_next?: float,
-            extra_metadata?: [(string*string)]
+            extra_metadata?: [(string * string)]
           }
         )
       end

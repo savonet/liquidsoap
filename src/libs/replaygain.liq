@@ -22,9 +22,17 @@ def file.replaygain.compute(~ratio=50., file_name) =
   if
     request.resolve(_request)
   then
-    _source = source.replaygain.compute(request.once(_request))
-    source.drop(ratio=ratio, _source)
-    _source.gain()
+    get_gain = ref(fun () -> null())
+    def process(s) =
+      s = source.replaygain.compute(s)
+      get_gain := {s.gain()}
+      s
+    end
+
+    request.process(ratio=ratio, process=process, _request)
+
+    fn = get_gain()
+    fn()
   else
     null()
   end

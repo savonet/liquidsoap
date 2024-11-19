@@ -100,17 +100,8 @@ end
 # @category File
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic detection.
 # @param ~timeout Timeout for resolving the playlist
-# @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
-# @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri Path to the playlist
-def playlist.files(
-  ~id=null(),
-  ~mime_type=null(),
-  ~timeout=null(),
-  ~cue_in_metadata=null("liq_cue_in"),
-  ~cue_out_metadata=null("liq_cue_out"),
-  uri
-) =
+def playlist.files(~id=null(), ~mime_type=null(), ~timeout=null(), uri) =
   id = id ?? playlist.id(default="playlist.files", uri)
 
   if
@@ -124,10 +115,7 @@ def playlist.files(
     files = list.filter(fun (f) -> not (file.is_directory(f)), files)
     files
   else
-    pl =
-      request.create(
-        cue_in_metadata=cue_in_metadata, cue_out_metadata=cue_out_metadata, uri
-      )
+    pl = request.create(resolve_metadata=false, uri)
     result =
       if
         request.resolve(timeout=timeout, pl)
@@ -533,12 +521,7 @@ def replaces playlist(
     files =
       try
         playlist.files(
-          id=id,
-          mime_type=mime_type,
-          timeout=timeout,
-          cue_in_metadata=cue_in_metadata,
-          cue_out_metadata=cue_out_metadata,
-          playlist_uri
+          id=id, mime_type=mime_type, timeout=timeout, playlist_uri
         )
       catch err do
         log.info(
