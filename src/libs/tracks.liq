@@ -61,3 +61,25 @@ def source.drop.metadata(~id=null(), s) =
   let {metadata = _, ...tracks} = source.tracks(s)
   source(id=id, tracks)
 end
+
+let settings.amplify =
+  settings.make.void(
+    "Settings for the amplify operator"
+  )
+
+let settings.amplify.override =
+  settings.make(
+    description=
+      "Default metadata used to override amplification.",
+    "liq_amplify"
+  )
+
+# @docof track.audio.amplify
+def track.audio.amplify(
+  %argsof(track.audio.amplify[!override]),
+  ~override=getter({(settings.amplify.override() : string?)}),
+  v,
+  t
+) =
+  track.audio.amplify(%argsof(track.audio.amplify), v, t)
+end
