@@ -55,15 +55,16 @@ module ClockValue = struct
           Lang.val_fun [] (fun _ ->
               Lang.string Clock.(string_of_sync_mode (sync c))) );
       ( "start",
-        Lang.fun_t [] Lang.unit_t,
+        Lang.fun_t [(true, "force", Lang.bool_t)] Lang.unit_t,
         "Start the clock.",
         fun c ->
           Lang.val_fun
-            [("", "", Some (Lang.string "auto"))]
+            [("force", "force", Some (Lang.bool true))]
             (fun p ->
               let pos = Lang.pos p in
+              let force = Lang.to_bool (List.assoc "force" p) in
               try
-                Clock.start c;
+                Clock.start ~force c;
                 Lang.unit
               with Clock.Invalid_state ->
                 Runtime_error.raise

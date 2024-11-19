@@ -1067,11 +1067,14 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
 
       clock.assign_new(sync="passive", [s])
 
-      output.file(fallible=true, %wav, file, once(s))
+      stopped = ref(false)
+      output.file(
+        fallible=true, on_stop={stopped.set(true)}, %wav, file, once(s)
+      )
 
       c = clock(s.clock)
       c.start()
-      while source.is_ready(s) do c.tick() end
+      while not stopped() do c.tick() end
       c.stop()
 
       file
