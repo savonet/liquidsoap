@@ -204,12 +204,21 @@ let sources c =
         @ Queue.elements outputs
     | _ -> []
 
+(* Return the clock effective sync. Stopped clocks can
+   be unified with any active type clocks so [`Stopped _] returns
+   [`Stopped]. *)
 let _sync ?(pending = false) x =
   match Atomic.get x.state with
     | `Stopped p when pending -> (p :> sync_mode)
     | `Stopped _ -> `Stopped
     | `Stopping _ -> `Stopping
     | `Started { sync } -> (sync :> sync_mode)
+
+(* Return the current sync, used to make decisions based on the
+   clock's sync value, regardless of potential unification. *)
+let active_sync_mode c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Stopped sync | `Stopping { sync } | `Started { sync } -> sync
 
 let sync c = _sync (Unifier.deref c)
 let cleanup_source s = try s#force_sleep with _ -> ()
@@ -261,7 +270,7 @@ let unify =
     Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
     Unifier.(clock.id <-- clock'.id);
     Unifier.(c <-- c');
-    Queue.filter clocks (fun el -> sync el <> `Passive && el != c)
+    Queue.filter clocks (fun el -> active_sync_mode el <> `Passive && el != c)
   in
   fun ~pos c c' ->
     let _c = Unifier.deref c in
