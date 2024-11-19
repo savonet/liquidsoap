@@ -111,9 +111,7 @@ let _ =
     ~descr:
       "Resolve a request, i.e. attempt to get a valid local file. The \
        operation can take some time. Return true if the resolving was \
-       successful, false otherwise (timeout or invalid URI). The request \
-       should not be decoded afterward: this is mostly useful to download \
-       files such as playlists, etc."
+       successful, false otherwise (timeout or invalid URI)."
     (fun p ->
       let timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
