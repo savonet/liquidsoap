@@ -78,7 +78,7 @@ end
 
 ### Thread queues
 
-In order to improve issues with complex inter-dependent asynchronous tasks, scheduler queues have been improved.
+In order to improve issues with complex inter-dependent asynchronous tasks, scheduler queues have been updated.
 
 User-provided named queues can now be created and used to send asynchronous tasks, making it possible to control
 concurrency of certain classes of tasks and also to remedy any potential dependency between asynchronous tasks.
