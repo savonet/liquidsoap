@@ -89,6 +89,7 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
   ignore(available)
   ignore(timeout)
   ignore(native)
+  ignore(synchronous)
 
   def f() =
     try
