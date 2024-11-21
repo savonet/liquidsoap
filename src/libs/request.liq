@@ -280,7 +280,7 @@ def request.single(
 ) =
   id = string.id.default(default="single", id)
 
-  fallible = fallible ?? getter.is_constant(r)
+  fallible = fallible ?? not getter.is_constant(r)
 
   infallible =
     if
@@ -302,9 +302,20 @@ def request.single(
       false
     end
 
+  if
+    not fallible and not infallible
+  then
+    log.severe(
+      label=id,
+      "Source was marked a infallible but its request is not a static file. The \
+       source is considered fallible for backward compatibility but this will \
+       fail in future versions!"
+    )
+  end
+
   static_request = ref(null())
 
-  def on_wake_up() =
+  def on_wake_up(s) =
     if
       infallible
     then
@@ -315,8 +326,9 @@ def request.single(
         label=id,
         "#{uri} is static, resolving once for all..."
       )
+
       if
-        not request.resolve(initial_request, timeout=timeout)
+        not request.resolve(initial_request, timeout=timeout, content_type=s)
       then
         request.destroy(initial_request)
         error.raise(
@@ -368,7 +380,7 @@ def request.single(
       make_source(id)
     end
 
-  s.on_wake_up(on_wake_up)
+  s.on_wake_up(fun () -> on_wake_up(s))
   s.on_shutdown(on_shutdown)
   (s : source_methods)
 end
