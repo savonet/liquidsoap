@@ -357,7 +357,7 @@ def request.single(
 
     s =
       request.dynamic(id=id, prefetch=prefetch, thread_queue=thread_queue, next)
-    s.set_queue([next()])
+    if infallible then s.set_queue([next()]) end
     s
   end
 
