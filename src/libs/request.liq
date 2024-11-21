@@ -354,13 +354,30 @@ def request.single(
     static_request() ?? getter.get(r)
   end
 
-  s = request.dynamic(
-    id=id,
-    prefetch=prefetch,
-    thread_queue=thread_queue,
-    synchronous=infallible,
-    next
-  )
+  def mk_source(id) =
+    request.dynamic(
+      id=id,
+      prefetch=prefetch,
+      thread_queue=thread_queue,
+      synchronous=infallible,
+      next
+    )
+  end
+
+  # We want to mark infallible source as such. `source.dynamic` is a nice
+  # way to do it as it will raise a user-friendly error in case the underlying
+  # source does not respect the conditions for being infallible.
+  s =
+    if
+      infallible
+    then
+      s = mk_source("#{id}.actual")
+      source.dynamic(
+        id=id, infallible=infallible, self_sync=false, track_sensitive=true, {s}
+      )
+    else
+      mk_source(id)
+    end
 
   s.on_wake_up(fun () -> on_wake_up(s))
   s.on_shutdown(on_shutdown)

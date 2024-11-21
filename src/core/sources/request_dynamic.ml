@@ -176,17 +176,16 @@ class dynamic ?(name = "request.dynamic") ~priority ~retry_delay ~available
     method seek_source = (self :> Source.source)
     method abort_track = Atomic.set should_skip true
 
+    method private is_request_ready =
+      self#current <> None || try self#fetch_request with _ -> false
+
     method can_generate_frame =
-      let is_ready =
-        (fun () ->
-          self#current <> None || try self#fetch_request with _ -> false)
-          ()
-      in
-      match is_ready with
+      match self#is_request_ready with
         | true -> true
         | false ->
             if available () then self#notify_new_request;
-            false
+            (* Try one more time in case a new request was queued above. *)
+            self#is_request_ready
 
     val retrieved : queue_item Queue.t = Queue.create ()
     method private queue_size = Queue.length retrieved
