@@ -338,20 +338,36 @@ def request.single(
     static_request := null()
   end
 
-  def next() =
+  def make_source(id) =
     def next() =
       static_request() ?? getter.get(r)
     end
 
-    s = request.dynamic(prefetch=prefetch, thread_queue=thread_queue, next)
-    if infallible then s.set_queue([next()]) end
+    s =
+      request.dynamic(id=id, prefetch=prefetch, thread_queue=thread_queue, next)
+    s.set_queue([next()])
     s
   end
 
+  # request.dynamic can have gaps in their song fetching
+  # infallible sources should always be available so we
+  # re-create it each time. Otherwise, we can just stick
+  # with the request.dynamic.
   s =
-    source.dynamic(
-      id=id, infallible=infallible, self_sync=false, track_sensitive=true, next
-    )
+    if
+      infallible
+    then
+      source.dynamic(
+        id=id,
+        infallible=infallible,
+        self_sync=false,
+        track_sensitive=true,
+        fun () -> make_source("#{id}.actual")
+      )
+    else
+      make_source(id)
+    end
+
   s.on_wake_up(on_wake_up)
   s.on_shutdown(on_shutdown)
   (s : source_methods)
