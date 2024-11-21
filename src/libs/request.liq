@@ -305,11 +305,9 @@ def request.single(
   if
     not fallible and not infallible
   then
-    log.severe(
-      label=id,
-      "Source was marked a infallible but its request is not a static file. The \
-       source is considered fallible for backward compatibility but this will \
-       fail in future versions!"
+    error.raise(
+      error.invalid,
+      "Source was marked a infallible but its request is not a static file."
     )
   end
 
