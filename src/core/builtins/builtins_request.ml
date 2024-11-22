@@ -110,6 +110,12 @@ let _ =
         Some
           "Limit in seconds to the duration of the request resolution. \
            Defaults to `settings.request.timeout` when `null`." );
+      ( "content_type",
+        Lang.nullable_t (Lang.source_t (Lang.univ_t ())),
+        Some Lang.null,
+        Some
+          "Check that the request can decode content suitable for the given \
+           source." );
       ("", Request.Value.t, None, None);
     ]
     Lang.bool_t
@@ -121,8 +127,17 @@ let _ =
       let timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
       in
+      let source =
+        Lang.to_valued_option Lang.to_source (List.assoc "content_type" p)
+      in
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.bool (try Request.resolve ?timeout r = `Resolved with _ -> false))
+      Lang.bool
+        (match (Request.resolve ?timeout r, source) with
+          | `Resolved, Some s -> (
+              try Request.get_decoder ~ctype:s#content_type r <> None
+              with _ -> false)
+          | `Resolved, None -> true
+          | _ | (exception _) -> false))
 
 let _ =
   Lang.add_builtin ~base:request "metadata" ~category:`Liquidsoap
@@ -310,8 +325,8 @@ class process ~name r =
         ~name ~priority:`Non_blocking
         ~retry_delay:(fun _ -> 0.1)
         ~available:(fun _ -> true)
+        ~prefetch:1 ~timeout:None ~synchronous:true
         (Lang.val_fun [] (fun _ -> Lang.null))
-        1 None
 
     initializer
       self#on_wake_up (fun () ->
