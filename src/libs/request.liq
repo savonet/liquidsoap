@@ -280,7 +280,7 @@ def request.single(
 ) =
   id = string.id.default(default="single", id)
 
-  fallible = fallible ?? getter.is_constant(r)
+  fallible = fallible ?? not getter.is_constant(r)
 
   infallible =
     if
@@ -302,9 +302,20 @@ def request.single(
       false
     end
 
+  if
+    not fallible and not infallible
+  then
+    log.severe(
+      label=id,
+      "Source was marked a infallible but its request is not a static file. The \
+       source is considered fallible for backward compatibility but this will \
+       fail in future versions!"
+    )
+  end
+
   static_request = ref(null())
 
-  def on_wake_up() =
+  def on_wake_up(s) =
     if
       infallible
     then
@@ -315,8 +326,9 @@ def request.single(
         label=id,
         "#{uri} is static, resolving once for all..."
       )
+
       if
-        not request.resolve(initial_request, timeout=timeout)
+        not request.resolve(initial_request, timeout=timeout, content_type=s)
       then
         request.destroy(initial_request)
         error.raise(
@@ -339,20 +351,35 @@ def request.single(
   end
 
   def next() =
-    def next() =
-      static_request() ?? getter.get(r)
-    end
-
-    s = request.dynamic(prefetch=prefetch, thread_queue=thread_queue, next)
-    if infallible then s.set_queue([next()]) end
-    s
+    static_request() ?? getter.get(r)
   end
 
-  s =
-    source.dynamic(
-      id=id, infallible=infallible, self_sync=false, track_sensitive=true, next
+  def mk_source(id) =
+    request.dynamic(
+      id=id,
+      prefetch=prefetch,
+      thread_queue=thread_queue,
+      synchronous=infallible,
+      next
     )
-  s.on_wake_up(on_wake_up)
+  end
+
+  # We want to mark infallible source as such. `source.dynamic` is a nice
+  # way to do it as it will raise a user-friendly error in case the underlying
+  # source does not respect the conditions for being infallible.
+  s =
+    if
+      infallible
+    then
+      s = mk_source("#{id}.actual")
+      source.dynamic(
+        id=id, infallible=infallible, self_sync=false, track_sensitive=true, {s}
+      )
+    else
+      mk_source(id)
+    end
+
+  s.on_wake_up(fun () -> on_wake_up(s))
   s.on_shutdown(on_shutdown)
   (s : source_methods)
 end
