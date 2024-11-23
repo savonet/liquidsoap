@@ -27,7 +27,6 @@ end
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~native Use native implementation, when available.
 # @param ~queue Initial queue of requests.
-# @param ~thread_queue Queue used to resolve requests.
 # @param ~timeout Timeout (in sec.) to resolve the request.
 # @method add This method is internal and should not be used. Consider using `push` instead.
 # @method push Push a request on the request queue.
@@ -38,7 +37,6 @@ def request.queue(
   ~prefetch=null(),
   ~native=false,
   ~queue=[],
-  ~thread_queue="generic",
   ~timeout=null()
 ) =
   ignore(native)
@@ -90,7 +88,6 @@ def request.queue(
       request.dynamic(
         id=id,
         prefetch=prefetch,
-        thread_queue=thread_queue,
         timeout=timeout,
         available={not list.is_empty(queue())},
         next
@@ -101,9 +98,7 @@ def request.queue(
     if
       native
     then
-      stdlib_native.request.dynamic(
-        id=id, thread_queue=thread_queue, timeout=timeout, next
-      )
+      stdlib_native.request.dynamic(id=id, timeout=timeout, next)
     else
       default()
     end
@@ -218,12 +213,10 @@ end
 
 # Play a request once and become unavailable.
 # @category Source / Input
-# @param ~thread_queue Queue used to resolve requests.
 # @param ~timeout Timeout in seconds for resolving the request.
 # @param r Request to play.
 def request.once(
   ~id=null("request.once"),
-  ~thread_queue="generic",
   ~timeout=null(),
   r
 ) =
@@ -242,7 +235,7 @@ def request.once(
       if
         request.resolve(r, timeout=timeout)
       then
-        request.queue(thread_queue=thread_queue, queue=[r])
+        request.queue(queue=[r])
       else
         log.critical(
           label=id,
@@ -266,7 +259,6 @@ end
 # static, and time is not.
 # @category Source / Input
 # @param ~prefetch How many requests should be queued in advance.
-# @param ~thread_queue Queue used to resolve requests.
 # @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.
 # @param r Request
@@ -274,7 +266,6 @@ def request.single(
   ~id=null("request.single"),
   ~prefetch=null(),
   ~timeout=null(),
-  ~thread_queue="generic",
   ~fallible=null(),
   r
 ) =
@@ -358,7 +349,6 @@ def request.single(
     request.dynamic(
       id=id,
       prefetch=prefetch,
-      thread_queue=thread_queue,
       synchronous=infallible,
       next
     )

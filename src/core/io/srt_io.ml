@@ -358,7 +358,7 @@ module Poll = struct
                (Printexc.to_string exn));
           -1.
 
-  let task = Duppy.Async.add ~priority:`Generic Tutils.scheduler process
+  let task = Duppy.Async.add ~priority:`Blocking Tutils.scheduler process
 
   let add_socket ~mode socket fn =
     Srt.setsockflag socket Srt.sndsyn false;
@@ -532,7 +532,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         | Some t -> Duppy.Async.wake_up t
         | None ->
             let t =
-              Duppy.Async.add ~priority:`Generic Tutils.scheduler
+              Duppy.Async.add ~priority:`Blocking Tutils.scheduler
                 self#connect_fn
             in
             connect_task <- Some t;

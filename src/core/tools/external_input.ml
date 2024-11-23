@@ -67,7 +67,7 @@ class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
           let log s = self#log#important "%s" s in
           process <-
             Some
-              (Process_handler.run ~priority:`Generic ~on_stop ~on_stdout
+              (Process_handler.run ~priority:`Blocking ~on_stop ~on_stdout
                  ~on_stderr ~log (command ())));
 
       self#on_sleep (fun () ->
