@@ -40,14 +40,16 @@ let _ =
 let _ =
   Lang.add_builtin ~base:thread_run "recurrent" ~category:`Programming
     [
-      ( "queue",
-        Lang.string_t,
-        Some (Lang.string "generic"),
+      ( "fast",
+        Lang.bool_t,
+        Some (Lang.bool true),
         Some
-          "Queue to use for the task. Should be one of: `\"generic\"` or \
-           `\"non_blocking\"`. Non blocking should be reserved for tasks that \
-           are known to complete quickly. You can also use declared via \
-           `settings.scheduler.queues`." );
+          "Whether the thread is supposed to return quickly or not. Typically, \
+           blocking tasks (e.g. fetching data over the internet) should not be \
+           considered to be fast. When set to `false` its priority will be \
+           lowered below that of request resolutions and fast timeouts. This \
+           is only effective if you set a dedicated queue for fast tasks, see \
+           the \"scheduler\" settings for more details." );
       ( "delay",
         Lang.float_t,
         Some (Lang.float 0.),
@@ -72,10 +74,8 @@ let _ =
       let delay = Lang.to_float (List.assoc "delay" p) in
       let f = List.assoc "" p in
       let priority =
-        match Lang.to_string (List.assoc "queue" p) with
-          | "generic" -> `Generic
-          | "non_blocking" -> `Non_blocking
-          | n -> `Named n
+        if Lang.to_bool (List.assoc "fast" p) then `Maybe_blocking
+        else `Blocking
       in
       let on_error = Lang.to_option (List.assoc "on_error" p) in
       let on_error =

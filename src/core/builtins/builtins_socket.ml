@@ -230,7 +230,11 @@ module Socket_value = struct
                   []
                 in
                 Duppy.Task.add Tutils.scheduler
-                  { Duppy.Task.priority = `Generic; events; handler = fn };
+                  {
+                    Duppy.Task.priority = `Maybe_blocking;
+                    events;
+                    handler = fn;
+                  };
                 Lang.unit) );
         ]
     in

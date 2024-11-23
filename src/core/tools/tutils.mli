@@ -55,12 +55,9 @@ val join_all : unit -> unit
 
 (** Priorities for the different scheduler usages. *)
 type priority =
-  [ `Generic  (** Generic queues accept all tasks. *)
-  | `Named of string  (** Named queues only accept tasks with their priority. *)
+  [ `Blocking  (** For example a last.fm submission. *)
+  | `Maybe_blocking  (** Request resolutions vary a lot. *)
   | `Non_blocking  (** Non-blocking tasks like the server. *) ]
-
-(** Queues configuration. *)
-val queues_conf : Liquidsoap_lang.Lang.value
 
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler

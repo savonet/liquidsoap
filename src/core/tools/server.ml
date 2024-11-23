@@ -319,7 +319,7 @@ let handle_client socket ip =
         | e -> Duppy.Monad.raise e
     in
     let* ans =
-      Duppy.Monad.Io.exec ~priority:`Generic h (run (fun () -> exec req))
+      Duppy.Monad.Io.exec ~priority:`Maybe_blocking h (run (fun () -> exec req))
     in
     let* () =
       let* () =
