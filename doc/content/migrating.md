@@ -76,32 +76,6 @@ def transition(old, new) =
 end
 ```
 
-### Thread queues
-
-In order to improve issues with complex inter-dependent asynchronous tasks, scheduler queues have been updated.
-
-User-provided named queues can now be created and used to send asynchronous tasks, making it possible to control
-concurrency of certain classes of tasks and also to remedy any potential dependency between asynchronous tasks.
-
-Settings for queues have thus changed and now will look like this:
-
-```liquidsoap
-# Add a custom queue with 4 workers, increase generic queues to 4:
-settings.scheduler.queues.set([
-  ...list.assoc,remove("generic", settings.scheduler.queues()),
-  ("generic", 4),
-  ("custom", 4)
-]
-```
-
-The `fast` argument of the `thread.run.*` functions has been replaced by `queue`, telling the operator which queue should the
-asynchronous tasks sent to.
-
-Likewise, `request.dynamic`, `playlist`, `single` etc. have also been updated to accept a `thread_queue` argument controlling
-which asynchronous queue their request resolution tasks should be sent to.
-
-See [the threads page](threads.html) for more details.
-
 ### Replaygain
 
 - There is a new `metadata.replaygain` function that extracts the replay gain value in _dB_ from the metadata.

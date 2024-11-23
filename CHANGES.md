@@ -35,8 +35,6 @@ New:
 - Added `video.canvas` to make it possible to position video elements independently
   of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/))
 - Added cover manager from an original code by @vitoyucepi (#3651)
-- Reworked scheduler queues logic, allow user-defined queues, add options to pick
-  the queue to send asynchronous tasks to (#4151)
 - Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
   one stream is encoded.
 - Allow trailing commas in record definition (#3300).

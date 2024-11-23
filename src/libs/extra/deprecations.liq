@@ -76,10 +76,9 @@ end
 
 # Deprecated: this function has been replaced by `thread.run.recurrent`.
 # @flag deprecated
-def add_timeout(~fast, delay, f) =
+def add_timeout(~fast=true, delay, f) =
   deprecated("add_timeout", "thread.run.recurrent")
-  ignore(fast or true)
-  thread.run.recurrent(queue="generic", delay=delay, f)
+  thread.run.recurrent(fast=fast, delay=delay, f)
 end
 
 # Deprecated: this function has been replaced by `thread.when`.
@@ -315,7 +314,7 @@ def register_flow(
     ping_period
   end
 
-  thread.run.recurrent(delay=ping_period, ping)
+  thread.run.recurrent(fast=false, delay=ping_period, ping)
 
   # Register streams
   def register_stream(format_url) =
@@ -340,7 +339,7 @@ def register_flow(
     artist = m["artist"]
     title = m["title"]
     params = [("m_title", title), ("m_artist", artist)]
-    thread.run({request(cmd="metadata", params=params)})
+    thread.run(fast=false, {request(cmd="metadata", params=params)})
   end
 
   s.on_metadata(metadata)

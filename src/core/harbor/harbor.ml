@@ -372,7 +372,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         simple_reply "No / mountpoint\r\n\r\n"
     in
     (* Authentication can be blocking. *)
-    Duppy.Monad.Io.exec ~priority:`Generic h
+    Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
       (let user, auth_f = s#login in
        let user = if requested_user = "" then user else requested_user in
        if auth_f ~socket:h.Duppy.Monad.Io.socket user password then
@@ -484,7 +484,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) query [])
         args
     in
-    Duppy.Monad.Io.exec ~priority:`Generic h
+    Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
       (http_auth_check ?query ~login h.Duppy.Monad.Io.socket headers)
 
   (* We do not implement anything with this handler for now. *)
@@ -627,7 +627,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         (Bytes.of_string (Websocket.upgrade headers))
     in
     let* stype, huri, user, password =
-      Duppy.Monad.Io.exec ~priority:`Generic h
+      Duppy.Monad.Io.exec ~priority:`Blocking h
         (read_hello h.Duppy.Monad.Io.socket)
     in
     log#info "Mime type: %s" stype;
@@ -895,7 +895,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   fun timeout -> fst (Http.read_chunked ~timeout socket)
               | _ -> fun _ -> ""
           in
-          Duppy.Monad.Io.exec ~priority:`Generic h
+          Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
             (handler ~protocol ~meth ~headers ~data
                ~socket:h.Duppy.Monad.Io.socket ~query base_uri)
       | e ->
@@ -965,7 +965,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 ~priority:
                   (* ICY = true means that authentication has already
                      happened *)
-                  `Generic h
+                  `Maybe_blocking h
                 (let valid_user, auth_f = s#login in
                  if
                    not

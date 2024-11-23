@@ -322,7 +322,7 @@ class process ~name r =
   object (self)
     inherit
       Request_dynamic.dynamic
-        ~name ~priority:`Non_blocking
+        ~name
         ~retry_delay:(fun _ -> 0.1)
         ~available:(fun _ -> true)
         ~prefetch:1 ~timeout:None ~synchronous:true
