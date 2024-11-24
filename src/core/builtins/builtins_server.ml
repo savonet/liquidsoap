@@ -51,10 +51,12 @@ let _ =
     ]
     Lang.unit_t
     (fun p ->
-      let namespace =
-        Option.value ~default:""
-          (Option.map Lang.to_string
-             (Lang.to_option (List.assoc "namespace" p)))
+      let ns =
+        match
+          Lang.to_valued_option Lang.to_string (List.assoc "namespace" p)
+        with
+          | None -> []
+          | Some s -> Re.Pcre.split ~rex:(Re.Pcre.regexp "\\.") s
       in
       let descr = Lang.to_string (List.assoc "description" p) in
       let command = Lang.to_string (Lang.assoc "" 1 p) in
@@ -64,6 +66,5 @@ let _ =
       in
       let f = Lang.assoc "" 2 p in
       let f x = Lang.to_string (Lang.apply f [("", Lang.string x)]) in
-      let ns = Re.Pcre.split ~rex:(Re.Pcre.regexp "\\.") namespace in
       Server.add ~ns ~usage ~descr command f;
       Lang.unit)
