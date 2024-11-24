@@ -56,7 +56,7 @@ let _ =
           Lang.to_valued_option Lang.to_string (List.assoc "namespace" p)
         with
           | None -> []
-          | Some s -> Re.Pcre.split ~rex:(Re.Pcre.regexp "\\.") s
+          | Some s -> String.split_on_char '.' s
       in
       let descr = Lang.to_string (List.assoc "description" p) in
       let command = Lang.to_string (Lang.assoc "" 1 p) in
