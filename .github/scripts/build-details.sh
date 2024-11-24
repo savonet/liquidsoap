@@ -41,6 +41,11 @@ else
   DOCKER_RELEASE=
 fi
 
+# Test
+  BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
+  BUILD_PLATFORM='["amd64", "arm64"]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": "depot-ubuntu-22.04-8", "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "bookworm"}]'
+
 SHA=$(git rev-parse --short HEAD)
 
 if [[ "${BRANCH}" =~ "rolling-release-" ]]; then
