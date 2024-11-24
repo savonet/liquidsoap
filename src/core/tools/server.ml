@@ -237,12 +237,9 @@ let () =
   add "help" ~usage:"help [<command>]"
     ~descr:"Get information on available commands." (fun args ->
       try
-        let args =
-          Re.Pcre.substitute ~rex:(Re.Pcre.regexp "\\s*")
-            ~subst:(fun _ -> "")
-            args
-        in
+        let args = String.trim args in
         let _, us, d = Mutex_utils.mutexify lock (Hashtbl.find commands) args in
+        Printf.printf "Done\n%!";
         Printf.sprintf "Usage: %s\r\n  %s" us d
       with Not_found ->
         (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
