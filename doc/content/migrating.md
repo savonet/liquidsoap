@@ -92,6 +92,35 @@ end
   However, EBU R128 data is now extracted directly from metadata when available.
   So `replaygain` cannot control the gain type via this parameter anymore.
 
+### Regular expressions
+
+The library providing regular expressions has been switched with `2.3.0`. This means that subtle differences
+can arise with the evaluation of some regular expressions.
+
+Here's an example that was recently reported:
+
+In `2.2.x`, this was true:
+
+```
+# When using a regular expression with a capture pattern to split, the value matched for splitting is returned:
+% string.split(separator="(:|,)", "foo:bar")
+["foo", ":", "bar"]
+
+# But not when using a regular expression without matching:
+% string.split(separator=":|,", "foo:bar")
+["foo", "bar"]
+```
+
+In `2.3.x`, the matched pattern is not returned:
+
+```
+% string.split(separator="(:|,)", "foo:bar")
+["foo", "bar"]
+
+% string.split(separator=":|,", "foo:bar")
+["foo", "bar"]
+```
+
 ### Static requests
 
 Static requests detection can now work with nested requests.
