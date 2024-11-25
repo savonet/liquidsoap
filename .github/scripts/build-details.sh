@@ -24,7 +24,7 @@ if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\
   echo "Building on all architectures"
   BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
   BUILD_PLATFORM='["amd64", "arm64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "trixie"}]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "bookworm"}]'
   DOCKER_TAG="savonet/liquidsoap:${BRANCH}"
 else
   echo "Branch is not release branch"
@@ -33,14 +33,14 @@ else
   echo "Building on amd64 only"
   BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
   BUILD_PLATFORM='["amd64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}]'
   DOCKER_TAG="savonet/liquidsoap-ci-build:${BRANCH}"
 fi
 
 # Test
   BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
   BUILD_PLATFORM='["amd64", "arm64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": "depot-ubuntu-22.04-arm-4", "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "trixie"}]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": "depot-ubuntu-22.04-arm-4", "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "bookworm"}]'
 
 echo "Docker tag: ${DOCKER_TAG}"
 

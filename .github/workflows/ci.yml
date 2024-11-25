@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_trixie
+      image: savonet/liquidsoap-ci:debian_bookworm
       options: --user opam
     env:
       HOME: /home/opam
@@ -93,7 +93,7 @@ jobs:
   build_js:
     runs-on: ubuntu-latest
     container:
-      image: savonet/liquidsoap-ci:debian_trixie
+      image: savonet/liquidsoap-ci:debian_bookworm
       options: --user opam
     env:
       HOME: /home/opam
@@ -157,7 +157,7 @@ jobs:
     needs: build_details
     if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
-      image: savonet/liquidsoap-ci:debian_trixie
+      image: savonet/liquidsoap-ci:debian_bookworm
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
