@@ -632,7 +632,7 @@ jobs:
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
+        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
@@ -659,7 +659,7 @@ jobs:
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
-        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
+        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -690,7 +690,7 @@ jobs:
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
+        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_alpine_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -721,7 +721,7 @@ jobs:
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
-        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
+        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_release:
     runs-on: ubuntu-latest
