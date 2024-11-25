@@ -65,10 +65,11 @@ let parse_extinf s =
     meta
     @
     match lines with
-      | [] -> []
+      | [] | [""; ""] -> []
       | [""; song] -> [("song", String.trim song)]
       | [artist; title] ->
           [("artist", String.trim artist); ("title", String.trim title)]
+      | _ when song = "" -> []
       | _ -> [("song", String.trim song)]
   with Not_found -> []
 
