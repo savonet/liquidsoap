@@ -24,10 +24,8 @@ if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\
   echo "Building on all architectures"
   BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
   BUILD_PLATFORM='["amd64", "arm64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "bookworm"}]'
-
-  echo "Branch has a docker release"
-  DOCKER_RELEASE=true
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "trixie"}]'
+  DOCKER_TAG="savonet/liquidsoap:${BRANCH}"
 else
   echo "Branch is not release branch"
   IS_RELEASE=
@@ -35,16 +33,16 @@ else
   echo "Building on amd64 only"
   BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
   BUILD_PLATFORM='["amd64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}]'
-
-  echo "Branch does not have a docker release"
-  DOCKER_RELEASE=
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}]'
+  DOCKER_TAG="savonet/liquidsoap-ci-build:${BRANCH}"
 fi
 
 # Test
   BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
   BUILD_PLATFORM='["amd64", "arm64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": "depot-ubuntu-22.04-arm-4", "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "bookworm"}]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": "depot-ubuntu-22.04-arm-4", "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "trixie"}]'
+
+echo "Docker tag: ${DOCKER_TAG}"
 
 SHA=$(git rev-parse --short HEAD)
 
@@ -78,12 +76,13 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
   echo "build_os=${BUILD_OS}"
   echo "build_platform=${BUILD_PLATFORM}"
   echo "build_include=${BUILD_INCLUDE}"
-  echo "docker_release=${DOCKER_RELEASE}"
+  echo "docker_tag=${DOCKER_TAG}"
   echo "is_rolling_release=${IS_ROLLING_RELEASE}"
   echo "sha=${SHA}"
   echo "s3-artifact-basepath=s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
   echo "is_fork=${IS_FORK}"
   echo "minimal_exclude_deps=${MINIMAL_EXCLUDE_DEPS}"
   echo "save_traces=${SAVE_TRACES}"
+  echo "depot_project=wz546czd90"
   echo "is_snapshot=${IS_SNAPSHOT}"
 } >> "${GITHUB_OUTPUT}"

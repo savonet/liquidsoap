@@ -25,10 +25,11 @@ jobs:
       build_os: ${{ steps.build_details.outputs.build_os }}
       build_platform: ${{ steps.build_details.outputs.build_platform }}
       build_include: ${{ steps.build_details.outputs.build_include }}
-      docker_release: ${{ steps.build_details.outputs.docker_release }}
+      docker_tag: ${{ steps.build_details.outputs.docker_tag }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
+      depot_project: ${{ steps.build_details.outputs.depot_project }}
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
     steps:
       - name: Checkout code
@@ -43,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ci:debian_trixie
       options: --user opam
     env:
       HOME: /home/opam
@@ -92,7 +93,7 @@ jobs:
   build_js:
     runs-on: ubuntu-latest
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ci:debian_trixie
       options: --user opam
     env:
       HOME: /home/opam
@@ -156,7 +157,7 @@ jobs:
     needs: build_details
     if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ci:debian_trixie
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
@@ -210,7 +211,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ci:debian_trixie
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
@@ -369,7 +370,7 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     container:
-      image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
+      image: savonet/liquidsoap-ci:${{ matrix.os }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
@@ -604,141 +605,98 @@ jobs:
           draft: true
 
   build_docker:
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ubuntu-latest
     needs: [build_details, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
-        include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+
+      - name: Set up Depot CLI
+        uses: depot/setup-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Log in to the github registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Download all artifact
         uses: actions/download-artifact@v4
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
+
       - name: Get debian package
         run: |
           echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
+
       - name: Get debian debug package
         run: |
           echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
-      - name: Log in to the github registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
 
-  build_docker_alpine:
-    runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
-        include: ${{ fromJson(needs.build_details.outputs.build_include) }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Download all artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/${{ needs.build_details.outputs.sha }}
+      - name: Get debian minimal package
+        run: |
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+        id: debian_minimal_package
+
+      - name: Get debian minimal debug package
+        run: |
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+        id: debian_minimal_debug_package
+
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
-      - name: Log in to the github registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Build docker image
-        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
 
-  build_docker_minimal:
-    runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
-        include: ${{ fromJson(needs.build_details.outputs.build_include) }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Download all artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/${{ needs.build_details.outputs.sha }}
-      - name: Get debian package
-        run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
-        id: debian_package
-      - name: Get debian debug package
-        run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
-        id: debian_debug_package
-      - name: Log in to the github registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Build docker image
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
-
-  build_docker_alpine_minimal:
-    runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
-        include: ${{ fromJson(needs.build_details.outputs.build_include) }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Download all artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/${{ needs.build_details.outputs.sha }}
-      - name: Get alpine package
+      - name: Get alpine minimal package
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
-        id: alpine_package
-      - name: Get alpine debug package
-        run: |
-          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
-        id: alpine_dbg_package
-      - name: Log in to the github registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Build docker image
-        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
+        id: alpine_minimal_package
 
-  build_docker_release:
-    runs-on: ubuntu-latest
-    needs: [build_details, run_tests, build_docker, build_docker_alpine]
-    if: needs.build_details.outputs.docker_release
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Push consolidated manifest
-        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
+      - name: Build and push docker image
+        uses: depot/build-push-action@v1
+        with:
+          project: ${{ needs.build_details.outputs.depot_project }}
+          file: .github/docker/Dockerfile.production
+          push: true
+          tags: ${{ needs.build_details.outputs.docker_tag }}
+          build-args: |
+            DEB_FILE=${{ steps.debian_package.outputs.deb-file }}
+            DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}
 
-  build_docker_release-minimal:
-    runs-on: ubuntu-latest
-    needs: [build_details, build_docker_minimal, build_docker_alpine_minimal]
-    if: needs.build_details.outputs.docker_release
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Push consolidated manifest
-        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}-minimal
+      - name: Build and push minimal docker image
+        uses: depot/build-push-action@v1
+        with:
+          project: ${{ needs.build_details.outputs.depot_project }}
+          file: .github/docker/Dockerfile.production
+          push: true
+          tags: ${{ needs.build_details.outputs.docker_tag }}_minimal
+          build-args: |
+            DEB_FILE=${{ steps.debian_minimal_package.outputs.deb-file }}
+            DEB_DEBUG_FILE=${{ steps.debian_minimal_debug_package.outputs.deb-file }}
+
+      - name: Build and push alpine docker image
+        uses: depot/build-push-action@v1
+        with:
+          project: ${{ needs.build_details.outputs.depot_project }}
+          push: true
+          file: .github/docker/Dockerfile.production-alpine
+          tags: ${{ needs.build_details.outputs.docker_tag }}_alpine
+          build-args: |
+            APK_FILE=${{ steps.alpine_package.outputs.apk-file }}
+
+      - name: Build and push minimal alpine docker image
+        uses: depot/build-push-action@v1
+        with:
+          project: ${{ needs.build_details.outputs.depot_project }}
+          file: .github/docker/Dockerfile.production-alpine
+          push: true
+          tags: ${{ needs.build_details.outputs.docker_tag }}_alpine_minimal
+          build-args: |
+            APK_FILE=${{ steps.alpine_minimal_package.outputs.apk-file }}

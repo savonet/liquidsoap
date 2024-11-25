@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 ARG DEB_FILE
 ARG DEB_DEBUG_FILE
@@ -13,12 +13,6 @@ RUN addgroup --gid 10001 --system liquidsoap && \
     adduser --system --disabled-password --disabled-login --uid 10000 \
     --home /var/cache/liquidsoap --ingroup liquidsoap liquidsoap && \
     usermod --append --groups audio liquidsoap
-
-# For ffmpeg with libfdk-aac
-RUN apt-get update && apt install -y ca-certificates && \
-    echo "deb https://www.deb-multimedia.org bookworm main non-free" >> /etc/apt/sources.list && \
-    apt-get update -oAcquire::AllowInsecureRepositories=true && \
-    apt-get install -y --allow-unauthenticated deb-multimedia-keyring
 
 COPY $DEB_FILE liquidsoap.deb
 COPY $DEB_DEBUG_FILE liquidsoap-debug.deb
