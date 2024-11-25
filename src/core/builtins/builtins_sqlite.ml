@@ -25,9 +25,7 @@ let error fmt =
     (fun message -> Runtime_error.raise ~pos:[] ~message "sqlite")
     fmt
 
-let escape =
-  let rex = Re.Pcre.regexp "'" in
-  fun s -> "'" ^ Re.Pcre.substitute ~rex ~subst:(fun _ -> "''") s ^ "'"
+let escape s = "'" ^ String.concat "''" (String.split_on_char '\'' s) ^ "'"
 
 let insert_value_constr =
   let open Type in

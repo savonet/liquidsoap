@@ -264,13 +264,8 @@ let _ =
       let pattern =
         pattern
         |> Option.map (fun s ->
-               Re.Pcre.substitute ~rex:(Re.Pcre.regexp "\\.")
-                 ~subst:(fun _ -> "\\.")
-                 s)
-        |> Option.map (fun s ->
-               Re.Pcre.substitute ~rex:(Re.Pcre.regexp "\\*")
-                 ~subst:(fun _ -> ".*")
-                 s)
+               String.concat "\\." (String.split_on_char '.' s))
+        |> Option.map (fun s -> String.concat ".*" (String.split_on_char '*' s))
         |> Option.map (fun s -> "^" ^ s ^ "$")
         |> Option.value ~default:""
       in

@@ -445,9 +445,7 @@ class virtual ['a] file_output_base p =
       let filename = filename () in
       let filename = Lang_string.home_unrelate filename in
       (* Avoid / in metas for filename.. *)
-      let subst m =
-        Re.Pcre.substitute ~rex:(Re.Pcre.regexp "/") ~subst:(fun _ -> "-") m
-      in
+      let subst m = String.concat "-" (String.split_on_char '/' m) in
       self#interpolate ~subst filename
 
     method virtual open_out_gen : open_flag list -> int -> string -> 'a
