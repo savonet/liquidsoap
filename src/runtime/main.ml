@@ -194,7 +194,7 @@ let format_doc s =
   let prefix = "\t  " in
   let indent = 8 + 2 in
   let max_width = 80 in
-  let s = Re.Pcre.split ~rex:(Re.Pcre.regexp " ") s in
+  let s = String.split_on_char ' ' s in
   let s =
     let rec join line width = function
       | [] -> [line]

@@ -95,7 +95,7 @@ let user_agent = Configure.vendor
 let args_split s =
   let args = Hashtbl.create 2 in
   let fill_arg arg =
-    match Re.Pcre.split ~rex:(Re.Pcre.regexp "=") arg with
+    match String.split_on_char '=' arg with
       | e :: l ->
           (* There should be only arg=value *)
           List.iter
@@ -105,7 +105,7 @@ let args_split s =
             l
       | [] -> ()
   in
-  List.iter fill_arg (Re.Pcre.split ~rex:(Re.Pcre.regexp "&") s);
+  List.iter fill_arg (String.split_on_char '&' s);
   args
 
 let parse_url url =
@@ -196,7 +196,7 @@ let really_read ~timeout (socket : socket) len =
 let read_chunked ~timeout (socket : socket) =
   let read = read_crlf ~count:1 ~timeout socket in
   let len = List.hd (Re.Pcre.split ~rex:(Re.Pcre.regexp "[\r]?\n") read) in
-  let len = List.hd (Re.Pcre.split ~rex:(Re.Pcre.regexp ";") len) in
+  let len = List.hd (String.split_on_char ':' len) in
   let len = int_of_string ("0x" ^ len) in
   let s = really_read socket ~timeout len in
   ignore (read_crlf ~count:1 ~timeout socket);
@@ -210,7 +210,7 @@ let set_socket_default ~read_timeout ~write_timeout fd =
 type auth = { user : string; password : string }
 
 let parse_auth s =
-  match Re.Pcre.split ~rex:(Re.Pcre.regexp ":") s with
+  match String.split_on_char ':' s with
     | user :: (_ :: _ as password) ->
         { user; password = String.concat ":" password }
     | _ -> raise Not_found
