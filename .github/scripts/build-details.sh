@@ -2,6 +2,8 @@
 
 set -e
 
+COMMIT_SHORT=$(echo "${GITHUB_HEAD_REF}" | cut -c-7)
+
 if [ -n "${GITHUB_HEAD_REF}" ]; then
   BRANCH="${GITHUB_HEAD_REF}"
 else
@@ -21,10 +23,13 @@ if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\
   echo "Branch is release branch"
   IS_RELEASE=true
   DOCKER_TAG="savonet/liquidsoap:${BRANCH}"
+  LIQ_PACKAGE=liquidsoap
 else
   echo "Branch is not release branch"
   IS_RELEASE=
   DOCKER_TAG="savonet/liquidsoap-ci-build:${BRANCH}"
+  DEB_TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
+  LIQ_PACKAGE="liquidsoap-${DEB_TAG}"
 fi
 
 BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
@@ -38,9 +43,12 @@ SHA=$(git rev-parse --short HEAD)
 if [[ "${BRANCH}" =~ "rolling-release-" ]]; then
   echo "Branch is rolling release"
   IS_ROLLING_RELEASE=true
+  LIQ_PACKAGE="liquidsoap-${COMMIT_SHORT}"
 else
   IS_ROLLING_RELEASE=
 fi
+
+echo "Package name: ${LIQ_PACKAGE}"
 
 if [ "${IS_FORK}" != "true" ] && [ "${IS_RELEASE}" != "true" ] && [ "${IS_ROLLING_RELEASE}" != "true" ]; then
   echo "Save tests traces"
@@ -75,4 +83,5 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
   echo "save_traces=${SAVE_TRACES}"
   echo "depot_project=wz546czd90"
   echo "is_snapshot=${IS_SNAPSHOT}"
+  echo "liq_package=${LIQ_PACKAGE}"
 } >> "${GITHUB_OUTPUT}"

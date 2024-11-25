@@ -2,31 +2,14 @@
 
 set -e
 
-BRANCH="$1"
-DOCKER_TAG="$2"
-ARCH="$3"
-ALPINE_ARCH="$4"
-IS_ROLLING_RELEASE="$5"
-IS_RELEASE="$6"
-MINIMAL_EXCLUDE_DEPS="$7"
-APK_RELEASE=0
-
 cd /tmp/liquidsoap-full/liquidsoap
 
 APK_VERSION=$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)
-COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export LIQUIDSOAP_BUILD_TARGET=posix
 export ABUILD_APK_INDEX_OPTS="--allow-untrusted"
 
-if [ -n "${IS_ROLLING_RELEASE}" ]; then
-  APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_ARCH}"
-elif [ -n "${IS_RELEASE}" ]; then
-  APK_PACKAGE="liquidsoap-${ALPINE_ARCH}"
-else
-  TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
-  APK_PACKAGE="liquidsoap-${TAG}-${ALPINE_ARCH}"
-fi
+APK_PACKAGE="${LIQ_PACKAGE}-${ALPINE_ARCH}"
 
 echo "::group:: build ${APK_PACKAGE}.."
 

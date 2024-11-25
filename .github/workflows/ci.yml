@@ -32,6 +32,7 @@ jobs:
       save_traces: ${{ steps.build_details.outputs.save_traces }}
       depot_project: ${{ steps.build_details.outputs.depot_project }}
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
+      liq_package: ${{ steps.build_details.outputs.liq_package }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -423,12 +424,18 @@ jobs:
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
+        env:
+          LIQ_PACKAGE: ${{ needs.build_details.outputs.liq_package }}
+          DOCKER_TAG: ${{ matrix.os }}
+          PLATFORM: ${{ matrix.platform }}
+          MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          DEB_RELEASE: 1
         run: |
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
+          sudo -u opam -E ./.github/scripts/build-deb.sh
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
         uses: actions/upload-artifact@v4
@@ -439,6 +446,13 @@ jobs:
       - name: Build alpine package
         if: matrix.os == 'alpine'
         id: build_apk
+        env:
+          LIQ_PACKAGE: ${{ needs.build_details.outputs.liq_package }}
+          DOCKER_TAG: ${{ matrix.os }}
+          ARCH: ${{ matrix.platform }}
+          ALPINE_ARCH: ${{ matrix.alpine-arch }}
+          MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          APK_RELEASE: 0
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           apk add alpine-sdk
@@ -446,7 +460,7 @@ jobs:
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam "${GITHUB_OUTPUT}"
-          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
+          sudo -u opam -E ./.github/scripts/build-apk.sh
       - name: Upload alpine packages artifacts
         if: needs.build_details.outputs.is_fork != 'true' && matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
@@ -635,22 +649,22 @@ jobs:
 
       - name: Get debian package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.debian_docker_arch }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.docker_debian_arch }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
 
       - name: Get debian debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.debian_docker_arch }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.docker_debian_arch }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
 
       - name: Get debian minimal package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.debian_docker_arch }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.docker_debian_arch }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_minimal_package
 
       - name: Get debian minimal debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.debian_docker_arch }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.docker_debian_arch }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_minimal_debug_package
 
       - name: Get alpine package
@@ -673,7 +687,7 @@ jobs:
           build-args: |
             DEB_FILE=${{ steps.debian_package.outputs.deb-file }}
             DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}
-            DOCKER_DEBIAN_ARCH=${{ needs.build_details.outputs.debian_docker_arch }}
+            DOCKER_DEBIAN_ARCH=${{ needs.build_details.outputs.docker_debian_arch }}
 
       - name: Build and push minimal docker image
         uses: depot/build-push-action@v1
@@ -685,7 +699,7 @@ jobs:
           build-args: |
             DEB_FILE=${{ steps.debian_minimal_package.outputs.deb-file }}
             DEB_DEBUG_FILE=${{ steps.debian_minimal_debug_package.outputs.deb-file }}
-            DOCKER_DEBIAN_ARCH=${{ needs.build_details.outputs.debian_docker_arch }}
+            DOCKER_DEBIAN_ARCH=${{ needs.build_details.outputs.docker_debian_arch }}
 
       - name: Build and push alpine docker image
         uses: depot/build-push-action@v1
