@@ -465,7 +465,7 @@ let _ =
       in
       Lang.string
         (if space_sensitive then (
-           let l = Re.Pcre.split ~rex:(Re.Pcre.regexp " ") string in
+           let l = String.split_on_char ' ' string in
            let l = List.map f l in
            String.concat " " l)
          else f string))

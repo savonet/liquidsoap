@@ -35,13 +35,13 @@ let dssi_enable =
 let dssi_load =
   try
     let venv = Unix.getenv "LIQ_DSSI_LOAD" in
-    Re.Pcre.split ~rex:(Re.Pcre.regexp ":") venv
+    String.split_on_char ':' venv
   with Not_found -> []
 
 let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_DSSI_PATH" in
-    Re.Pcre.split ~rex:(Re.Pcre.regexp ":") path
+    String.split_on_char ':' path
   with Not_found -> ["/usr/lib/dssi"; "/usr/local/lib/dssi"]
 
 (* Number of channels to synthesize when in all mode *)

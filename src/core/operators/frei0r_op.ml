@@ -39,7 +39,7 @@ let frei0r_enable =
 let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_FREI0R_PATH" in
-    Re.Pcre.split ~rex:(Re.Pcre.regexp ":") path
+    String.split_on_char ':' path
   with Not_found -> Frei0r.default_paths
 
 class frei0r_filter ~name bgra instance params (source : source) =
