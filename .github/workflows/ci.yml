@@ -673,7 +673,7 @@ jobs:
           build-args: |
             DEB_FILE=${{ steps.debian_package.outputs.deb-file }}
             DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}
-            DOCKER_DEBIAN_ARCH=needs.build_details.outputs.debian_docker_arch
+            DOCKER_DEBIAN_ARCH=${{ needs.build_details.outputs.debian_docker_arch }}
 
       - name: Build and push minimal docker image
         uses: depot/build-push-action@v1
@@ -685,7 +685,7 @@ jobs:
           build-args: |
             DEB_FILE=${{ steps.debian_minimal_package.outputs.deb-file }}
             DEB_DEBUG_FILE=${{ steps.debian_minimal_debug_package.outputs.deb-file }}
-            DOCKER_DEBIAN_ARCH=needs.build_details.outputs.debian_docker_arch
+            DOCKER_DEBIAN_ARCH=${{ needs.build_details.outputs.debian_docker_arch }}
 
       - name: Build and push alpine docker image
         uses: depot/build-push-action@v1
