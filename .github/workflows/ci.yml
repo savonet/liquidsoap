@@ -608,6 +608,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build_details, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
