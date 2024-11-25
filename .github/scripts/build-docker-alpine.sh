@@ -7,15 +7,13 @@ TAG="$2"
 USER="$3"
 PASSWORD="$4"
 ARCHITECTURE="$5"
-DOCKER_PLATFORM="$6"
 
 cp "$APK_FILE" .
 
 docker login -u "$USER" -p "$PASSWORD"
 
-docker buildx build \
+docker build \
   --pull \
-  --platform "${DOCKER_PLATFORM}" \
   --no-cache \
   --build-arg "APK_FILE=$APK_FILE" \
   --file .github/docker/Dockerfile.production-alpine \

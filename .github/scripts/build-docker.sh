@@ -8,7 +8,6 @@ TAG="$3"
 USER="$4"
 PASSWORD="$5"
 ARCHITECTURE="$6"
-DOCKER_PLATFORM="$7"
 
 cp "$DEB_FILE" "$DEB_DEBUG_FILE" .
 
@@ -16,9 +15,8 @@ DOCKERFILE=.github/docker/Dockerfile.production
 
 docker login -u "$USER" -p "$PASSWORD"
 
-docker buildx build \
+docker build \
   --pull \
-  --platform "${DOCKER_PLATFORM}" \
   --no-cache \
   --build-arg "DEB_FILE=$DEB_FILE" \
   --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" \
