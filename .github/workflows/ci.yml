@@ -211,7 +211,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_trixie
+      image: savonet/liquidsoap-ci:debian_bookworm
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
