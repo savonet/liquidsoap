@@ -26,6 +26,7 @@ jobs:
       build_platform: ${{ steps.build_details.outputs.build_platform }}
       build_include: ${{ steps.build_details.outputs.build_include }}
       docker_tag: ${{ steps.build_details.outputs.docker_tag }}
+      docker_debian_arch: ${{ steps.build_details.outputs.docker_debian_arch }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
@@ -634,22 +635,22 @@ jobs:
 
       - name: Get debian package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.debian_docker_arch }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
 
       - name: Get debian debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.debian_docker_arch }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
 
       - name: Get debian minimal package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.debian_docker_arch }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_minimal_package
 
       - name: Get debian minimal debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ needs.build_details.outputs.debian_docker_arch }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_minimal_debug_package
 
       - name: Get alpine package
@@ -672,6 +673,7 @@ jobs:
           build-args: |
             DEB_FILE=${{ steps.debian_package.outputs.deb-file }}
             DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}
+            DOCKER_DEBIAN_ARCH=needs.build_details.outputs.debian_docker_arch
 
       - name: Build and push minimal docker image
         uses: depot/build-push-action@v1
@@ -683,6 +685,7 @@ jobs:
           build-args: |
             DEB_FILE=${{ steps.debian_minimal_package.outputs.deb-file }}
             DEB_DEBUG_FILE=${{ steps.debian_minimal_debug_package.outputs.deb-file }}
+            DOCKER_DEBIAN_ARCH=needs.build_details.outputs.debian_docker_arch
 
       - name: Build and push alpine docker image
         uses: depot/build-push-action@v1

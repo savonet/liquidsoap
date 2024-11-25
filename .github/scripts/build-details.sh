@@ -29,7 +29,7 @@ fi
 
 BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
 BUILD_PLATFORM='["amd64", "arm64"]'
-BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": "depot-ubuntu-22.04-arm-4", "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "bookworm"}]'
+BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64"}, {"platform": "arm64", "runs-on": "depot-ubuntu-22.04-arm-4", "alpine-arch": "aarch64"}]'
 
 echo "Docker tag: ${DOCKER_TAG}"
 
@@ -66,6 +66,7 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
   echo "build_platform=${BUILD_PLATFORM}"
   echo "build_include=${BUILD_INCLUDE}"
   echo "docker_tag=${DOCKER_TAG}"
+  echo "docker_debian_arch=bookworm"
   echo "is_rolling_release=${IS_ROLLING_RELEASE}"
   echo "sha=${SHA}"
   echo "s3-artifact-basepath=s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
