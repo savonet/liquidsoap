@@ -1,4 +1,4 @@
-# 2.3.0 (unreleased)
+# 2.3.0 (2024-11-27)
 
 New:
 
@@ -6,8 +6,7 @@ New:
   should greatly impact impredictable side-effect of the previous models w.r.t.
   track marks, content sharing and more. This also impacts multiple operators
   behavior. Mostly, things should be roughly the same with differences around
-  behaviors related to track marks (`source.on_track` and etc). See @TODO@ for
-  more details (#3577)
+  behaviors related to track marks (`source.on_track` and etc). (#3577)
 - Added script caching layer for faster script startup time. See: https://www.liquidsoap.info/blog/2024-06-13-a-faster-liquidsoap/ for details (#3924, #3949, #3959 and #3977)
 - Rewrote the clock/streaming loop layer. This prepares our streaming system to
   support multicore when the OCaml compiler is mature enough to allow it. Clocks
@@ -15,7 +14,7 @@ New:
   down `clock` variable. Users can use the `clock` function to retrieve the full
   methods, e.g. `s = sine(); c = clock(s.clock)`. This value has advanced functions
   for clock control such as `start`/`stop`, `ticks` and `self_sync` to check for
-  `self-sync`. See @TODO@ for more details. (#3781)
+  `self-sync`. (#3781)
 - Allow frames duration shorter than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage (#3607)
