@@ -18,6 +18,7 @@ docker login -u "$USER" -p "$PASSWORD"
 docker build \
   --pull \
   --no-cache \
+  --provenance false \
   --build-arg "DEB_FILE=$DEB_FILE" \
   --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" \
   --file "${DOCKERFILE}" \
