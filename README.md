@@ -18,6 +18,8 @@ Copyright 2003-2024 Savonet team
 [![Chat on Discord!](https://img.shields.io/badge/Chat%20on-Discord-5865f2.svg)](http://chat.liquidsoap.info/)
 [![](https://img.shields.io/badge/Gurubase-Ask%20Liquidsoap%20Guru-006BFF)](https://gurubase.io/g/liquidsoap)
 
+[![Built with Depot](https://depot.dev/badges/built-with-depot.svg)](https://depot.dev/)
+
 |                           |                                                                         |
 | ------------------------- | ----------------------------------------------------------------------- |
 | Homepage                  | http://liquidsoap.info                                                  |
