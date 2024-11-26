@@ -20,6 +20,7 @@ New:
   a higher CPU usage (#3607)
 - Change default frame duration to `0.02s` (#4033)
 - Optimized runtime (#3927, #3928, #3919)
+- Added NDI output support (#4181)
 - Added `finally` to execute code regardless of whether or not an exception is raised
   (see: #3895 for more details).
 - Added support for Spinitron submission API (#4158)
