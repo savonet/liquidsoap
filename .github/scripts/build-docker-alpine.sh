@@ -15,6 +15,7 @@ docker login -u "$USER" -p "$PASSWORD"
 docker build \
   --pull \
   --no-cache \
+  --provenance false \
   --build-arg "APK_FILE=$APK_FILE" \
   --file .github/docker/Dockerfile.production-alpine \
   --tag "savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}" \
