@@ -218,6 +218,7 @@ let rec token lexbuf =
     | '=' -> GETS
     | "end" -> END
     | "begin" -> BEGIN
+    | "typeof" -> TYPEOF
     | "if" -> IF
     | "then" -> THEN
     | "else" -> ELSE
