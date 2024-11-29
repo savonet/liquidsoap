@@ -16,7 +16,7 @@ depends: [
   "ppx_string" {build}
   "ppx_hash" {build}
   "sedlex" {>= "3.2"}
-  "menhir" {>= "20180703"}
+  "menhir" {>= "20240715"}
   "odoc" {with-doc}
 ]
 build: [
