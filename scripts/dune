@@ -1,6 +1,6 @@
 (executable
  (name gen_emacs_completion)
- (link_flags -cclib %{env:LDFLAGS=})
+ (link_flags -cclib %{env:LIQ_LDFLAGS=})
  (libraries liquidsoap_runtime)
  (modules gen_emacs_completion))
 
