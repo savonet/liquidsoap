@@ -128,7 +128,7 @@ build: [
     "LIQUIDSOAP_BUILD_TARGET=standalone"
     "LIQUIDSOAP_SYS_CONFIG=mingw"
     "LIQUIDSOAP_ENABLE_BUILD_CONFIG=false"
-    "LDFLAGS=-lssp -lfdk-aac -lcurl -lwldap32 -ldl"
+    "LDFLAGS=-lssp -lfdk-aac -lcurl -lwldap32 -ldl -lnghttp2"
     "dune"
     "build"
     "-x"
