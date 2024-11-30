@@ -32,11 +32,11 @@ class echo (source : source) delay feedback ping_pong =
     method self_sync = source#self_sync
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    val mutable effect = None
+    val mutable effect_ = None
 
     initializer
       self#on_wake_up (fun () ->
-          effect <-
+          effect_ <-
             Some
               (Audio.Effect.delay self#audio_channels
                  (Lazy.force Frame.audio_rate)
@@ -49,10 +49,10 @@ class echo (source : source) delay feedback ping_pong =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let position = source#frame_audio_position in
-      let effect = Option.get effect in
-      effect#set_delay (delay ());
-      effect#set_feedback (feedback ());
-      effect#process b 0 position;
+      let effect_ = Option.get effect_ in
+      effect_#set_delay (delay ());
+      effect_#set_feedback (feedback ());
+      effect_#process b 0 position;
       source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
