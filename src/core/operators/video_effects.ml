@@ -121,7 +121,9 @@ class effect_ ~name (source : source) effect_ =
 class effect_map ~name (source : source) effect_ =
   object
     inherit
-      base ~name source (fun buf off len -> Video.Canvas.map effect_ buf off len)
+      base
+        ~name source
+        (fun buf off len -> Video.Canvas.map effect_ buf off len)
   end
 
 let return_t () =
