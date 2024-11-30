@@ -39,6 +39,14 @@ export OPAMSOLVERTIMEOUT=480
 export OPAMJOBS="$CPU_CORES"
 export CC=""
 
+echo "::group::Installing deps"
+
+eval "$(opam config env)"
+opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
+opam update windows
+
+echo "::endgroup::"
+
 echo "::group::Install liquidsoap-windows"
 opam install -y liquidsoap-core-windows
 echo "::endgroup::"
