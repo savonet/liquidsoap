@@ -32,6 +32,8 @@ depends: [
   "menhirLib-windows"
   "uri"
   "uri-windows"
+  "fileutils"
+  "fileutils-windows"
   "curl-windows"
   "mem_usage-windows" {>= "0.1.1"}
   "metadata-windows" {>= "0.3.0"}
