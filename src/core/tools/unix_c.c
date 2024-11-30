@@ -1,5 +1,6 @@
 #ifdef _WIN32
 #include <processthreadsapi.h>
+#include <winsock2.h>
 #include <windows.h>
 #else
 #define _GNU_SOURCE
