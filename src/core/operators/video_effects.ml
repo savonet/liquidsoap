@@ -25,13 +25,13 @@ open Source
 
 let log = Log.make ["video"]
 
-let cached_effect effect =
+let cached_effect effect_ =
   let cache = ref None in
   fun args ->
     match !cache with
       | Some (old_args, result) when old_args = args -> result
       | _ ->
-          let result = effect args in
+          let result = effect_ args in
           cache := Some (args, result);
           result
 
@@ -110,18 +110,18 @@ class virtual base ~name (source : source) f =
         { buf with Content.Video.data }
   end
 
-class effect ~name (source : source) effect =
+class effect_ ~name (source : source) effect_ =
   object
     inherit
       base
         ~name source
-        (fun buf off len -> Video.Canvas.iter effect buf off len)
+        (fun buf off len -> Video.Canvas.iter effect_ buf off len)
   end
 
-class effect_map ~name (source : source) effect =
+class effect_map ~name (source : source) effect_ =
   object
     inherit
-      base ~name source (fun buf off len -> Video.Canvas.map effect buf off len)
+      base ~name source (fun buf off len -> Video.Canvas.map effect_ buf off len)
   end
 
 let return_t () =
@@ -138,7 +138,7 @@ let _ =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name:"video.greyscale" src Image.YUV420.Effect.greyscale)
+      new effect_ ~name:"video.greyscale" src Image.YUV420.Effect.greyscale)
 
 let _ =
   let return_t = return_t () in
@@ -148,7 +148,7 @@ let _ =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name:"video.sepia" src Image.YUV420.Effect.sepia)
+      new effect_ ~name:"video.sepia" src Image.YUV420.Effect.sepia)
 
 let _ =
   let return_t = return_t () in
@@ -158,7 +158,7 @@ let _ =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name:"video.invert" src Image.YUV420.Effect.invert)
+      new effect_ ~name:"video.invert" src Image.YUV420.Effect.invert)
 
 let _ =
   let return_t = return_t () in
@@ -168,7 +168,7 @@ let _ =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name:"video.hmirror" src Image.YUV420.hmirror)
+      new effect_ ~name:"video.hmirror" src Image.YUV420.hmirror)
 
 let video_opacity =
   let return_t = return_t () in
@@ -186,7 +186,7 @@ let video_opacity =
     (fun p ->
       let a = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let src = Lang.to_source (Lang.assoc "" 2 p) in
-      new effect ~name:"video.opacity" src (fun buf ->
+      new effect_ ~name:"video.opacity" src (fun buf ->
           Image.YUV420.Effect.Alpha.scale buf (a ())))
 
 let _ =
@@ -196,7 +196,7 @@ let _ =
     ~return_t ~category:`Video ~descr:"Remove α channel."
     (fun p ->
       let src = Lang.to_source (List.assoc "" p) in
-      new effect ~name:"video.alpha.remove" src (fun img ->
+      new effect_ ~name:"video.alpha.remove" src (fun img ->
           Image.YUV420.fill_alpha img 0xff))
 
 let _ =
@@ -208,7 +208,7 @@ let _ =
       let f v = List.assoc v p in
       let c, a = color_arg p in
       let src = Lang.to_source (f "") in
-      new effect ~name:"video.fill" src (fun buf ->
+      new effect_ ~name:"video.fill" src (fun buf ->
           Image.YUV420.fill buf (c ());
           Image.YUV420.fill_alpha buf (a ())))
 
@@ -228,7 +228,7 @@ let _ =
       let src = List.assoc "" p |> Lang.to_source in
       let fps = Lazy.force Frame.video_rate |> float_of_int in
       let prev = ref (Image.YUV420.create 0 0) in
-      new effect ~name:"video.persistence" src (fun buf ->
+      new effect_ ~name:"video.persistence" src (fun buf ->
           let duration = duration () in
           if duration > 0. then (
             let alpha = 1. -. (1. /. (duration *. fps)) in
@@ -262,7 +262,7 @@ let _ =
       let height = List.assoc "height" p |> Lang.to_int_getter in
       let c, a = color_arg p in
       let src = List.assoc "" p |> Lang.to_source in
-      let effect =
+      let effect_ =
         cached_effect (fun (width, height, color, alpha) ->
             let r = Image.YUV420.create width height in
             Image.YUV420.fill r color;
@@ -276,7 +276,7 @@ let _ =
           let height = height () in
           let color = c () in
           let alpha = a () in
-          let r = effect (width, height, color, alpha) in
+          let r = effect_ (width, height, color, alpha) in
           let r = Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) r in
           Video.Canvas.Image.add r buf))
 
@@ -306,7 +306,7 @@ let _ =
       in
       let prec = int_of_float (prec *. 255.) in
       let color = yuv_of_int color in
-      new effect ~name:"video.alpha.of_color" src (fun buf ->
+      new effect_ ~name:"video.alpha.of_color" src (fun buf ->
           Image.YUV420.alpha_of_color buf color prec))
 
 let _ =
@@ -329,7 +329,7 @@ let _ =
       (* let precision = List.assoc "precision" p |> Lang.to_float in *)
       let src = List.assoc "" p |> Lang.to_source in
       let prev = ref None in
-      new effect ~name:"video.alpha.movement" src (fun img ->
+      new effect_ ~name:"video.alpha.movement" src (fun img ->
           (match !prev with
             | None -> ()
             | Some prev -> Image.YUV420.alpha_of_diff prev img (0xff * 2 / 10) 2);
@@ -346,7 +346,7 @@ let () =
     ~descr:"Blur opacity of video."
     (fun p ->
        let src = Lang.to_source (Lang.assoc "" 1 p) in
-         new effect src Image.YUV420.Effect.Alpha.blur)
+         new effect_ src Image.YUV420.Effect.Alpha.blur)
 *)
 
 let _ =
@@ -357,7 +357,7 @@ let _ =
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
-      new effect ~name:"video.lomo" src Image.YUV420.Effect.lomo)
+      new effect_ ~name:"video.lomo" src Image.YUV420.Effect.lomo)
 
 let _ =
   let return_t = return_t () in
@@ -373,7 +373,7 @@ let _ =
     (fun p ->
       let a = List.assoc "angle" p |> Lang.to_float_getter in
       let s = List.assoc "" p |> Lang.to_source in
-      new effect ~name:"video.rotate" s (fun buf ->
+      new effect_ ~name:"video.rotate" s (fun buf ->
           let x = Image.YUV420.width buf / 2 in
           let y = Image.YUV420.height buf / 2 in
           Image.YUV420.rotate (Image.YUV420.copy buf) x y (a ()) buf))
@@ -448,7 +448,7 @@ let _ =
       let ox = Lang.to_int_getter (f "x") in
       let oy = Lang.to_int_getter (f "y") in
       let alpha = Lang.to_float_getter (f "alpha") in
-      new effect ~name:"video.opacity.box" src (fun buf ->
+      new effect_ ~name:"video.opacity.box" src (fun buf ->
           Image.YUV420.box_alpha buf (ox ()) (oy ()) (width ()) (height ())
             (alpha ())))
 
@@ -538,14 +538,14 @@ let _ =
       let q = Lang.assoc "" 2 param |> to_point_getter in
       let s = Lang.assoc "" 3 param |> Lang.to_source in
       let c, a = color_arg param in
-      let effect =
+      let effect_ =
         cached_effect (fun (r, g, b, a) ->
             Video.Canvas.Image.Draw.line (r, g, b, a) (p ()) (q ()))
       in
       new effect_map ~name:"video.add_line" s (fun buf ->
           let r, g, b = c () in
           let a = a () in
-          let line = effect (r, g, b, a) in
+          let line = effect_ (r, g, b, a) in
           Video.Canvas.Image.add line buf))
 
 let _ =
@@ -701,7 +701,7 @@ let _ =
        to observe the α channel."
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
-      new effect ~name:"video.alpha.to_y" s Image.YUV420.alpha_to_y)
+      new effect_ ~name:"video.alpha.to_y" s Image.YUV420.alpha_to_y)
 
 let _ =
   let return_t = return_t () in

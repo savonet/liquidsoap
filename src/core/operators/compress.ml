@@ -33,7 +33,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
   let lookahead () = Frame.audio_of_seconds (lookahead ()) in
   object (self)
     inherit operator ~name:"compress" [source]
-    val mutable effect = None
+    val mutable effect_ = None
     method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
