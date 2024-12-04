@@ -193,12 +193,16 @@ class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
             (float alsa_rate /. float samples_per_second)
             buf 0 len
       in
-      let rec pcm_write ofs len =
-        if 0 < len then (
-          let written = write pcm buf ofs len in
-          pcm_write (ofs + written) (len - written))
-      in
-      try write ofs len
+      try
+        let r = ref ofs in
+        while !r < len do
+          if !r <> 0 then
+            self#log#info
+              "Partial write (%d instead of %d)! Selecting another buffer size \
+               or device can help."
+              !r len;
+          r := !r + write pcm buf !r (len - !r)
+        done
       with e ->
         begin
           match e with
@@ -216,6 +220,7 @@ class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
   end
 
 class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
+  let samples_per_frame = AFrame.size () in
   object (self)
     inherit base ~self_sync dev [Pcm.Capture]
 
@@ -230,30 +235,24 @@ class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
     method abort_track = ()
     method seek_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
-    val mutable gen = None
-
-    method generator =
-      match gen with
-        | Some g -> g
-        | None ->
-            let g = Generator.create self#content_type in
-            gen <- Some g;
-            g
 
     (* TODO: convert samplerate *)
     method private generate_frame =
       let pcm = Option.get pcm in
       let length = Lazy.force Frame.size in
-      let gen = self#genetator in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       try
-        while Generator.length gen < length do
-          let c = Content.make ~length self#content_type in
-          let read =
-            read pcm (Content.Audio.get_data c) 0 (Frame.audio_of_main length)
-          in
-          Genetator.put gen Frame.Fields.audio (Content.sub c 0 read)
+        let r = ref 0 in
+        while !r < samples_per_frame do
+          if !r <> 0 then
+            self#log#info
+              "Partial read (%d instead of %d)! Selecting another buffer size \
+               or device can help."
+              !r (Audio.length buf);
+          r := !r + read pcm buf !r (samples_per_frame - !r)
         done;
-        Generator.slice gen length
+        Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
       with e ->
         begin
           match e with
