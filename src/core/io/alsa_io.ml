@@ -252,7 +252,7 @@ class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
           let read =
             read pcm (Content.Audio.get_data c) 0 (Frame.audio_of_main length)
           in
-          Genetator.put gen Frame.Fields.audio (Content.sub c 0 read)
+          Generator.put gen Frame.Fields.audio (Content.sub c 0 read)
         done;
         Generator.slice gen length
       with e ->
