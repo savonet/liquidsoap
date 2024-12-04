@@ -244,7 +244,7 @@ class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
     method private generate_frame =
       let pcm = Option.get pcm in
       let length = Lazy.force Frame.size in
-      let gen = self#genetator in
+      let gen = self#generator in
       try
         while Generator.length gen < length do
           let c = Content.make ~length self#content_type in
