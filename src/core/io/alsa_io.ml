@@ -245,9 +245,10 @@ class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
       let pcm = Option.get pcm in
       let length = Lazy.force Frame.size in
       let gen = self#generator in
+      let format = Frame.Fields.find Frame.Fields.audio self#content_type in
       try
         while Generator.length gen < length do
-          let c = Content.make ~length self#content_type in
+          let c = Content.Audio.make ~length format in
           let read =
             read pcm (Content.Audio.get_data c) 0 (Frame.audio_of_main length)
           in
