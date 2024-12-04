@@ -248,7 +248,7 @@ class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
       let format = Frame.Fields.find Frame.Fields.audio self#content_type in
       try
         while Generator.length gen < length do
-          let c = Content.Audio.make ~length format in
+          let c = Content.make ~length format in
           let read =
             read pcm (Content.Audio.get_data c) 0 (Frame.audio_of_main length)
           in
