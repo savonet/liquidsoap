@@ -9,7 +9,7 @@
 (homepage "https://github.com/savonet/liquidsoap")
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
 
-(version 2.4.0)
+(version 2.3.1)
 (generate_opam_files true)
 (executables_implicit_empty_intf true)
 
@@ -17,8 +17,8 @@
   (name liquidsoap)
   (depends
     (liquidsoap-core (= :version))
-    (liquidsoap-libs (and (>= 2.3.0) (< 2.3.1)))
-    (liquidsoap-libs-extra (and (>= 2.3.0) (< 2.3.1)))
+    (liquidsoap-libs (and (>= 2.3.1) (< 2.3.2)))
+    (liquidsoap-libs-extra (and (>= 2.3.1) (< 2.3.2)))
     (pandoc :with-doc)
     (pandoc-include :with-doc))
   (synopsis "Swiss-army knife for multimedia streaming")
