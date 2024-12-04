@@ -1,5 +1,10 @@
 # 2.4.0 (unreleased)
 
+New:
+
+- Added support for `WAVE_FORMAT_EXTENSIBLE` to the internal
+  wav dexcoder.
+
 ---
 
 # 2.3.0 (2024-11-27)
