@@ -5,6 +5,10 @@ New:
 - Added support for `WAVE_FORMAT_EXTENSIBLE` to the internal
   wav dexcoder.
 
+Changed:
+
+- Convert all ICY (icecast) metadata from `input.http` to `utf8`.
+
 ---
 
 # 2.3.0 (2024-11-27)

@@ -44,6 +44,7 @@ let normalize_metadata =
           | "StreamUrl" -> "url"
           | _ -> lbl
       in
+      let v = try Charset.convert ~target:Charset.utf8 v with _ -> v in
       (lbl, v))
 
 exception Stopped
