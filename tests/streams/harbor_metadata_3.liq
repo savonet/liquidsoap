@@ -1,11 +1,14 @@
-port = 3461
+port = 3463
 
 def fn() =
   def on_metadata(m) =
+  print(m)
     if
+      m["title"] == ""
+    and
 
-        m["title"] ==
-          "song title"
+        m["artist"] ==
+          "the artist"
 
     and
 
@@ -31,6 +34,10 @@ def fn() =
             (
               "song",
               "song title"
+            ),
+            (
+              "artist",
+              "the artist"
             ),
             (
               "url",

@@ -745,15 +745,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               |> Option.map Charset.of_string
           in
           (* Recode tags.. *)
+          let g x = Charset.convert ?source:in_enc x in
           let f x y m =
-            let x =
+            let add, x =
               match x with
-                | "song" -> "title"
-                | "url" -> "metadata_url"
-                | _ -> x
+                | "song" when not conf_map_song_metadata#get -> (true, "song")
+                | "song" ->
+                    ( not (Hashtbl.mem args "title" || Hashtbl.mem args "artist"),
+                      "title" )
+                | "url" -> (true, "metadata_url")
+                | _ -> (true, x)
             in
-            let g x = Charset.convert ?source:in_enc x in
-            Frame.Metadata.add (g x) (g y) m
+            if add then Frame.Metadata.add (g x) (g y) m else m
           in
           let args = Hashtbl.fold f args Frame.Metadata.empty in
           s#insert_metadata args;
