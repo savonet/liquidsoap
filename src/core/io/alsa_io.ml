@@ -194,16 +194,23 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet
             sc
 
     method start = self#open_device
-    method stop = self#close_device
+
+    method stop =
+      (match (pcm, 0 < Generator.length self#generator) with
+        | Some pcm, true ->
+            self#write_frame
+              (Generator.slice self#generator (Generator.length self#generator))
+        | _ -> ());
+      self#close_device
 
     method send_frame memo =
       let gen = self#generator in
       Generator.append gen memo;
       let buffer_size = Frame.main_of_audio self#alsa_buffer_size in
       if buffer_size <= Generator.length gen then
-        self#send_frame (Generator.slice gen buffer_size)
+        self#write_frame (Generator.slice gen buffer_size)
 
-    method private send_frame frame =
+    method private write_frame frame =
       let pcm = Option.get pcm in
       let buf = AFrame.pcm frame in
       let len = Audio.length buf in
