@@ -31,9 +31,10 @@ let handle lbl f x =
     failwith
       (Printf.sprintf "Error while setting %s: %s" lbl (string_of_error e))
 
-class virtual base ~buffer_size ~self_sync dev mode =
+class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
+  let buffer_size = Frame.audio_of_seconds buffer_size_seconds in
   object (self)
     method virtual log : Log.t
     method virtual audio_channels : int
@@ -115,7 +116,9 @@ class virtual base ~buffer_size ~self_sync dev mode =
           handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
         alsa_buffer_size <-
-          handle "buffer size" (Pcm.set_buffer_size_near dev params) buffer_size;
+          handle "buffer size"
+            (Pcm.set_buffer_size_near dev params)
+            (Frame.audio_of_main buffer_size);
         let periods =
           if periods > 0 then (
             handle "periods" (Pcm.set_periods dev params periods) Dir_eq;
@@ -129,14 +132,14 @@ class virtual base ~buffer_size ~self_sync dev mode =
             samples_per_second rate;
         if buffer_size <> alsa_buffer_size then
           self#log#important
-            "Could not set buffer size to: %02fs (%d samples), got: %02.f (%d \
+            "Could not set buffer size to: %.02fs (%d samples), got: %.02f (%d \
              samples)."
             (Frame.seconds_of_audio buffer_size)
             buffer_size
-            (Frame.audio_of_seconds alsa_buffer_size)
+            (Frame.seconds_of_audio alsa_buffer_size)
             alsa_buffer_size;
         self#log#important "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
-          alsa_rate bufsize
+          alsa_rate alsa_buffer_size
           (Pcm.get_frame_size params)
           periods;
         (try Pcm.set_params dev params
@@ -329,9 +332,11 @@ let _ =
           Some (Lang.bool true),
           Some "Mark the source as being synchronized by the ALSA driver." );
         ( "buffer_size",
-          Lang.float_t,
-          Some (Lang.float 0.04),
-          Some "ALSA buffer size in seconds." );
+          Lang.nullable_t Lang.float_t,
+          Some Lang.null,
+          Some
+            "ALSA buffer size in seconds. Defaults to frame duration when \
+             `null`." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "default"),
@@ -344,7 +349,11 @@ let _ =
       let self_sync = e Lang.to_bool "self_sync" in
       let device = e Lang.to_string "device" in
       let buffer_size =
-        Frame.audio_of_seconds (e Lang.to_float "buffer_size")
+        match
+          Lang.to_valued_option Lang.to_float (List.assoc "buffer_size" p)
+        with
+          | None -> Lazy.force Frame.duration
+          | Some v -> v
       in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
