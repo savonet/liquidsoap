@@ -1,3 +1,5 @@
+port = 3461
+
 def fn() =
   def on_metadata(m) =
     if
@@ -23,7 +25,7 @@ def fn() =
           password="testtest",
           user="testtest",
           host="localhost",
-          port=9834,
+          port=port,
           mount="test",
           [
             (
@@ -46,14 +48,14 @@ def fn() =
       password="testtest",
       user="testtest",
       "test",
-      port=9834,
+      port=port,
       on_connect=on_connect
     )
 
   s.on_metadata(on_metadata)
   output.dummy(fallible=true, s)
   output.icecast(
-    %mp3, password="testtest", user="testtest", mount="test", port=9834, noise()
+    %mp3, password="testtest", user="testtest", mount="test", port=port, noise()
   )
 end
 
