@@ -44,6 +44,7 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
     val mutable read = Pcm.readn_float
     val mutable alsa_buffer_size = buffer_size
     method private alsa_buffer_size = alsa_buffer_size
+    method virtual content_type : Frame.content_type
     val mutable gen = None
 
     method generator =
@@ -197,7 +198,7 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet
 
     method stop =
       (match (pcm, 0 < Generator.length self#generator) with
-        | Some pcm, true ->
+        | Some _, true ->
             self#write_frame
               (Generator.slice self#generator (Generator.length self#generator))
         | _ -> ());
