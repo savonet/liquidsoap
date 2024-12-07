@@ -44,6 +44,15 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
     val mutable read = Pcm.readn_float
     val mutable alsa_buffer_size = buffer_size
     method private alsa_buffer_size = alsa_buffer_size
+    val mutable gen = None
+
+    method generator =
+      match gen with
+        | Some g -> g
+        | None ->
+            let g = Generator.create self#content_type in
+            gen <- Some g;
+            g
 
     method self_sync : Clock.self_sync =
       if self_sync then
@@ -188,8 +197,15 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet
     method stop = self#close_device
 
     method send_frame memo =
+      let gen = self#generator in
+      Generator.append gen memo;
+      let buffer_size = Frame.main_of_audio self#alsa_buffer_size in
+      if buffer_size <= Generator.length gen then
+        self#send_frame (Generator.slice gen buffer_size)
+
+    method private send_frame frame =
       let pcm = Option.get pcm in
-      let buf = AFrame.pcm memo in
+      let buf = AFrame.pcm frame in
       let len = Audio.length buf in
       let buf, ofs, len =
         if alsa_rate = samples_per_second then (buf, 0, len)
@@ -235,15 +251,6 @@ class input ~buffer_size ~self_sync ~start ~on_stop ~on_start ~fallible dev =
     method abort_track = ()
     method seek_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
-    val mutable gen = None
-
-    method generator =
-      match gen with
-        | Some g -> g
-        | None ->
-            let g = Generator.create self#content_type in
-            gen <- Some g;
-            g
 
     (* TODO: convert samplerate *)
     method private generate_frame =
