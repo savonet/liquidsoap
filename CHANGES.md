@@ -4,6 +4,13 @@ New:
 
 - Added support for `WAVE_FORMAT_EXTENSIBLE` to the internal
   wav dexcoder.
+- Added optional `buffer_size` parameter to `input.alsa` and
+  `output.alsa`.
+
+Changed:
+
+- Make alsa I/O work with buffer size different than
+  liquidsoap internal frame (#4236)
 
 Changed:
 
