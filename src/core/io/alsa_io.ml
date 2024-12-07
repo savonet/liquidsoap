@@ -31,10 +31,10 @@ let handle lbl f x =
     failwith
       (Printf.sprintf "Error while setting %s: %s" lbl (string_of_error e))
 
-class virtual base ~self_sync dev mode =
+class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
   let samples_per_second = Lazy.force Frame.audio_rate in
-  let samples_per_frame = AFrame.size () in
   let periods = Alsa_settings.periods#get in
+  let buffer_size = Frame.audio_of_seconds buffer_size_seconds in
   object (self)
     method virtual log : Log.t
     method virtual audio_channels : int
@@ -42,6 +42,18 @@ class virtual base ~self_sync dev mode =
     val mutable pcm = None
     val mutable write = Pcm.writen_float
     val mutable read = Pcm.readn_float
+    val mutable alsa_buffer_size = buffer_size
+    method private alsa_buffer_size = alsa_buffer_size
+    method virtual content_type : Frame.content_type
+    val mutable gen = None
+
+    method generator =
+      match gen with
+        | Some g -> g
+        | None ->
+            let g = Generator.create self#content_type in
+            gen <- Some g;
+            g
 
     method self_sync : Clock.self_sync =
       if self_sync then
@@ -113,11 +125,10 @@ class virtual base ~self_sync dev mode =
         let rate =
           handle "rate" (Pcm.set_rate_near dev params samples_per_second) Dir_eq
         in
-        let bufsize =
+        alsa_buffer_size <-
           handle "buffer size"
             (Pcm.set_buffer_size_near dev params)
-            samples_per_frame
-        in
+            (Frame.audio_of_main buffer_size);
         let periods =
           if periods > 0 then (
             handle "periods" (Pcm.set_periods dev params periods) Dir_eq;
@@ -129,12 +140,16 @@ class virtual base ~self_sync dev mode =
           self#log#important
             "Could not set sample rate to 'frequency' (%d Hz), got %d."
             samples_per_second rate;
-        if bufsize <> samples_per_frame then
+        if buffer_size <> alsa_buffer_size then
           self#log#important
-            "Could not set buffer size to 'frame.size' (%d samples), got %d."
-            samples_per_frame bufsize;
+            "Could not set buffer size to: %.02fs (%d samples), got: %.02f (%d \
+             samples)."
+            (Frame.seconds_of_audio buffer_size)
+            buffer_size
+            (Frame.seconds_of_audio alsa_buffer_size)
+            alsa_buffer_size;
         self#log#important "Samplefreq=%dHz, Bufsize=%dB, Frame=%dB, Periods=%d"
-          alsa_rate bufsize
+          alsa_rate alsa_buffer_size
           (Pcm.get_frame_size params)
           periods;
         (try Pcm.set_params dev params
@@ -158,8 +173,8 @@ class virtual base ~self_sync dev mode =
       self#open_device
   end
 
-class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
-  dev val_source =
+class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet
+  ~on_stop ~on_start dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
@@ -168,7 +183,7 @@ class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
         ~infallible ~register_telnet ~on_stop ~on_start ~name
           ~output_kind:"output.alsa" val_source start
 
-    inherit! base ~self_sync dev [Pcm.Playback]
+    inherit! base ~buffer_size ~self_sync dev [Pcm.Playback]
     val mutable samplerate_converter = None
 
     method samplerate_converter =
@@ -180,11 +195,25 @@ class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
             sc
 
     method start = self#open_device
-    method stop = self#close_device
+
+    method stop =
+      (match (pcm, 0 < Generator.length self#generator) with
+        | Some _, true ->
+            self#write_frame
+              (Generator.slice self#generator (Generator.length self#generator))
+        | _ -> ());
+      self#close_device
 
     method send_frame memo =
+      let gen = self#generator in
+      Generator.append gen memo;
+      let buffer_size = Frame.main_of_audio self#alsa_buffer_size in
+      if buffer_size <= Generator.length gen then
+        self#write_frame (Generator.slice gen buffer_size)
+
+    method private write_frame frame =
       let pcm = Option.get pcm in
-      let buf = AFrame.pcm memo in
+      let buf = AFrame.pcm frame in
       let len = Audio.length buf in
       let buf, ofs, len =
         if alsa_rate = samples_per_second then (buf, 0, len)
@@ -193,16 +222,12 @@ class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
             (float alsa_rate /. float samples_per_second)
             buf 0 len
       in
-      try
-        let r = ref ofs in
-        while !r < len do
-          if !r <> 0 then
-            self#log#info
-              "Partial write (%d instead of %d)! Selecting another buffer size \
-               or device can help."
-              !r len;
-          r := !r + write pcm buf !r (len - !r)
-        done
+      let rec pcm_write ofs len =
+        if 0 < len then (
+          let written = write pcm buf ofs len in
+          pcm_write (ofs + written) (len - written))
+      in
+      try pcm_write ofs len
       with e ->
         begin
           match e with
@@ -219,10 +244,9 @@ class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
         else raise e
   end
 
-class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
-  let samples_per_frame = AFrame.size () in
+class input ~buffer_size ~self_sync ~start ~on_stop ~on_start ~fallible dev =
   object (self)
-    inherit base ~self_sync dev [Pcm.Capture]
+    inherit base ~buffer_size ~self_sync dev [Pcm.Capture]
 
     inherit!
       Start_stop.active_source
@@ -240,19 +264,19 @@ class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
     method private generate_frame =
       let pcm = Option.get pcm in
       let length = Lazy.force Frame.size in
-      let frame = Frame.create ~length self#content_type in
-      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
+      let alsa_buffer_size = self#alsa_buffer_size in
+      let gen = self#generator in
+      let format = Frame.Fields.find Frame.Fields.audio self#content_type in
       try
-        let r = ref 0 in
-        while !r < samples_per_frame do
-          if !r <> 0 then
-            self#log#info
-              "Partial read (%d instead of %d)! Selecting another buffer size \
-               or device can help."
-              !r (Audio.length buf);
-          r := !r + read pcm buf !r (samples_per_frame - !r)
+        while Generator.length gen < length do
+          let c =
+            Content.make ~length:(Frame.main_of_audio alsa_buffer_size) format
+          in
+          let read = read pcm (Content.Audio.get_data c) 0 alsa_buffer_size in
+          Generator.put gen Frame.Fields.audio
+            (Content.sub c 0 (Frame.main_of_audio read))
         done;
-        Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
+        Generator.slice gen length
       with e ->
         begin
           match e with
@@ -281,6 +305,12 @@ let _ =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Mark the source as being synchronized by the ALSA driver." );
+        ( "buffer_size",
+          Lang.nullable_t Lang.float_t,
+          Some Lang.null,
+          Some
+            "ALSA buffer size in seconds. Defaults to frame duration when \
+             `null`." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "default"),
@@ -296,6 +326,13 @@ let _ =
       let source = List.assoc "" p in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
+      let buffer_size =
+        match
+          Lang.to_valued_option Lang.to_float (List.assoc "buffer_size" p)
+        with
+          | None -> Lazy.force Frame.duration
+          | Some v -> v
+      in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -306,8 +343,8 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       (new output
-         ~self_sync ~infallible ~register_telnet ~start ~on_start ~on_stop
-         device source
+         ~buffer_size ~self_sync ~infallible ~register_telnet ~start ~on_start
+         ~on_stop device source
         :> Output.output))
 
 let _ =
@@ -322,6 +359,12 @@ let _ =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Mark the source as being synchronized by the ALSA driver." );
+        ( "buffer_size",
+          Lang.nullable_t Lang.float_t,
+          Some Lang.null,
+          Some
+            "ALSA buffer size in seconds. Defaults to frame duration when \
+             `null`." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "default"),
@@ -333,6 +376,13 @@ let _ =
       let e f v = f (List.assoc v p) in
       let self_sync = e Lang.to_bool "self_sync" in
       let device = e Lang.to_string "device" in
+      let buffer_size =
+        match
+          Lang.to_valued_option Lang.to_float (List.assoc "buffer_size" p)
+        with
+          | None -> Lazy.force Frame.duration
+          | Some v -> v
+      in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let on_start =
@@ -343,5 +393,6 @@ let _ =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      (new input ~self_sync ~on_start ~on_stop ~fallible ~start device
+      (new input
+         ~buffer_size ~self_sync ~on_start ~on_stop ~fallible ~start device
         :> Start_stop.active_source))
