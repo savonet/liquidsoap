@@ -163,8 +163,8 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
       self#open_device
   end
 
-class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
-  dev val_source =
+class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet
+  ~on_stop ~on_start dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
@@ -173,11 +173,7 @@ class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
         ~infallible ~register_telnet ~on_stop ~on_start ~name
           ~output_kind:"output.alsa" val_source start
 
-    inherit!
-      base
-        ~buffer_size:(Lazy.force Frame.duration)
-        ~self_sync dev [Pcm.Playback]
-
+    inherit! base ~buffer_size ~self_sync dev [Pcm.Playback]
     val mutable samplerate_converter = None
 
     method samplerate_converter =
@@ -294,6 +290,12 @@ let _ =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Mark the source as being synchronized by the ALSA driver." );
+        ( "buffer_size",
+          Lang.nullable_t Lang.float_t,
+          Some Lang.null,
+          Some
+            "ALSA buffer size in seconds. Defaults to frame duration when \
+             `null`." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "default"),
@@ -309,6 +311,13 @@ let _ =
       let source = List.assoc "" p in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
+      let buffer_size =
+        match
+          Lang.to_valued_option Lang.to_float (List.assoc "buffer_size" p)
+        with
+          | None -> Lazy.force Frame.duration
+          | Some v -> v
+      in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -319,8 +328,8 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       (new output
-         ~self_sync ~infallible ~register_telnet ~start ~on_start ~on_stop
-         device source
+         ~buffer_size ~self_sync ~infallible ~register_telnet ~start ~on_start
+         ~on_stop device source
         :> Output.output))
 
 let _ =
