@@ -20,7 +20,16 @@
 
  *****************************************************************************)
 
+module Queue = Liquidsoap_lang.Queues.Queue
+
 let decoder_metadata = Lang.add_module ~base:Modules.decoder "metadata"
+let reentrant_decoders = ref []
+
+let _ =
+  Lang.add_builtin ~base:decoder_metadata "reentrant" ~category:`Liquidsoap
+    ~descr:"Return the list of reentrant decoders." []
+    (Lang.list_t Lang.string_t) (fun _ ->
+      Lang.list (List.map Lang.string !reentrant_decoders))
 
 let _ =
   let resolver_t =
@@ -47,6 +56,13 @@ let _ =
         Some
           "Decode files that have the file extensions in this list. Accept any \
            file if `null`." );
+      ( "reentrant",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Set to `true` to indicate that the decoder needs to resolve a \
+           request. Such decoders need to be mutually exclusive to avoid \
+           request resolution loops!" );
       ("", Lang.string_t, None, Some "Format/resolver's name.");
       ( "",
         resolver_t,
@@ -70,6 +86,7 @@ let _ =
           (List.assoc "file_extensions" p)
       in
       let log = Log.make ["decoder"; "metadata"] in
+      let reentrant = Lang.to_bool (List.assoc "reentrant" p) in
       let priority = Lang.to_int_getter (List.assoc "priority" p) in
       let resolver ~metadata ~extension ~mime fname =
         if
@@ -88,6 +105,7 @@ let _ =
       in
       Plug.register Request.mresolvers format ~doc:""
         { Request.priority; resolver };
+      if reentrant then reentrant_decoders := format :: !reentrant_decoders;
       Lang.unit)
 
 let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
