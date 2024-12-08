@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Queue = Liquidsoap_lang.Queues.Queue
-
 let decoder_metadata = Lang.add_module ~base:Modules.decoder "metadata"
 let reentrant_decoders = ref []
 
