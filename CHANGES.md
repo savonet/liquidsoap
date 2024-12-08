@@ -16,8 +16,10 @@ Changed:
   is also passed. Add a configuration key to disable this mechanism.
   (#4235, #2676)
 
-Changed:
+Fixed:
 
+- Fixed request resolution loop when enabling both `autcue`
+  and `replaygain` metadata resolvers (#4245, fixed in #4246)
 - Convert all ICY (icecast) metadata from `input.http` to `utf8`.
 
 ---

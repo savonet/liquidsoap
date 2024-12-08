@@ -775,7 +775,7 @@ def autocue.internal.implementation(
             fade_out_type?: string,
             fade_out_curve?: float,
             start_next?: float,
-            extra_metadata?: [(string * string)]
+            extra_metadata?: [(string*string)]
           }
         )
       end
@@ -823,7 +823,10 @@ def file.autocue.metadata(~request_metadata, uri) =
       )
     end
 
-  r = request.create(excluded_metadata_resolvers=["autocue"], uri)
+  r =
+    request.create(
+      excluded_metadata_resolvers=decoder.metadata.reentrant(), uri
+    )
 
   if
     not request.resolve(r)
@@ -1059,6 +1062,7 @@ def enable_autocue_metadata() =
     mime_types=mime_types,
     file_extensions=file_extensions,
     priority=settings.autocue.metadata.priority,
+    reentrant=true,
     "autocue",
     autocue_metadata
   )
