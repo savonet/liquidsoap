@@ -8,6 +8,15 @@ on:
       - rolling-release-*
       - v[0-9]+.[0-9]+.[0-9]+
       - v[0-9]+.[0-9]+.[0-9]+-*
+    paths:
+      - ".github/workflows/ci.yml"
+      - "**/*.ml"
+      - "**/*.liq"
+      - "**/dune"
+      - "**/dune.inc"
+      - "doc/**"
+      - "dune-project"
+      - scripts/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
