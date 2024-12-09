@@ -41,7 +41,8 @@ let _ =
       with exn -> (
         let bt = Printexc.get_raw_backtrace () in
         match exn with
-          | Runtime_error.Runtime_error e when e.Runtime_error.kind = "not_found" ->
+          | Runtime_error.Runtime_error e
+            when e.Runtime_error.kind = "not_found" ->
               Printexc.raise_with_backtrace exn bt
           | _ ->
               Runtime_error.raise ~bt ~pos:(Lang.pos p)
