@@ -156,6 +156,7 @@
     (ppx_hash :build)
     (sedlex (>= 3.2))
     (menhir (>= 20240715))
+    xml-light
   )
   (sites (share libs) (share bin) (share cache) (lib_root lib_root))
   (synopsis "Liquidsoap language library"))
