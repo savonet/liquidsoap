@@ -48,7 +48,7 @@
 %include_extra "extra/source.liq"
 %include_extra "extra/http.liq"
 %include_extra "extra/externals.liq"
-%include_extra "extra/lastfm.liq"
+%include_extra "extra/audioscrobbler.liq"
 %include_extra "extra/server.liq"
 %include_extra "extra/telnet.liq"
 %include_extra "extra/interactive.liq"
