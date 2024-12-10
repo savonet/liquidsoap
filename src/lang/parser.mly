@@ -292,6 +292,8 @@ ty:
   | LPAR argsty RPAR YIELDS ty   { `Arrow ($2,$5) }
   | LCUR record_ty RCUR          { `Record $2 }
   | ty DOT VAR                   { `Invoke ($1, $3) }
+  | ty QUESTION_DOT LCUR record_ty RCUR
+                                 { `Method (`Nullable $1, $4) }
   | ty DOT LCUR record_ty RCUR   { `Method ($1, $4) }
   | ty_source                    { `Source $1 }
 
