@@ -30,6 +30,16 @@ let _ =
       Lang.string (s1 ^ s2))
 
 let _ =
+  Lang.add_builtin ~base:string "compare" ~category:`String
+    ~descr:"Compare strings in lexicographical order."
+    [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
+    Lang.int_t
+    (fun p ->
+      let s1 = Lang.to_string (Lang.assoc "" 1 p) in
+      let s2 = Lang.to_string (Lang.assoc "" 2 p) in
+      Lang.int (String.compare s1 s2))
+
+let _ =
   Lang.add_builtin ~base:string "digest" ~category:`String
     ~descr:"Return an MD5 digest for the given string."
     [("", Lang.string_t, None, None)]
