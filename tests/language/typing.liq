@@ -209,6 +209,9 @@ def f() =
     int.{ "✨ name ✨" as foo: float, gni: string }
   )
 
+  # Nullable type with methods:
+  (123.{foo="aabb"} : int?.{ foo: string })
+
   (() : {})
   (() : unit.{  })
   ({foo=123} : {foo?: int})
