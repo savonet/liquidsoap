@@ -35,6 +35,7 @@ type lexer_let_decoration =
   | `Recursive
   | `Replaces
   | `Yaml_parse
+  | `Xml_parse
   | `Sqlite_row
   | `Sqlite_query ]
 
