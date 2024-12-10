@@ -22,12 +22,12 @@ let rec methods_of_xml = function
 and xml_node ~params ~children =
   [
     ( "xml_params",
-      Lang.record (List.map (fun (k, v) -> (k, Lang.string v)) params) );
-    ( "xml_params_list",
-      Lang.list
-        (List.map
-           (fun (k, v) -> Lang.product (Lang.string k) (Lang.string v))
-           params) );
+      Lang.meth
+        (Lang.list
+           (List.map
+              (fun (k, v) -> Lang.product (Lang.string k) (Lang.string v))
+              params))
+        (List.map (fun (k, v) -> (k, Lang.string v)) params) );
     ("xml_children", Lang.tuple (List.map (fun v -> value_of_xml v) children));
   ]
 
