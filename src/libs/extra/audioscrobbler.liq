@@ -175,12 +175,12 @@ def audioscrobbler.api.track.updateNowPlaying(
       {
         lfm: {
           nowplaying: {
-            track: string.{ xml_params: {corrected: string} },
-            artist: string.{ xml_params: {corrected: string} },
-            album: string?.{ xml_params: {corrected: string} },
-            albumArtist: string?.{ xml_params: {corrected: string} },
-            timestamp: string,
-            ignoredMessage: {xml_params: {code: string}}
+            track: string.{ xml_params: {corrected: int} },
+            artist: string.{ xml_params: {corrected: int} },
+            album: string?.{ xml_params: {corrected: int} },
+            albumArtist: string?.{ xml_params: {corrected: int} },
+            timestamp: float,
+            ignoredMessage: {xml_params: {code: int}}
           },
           xml_params: {status: string}
         }
@@ -277,14 +277,14 @@ def audioscrobbler.api.track.scrobble(
         lfm: {
           scrobbles: {
             scrobble: {
-              track: string.{ xml_params: {corrected: string} },
-              artist: string.{ xml_params: {corrected: string} },
-              album: string?.{ xml_params: {corrected: string} },
-              albumArtist: string?.{ xml_params: {corrected: string} },
-              timestamp: string,
-              ignoredMessage: {xml_params: {code: string}}
+              track: string.{ xml_params: {corrected: int} },
+              artist: string.{ xml_params: {corrected: int} },
+              album: string?.{ xml_params: {corrected: int} },
+              albumArtist: string?.{ xml_params: {corrected: int} },
+              timestamp: float,
+              ignoredMessage: {xml_params: {code: int}}
             },
-            xml_params: {ignored: string, accepted: string}
+            xml_params: {ignored: int, accepted: int}
           },
           xml_params: {status: string}
         }
