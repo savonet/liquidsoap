@@ -83,7 +83,6 @@
     jemalloc
     ladspa
     lame
-    lastfm
     lilv
     lo
     mad
@@ -123,7 +122,6 @@
     (inotify (< 1.0))
     (ladspa (< 0.2.0))
     (lame (< 0.3.7))
-    (lastfm (< 0.3.4))
     (lo (< 0.2.0))
     (mad (< 0.5.0))
     (magic (< 0.6))
@@ -156,6 +154,7 @@
     (ppx_hash :build)
     (sedlex (>= 3.2))
     (menhir (>= 20240715))
+    xml-light
   )
   (sites (share libs) (share bin) (share cache) (lib_root lib_root))
   (synopsis "Liquidsoap language library"))

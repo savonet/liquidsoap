@@ -36,6 +36,7 @@ type lexer_let_decoration =
   | `Eval
   | `Json_parse
   | `Yaml_parse
+  | `Xml_parse
   | `Sqlite_row
   | `Sqlite_query ]
 
@@ -185,6 +186,7 @@ type let_opt_el = string * Term.t
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
   | `Yaml_parse -> `Yaml_parse
+  | `Xml_parse -> `Xml_parse
   | `Sqlite_query -> `Sqlite_query
   | `Sqlite_row -> `Sqlite_row
   | `Eval -> `Eval

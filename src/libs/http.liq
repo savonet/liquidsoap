@@ -1,5 +1,22 @@
 # Set of HTTP utils.
 
+# Prepare a list of `(string, string)` arguments for
+# sending as `"application/x-www-form-urlencoded"` content
+# @category Internet
+def http.www_form_urlencoded(params) =
+  params =
+    list.map(
+      fun (v) ->
+        begin
+          let (key, value) = v
+          "#{url.encode(key)}=#{url.encode(value)}"
+        end,
+      params
+    )
+
+  string.concat(separator="&", params)
+end
+
 # Prepare a list of data to be sent as multipart form data.
 # @category Internet
 # @param ~boundary Specify boundary to use for multipart/form-data.

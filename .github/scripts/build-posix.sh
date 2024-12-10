@@ -39,6 +39,8 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
+opam install -y xml-light
+
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh

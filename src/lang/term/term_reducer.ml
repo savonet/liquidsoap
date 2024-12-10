@@ -937,6 +937,14 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
 
+let mk_let_xml_parse ~pos (pat, def, cast) body =
+  let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
+  let tty = Value.RuntimeType.to_term ty in
+  let parser = mk ~pos (`Var "_internal_xml_parser_") in
+  let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
+  let def = mk ~pos (`Cast { cast = def; typ = ty }) in
+  pattern_reducer ~body ~pat def
+
 let mk_let_yaml_parse ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
@@ -1019,6 +1027,7 @@ let string_of_let_decoration = function
   | `Sqlite_query -> "sqlite.query"
   | `Sqlite_row -> "sqlite.row"
   | `Yaml_parse -> "yaml.parse"
+  | `Xml_parse -> "xml.parse"
   | `Json_parse _ -> "json.parse"
 
 let mk_let ~env ~pos ~to_term ~comments
@@ -1094,6 +1103,9 @@ let mk_let ~env ~pos ~to_term ~comments
     | None, `Yaml_parse ->
         let body = mk_body def in
         mk_let_yaml_parse ~pos (pat, def, cast) body
+    | None, `Xml_parse ->
+        let body = mk_body def in
+        mk_let_xml_parse ~pos (pat, def, cast) body
     | None, `Sqlite_row ->
         let body = mk_body def in
         mk_let_sqlite_row ~pos (pat, def, cast) body
