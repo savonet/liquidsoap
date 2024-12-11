@@ -135,8 +135,12 @@ let rec xml_of_value = function
       match Methods.bindings methods with
         | [(name, Value.Tuple { value = []; methods })] ->
             xml_of_node ~name (Methods.bindings methods)
-        | [(name, Value.String { value = s; methods })] ->
-            xml_of_node ~xml_text:s ~name (Methods.bindings methods)
+        | [(name, (Value.String { methods } as v))]
+        | [(name, (Value.Float { methods } as v))]
+        | [(name, (Value.Int { methods } as v))]
+        | [(name, (Value.Bool { methods } as v))] ->
+            xml_of_node ~xml_text:(string_of_ground v) ~name
+              (Methods.bindings methods)
         | _ -> assert false)
   | _ -> assert false
 

@@ -4,6 +4,9 @@ def f() =
 <foo opt="12.3">gni</foo>
 <bar />
 <bar option="aab">bla</bar>
+<blo>1.23</blo>
+<blu>false</blu>
+<ble>123</ble>
 </bla>'
 
   let xml.parse (x :
@@ -11,6 +14,9 @@ def f() =
       bla: {
         foo: string.{ xml_params: {opt: float} },
         bar: (string? * string?.{ xml_params: [(string * string)] }),
+        blo: float,
+        blu: bool,
+        ble: int,
         xml_params: [(string * string)].{ bla: bool }
       }
     }
@@ -22,6 +28,9 @@ def f() =
       bla=
         {
           xml_params=[("param", "1"), ("bla", "true")].{bla=true},
+          ble=123,
+          blu=false,
+          blo=1.23,
           bar=(null(), "bla".{xml_params=[("option", "aab")]}),
           foo="gni".{xml_params={opt=12.3}}
         }
@@ -57,7 +66,7 @@ def f() =
             *
             {
               xml_params: [(string * string)],
-              xml_children: [(string * {xml_text: string?})]
+              xml_children: [(string * {xml_text: string})]
             }
           )
         ]
@@ -86,6 +95,18 @@ def f() =
                 xml_children=[("xml_text", {xml_text="bla"})],
                 xml_params=[("option", "aab")]
               }
+            ),
+            (
+              "blo",
+              {xml_children=[("xml_text", {xml_text="1.23"})], xml_params=[]}
+            ),
+            (
+              "blu",
+              {xml_children=[("xml_text", {xml_text="false"})], xml_params=[]}
+            ),
+            (
+              "ble",
+              {xml_children=[("xml_text", {xml_text="123"})], xml_params=[]}
             )
           ],
         xml_params=[("param", "1"), ("bla", "true")]
@@ -99,6 +120,9 @@ def f() =
   <foo opt="12.3">gni</foo>
   <bar/>
   <bar option="aab">bla</bar>
+  <blo>1.23</blo>
+  <blu>false</blu>
+  <ble>123</ble>
 </bla>'
   )
 
