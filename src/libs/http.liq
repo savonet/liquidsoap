@@ -964,7 +964,7 @@ def http.headers.content_disposition(headers) =
             type: string,
             filename?: string,
             name?: string,
-            args: [(string * string?)]
+            args: [(string*string?)]
           }
         )
       end,
