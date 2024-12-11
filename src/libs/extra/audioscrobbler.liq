@@ -179,7 +179,6 @@ def audioscrobbler.api.track.updateNowPlaying(
             artist: string.{ xml_params: {corrected: int} },
             album: string?.{ xml_params: {corrected: int} },
             albumArtist: string?.{ xml_params: {corrected: int} },
-            timestamp: float,
             ignoredMessage: {xml_params: {code: int}}
           },
           xml_params: {status: string}
