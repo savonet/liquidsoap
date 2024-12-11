@@ -521,3 +521,5 @@ let is_docker =
   Lazy.from_fun (fun () ->
       Sys.unix
       && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
+
+let optional_apply fn = function None -> () | Some v -> fn v
