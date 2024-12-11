@@ -292,7 +292,7 @@ def audioscrobbler.api.track.scrobble(
 
     log.info(
       label="audioscrobbler.api.track.scrobble",
-      "Done submitting updateNowPlaying with: #{params}"
+      "Done submitting scrobble with: #{params}"
     )
 
     v
