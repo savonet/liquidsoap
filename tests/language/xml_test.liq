@@ -44,13 +44,13 @@ def f() =
           {
             xml_params=[("param", "1"), ("bla", "true")],
             bar="bla".{xml_params=[("option", "aab")]},
-            foo="gni".{xml_params={opt=12.3}}
+            foo=true.{xml_params={opt=12.3}}
           }
       }
     ),
     '<bla param="1" bla="true">
   <bar option="aab">bla</bar>
-  <foo opt="12.3">gni</foo>
+  <foo opt="12.3">true</foo>
 </bla>'
   )
 

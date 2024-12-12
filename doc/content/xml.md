@@ -34,12 +34,14 @@ let xml.parse (x :
   }
 }
 ) = s
+
+print("The value for blu is: #{x.bla.ble}")
 ```
 
 Things to note:
 
-- The basic mappings are: `tag name -> tag content`
-- Tag content maps tag parameters to `xml_params`
+- The basic mappings are: `<tag name> -> <tag content>`
+- Tag content maps tag parameters to a `xml_params` method.
 - When multiple tags are present, their values are collected as tuple (`bar` tag in the example)
 - When a tag contains a single ground value (`string`, `bool`, `float` or `integer`), the mapping is from tag name to the corresponding value, with xml attributes attached as methods
 - Tag parameters can be converted to ground values and omitted.
@@ -49,7 +51,15 @@ The parsing is driven by the type annotation and is intended to be permissive. F
 ```liquidsoaop
 s = '<bla>foo</bla>'
 
+# Here, `foo` is omitted.
 let xml.parse (x: { bla: unit }) = s
+
+# x contains: { bla = () }
+
+# Here, `foo` is made optional
+let xml.parse (x: { bla: string? }) = s
+
+# x contains: { bla = "foo" }
 ```
 
 ### Formal representation
@@ -133,11 +143,11 @@ This representation is much less convenient to manipulate but allows an exact re
 Things to note:
 
 - XML nodes are represented by a pair of the form: `(<tag name>, <tag properties>)`
-- `<tag properties>` contains the following:
+- `<tag properties>` is a record containing the following methods:
   - `xml_params`, represented as a list of pairs `(string * string)`
-  - `xml_children`, containing an array of the XML node's children.
-  - `xml_text`, present when the node is a text node. In this case, `xml_params` or `xm_children` are empty.
-- By convention, text nodes are labelled `xml_text`.
+  - `xml_children`, containing a list of the XML node's children. Each entry in the list is a node in the formal XML representation.
+  - `xml_text`, present when the node is a text node. In this case, `xml_params` and `xm_children` are empty.
+- By convention, text nodes are labelled `xml_text` and are of the form: `{ xml_text: "node content" }`
 
 ### Rendering XML values
 
