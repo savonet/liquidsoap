@@ -93,6 +93,7 @@ and expand_term tm =
     | `Sqlite_query -> `Sqlite_query
     | `Sqlite_row -> `Sqlite_row
     | `Yaml_parse -> `Yaml_parse
+    | `Xml_parse -> `Xml_parse
     | `Json_parse l ->
         `Json_parse (List.map (fun (lbl, t) -> (lbl, expand_term t)) l)
   in

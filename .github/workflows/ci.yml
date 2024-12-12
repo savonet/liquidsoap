@@ -121,7 +121,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           eval "$(opam config env)"
           opam update
-          opam install -y saturn_lockfree.0.4.1
+          opam install -y xml-light
           dune build --profile release ./src/js/interactive_js.bc.js
 
   tree_sitter_parse:
