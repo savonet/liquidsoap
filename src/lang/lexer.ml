@@ -213,6 +213,7 @@ let rec token lexbuf =
     | "let", Plus skipped, "yaml.parse", Plus skipped -> LET `Yaml_parse
     | "let", Plus skipped, "sqlite.row", Plus skipped -> LET `Sqlite_row
     | "let", Plus skipped, "sqlite.query", Plus skipped -> LET `Sqlite_query
+    | "let", Plus skipped, "xml.parse", Plus skipped -> LET `Xml_parse
     | "let" -> LET `None
     | "fun" -> FUN
     | '=' -> GETS

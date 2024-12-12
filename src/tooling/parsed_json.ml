@@ -308,6 +308,7 @@ let json_of_let_decoration ~to_json : Parsed_term.let_decoration -> Json.t =
       `Assoc (ast_node ~typ:"var" [("value", `String "sqlite.row")])
   | `Yaml_parse ->
       `Assoc (ast_node ~typ:"var" [("value", `String "yaml.parse")])
+  | `Xml_parse -> `Assoc (ast_node ~typ:"var" [("value", `String "xml.parse")])
   | `Json_parse [] ->
       `Assoc (ast_node ~typ:"var" [("value", `String "json.parse")])
   | `Json_parse args ->

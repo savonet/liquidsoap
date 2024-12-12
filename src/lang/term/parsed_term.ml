@@ -90,6 +90,7 @@ and let_decoration =
   | `Sqlite_query
   | `Sqlite_row
   | `Yaml_parse
+  | `Xml_parse
   | `Json_parse of (string * t) list ]
 
 and _let = {

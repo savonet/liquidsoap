@@ -94,6 +94,7 @@
   str
   unix
   menhirLib
+  xml-light
   (select
    liqmemtrace.ml
    from
@@ -113,6 +114,7 @@
   builtins_regexp
   builtins_string
   builtins_yaml
+  builtins_xml
   builtins_ref
   cache
   doc

@@ -215,13 +215,15 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
       Fun { pos; methods; flags; fun_args; fun_env; fun_body }
   | `FFI { ffi_args; ffi_fn } -> FFI { pos; methods; flags; ffi_args; ffi_fn }
 
+let string_of_int_value ~flags i =
+  if Flags.has flags Flags.octal_int then Printf.sprintf "0o%o" i
+  else if Flags.has flags Flags.hex_int then Printf.sprintf "0x%x" i
+  else string_of_int i
+
 let rec to_string v =
   let base_string v =
     match v with
-      | Int { value = i; flags } ->
-          if Flags.has flags Flags.octal_int then Printf.sprintf "0o%o" i
-          else if Flags.has flags Flags.hex_int then Printf.sprintf "0x%x" i
-          else string_of_int i
+      | Int { value = i; flags } -> string_of_int_value ~flags i
       | Float { value = f } -> Utils.string_of_float f
       | Bool { value = b } -> string_of_bool b
       | String { value = s } -> Lang_string.quote_string s

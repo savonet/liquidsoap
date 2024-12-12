@@ -35,6 +35,7 @@ depends: [
   "fileutils"
   "fileutils-windows"
   "curl-windows"
+  "xml-light-windows"
   "mem_usage-windows" {>= "0.1.1"}
   "metadata-windows" {>= "0.3.0"}
   "dune-site-windows"
