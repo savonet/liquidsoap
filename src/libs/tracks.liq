@@ -64,6 +64,20 @@ def source.drop.metadata(~id=null(), s) =
   source(id=id, tracks)
 end
 
+# Remove the track marks of a source.
+# @category Source / Track processing
+def source.drop.track_marks(~id=null(), s) =
+  let {track_marks = _, ...tracks} = source.tracks(s)
+  source(id=id, tracks)
+end
+
+# Remove the metadata and track marks of a source.
+# @category Source / Track processing
+def source.drop.metadata_track_marks(~id=null(), s) =
+  let {metadata = _, track_marks = _, ...tracks} = source.tracks(s)
+  source(id=id, tracks)
+end
+
 let settings.amplify =
   settings.make.void(
     "Settings for the amplify operator"
