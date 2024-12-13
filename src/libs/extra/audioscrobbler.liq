@@ -315,6 +315,7 @@ let source_on_metadata = source.on_metadata
 # @param ~source Source for tracks. Should be one of: "broadcast", "user", "recommendation" or "unknown". Since liquidsoap is intended for radio broadcasting, this is the default. Sources other than user don't need duration to be set.
 # @param ~delay Submit song when there is only this delay left, in seconds.
 # @param ~force If remaining time is null, the song will be assumed to be skipped or cut, and not submitted. Set this to `true` to prevent this behavior
+# @param ~metadata_preprocessor Metadata pre-processor callback. Can be used to change metadata on-the-fly before sending to nowPlaying/scrobble. If returning an empty metadata, nothing is sent at all.
 def audioscrobbler.submit(
   ~username,
   ~password,
@@ -322,6 +323,7 @@ def audioscrobbler.submit(
   ~api_secret=null(),
   ~delay=10.,
   ~force=false,
+  ~metadata_preprocessor=fun (m) -> m,
   s
 ) =
   session_key =
@@ -336,30 +338,41 @@ def audioscrobbler.submit(
     def c(v) =
       v == "" ? null() : v
     end
+    m = metadata_preprocessor(m)
     track = m["title"]
-    album = c(m["album"])
     artist = m["artist"]
-    trackNumber =
-      try
-        null.map(int_of_string, c(m["tracknumber"]))
-      catch _ do
-        null()
-      end
-    albumArtist = c(m["albumartist"])
-    ignore(
-      fn(
-        username=username,
-        password=password,
-        api_key=api_key,
-        api_secret=api_secret,
-        session_key=session_key,
-        track=track,
-        artist=artist,
-        album=album,
-        trackNumber=trackNumber,
-        albumArtist=albumArtist
+
+    if
+      track == "" or artist == ""
+    then
+      log.info(
+        label="audioscrobbler.submit",
+        "No artist or track present: metadata submission disabled!"
       )
-    )
+    else
+      album = c(m["album"])
+      trackNumber =
+        try
+          null.map(int_of_string, c(m["tracknumber"]))
+        catch _ do
+          null()
+        end
+      albumArtist = c(m["albumartist"])
+      ignore(
+        fn(
+          username=username,
+          password=password,
+          api_key=api_key,
+          api_secret=api_secret,
+          session_key=session_key,
+          track=track,
+          artist=artist,
+          album=album,
+          trackNumber=trackNumber,
+          albumArtist=albumArtist
+        )
+      )
+    end
   end
 
   def now_playing(m) =
