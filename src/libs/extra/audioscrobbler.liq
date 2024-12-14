@@ -95,7 +95,6 @@ def audioscrobbler.auth(
     let xml.parse ({lfm = {session = {name, key}}} :
       {lfm: {session: {name: string, key: string}}}
     ) = resp
-    assert(name == username)
     key
   catch err do
     error.raise(
