@@ -48,7 +48,6 @@ depopts: [
   "jemalloc"
   "ladspa"
   "lame"
-  "lastfm"
   "lilv"
   "lo"
   "mad"
@@ -89,7 +88,6 @@ conflicts: [
   "inotify" {< "1.0"}
   "ladspa" {< "0.2.0"}
   "lame" {< "0.3.7"}
-  "lastfm" {< "0.3.4"}
   "lo" {< "0.2.0"}
   "mad" {< "0.5.0"}
   "magic" {< "0.6"}
