@@ -35,7 +35,7 @@ let xml.parse (x :
 }
 ) = s
 
-print("The value for blu is: #{x.bla.ble}")
+print("The value for ble is: #{x.bla.ble}")
 ```
 
 Things to note:
