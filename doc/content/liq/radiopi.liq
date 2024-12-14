@@ -128,9 +128,9 @@ interlude = single("/home/radiopi/fallback.mp3")
 # Lastfm submission
 def lastfm(m) =
   if
-    (m["type"] == "chansons")
-  then
-    if
+    m["type"] == "chansons"
+  and
+
       (
         m["canal"] == "reggae"
       or
@@ -138,12 +138,13 @@ def lastfm(m) =
       or
         m["canal"] == "That70Sound"
       )
-    then
-      canal =
-        if (m["canal"] == "That70Sound") then "70sound" else m["canal"] end
-      user = "radiopi-" ^ canal
-      lastfm.submit(user=user, password="xXXxx", m)
-    end
+
+  then
+    canal = if (m["canal"] == "That70Sound") then "70sound" else m["canal"] end
+    username = "radiopi-" ^ canal
+    audioscrobbler.api.track.scrobble.metadata(
+      username=username, password="xXXxx", m
+    )
   end
 end
 

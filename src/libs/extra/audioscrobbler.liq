@@ -200,6 +200,79 @@ def audioscrobbler.api.track.updateNowPlaying(
   end
 end
 
+# @flag hidden
+def audioscrobbler.api.apply_meta(
+  ~name,
+  ~username,
+  ~password,
+  ~api_key,
+  ~api_secret,
+  ~session_key,
+  fn,
+  m
+) =
+  def c(v) =
+    v == "" ? null() : v
+  end
+  track = m["title"]
+  artist = m["artist"]
+
+  if
+    track == "" or artist == ""
+  then
+    log.info(
+      label=name,
+      "No artist or track present: metadata submission disabled!"
+    )
+  else
+    album = c(m["album"])
+    trackNumber =
+      try
+        null.map(int_of_string, c(m["tracknumber"]))
+      catch _ do
+        null()
+      end
+    albumArtist = c(m["albumartist"])
+    ignore(
+      fn(
+        username=username,
+        password=password,
+        api_key=api_key,
+        api_secret=api_secret,
+        session_key=session_key,
+        track=track,
+        artist=artist,
+        album=album,
+        trackNumber=trackNumber,
+        albumArtist=albumArtist
+      )
+    )
+  end
+end
+
+# Submit a track using its metadata to the audioscrobbler
+# `track.updateNowPlaying` API.
+# @category Interaction
+def audioscrobbler.api.track.updateNowPlaying.metadata(
+  ~username,
+  ~password,
+  ~session_key=null(),
+  ~api_key=null(),
+  ~api_secret=null(),
+  m
+) =
+  audioscrobbler.api.apply_meta(
+    username=username,
+    password=password,
+    session_key=session_key,
+    api_key=api_key,
+    api_secret=api_secret,
+    name="audioscrobbler.api.track.updateNowPlaying",
+    audioscrobbler.api.track.updateNowPlaying,
+    m
+  )
+end
+
 # Submit a track to the audioscrobbler
 # `track.scrobble` API.
 # @category Interaction
@@ -304,8 +377,28 @@ def audioscrobbler.api.track.scrobble(
   end
 end
 
-let source_on_end = source.on_end
-let source_on_metadata = source.on_metadata
+# Submit a track to the audioscrobbler
+# `track.scrobble` API using its metadata.
+# @category Interaction
+def audioscrobbler.api.track.scrobble.metadata(
+  ~username,
+  ~password,
+  ~session_key=null(),
+  ~api_key=null(),
+  ~api_secret=null(),
+  m
+) =
+  audioscrobbler.api.apply_meta(
+    username=username,
+    password=password,
+    session_key=session_key,
+    api_key=api_key,
+    api_secret=api_secret,
+    name="audioscrobbler.api.track.scrobble",
+    audioscrobbler.api.track.scrobble,
+    m
+  )
+end
 
 # Submit songs using audioscrobbler, respecting the full protocol:
 # First signal song as now playing when starting, and
@@ -334,50 +427,16 @@ def audioscrobbler.submit(
       api_secret=api_secret
     )
 
-  def apply_meta(fn, m) =
-    def c(v) =
-      v == "" ? null() : v
-    end
-    m = metadata_preprocessor(m)
-    track = m["title"]
-    artist = m["artist"]
-
-    if
-      track == "" or artist == ""
-    then
-      log.info(
-        label="audioscrobbler.submit",
-        "No artist or track present: metadata submission disabled!"
-      )
-    else
-      album = c(m["album"])
-      trackNumber =
-        try
-          null.map(int_of_string, c(m["tracknumber"]))
-        catch _ do
-          null()
-        end
-      albumArtist = c(m["albumartist"])
-      ignore(
-        fn(
-          username=username,
-          password=password,
-          api_key=api_key,
-          api_secret=api_secret,
-          session_key=session_key,
-          track=track,
-          artist=artist,
-          album=album,
-          trackNumber=trackNumber,
-          albumArtist=albumArtist
-        )
-      )
-    end
-  end
-
   def now_playing(m) =
     try
-      apply_meta(audioscrobbler.api.track.updateNowPlaying, m)
+      audioscrobbler.api.track.updateNowPlaying.metadata(
+        username=username,
+        password=password,
+        api_key=api_key,
+        api_secret=api_secret,
+        session_key=session_key,
+        metadata_preprocessor(m)
+      )
     catch err do
       log.important(
         "Error while submitting nowplaying info for #{source.id(s)}: #{err}"
@@ -385,7 +444,7 @@ def audioscrobbler.submit(
     end
   end
 
-  s = source_on_metadata(s, now_playing)
+  s = source.on_metadata(s, now_playing)
   f =
     fun (rem, m) ->
       # Avoid skipped songs
@@ -393,7 +452,14 @@ def audioscrobbler.submit(
         rem > 0. or force
       then
         try
-          apply_meta(audioscrobbler.api.track.scrobble, m)
+          audioscrobbler.api.track.scrobble.metadata(
+            username=username,
+            password=password,
+            api_key=api_key,
+            api_secret=api_secret,
+            session_key=session_key,
+            metadata_preprocessor(m)
+          )
         catch err do
           log.important(
             "Error while submitting scrobble info for #{source.id(s)}: #{err}"
@@ -406,5 +472,5 @@ def audioscrobbler.submit(
           "Remaining time null: will not submit song (song skipped ?)"
         )
       end
-  source_on_end(s, delay=delay, f)
+  source.on_end(s, delay=delay, f)
 end
