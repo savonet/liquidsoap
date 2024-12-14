@@ -46,7 +46,6 @@ type let_opt_el = string * Term.t
 val clear_comments : unit -> unit
 val append_comment : pos:pos -> string -> unit
 val attach_comments : Term.t -> unit
-val mk_ty : ?pos:pos -> Parsed_term.type_annotation -> Type.t
 
 val mk_let :
   pos:pos ->
