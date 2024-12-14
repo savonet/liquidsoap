@@ -18,11 +18,15 @@ Changed:
   `input.harbord` disabled when either `"artist"` or `"title"`
   is also passed. Add a configuration key to disable this mechanism.
   (#4235, #2676)
+- `output.icecast` now re-sends the last metadata when connecting to the
+  remote server unless explicitly disabled using the `send_last_metadata_on_connect`
+  option (#3906)
 
 Fixed:
 
 - Fixed request resolution loop when enabling both `autocue`
   and `replaygain` metadata resolvers (#4245, fixed in #4246)
+- Fixed source `last_metadata` not being properly updated (#4262)
 - Convert all ICY (icecast) metadata from `input.http` to `utf8`.
 
 ---
