@@ -466,14 +466,6 @@
  (modules lame_encoder))
 
 (library
- (name liquidsoap_lastfm)
- (libraries lastfm liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules builtins_lastfm liqfm))
-
-(library
  (name liquidsoap_lilv)
  (libraries lilv liquidsoap_core)
  (library_flags -linkall)
@@ -737,7 +729,6 @@
   jemalloc_option
   ladspa_option
   lame_option
-  lastfm_option
   lilv_option
   lo_option
   mad_option
@@ -858,11 +849,6 @@
    from
    (liquidsoap_lame -> lame_option.enabled.ml)
    (-> lame_option.disabled.ml))
-  (select
-   lastfm_option.ml
-   from
-   (liquidsoap_lastfm -> lastfm_option.enabled.ml)
-   (-> lastfm_option.disabled.ml))
   (select
    lilv_option.ml
    from

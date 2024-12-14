@@ -28,7 +28,6 @@ let () =
       ("irc", Irc_option.enabled);
       ("ladspa", Ladspa_option.enabled);
       ("lame", Lame_option.enabled);
-      ("lastfm", Lastfm_option.enabled);
       ("lilv", Lilv_option.enabled);
       ("lo", Lo_option.enabled);
       ("mad", Mad_option.enabled);

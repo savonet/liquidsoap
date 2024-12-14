@@ -7,6 +7,8 @@ New:
   wav dexcoder.
 - Added optional `buffer_size` parameter to `input.alsa` and
   `output.alsa` (#4243)
+- Reimplemented audioscrobbler support natively using the more
+  recent protocol (#4250)
 
 Changed:
 

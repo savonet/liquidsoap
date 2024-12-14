@@ -121,7 +121,6 @@ let build_config =
    - inotify           : %{Inotify_option.detected}
    - irc               : %{Irc_option.detected}
    - jemalloc          : %{Jemalloc_option.detected}
-   - lastfm            : %{Lastfm_option.detected}
    - lo                : %{Lo_option.detected}
    - memtrace          : %{Memtrace_option.detected}
    - osc               : %{Osc_option.detected}
