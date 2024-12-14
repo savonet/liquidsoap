@@ -563,7 +563,8 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
             "generate_frame: got metadata at position %d: calling handlers..." i;
           List.iter (fun fn -> fn m) on_metadata)
         metadata;
-      if has_track_mark then self#execute_on_track buf;
+      if has_track_mark then self#execute_on_track buf
+      else self#set_last_metadata buf;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);

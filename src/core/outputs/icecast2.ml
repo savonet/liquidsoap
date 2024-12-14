@@ -234,6 +234,12 @@ let proto frame_t =
         Some
           "Timeout for establishing network connections (disabled is negative)."
       );
+      ( "send_last_metadata_on_connect",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Send the source's last metadata when connecting to the remote \
+           icecast server." );
       ( "timeout",
         Lang.float_t,
         Some (Lang.float 30.),
@@ -340,6 +346,9 @@ class output p =
   let on_error error =
     let msg = Printexc.to_string error in
     Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
+  in
+  let send_last_metadata_on_connect =
+    e Lang.to_bool "send_last_metadata_on_connect"
   in
   let data = encoder_data p in
   let chunked = Lang.to_bool (List.assoc "chunked" p) in
@@ -603,7 +612,7 @@ class output p =
         try List.assoc "User-Agent" headers
         with Not_found -> Printf.sprintf "liquidsoap %s" Configure.version
       in
-      let source =
+      let handler =
         Cry.connection ~host ~port ~user ~password ?genre ?url ?description
           ~name ~public ~protocol ~mount ~chunked ~audio_info ~user_agent
           ~content_type:data.format ()
@@ -611,11 +620,19 @@ class output p =
       List.iter
         (fun (x, y) ->
           (* User-Agent has already been passed to Cry.. *)
-          if x <> "User-Agent" then Hashtbl.replace source.Cry.headers x y)
+          if x <> "User-Agent" then Hashtbl.replace handler.Cry.headers x y)
         headers;
       try
-        Cry.connect connection source;
+        Cry.connect connection handler;
         self#log#important "Connection setup was successful.";
+
+        (match (Lang.to_source source)#last_metadata with
+          | Some m when send_last_metadata_on_connect -> (
+              try
+                self#insert_metadata
+                  (Frame.Metadata.Export.from_metadata ~cover:false m)
+              with _ -> ())
+          | _ -> ());
 
         (* Execute on_connect hook. *)
         on_connect ()
