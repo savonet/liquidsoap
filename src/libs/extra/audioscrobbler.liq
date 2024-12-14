@@ -92,7 +92,7 @@ def audioscrobbler.auth(
   audioscrobbler.check_response(resp)
 
   try
-    let xml.parse ({lfm = {session = {name, key}}} :
+    let xml.parse ({lfm = {session = {key}}} :
       {lfm: {session: {name: string, key: string}}}
     ) = resp
     key
