@@ -205,6 +205,17 @@ of gstreamer's features. See [this PR](https://github.com/savonet/liquidsoap/pul
 The default port for the Prometheus metrics exporter has changed from `9090` to `9599`.
 As before, you can change it with `settings.prometheus.server.port := <your port value>`.
 
+### `source.dynamic`
+
+Many operators such as `single` and `request.once` have been reworked to use `source.dynamic` as their underlying
+implementation.
+
+The operator is now considered usable in production although we urge caution when using it: it is very powerful but can
+also break things!
+
+If you were (boldly!) using this operator before, the most important change is that its `set` method has been removed in
+favor of a unique callback API.
+
 ## From 2.1.x to 2.2.x
 
 ### References
