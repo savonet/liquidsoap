@@ -37,3 +37,18 @@ let _ =
       let m = Frame.Metadata.to_list (Lang.to_metadata (List.assoc "" p)) in
       let version = Lang.to_int (List.assoc "version" p) in
       Lang.string (Utils.id3v2_of_metadata ~version m))
+
+let parse = Lang.add_module ~base:Modules.metadata "parse"
+
+let _ =
+  Lang.add_builtin ~base:parse "amplify" ~category:`String
+    ~descr:
+      "Parse an amplify metadata. Parsing is the same as in the `amplify` \
+       operator. Metadata can be of the form: \"<db> dB\" for a decibel-based \
+       value or \"<float>\" for a linear-based value. Returns a decibel value."
+    [("", Lang.string_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      Lang.float
+        (Mm.Audio.dB_of_lin
+           (Amplify.parse_db (Lang.to_string (List.assoc "" p)))))

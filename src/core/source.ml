@@ -24,6 +24,8 @@ open Mm
 
 exception Unavailable
 
+module Queue = Liquidsoap_lang.Queues.Queue
+
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
@@ -65,9 +67,9 @@ type watcher = {
 
 let source_log = Log.make ["source"]
 
-let sleep s =
-  source_log#info "Source %s gets down." s#id;
-  try s#sleep
+let finalise s =
+  source_log#debug "Source %s is collected." s#id;
+  try s#force_sleep
   with e ->
     let bt = Printexc.get_backtrace () in
     Utils.log_exception ~log:source_log ~bt
@@ -113,7 +115,10 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
 
     method set_id ?(definitive = true) s =
       let s =
-        Pcre.substitute ~rex:(Pcre.regexp "[ \t\n.]") ~subst:(fun _ -> "_") s
+        Re.Pcre.substitute
+          ~rex:(Re.Pcre.regexp "[ \t\n.]")
+          ~subst:(fun _ -> "_")
+          s
       in
       if not definitive_id then (
         id <- Lang_string.generate_id s;
@@ -132,6 +137,18 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
 
     method virtual fallible : bool
     method source_type : source_type = `Passive
+    val mutable registered_commands = Queue.create ()
+
+    method register_command ?usage ~descr name cmd =
+      self#on_wake_up (fun () ->
+          let ns = [self#id] in
+          Server.add ~ns ?usage ~descr name cmd;
+          Queue.push registered_commands (ns, name))
+
+    initializer
+      self#on_sleep (fun () ->
+          Queue.flush_iter registered_commands (fun (ns, name) ->
+              Server.remove ~ns name))
 
     method active =
       match self#source_type with
@@ -215,19 +232,22 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
         try
           self#content_type_computation_allowed;
           if log == source_log then self#create_log;
-          source_log#info "Source %s gets up with content type: %s." id
-            (Frame.string_of_content_type self#content_type);
+          source_log#info
+            "Source %s gets up with content type: %s and frame type: %s." id
+            (Frame.string_of_content_type self#content_type)
+            (Type.to_string self#frame_type);
           self#log#debug "Clock is %s." (Clock.id self#clock);
           self#log#important "Content type is %s."
             (Frame.string_of_content_type self#content_type);
           List.iter (fun fn -> fn ()) on_wake_up
         with exn ->
           Atomic.set is_up `Error;
-          let bt = Printexc.get_backtrace () in
-          Utils.log_exception ~log ~bt
-            (Printf.sprintf "Error when starting source %s: %s!" self#id
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Error while starting source %s: %s!" self#id
                (Printexc.to_string exn));
-          Tutils.shutdown 1)
+          Printexc.raise_with_backtrace exn bt)
 
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- fn :: on_sleep
@@ -238,13 +258,13 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep =
-      match Atomic.get streaming_state with
-        | `Ready _ | `Unavailable ->
+      match (Clock.started self#clock, Atomic.get streaming_state) with
+        | true, (`Ready _ | `Unavailable) ->
             Clock.after_tick self#clock (fun () -> self#force_sleep)
         | _ -> self#force_sleep
 
     initializer
-      Gc.finalise sleep self;
+      Gc.finalise finalise self;
       self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
 
     (** Streaming *)
@@ -425,6 +445,14 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     initializer
       self#on_before_streaming_cycle (fun () -> on_track_called <- false)
 
+    val mutable reset_last_metadata_on_track = Atomic.make true
+
+    method reset_last_metadata_on_track =
+      Atomic.get reset_last_metadata_on_track
+
+    method set_reset_last_metadata_on_track =
+      Atomic.set reset_last_metadata_on_track
+
     val mutable on_track : (Frame.metadata -> unit) List.t = []
     method on_track fn = on_track <- fn :: on_track
 
@@ -436,6 +464,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
+        if self#reset_last_metadata_on_track then last_metadata <- None;
         self#set_last_metadata buf;
         let m = Option.value ~default:Frame.Metadata.empty last_metadata in
         self#log#debug "calling on_track handlers..";
@@ -628,16 +657,28 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
           match
             self#get_source ~reselect:(`After_position last_chunk_pos) ()
           with
-            | Some s' when last_source == s' ->
+            | Some s when last_source == s ->
                 let remainder =
                   s#get_partial_frame (fun frame ->
+                      if Frame.position frame <= last_chunk_pos then (
+                        self#log#critical
+                          "Source %s was re-selected but did not produce \
+                           enough data: %d <! %d"
+                          s#id (Frame.position frame) last_chunk_pos;
+                        assert false);
                       Frame.slice frame (last_chunk_pos + rem))
                 in
                 let new_track = Frame.after remainder last_chunk_pos in
+                let new_track =
+                  if merge () then Frame.drop_track_marks new_track
+                  else new_track
+                in
                 f ~last_source ~last_chunk:remainder
                   (Frame.append buf new_track)
             | Some s ->
-                assert s#is_ready;
+                if not s#is_ready then (
+                  self#log#critical "Underlying source %s is not ready!" s#id;
+                  assert false);
                 let new_track =
                   s#get_partial_frame (fun frame ->
                       match self#split_frame frame with

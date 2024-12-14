@@ -62,8 +62,9 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
     (* I/O shift registries *)
     val mutable xv = [||]
     val mutable yv = [||]
+    initializer self#on_wake_up (fun () -> self#initialize)
 
-    initializer
+    method private initialize =
       self#log#info "Initializing...";
       self#log#info "Alpha 1: %.013f (warped: %.013f)" raw_alpha1 warped_alpha1;
       self#log#info "Alpha 2: %.013f (warped: %.013f)" raw_alpha2 warped_alpha2;

@@ -1,4 +1,33 @@
-# 2.3.0 (unreleased)
+# 2.3.1 (unreleased)
+
+New:
+
+- Added support for parsing and rendering XML natively (#4252)
+- Added support for `WAVE_FORMAT_EXTENSIBLE` to the internal
+  wav dexcoder.
+- Added optional `buffer_size` parameter to `input.alsa` and
+  `output.alsa` (#4243)
+- Reimplemented audioscrobbler support natively using the more
+  recent protocol (#4250)
+
+Changed:
+
+- Make alsa I/O work with buffer size different than
+  liquidsoap internal frame (#4236)
+- Make `"song"` metadata mapping to `"title"` metadata in
+  `input.harbord` disabled when either `"artist"` or `"title"`
+  is also passed. Add a configuration key to disable this mechanism.
+  (#4235, #2676)
+
+Fixed:
+
+- Fixed request resolution loop when enabling both `autocue`
+  and `replaygain` metadata resolvers (#4245, fixed in #4246)
+- Convert all ICY (icecast) metadata from `input.http` to `utf8`.
+
+---
+
+# 2.3.0 (2024-11-27)
 
 New:
 
@@ -6,8 +35,7 @@ New:
   should greatly impact impredictable side-effect of the previous models w.r.t.
   track marks, content sharing and more. This also impacts multiple operators
   behavior. Mostly, things should be roughly the same with differences around
-  behaviors related to track marks (`source.on_track` and etc). See @TODO@ for
-  more details (#3577)
+  behaviors related to track marks (`source.on_track` and etc). (#3577)
 - Added script caching layer for faster script startup time. See: https://www.liquidsoap.info/blog/2024-06-13-a-faster-liquidsoap/ for details (#3924, #3949, #3959 and #3977)
 - Rewrote the clock/streaming loop layer. This prepares our streaming system to
   support multicore when the OCaml compiler is mature enough to allow it. Clocks
@@ -15,14 +43,16 @@ New:
   down `clock` variable. Users can use the `clock` function to retrieve the full
   methods, e.g. `s = sine(); c = clock(s.clock)`. This value has advanced functions
   for clock control such as `start`/`stop`, `ticks` and `self_sync` to check for
-  `self-sync`. See @TODO@ for more details. (#3781)
+  `self-sync`. (#3781)
 - Allow frames duration shorter than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
-  a higher CPU usage. See @TODO@ for more details (#3607)
+  a higher CPU usage (#3607)
 - Change default frame duration to `0.02s` (#4033)
 - Optimized runtime (#3927, #3928, #3919)
+- Added NDI output support (#4181)
 - Added `finally` to execute code regardless of whether or not an exception is raised
   (see: #3895 for more details).
+- Added support for Spinitron submission API (#4158)
 - Removed gstreamer support. Gstreamer's architecture was never a good fit for us
   and created a huge maintenance and debugging burden and it had been marked as
   deprecated for a while. Most, if not all of its features should be available using
@@ -31,39 +61,52 @@ New:
   and taglib, with its dependency on the C++ runtime library, has been causing issues
   with binary builds portability and crashes with the (not yet supported) OCaml 5
   compiler. (#4087)
-- Add `video.canvas` to make it possible to position video elements independently
+- Added `video.canvas` to make it possible to position video elements independently
   of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/))
-- Add cover manager from an original code by @vitoyucepi (#3651)
+- Added cover manager from an original code by @vitoyucepi (#3651)
 - Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
   one stream is encoded.
 - Allow trailing commas in record definition (#3300).
-- Add `metadata.getter.source.float` (#3356).
+- Added `metadata.getter.source.float` (#3356).
+- BREAKING: Added `duration` and `ticks` to metadata available when computing HLS segment names (#4135)
 - Added optional `main_playlist_writer` to `output.file.hls` and
   derivated operator (#3484)
 - Added `is_nan`, `is_infinite`, `ceil`, `floor`, `sign` and `round` (#3407)
 - Added `%track.drop` to the `%ffmpeg` encoder to allow partial encoding
   of a source's available tracks (#3480)
 - Added `let { foo? } = ...` pattern matching (#3481)
-- Add `metadata.replaygain` method to extract unified replay gain value from metadata (#3438).
-- Add `compute` parameter to `file.replaygain` to control gain calculation (#3438).
-- Add `compute` parameter to `enable_replaygain_metadata` to control replay gain calculation (#3438).
-- Add `copy:` protocol (#3506)
-- Add `file.touch`.
-- Add support for sqlite databases (#3575).
-- Add `string.of_int` and `string.spaces`.
-- Add `list.assoc.nullable`.
-- Add `source.cue` (#3620).
+- Added `metadata.replaygain` method to extract unified replay gain value from metadata (#3438).
+- Added `metadata.parse.amplify` to manually parse amplify override metadata.
+- Added `compute` parameter to `file.replaygain` to control gain calculation (#3438).
+- Added `compute` parameter to `enable_replaygain_metadata` to control replay gain calculation (#3438).
+- Added `copy:` protocol (#3506)
+- Added `file.touch`.
+- Added support for sqlite databases (#3575).
+- Added `string.of_int` and `string.spaces`.
+- Added `list.assoc.nullable`.
+- Added `source.cue` (#3620).
+- Added `string.chars` (#4111)
 - Added atomic file write operations.
+- Added new `macos_say` speech synthesis protocol. Make it the default implementation for the `say:`
+  protocol on `macos`.
+- Added `settings.request.timeout` to set the request timeout globally.
 
 Changed:
 
+- Reimplemented `request.once`, `single` and more using `source.dynamic`. Removed experiment
+  flag on `source.dynamic`. The operator is considered stable enough to define advanced sources
+  but the user should be careful when using it.
 - Mute SDL startup messages (#2913).
 - `int` can optionally raises an error when passing `nan` or `infinity`, `int(infinity)`
   now returns `max_int` and `int(-infinity)` returns `min_int`. (#3407)
 - Made default font a setting (#3507)
 - Changed internal metadata format to be immutable (#3297).
+- Removed `source.dump` and `source.drop` in favor of safer `request.dump` and `request.drop`.
+  `source.{dump, drop}` can still be implemented manually when needed and with the proper
+  knowledge of what's going on.
 - Allow a getter for the offset of `on_offset` and dropped the metadata
   mechanism for updating it (#3355).
+- `string.length` and `string.sub` now default to `utf8` encoding (#4109)
 - Disable output paging when `TERM` environment variable is not set.
 - Allow running as `root` user inside `docker` container by default (#3406).
 - Run `check_next` before playlist's requests resolutions (#3625)
@@ -73,12 +116,16 @@ Changed:
   `nan != x` is always `true`. Use `float.is_nan` to test if a float is `nan`.
 - BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
 - BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
+- BREAKING: protocols can now check for nested static uri. Typically, this means
+  that requests for an uri of the form: `annotate:key="value",...:/path/to/file.mp3`
+  is now considered infallible if `/path/to/file.mp3` can be decoded.
 - Added `parents` option of `file.mkdir` (#3600, #3601).
 - Added `forced_major_collections` record field to the result of `runtime.gc.stat()` and
   `runtime.gc.quick_stat()` (#3783).
 - Changed the port for the built-in Prometheus exporter to `9599` (#3801).
 - Set `segments_overheader` in HLS outputs to disable segments cleanup altogether.
-- Add support for caching LV2 and LADSPA plugins (#3959).
+- Added support for caching LV2 and LADSPA plugins (#3959).
+- Pulseaudio input and output now restart on pulseaudio errors (#4174).
 
 Fixed:
 
@@ -140,7 +187,7 @@ Fixed:
 - Make sure reconnection errors are router through the regulat `on_error` callback in `output.icecast` (#3635)
 - Fixed discontinuity count after a restart in HLS outputs.
 - Fixed file header logic when reopening in `output.file` (#3675)
-- Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmepg`, SRT sources and `request.dynamic`)
+- Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmpeg`, SRT sources and `request.dynamic`)
 - Fixed invalid array fill in `add` (#3678)
 - Fixed deadlock when connecting to a non-SSL icecast using the TLS transport (#3681)
 - Fixed crash when closing external process (#3685)
@@ -891,7 +938,7 @@ New:
   harbor (#1495).
 - Added `interactive.persistent` (as well as `interactive.save` and
   `interactive.load`) to make interactive variables persistent (#1495).
-- Added `server.habor` (#1502).
+- Added `server.harbor` (#1502).
 - Added `metronome`.
 - Added `playlist.files`.
 - Added `getter.is_constant`.

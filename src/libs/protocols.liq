@@ -388,6 +388,23 @@ protocol.add(
   syntax="tmp:uri"
 )
 
+# Register fallible
+# @flag hidden
+def protocol.fallible(~rlog=_, ~maxtime=_, arg) =
+  arg
+end
+
+protocol.add(
+  "fallible",
+  protocol.fallible,
+  doc=
+    "Mark the given uri as being fallible. This can be used to prevent a request \
+     or source from being resolved once and for all and considered infallible \
+     for the duration of the script, typically when debugging.",
+  static=fun (_) -> false,
+  syntax="fallible:uri"
+)
+
 let settings.protocol.ffmpeg = settings.make.protocol("FFmpeg")
 let settings.protocol.ffmpeg.path =
   settings.make(
@@ -429,7 +446,7 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
     end
 
     m = string.concat(separator=",", list.map(f, m))
-    if string.length(m) > 0 then "annotate:#{m}:" else "" end
+    if string.bytes.length(m) > 0 then "annotate:#{m}:" else "" end
   end
 
   def parse_metadata(file) =
@@ -643,15 +660,13 @@ def protocol.stereo(~rlog=_, ~maxtime=_, arg) =
     )
     null()
   else
-    # TODO: the following sometimes hangs, so we resolve twice...
-    # source.dump(%wav, file, source.stereo(once(request.queue(queue=[r]))))
-    source.dump(%wav, file, stereo(once(single(arg))))
+    request.dump(%wav, file, request.create(arg))
     file
   end
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   temporary=true,
   "stereo",
   protocol.stereo,
@@ -671,7 +686,7 @@ def protocol.copy(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "copy",
   protocol.copy,
   doc=
@@ -699,7 +714,7 @@ def protocol.text2wave(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "text2wave",
   protocol.text2wave,
   doc=
@@ -736,7 +751,7 @@ def protocol.pico2wave(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "pico2wave",
   protocol.pico2wave,
   doc=
@@ -781,7 +796,7 @@ def protocol.gtts(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "gtts",
   protocol.gtts,
   doc=
@@ -791,14 +806,52 @@ protocol.add(
     "gtts:Text to read"
 )
 
+# MacOS say
+let settings.protocol.macos_say = settings.make.protocol("macos_say")
+let settings.protocol.macos_say.path =
+  settings.make(
+    description=
+      "Path to the say binary",
+    "say"
+  )
+
+let settings.protocol.macos_say.options =
+  settings.make(
+    description=
+      "Command line options.",
+    ""
+  )
+
+# Register the macos_say: protocol using the say command available on macos
+# @flag hidden
+def protocol.macos_say(~rlog=_, ~maxtime=_, arg) =
+  binary = settings.protocol.macos_say.path()
+  options = settings.protocol.macos_say.options()
+  process.uri(
+    extname="aiff",
+    "#{binary} #{options} -o $(output) #{process.quote(arg)}"
+  )
+end
+
+protocol.add(
+  static=fun (_) -> true,
+  "macos_say",
+  protocol.macos_say,
+  doc=
+    "Generate speech synthesis using the `say` command available on macos.",
+  syntax=
+    "macos_say:Text to read"
+)
+
 # Say
 
 let settings.protocol.say = settings.make.protocol("say")
 let settings.protocol.say.implementation =
   settings.make(
     description=
-      "Implementation to use. One of: \"pico2wave\", \"gtts\" or \"text2wave\".",
-    "pico2wave"
+      "Implementation to use. One of: \"pico2wave\", \"gtts\", \"text2wave\" or \
+       \"macos_say\".",
+    liquidsoap.build_config.system == "macosx" ? "macos_say" : "pico2wave"
   )
 
 # Register the legacy say: protocol
@@ -808,7 +861,7 @@ def protocol.say(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "say",
   protocol.say,
   doc=
@@ -955,7 +1008,7 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   "polly",
   polly_protocol,
   doc=
@@ -1011,7 +1064,19 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
         label="synth",
         "Synthesizing #{shape()} in #{file}."
       )
-      source.dump(%wav, file, once(s))
+
+      clock.assign_new(sync="passive", [s])
+
+      stopped = ref(false)
+      output.file(
+        fallible=true, on_stop={stopped.set(true)}, %wav, file, once(s)
+      )
+
+      c = clock(s.clock)
+      c.start()
+      while not stopped() do c.tick() end
+      c.stop()
+
       file
     end
 
@@ -1032,7 +1097,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   temporary=true,
   "synth",
   synth_protocol,
@@ -1063,7 +1128,7 @@ def file_protocol(~rlog=_, ~maxtime=_, arg) =
 end
 
 protocol.add(
-  static=true,
+  static=fun (_) -> true,
   temporary=false,
   "file",
   file_protocol,

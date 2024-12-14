@@ -365,9 +365,7 @@ let register_descr d =
     @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
   in
   let maker = d.plugin_maker in
-  let maker =
-    Pcre.substitute ~rex:(Pcre.regexp "@") ~subst:(fun _ -> "(at)") maker
-  in
+  let maker = String.concat "(at)" (String.split_on_char '@' maker) in
   let descr = Printf.sprintf "%s by %s." d.plugin_name maker in
   let return_t =
     if mono then input_t

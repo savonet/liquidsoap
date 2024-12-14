@@ -92,6 +92,59 @@ end
   However, EBU R128 data is now extracted directly from metadata when available.
   So `replaygain` cannot control the gain type via this parameter anymore.
 
+### Regular expressions
+
+The library providing regular expressions has been switched with `2.3.0`. This means that subtle differences
+can arise with the evaluation of some regular expressions.
+
+Here's an example that was recently reported:
+
+In `2.2.x`, this was true:
+
+```
+# When using a regular expression with a capture pattern to split, the value matched for splitting is returned:
+% string.split(separator="(:|,)", "foo:bar")
+["foo", ":", "bar"]
+
+# But not when using a regular expression without matching:
+% string.split(separator=":|,", "foo:bar")
+["foo", "bar"]
+```
+
+In `2.3.x`, the matched pattern is not returned:
+
+```
+% string.split(separator="(:|,)", "foo:bar")
+["foo", "bar"]
+
+% string.split(separator=":|,", "foo:bar")
+["foo", "bar"]
+```
+
+### Static requests
+
+Static requests detection can now work with nested requests.
+
+Typically, a request for this URI: `annotate:key="value",...:/path/to/file.mp3` will be
+considered static if `/path/to/file.mp3` can be decoded.
+
+Practically, this means that more source will now be considered infallible, for instance
+a `single` using the above uri.
+
+In most cases, this should improve the user experience when building new scripts and streaming
+systems.
+
+In rare cases where you actually wanted a fallible source, you can still pass `fallible=true` to e.g.
+the `single` operator or use the `fallible:` protocol.
+
+### String functions
+
+Some string functions have been updated to account for string encoding. In particular, `string.length` and `string.sub` now assume that their
+given string is in `utf8` by default.
+
+While this is what most user expect, this can lead to backward incompatibilities and new exceptions. You can change back to the old default by
+passing `encoding="ascii"` to these functions or using the `settings.string.default_encoding` settings.
+
 ### `check_next`
 
 `check_next` in playlist operators is now called _before_ the request is resolved, to make it possible to cut out
@@ -106,6 +159,19 @@ but you might experience some incompatibilities with advanced/complex ones.
 Known incompatibilities include:
 
 - `(?P<name>pattern)` for named captures is not supported. `(?<name>pattern)` should be used instead.
+
+### `segment_name` in HLS outputs
+
+To make segment name more flexible, `duration` (segment duration in seconds) and `ticks` (segment exact duration in liquidsoap's main ticks) have been added
+to the data available when calling `segment_name`.
+
+To prevent any further breakage of this function, its arguments have been changed to a single record containing all the available attributes:
+
+```liquidsoap
+def segment_name(metadata) =
+  "#{metadata.stream_name}_#{metadata.position}.#{metadata.extname}"
+end
+```
 
 ### `on_air` metadata
 
@@ -138,6 +204,17 @@ of gstreamer's features. See [this PR](https://github.com/savonet/liquidsoap/pul
 
 The default port for the Prometheus metrics exporter has changed from `9090` to `9599`.
 As before, you can change it with `settings.prometheus.server.port := <your port value>`.
+
+### `source.dynamic`
+
+Many operators such as `single` and `request.once` have been reworked to use `source.dynamic` as their underlying
+implementation.
+
+The operator is now considered usable in production although we urge caution when using it: it is very powerful but can
+also break things!
+
+If you were (boldly!) using this operator before, the most important change is that its `set` method has been removed in
+favor of a unique callback API.
 
 ## From 2.1.x to 2.2.x
 

@@ -28,11 +28,12 @@ let settings.autocue.preferred =
 let settings.autocue.amplify_behavior =
   settings.make(
     description=
-      "How to proceed with amplify data when `\"liq_amplify\"` is set. One of: \
-       `\"keep\"` (prefer user-provided value), `\"override\"` (always override \
-       with computed value), `\"ignore\"` (ignore/suppress loudness \
-       adjustment).",
-    "keep"
+      "How to proceed with loudness adjustment. Set to `\"override\"` to always prefer
+      the value provided by the `autocue` provider. Set to `\"ignore\"` to ignore all
+      loudness correction provided via the `autocue` provider. Set to
+      `\"keep\"` to always prefer user-provided values (via request annotation or file tags)
+      over values provided by the `autocue` provider.",
+    "override"
   )
 
 let settings.autocue.amplify_aliases =
@@ -53,7 +54,8 @@ let settings.autocue.internal.metadata_override =
       "liq_fade_in",
       "liq_fade_in_delay",
       "liq_fade_out",
-      "liq_fade_out_delay"
+      "liq_fade_out_delay",
+      "liq_disable_autocue"
     ]
   )
 
@@ -61,7 +63,7 @@ let settings.autocue.internal.lufs_target =
   settings.make(
     description=
       "Loudness target",
-    -16.0
+    -14.0
   )
 
 let settings.autocue.internal.cue_in_threshold =
@@ -134,7 +136,7 @@ let settings.autocue.internal.ratio =
   settings.make(
     description=
       "Maximum real time ratio to control speed of LUFS data analysis",
-    50.
+    70.
   )
 
 let settings.autocue.internal.timeout =
@@ -164,13 +166,12 @@ end
 
 # Get frames from ffmpeg.filter.ebur128
 # @flag hidden
-def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
+def autocue.internal.ebur128(~duration, ~ratio=50., ~timeout=10., filename) =
   ignore(ratio)
   ignore(timeout)
   ignore(filename)
+  ignore(duration)
 %ifdef ffmpeg.filter.ebur128
-  duration =
-    null.get(default=0., request.duration(resolve_metadata=false, filename))
   estimated_processing_time = duration / ratio
 
   if
@@ -186,24 +187,30 @@ def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
     )
     []
   else
-    s = request.once(request.create(resolve_metadata=false, filename))
+    r = request.create(resolve_metadata=false, filename)
     frames = ref([])
 
-    def ebur128(s) =
-      def mk_filter(graph) =
-        let {audio = a} = source.tracks(s)
-        a = ffmpeg.filter.audio.input(graph, a)
-        let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
-        a = ffmpeg.filter.audio.output(graph, a)
-        source({audio=a, metadata=track.metadata(a)})
+    def process(s) =
+      def ebur128(s) =
+        def mk_filter(graph) =
+          let {audio = a} = source.tracks(s)
+          a = ffmpeg.filter.audio.input(graph, a)
+          let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
+
+          # ebur filter seems to generate invalid PTS.
+          a = ffmpeg.filter.asetpts(expr="N/SR/TB", graph, a)
+          a = ffmpeg.filter.audio.output(id="filter_output", graph, a)
+          source({audio=a, metadata=track.metadata(a)})
+        end
+
+        ffmpeg.filter.create(mk_filter)
       end
 
-      ffmpeg.filter.create(mk_filter)
+      s = ebur128(s)
+      source.on_metadata(s, fun (m) -> frames := [...frames(), m])
     end
 
-    s = ebur128(s)
-    s = source.on_metadata(s, fun (m) -> frames := [...frames(), m])
-    source.drop(ratio=ratio, s)
+    request.process(ratio=ratio, process=process, r)
 
     frames()
   end
@@ -264,408 +271,439 @@ def autocue.internal.implementation(
       "Starting to process #{filename}"
     )
 
-    frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, filename)
+%ifdef request.duration.ffmpeg
+    duration = request.duration.ffmpeg(resolve_metadata=false, filename)
+%else
+    duration = null()
+%endif
 
     if
-      list.length(frames) < 2
+      duration == null()
     then
       log(
         level=2,
         label="autocue.internal",
-        "Autocue computation failed!"
+        "Could not get request duration, internal autocue disabled!"
       )
       null()
     else
-      # Get the 2nd last frame which is the last with loudness data
-      frame = list.nth(frames, list.length(frames) - 2)
+      duration = null.get(duration)
 
-      # Get the Integrated Loudness from the last frame (overall loudness)
-      lufs =
-        float_of_string(
-          list.assoc(default=string(lufs_target), "lavfi.r128.I", frame)
+      frames =
+        autocue.internal.ebur128(
+          duration=duration, ratio=ratio, timeout=timeout, filename
         )
 
-      # Calc LUFS difference to target for liq_amplify
-      lufs_correction = lufs_target - lufs
+      if
+        list.length(frames) < 2
+      then
+        log(
+          level=2,
+          label="autocue.internal",
+          "Autocue computation failed!"
+        )
+        null()
+      else
+        # Get the 2nd last frame which is the last with loudness data
+        frame = list.nth(frames, list.length(frames) - 2)
 
-      # Create dB thresholds relative to LUFS target
-      lufs_cue_in_threshold = lufs + cue_in_threshold
-      lufs_cue_out_threshold = lufs + cue_out_threshold
-      lufs_cross_threshold = lufs + cross_threshold
+        # Get the Integrated Loudness from the last frame (overall loudness)
+        lufs =
+          float_of_string(
+            list.assoc(default=string(lufs_target), "lavfi.r128.I", frame)
+          )
 
-      log(
-        level=4,
-        label="autocue.internal",
-        "Processing results for #{filename}"
-      )
+        # Calc LUFS difference to target for liq_amplify
+        lufs_correction = lufs_target - lufs
 
-      log(
-        level=4,
-        label="autocue.internal",
-        "lufs_correction: #{lufs_correction}"
-      )
-      log(
-        level=4,
-        label="autocue.internal",
-        "lufs_cue_in_threshold: #{lufs_cue_in_threshold}"
-      )
-      log(
-        level=4,
-        label="autocue.internal",
-        "lufs_cue_out_threshold: #{lufs_cue_out_threshold}"
-      )
-      log(
-        level=4,
-        label="autocue.internal",
-        "lufs_cross_threshold: #{lufs_cross_threshold}"
-      )
+        # Create dB thresholds relative to LUFS target
+        lufs_cue_in_threshold = lufs + cue_in_threshold
+        lufs_cue_out_threshold = lufs + cue_out_threshold
+        lufs_cross_threshold = lufs + cross_threshold
 
-      # Set cue/fade defaults
-      cue_in = ref(0.)
-      cue_out = ref(0.)
-      cross_cue = ref(0.)
-      fade_in = ref(0.)
-      fade_out = ref(0.)
+        log(
+          level=4,
+          label="autocue.internal",
+          "Processing results for #{filename}"
+        )
 
-      # Extract timestamps for cue points
-      # Iterate over loudness data frames and set cue points based on db thresholds
-      last_ts = ref(0.)
-      current_ts = ref(0.)
-      cue_found = ref(false)
-      cross_start_idx = ref(0.)
-      cross_stop_idx = ref(0.)
-      cross_mid_idx = ref(0.)
-      cross_frame_length = ref(0.)
-      ending_fst_db = ref(0.)
-      ending_snd_db = ref(0.)
-      reset_iter_values = ref(true)
+        log(
+          level=4,
+          label="autocue.internal",
+          "lufs_correction: #{lufs_correction}"
+        )
+        log(
+          level=4,
+          label="autocue.internal",
+          "lufs_cue_in_threshold: #{lufs_cue_in_threshold}"
+        )
+        log(
+          level=4,
+          label="autocue.internal",
+          "lufs_cue_out_threshold: #{lufs_cue_out_threshold}"
+        )
+        log(
+          level=4,
+          label="autocue.internal",
+          "lufs_cross_threshold: #{lufs_cross_threshold}"
+        )
 
-      frames_rev = list.rev(frames)
-      total_frames_length = float_of_int(list.length(frames))
-      frame_idx = ref(total_frames_length - 1.)
-      lufs_cross_threshold_sustained = ref(lufs_cross_threshold)
-      lufs_cue_out_threshold_sustained = ref(lufs_cue_out_threshold)
+        # Set cue/fade defaults
+        cue_in = ref(0.)
+        cue_out = ref(0.)
+        cross_cue = ref(0.)
+        fade_in = ref(0.)
+        fade_out = ref(0.)
 
-      err = error.register("assoc")
-      def find_cues(
-        frame,
-        ~reverse_order=false,
-        ~sustained_ending_check=false,
-        ~sustained_ending_recalc=false
-      ) =
-        if
-          reset_iter_values()
-        then
-          last_ts := 0.
-          current_ts := 0.
-          cue_found := false
-        end
+        # Extract timestamps for cue points
+        # Iterate over loudness data frames and set cue points based on db thresholds
+        last_ts = ref(0.)
+        current_ts = ref(0.)
+        cue_found = ref(false)
+        cross_start_idx = ref(0.)
+        cross_stop_idx = ref(0.)
+        cross_mid_idx = ref(0.)
+        cross_frame_length = ref(0.)
+        ending_fst_db = ref(0.)
+        ending_snd_db = ref(0.)
+        reset_iter_values = ref(true)
 
-        # Get current frame loudness level and timestamp
-        db_level = list.assoc(default="nan", string("lavfi.r128.M"), frame)
-        current_ts :=
-          float_of_string(list.assoc(default="0.", "lavfi.liq.pts", frame))
+        frames_rev = list.rev(frames)
+        total_frames_length = float_of_int(list.length(frames))
+        frame_idx = ref(total_frames_length - 1.)
+        lufs_cross_threshold_sustained = ref(lufs_cross_threshold)
+        lufs_cue_out_threshold_sustained = ref(lufs_cue_out_threshold)
 
-        # Process only valid level values
-        if
-          db_level != "nan"
-        then
-          db_level = float_of_string(db_level)
-
+        err = error.register("assoc")
+        def find_cues(
+          frame,
+          ~reverse_order=false,
+          ~sustained_ending_check=false,
+          ~sustained_ending_recalc=false
+        ) =
           if
-            not sustained_ending_check and not sustained_ending_recalc
+            reset_iter_values()
           then
-            # Run regular cue point calc
-            reset_iter_values := false
-            if
-              not reverse_order
-            then
-              # Search for cue in
-              if
-                db_level > lufs_cue_in_threshold
-              then
-                # First time exceeding threshold
-                cue_in := last_ts()
+            last_ts := 0.
+            current_ts := 0.
+            cue_found := false
+          end
 
-                # Break
+          # Get current frame loudness level and timestamp
+          db_level = list.assoc(default="nan", string("lavfi.r128.M"), frame)
+          current_ts :=
+            float_of_string(list.assoc(default="0.", "lavfi.liq.pts", frame))
+
+          # Process only valid level values
+          if
+            db_level != "nan"
+          then
+            db_level = float_of_string(db_level)
+
+            if
+              not sustained_ending_check and not sustained_ending_recalc
+            then
+              # Run regular cue point calc
+              reset_iter_values := false
+              if
+                not reverse_order
+              then
+                # Search for cue in
+                if
+                  db_level > lufs_cue_in_threshold
+                then
+                  # First time exceeding threshold
+                  cue_in := last_ts()
+
+                  # Break
+                  error.raise(
+                    err,
+                    "break list.iter"
+                  )
+                end
+              else
+                # Search for cue out and crossfade point starting from the end (reversed)
+                if
+                  db_level > lufs_cue_out_threshold and not cue_found()
+                then
+                  # Cue out
+                  cue_out := last_ts()
+                  cross_stop_idx := frame_idx()
+                  cue_found := true
+                elsif
+                  db_level > lufs_cross_threshold
+                then
+                  # Absolute crossfade cue
+                  cross_cue := last_ts()
+                  cross_start_idx := frame_idx()
+
+                  # Break
+                  error.raise(
+                    err,
+                    "break list.iter"
+                  )
+                end
+                frame_idx := frame_idx() - 1.
+              end
+            elsif
+              sustained_ending_check
+            then
+              # Check regular crossfade data for sustained ending
+              if
+                reset_iter_values()
+              then
+                frame_idx := total_frames_length - 1.
+                cross_start_idx := cross_start_idx() + 5.
+                cross_stop_idx := cross_stop_idx() - 5.
+                cross_frame_length := cross_stop_idx() - cross_start_idx()
+                cross_mid_idx := cross_stop_idx() - (cross_frame_length() / 2.)
+              end
+              reset_iter_values := false
+
+              if
+                frame_idx() < cross_start_idx()
+              or
+                cross_frame_length() < sustained_endings_min_duration * 10.
+              then
                 error.raise(
                   err,
                   "break list.iter"
                 )
               end
-            else
-              # Search for cue out and crossfade point starting from the end (reversed)
+
               if
-                db_level > lufs_cue_out_threshold and not cue_found()
+                frame_idx() < cross_stop_idx() and frame_idx() > cross_mid_idx()
+              then
+                if
+                  ending_snd_db() < 0.
+                then
+                  ending_snd_db := (ending_snd_db() + db_level) / 2.
+                else
+                  ending_snd_db := db_level
+                end
+              end
+
+              if
+                frame_idx() > cross_start_idx()
+              and
+                frame_idx() < cross_mid_idx()
+              then
+                if
+                  ending_fst_db() < 0.
+                then
+                  ending_fst_db := (ending_fst_db() + db_level) / 2.
+                else
+                  ending_fst_db := db_level
+                end
+              end
+              frame_idx := frame_idx() - 1.
+            elsif
+              sustained_ending_recalc
+            then
+              # Recalculate crossfade on sustained ending
+              if
+                reset_iter_values()
+              then
+                cue_out := 0.
+                cross_cue := 0.
+              end
+              reset_iter_values := false
+              if
+                db_level > lufs_cue_out_threshold_sustained()
+              and
+                not cue_found()
               then
                 # Cue out
                 cue_out := last_ts()
-                cross_stop_idx := frame_idx()
                 cue_found := true
-              elsif
-                db_level > lufs_cross_threshold
+              end
+              if
+                db_level > lufs_cross_threshold_sustained()
               then
                 # Absolute crossfade cue
-                cross_cue := last_ts()
-                cross_start_idx := frame_idx()
-
-                # Break
+                cross_cue := current_ts()
                 error.raise(
                   err,
                   "break list.iter"
                 )
               end
-              frame_idx := frame_idx() - 1.
-            end
-          elsif
-            sustained_ending_check
-          then
-            # Check regular crossfade data for sustained ending
-            if
-              reset_iter_values()
-            then
-              frame_idx := total_frames_length - 1.
-              cross_start_idx := cross_start_idx() + 5.
-              cross_stop_idx := cross_stop_idx() - 5.
-              cross_frame_length := cross_stop_idx() - cross_start_idx()
-              cross_mid_idx := cross_stop_idx() - (cross_frame_length() / 2.)
-            end
-            reset_iter_values := false
-
-            if
-              frame_idx() < cross_start_idx()
-            or
-              cross_frame_length() < sustained_endings_min_duration * 10.
-            then
-              error.raise(
-                err,
-                "break list.iter"
-              )
             end
 
-            if
-              frame_idx() < cross_stop_idx() and frame_idx() > cross_mid_idx()
-            then
-              if
-                ending_snd_db() < 0.
-              then
-                ending_snd_db := (ending_snd_db() + db_level) / 2.
-              else
-                ending_snd_db := db_level
-              end
-            end
-
-            if
-              frame_idx() > cross_start_idx() and frame_idx() < cross_mid_idx()
-            then
-              if
-                ending_fst_db() < 0.
-              then
-                ending_fst_db := (ending_fst_db() + db_level) / 2.
-              else
-                ending_fst_db := db_level
-              end
-            end
-            frame_idx := frame_idx() - 1.
-          elsif
-            sustained_ending_recalc
-          then
-            # Recalculate crossfade on sustained ending
-            if
-              reset_iter_values()
-            then
-              cue_out := 0.
-              cross_cue := 0.
-            end
-            reset_iter_values := false
-            if
-              db_level > lufs_cue_out_threshold_sustained() and not cue_found()
-            then
-              # Cue out
-              cue_out := last_ts()
-              cue_found := true
-            end
-            if
-              db_level > lufs_cross_threshold_sustained()
-            then
-              # Absolute crossfade cue
-              cross_cue := current_ts()
-              error.raise(
-                err,
-                "break list.iter"
-              )
-            end
+            # Update last timestamp value with current
+            last_ts := current_ts()
           end
-
-          # Update last timestamp value with current
-          last_ts := current_ts()
         end
-      end
 
-      # Search for cue_in first
-      reset_iter_values := true
-      def cue_iter_fwd(frame) =
-        find_cues(frame)
-      end
-      try
-        list.iter(cue_iter_fwd, frames)
-      catch _ do
-        log(
-          level=4,
-          label="autocue.internal",
-          "cue_iter_fwd completed."
-        )
-      end
-
-      # Reverse frames and search in reverse order for cross_cue and cue_out
-      reset_iter_values := true
-      def cue_iter_rev(frame) =
-        find_cues(frame, reverse_order=true)
-      end
-      try
-        list.iter(cue_iter_rev, frames_rev)
-      catch _ do
-        log(
-          level=4,
-          label="autocue.internal",
-          "cue_iter_rev completed."
-        )
-      end
-
-      if
-        sustained_endings_enabled
-      then
-        # Check for sustained ending
+        # Search for cue_in first
         reset_iter_values := true
-        def sustained_ending_check_iter(frame) =
-          find_cues(frame, sustained_ending_check=true)
+        def cue_iter_fwd(frame) =
+          find_cues(frame)
         end
         try
-          list.iter(sustained_ending_check_iter, frames_rev)
+          list.iter(cue_iter_fwd, frames)
         catch _ do
           log(
             level=4,
-            label="autocue.internal.sustained_ending",
-            "sustained_ending_check_iter completed."
+            label="autocue.internal",
+            "cue_iter_fwd completed."
           )
         end
 
-        log(
-          level=4,
-          label="autocue.internal.sustained_ending",
-          "Analysis frame length: #{cross_frame_length()}"
-        )
-        log(
-          level=4,
-          label="autocue.internal.sustained_ending",
-          "Avg. ending loudness: #{ending_fst_db()} => #{ending_snd_db()}"
-        )
+        # Reverse frames and search in reverse order for cross_cue and cue_out
+        reset_iter_values := true
+        def cue_iter_rev(frame) =
+          find_cues(frame, reverse_order=true)
+        end
+        try
+          list.iter(cue_iter_rev, frames_rev)
+        catch _ do
+          log(
+            level=4,
+            label="autocue.internal",
+            "cue_iter_rev completed."
+          )
+        end
 
-        # Check whether data indicate a sustained ending
         if
-          ending_fst_db() < 0.
+          sustained_endings_enabled
         then
-          slope = ref(0.)
-          dropoff = lufs_cross_threshold / ending_fst_db()
-
-          if
-            ending_snd_db() < 0.
-          then
-            slope := ending_fst_db() / ending_snd_db()
+          # Check for sustained ending
+          reset_iter_values := true
+          def sustained_ending_check_iter(frame) =
+            find_cues(frame, sustained_ending_check=true)
+          end
+          try
+            list.iter(sustained_ending_check_iter, frames_rev)
+          catch _ do
+            log(
+              level=4,
+              label="autocue.internal.sustained_ending",
+              "sustained_ending_check_iter completed."
+            )
           end
 
           log(
             level=4,
             label="autocue.internal.sustained_ending",
-            "Drop off: #{(1. - dropoff) * 100.}%"
+            "Analysis frame length: #{cross_frame_length()}"
           )
           log(
             level=4,
             label="autocue.internal.sustained_ending",
-            "Slope: #{(1. - slope()) * 100.}%"
+            "Avg. ending loudness: #{ending_fst_db()} => #{ending_snd_db()}"
           )
 
-          detect_slope = slope() > 1. - sustained_endings_slope / 100.
-          detect_dropoff =
-            ending_fst_db() >
-              lufs_cross_threshold * (sustained_endings_dropoff / 100. + 1.)
+          # Check whether data indicate a sustained ending
           if
-            detect_slope or detect_dropoff
+            ending_fst_db() < 0.
           then
-            log(
-              level=3,
-              label="autocue.internal.sustained_ending",
-              "Sustained ending detected (drop off: #{detect_dropoff} / slope: #{
-                detect_slope
-              })"
-            )
+            slope = ref(0.)
+            dropoff = lufs_cross_threshold / ending_fst_db()
 
             if
-              detect_slope
+              ending_snd_db() < 0.
             then
-              lufs_cross_threshold_sustained :=
-                max(
-                  lufs_cross_threshold * sustained_endings_threshold_limit,
-                  ending_snd_db() - 0.5
-                )
-            else
-              lufs_cross_threshold_sustained :=
-                max(
-                  lufs_cross_threshold * sustained_endings_threshold_limit,
-                  ending_fst_db() - 0.5
-                )
+              slope := ending_fst_db() / ending_snd_db()
             end
-            lufs_cue_out_threshold_sustained =
-              ref(
-                max(
-                  lufs_cue_out_threshold * sustained_endings_threshold_limit,
-                  lufs_cue_out_threshold +
-                    (lufs_cross_threshold_sustained() - lufs_cross_threshold)
-                )
+
+            log(
+              level=4,
+              label="autocue.internal.sustained_ending",
+              "Drop off: #{(1. - dropoff) * 100.}%"
+            )
+            log(
+              level=4,
+              label="autocue.internal.sustained_ending",
+              "Slope: #{(1. - slope()) * 100.}%"
+            )
+
+            detect_slope = slope() > 1. - sustained_endings_slope / 100.
+            detect_dropoff =
+              ending_fst_db() >
+                lufs_cross_threshold * (sustained_endings_dropoff / 100. + 1.)
+            if
+              detect_slope or detect_dropoff
+            then
+              log(
+                level=3,
+                label="autocue.internal.sustained_ending",
+                "Sustained ending detected (drop off: #{detect_dropoff} / slope: \
+                 #{detect_slope})"
               )
 
-            log(
-              level=4,
-              label="autocue.internal.sustained_ending",
-              "Changed crossfade threshold: #{lufs_cross_threshold} => #{
-                lufs_cross_threshold_sustained()
-              }"
-            )
-            log(
-              level=4,
-              label="autocue.internal.sustained_ending",
-              "Changed cue out threshold: #{lufs_cue_out_threshold} => #{
-                lufs_cue_out_threshold_sustained()
-              }"
-            )
+              if
+                detect_slope
+              then
+                lufs_cross_threshold_sustained :=
+                  max(
+                    lufs_cross_threshold * sustained_endings_threshold_limit,
+                    ending_snd_db() - 0.5
+                  )
+              else
+                lufs_cross_threshold_sustained :=
+                  max(
+                    lufs_cross_threshold * sustained_endings_threshold_limit,
+                    ending_fst_db() - 0.5
+                  )
+              end
+              lufs_cue_out_threshold_sustained =
+                ref(
+                  max(
+                    lufs_cue_out_threshold * sustained_endings_threshold_limit,
+                    lufs_cue_out_threshold +
+                      (lufs_cross_threshold_sustained() - lufs_cross_threshold)
+                  )
+                )
 
-            cross_cue_init = cross_cue()
-            cue_out_init = cue_out()
-
-            reset_iter_values := true
-            def sustained_ending_recalc_iter(frame) =
-              find_cues(frame, sustained_ending_recalc=true)
-            end
-            try
-              list.iter(sustained_ending_recalc_iter, frames_rev)
-            catch _ do
               log(
                 level=4,
-                label="autocue.internal",
-                "sustained_ending_recalc_iter completed."
+                label="autocue.internal.sustained_ending",
+                "Changed crossfade threshold: #{lufs_cross_threshold} => #{
+                  lufs_cross_threshold_sustained()
+                }"
+              )
+              log(
+                level=4,
+                label="autocue.internal.sustained_ending",
+                "Changed cue out threshold: #{lufs_cue_out_threshold} => #{
+                  lufs_cue_out_threshold_sustained()
+                }"
+              )
+
+              cross_cue_init = cross_cue()
+              cue_out_init = cue_out()
+
+              reset_iter_values := true
+              def sustained_ending_recalc_iter(frame) =
+                find_cues(frame, sustained_ending_recalc=true)
+              end
+              try
+                list.iter(sustained_ending_recalc_iter, frames_rev)
+              catch _ do
+                log(
+                  level=4,
+                  label="autocue.internal",
+                  "sustained_ending_recalc_iter completed."
+                )
+              end
+
+              log(
+                level=4,
+                label="autocue.internal.sustained_ending",
+                "Changed crossfade point: #{cross_cue_init} => #{cross_cue()}"
+              )
+              log(
+                level=4,
+                label="autocue.internal.sustained_ending",
+                "Changed cue out point:  #{cue_out_init} => #{cue_out()}"
+              )
+            else
+              log(
+                level=3,
+                label="autocue.internal.sustained_ending",
+                "No sustained ending detected."
               )
             end
-
-            log(
-              level=4,
-              label="autocue.internal.sustained_ending",
-              "Changed crossfade point: #{cross_cue_init} => #{cross_cue()}"
-            )
-            log(
-              level=4,
-              label="autocue.internal.sustained_ending",
-              "Changed cue out point:  #{cue_out_init} => #{cue_out()}"
-            )
           else
             log(
               level=3,
@@ -673,86 +711,74 @@ def autocue.internal.implementation(
               "No sustained ending detected."
             )
           end
-        else
-          log(
-            level=3,
-            label="autocue.internal.sustained_ending",
-            "No sustained ending detected."
-          )
         end
+
+        # Finalize cue/cross/fade values now...
+        if cue_out() == 0. then cue_out := duration end
+
+        # Calc cross/overlap duration
+        if
+          cross_cue() + 0.1 < cue_out()
+        then
+          fade_out := cue_out() - cross_cue()
+        end
+
+        # Add some margin to cue in
+        cue_in := cue_in() - 0.1
+
+        # Avoid hard cuts on cue in
+        if
+          cue_in() > 0.2
+        then
+          fade_in := 0.2
+          cue_in := cue_in() - 0.2
+        end
+
+        # Ignore super short cue in
+        if
+          cue_in() <= 0.2
+        then
+          fade_in := 0.
+          cue_in := 0.
+        end
+
+        # Limit overlap duration to maximum
+        if max_overlap < fade_in() then fade_in := max_overlap end
+
+        if
+          max_overlap < fade_out()
+        then
+          cue_shift = fade_out() - max_overlap
+          cue_out := cue_out() - cue_shift
+          fade_out := max_overlap
+          fade_out := max_overlap
+        end
+
+        (
+          {
+            amplify=
+              "#{lufs_correction} dB",
+            cue_in=cue_in(),
+            cue_out=cue_out(),
+            fade_in=fade_in(),
+            fade_out=fade_out()
+          }
+        :
+          {
+            amplify?: string,
+            cue_in: float,
+            cue_out: float,
+            fade_in: float,
+            fade_in_type?: string,
+            fade_in_curve?: float,
+            fade_out: float,
+            fade_out_type?: string,
+            fade_out_curve?: float,
+            start_next?: float,
+            extra_metadata?: [(string*string)]
+          }
+        )
       end
-
-      # Get very last frame for precise track duration
-      frame = list.last(frames)
-      duration =
-        float_of_string(list.assoc(default="0.", "lavfi.liq.pts", frame)) +
-          float_of_string(list.assoc(default="0.", "lavfi.liq.duration", frame))
-
-      # Finalize cue/cross/fade values now...
-      if cue_out() == 0. then cue_out := duration end
-
-      # Calc cross/overlap duration
-      if
-        cross_cue() + 0.1 < cue_out()
-      then
-        fade_out := cue_out() - cross_cue()
-      end
-
-      # Add some margin to cue in
-      cue_in := cue_in() - 0.1
-
-      # Avoid hard cuts on cue in
-      if
-        cue_in() > 0.2
-      then
-        fade_in := 0.2
-        cue_in := cue_in() - 0.2
-      end
-
-      # Ignore super short cue in
-      if
-        cue_in() <= 0.2
-      then
-        fade_in := 0.
-        cue_in := 0.
-      end
-
-      # Limit overlap duration to maximum
-      if max_overlap < fade_in() then fade_in := max_overlap end
-
-      if
-        max_overlap < fade_out()
-      then
-        cue_shift = fade_out() - max_overlap
-        cue_out := cue_out() - cue_shift
-        fade_out := max_overlap
-        fade_out := max_overlap
-      end
-
-      (
-        {
-          amplify=
-            "#{lufs_correction} dB",
-          cue_in=cue_in(),
-          cue_out=cue_out(),
-          fade_in=fade_in(),
-          fade_out=fade_out()
-        }
-      :
-        {
-          amplify?: string,
-          cue_in: float,
-          cue_out: float,
-          fade_in: float,
-          fade_in_type?: string,
-          fade_in_curve?: float,
-          fade_out: float,
-          fade_out_type?: string,
-          fade_out_curve?: float,
-          start_next?: float,
-          extra_metadata?: [(string*string)]
-        }
-      )
     end
   end
 end
@@ -763,9 +789,10 @@ let file.autocue = ()
 
 # Return the file's autocue values as metadata suitable for metadata override.
 # @category Source / Audio processing
-def file.autocue.metadata(~metadata, uri) =
+def file.autocue.metadata(~request_metadata, uri) =
   preferred_implementation = settings.autocue.preferred()
   implementations = settings.autocue.implementations()
+
   let (implementation_name, implementation) =
     if
       list.assoc.mem(preferred_implementation, implementations)
@@ -796,7 +823,10 @@ def file.autocue.metadata(~metadata, uri) =
       )
     end
 
-  r = request.create(excluded_metadata_resolvers=["autocue"], uri)
+  r =
+    request.create(
+      excluded_metadata_resolvers=decoder.metadata.reentrant(), uri
+    )
 
   if
     not request.resolve(r)
@@ -813,7 +843,7 @@ def file.autocue.metadata(~metadata, uri) =
       try
         autocue =
           implementation(
-            request_metadata=metadata,
+            request_metadata=request_metadata,
             file_metadata=request.metadata(r),
             request.filename(r)
           )
@@ -932,85 +962,116 @@ def enable_autocue_metadata() =
   if settings.request.prefetch() == 1 then settings.request.prefetch := 2 end
 
   def autocue_metadata(~metadata, fname) =
-    autocue_metadata = file.autocue.metadata(metadata=metadata, fname)
+    metadata_overrides = settings.autocue.internal.metadata_override()
 
-    all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
-    user_supplied_amplify =
-      list.filter_map(
-        fun (el) ->
-          if list.mem(fst(el), all_amplify) then snd(el) else null() end,
-        metadata
+    if
+      list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
+    then
+      log(
+        level=2,
+        label="autocue.metadata",
+        "Override metadata detected for #{fname}, disabling autocue!"
       )
-    user_supplied_amplify_labels =
-      string.concat(
-        separator=
-          ", ",
-        user_supplied_amplify
-      )
+      []
+    else
+      autocue_metadata = file.autocue.metadata(request_metadata=metadata, fname)
 
-    autocue_metadata =
-      if
-        settings.autocue.amplify_behavior() == "ignore"
-      then
-        [...list.assoc.remove("liq_amplify", autocue_metadata)]
-      else
+      all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
+
+      user_supplied_amplify =
+        list.filter_map(
+          fun (el) ->
+            if list.mem(fst(el), all_amplify) then fst(el) else null() end,
+          metadata
+        )
+
+      user_supplied_amplify_labels =
+        string.concat(
+          separator=
+            ", ",
+          user_supplied_amplify
+        )
+
+      autocue_metadata =
         if
-          user_supplied_amplify != []
+          settings.autocue.amplify_behavior() == "ignore"
         then
+          [...list.assoc.remove("liq_amplify", autocue_metadata)]
+        else
           if
-            settings.autocue.amplify_behavior() == "keep"
+            user_supplied_amplify != []
           then
-            log(
-              level=3,
-              label="autocue.metadata",
-              "User-supplied amplify metadata detected: #{
-                user_supplied_amplify_labels
-              }, keeping user-provided data."
-            )
-            list.assoc.remove("liq_amplify", autocue_metadata)
-          elsif
-            settings.autocue.amplify_behavior() == "override"
-          then
-            log(
-              level=3,
-              label="autocue.metadata",
-              "User-supplied amplify metadata detected: #{
-                user_supplied_amplify_labels
-              }, overriding with data."
-            )
-            [
-              ...list.assoc.remove("liq_amplify", autocue_metadata),
-              ...list.map(
-                fun (lbl) -> (lbl, autocue_metadata["liq_amplify"]),
-                user_supplied_amplify
+            if
+              settings.autocue.amplify_behavior() == "keep"
+            then
+              log(
+                level=3,
+                label="autocue.metadata",
+                "User-supplied amplify metadata detected: #{
+                  user_supplied_amplify_labels
+                }, keeping user-provided data."
               )
-            ]
+              list.assoc.remove("liq_amplify", autocue_metadata)
+            elsif
+              settings.autocue.amplify_behavior() == "override"
+            then
+              log(
+                level=3,
+                label="autocue.metadata",
+                "User-supplied amplify metadata detected: #{
+                  user_supplied_amplify_labels
+                }, overriding with autocue data."
+              )
+              [
+                ...autocue_metadata,
+                # This replaces all user-provided tags with the value returned by
+                # the autocue implementation.
+                ...list.map(
+                  fun (lbl) -> (lbl, autocue_metadata["liq_amplify"]),
+                  user_supplied_amplify
+                )
+              ]
+            else
+              log(
+                level=2,
+                label="autocue.metadata",
+                "Invalid value for `settings.autocue.amplify_behavior`: #{
+                  settings.autocue.amplify_behavior()
+                }"
+              )
+              autocue_metadata
+            end
           else
-            log(
-              level=2,
-              label="autocue.metadata",
-              "Invalid value for `settings.autocue.amplify_behavior`: #{
-                settings.autocue.amplify_behavior()
-              }"
-            )
             autocue_metadata
           end
-        else
-          autocue_metadata
         end
-      end
-    log(level=4, label="autocue.metadata", "#{autocue_metadata}")
-    autocue_metadata
+      log(level=4, label="autocue.metadata", "#{autocue_metadata}")
+      autocue_metadata
+    end
   end
+
+%ifdef settings.decoder.mime_types.ffmpeg
+  mime_types = settings.decoder.mime_types.ffmpeg()
+  file_extensions = settings.decoder.file_extensions.ffmpeg()
+%else
+  mime_types = null()
+  file_extensions = null()
+%endif
+
   decoder.metadata.add(
-    priority=settings.autocue.metadata.priority, "autocue", autocue_metadata
+    mime_types=mime_types,
+    file_extensions=file_extensions,
+    priority=settings.autocue.metadata.priority,
+    reentrant=true,
+    "autocue",
+    autocue_metadata
   )
 end
 
 # Define autocue protocol
 # @flag hidden
 def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
-  cue_metadata = file.autocue.metadata(metadata=[], arg)
+  cue_metadata = file.autocue.metadata(request_metadata=[], arg)
 
   if
     cue_metadata != []

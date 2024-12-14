@@ -10,6 +10,7 @@ module type Config = sig
 end
 
 exception Library_not_found
+exception Library_initialized of string
 
 let strnlen = foreign "strnlen" (ocaml_bytes @-> int @-> returning int)
 
@@ -78,7 +79,12 @@ let int_of_load_type = function
   | `Repair_no_pnr -> 11069
   | `Sublevel_pnr -> 10699
 
+let initialized = Atomic.make None
+
 let init ?license_key ~filename () =
+  (match Atomic.get initialized with
+    | Some f when f <> filename -> raise (Library_initialized f)
+    | _ -> Atomic.set initialized (Some filename));
   try
     let module C = C (struct
       let filename = filename

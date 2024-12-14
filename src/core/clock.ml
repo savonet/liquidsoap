@@ -45,26 +45,6 @@ let log = Log.make ["clock"]
 let conf_clock =
   Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
 
-(** If true, a clock keeps running when an output fails. Other outputs may
-  * still be useful. But there may also be some useless inputs left.
-  * If no active output remains, the clock will exit without triggering
-  * shutdown. We may need some device to allow this (but active and passive
-  * clocks will have to be treated separately). *)
-let allow_streaming_errors =
-  Dtools.Conf.bool
-    ~p:(conf_clock#plug "allow_streaming_errors")
-    ~d:false "Handling of streaming errors"
-    ~comments:
-      [
-        "Control the behaviour of clocks when an error occurs during streaming.";
-        "This has no effect on errors occurring during source initializations.";
-        "By default, any error will cause liquidsoap to shutdown. If errors";
-        "are allowed, faulty sources are simply removed and clocks keep \
-         running.";
-        "Allowing errors can result in complex surprising situations;";
-        "use at your own risk!";
-      ]
-
 let conf_log_delay =
   Dtools.Conf.float
     ~p:(conf_clock#plug "log_delay")
@@ -94,7 +74,7 @@ let conf_clock_preferred =
 let conf_clock_sleep_latency =
   Dtools.Conf.int
     ~p:(conf_clock#plug "sleep_latency")
-    ~d:1
+    ~d:5
     "How much time ahead (in frame duration) we should be until we let the \
      streaming loop sleep."
     ~comments:
@@ -204,6 +184,9 @@ let sources c =
         @ Queue.elements outputs
     | _ -> []
 
+(* Return the clock effective sync. Stopped clocks can
+   be unified with any active type clocks so [`Stopped _] returns
+   [`Stopped]. *)
 let _sync ?(pending = false) x =
   match Atomic.get x.state with
     | `Stopped p when pending -> (p :> sync_mode)
@@ -211,8 +194,14 @@ let _sync ?(pending = false) x =
     | `Stopping _ -> `Stopping
     | `Started { sync } -> (sync :> sync_mode)
 
+(* Return the current sync, used to make decisions based on the
+   clock's sync value, regardless of potential unification. *)
+let active_sync_mode c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Stopped sync | `Stopping { sync } | `Started { sync } -> sync
+
 let sync c = _sync (Unifier.deref c)
-let cleanup_source s = s#force_sleep
+let cleanup_source s = try s#force_sleep with _ -> ()
 let clocks = Queue.create ()
 
 let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
@@ -234,7 +223,7 @@ and stop c =
         x.log#debug "Clock stopping";
         Atomic.set clock.state (`Stopping x)
 
-let started = Atomic.make false
+let clocks_started = Atomic.make false
 let global_stop = Atomic.make false
 
 exception Has_stopped
@@ -259,9 +248,9 @@ let unify =
       (Queue.push clock'.pending_activations);
     Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
     Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
-    Queue.filter clocks (fun el -> el != c);
     Unifier.(clock.id <-- clock'.id);
-    Unifier.(c <-- c')
+    Unifier.(c <-- c');
+    Queue.filter clocks (fun el -> active_sync_mode el <> `Passive && el != c)
   in
   fun ~pos c c' ->
     let _c = Unifier.deref c in
@@ -316,9 +305,13 @@ let ticks c =
     | `Stopped _ -> 0
     | `Stopping { ticks } | `Started { ticks } -> Atomic.get ticks
 
-let _target_time { time_implementation; t0; frame_duration; ticks } =
+let _time { time_implementation; frame_duration; ticks } =
   let module Time = (val time_implementation : Liq_time.T) in
-  Time.(t0 |+| (frame_duration |*| of_float (float_of_int (Atomic.get ticks))))
+  Time.(frame_duration |*| of_float (float_of_int (Atomic.get ticks)))
+
+let _target_time ({ time_implementation; t0 } as c) =
+  let module Time = (val time_implementation : Liq_time.T) in
+  Time.(t0 |+| _time c)
 
 let _set_time { time_implementation; t0; frame_duration; ticks } t =
   let module Time = (val time_implementation : Liq_time.T) in
@@ -362,6 +355,25 @@ let _after_tick ~clock x =
           x.log#severe "We must catchup %.2f seconds!"
             Time.(to_float (end_time |-| target_time)))
 
+let started c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Stopping _ | `Started _ -> true
+    | `Stopped _ -> false
+
+let wrap_errors clock fn s =
+  try fn s
+  with exn when exn <> Has_stopped ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printf.printf "Error: %s\n%s\n%!" (Printexc.to_string exn)
+      (Printexc.raw_backtrace_to_string bt);
+    log#severe "Source %s failed while streaming: %s!\n%s" s#id
+      (Printexc.to_string exn)
+      (Printexc.raw_backtrace_to_string bt);
+    _detach clock s;
+    if Queue.length clock.on_error > 0 then
+      Queue.iter clock.on_error (fun fn -> fn exn bt)
+    else Printexc.raise_with_backtrace exn bt
+
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
@@ -369,13 +381,14 @@ let rec active_params c =
     | _ -> raise Invalid_state
 
 and _activate_pending_sources ~clock x =
-  Queue.flush_iter clock.pending_activations (fun s ->
-      check_stopped ();
-      s#wake_up;
-      match s#source_type with
-        | `Active _ -> WeakQueue.push x.active_sources s
-        | `Output _ -> Queue.push x.outputs s
-        | `Passive -> WeakQueue.push x.passive_sources s)
+  Queue.flush_iter clock.pending_activations
+    (wrap_errors clock (fun s ->
+         check_stopped ();
+         s#wake_up;
+         match s#source_type with
+           | `Active _ -> WeakQueue.push x.active_sources s
+           | `Output _ -> Queue.push x.outputs s
+           | `Passive -> WeakQueue.push x.passive_sources s))
 
 and _tick ~clock x =
   _activate_pending_sources ~clock x;
@@ -384,21 +397,11 @@ and _tick ~clock x =
   in
   let sources = _animated_sources x in
   List.iter
-    (fun s ->
-      check_stopped ();
-      try
-        match s#source_type with
-          | `Output s | `Active s -> s#output
-          | _ -> assert false
-      with exn when exn <> Has_stopped ->
-        let bt = Printexc.get_raw_backtrace () in
-        if Queue.is_empty clock.on_error then (
-          log#severe "Source %s failed while streaming: %s!\n%s" s#id
-            (Printexc.to_string exn)
-            (Printexc.raw_backtrace_to_string bt);
-          if not allow_streaming_errors#get then Tutils.shutdown 1
-          else _detach clock s)
-        else Queue.iter clock.on_error (fun fn -> fn exn bt))
+    (wrap_errors clock (fun s ->
+         check_stopped ();
+         match s#source_type with
+           | `Output s | `Active s -> s#output
+           | _ -> assert false))
     sources;
   Queue.flush_iter x.on_tick (fun fn ->
       check_stopped ();
@@ -452,14 +455,14 @@ and _can_start ?(force = false) clock =
            match s#source_type with `Output _ -> true | _ -> false)
   in
   let can_start =
-    (not (Atomic.get global_stop)) && (force || Atomic.get started)
+    (not (Atomic.get global_stop)) && (force || Atomic.get clocks_started)
   in
   match (can_start, has_output, Atomic.get clock.state) with
     | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
         `True sync
     | _ -> `False
 
-and _start ~sync clock =
+and _start ?force ~sync clock =
   Unifier.set clock.id (Lang_string.generate_id (Unifier.deref clock.id));
   let id = _id clock in
   log#important "Starting clock %s with %d source(s) and sync: %s" id
@@ -492,14 +495,14 @@ and _start ~sync clock =
       ticks = Atomic.make 0;
     }
   in
-  Queue.iter clock.sub_clocks (fun c -> start c);
+  Queue.iter clock.sub_clocks (fun c -> start ?force c);
   Atomic.set clock.state (`Started x);
   if sync <> `Passive then _clock_thread ~clock x
 
 and start ?force c =
   let clock = Unifier.deref c in
   match _can_start ?force clock with
-    | `True sync -> _start ~sync clock
+    | `True sync -> _start ?force ~sync clock
     | `False -> ()
 
 let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
@@ -518,8 +521,13 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
         on_error = on_error_queue;
       }
   in
-  Queue.push clocks c;
+  if sync <> `Passive then Queue.push clocks c;
   c
+
+let time c =
+  let ({ time_implementation } as c) = active_params c in
+  let module Time = (val time_implementation : Liq_time.T) in
+  Time.to_float (_time c)
 
 let start_pending () =
   let c = Queue.flush_elements clocks in
@@ -538,7 +546,7 @@ let start_pending () =
 
 let () =
   Lifecycle.before_start ~name:"Clocks start" (fun () ->
-      Atomic.set started true;
+      Atomic.set clocks_started true;
       start_pending ())
 
 let on_tick c fn =

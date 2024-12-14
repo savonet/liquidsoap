@@ -86,6 +86,7 @@ let build_config =
    - AO                : %{Ao_option.detected}
    - FFmpeg            : %{Ffmpeg_option.detected}
    - JACK              : %{Bjack_option.detected}
+   - NDI               : %{Ndi_option.detected}
    - OSS               : %{Oss_option.detected}
    - Portaudio         : %{Portaudio_option.detected}
    - Pulseaudio        : %{Pulseaudio_option.detected}
@@ -120,7 +121,6 @@ let build_config =
    - inotify           : %{Inotify_option.detected}
    - irc               : %{Irc_option.detected}
    - jemalloc          : %{Jemalloc_option.detected}
-   - lastfm            : %{Lastfm_option.detected}
    - lo                : %{Lo_option.detected}
    - memtrace          : %{Memtrace_option.detected}
    - osc               : %{Osc_option.detected}

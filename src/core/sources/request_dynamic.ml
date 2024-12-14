@@ -42,6 +42,8 @@ type handler = {
   close : unit -> unit;
 }
 
+type task = { notify : unit -> unit; stop : unit -> unit }
+
 let log_failed_request (log : Log.t) request ans =
   log#important "Could not resolve request %s: %s."
     (Request.initial_uri request)
@@ -50,22 +52,17 @@ let log_failed_request (log : Log.t) request ans =
       | `Timeout -> "timeout"
       | `Resolved -> "file could not be decoded with the correct content")
 
-let extract_queued_params p =
-  let l = Lang.to_valued_option Lang.to_int (List.assoc "prefetch" p) in
-  let l = Option.value ~default:conf_prefetch#get l in
-  let t = Lang.to_float (List.assoc "timeout" p) in
-  (l, t)
-
 let should_fail = Atomic.make false
 
 let () =
   Lifecycle.before_core_shutdown ~name:"request.dynamic shutdown" (fun () ->
       Atomic.set should_fail true)
 
-class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
+class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
+  ~synchronous ~timeout f =
   let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
-    inherit source ~name:"request.dynamic" ()
+    inherit source ~name ()
     method fallible = true
     val mutable remaining = 0
     method remaining = remaining
@@ -94,9 +91,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       assert (self#current = None);
       try
         match self#get_next_file with
-          | `Retry ->
-              self#log#debug "Failed to prepare track: no file.";
-              false
+          | `Empty -> false
           | `Request req
             when Request.resolved req
                  && Request.has_decoder ~ctype:self#content_type req ->
@@ -184,17 +179,16 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     method seek_source = (self :> Source.source)
     method abort_track = Atomic.set should_skip true
 
+    method private is_request_ready =
+      self#current <> None || try self#fetch_request with _ -> false
+
     method can_generate_frame =
-      let is_ready =
-        (fun () ->
-          self#current <> None || try self#fetch_request with _ -> false)
-          ()
-      in
-      match is_ready with
+      match self#is_request_ready with
         | true -> true
         | false ->
             if available () then self#notify_new_request;
-            false
+            (* Try one more time in case a new request was queued above. *)
+            self#is_request_ready
 
     val retrieved : queue_item Queue.t = Queue.create ()
     method private queue_size = Queue.length retrieved
@@ -203,14 +197,14 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     method set_queue =
       self#clear_retrieved;
       List.iter (fun request ->
-          match Request.resolve request timeout with
+          match Request.resolve ?timeout request with
             | `Resolved
               when Request.has_decoder ~ctype:self#content_type request ->
                 Queue.push retrieved { request; expired = false }
             | ans -> log_failed_request self#log request ans)
 
     method add i =
-      match Request.resolve i.request timeout with
+      match Request.resolve ?timeout i.request with
         | `Resolved when Request.has_decoder ~ctype:self#content_type i.request
           ->
             Queue.push retrieved i;
@@ -223,11 +217,24 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     initializer
       self#on_wake_up (fun () ->
-          let t = Duppy.Async.add Tutils.scheduler ~priority self#feed_queue in
-          Duppy.Async.wake_up t;
+          let task =
+            if synchronous then
+              {
+                notify = (fun () -> self#synchronous_feed_queue);
+                stop = (fun () -> ());
+              }
+            else (
+              let t =
+                Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
+              in
+              {
+                notify = (fun () -> Duppy.Async.wake_up t);
+                stop = (fun () -> Duppy.Async.stop t);
+              })
+          in
           assert (
             Atomic.compare_and_set state `Sleeping
-              (`Started (Unix.gettimeofday (), t))))
+              (`Started (Unix.gettimeofday (), task))))
 
     method private clear_retrieved =
       let rec clear () =
@@ -242,8 +249,8 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     initializer
       self#on_sleep (fun () ->
           match Atomic.exchange state `Sleeping with
-            | `Started (_, t) ->
-                Duppy.Async.stop t;
+            | `Started (_, { stop }) ->
+                stop ();
                 (* No more feeding task, we can go to sleep. *)
                 self#end_request;
                 self#log#info "Cleaning up request queue...";
@@ -254,8 +261,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       opportunity to feed the queue, in case it is sleeping. *)
     method private notify_new_request =
       match Atomic.get state with
-        | `Started (d, t) when d <= Unix.gettimeofday () ->
-            Duppy.Async.wake_up t
+        | `Started (d, { notify }) when d <= Unix.gettimeofday () -> notify ()
         | _ -> ()
 
     (** The body of the feeding task *)
@@ -269,6 +275,11 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                   Atomic.set state (`Started (Unix.gettimeofday () +. d, t));
                   d)
         | _ -> -1.
+
+    method private synchronous_feed_queue =
+      match self#feed_queue () with
+        | 0. -> self#synchronous_feed_queue
+        | _ -> ()
 
     method fetch =
       try
@@ -290,7 +301,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         match r with
           | `Retry -> `Retry
           | `Request req -> (
-              match Request.resolve req timeout with
+              match Request.resolve ?timeout req with
                 | `Resolved
                   when Request.has_decoder ~ctype:self#content_type req ->
                     let rec remove_expired ret =
@@ -310,7 +321,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                       (fun r -> Queue.push retrieved r)
                       (remove_expired []);
                     Queue.push retrieved { request = req; expired = false };
-                    self#log#info "Queued %d requests" self#queue_size;
+                    self#log#info "Queued %d request(s)" self#queue_size;
                     `Finished
                 | _ ->
                     Request.destroy req;
@@ -325,9 +336,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
       match Queue.pop_opt retrieved with
-        | None ->
-            self#log#debug "Queue is empty!";
-            `Retry
+        | None -> `Empty
         | Some r ->
             self#log#info "Remaining %d requests" self#queue_size;
             `Request r.request
@@ -352,14 +361,22 @@ let _ =
         Some
           "Whether some new requests are available (when set to false, it \
            stops after current playing request)." );
+      ( "synchronous",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "If `true`, new requests are prepared as needed instead of using an \
+           asynchronous queue." );
       ( "prefetch",
         Lang.nullable_t Lang.int_t,
         Some Lang.null,
         Some "How many requests should be queued in advance." );
       ( "timeout",
-        Lang.float_t,
-        Some (Lang.float 20.),
-        Some "Timeout (in sec.) for a single download." );
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some
+          "Timeout (in sec.) to resolve the request. Defaults to \
+           `settings.request.timeout` when `null`." );
     ]
     ~meth:
       [
@@ -429,5 +446,12 @@ let _ =
       let f = List.assoc "" p in
       let available = Lang.to_bool_getter (List.assoc "available" p) in
       let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
-      let l, t = extract_queued_params p in
-      new dynamic ~available ~retry_delay f l t)
+      let prefetch =
+        Lang.to_valued_option Lang.to_int (List.assoc "prefetch" p)
+      in
+      let prefetch = Option.value ~default:conf_prefetch#get prefetch in
+      let synchronous = Lang.to_bool (List.assoc "synchronous" p) in
+      let timeout =
+        Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+      in
+      new dynamic ~available ~retry_delay ~prefetch ~timeout ~synchronous f)

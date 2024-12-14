@@ -21,11 +21,6 @@
  *****************************************************************************)
 
 let source = Muxer.source
-let should_stop = Atomic.make false
-
-let () =
-  Lifecycle.before_core_shutdown ~name:"builtin source shutdown" (fun () ->
-      Atomic.set should_stop true)
 
 let _ =
   Lang.add_builtin ~base:source "set_name" ~category:(`Source `Liquidsoap)
@@ -40,6 +35,15 @@ let _ =
       let n = Lang.assoc "" 2 p |> Lang.to_string in
       s#set_name n;
       Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:source "last_metadata" ~category:(`Source `Liquidsoap)
+    ~descr:"Return the last metadata from the source."
+    [("", Lang.source_t (Lang.univ_t ()), None, None)]
+    (Lang.nullable_t Lang.metadata_t)
+    (fun p ->
+      let s = Lang.to_source (List.assoc "" p) in
+      match s#last_metadata with None -> Lang.null | Some m -> Lang.metadata m)
 
 let _ =
   Lang.add_builtin ~base:source "skip" ~category:(`Source `Liquidsoap)
@@ -151,97 +155,4 @@ let _ =
       let f = Lang.assoc "" 2 p in
       let wrap_f () = ignore (Lang.apply f []) in
       s#on_sleep wrap_f;
-      Lang.unit)
-
-let _ =
-  let log = Log.make ["source"; "dump"] in
-  let kind = Lang.univ_t () in
-  Lang.add_builtin ~base:source "dump" ~category:(`Source `Liquidsoap)
-    ~descr:"Immediately encode the whole contents of a source into a file."
-    ~flags:[`Experimental]
-    [
-      ("", Lang.format_t kind, None, Some "Encoding format.");
-      ("", Lang.string_t, None, Some "Name of the file.");
-      ("", Lang.source_t kind, None, Some "Source to encode.");
-      ( "ratio",
-        Lang.float_t,
-        Some (Lang.float 50.),
-        Some
-          "Time ratio. A value of `50` means process data at `50x` real rate, \
-           when possible." );
-    ]
-    Lang.unit_t
-    (fun p ->
-      let module Time = (val Clock.time_implementation () : Liq_time.T) in
-      let open Time in
-      let stopped = ref false in
-      let proto =
-        let p = Pipe_output.file_proto (Lang.univ_t ()) in
-        List.filter_map
-          (fun (l, _, v, _) ->
-            if l <> "on_stop" then Option.map (fun v -> (l, v)) v
-            else
-              Some
-                ( "on_stop",
-                  Lang.val_fun [] (fun _ ->
-                      stopped := true;
-                      Lang.unit) ))
-          p
-      in
-      let proto = ("fallible", Lang.bool true) :: proto in
-      let p = (("id", Lang.string "source_dumper") :: p) @ proto in
-      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
-      let _ = Pipe_output.new_file_output ~clock p in
-      let ratio = Lang.to_float (List.assoc "ratio" p) in
-      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      Clock.start clock;
-      log#info "Start dumping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && not !stopped do
-        let start_time = Time.time () in
-        Clock.tick clock;
-        sleep_until (start_time |+| latency)
-      done;
-      log#info "Source dumped.";
-      Clock.stop clock;
-      Lang.unit)
-
-let _ =
-  let log = Log.make ["source"; "drop"] in
-  Lang.add_builtin ~base:source "drop" ~category:(`Source `Liquidsoap)
-    ~descr:"Animate the source as fast as possible, dropping its output."
-    ~flags:[`Experimental]
-    [
-      ("", Lang.source_t (Lang.univ_t ()), None, Some "Source to animate.");
-      ( "ratio",
-        Lang.float_t,
-        Some (Lang.float 50.),
-        Some
-          "Time ratio. A value of `50` means process data at `50x` real rate, \
-           when possible." );
-    ]
-    Lang.unit_t
-    (fun p ->
-      let module Time = (val Clock.time_implementation () : Liq_time.T) in
-      let open Time in
-      let s = List.assoc "" p |> Lang.to_source in
-      let stopped = ref false in
-      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
-      let _ =
-        new Output.dummy
-          ~clock ~infallible:false
-          ~on_start:(fun () -> ())
-          ~on_stop:(fun () -> stopped := true)
-          ~register_telnet:false ~autostart:true (Lang.source s)
-      in
-      let ratio = Lang.to_float (List.assoc "ratio" p) in
-      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      Clock.start clock;
-      log#info "Start dropping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && not !stopped do
-        let start_time = Time.time () in
-        Clock.tick clock;
-        sleep_until (start_time |+| latency)
-      done;
-      log#info "Source dropped.";
-      Clock.stop clock;
       Lang.unit)

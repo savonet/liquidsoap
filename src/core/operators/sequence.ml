@@ -48,17 +48,17 @@ class sequence ?(merge = false) ?(single_track = true) sources =
 
     (* We have to wait until at least one source is ready. *)
     val mutable has_started = false
+    method queue = Atomic.get seq_sources
 
     method private has_started =
       match has_started with
         | true -> true
         | false ->
-            has_started <-
-              List.exists (fun s -> s#is_ready) (Atomic.get seq_sources);
+            has_started <- List.exists (fun s -> s#is_ready) self#queue;
             has_started
 
-    method private get_source ~reselect () =
-      match (self#has_started, Atomic.get seq_sources) with
+    method private get_stateful_source ?(source_skipped = false) ~reselect () =
+      match (self#has_started, self#queue) with
         | _, [] -> None
         | true, s :: [] ->
             if
@@ -72,34 +72,40 @@ class sequence ?(merge = false) ?(single_track = true) sources =
               self#can_reselect
                 ~reselect:
                   (match reselect with
-                    | `After_position _ when single_track -> `Force
+                    | `After_position _
+                      when (not source_skipped) && single_track ->
+                        `Force
                     | v -> v)
                 s
             then Some s
             else (
               self#log#info "Finished with %s" s#id;
               Atomic.set seq_sources rest;
-              self#get_source ~reselect:`Ok ())
+              self#get_stateful_source ~source_skipped:true
+                ~reselect:(match reselect with `Force -> `Ok | v -> v)
+                ())
         | _ -> None
+
+    method private get_source ~reselect () =
+      self#get_stateful_source ~reselect ()
 
     method remaining =
       if merge then (
         let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
-        List.fold_left ( + ) 0
-          (List.map (fun s -> s#remaining) (Atomic.get seq_sources)))
-      else (List.hd (Atomic.get seq_sources))#remaining
+        List.fold_left ( + ) 0 (List.map (fun s -> s#remaining) self#queue))
+      else (List.hd self#queue)#remaining
 
     method seek_source =
-      match Atomic.get seq_sources with
+      match self#queue with
         | s :: _ -> s#seek_source
         | _ -> (self :> Source.source)
 
     method abort_track =
       if merge then (
-        match List.rev (Atomic.get seq_sources) with
+        match List.rev self#queue with
           | [] -> assert false
           | hd :: _ -> Atomic.set seq_sources [hd]);
-      match Atomic.get seq_sources with hd :: _ -> hd#abort_track | _ -> ()
+      match self#queue with hd :: _ -> hd#abort_track | _ -> ()
   end
 
 class merge_tracks source =
@@ -143,6 +149,15 @@ let _ =
       "Play a sequence of sources. By default, play one track per source, \
        except for the last one which is played as much as available."
     ~return_t:frame_t
+    ~meth:
+      [
+        ( "queue",
+          ([], Lang.fun_t [] (Lang.list_t (Lang.source_t frame_t))),
+          "Return the current sequence of source",
+          fun s ->
+            Lang.val_fun [] (fun _ -> Lang.list (List.map Lang.source s#queue))
+        );
+      ]
     (fun p ->
       new sequence
         ~merge:(Lang.to_bool (List.assoc "merge" p))

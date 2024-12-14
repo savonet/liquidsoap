@@ -98,8 +98,9 @@ def check_stream() =
   end
 end
 
-def segment_name(~position, ~extname, stream_name) =
-  if position > 2 then check_stream() end
+def segment_name(metadata) =
+  let {position, extname, stream_name} = metadata
+  if position > 1 then check_stream() end
   timestamp = int_of_float(time())
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end

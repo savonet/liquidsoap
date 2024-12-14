@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 module Runtime = Liquidsoap_lang.Runtime
-module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
 module Queue = Liquidsoap_lang.Queues.Queue
@@ -113,7 +112,7 @@ let eval_script expr =
           (Lang.eval ~toplevel ~cache:!cache ~stdlib ~deprecated:!deprecated
              ~name:"main script" expr);
         if not (Lang_eval.effective_toplevel ~stdlib toplevel) then
-          Environment.clear_environments ()
+          Environment.clear_toplevel_environments ()
 
 (** Evaluate the user script. *)
 let eval () =
@@ -159,7 +158,7 @@ let lang_doc name =
 let process_request s =
   with_toplevel (fun () ->
       let req = Request.create ~cue_in_metadata:None ~cue_out_metadata:None s in
-      match Request.resolve req 20. with
+      match Request.resolve req with
         | `Failed ->
             Printf.eprintf "Request resolution failed.\n";
             Request.destroy req;
@@ -195,7 +194,7 @@ let format_doc s =
   let prefix = "\t  " in
   let indent = 8 + 2 in
   let max_width = 80 in
-  let s = Pcre.split ~rex:(Pcre.regexp " ") s in
+  let s = String.split_on_char ' ' s in
   let s =
     let rec join line width = function
       | [] -> [line]

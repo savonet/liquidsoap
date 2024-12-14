@@ -200,10 +200,8 @@ Players that are not affected include ogg123, liquidsoap.
 
 One way to work around this problem is to not use Ogg/Vorbis (which we
 do not recommend) or to not produce tracks within a Vorbis stream.
-This is done by merging liquidsoap tracks (for example using
-`add(normalize=false,[blank(),source])`)
-and also not passing any metadata
-(which is also a result of the previous snippet).
+This is done by dropping both metadata and track marks (for example
+using `source.drop.metadata_track_marks`).
 
 ### Encoding blank
 

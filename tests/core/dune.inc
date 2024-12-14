@@ -42,6 +42,20 @@
 
 
 (executable
+ (name flush_test)
+ (modules flush_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  
+  (:flush_test flush_test.exe))
+ (action (run %{flush_test} )))
+
+
+(executable
  (name frame_test)
  (modules frame_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -67,6 +81,20 @@
   
   (:generator_test generator_test.exe))
  (action (run %{generator_test} )))
+
+
+(executable
+ (name http_test)
+ (modules http_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  
+  (:http_test http_test.exe))
+ (action (run %{http_test} )))
 
 
 (executable

@@ -22,9 +22,17 @@ def file.replaygain.compute(~ratio=50., file_name) =
   if
     request.resolve(_request)
   then
-    _source = source.replaygain.compute(request.once(_request))
-    source.drop(ratio=ratio, _source)
-    _source.gain()
+    get_gain = ref(fun () -> null())
+    def process(s) =
+      s = source.replaygain.compute(s)
+      get_gain := {s.gain()}
+      s
+    end
+
+    request.process(ratio=ratio, process=process, _request)
+
+    fn = get_gain()
+    fn()
   else
     null()
   end
@@ -68,7 +76,7 @@ def replaces file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name) =
   id = string.id.default(default="file.replaygain", id)
   file_name_quoted = string.quote(file_name)
 
-  _metadata = file.metadata(exclude=["replaygain_track_gain"], file_name)
+  _metadata = file.metadata(exclude=decoder.metadata.reentrant(), file_name)
   gain = metadata.replaygain(_metadata)
 
   if
@@ -130,5 +138,7 @@ def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
     end
   end
 
-  decoder.metadata.add("replaygain_track_gain", replaygain_metadata)
+  decoder.metadata.add(
+    reentrant=true, "replaygain_track_gain", replaygain_metadata
+  )
 end

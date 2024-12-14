@@ -63,6 +63,16 @@ let conf_icy_metadata =
       ]
     "Content-type (mime) of formats which allow shout metadata update."
 
+let conf_map_song_metadata =
+  Dtools.Conf.bool
+    ~p:(conf_harbor#plug "map_song_metadata")
+    ~d:true
+    "If `true`, `\"song\"` metadata in icecast metadata update is mapped to \
+     `\"title\"` unless on of: `\"artist\"` or `\"title\"` metadata is also \
+     passed in which case `\"song\"` metadata is removed as it usually \
+     contains redundant info that confuses the system. Metadata are passed \
+     as-is when `false`."
+
 let conf_timeout =
   Dtools.Conf.float
     ~p:(conf_harbor#plug "timeout")

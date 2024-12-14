@@ -76,5 +76,10 @@ val read : timeout:float -> socket -> int -> string
 (** Read [len] bytes *)
 val really_read : timeout:float -> socket -> int -> string
 
-(* Read chunked data. *)
+(** Read chunked data. *)
 val read_chunked : timeout:float -> socket -> string * int
+
+type auth = { user : string; password : string }
+
+(** Split authentication string. Raises [Not_found] if failed. *)
+val parse_auth : string -> auth

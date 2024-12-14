@@ -35,11 +35,23 @@ def string.split(~separator, s) =
   regexp(separator).split(s)
 end
 
+# Return an array of the string's bytes.
+# @category String
+def string.bytes(s) =
+  string.split(separator="", s)
+end
+
+# Return the length of the string in bytes.
+# @category String
+def string.bytes.length(s) =
+  string.length(encoding="ascii", s)
+end
+
 # Split a string in two at first "separator".
 # @category String
-def string.split.first(~separator, s) =
-  n = string.length(s)
-  l = string.length(separator)
+def string.split.first(~encoding=null(), ~separator, s) =
+  n = string.length(encoding=encoding, s)
+  l = string.length(encoding=encoding, separator)
   i = string.index(substring=separator, s)
   if
     i < 0
@@ -51,44 +63,72 @@ def string.split.first(~separator, s) =
   end
 
   (
-    string.sub(s, start=0, length=i),
-    string.sub(s, start=i + l, length=n - (i + l))
+    string.sub(encoding=encoding, s, start=0, length=i),
+    string.sub(encoding=encoding, s, start=i + l, length=n - (i + l))
   )
 end
 
 # Test whether a string contains a given prefix, substring or suffix.
 # @category String
+# @param ~encoding Encoding used to split characters. Should be one of: `"utf8"` or `"ascii"`
 # @param ~prefix Prefix to look for.
 # @param ~substring Substring to look for.
 # @param ~suffix Suffix to look for.
 # @param s The string to look into.
-def string.contains(~prefix="", ~substring="", ~suffix="", s) =
+def string.contains(
+  ~encoding=null(),
+  ~prefix="",
+  ~substring="",
+  ~suffix="",
+  s
+) =
   ans = ref(prefix == "" and substring == "" and suffix == "")
   if
     prefix != ""
   then
     ans :=
-      ans() or string.sub(s, start=0, length=string.length(prefix)) == prefix
+      ans()
+    or
+
+        string.sub(
+          encoding=encoding,
+          s,
+          start=0,
+          length=string.length(encoding=encoding, prefix)
+        ) ==
+          prefix
+
   end
 
   if
     suffix != ""
   then
-    suflen = string.length(suffix)
+    suflen = string.length(encoding=encoding, suffix)
     ans :=
       ans()
     or
-      string.sub(s, start=string.length(s) - suflen, length=suflen) == suffix
+
+        string.sub(
+          encoding=encoding,
+          s,
+          start=string.length(encoding=encoding, s) - suflen,
+          length=suflen
+        ) ==
+          suffix
+
   end
 
   if
     substring != ""
   then
-    sublen = string.length(substring)
+    sublen = string.length(encoding=encoding, substring)
     for i = 0 to
-      string.length(s) - sublen
+      string.length(encoding=encoding, s) - sublen
     do
-      ans := ans() or (string.sub(s, start=i, length=sublen) == substring)
+      ans :=
+        ans()
+      or
+        (string.sub(encoding=encoding, s, start=i, length=sublen) == substring)
     end
   end
 
@@ -97,13 +137,19 @@ end
 
 # What remains of a string after a given prefix.
 # @category String
+# @param ~encoding Encoding used to split characters. Should be one of: `"utf8"` or `"ascii"`
 # @param ~prefix Requested prefix.
-def string.residual(~prefix, s) =
-  n = string.length(prefix)
+def string.residual(~encoding=null(), ~prefix, s) =
+  n = string.length(encoding=encoding, prefix)
   if
-    string.contains(prefix=prefix, s)
+    string.contains(encoding=encoding, prefix=prefix, s)
   then
-    string.sub(s, start=n, length=string.length(s) - n)
+    string.sub(
+      encoding=encoding,
+      s,
+      start=n,
+      length=string.length(encoding=encoding, s) - n
+    )
   else
     null()
   end
@@ -136,7 +182,7 @@ def string.of_int(~digits=0, n) =
   then
     s
   else
-    string.make(char_code=48, digits - string.length(s)) ^ s
+    string.make(char_code=48, digits - string.bytes.length(s)) ^ s
   end
 end
 
@@ -155,7 +201,7 @@ let string.binary = ()
 # @param s String containing the binary representation.
 def string.binary.to_int(~little_endian=true, s) =
   ans = ref(0)
-  n = string.length(s)
+  n = string.bytes.length(s)
   for i = 0 to
     n - 1
   do
@@ -191,7 +237,7 @@ def string.binary.of_int(~pad=0, ~little_endian=true, d) =
 
   ret = d == 0 ? "\\x00" : f(d, "")
   ret = string.unescape(ret)
-  len = string.length(ret)
+  len = string.bytes.length(ret)
   if
     len < pad
   then

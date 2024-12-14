@@ -32,6 +32,13 @@ let log_exception ~(log : Log.t) ~bt msg =
   log#severe "%s" msg;
   if log#active 4 (* info *) then log#info "%s" bt
 
+module Thread = struct
+  external set_current_thread_name : string -> unit
+    = "liquidsoap_set_current_thread_name"
+
+  include Thread
+end
+
 (* Force locale *)
 external force_locale : string -> unit = "liquidsoap_set_locale"
 
@@ -284,10 +291,10 @@ let strftime ?time str : string =
     ]
   in
   let subst sub =
-    let key = Pcre.get_substring sub 1 in
+    let key = Re.Pcre.get_substring sub 1 in
     try List.assoc key assoc with _ -> "%" ^ key
   in
-  Re.replace (Pcre.regexp "%(.)") ~f:subst str
+  Re.replace (Re.Pcre.regexp "%(.)") ~f:subst str
 
 (** Check if a directory exists. *)
 let is_dir d =
@@ -320,9 +327,9 @@ let get_tempdir () =
 (** Get a file/uri extension. *)
 let get_ext s =
   try
-    let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
-    let ret = Pcre.exec ~rex s in
-    String.lowercase_ascii (Pcre.get_substring ret 1)
+    let rex = Re.Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
+    let ret = Re.Pcre.exec ~rex s in
+    String.lowercase_ascii (Re.Pcre.get_substring ret 1)
   with _ -> raise Not_found
 
 let get_ext_opt s = try Some (get_ext s) with Not_found -> None
@@ -347,22 +354,34 @@ let uptime =
 (** Generate a string which can be used as a parameter name. *)
 let normalize_parameter_string s =
   let s =
-    Pcre.substitute
-      ~rex:(Pcre.regexp "( *\\([^\\)]*\\)| *\\[[^\\]]*\\])")
+    Re.Pcre.substitute
+      ~rex:(Re.Pcre.regexp "( *\\([^\\)]*\\)| *\\[[^\\]]*\\])")
       ~subst:(fun _ -> "")
       s
   in
   let s =
-    Pcre.substitute ~rex:(Pcre.regexp "(\\.+|\\++)") ~subst:(fun _ -> "") s
+    Re.Pcre.substitute
+      ~rex:(Re.Pcre.regexp "(\\.+|\\++)")
+      ~subst:(fun _ -> "")
+      s
   in
-  let s = Pcre.substitute ~rex:(Pcre.regexp " +$") ~subst:(fun _ -> "") s in
   let s =
-    Pcre.substitute ~rex:(Pcre.regexp "( +|/+|-+)") ~subst:(fun _ -> "_") s
+    Re.Pcre.substitute ~rex:(Re.Pcre.regexp " +$") ~subst:(fun _ -> "") s
   in
-  let s = Pcre.substitute ~rex:(Pcre.regexp "\"") ~subst:(fun _ -> "") s in
+  let s =
+    Re.Pcre.substitute
+      ~rex:(Re.Pcre.regexp "( +|/+|-+)")
+      ~subst:(fun _ -> "_")
+      s
+  in
+  let s =
+    Re.Pcre.substitute ~rex:(Re.Pcre.regexp "\"") ~subst:(fun _ -> "") s
+  in
   let s = String.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
-  let s = if Pcre.pmatch ~rex:(Pcre.regexp "^[0-9]") s then "_" ^ s else s in
+  let s =
+    if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "^[0-9]") s then "_" ^ s else s
+  in
   s
 
 (** A function to reopen a file descriptor
@@ -502,3 +521,5 @@ let is_docker =
   Lazy.from_fun (fun () ->
       Sys.unix
       && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
+
+let optional_apply fn = function None -> () | Some v -> fn v

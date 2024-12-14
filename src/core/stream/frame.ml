@@ -47,9 +47,12 @@ module S = Set.Make (struct
   let compare = Stdlib.compare
 end)
 
+let filter_implicit_fields (lbl, _) =
+  if List.mem lbl [Fields.metadata; Fields.track_marks] then None else Some lbl
+
 let assert_compatible c c' =
-  let f = List.map fst (Fields.bindings c) in
-  let f' = List.map fst (Fields.bindings c') in
+  let f = List.filter_map filter_implicit_fields (Fields.bindings c) in
+  let f' = List.filter_map filter_implicit_fields (Fields.bindings c') in
   if not S.(equal (of_list f) (of_list f')) then
     failwith
       (Printf.sprintf
@@ -80,7 +83,7 @@ let create ~length content_type =
 
 let content_type = Fields.map Content.format
 let sub frame ofs len = Fields.map (fun c -> Content.sub c ofs len) frame
-let slice frame len = sub frame 0 len
+let slice frame len = sub frame 0 (min len (position frame))
 let after frame offset = sub frame offset (position frame - offset)
 
 let append f f' =

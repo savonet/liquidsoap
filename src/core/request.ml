@@ -44,6 +44,10 @@ let conf_add_on_air =
         "by an output.";
       ]
 
+let conf_timeout =
+  Dtools.Conf.float ~p:(conf#plug "timeout") ~d:29.
+    "Default request resolution timeout."
+
 let log = Log.make ["request"]
 
 let pretty_date date =
@@ -56,10 +60,10 @@ let pretty_date date =
 let remove_file_proto s =
   (* First remove file:// 🤮 *)
   let s =
-    Pcre.substitute ~rex:(Pcre.regexp "^file://") ~subst:(fun _ -> "") s
+    Re.Pcre.substitute ~rex:(Re.Pcre.regexp "^file://") ~subst:(fun _ -> "") s
   in
   (* Then remove file: 😇 *)
-  Pcre.substitute ~rex:(Pcre.regexp "^file:") ~subst:(fun _ -> "") s
+  Re.Pcre.substitute ~rex:(Re.Pcre.regexp "^file:") ~subst:(fun _ -> "") s
 
 let home_unrelate s = Lang_string.home_unrelate (remove_file_proto s)
 
@@ -83,7 +87,7 @@ type metadata_resolver = {
 }
 
 type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
-type resolving = { until : float; pending : (Condition.t * Mutex.t) list }
+type resolving = { since : float; pending : (Condition.t * Mutex.t) list }
 type status = [ `Idle | `Resolving of resolving | `Ready | `Destroyed | `Failed ]
 type decoder = string * (unit -> Decoder.file_decoder_ops)
 type on_air = { source : Source.source; timestamp : float }
@@ -121,24 +125,66 @@ let status { status } = Atomic.get status
 let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
   { uri = home_unrelate s; temporary = temporary = Some true; metadata }
 
-(** Length *)
+type dresolver = {
+  dpriority : unit -> int;
+  file_extensions : unit -> string list;
+  dresolver : metadata:Frame.metadata -> string -> float;
+}
+
 let dresolvers_doc = "Methods to extract duration from a file."
 
-let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
+let conf_dresolvers =
+  Dtools.Conf.list ~p:(conf#plug "dresolvers") ~d:[]
+    "Methods to extract file duration."
 
-let compute_duration ~metadata file =
+let f c v =
+  match c#get_d with
+    | None -> c#set_d (Some [v])
+    | Some d -> c#set_d (Some (d @ [v]))
+
+let dresolvers =
+  Plug.create ~doc:dresolvers_doc
+    ~register_hook:(fun name _ -> f conf_dresolvers name)
+    "audio file formats (duration)"
+
+let get_dresolvers ~file () =
+  let extension = try Utils.get_ext file with _ -> "" in
+  let f cur name =
+    match Plug.get dresolvers name with
+      | Some ({ file_extensions } as p)
+        when List.mem extension (file_extensions ()) ->
+          (name, p) :: cur
+      | Some _ -> cur
+      | None ->
+          log#severe "Cannot find duration resolver %s" name;
+          cur
+  in
+  let resolvers = List.fold_left f [] conf_dresolvers#get in
+  List.sort
+    (fun (_, a) (_, b) -> compare (b.dpriority ()) (a.dpriority ()))
+    resolvers
+
+let compute_duration ?resolvers ~metadata file =
   try
-    Plug.iter dresolvers (fun _ resolver ->
+    List.iter
+      (fun (name, { dpriority; dresolver }) ->
         try
-          let ans = resolver ~metadata file in
+          log#info "Trying duration resolver %s (priority: %d) for file %s.."
+            name (dpriority ())
+            (Lang_string.quote_string file);
+          (match resolvers with
+            | Some l when not (List.mem name l) -> raise Not_found
+            | _ -> ());
+          let ans = dresolver ~metadata file in
           raise (Duration ans)
         with
           | Duration e -> raise (Duration e)
-          | _ -> ());
+          | _ -> ())
+      (get_dresolvers ~file ());
     raise Not_found
   with Duration d -> d
 
-let duration ~metadata file =
+let duration ?resolvers ~metadata file =
   try
     match
       ( Frame.Metadata.find_opt "duration" metadata,
@@ -150,7 +196,7 @@ let duration ~metadata file =
       | _, None, Some cue_out -> Some (float_of_string cue_out)
       | Some v, _, _ -> Some (float_of_string v)
       | None, cue_in, None ->
-          let duration = compute_duration ~metadata file in
+          let duration = compute_duration ?resolvers ~metadata file in
           let duration =
             match cue_in with
               | Some cue_in -> duration -. float_of_string cue_in
@@ -209,9 +255,9 @@ let add_root_metadata t m =
         in
         Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
     | _, `Idle -> Frame.Metadata.add "status" "idle" m
-    | _, `Resolving { until } ->
+    | _, `Resolving { since } ->
         let m =
-          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime until)) m
+          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime since)) m
         in
         Frame.Metadata.add "status" "resolving" m
     | _, `Ready -> Frame.Metadata.add "status" "ready" m
@@ -230,7 +276,7 @@ let metadata t = add_root_metadata t (plain_metadata t)
 
 let add_log t i =
   t.logger#info "%s" i;
-  Queue.push t.log (Unix.localtime (Unix.time ()), i)
+  Queue.push t.log (Unix.localtime (Unix.gettimeofday ()), i)
 
 (* Indicator tree management *)
 
@@ -552,7 +598,10 @@ let get_decoder ~ctype r =
                   else (
                     if Frame.is_partial buf then
                       r.logger#important
-                        "End of track reached before cue-out point!";
+                        "End of track reached at %.02f before cue-out point at \
+                         %.02f!"
+                        (Frame.seconds_of_main new_pos)
+                        (Frame.seconds_of_main cue_out);
                     buf))
               in
               let remaining () =
@@ -565,7 +614,7 @@ let get_decoder ~ctype r =
 (** Plugins registration. *)
 
 type resolver = string -> log:(string -> unit) -> float -> indicator option
-type protocol = { resolve : resolver; static : bool }
+type protocol = { resolve : resolver; static : string -> bool }
 
 let protocols_doc =
   "Methods to get a file. They are the first part of URIs: 'protocol:args'."
@@ -576,9 +625,9 @@ let is_static s =
   if file_exists (home_unrelate s) then true
   else (
     match parse_uri s with
-      | Some (proto, _) -> (
+      | Some (proto, uri) -> (
           match Plug.get protocols proto with
-            | Some handler -> handler.static
+            | Some handler -> handler.static uri
             | None -> false)
       | None -> false)
 
@@ -593,12 +642,14 @@ let () =
       Atomic.set should_fail true)
 
 let resolve_req t timeout =
+  let timeout = Option.value ~default:conf_timeout#get timeout in
   log#debug "Resolving request %s." (string_of_indicators t);
-  Atomic.set t.status (`Resolving { until = Unix.time (); pending = [] });
-  let maxtime = Unix.time () +. timeout in
+  let since = Unix.gettimeofday () in
+  Atomic.set t.status (`Resolving { since; pending = [] });
+  let maxtime = since +. timeout in
   let rec resolve i =
     if Atomic.get should_fail then raise No_indicator;
-    let timeleft = maxtime -. Unix.time () in
+    let timeleft = maxtime -. Unix.gettimeofday () in
     if timeleft <= 0. then (
       add_log t "Global timeout.";
       raise ExnTimeout);
@@ -657,8 +708,10 @@ let resolve_req t timeout =
           `Failed
   in
   log#debug "Resolved to %s." (string_of_indicators t);
-  let excess = Unix.time () -. maxtime in
-  if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
+  let excess = Unix.gettimeofday () -. maxtime in
+  if excess > 0. then
+    log#severe "Time limit exceeded by %.2f secs (timeout: %.2f)!" excess
+      timeout;
   let status = if result <> `Resolved then `Failed else `Ready in
   (match Atomic.exchange t.status status with
     | `Resolving { pending } ->
@@ -669,7 +722,7 @@ let resolve_req t timeout =
     | _ -> assert false);
   result
 
-let rec resolve t timeout =
+let rec resolve ?timeout t =
   match Atomic.get t.status with
     | `Idle -> resolve_req t timeout
     | `Resolving ({ pending } as r) as status ->
@@ -682,7 +735,7 @@ let rec resolve t timeout =
                 (`Resolving { r with pending = (c, m) :: pending })
             then Condition.wait c m)
           ();
-        resolve t timeout
+        resolve ?timeout t
     | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
 

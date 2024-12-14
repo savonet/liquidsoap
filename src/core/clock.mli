@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 exception Invalid_state
+exception Has_stopped
 
 type t
 type active_source = < reset : unit ; output : unit >
@@ -92,9 +93,11 @@ val id : t -> string
 val descr : t -> string
 val sync : t -> sync_mode
 val start : ?force:bool -> t -> unit
+val started : t -> bool
 val stop : t -> unit
 val set_stack : t -> Liquidsoap_lang.Pos.t list -> unit
 val self_sync : t -> bool
+val time : t -> float
 val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
 val create_sub_clock : id:string -> t -> t
 val attach : t -> source -> unit

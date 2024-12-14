@@ -34,9 +34,8 @@ let default_typing_environment () = Env.bindings !type_environment
    [get_builtins]. *)
 let flat_enviroment : (string * (Type.scheme * Value.t)) list ref = ref []
 
-let clear_environments () =
+let clear_toplevel_environments () =
   type_environment := Env.empty;
-  value_environment := Env.empty;
   flat_enviroment := []
 
 let has_builtin name = List.mem_assoc name !flat_enviroment

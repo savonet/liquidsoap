@@ -184,7 +184,7 @@ let check filename =
     true
   with _ -> false
 
-let duration ~metadata:_ file =
+let dresolver ~metadata:_ file =
   if not (check file) then raise Not_found;
   let fd = Decoder.openfile file in
   Fun.protect
@@ -199,4 +199,8 @@ let duration ~metadata:_ file =
 
 let () =
   Plug.register Request.dresolvers "flac" ~doc:"Compute duration of flac files."
-    duration
+    {
+      dpriority = (fun () -> priority#get);
+      file_extensions = (fun () -> file_extensions#get);
+      dresolver;
+    }

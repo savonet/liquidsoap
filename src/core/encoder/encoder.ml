@@ -25,6 +25,7 @@
 type format =
   | WAV of Wav_format.t
   | AVI of Avi_format.t
+  | NDI of Ndi_format.t
   | Ogg of Ogg_format.t
   | MP3 of Mp3_format.t
   | Shine of Shine_format.t
@@ -61,6 +62,12 @@ let type_of_format f =
     | AVI a -> audio_video_type a.Avi_format.channels
     | MP3 m -> audio_type (if m.Mp3_format.stereo then 2 else 1)
     | Shine m -> audio_type m.Shine_format.channels
+    | NDI { audio = false; video = false } -> assert false
+    | NDI { audio = true; video = false } ->
+        audio_type (Lazy.force Frame.audio_channels)
+    | NDI { audio = true; video = true } ->
+        audio_video_type (Lazy.force Frame.audio_channels)
+    | NDI { audio = false; video = true } -> video_type ()
     | Flac m -> audio_type m.Flac_format.channels
     | Ffmpeg m ->
         List.fold_left
@@ -138,6 +145,7 @@ let string_of_format = function
   | AVI w -> Avi_format.to_string w
   | Ogg w -> Ogg_format.to_string w
   | MP3 w -> Mp3_format.to_string w
+  | NDI w -> Ndi_format.to_string w
   | Shine w -> Shine_format.to_string w
   | Flac w -> Flac_format.to_string w
   | Ffmpeg w -> Ffmpeg_format.to_string w

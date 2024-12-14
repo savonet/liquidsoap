@@ -1,5 +1,62 @@
 fade = ()
 
+let settings.fade =
+  settings.make.void(
+    "Settings for the fade in/out operators"
+  )
+
+let settings.fade.in =
+  settings.make.void(
+    "Settings for fade.in operators"
+  )
+
+let settings.fade.in.duration =
+  settings.make(
+    description=
+      "Default fade.in duration",
+    3.
+  )
+
+let settings.fade.in.type =
+  settings.make(
+    description=
+      "Default fade.in type",
+    "lin"
+  )
+
+let settings.fade.in.curve =
+  settings.make(
+    description=
+      "Default fade.in curve",
+    10.
+  )
+
+let settings.fade.out =
+  settings.make.void(
+    "Settings for fade.out operators"
+  )
+
+let settings.fade.out.duration =
+  settings.make(
+    description=
+      "Default fade.out duration",
+    3.
+  )
+
+let settings.fade.out.type =
+  settings.make(
+    description=
+      "Default fade.out type",
+    "lin"
+  )
+
+let settings.fade.out.curve =
+  settings.make(
+    description=
+      "Default fade.out curve",
+    10.
+  )
+
 # Make a fade function based on a source's clock.
 # @category Source / Fade
 # @param ~curve Fade curve for `"log"` and `"exp"` shapes. If `null`, depends on the type of fade. \
@@ -31,7 +88,7 @@ def mkfade(
     (1. + sin((x - 0.5) * pi)) / 2.
   end
 
-  exp_curve = curve ?? 2.
+  exp_curve = curve ?? 3.
   m = exp(exp_curve - 1.) - exp(-1.)
 
   def exp_shape(x) =
@@ -104,9 +161,9 @@ end
 # Fade the end of tracks.
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~delay Initial delay before starting fade.
-# @param ~curve Fade curve. Default if `null`.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override. Defaults to `settings.fade.out.curve` if `null`.
+# @param ~delay Initial delay before starting fade. Defaults to `settings.fade.out.delay` if `null`.
+# @param ~curve Fade curve. Defaults to `settings.fade.out.curve` if `null`.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
 # @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
@@ -115,10 +172,10 @@ end
 # @param ~persist_overrides Keep duration and type overrides on track change.
 # @param ~track_sensitive Be track sensitive (if `false` we only fade ou once at the beginning of the track).
 # @param ~initial_metadata Initial metadata.
-# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
+# @param ~type Fader shape. One of: "lin"", "sin", "log" or "exp". Defaults to `settings.fade.out.type` if `null`.
 def fade.out(
   ~id="fade.out",
-  ~duration=3.,
+  ~duration=null(),
   ~delay=0.,
   ~curve=null(),
   ~override_duration="liq_fade_out",
@@ -128,7 +185,7 @@ def fade.out(
   ~persist_overrides=false,
   ~track_sensitive=false,
   ~initial_metadata=[],
-  ~type="lin",
+  ~type=null(),
   s
 ) =
   def log(x) =
@@ -136,12 +193,12 @@ def fade.out(
   end
 
   fn = ref(fun () -> 1.)
-  original_type = type
-  type = ref(type)
-  original_curve = curve
-  curve = ref(curve)
-  original_duration = duration
-  duration = ref(duration)
+  original_type = type ?? settings.fade.out.type()
+  type = ref(original_type)
+  original_curve = (curve ?? settings.fade.out.curve() : float?)
+  curve = ref(original_curve)
+  original_duration = duration ?? settings.fade.out.duration()
+  duration = ref(original_duration)
   original_delay = delay
   delay = ref(original_delay)
   start_time = ref(-1.)
@@ -475,9 +532,9 @@ end
 # Fade the beginning of tracks.
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override. Defaults to `settings.fade.in.duration` if `null`.
 # @param ~delay Initial delay before starting fade.
-# @param ~curve Fade curve. Default if `null`.
+# @param ~curve Fade curve. Defaults to `settings.fade.in.curve` if `null`.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
 # @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
@@ -486,10 +543,10 @@ end
 # @param ~persist_overrides Keep duration and type overrides on track change.
 # @param ~track_sensitive Be track sensitive (if `false` we only fade in once at the beginning of the track).
 # @param ~initial_metadata Initial metadata.
-# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
+# @param ~type Fader shape. One of: "lin"", "sin", "log" or "exp". Defaults to `settings.fade.in.type` if `null`.
 def fade.in(
   ~id="fade.in",
-  ~duration=3.,
+  ~duration=null(),
   ~delay=0.,
   ~curve=null(),
   ~override_duration="liq_fade_in",
@@ -499,7 +556,7 @@ def fade.in(
   ~persist_overrides=false,
   ~track_sensitive=false,
   ~initial_metadata=[],
-  ~type="lin",
+  ~type=null(),
   s
 ) =
   def log(x) =
@@ -507,13 +564,13 @@ def fade.in(
   end
 
   fn = ref(fun () -> 0.)
-  original_duration = duration
-  duration = ref(duration)
+  original_duration = duration ?? settings.fade.in.duration()
+  duration = ref(original_duration)
   original_delay = delay
   delay = ref(original_delay)
-  original_type = type
-  type = ref(type)
-  original_curve = curve
+  original_type = type ?? settings.fade.in.type()
+  type = ref(original_type)
+  original_curve = curve ?? settings.fade.in.curve()
   curve = ref(curve)
   last_metadata = ref(initial_metadata)
 

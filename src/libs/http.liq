@@ -1,5 +1,22 @@
 # Set of HTTP utils.
 
+# Prepare a list of `(string, string)` arguments for
+# sending as `"application/x-www-form-urlencoded"` content
+# @category Internet
+def http.www_form_urlencoded(params) =
+  params =
+    list.map(
+      fun (v) ->
+        begin
+          let (key, value) = v
+          "#{url.encode(key)}=#{url.encode(value)}"
+        end,
+      params
+    )
+
+  string.concat(separator="&", params)
+end
+
 # Prepare a list of data to be sent as multipart form data.
 # @category Internet
 # @param ~boundary Specify boundary to use for multipart/form-data.
@@ -139,10 +156,11 @@ def http.response(
         getter.is_constant(data)
       then
         data = getter.get(data)
+        len = string.bytes.length(data)
         if
           data != ""
         then
-          ("Content-Length", "#{string.length(data)}")::headers
+          ("Content-Length", "#{len}")::headers
         else
           headers
         end
@@ -180,8 +198,9 @@ def http.response(
       getter.get(data)
     else
       data = getter.get(data)
+      len = string.bytes.length(data)
       response_ended := data == ""
-      "#{string.hex_of_int(string.length(data))}\r\n#{data}\r\n"
+      "#{string.hex_of_int(len)}\r\n#{data}\r\n"
     end
   end
 
@@ -307,7 +326,10 @@ end
 # @flag hidden
 def harbor.http.regexp_of_path(path) =
   def named_capture(s) =
-    name = string.sub(s, start=1, length=string.length(s) - 1)
+    name =
+      string.sub(
+        encoding="ascii", s, start=1, length=string.bytes.length(s) - 1
+      )
     "(?<#{name}>[^/]+)"
   end
 
@@ -500,7 +522,7 @@ def harbor.http.static.base(
   directory = path.home.unrelate(directory)
   basepath =
     if
-      string.sub(basepath, start=0, length=1) != "/"
+      string.sub(encoding="ascii", basepath, start=0, length=1) != "/"
     then
       "/#{basepath}"
     else
@@ -509,7 +531,13 @@ def harbor.http.static.base(
 
   basepath =
     if
-      string.sub(basepath, start=string.length(basepath) - 1, length=1) != "/"
+      string.sub(
+        encoding="ascii",
+        basepath,
+        start=string.bytes.length(basepath) - 1,
+        length=1
+      ) !=
+        "/"
     then
       basepath ^ "/"
     else
@@ -584,8 +612,14 @@ end
 # @flag hidden
 def http.string_of_float(x) =
   s = string(x)
-  n = string.length(s)
-  if string.sub(s, start=n - 1, length=1) == "." then s ^ "0" else s end
+  n = string.bytes.length(s)
+  if
+    string.sub(encoding="ascii", s, start=n - 1, length=1) == "."
+  then
+    s ^ "0"
+  else
+    s
+  end
 end
 
 # @flag hidden
@@ -802,10 +836,6 @@ def http.put.file(
 end
 
 let harbor.http.request = ()
-let settings.http =
-  settings.make.void(
-    "Settings for HTTP requests"
-  )
 let settings.http.mime =
   settings.make.void(
     "MIME-related settings for HTTP requests"
@@ -951,7 +981,7 @@ def http.headers.content_disposition(headers) =
             type: string,
             filename?: string,
             name?: string,
-            args: [(string*string?)]
+            args: [(string * string?)]
           }
         )
       end,

@@ -21,6 +21,11 @@
  *****************************************************************************)
 
 let request = Modules.request
+let should_stop = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"builtin source shutdown" (fun () ->
+      Atomic.set should_stop true)
 
 let _ =
   Lang.add_builtin ~base:request "all" ~category:`Liquidsoap
@@ -100,22 +105,39 @@ let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap
     [
       ( "timeout",
-        Lang.float_t,
-        Some (Lang.float 30.),
-        Some "Limit in seconds to the duration of the resolving." );
+        Lang.nullable_t Lang.float_t,
+        Some Lang.null,
+        Some
+          "Limit in seconds to the duration of the request resolution. \
+           Defaults to `settings.request.timeout` when `null`." );
+      ( "content_type",
+        Lang.nullable_t (Lang.source_t (Lang.univ_t ())),
+        Some Lang.null,
+        Some
+          "Check that the request can decode content suitable for the given \
+           source." );
       ("", Request.Value.t, None, None);
     ]
     Lang.bool_t
     ~descr:
       "Resolve a request, i.e. attempt to get a valid local file. The \
        operation can take some time. Return true if the resolving was \
-       successful, false otherwise (timeout or invalid URI). The request \
-       should not be decoded afterward: this is mostly useful to download \
-       files such as playlists, etc."
+       successful, false otherwise (timeout or invalid URI)."
     (fun p ->
-      let timeout = Lang.to_float (List.assoc "timeout" p) in
+      let timeout =
+        Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+      in
+      let source =
+        Lang.to_valued_option Lang.to_source (List.assoc "content_type" p)
+      in
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.bool (try Request.resolve r timeout = `Resolved with _ -> false))
+      Lang.bool
+        (match (Request.resolve ?timeout r, source) with
+          | `Resolved, Some s -> (
+              try Request.get_decoder ~ctype:s#content_type r <> None
+              with _ -> false)
+          | `Resolved, None -> true
+          | _ | (exception _) -> false))
 
 let _ =
   Lang.add_builtin ~base:request "metadata" ~category:`Liquidsoap
@@ -185,48 +207,86 @@ let _ =
       Lang.unit)
 
 let _ =
-  Lang.add_builtin ~base:request "duration" ~category:`Liquidsoap
-    [
-      ( "resolve_metadata",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Set to `false` to prevent metadata resolution on this request." );
-      ( "metadata",
-        Lang.metadata_t,
-        Some (Lang.list []),
-        Some "Optional metadata used to decode the file, e.g. `ffmpeg_options`."
-      );
-      ( "timeout",
-        Lang.float_t,
-        Some (Lang.float 30.),
-        Some "Limit in seconds to the duration of the resolving." );
-      ("", Lang.string_t, None, None);
-    ]
-    (Lang.nullable_t Lang.float_t)
-    ~descr:
-      "Compute the duration in seconds of audio data contained in a request. \
-       The computation may be expensive. Returns `null` if computation failed, \
-       typically if the file was not recognized as valid audio."
-    (fun p ->
-      let f = Lang.to_string (List.assoc "" p) in
-      let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
-      let metadata = Lang.to_metadata (List.assoc "metadata" p) in
-      let timeout = Lang.to_float (List.assoc "timeout" p) in
-      let r =
-        Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
-          ~cue_out_metadata:None f
-      in
-      if Request.resolve r timeout = `Resolved then (
-        match
-          Request.duration ~metadata:(Request.metadata r)
-            (Option.get (Request.get_filename r))
-        with
-          | Some f -> Lang.float f
-          | None -> Lang.null
-          | exception exn ->
-              let bt = Printexc.get_raw_backtrace () in
-              Lang.raise_as_runtime ~bt ~kind:"failure" exn)
-      else Lang.null)
+  let add_duration_resolver ~base ~name ~resolver () =
+    Lang.add_builtin ~base name ~category:`Liquidsoap
+      ((if resolver = None then
+          [
+            ( "resolvers",
+              Lang.nullable_t (Lang.list_t Lang.string_t),
+              Some Lang.null,
+              Some
+                "Set to a list of resolvers to only resolve duration using a \
+                 specific decoder." );
+          ]
+        else [])
+      @ [
+          ( "resolve_metadata",
+            Lang.bool_t,
+            Some (Lang.bool true),
+            Some
+              "Set to `false` to prevent metadata resolution on this request."
+          );
+          ( "metadata",
+            Lang.metadata_t,
+            Some (Lang.list []),
+            Some
+              "Optional metadata used to decode the file, e.g. \
+               `ffmpeg_options`." );
+          ( "timeout",
+            Lang.nullable_t Lang.float_t,
+            Some Lang.null,
+            Some
+              "Limit in seconds to the duration of request resolution. \
+               Defaults to `settings.request.timeout` when `null`." );
+          ("", Lang.string_t, None, None);
+        ])
+      (Lang.nullable_t Lang.float_t)
+      ~descr:
+        (Printf.sprintf
+           "Compute the duration in seconds of audio data contained in a \
+            request%s. The computation may be expensive. Returns `null` if \
+            computation failed, typically if the file was not recognized as \
+            valid audio."
+           (match resolver with
+             | Some r -> " using the " ^ r ^ " decoder"
+             | None -> ""))
+      (fun p ->
+        let f = Lang.to_string (List.assoc "" p) in
+        let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
+        let resolvers =
+          match resolver with
+            | None ->
+                Option.map (List.map Lang.to_string)
+                  (Lang.to_valued_option Lang.to_list (List.assoc "resolvers" p))
+            | Some r -> Some [r]
+        in
+        let metadata = Lang.to_metadata (List.assoc "metadata" p) in
+        let timeout =
+          Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+        in
+        let r =
+          Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
+            ~cue_out_metadata:None f
+        in
+        if Request.resolve ?timeout r = `Resolved then (
+          match
+            Request.duration ?resolvers ~metadata:(Request.metadata r)
+              (Option.get (Request.get_filename r))
+          with
+            | Some f -> Lang.float f
+            | None -> Lang.null
+            | exception exn ->
+                let bt = Printexc.get_raw_backtrace () in
+                Lang.raise_as_runtime ~bt ~kind:"failure" exn)
+        else Lang.null)
+  in
+  let base =
+    add_duration_resolver ~base:request ~name:"duration" ~resolver:None ()
+  in
+  List.iter
+    (fun name ->
+      ignore (add_duration_resolver ~base ~name ~resolver:(Some name) ()))
+    Request.conf_dresolvers#get
 
 let _ =
   Lang.add_builtin ~base:request "id" ~category:`Liquidsoap
@@ -255,3 +315,187 @@ let _ =
           | `Failed -> "failed"
       in
       Lang.string s)
+
+exception Process_failed
+
+class process ~name r =
+  object (self)
+    inherit
+      Request_dynamic.dynamic
+        ~name
+        ~retry_delay:(fun _ -> 0.1)
+        ~available:(fun _ -> true)
+        ~prefetch:1 ~timeout:None ~synchronous:true
+        (Lang.val_fun [] (fun _ -> Lang.null))
+
+    initializer
+      self#on_wake_up (fun () ->
+          match Request.get_decoder ~ctype:self#content_type r with
+            | Some _ -> self#set_queue [r]
+            | None | (exception _) -> raise Process_failed)
+  end
+
+let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
+  let module Time = (val Clock.time_implementation () : Liq_time.T) in
+  let open Time in
+  let start_time = Time.time () in
+  match Request.resolve ~timeout r with
+    | `Failed | `Timeout -> ()
+    | `Resolved -> (
+        let timeout = Time.of_float timeout in
+        let timeout_time = Time.(start_time |+| timeout) in
+        try
+          let s = new process ~name r in
+          let s = (process (s :> Source.source) :> Source.source) in
+          let clock =
+            Clock.create ~id:name ~sync:`Passive
+              ~on_error:(fun exn bt ->
+                Utils.log_exception ~log
+                  ~bt:(Printexc.raw_backtrace_to_string bt)
+                  (Printf.sprintf "Error while processing source: %s"
+                     (Printexc.to_string exn));
+                raise Process_failed)
+              ()
+          in
+          Fun.protect
+            ~finally:(fun () -> try Clock.stop clock with _ -> ())
+            (fun () ->
+              let started = ref false in
+              let stopped = ref false in
+              let _ =
+                new Output.dummy
+                  ~clock ~infallible:false ~register_telnet:false
+                  ~on_start:(fun () -> started := true)
+                  ~on_stop:(fun () -> stopped := true)
+                  ~autostart:true (Lang.source s)
+              in
+              Clock.start ~force:true clock;
+              log#info "Start streaming loop (ratio: %.02fx)" ratio;
+              let sleep_latency = Time.of_float sleep_latency in
+              let target_time () =
+                Time.(
+                  start_time |+| sleep_latency
+                  |+| of_float (Clock.time clock /. ratio))
+              in
+              while (not (Atomic.get should_stop)) && not !stopped do
+                if (not !started) && Time.(timeout_time |<=| Time.time ()) then (
+                  log#important
+                    "Timeout while waiting for the source to be ready!";
+                  raise Process_failed)
+                else (
+                  Clock.tick clock;
+                  let target_time = target_time () in
+                  if Time.(time () |<| (target_time |+| sleep_latency)) then
+                    sleep_until target_time)
+              done;
+              let processing_time = Time.(to_float (time () |-| start_time)) in
+              let effective_ratio = Clock.time clock /. processing_time in
+              log#info
+                "Request processed. Total processing time: %.02fs, effective \
+                 ratio: %.02fx"
+                processing_time effective_ratio)
+        with Process_failed | Clock.Has_stopped -> ())
+
+let _ =
+  let log = Log.make ["request"; "dump"] in
+  let kind = Lang.univ_t () in
+  Lang.add_builtin ~base:request "dump" ~category:(`Source `Liquidsoap)
+    ~descr:"Immediately encode the whole contents of a request into a file."
+    ~flags:[`Experimental]
+    [
+      ("", Lang.format_t kind, None, Some "Encoding format.");
+      ("", Lang.string_t, None, Some "Name of the file.");
+      ("", Request.Value.t, None, Some "Request to encode.");
+      ( "ratio",
+        Lang.float_t,
+        Some (Lang.float 50.),
+        Some
+          "Time ratio. A value of `50` means process data at `50x` real rate, \
+           when possible." );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some
+          "Stop processing the source if it has not started after the given \
+           timeout." );
+      ( "sleep_latency",
+        Lang.float_t,
+        Some (Lang.float 0.1),
+        Some
+          "How much time ahead, in seconds, should we should be before pausing \
+           the processing." );
+    ]
+    Lang.unit_t
+    (fun p ->
+      let proto =
+        let p = Pipe_output.file_proto (Lang.univ_t ()) in
+        List.filter_map (fun (l, _, v, _) -> Option.map (fun v -> (l, v)) v) p
+      in
+      let proto = ("fallible", Lang.bool true) :: proto in
+      let format = Lang.assoc "" 1 p in
+      let file = Lang.assoc "" 2 p in
+      let r = Request.Value.of_value (Lang.assoc "" 3 p) in
+      let process s =
+        let p =
+          ("id", Lang.string "request.drop")
+          :: ("", format) :: ("", file)
+          :: ("", Lang.source s)
+          :: (p @ proto)
+        in
+        Pipe_output.new_file_output p
+      in
+      let ratio = Lang.to_float (List.assoc "ratio" p) in
+      let timeout = Lang.to_float (List.assoc "timeout" p) in
+      let sleep_latency = Lang.to_float (List.assoc "sleep_latency" p) in
+      process_request ~log ~name:"request.dump" ~ratio ~timeout ~sleep_latency
+        ~process r;
+      log#info "Request dumped.";
+      Lang.unit)
+
+let _ =
+  let log = Log.make ["request"; "process"] in
+  Lang.add_builtin ~base:request "process" ~category:(`Source `Liquidsoap)
+    ~descr:
+      "Given a request and an optional function to process this request, \
+       animate the source as fast as possible until the request is fully \
+       processed."
+    [
+      ("", Request.Value.t, None, Some "Request to process");
+      ( "process",
+        Lang.fun_t
+          [(false, "", Lang.source_t (Lang.univ_t ()))]
+          (Lang.source_t (Lang.univ_t ())),
+        Some (Lang.val_fun [("", "", None)] (fun p -> List.assoc "" p)),
+        Some "Callback to create the source to animate." );
+      ( "ratio",
+        Lang.float_t,
+        Some (Lang.float 50.),
+        Some
+          "Time ratio. A value of `50` means process data at `50x` real rate, \
+           when possible." );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 1.),
+        Some
+          "Stop processing the source if it has not started after the given \
+           timeout." );
+      ( "sleep_latency",
+        Lang.float_t,
+        Some (Lang.float 0.1),
+        Some
+          "How much time ahead, in seconds, should we should be before pausing \
+           the processing." );
+    ]
+    Lang.unit_t
+    (fun p ->
+      let r = Request.Value.of_value (List.assoc "" p) in
+      let process = List.assoc "process" p in
+      let process s =
+        Lang.to_source (Lang.apply process [("", Lang.source s)])
+      in
+      let ratio = Lang.to_float (List.assoc "ratio" p) in
+      let timeout = Lang.to_float (List.assoc "timeout" p) in
+      let sleep_latency = Lang.to_float (List.assoc "sleep_latency" p) in
+      process_request ~log ~name:"request.process" ~ratio ~timeout
+        ~sleep_latency ~process r;
+      Lang.unit)

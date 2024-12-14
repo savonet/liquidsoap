@@ -37,6 +37,7 @@ type watch =
 let fd = ref (None : Unix.file_descr option)
 let handlers = ref []
 let m = Mutex.create ()
+let log = Log.make ["inotify"]
 
 let rec watchdog () =
   let fd = Option.get !fd in
@@ -47,7 +48,8 @@ let rec watchdog () =
           (fun (wd, _, _, _) ->
             match List.assoc wd !handlers with
               | f -> f ()
-              | exception Not_found -> ())
+              | exception Not_found -> (
+                  try Inotify.rm_watch fd wd with _ -> ()))
           events;
         [watchdog ()])
   in
@@ -75,10 +77,17 @@ let watch : watch =
       let e = List.flatten (List.map event_conv e) in
       let wd = Inotify.add_watch fd file e in
       handlers := (wd, f) :: !handlers;
+      let finalise fn = fn () in
       let unwatch =
         Mutex_utils.mutexify m (fun () ->
-            Inotify.rm_watch fd wd;
+            (try Inotify.rm_watch fd wd
+             with exn ->
+               let bt = Printexc.get_backtrace () in
+               Utils.log_exception ~log ~bt
+                 (Printf.sprintf "Error whole removing file watch handler: %s"
+                    (Printexc.to_string exn)));
             handlers := List.remove_assoc wd !handlers)
       in
+      Gc.finalise finalise unwatch;
       unwatch)
     ()

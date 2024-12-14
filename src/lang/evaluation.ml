@@ -180,16 +180,41 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     | `List l -> mk (`List (List.map (eval ~eval_check env) l))
     | `Tuple l -> mk (`Tuple (List.map (fun a -> eval ~eval_check env a) l))
     | `Null -> mk `Null
-    | `Hide (tm, methods) ->
+    | `Hide (tm, methods) -> (
         let v = eval ~eval_check env tm in
-        Value.map_methods v
-          (Methods.filter (fun n _ -> not (List.mem n methods)))
+        let v =
+          Value.map_methods v
+            (Methods.filter (fun n _ -> not (List.mem n methods)))
+        in
+        match v with
+          | Value.Custom ({ dynamic_methods = Some d } as p) ->
+              Value.Custom
+                {
+                  p with
+                  dynamic_methods =
+                    Some
+                      {
+                        d with
+                        hidden_methods =
+                          List.sort_uniq Stdlib.compare
+                            (methods @ d.hidden_methods);
+                      };
+                }
+          | v -> v)
     | `Cast { cast = e } -> Value.set_pos (eval ~eval_check env e) tm.t.Type.pos
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
-        match
-          (Value.Methods.find_opt meth (Value.methods v), invoke_default)
-        with
+        let invoked_value =
+          match (Value.Methods.find_opt meth (Value.methods v), v) with
+            | Some v, _ -> Some v
+            | ( None,
+                Value.Custom
+                  { dynamic_methods = Some { hidden_methods; methods } } )
+              when not (List.mem meth hidden_methods) ->
+                methods meth
+            | _ -> None
+        in
+        match (invoked_value, invoke_default) with
           (* If method returns `null` and a default is provided, pick default. *)
           | Some (Value.Null { methods }), Some default
             when Methods.is_empty methods ->

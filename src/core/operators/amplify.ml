@@ -23,7 +23,10 @@
 open Mm
 open Source
 
-class amplify ~field (source : source) override_field coeff =
+let parse_db s =
+  try Scanf.sscanf s " %f dB" Audio.lin_of_dB with _ -> float_of_string s
+
+class amplify ~field ~override_field (source : source) coeff =
   object (self)
     inherit operator ~name:"track.audio.amplify" [source]
     val mutable override = None
@@ -60,7 +63,7 @@ class amplify ~field (source : source) override_field coeff =
       else buf
 
     method private set_override buf =
-      match override_field with
+      match Option.map (fun f -> f ()) override_field with
         | Some f ->
             if override <> None then
               self#log#info "End of the current overriding.";
@@ -68,11 +71,7 @@ class amplify ~field (source : source) override_field coeff =
             List.iter
               (fun (_, m) ->
                 try
-                  let s = Frame.Metadata.find f m in
-                  let k =
-                    try Scanf.sscanf s " %f dB" Audio.lin_of_dB
-                    with _ -> float_of_string s
-                  in
+                  let k = parse_db (Frame.Metadata.find f m) in
                   self#log#info "Overriding amplification: %f." k;
                   override <- Some k
                 with _ -> ())
@@ -93,9 +92,8 @@ let _ =
   let frame_t = Lang.pcm_audio_t () in
   Lang.add_track_operator ~base:Modules.track_audio "amplify"
     [
-      ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");
       ( "override",
-        Lang.nullable_t Lang.string_t,
+        Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some (Lang.string "liq_amplify"),
         Some
           "Specify the name of a metadata field that, when present and \
@@ -103,7 +101,9 @@ let _ =
            track. Well-formed values are floats in decimal notation (e.g. \
            `0.7`) which are taken as normal/linear multiplicative factors; \
            values can be passed in decibels with the suffix `dB` (e.g. `-8.2 \
-           dB`, but the spaces do not matter)." );
+           dB`, but the spaces do not matter). Defaults to \
+           `settings.amplify.metadata`. Set to `null` to disable." );
+      ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");
       ("", frame_t, None, None);
     ]
     ~return_t:frame_t ~category:`Audio
@@ -111,6 +111,7 @@ let _ =
     (fun p ->
       let c = Lang.to_float_getter (Lang.assoc "" 1 p) in
       let field, s = Lang.to_track (Lang.assoc "" 2 p) in
-      let o = Lang.to_option (Lang.assoc "override" 1 p) in
-      let o = Option.map Lang.to_string o in
-      (field, new amplify ~field s o c))
+      let override_field =
+        Lang.to_valued_option Lang.to_string_getter (Lang.assoc "override" 1 p)
+      in
+      (field, new amplify ~field ~override_field s c))

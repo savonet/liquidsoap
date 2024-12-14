@@ -24,6 +24,15 @@ type request = Get | Post | Put | Head | Delete
 
 module Http = Liq_http
 
+let conf_http =
+  Dtools.Conf.void ~p:(Configure.conf#plug "http") "Settings for HTTP requests"
+
+let conf_normalize_url =
+  Dtools.Conf.bool ~d:true
+    ~p:(conf_http#plug "normalize_url")
+    "When `true`, HTTP urls are normalized by default, i.e. spaces are \
+     replaced with `%20` and etc."
+
 let string_of_request = function
   | Get -> "get"
   | Post -> "post"
@@ -85,9 +94,11 @@ let add_http_request ~base ~stream_body ~descr ~request name =
           Some (Lang.float 10.),
           Some "Timeout for network operations in seconds." );
         ( "normalize_url",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Normalize url, replacing spaces with `%20` and more." );
+          Lang.nullable_t Lang.bool_t,
+          Some Lang.null,
+          Some
+            "Normalize url, replacing spaces with `%20` and more. Defaults to \
+             `settings.http.normalize_url` when `null`." );
         ( "",
           Lang.string_t,
           None,
@@ -122,15 +133,23 @@ let add_http_request ~base ~stream_body ~descr ~request name =
         Option.map Lang.to_string (Lang.to_option (List.assoc "http_version" p))
       in
       let original_url = Lang.to_string (List.assoc "" p) in
-      let normalize_url = Lang.to_bool (List.assoc "normalize_url" p) in
+      let normalize_url =
+        Option.value ~default:conf_normalize_url#get
+          (Lang.to_valued_option Lang.to_bool (List.assoc "normalize_url" p))
+      in
       let url =
         if normalize_url then Uri.(to_string (of_string original_url))
         else original_url
       in
       if Uri.pct_decode url <> original_url then
         log#important
-          "Requested url %s different from normalized url: %s. Either fix it \
-           or use `normalize_url=false` to disable url normalization!"
+          "Requested url %s is different from normalized url: %s. URL are \
+           normalized by default to ensure maximum compatibility with e.g. \
+           URLs with spaces in them. However, this can also cause issues so we \
+           recommend passing normalized URLs. Url normalization can be \
+           disabled on a case-by-case basis using the `normalize_url` \
+           parameter or globally using the `settings.http.normalize_url` \
+           setting."
           (Lang_string.quote_utf8_string original_url)
           (Lang_string.quote_utf8_string (Uri.pct_decode url));
       let redirect = Lang.to_bool (List.assoc "redirect" p) in

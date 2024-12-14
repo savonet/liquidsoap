@@ -2,7 +2,7 @@
  (name liquidsoap)
  (public_name liquidsoap)
  (package liquidsoap-core)
- (link_flags -cclib %{env:LDFLAGS=})
+ (link_flags -cclib %{env:LIQ_LDFLAGS=})
  (libraries liquidsoap_runtime)
  (modules liquidsoap))
 

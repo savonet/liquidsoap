@@ -546,7 +546,7 @@ let parse_file_decoder_args metadata =
     | Some args -> parse_input_args args
     | None -> ([], None)
 
-let duration ~metadata file =
+let dresolver ~metadata file =
   let args, format = parse_file_decoder_args metadata in
   let opts = Hashtbl.create 10 in
   List.iter (fun (k, v) -> Hashtbl.replace opts k v) args;
@@ -558,10 +558,16 @@ let duration ~metadata file =
       Option.map (fun d -> Int64.to_float d /. 1000.) duration)
 
 let () =
-  Plug.register Request.dresolvers "ffmepg" ~doc:"" (fun ~metadata fname ->
-      match duration ~metadata fname with
-        | None -> raise Not_found
-        | Some d -> d)
+  Plug.register Request.dresolvers "ffmpeg" ~doc:""
+    {
+      dpriority = (fun () -> priority#get);
+      file_extensions = (fun () -> file_extensions#get);
+      dresolver =
+        (fun ~metadata fname ->
+          match dresolver ~metadata fname with
+            | None -> raise Not_found
+            | Some d -> d);
+    }
 
 let tags_substitutions = [("track", "tracknumber")]
 
@@ -1087,7 +1093,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
 
 let create_decoder ~ctype ~metadata fname =
   let args, format = parse_file_decoder_args metadata in
-  let file_duration = duration ~metadata fname in
+  let file_duration = dresolver ~metadata fname in
   let remaining = Atomic.make file_duration in
   let set_remaining ~pts ~duration stream =
     let pts =

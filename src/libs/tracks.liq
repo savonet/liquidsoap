@@ -34,6 +34,8 @@ def source.mux.midi(~id=null(), ~(midi:source), s) =
   source(id=id, source.tracks(s).{midi=source.tracks(midi).midi})
 end
 
+let source.drop = ()
+
 # Remove the audio track of a source.
 # @category Source / Track processing
 def source.drop.audio(~id=null(), s) =
@@ -60,4 +62,40 @@ end
 def source.drop.metadata(~id=null(), s) =
   let {metadata = _, ...tracks} = source.tracks(s)
   source(id=id, tracks)
+end
+
+# Remove the track marks of a source.
+# @category Source / Track processing
+def source.drop.track_marks(~id=null(), s) =
+  let {track_marks = _, ...tracks} = source.tracks(s)
+  source(id=id, tracks)
+end
+
+# Remove the metadata and track marks of a source.
+# @category Source / Track processing
+def source.drop.metadata_track_marks(~id=null(), s) =
+  let {metadata = _, track_marks = _, ...tracks} = source.tracks(s)
+  source(id=id, tracks)
+end
+
+let settings.amplify =
+  settings.make.void(
+    "Settings for the amplify operator"
+  )
+
+let settings.amplify.override =
+  settings.make(
+    description=
+      "Default metadata used to override amplification.",
+    "liq_amplify"
+  )
+
+# @docof track.audio.amplify
+def track.audio.amplify(
+  %argsof(track.audio.amplify[!override]),
+  ~override=getter({(settings.amplify.override() : string?)}),
+  v,
+  t
+) =
+  track.audio.amplify(%argsof(track.audio.amplify), v, t)
 end

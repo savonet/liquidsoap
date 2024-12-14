@@ -100,17 +100,8 @@ end
 # @category File
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic detection.
 # @param ~timeout Timeout for resolving the playlist
-# @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
-# @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri Path to the playlist
-def playlist.files(
-  ~id=null(),
-  ~mime_type=null(),
-  ~timeout=20.,
-  ~cue_in_metadata=null("liq_cue_in"),
-  ~cue_out_metadata=null("liq_cue_out"),
-  uri
-) =
+def playlist.files(~id=null(), ~mime_type=null(), ~timeout=null(), uri) =
   id = id ?? playlist.id(default="playlist.files", uri)
 
   if
@@ -124,10 +115,7 @@ def playlist.files(
     files = list.filter(fun (f) -> not (file.is_directory(f)), files)
     files
   else
-    pl =
-      request.create(
-        cue_in_metadata=cue_in_metadata, cue_out_metadata=cue_out_metadata, uri
-      )
+    pl = request.create(resolve_metadata=false, uri)
     result =
       if
         request.resolve(timeout=timeout, pl)
@@ -189,7 +177,7 @@ let stdlib_native = native
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
 # @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request. Defaults to `settings.request.timeout` when `null`.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param playlist Playlist.
@@ -206,7 +194,7 @@ def playlist.list(
   ~on_done={()},
   ~max_fail=10,
   ~on_fail=null(),
-  ~timeout=20.,
+  ~timeout=null(),
   ~cue_in_metadata=null("liq_cue_in"),
   ~cue_out_metadata=null("liq_cue_out"),
   playlist
@@ -454,7 +442,8 @@ end
 # @param ~reload_mode Unit of the reload parameter, either "never" (never reload \
 #  the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is \
 #  changed).
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~register_server_commands Register corresponding server commands
+# @param ~timeout Timeout (in sec.) to resolve the request. Defaults to `settings.request.timeout` when `null`.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri Playlist URI.
@@ -476,9 +465,10 @@ def replaces playlist(
   ~prefix="",
   ~reload=0,
   ~reload_mode="seconds",
-  ~timeout=20.,
+  ~timeout=null(),
   ~cue_in_metadata=null("liq_cue_in"),
   ~cue_out_metadata=null("liq_cue_out"),
+  ~register_server_commands=true,
   uri
 ) =
   id = id ?? playlist.id(default="playlist", uri)
@@ -520,12 +510,7 @@ def replaces playlist(
     files =
       try
         playlist.files(
-          id=id,
-          mime_type=mime_type,
-          timeout=timeout,
-          cue_in_metadata=cue_in_metadata,
-          cue_out_metadata=cue_out_metadata,
-          playlist_uri
+          id=id, mime_type=mime_type, timeout=timeout, playlist_uri
         )
       catch err do
         log.info(
@@ -663,109 +648,101 @@ def replaces playlist(
     s.on_shutdown(watcher_shutdown)
   end
 
-  s.on_wake_up(
-    memoize(
-      {
-        let id = source.id(s)
+  if
+    register_server_commands
+  then
+    # Set up telnet commands
+    s.register_command(
+      description=
+        "Skip current song in the playlist.",
+      usage="skip",
+      "skip",
+      fun (_) ->
+        begin
+          s.skip()
+          "OK"
+        end
+    )
 
-        # Set up telnet commands
-        server.register(
-          namespace=id,
-          description=
-            "Skip current song in the playlist.",
-          usage="skip",
-          "skip",
-          fun (_) ->
-            begin
-              s.skip()
-              "OK"
-            end
-        )
+    s.register_command(
+      description=
+        "Return up to 10 next URIs to be played.",
+      usage="next",
+      "next",
+      fun (n) ->
+        begin
+          n = max(10, int_of_string(default=10, n))
+          requests =
+            list.fold(
+              (fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur ),
+              [],
+              s.queue()
+            )
 
-        server.register(
-          namespace=id,
-          description=
-            "Return up to 10 next URIs to be played.",
-          usage="next",
-          "next",
-          fun (n) ->
-            begin
-              n = max(10, int_of_string(default=10, n))
-              requests =
-                list.fold(
-                  (fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur ),
-                  [],
-                  s.queue()
-                )
+          string.concat(
+            separator="\n",
+            list.map(
+              (
+                fun (r) ->
+                  begin
+                    m = request.metadata(r)
+                    get = fun (lbl) -> list.assoc(default="?", lbl, m)
+                    status = get("status")
+                    uri = get("initial_uri")
+                    "[#{status}] #{uri}"
+                  end
+              ),
+              requests
+            )
+          )
+        end
+    )
 
-              string.concat(
-                separator="\n",
-                list.map(
-                  (
-                    fun (r) ->
-                      begin
-                        m = request.metadata(r)
-                        get = fun (lbl) -> list.assoc(default="?", lbl, m)
-                        status = get("status")
-                        uri = get("initial_uri")
-                        "[#{status}] #{uri}"
-                      end
-                  ),
-                  requests
-                )
-              )
-            end
-        )
+    s.register_command(
+      description=
+        "Reload the playlist, unless already being loaded.",
+      usage="reload",
+      "reload",
+      fun (_) ->
+        begin
+          s.reload()
+          "OK"
+        end
+    )
 
-        server.register(
-          namespace=id,
-          description=
-            "Reload the playlist, unless already being loaded.",
-          usage="reload",
-          "reload",
-          fun (_) ->
-            begin
-              s.reload()
-              "OK"
-            end
-        )
-
-        def uri_cmd(uri') =
-          if
-            uri' == ""
-          then
-            playlist_uri()
-          else
-            if
-              reload_mode == "watch"
-            then
-              log.important(
-                label=id,
-                "Warning: the watched file is not updated for now when changing \
-                 the uri!"
-              )
-            end
-
-            # TODO
-            playlist_uri := uri'
-            s.reload(uri=uri')
-            "OK"
-          end
+    def uri_cmd(uri') =
+      if
+        uri' == ""
+      then
+        playlist_uri()
+      else
+        if
+          reload_mode == "watch"
+        then
+          log.important(
+            label=id,
+            "Warning: the watched file is not updated for now when changing the \
+             uri!"
+          )
         end
 
-        server.register(
-          namespace=id,
-          description=
-            "Print playlist URI if called without an argument, otherwise set a \
-             new one and load it.",
-          usage=
-            "uri [<uri>]",
-          "uri",
-          uri_cmd
-        )
-      }
+        # TODO
+        playlist_uri := uri'
+        s.reload(uri=uri')
+        "OK"
+      end
+    end
+
+    s.register_command(
+      description=
+        "Print playlist URI if called without an argument, otherwise set a new \
+         one and load it.",
+      usage=
+        "uri [<uri>]",
+      "uri",
+      uri_cmd
     )
-  )
+  end
 
   s
 end

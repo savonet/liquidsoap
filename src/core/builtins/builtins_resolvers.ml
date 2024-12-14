@@ -21,6 +21,13 @@
  *****************************************************************************)
 
 let decoder_metadata = Lang.add_module ~base:Modules.decoder "metadata"
+let reentrant_decoders = ref []
+
+let _ =
+  Lang.add_builtin ~base:decoder_metadata "reentrant" ~category:`Liquidsoap
+    ~descr:"Return the list of reentrant decoders." []
+    (Lang.list_t Lang.string_t) (fun _ ->
+      Lang.list (List.map Lang.string !reentrant_decoders))
 
 let _ =
   let resolver_t =
@@ -35,6 +42,25 @@ let _ =
         Lang.getter_t Lang.int_t,
         Some (Lang.int 1),
         Some "Resolver's priority." );
+      ( "mime_types",
+        Lang.nullable_t (Lang.list_t Lang.string_t),
+        Some Lang.null,
+        Some
+          "Decode files that match the mime types in this list. Accept any \
+           file if `null`." );
+      ( "file_extensions",
+        Lang.nullable_t (Lang.list_t Lang.string_t),
+        Some Lang.null,
+        Some
+          "Decode files that have the file extensions in this list. Accept any \
+           file if `null`." );
+      ( "reentrant",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Set to `true` to indicate that the decoder needs to resolve a \
+           request. Such decoders need to be mutually exclusive to avoid \
+           request resolution loops!" );
       ("", Lang.string_t, None, Some "Format/resolver's name.");
       ( "",
         resolver_t,
@@ -47,11 +73,26 @@ let _ =
     (fun p ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
+      let mimes =
+        Lang.to_valued_option
+          (fun v -> List.map Lang.to_string (Lang.to_list v))
+          (List.assoc "mime_types" p)
+      in
+      let extensions =
+        Lang.to_valued_option
+          (fun v -> List.map Lang.to_string (Lang.to_list v))
+          (List.assoc "file_extensions" p)
+      in
+      let log = Log.make ["decoder"; "metadata"] in
+      let reentrant = Lang.to_bool (List.assoc "reentrant" p) in
       let priority = Lang.to_int_getter (List.assoc "priority" p) in
-      let resolver ~metadata ~extension:_ ~mime:_ name =
+      let resolver ~metadata ~extension ~mime fname =
+        if
+          not (Decoder.test_file ~log ~extension ~mime ~mimes ~extensions fname)
+        then raise Metadata.Invalid;
         let ret =
           Lang.apply f
-            [("metadata", Lang.metadata metadata); ("", Lang.string name)]
+            [("metadata", Lang.metadata metadata); ("", Lang.string fname)]
         in
         let ret = Lang.to_list ret in
         let ret = List.map Lang.to_product ret in
@@ -62,6 +103,7 @@ let _ =
       in
       Plug.register Request.mresolvers format ~doc:""
         { Request.priority; resolver };
+      if reentrant then reentrant_decoders := format :: !reentrant_decoders;
       Lang.unit)
 
 let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
@@ -133,6 +175,9 @@ let _ =
         { Playlist_parser.strict; Playlist_parser.parser = fn };
       Lang.unit)
 
+let default_static =
+  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled "fun (_) -> false"
+
 let _ =
   let log_p = [("", "", None)] in
   let log_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t in
@@ -153,11 +198,12 @@ let _ =
         Some (Lang.bool false),
         Some "if true, file is removed when it is finished." );
       ( "static",
-        Lang.bool_t,
-        Some (Lang.bool false),
+        Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t,
+        Some default_static,
         Some
-          "if true, then requests can be resolved once and for all. Typically, \
-           static protocols can be used to create infallible sources." );
+          "When given an uri for the protocol, if it returns `true`, then \
+           requests can be resolved once and for all. Typically, static \
+           protocols can be used to create infallible sources." );
       ( "syntax",
         Lang.string_t,
         Some (Lang.string "Undocumented"),
@@ -185,7 +231,8 @@ let _ =
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
       let temporary = Lang.to_bool (List.assoc "temporary" p) in
-      let static = Lang.to_bool (List.assoc "static" p) in
+      let static = List.assoc "static" p in
+      let static s = Lang.to_bool (Lang.apply static [("", Lang.string s)]) in
       let doc = Lang.to_string (List.assoc "doc" p) in
       let syntax = Lang.to_string (List.assoc "syntax" p) in
       Lang.add_protocol ~syntax ~doc ~static name (fun arg ~log timeout ->

@@ -195,23 +195,26 @@ end
 # @param ~every Duration of a track (in seconds).
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
-def chop(~every=getter(3.), ~metadata=getter([]), s) =
+def chop(~id=null(), ~every=getter(3.), ~metadata=getter([]), s) =
   s = insert_metadata(s)
 
   # Track time in the source's context:
   time = ref(0.)
 
+  is_first = ref(true)
+
   def f() =
     time := time() + settings.frame.duration()
     if
-      getter.get(every) <= time()
+      is_first() or getter.get(every) <= time()
     then
+      is_first := false
       time := 0.
       s.insert_metadata(new_track=true, getter.get(metadata))
     end
   end
 
-  source.on_frame(s, f)
+  source.on_frame(id=id, s, f)
 end
 
 # Regularly skip tracks from a source (useful for testing skipping).

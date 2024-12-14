@@ -142,8 +142,16 @@ let read_header read_ops ic =
   if format = `Wav then (
     if fmt_len < 0x10 then
       raise (Not_a_iff_file "Bad header: invalid \"fmt \" length");
-    if read_short ic <> 1 then
-      raise (Not_a_iff_file "Bad header: unhandled codec");
+    (match read_short ic with
+      | 1
+      (* Extensible chunk. Should work but might have more than 2 channels and mapping
+         could be wrong. *)
+      | 0xfffe ->
+          ()
+      | c ->
+          raise
+            (Not_a_iff_file
+               (Printf.sprintf "Bad header: unhandled codec 0x%x" c)));
     let chan_num = read_short ic in
     let samp_hz = read_int ic in
     let byt_per_sec = read_int ic in

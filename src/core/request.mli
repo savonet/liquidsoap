@@ -100,7 +100,7 @@ val from_id : int -> t option
 type resolver = string -> log:(string -> unit) -> float -> indicator option
 
 (** A protocol, which can resolve associated URIs. *)
-type protocol = { resolve : resolver; static : bool }
+type protocol = { resolve : resolver; static : string -> bool }
 
 (** A static request [r] is such that every resolving leads to the same file.
     Sometimes, it allows removing useless destroy/create/resolve. *)
@@ -113,9 +113,13 @@ type resolve_flag = [ `Resolved | `Failed | `Timeout ]
 (** Metadata resolvers priorities. *)
 val conf_metadata_decoder_priorities : Dtools.Conf.ut
 
-(** [resolve request timeout] tries to resolve the request within
-    [timeout] seconds. *)
-val resolve : t -> float -> resolve_flag
+(** Read the request's metadata. *)
+val read_metadata : t -> unit
+
+(** [resolve ?timeout request] tries to resolve the request within
+    [timeout] seconds. Defaults to [settings.request.timeout] when
+    [timeout] is not passed. *)
+val resolve : ?timeout:float -> t -> resolve_flag
 
 (** [resolved r] if there's an available local filename. It can be true even if
     the resolving hasn't been run, if the initial URI was already a local
@@ -144,10 +148,15 @@ val log : t -> string
     These operations are only meaningful for media requests, and might raise
     exceptions otherwise. *)
 
-(** [duration ~metadata filename] computes the duration of audio data contained in
-    [filename]. The computation may be expensive.
+(** Duration resolvers. *)
+val conf_dresolvers : string list Dtools.Conf.t
+
+(** [duration ?resolvers ~metadata filename] computes the duration of audio data contained in
+    [filename]. The computation may be expensive. Set [resolvers] to a list of specific decoders
+    to use for getting duration.
     @raise Not_found if no duration computation method is found. *)
-val duration : metadata:Frame.metadata -> string -> float option
+val duration :
+  ?resolvers:string list -> metadata:Frame.metadata -> string -> float option
 
 (** [true] is a decoder exists for the given content-type. *)
 val has_decoder : ctype:Frame.content_type -> t -> bool
@@ -165,8 +174,14 @@ val done_playing : source:Source.source -> t -> unit
 
 (** {1 Plugs} *)
 
+type dresolver = {
+  dpriority : unit -> int;
+  file_extensions : unit -> string list;
+  dresolver : metadata:Frame.metadata -> string -> float;
+}
+
 (** Functions for computing duration. *)
-val dresolvers : (metadata:Frame.metadata -> string -> float) Plug.t
+val dresolvers : dresolver Plug.t
 
 (** Type for a metadata resolver. Resolvers are executed in priority
     order and the first returned metadata take precedence over any other

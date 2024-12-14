@@ -180,8 +180,9 @@ s = mksafe(s)
 check_running = ref(false)
 segments_created = ref(0)
 
-def segment_name(~position, ~extname, stream) =
-  "segment-#{stream}_#{position}.#{extname}"
+def segment_name(metadata) =
+  let {position, extname, stream_name} = metadata
+  "segment-#{stream_name}_#{position}.#{extname}"
 end
 
 def on_file_change(~state, fname) =

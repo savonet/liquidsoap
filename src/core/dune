@@ -25,7 +25,6 @@
   fileutils
   liquidsoap-lang
   liquidsoap-lang.console
-  liquidsoap_stdlib
   menhirLib
   camomile.lib
   curl
@@ -143,6 +142,7 @@
   lang_fdkaac
   lang_flac
   lang_mp3
+  lang_ndi
   lang_ogg
   lang_opus
   lang_source
@@ -178,6 +178,8 @@
   mutex_utils
   native_audio_converter
   native_video_converter
+  ndi_format
+  ndi_encoder
   noblank
   noise
   normalize
@@ -233,6 +235,7 @@
   theora_format
   time_warp
   track
+  source_tracks
   track_map
   tutils
   type
@@ -463,14 +466,6 @@
  (modules lame_encoder))
 
 (library
- (name liquidsoap_lastfm)
- (libraries lastfm liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules builtins_lastfm liqfm))
-
-(library
  (name liquidsoap_lilv)
  (libraries lilv liquidsoap_core)
  (library_flags -linkall)
@@ -644,6 +639,14 @@
  (modules stereotool_op))
 
 (library
+ (name liquidsoap_ndi)
+ (libraries ndi liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules ndi_out))
+
+(library
  (name liquidsoap_theora)
  (libraries theora theora.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
@@ -726,11 +729,11 @@
   jemalloc_option
   ladspa_option
   lame_option
-  lastfm_option
   lilv_option
   lo_option
   mad_option
   memtrace_option
+  ndi_option
   ogg_option
   opus_option
   osc_option
@@ -847,11 +850,6 @@
    (liquidsoap_lame -> lame_option.enabled.ml)
    (-> lame_option.disabled.ml))
   (select
-   lastfm_option.ml
-   from
-   (liquidsoap_lastfm -> lastfm_option.enabled.ml)
-   (-> lastfm_option.disabled.ml))
-  (select
    lilv_option.ml
    from
    (liquidsoap_lilv -> lilv_option.enabled.ml)
@@ -869,7 +867,7 @@
   (select
    memtrace_option.ml
    from
-   (liquidsoap_memtrace -> memtrace_option.enabled.ml)
+   (memtrace -> memtrace_option.enabled.ml)
    (-> memtrace_option.disabled.ml))
   (select
    ogg_option.ml
@@ -896,6 +894,11 @@
    from
    (liquidsoap_portaudio -> portaudio_option.enabled.ml)
    (-> portaudio_option.disabled.ml))
+  (select
+   ndi_option.ml
+   from
+   (liquidsoap_ndi -> ndi_option.enabled.ml)
+   (-> ndi_option.disabled.ml))
   (select
    posix_time_option.ml
    from

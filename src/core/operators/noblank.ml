@@ -122,7 +122,13 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     inherit active_operator ~name:"blank.strip" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method fallible = true
-    method private can_generate_frame = (not self#is_blank) && source#is_ready
+
+    method private can_generate_frame =
+      (* This needs to be computed at all times as it makes sure that the
+         source is ready to be ready from in [#output]. *)
+      let is_source_ready = source#is_ready in
+      (not self#is_blank) && is_source_ready
+
     method remaining = if self#is_blank then 0 else source#remaining
 
     method seek_source =
@@ -130,14 +136,10 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
 
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-
-    method private generate_frame =
-      let buf = source#get_frame in
-      self#check_blank buf;
-      buf
+    method private generate_frame = source#get_frame
 
     method private output =
-      if source#is_ready && self#is_blank then ignore self#get_frame
+      if source#is_ready then self#check_blank source#get_frame
 
     method reset = ()
   end
@@ -294,7 +296,10 @@ let _ =
   in
   Lang.add_operator ~base:Blank.blank "strip" ~return_t:frame_t ~meth:(meth ())
     ~category:`Track
-    ~descr:"Make the source unavailable when it is streaming blank."
+    ~descr:
+      "Make the source unavailable when it is streaming blank. This is an \
+       active operator, meaning that the source used in this operator will be \
+       consumed continuously, even when it is not actively used."
     (proto frame_t) (fun p ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p

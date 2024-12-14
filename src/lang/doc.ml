@@ -62,33 +62,6 @@ module Plug = struct
   let print_string = print_md
 end
 
-(** Documentation for protocols. *)
-module Protocol = struct
-  type t = {
-    name : string;
-    description : string;
-    syntax : string;
-    static : bool;
-  }
-
-  let db = ref []
-
-  let add ~name ~doc ~syntax ~static =
-    let p = { name; description = doc; syntax; static } in
-    db := p :: !db
-
-  let db () = List.sort compare !db
-  let count () = db () |> List.length
-
-  let print_md print =
-    List.iter
-      (fun p ->
-        let static = if p.static then " This protocol is static." else "" in
-        Printf.ksprintf print "### %s\n\n%s\n\nThe syntax is `%s`.%s\n\n" p.name
-          p.description p.syntax static)
-      (db ())
-end
-
 (** Documenentation for values. *)
 module Value = struct
   (** Documentation flags. *)

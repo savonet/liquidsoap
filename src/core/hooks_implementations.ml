@@ -11,13 +11,41 @@ let rec deep_demeth t =
     | Type.{ descr = Nullable t } -> deep_demeth t
     | t -> t
 
+let strip_tracks ty =
+  let ty = Type.hide_meth "track_marks" ty in
+  Type.hide_meth "metadata" ty
+
+let strip_source_tracks ty =
+  match Type.deref ty with
+    | Type.
+        {
+          descr =
+            Constr { constructor = "source"; params = [(`Invariant, frame_t)] };
+        } ->
+        Type.
+          {
+            ty with
+            descr =
+              Constr
+                {
+                  constructor = "source";
+                  params = [(`Invariant, strip_tracks frame_t)];
+                };
+          }
+    | _ -> ty
+
 let eval_check ~env:_ ~tm v =
   if Lang_source.Source_val.is_value v then (
     let s = Lang_source.Source_val.of_value v in
     if not s#has_content_type then (
       let ty = Type.fresh (deep_demeth tm.Term.t) in
-      Typing.(Lang_source.source_t ~methods:false s#frame_type <: ty);
+      Typing.(
+        Lang_source.source_t ~methods:false (strip_tracks s#frame_type)
+        <: strip_source_tracks ty);
       s#content_type_computation_allowed))
+  else if Source_tracks.is_value v then (
+    let s = Source_tracks.source v in
+    Typing.(strip_tracks s#frame_type <: strip_tracks (Type.fresh tm.Term.t)))
   else if Track.is_value v then (
     let field, source = Lang_source.to_track v in
     if not source#has_content_type then (

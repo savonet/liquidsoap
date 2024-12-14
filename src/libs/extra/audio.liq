@@ -303,9 +303,9 @@ end
 def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf) =
   l = ref([])
   for i = 0 to
-    string.length(dtmf) - 1
+    string.bytes.length(dtmf) - 1
   do
-    c = string.sub(dtmf, start=i, length=1)
+    c = string.sub(encoding="ascii", dtmf, start=i, length=1)
     let (row, col) =
       if
         c == "1"
@@ -401,8 +401,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
        remaining=#{source.remaining(input.source)}"
     end
 
-    server.register(
-      namespace=source.id(s),
+    s.register_command(
       description=
         "Skip current track on all enabled sources.",
       "skip",
@@ -418,8 +417,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
         end
     )
 
-    server.register(
-      namespace=source.id(s),
+    s.register_command(
       description=
         "Set volume for a given source.",
       usage=
@@ -438,8 +436,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
         end
     )
 
-    server.register(
-      namespace=source.id(s),
+    s.register_command(
       description=
         "Enable/disable a source.",
       usage=
@@ -458,8 +455,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
         end
     )
 
-    server.register(
-      namespace=source.id(s),
+    s.register_command(
       description=
         "Enable/disable automatic stop at the end of track.",
       usage=
@@ -478,8 +474,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
         end
     )
 
-    server.register(
-      namespace=source.id(s),
+    s.register_command(
       description=
         "Display current status.",
       "status",
@@ -493,8 +488,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
         end
     )
 
-    server.register(
-      namespace=source.id(s),
+    s.register_command(
       description=
         "Print the list of input sources.",
       "inputs",

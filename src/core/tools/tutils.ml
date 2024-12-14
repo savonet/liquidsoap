@@ -71,7 +71,7 @@ let exit () =
 let generic_queues =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "generic_queues")
-    ~d:2 "Generic queues"
+    ~d:5 "Generic queues"
     ~comments:
       [
         "Number of event queues accepting any kind of task.";
@@ -170,6 +170,7 @@ let create ~queue f x s =
     (fun () ->
       let id =
         let process x =
+          Utils.Thread.set_current_thread_name s;
           try
             f x;
             Mutex_utils.mutexify lock
@@ -204,7 +205,7 @@ let create ~queue f x s =
                       (Printexc.to_string e);
                     Printexc.raise_with_backtrace e raw_bt
             with e ->
-              let l = Pcre.split ~rex:(Pcre.regexp "\n") bt in
+              let l = String.split_on_char '\n' bt in
               List.iter (log#info "%s") l;
               Mutex_utils.mutexify lock
                 (fun () ->

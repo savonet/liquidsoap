@@ -55,15 +55,16 @@ module ClockValue = struct
           Lang.val_fun [] (fun _ ->
               Lang.string Clock.(string_of_sync_mode (sync c))) );
       ( "start",
-        Lang.fun_t [] Lang.unit_t,
+        Lang.fun_t [(true, "force", Lang.bool_t)] Lang.unit_t,
         "Start the clock.",
         fun c ->
           Lang.val_fun
-            [("", "", Some (Lang.string "auto"))]
+            [("force", "force", Some (Lang.bool true))]
             (fun p ->
               let pos = Lang.pos p in
+              let force = Lang.to_bool (List.assoc "force" p) in
               try
-                Clock.start c;
+                Clock.start ~force c;
                 Lang.unit
               with Clock.Invalid_state ->
                 Runtime_error.raise
@@ -93,6 +94,13 @@ module ClockValue = struct
               let pos = match Lang.pos p with p :: _ -> Some p | [] -> None in
               let c' = of_value (List.assoc "" p) in
               Clock.unify ~pos c c';
+              Lang.unit) );
+      ( "tick",
+        Lang.fun_t [] Lang.unit_t,
+        "Animate the clock and run one tick",
+        fun c ->
+          Lang.val_fun [] (fun _ ->
+              Clock.tick c;
               Lang.unit) );
       ( "ticks",
         Lang.fun_t [] Lang.int_t,
@@ -156,7 +164,16 @@ let source_methods =
       "Indicate if a source is ready to stream. This does not mean that the \
        source is currently streaming, just that its resources are all properly \
        initialized.",
-      fun (s : Source.source) -> val_fun [] (fun _ -> bool s#is_ready) );
+      fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+    ( "reset_last_metadata_on_track",
+      ([], ref_t bool_t),
+      "If `true`, the source's `last_metadata` is reset on each new track. If \
+       a metadata is present along with the track mark, then it becomes the \
+       new `last_metadata`, otherwise, `last_metadata becomes `null`.",
+      fun s ->
+        reference
+          (fun () -> bool s#reset_last_metadata_on_track)
+          (fun b -> s#set_reset_last_metadata_on_track (to_bool b)) );
     ( "buffered",
       ([], fun_t [] (list_t (product_t string_t float_t))),
       "Length of buffered data.",
@@ -179,6 +196,37 @@ let source_methods =
       fun s ->
         val_fun [] (fun _ ->
             match s#last_metadata with None -> null | Some m -> metadata m) );
+    ( "register_command",
+      ( [],
+        fun_t
+          [
+            (true, "usage", Lang.nullable_t Lang.string_t);
+            (false, "description", Lang.string_t);
+            (false, "", Lang.string_t);
+            (false, "", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t);
+          ]
+          unit_t ),
+      "Register a server command for this source. Command is registered under \
+       the source's id namespace when it gets up and de-registered when it \
+       gets down.",
+      fun s ->
+        val_fun
+          [
+            ("usage", "usage", Some Lang.null);
+            ("description", "description", None);
+            ("", "", None);
+            ("", "", None);
+          ]
+          (fun p ->
+            let usage =
+              Lang.to_valued_option Lang.to_string (List.assoc "usage" p)
+            in
+            let descr = Lang.to_string (List.assoc "description" p) in
+            let command = Lang.to_string (Lang.assoc "" 1 p) in
+            let f = Lang.assoc "" 2 p in
+            let f x = Lang.to_string (Lang.apply f [("", Lang.string x)]) in
+            s#register_command ?usage ~descr command f;
+            unit) );
     ( "on_metadata",
       ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
       "Call a given handler on metadata packets.",
@@ -360,17 +408,6 @@ let source_tracks_t frame_t =
   Type.meth "track_marks"
     ([], Format_type.track_marks)
     (Type.meth "metadata" ([], Format_type.metadata) frame_t)
-
-let source_tracks s =
-  meth unit
-    (( Frame.Fields.string_of_field Frame.Fields.metadata,
-       Track.to_value (Frame.Fields.metadata, s) )
-    :: ( Frame.Fields.string_of_field Frame.Fields.track_marks,
-         Track.to_value (Frame.Fields.track_marks, s) )
-    :: List.map
-         (fun (field, _) ->
-           (Frame.Fields.string_of_field field, Track.to_value (field, s)))
-         (Frame.Fields.bindings s#content_type))
 
 let source_methods ~base s =
   meth base (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)

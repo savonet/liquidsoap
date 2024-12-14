@@ -182,7 +182,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           if not self#fallible then (
             self#log#critical "Infallible source produced a partial frame!";
             assert false);
-          self#log#important "Source failed (no more tracks) stopping output...";
+          self#log#info "Source ended (no more tracks) stopping output...";
           self#transition_to `Idle);
 
         if skip then (

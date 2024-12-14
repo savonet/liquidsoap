@@ -95,7 +95,7 @@ let user_agent = Configure.vendor
 let args_split s =
   let args = Hashtbl.create 2 in
   let fill_arg arg =
-    match Pcre.split ~rex:(Pcre.regexp "=") arg with
+    match String.split_on_char '=' arg with
       | e :: l ->
           (* There should be only arg=value *)
           List.iter
@@ -105,38 +105,38 @@ let args_split s =
             l
       | [] -> ()
   in
-  List.iter fill_arg (Pcre.split ~rex:(Pcre.regexp "&") s);
+  List.iter fill_arg (String.split_on_char '&' s);
   args
 
 let parse_url url =
   let basic_rex =
-    Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?)://([^/:]+)(:[0-9]+)?(/.*)?$"
+    Re.Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?)://([^/:]+)(:[0-9]+)?(/.*)?$"
   in
   let sub =
-    try Pcre.exec ~rex:basic_rex url
+    try Re.Pcre.exec ~rex:basic_rex url
     with Not_found -> (* raise Invalid_url *)
                       failwith "Invalid URL."
   in
-  let protocol = Pcre.get_substring sub 1 in
-  let host = Pcre.get_substring sub 2 in
+  let protocol = Re.Pcre.get_substring sub 1 in
+  let host = Re.Pcre.get_substring sub 2 in
   let port =
     try
-      let port = Pcre.get_substring sub 3 in
+      let port = Re.Pcre.get_substring sub 3 in
       let port = String.sub port 1 (String.length port - 1) in
       let port = int_of_string port in
       Some port
     with Not_found -> None
   in
-  let path = try Pcre.get_substring sub 4 with Not_found -> "/" in
+  let path = try Re.Pcre.get_substring sub 4 with Not_found -> "/" in
   { protocol; host; port; path }
 
 let is_url path =
-  Pcre.pmatch ~rex:(Pcre.regexp "^[Hh][Tt][Tt][Pp][sS]?://.+") path
+  Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "^[Hh][Tt][Tt][Pp][sS]?://.+") path
 
 let dirname url =
-  let rex = Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?://.+/)[^/]*$" in
-  let s = Pcre.exec ~rex url in
-  Pcre.get_substring s 1
+  let rex = Re.Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?://.+/)[^/]*$" in
+  let s = Re.Pcre.exec ~rex url in
+  Re.Pcre.get_substring s 1
 
 (* An ugly code to read until we see [\r]?\n n times. *)
 let read_crlf ?(log = fun _ -> ()) ?(max = 4096) ?(count = 2) ~timeout
@@ -195,8 +195,8 @@ let really_read ~timeout (socket : socket) len =
 (* Read chunked transfer. *)
 let read_chunked ~timeout (socket : socket) =
   let read = read_crlf ~count:1 ~timeout socket in
-  let len = List.hd (Pcre.split ~rex:(Pcre.regexp "[\r]?\n") read) in
-  let len = List.hd (Pcre.split ~rex:(Pcre.regexp ";") len) in
+  let len = List.hd (Re.Pcre.split ~rex:(Re.Pcre.regexp "[\r]?\n") read) in
+  let len = List.hd (String.split_on_char ':' len) in
   let len = int_of_string ("0x" ^ len) in
   let s = really_read socket ~timeout len in
   ignore (read_crlf ~count:1 ~timeout socket);
@@ -206,3 +206,11 @@ let set_socket_default ~read_timeout ~write_timeout fd =
   Unix.set_close_on_exec fd;
   Unix.setsockopt_float fd Unix.SO_RCVTIMEO read_timeout;
   Unix.setsockopt_float fd Unix.SO_SNDTIMEO write_timeout
+
+type auth = { user : string; password : string }
+
+let parse_auth s =
+  match String.split_on_char ':' s with
+    | user :: (_ :: _ as password) ->
+        { user; password = String.concat ":" password }
+    | _ -> raise Not_found

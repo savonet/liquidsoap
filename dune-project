@@ -9,7 +9,7 @@
 (homepage "https://github.com/savonet/liquidsoap")
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
 
-(version 2.3.0)
+(version 2.3.1)
 (generate_opam_files true)
 (executables_implicit_empty_intf true)
 
@@ -17,8 +17,10 @@
   (name liquidsoap)
   (depends
     (liquidsoap-core (= :version))
-    (liquidsoap-libs (and (>= 2.3.0) (< 2.3.1)))
-    (liquidsoap-libs-extra (and (>= 2.3.0) (< 2.3.1))))
+    (liquidsoap-libs (and (>= 2.3.1) (< 2.3.2)))
+    (liquidsoap-libs-extra (and (>= 2.3.1) (< 2.3.2)))
+    (pandoc :with-doc)
+    (pandoc-include :with-doc))
   (synopsis "Swiss-army knife for multimedia streaming")
   (description
 "\| Liquidsoap is a powerful and flexible language for describing your
@@ -47,7 +49,7 @@
     (ocaml (>= 4.14))
     (dtools (>= 0.4.5))
     (duppy (>= 0.9.4))
-    (mm (>= 0.8.4))
+    (mm (>= 0.8.6))
     (re (>= 1.11.0))
     (ocurl (>= 0.9.2))
     (cry (>= 1.0.3))
@@ -81,7 +83,6 @@
     jemalloc
     ladspa
     lame
-    lastfm
     lilv
     lo
     mad
@@ -121,7 +122,6 @@
     (inotify (< 1.0))
     (ladspa (< 0.2.0))
     (lame (< 0.3.7))
-    (lastfm (< 0.3.4))
     (lo (< 0.2.0))
     (mad (< 0.5.0))
     (magic (< 0.6))
@@ -136,7 +136,7 @@
     (speex (< 0.4.0))
     (srt (< 0.3.0))
     (ssl (< 0.7.0))
-    (tls (< 0.17.4))
+    (tls (< 1.0.2))
     (sdl-liquidsoap (< 2))
     (theora (< 0.4.0))
     (vorbis (< 0.8.0))
@@ -153,7 +153,8 @@
     (ppx_string :build)
     (ppx_hash :build)
     (sedlex (>= 3.2))
-    (menhir (>= 20180703))
+    (menhir (>= 20240715))
+    xml-light
   )
   (sites (share libs) (share bin) (share cache) (lib_root lib_root))
   (synopsis "Liquidsoap language library"))
@@ -179,7 +180,7 @@
    (name tls-liquidsoap)
    (version 1)
    (allow_empty)
-   (depends tls ca-certs)
+   (depends tls ca-certs mirage-crypto-rng cstruct)
    (synopsis "Virtual package install liquidosap dependencies for TLS optional features")
 )
 

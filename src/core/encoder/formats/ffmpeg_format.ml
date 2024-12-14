@@ -137,7 +137,7 @@ let to_string m =
                   | None -> `Var "none"
                   | Some d -> `String d);
               Printf.sprintf "%%%s(%s%s)" name
-                (if Pcre.pmatch ~rex:(Pcre.regexp "video") name then ""
+                (if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "video") name then ""
                  else "video_content,")
                 (string_of_options stream_opts)
               :: opts
@@ -152,7 +152,7 @@ let to_string m =
               Hashtbl.replace stream_opts "samplerate"
                 (`Int (Lazy.force options.samplerate));
               Printf.sprintf "%s(%s%s)" name
-                (if Pcre.pmatch ~rex:(Pcre.regexp "audio") name then ""
+                (if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "audio") name then ""
                  else "audio_content,")
                 (string_of_options stream_opts)
               :: opts)

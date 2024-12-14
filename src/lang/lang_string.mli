@@ -16,9 +16,10 @@ val ascii_next : 'a -> int -> int
 val escape_char :
   escape_fun:(string -> int -> int -> string) -> string -> int -> int -> string
 
-val escape_utf8_char : string -> int -> int -> string
+val escape_utf8_char : strict:bool -> string -> int -> int -> string
 
 val escape_utf8_formatter :
+  ?strict:bool ->
   ?special_char:(string -> int -> int -> bool) ->
   string ->
   [> `Orig of int * int | `Subst of string * int ] list * int
@@ -39,12 +40,15 @@ val escape_string :
   string
 
 val escape_utf8_string :
-  ?special_char:(string -> int -> int -> bool) -> string -> string
+  ?strict:bool ->
+  ?special_char:(string -> int -> int -> bool) ->
+  string ->
+  string
 
 val escape_ascii_string :
   ?special_char:(string -> int -> int -> bool) -> string -> string
 
-val quote_utf8_string : string -> string
+val quote_utf8_string : ?strict:bool -> string -> string
 val quote_ascii_string : string -> string
 val quote_string : string -> string
 val unescape_utf8_pattern : string

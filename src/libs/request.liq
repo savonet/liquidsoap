@@ -27,7 +27,7 @@ end
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~native Use native implementation, when available.
 # @param ~queue Initial queue of requests.
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request.
 # @method add This method is internal and should not be used. Consider using `push` instead.
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
@@ -37,13 +37,14 @@ def request.queue(
   ~prefetch=null(),
   ~native=false,
   ~queue=[],
-  ~timeout=20.
+  ~timeout=null()
 ) =
   ignore(native)
   id = string.id.default(default="request.queue", id)
-  initial_queue = queue
+  initial_queue = ref(queue)
   queue = ref([])
   fetch = ref(fun () -> true)
+  started = ref(false)
 
   def next() =
     if
@@ -58,13 +59,23 @@ def request.queue(
   end
 
   def push(r) =
-    log.info(
-      label=id,
-      "Pushing #{r} on the queue."
-    )
-    queue := [...queue(), r]
-    fn = fetch()
-    ignore(fn())
+    if
+      started()
+    then
+      log.info(
+        label=id,
+        "Pushing #{r} on the queue."
+      )
+      queue := [...queue(), r]
+      fn = fetch()
+      ignore(fn())
+    else
+      log.info(
+        label=id,
+        "Pushing #{r} on the initial queue."
+      )
+      initial_queue := [...initial_queue(), r]
+    end
   end
 
   def push_uri(uri) =
@@ -105,12 +116,12 @@ def request.queue(
   end
 
   def set_queue(q) =
-    queue := q
+    if started() then queue := q else initial_queue := q end
     s.set_queue([])
   end
 
   def get_queue() =
-    [...s.queue(), ...(queue())]
+    [...s.queue(), ...initial_queue(), ...queue()]
   end
 
   s =
@@ -122,10 +133,18 @@ def request.queue(
       queue=get_queue
     }
 
-  s.on_wake_up({s.set_queue(initial_queue)})
+  s.on_wake_up(
+    fun () ->
+      begin
+        started := true
+        s.set_queue(initial_queue())
+        initial_queue := []
+      end
+  )
 
   source.set_name(s, "request.queue")
   fetch := s.fetch
+
   if
     interactive
   then
@@ -135,67 +154,57 @@ def request.queue(
       "#{request.id(r)}"
     end
 
-    s.on_wake_up(
-      memoize(
-        {
-          server.register(
-            namespace=source.id(s),
-            description=
-              "Flush the queue and skip the current track",
-            "flush_and_skip",
-            fun (_) ->
-              try
-                s.set_queue([])
-                s.skip()
-                "Done."
-              catch err do
-                "Error while flushing and skipping source: #{err}"
-              end
-          )
+    s.register_command(
+      description=
+        "Flush the queue and skip the current track",
+      "flush_and_skip",
+      fun (_) ->
+        try
+          s.set_queue([])
+          s.skip()
+          "Done."
+        catch err do
+          "Error while flushing and skipping source: #{err}"
+        end
+    )
 
-          server.register(
-            namespace=source.id(s),
-            description=
-              "Push a new request in the queue.",
-            usage=
-              "push <uri>",
-            "push",
-            push
-          )
+    s.register_command(
+      description=
+        "Push a new request in the queue.",
+      usage=
+        "push <uri>",
+      "push",
+      push
+    )
 
-          def show_queue(_) =
-            queue = s.queue()
-            string.concat(
-              separator=
-                " ",
-              list.map(fun (r) -> string(request.id(r)), queue)
-            )
-          end
-
-          server.register(
-            namespace=source.id(s),
-            description=
-              "Display current queue content.",
-            usage="queue",
-            "queue",
-            show_queue
-          )
-
-          def skip(_) =
-            s.skip()
-            "Done."
-          end
-
-          server.register(
-            namespace=source.id(s),
-            description=
-              "Skip current song.",
-            usage="skip",
-            "skip",
-            skip
-          )
-        }
+    def show_queue(_) =
+      queue = s.queue()
+      string.concat(
+        separator=
+          " ",
+        list.map(fun (r) -> string(request.id(r)), queue)
       )
+    end
+
+    s.register_command(
+      description=
+        "Display current queue content.",
+      usage="queue",
+      "queue",
+      show_queue
+    )
+
+    def skip(_) =
+      s.skip()
+      "Done."
+    end
+
+    s.register_command(
+      description=
+        "Skip current song.",
+      usage="skip",
+      "skip",
+      skip
     )
   end
 
@@ -206,7 +215,11 @@ end
 # @category Source / Input
 # @param ~timeout Timeout in seconds for resolving the request.
 # @param r Request to play.
-def request.once(~id=null("request.once"), ~timeout=20., r) =
+def request.once(
+  ~id=null("request.once"),
+  ~timeout=null(),
+  r
+) =
   id = string.id.default(default="request.once", id)
 
   done = ref(false)
@@ -246,19 +259,19 @@ end
 # static, and time is not.
 # @category Source / Input
 # @param ~prefetch How many requests should be queued in advance.
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.
 # @param r Request
 def request.single(
   ~id=null("request.single"),
   ~prefetch=null(),
-  ~timeout=20.,
+  ~timeout=null(),
   ~fallible=null(),
   r
 ) =
   id = string.id.default(default="single", id)
 
-  fallible = fallible ?? getter.is_constant(r)
+  fallible = fallible ?? not getter.is_constant(r)
 
   infallible =
     if
@@ -280,10 +293,20 @@ def request.single(
       false
     end
 
-  static_request = ref(null())
-  done = ref(false)
+  if
+    not fallible and not infallible
+  then
+    log.severe(
+      label=id,
+      "Source was marked a infallible but its request is not a static file. The \
+       source is considered fallible for backward compatibility but this will \
+       fail in future versions!"
+    )
+  end
 
-  def on_wake_up() =
+  static_request = ref(null())
+
+  def on_wake_up(s) =
     if
       infallible
     then
@@ -294,8 +317,9 @@ def request.single(
         label=id,
         "#{uri} is static, resolving once for all..."
       )
+
       if
-        not request.resolve(initial_request, timeout=timeout)
+        not request.resolve(initial_request, timeout=timeout, content_type=s)
       then
         request.destroy(initial_request)
         error.raise(
@@ -318,28 +342,34 @@ def request.single(
   end
 
   def next() =
-    if
-      done()
-    then
-      null()
-    else
-      done := true
-
-      def next() =
-        static_request() ?? getter.get(r)
-      end
-
-      s = request.dynamic(prefetch=prefetch, next)
-      if infallible then s.set_queue([next()]) end
-      s
-    end
+    static_request() ?? getter.get(r)
   end
 
-  s =
-    source.dynamic(
-      id=id, infallible=infallible, self_sync=false, track_sensitive=true, next
+  def mk_source(id) =
+    request.dynamic(
+      id=id,
+      prefetch=prefetch,
+      synchronous=infallible,
+      next
     )
-  s.on_wake_up(on_wake_up)
+  end
+
+  # We want to mark infallible source as such. `source.dynamic` is a nice
+  # way to do it as it will raise a user-friendly error in case the underlying
+  # source does not respect the conditions for being infallible.
+  s =
+    if
+      infallible
+    then
+      s = mk_source("#{id}.actual")
+      source.dynamic(
+        id=id, infallible=infallible, self_sync=false, track_sensitive=true, {s}
+      )
+    else
+      mk_source(id)
+    end
+
+  s.on_wake_up(fun () -> on_wake_up(s))
   s.on_shutdown(on_shutdown)
   (s : source_methods)
 end
@@ -349,7 +379,7 @@ end
 # static, and time is not.
 # @category Source / Input
 # @param ~prefetch How many requests should be queued in advance.
-# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
@@ -419,10 +449,20 @@ def request.player(~simultaneous=true) =
         }
     }
   else
-    s = source.dynamic()
+    next_source = ref(null())
+
+    def next() =
+      s = next_source()
+      next_source := null()
+      s
+    end
+
+    s = source.dynamic(next)
 
     def play(r) =
-      s.set(request.once(r))
+      r = request.once(r)
+      s.prepare(r)
+      next_source := r
     end
 
     s.{play=play, length={1}}

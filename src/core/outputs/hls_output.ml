@@ -29,7 +29,7 @@ let log = Log.make ["hls"; "output"]
 
 let default_name =
   Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled
-    {|fun (~position, ~extname, base) -> "#{base}_#{position}.#{extname}"|}
+    {|fun (metadata) -> "#{metadata.stream_name}_#{metadata.position}.#{metadata.extname}"|}
 
 let hls_proto frame_t =
   let main_playlist_writer_t =
@@ -58,9 +58,16 @@ let hls_proto frame_t =
   let segment_name_t =
     Lang.fun_t
       [
-        (false, "position", Lang.int_t);
-        (false, "extname", Lang.string_t);
-        (false, "", Lang.string_t);
+        ( false,
+          "",
+          Lang.record_t
+            [
+              ("position", Lang.int_t);
+              ("extname", Lang.string_t);
+              ("duration", Lang.float_t);
+              ("ticks", Lang.int_t);
+              ("stream_name", Lang.string_t);
+            ] );
       ]
       Lang.string_t
   in
@@ -117,8 +124,9 @@ let hls_proto frame_t =
         segment_name_t,
         Some default_name,
         Some
-          "Segment name. Default: `fun (~position,~extname,stream_name) -> \
-           \"#{stream_name}_#{position}.#{extname}\"`" );
+          "Segment name. Default: `fun (metadata) -> \
+           \"#{metadata.stream_name}_#{metadata.position}.#{metadata.extname}\"`"
+      );
       ( "segments_overhead",
         Lang.nullable_t Lang.int_t,
         Some (Lang.int 5),
@@ -180,6 +188,7 @@ type atomic_out_channel =
   ; output_substring : string -> int -> int -> unit
   ; position : int
   ; truncate : int -> unit
+  ; saved_filename : string option
   ; read : int -> int -> string
   ; close : unit >
 
@@ -187,10 +196,11 @@ type segment = {
   id : int;
   discontinuous : bool;
   current_discontinuity : int;
-  filename : string;
   segment_extra_tags : string list;
   mutable init_filename : string option;
+  mutable filename : string option;
   mutable out_channel : atomic_out_channel option;
+  (* Segment length in main ticks. *)
   mutable len : int;
   mutable last_segmentable_position : (int * int) option;
 }
@@ -222,8 +232,8 @@ let json_of_segment
       id;
       discontinuous;
       current_discontinuity;
-      filename;
       init_filename;
+      filename;
       segment_extra_tags;
       len;
       last_segmentable_position;
@@ -233,9 +243,9 @@ let json_of_segment
        ("id", `Int id);
        ("discontinuous", `Bool discontinuous);
        ("current_discontinuity", `Int current_discontinuity);
-       ("filename", `String filename);
      ]
     @ json_optional "init_filename" (fun s -> `String s) init_filename
+    @ json_optional "filename" (fun s -> `String s) filename
     @ [
         ("extra_tags", `Tuple (List.map (fun s -> `String s) segment_extra_tags));
         ("len", `Int len);
@@ -249,7 +259,6 @@ let segment_of_json = function
       let id = parse_json_int "id" l in
       let discontinuous = parse_json_bool "discontinuous" l in
       let current_discontinuity = parse_json_int "current_discontinuity" l in
-      let filename = parse_json_string "filename" l in
       let segment_extra_tags =
         parse_json "extra_tags"
           (function
@@ -266,6 +275,11 @@ let segment_of_json = function
           (function `String s -> s | _ -> raise Invalid_state)
           l
       in
+      let filename =
+        parse_json_optional "filename"
+          (function `String s -> s | _ -> raise Invalid_state)
+          l
+      in
       let last_segmentable_position =
         parse_json_optional "last_segmentable_position"
           (function
@@ -277,10 +291,10 @@ let segment_of_json = function
         id;
         discontinuous;
         current_discontinuity;
-        filename;
         init_filename;
         len;
         segment_extra_tags;
+        filename;
         out_channel = None;
         last_segmentable_position;
       }
@@ -394,16 +408,20 @@ class hls_output p =
       (Lang.to_option (List.assoc "main_playlist_writer" p))
   in
   let directory_val = Lang.assoc "" 1 p in
-  let directory = Lang_string.home_unrelate (Lang.to_string directory_val) in
+  let hls_directory =
+    Lang_string.home_unrelate (Lang.to_string directory_val)
+  in
   let perms = Lang.to_int (List.assoc "perm" p) in
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   let temp_dir =
     Lang.to_valued_option Lang.to_string (List.assoc "temp_dir" p)
   in
   let () =
-    if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
+    if
+      (not (Sys.file_exists hls_directory))
+      || not (Sys.is_directory hls_directory)
     then (
-      try Utils.mkdir ~perm:dir_perm directory
+      try Utils.mkdir ~perm:dir_perm hls_directory
       with _ ->
         raise
           (Error.Invalid_value
@@ -415,7 +433,7 @@ class hls_output p =
         let filename = Lang.to_string filename in
         let filename =
           if Filename.is_relative filename then
-            Filename.concat directory filename
+            Filename.concat hls_directory filename
           else filename
         in
         let dir = Filename.dirname filename in
@@ -440,15 +458,20 @@ class hls_output p =
   let segment_main_duration = segment_ticks * Lazy.force Frame.size in
   let segment_duration = Frame.seconds_of_main segment_main_duration in
   let segment_name = Lang.to_fun (List.assoc "segment_name" p) in
-  let segment_name ~position ~extname sname =
-    directory
-    ^^ Lang.to_string
-         (segment_name
-            [
-              ("position", Lang.int position);
-              ("extname", Lang.string extname);
-              ("", Lang.string sname);
-            ])
+  let segment_name ~position ~extname ~duration ~ticks sname =
+    Lang.to_string
+      (segment_name
+         [
+           ( "",
+             Lang.record
+               [
+                 ("position", Lang.int position);
+                 ("extname", Lang.string extname);
+                 ("duration", Lang.float duration);
+                 ("ticks", Lang.int ticks);
+                 ("stream_name", Lang.string sname);
+               ] );
+         ])
   in
   let streams =
     let streams = Lang.assoc "" 2 p in
@@ -598,7 +621,6 @@ class hls_output p =
   in
   let source = Lang.assoc "" 3 p in
   let main_playlist_filename = Lang.to_string (List.assoc "playlist" p) in
-  let main_playlist_filename = directory ^^ main_playlist_filename in
   let main_playlist_extra_tags =
     List.map
       (fun s -> String.trim (Lang.to_string s))
@@ -636,10 +658,7 @@ class hls_output p =
         | `Streaming, _ -> state <- `Streaming
 
     method private open_out filename =
-      let state = if Sys.file_exists filename then `Updated else `Created in
-      let temp_dir =
-        Option.value ~default:(Filename.dirname filename) temp_dir
-      in
+      let temp_dir = Option.value ~default:hls_directory temp_dir in
       let tmp_file = Filename.temp_file ~temp_dir "liq" "tmp" in
       Unix.chmod tmp_file perms;
       let fd =
@@ -668,12 +687,20 @@ class hls_output p =
           in
           Bytes.sub_string b 0 (f 0)
 
+        val mutable saved_filename = None
+        method saved_filename = saved_filename
+
         method close =
           (try Unix.close fd with _ -> ());
           Fun.protect
             ~finally:(fun () -> try Sys.remove tmp_file with _ -> ())
             (fun () ->
-              (try Unix.rename tmp_file filename
+              let fname = Filename.concat hls_directory (filename ()) in
+              saved_filename <- Some fname;
+              let state =
+                if Sys.file_exists fname then `Updated else `Created
+              in
+              (try Unix.rename tmp_file fname
                with Unix.Unix_error (Unix.EXDEV, _, _) ->
                  self#log#important
                    "Rename failed! Directory for temporary files appears to be \
@@ -682,9 +709,9 @@ class hls_output p =
                     operations!";
                  Utils.copy
                    ~mode:[Open_creat; Open_trunc; Open_binary]
-                   ~perms tmp_file filename;
+                   ~perms tmp_file fname;
                  Sys.remove tmp_file);
-              on_file_change ~state filename)
+              on_file_change ~state fname)
       end
 
     method private unlink filename =
@@ -695,11 +722,15 @@ class hls_output p =
         self#log#important "Could not remove file %s: %s" filename
           (Unix.error_message e)
 
+    method private unlink_segment =
+      function { filename = Some filename } -> self#unlink filename | _ -> ()
+
     method private close_segment =
       function
       | { current_segment = Some ({ out_channel = Some oc } as segment) } as s
         ->
           oc#close;
+          segment.filename <- oc#saved_filename;
           segment.out_channel <- None;
           let segments = List.assoc s.name segments in
           push_segment segment segments;
@@ -709,7 +740,7 @@ class hls_output p =
               | Some max_segments -> List.length !segments >= max_segments
           then (
             let segment = remove_segment segments in
-            self#unlink segment.filename;
+            self#unlink_segment segment;
             match segment.init_filename with
               | None -> ()
               | Some filename ->
@@ -728,20 +759,6 @@ class hls_output p =
 
     method private open_segment s =
       self#log#debug "Opening segment %d for stream %s." s.position s.name;
-      let filename =
-        segment_name ~position:s.position ~extname:s.extname s.name
-      in
-      let directory = Filename.dirname filename in
-      let () =
-        if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
-        then (
-          try Utils.mkdir ~perm:dir_perm directory
-          with exn ->
-            let bt = Printexc.get_raw_backtrace () in
-            Lang.raise_as_runtime ~bt ~kind:"file" exn)
-      in
-      let out_channel = self#open_out filename in
-      Strings.iter out_channel#output_substring (s.encoder.Encoder.header ());
       let discontinuous, current_discontinuity =
         if state = `Restarted then (true, s.discontinuity_count + 1)
         else (false, s.discontinuity_count)
@@ -754,14 +771,23 @@ class hls_output p =
           discontinuous;
           current_discontinuity;
           len = 0;
-          filename;
           segment_extra_tags;
           init_filename =
             (match s.init_state with `Has_init f -> Some f | _ -> None);
-          out_channel = Some out_channel;
+          filename = None;
+          out_channel = None;
           last_segmentable_position = None;
         }
       in
+      let { position; extname } = s in
+      let filename () =
+        let ticks = segment.len in
+        let duration = Frame.seconds_of_main ticks in
+        segment_name ~position ~extname ~duration ~ticks s.name
+      in
+      let out_channel = self#open_out filename in
+      Strings.iter out_channel#output_substring (s.encoder.Encoder.header ());
+      segment.out_channel <- Some out_channel;
       s.current_segment <- Some segment;
       s.discontinuity_count <- current_discontinuity;
       s.position <- s.position + 1;
@@ -799,7 +825,7 @@ class hls_output p =
 
     method private cleanup_streams =
       List.iter
-        (fun (_, s) -> List.iter (fun s -> self#unlink s.filename) !s)
+        (fun (_, s) -> List.iter (fun s -> self#unlink_segment s) !s)
         segments;
       List.iter
         (fun s ->
@@ -812,29 +838,35 @@ class hls_output p =
                       (fun filename ->
                         if Sys.file_exists filename then self#unlink filename)
                       segment.init_filename);
-                 self#unlink segment.filename)
+                 self#unlink_segment segment)
                s.current_segment);
           s.current_segment <- None)
         streams
 
-    method private playlist_name s = directory ^^ s.name ^ ".m3u8"
+    method private playlist_name s = s.name ^ ".m3u8"
 
     method private write_playlist s =
+      let segments =
+        List.filter_map
+          (function
+            | { filename = Some fname } as s -> Some (fname, s) | _ -> None)
+          (List.rev !(List.assoc s.name segments))
+      in
       let segments =
         List.fold_left
           (fun cur el ->
             if List.length cur < segments_per_playlist then el :: cur else cur)
-          []
-          (List.rev !(List.assoc s.name segments))
+          [] segments
       in
       let discontinuity_sequence, media_sequence =
         match segments with
-          | { current_discontinuity; id } :: _ -> (current_discontinuity, id - 1)
+          | (_, { current_discontinuity; id }) :: _ ->
+              (current_discontinuity, id - 1)
           | [] -> (0, 0)
       in
       let filename = self#playlist_name s in
       self#log#debug "Writing playlist %s.." s.name;
-      let oc = self#open_out filename in
+      let oc = self#open_out (fun () -> filename) in
       Fun.protect
         ~finally:(fun () -> oc#close)
         (fun () ->
@@ -855,7 +887,7 @@ class hls_output p =
               oc#output_string "\r\n")
             s.stream_extra_tags;
           List.iteri
-            (fun pos segment ->
+            (fun pos (filename, segment) ->
               if 0 < pos && segment.discontinuous then
                 oc#output_string "#EXT-X-DISCONTINUITY\r\n";
               if pos = 0 || segment.discontinuous then (
@@ -878,8 +910,7 @@ class hls_output p =
                   oc#output_string "\r\n")
                 segment.segment_extra_tags;
               oc#output_string
-                (Printf.sprintf "%s%s\r\n" prefix
-                   (Filename.basename segment.filename)))
+                (Printf.sprintf "%s%s\r\n" prefix (Filename.basename filename)))
             segments)
 
     val mutable main_playlist_written = false
@@ -903,7 +934,7 @@ class hls_output p =
               | Some playlist ->
                   self#log#debug "Writing main playlist %s.."
                     main_playlist_filename;
-                  let oc = self#open_out main_playlist_filename in
+                  let oc = self#open_out (fun () -> main_playlist_filename) in
                   oc#output_string playlist;
                   oc#close));
       main_playlist_written <- true
@@ -1033,9 +1064,10 @@ class hls_output p =
         | None -> s.init_state <- `No_init
         | Some data when not (Strings.is_empty data) ->
             let init_filename =
-              segment_name ~position:init_position ~extname name
+              segment_name ~position:init_position ~extname ~duration:0.
+                ~ticks:0 name
             in
-            let oc = self#open_out init_filename in
+            let oc = self#open_out (fun () -> init_filename) in
             Fun.protect
               ~finally:(fun () -> oc#close)
               (fun () -> Strings.iter oc#output_substring data);

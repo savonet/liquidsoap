@@ -1500,6 +1500,22 @@ that are available through your scripts. We recommend to:
 
 The default creation permissions for user cache files is: `0o600` so only the user creating them should be able to read them. You should make sure that your script permissions are also similarly restricted.
 
+### Cache and memory usage
+
+One side-benefit from loading a script from cache is that the entire typechecking process is skipped.
+
+This can result is significant reduction in the initial memory consumption, typically down from about `375MB` to about `80MB`!
+
+If memory consumption is a concern but you are not sure you can cache your script, you can also set the environment variable
+`settings.init.compact_before_start` to `true`:
+
+```liquidsoap
+settings.init.compact_before_start := true
+```
+
+This will run the OCaml memory compaction algorithm after typechecking your script but before running it. This will result
+in a similar memory footprint when running the script but will delay its initial startup time.
+
 ### Cache environment variables
 
 The following environment variables control the cache behavior:

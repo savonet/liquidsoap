@@ -39,6 +39,8 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
+opam install -y xml-light
+
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
@@ -50,7 +52,7 @@ cd ..
 
 opam update
 opam remove -y jemalloc
-opam install -y tls.0.17.4 saturn_lockfree.0.5.0 ppx_hash
+opam install -y tls.1.0.2 ca-certs mirage-crypto-rng cstruct saturn_lockfree.0.5.0 ppx_hash memtrace
 
 cd /tmp/liquidsoap-full
 
