@@ -49,21 +49,8 @@ module Queue = struct
     List.iter (push q) elements;
     elements
 
-  let exists q fn =
-    let rec exists_f () =
-      match pop_exn q with
-        | el when fn el -> true
-        | _ -> exists_f ()
-        | exception Empty -> false
-    in
-    exists_f ()
-
-  let length q =
-    let rec length_f pos =
-      match pop_exn q with _ -> length_f (pos + 1) | exception Empty -> pos
-    in
-    length_f 0
-
+  let exists q fn = List.exists fn (elements q)
+  let length q = List.length (elements q)
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
