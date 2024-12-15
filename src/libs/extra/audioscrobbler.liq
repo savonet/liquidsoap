@@ -283,6 +283,7 @@ def audioscrobbler.api.track.scrobble(
   ~api_secret=null(),
   ~artist,
   ~track,
+  ~timestamp=null(),
   ~album=null(),
   ~context=null(),
   ~streamId=null(),
@@ -306,7 +307,7 @@ def audioscrobbler.api.track.scrobble(
     [
       ("track", track),
       ("artist", artist),
-      ("timestamp", string(time())),
+      ("timestamp", string(timestamp ?? time())),
       ...(null.defined(album) ? [("album", null.get(album))] : [] ),
       ...(null.defined(context) ? [("context", null.get(context))] : [] ),
       ...(null.defined(streamId) ? [("streamId", null.get(streamId))] : [] ),
