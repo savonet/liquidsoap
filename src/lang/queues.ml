@@ -25,11 +25,14 @@ module Queue = struct
 
   let flush_elements q =
     let rec flush_elements_f elements =
-      try flush_elements_f (pop q :: elements) with Empty -> List.rev elements
+      match pop_exn q with
+        | el -> flush_elements_f (el :: elements)
+        | exception Empty -> List.rev elements
     in
     flush_elements_f []
 
-  let pop q = try pop q with Empty -> raise Not_found
+  let pop q = try pop_exn q with Empty -> raise Not_found
+  let peek q = try peek_exn q with Empty -> raise Not_found
   let flush_iter q fn = List.iter fn (flush_elements q)
 
   let flush_fold q fn ret =
@@ -37,30 +40,17 @@ module Queue = struct
     List.fold_left flush_fold_f ret (flush_elements q)
 
   let elements q =
-    let rec elements_f l cursor =
-      match next cursor with
-        | Some (el, cursor) -> elements_f (el :: l) cursor
-        | None -> List.rev l
+    let rec elements_f l =
+      match pop_exn q with
+        | el -> elements_f (el :: l)
+        | exception Empty -> List.rev l
     in
-    elements_f [] (snapshot q)
+    let elements = elements_f [] in
+    List.iter (push q) elements;
+    elements
 
-  let exists q fn =
-    let rec exists_f l cursor =
-      match next cursor with
-        | Some (el, _) when fn el -> true
-        | Some (el, cursor) -> exists_f (el :: l) cursor
-        | None -> false
-    in
-    exists_f [] (snapshot q)
-
-  let length q =
-    let rec length_f pos cursor =
-      match next cursor with
-        | Some (_, cursor) -> length_f (pos + 1) cursor
-        | None -> pos
-    in
-    length_f 0 (snapshot q)
-
+  let exists q fn = List.exists fn (elements q)
+  let length q = List.length (elements q)
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
@@ -129,16 +119,16 @@ module WeakQueue = struct
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let rec filter_f cursor =
-      match next cursor with
-        | Some (el, cursor) ->
+    let rec filter_f () =
+      match pop_exn q with
+        | el ->
             for i = 0 to Weak.length el - 1 do
               match Weak.get el i with
                 | Some p when fn p -> ()
                 | _ -> Weak.set el i None
             done;
-            filter_f cursor
-        | None -> ()
+            filter_f ()
+        | exception Empty -> ()
     in
-    filter_f (snapshot q)
+    filter_f ()
 end
