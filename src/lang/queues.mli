@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+(** Note: these queues a lock-free and not intended to hold large number
+    of values. *)
+
 module Queue : sig
   type 'a t
 
@@ -31,7 +34,10 @@ module Queue : sig
   val pop : 'a t -> 'a
 
   val pop_opt : 'a t -> 'a option
+
+  (** Raises [Not_found] when no element can be found. *)
   val peek : 'a t -> 'a
+
   val peek_opt : 'a t -> 'a option
   val flush_iter : 'a t -> ('a -> unit) -> unit
   val flush_fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b

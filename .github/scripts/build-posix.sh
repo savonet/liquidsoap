@@ -52,7 +52,7 @@ cd ..
 
 opam update
 opam remove -y jemalloc
-opam install -y tls.1.0.2 ca-certs mirage-crypto-rng cstruct saturn_lockfree.0.4.1 ppx_hash memtrace
+opam install -y tls.1.0.2 ca-certs mirage-crypto-rng cstruct saturn_lockfree.0.5.0 ppx_hash memtrace
 
 cd /tmp/liquidsoap-full
 
