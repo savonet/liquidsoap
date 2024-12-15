@@ -15,7 +15,7 @@ Changed:
 - Make alsa I/O work with buffer size different than
   liquidsoap internal frame (#4236)
 - Make `"song"` metadata mapping to `"title"` metadata in
-  `input.harbord` disabled when either `"artist"` or `"title"`
+  `input.harbor` disabled when either `"artist"` or `"title"`
   is also passed. Add a configuration key to disable this mechanism.
   (#4235, #2676)
 - `output.icecast` now re-sends the last metadata when connecting to the
