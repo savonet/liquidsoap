@@ -82,7 +82,7 @@ let watch : watch =
            with exn ->
              let bt = Printexc.get_backtrace () in
              Utils.log_exception ~log ~bt
-               (Printf.sprintf "Error whole removing file watch handler: %s"
+               (Printf.sprintf "Error while removing file watch handler: %s"
                   (Printexc.to_string exn)));
           handlers := List.remove_assoc wd !handlers))
     ()
