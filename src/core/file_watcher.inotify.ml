@@ -77,17 +77,12 @@ let watch : watch =
       let e = List.flatten (List.map event_conv e) in
       let wd = Inotify.add_watch fd file e in
       handlers := (wd, f) :: !handlers;
-      let finalise fn = fn () in
-      let unwatch =
-        Mutex_utils.mutexify m (fun () ->
-            (try Inotify.rm_watch fd wd
-             with exn ->
-               let bt = Printexc.get_backtrace () in
-               Utils.log_exception ~log ~bt
-                 (Printf.sprintf "Error whole removing file watch handler: %s"
-                    (Printexc.to_string exn)));
-            handlers := List.remove_assoc wd !handlers)
-      in
-      Gc.finalise finalise unwatch;
-      unwatch)
+      Mutex_utils.mutexify m (fun () ->
+          (try Inotify.rm_watch fd wd
+           with exn ->
+             let bt = Printexc.get_backtrace () in
+             Utils.log_exception ~log ~bt
+               (Printf.sprintf "Error whole removing file watch handler: %s"
+                  (Printexc.to_string exn)));
+          handlers := List.remove_assoc wd !handlers))
     ()
