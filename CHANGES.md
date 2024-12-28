@@ -29,6 +29,7 @@ Fixed:
 - Fixed source `last_metadata` not being properly updated (#4262)
 - Convert all ICY (icecast) metadata from `input.http` to `utf8`.
 - Fixed `inotify` unwatching due to GC cleanup (#4275)
+- Fixed `delay` initial conditions (#4281)
 
 ---
 

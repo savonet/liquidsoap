@@ -38,11 +38,13 @@ class delay ~initial (source : source) delay =
 
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private delay_ok = Unix.time () -. last_track >= delay ()
+    method private delay_ok = delay () <= Unix.time () -. last_track
     method private can_generate_frame = self#delay_ok && source#is_ready
 
     method private generate_frame =
-      match self#split_frame source#get_frame with
+      let frame = source#get_frame in
+      match self#split_frame frame with
+        | buf, Some _ when last_track = 0. && Frame.position buf = 0 -> frame
         | buf, Some _ ->
             last_track <- Unix.time ();
             buf
