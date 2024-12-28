@@ -141,8 +141,9 @@ def medialib(
         file.exists(f)
       then
         try
-          let json.parse ((v, parsed) : (int*[(string*[(string*string)])]?)) =
-            file.contents(f)
+          let json.parse ((v, parsed) :
+            (int * [(string * [(string * string)])]?)
+          ) = file.contents(f)
 
           if
             v == db_version and null.defined(parsed)
