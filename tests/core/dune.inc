@@ -120,7 +120,7 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  (:json ./json) (:json5 ./json5)
+  (:json ./json) (:json5 ./json5) (:big-list-of-naughty-strings ./big-list-of-naughty-strings)
   (:json_test json_test.exe))
  (action (run %{json_test} )))
 

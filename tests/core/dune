@@ -63,3 +63,16 @@
    (system
     "cd json5 && find . -type f | egrep '\\.json|\\.js|\\.txt' | xargs -I % mv % .")
    (system "cd json5 && find . -type d | grep -v '^\\.$' | xargs rm -rf"))))
+
+(rule
+ (alias citest)
+ (target big-list-of-naughty-strings)
+ (action
+  (progn
+   (run rm -rf big-list-of-naughty-strings)
+   (run
+    git
+    clone
+    --depth
+    1
+    https://github.com/minimaxir/big-list-of-naughty-strings.git))))

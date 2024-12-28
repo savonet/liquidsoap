@@ -1,7 +1,10 @@
 (* test name, (deps, args) *)
 let test_params =
   [
-    ("json_test", ("(:json ./json) (:json5 ./json5)", [""]));
+    ( "json_test",
+      ( "(:json ./json) (:json5 ./json5) (:big-list-of-naughty-strings \
+         ./big-list-of-naughty-strings)",
+        [""] ) );
     ( "stream_decoder_test",
       ( "(:test_wav ./test.wav) (:test_mp3 ./test.mp3)",
         ["%{test_wav} bla.wav"; "%{test_mp3} bla.wav"] ) );

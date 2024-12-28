@@ -127,3 +127,13 @@ let () =
       | _ when expectation = `Failure -> Printf.printf "OK!\n%!"
   in
   List.iter run_test tests
+
+let () =
+  let pwd = Filename.dirname Sys.argv.(0) in
+  let basedir = Filename.concat pwd "big-list-of-naughty-strings" in
+  let strings_file = Filename.concat basedir "blns.json" in
+  Printf.printf "Testing big-list-of-naughty-strings...\n%!";
+  let s = read_file strings_file in
+  let v = Json.from_string s in
+  ignore (Json.to_string ~compact:true v);
+  ignore (Json.to_string ~compact:false v)
