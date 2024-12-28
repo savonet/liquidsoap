@@ -2,6 +2,8 @@
 
 set -e
 
+export PKG_CONFIG_PATH=/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig
+
 SYSTEM="$1"
 BRANCH="$2"
 CPU_CORES="$3"
