@@ -787,6 +787,38 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  GH4281-2.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH4281-2.liq liquidsoap %{test_liq} GH4281-2.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  GH4281.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH4281.liq liquidsoap %{test_liq} GH4281.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   LS268.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
