@@ -51,7 +51,7 @@ let create_encoder ~flac ~comments () =
       | None ->
           let x =
             Flac_ogg.Encoder.create ~comments ~serialno:(Ogg.Stream.serialno os)
-              p write_cb
+              ~write:write_cb p
           in
           enc := Some x;
           x
@@ -80,8 +80,8 @@ let create_encoder ~flac ~comments () =
       (data.Ogg_muxer.data, data.Ogg_muxer.offset, data.Ogg_muxer.length)
     in
     let b = Array.map (fun x -> Array.sub x ofs len) b in
-    let { Flac_ogg.Encoder.encoder; callbacks } = get_enc os in
-    Flac.Encoder.process encoder callbacks b;
+    let { Flac_ogg.Encoder.encoder } = get_enc os in
+    Flac.Encoder.process encoder b;
     List.iter write_page (flush_pages ())
   in
   let end_of_page p =
@@ -90,12 +90,12 @@ let create_encoder ~flac ~comments () =
     else Ogg_muxer.Time (Int64.to_float granulepos /. float samplerate)
   in
   let end_of_stream os =
-    let { Flac_ogg.Encoder.encoder; callbacks } = get_enc os in
+    let { Flac_ogg.Encoder.encoder } = get_enc os in
     (* Assert that at least some data was encoded.. *)
     if not !started then (
       let b = empty_data () in
-      Flac.Encoder.process encoder callbacks b);
-    Flac.Encoder.finish encoder callbacks;
+      Flac.Encoder.process encoder b);
+    Flac.Encoder.finish encoder;
     set_stream_eos os;
     flush_pages ()
   in

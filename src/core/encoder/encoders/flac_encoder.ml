@@ -44,8 +44,7 @@ let encoder flac meta =
   in
   let buf = Strings.Mutable.empty () in
   let write chunk = Strings.Mutable.add_bytes buf chunk in
-  let cb = Flac.Encoder.get_callbacks write in
-  let enc = Flac.Encoder.create ~comments p cb in
+  let enc = Flac.Encoder.create ~comments ~write p in
   let enc = ref enc in
   let encode frame =
     let b = AFrame.pcm frame in
@@ -55,11 +54,11 @@ let encoder flac meta =
         (dst_freq /. src_freq) b 0 len
     in
     let b = Audio.sub b start len in
-    Flac.Encoder.process !enc cb b;
+    Flac.Encoder.process !enc b;
     Strings.Mutable.flush buf
   in
   let stop () =
-    Flac.Encoder.finish !enc cb;
+    Flac.Encoder.finish !enc;
     Strings.Mutable.flush buf
   in
   {
