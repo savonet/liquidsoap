@@ -352,11 +352,14 @@ module Version = struct
 
   (* We assume something like, 2.0.0+git@7e211ffd *)
   let of_string s : t =
-    let rex = Re.Pcre.regexp "([\\.\\d]+)([^\\.]+)?" in
+    let rex = Re.Pcre.regexp "(?:rolling-release-v)?([\\.\\dx]+)([^\\.]+)?" in
     let sub = Re.Pcre.exec ~rex s in
     let num = Re.Pcre.get_substring sub 1 in
     let str = try Re.Pcre.get_substring sub 2 with _ -> "" in
-    let num = String.split_on_char '.' num |> List.map int_of_string in
+    let num =
+      let int_of_string s = if s = "x" then max_int else int_of_string s in
+      String.split_on_char '.' num |> List.map int_of_string
+    in
     (num, str)
 
   (** Number part. *)
