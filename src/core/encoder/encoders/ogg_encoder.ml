@@ -132,8 +132,7 @@ let encoder ~pos { Ogg_format.audio; video } =
     and ogg_stop () =
       let f track = track.id <- None in
       List.iter f tracks;
-      if Ogg_muxer.state ogg_enc = Ogg_muxer.Streaming then
-        Ogg_muxer.end_of_stream ogg_enc
+      Ogg_muxer.end_of_stream ogg_enc
     and stop () =
       ogg_stop ();
       Ogg_muxer.get_data ogg_enc

@@ -45,11 +45,14 @@ let create_decoder input =
       | Some f -> Some (fun () -> Int64.of_int (f ()))
       | None -> None
   in
-  let dummy_c =
-    Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun _ -> ())
+  let write_ref = ref (fun _ -> ()) in
+  let write v =
+    let fn = !write_ref in
+    fn v
   in
-  let decoder = Flac.Decoder.create dummy_c in
-  let decoder, info, _ = Flac.Decoder.init decoder dummy_c in
+  let decoder, info, _ =
+    Flac.Decoder.create ?seek ?tell ?length ~read ~write ()
+  in
   let samplerate, _ =
     (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
   in
@@ -60,33 +63,29 @@ let create_decoder input =
         let duration = Frame.seconds_of_main ticks in
         let samples = Int64.of_float (duration *. float samplerate) in
         let pos = Int64.add !processed samples in
-        let c =
-          Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun _ -> ())
-        in
-        let ret = Flac.Decoder.seek decoder c pos in
+        let ret = Flac.Decoder.seek decoder pos in
         if ret = true then (
           processed := pos;
           ticks)
         else (
-          match Flac.Decoder.state decoder c with
+          match Flac.Decoder.state decoder with
             | `Seek_error ->
-                if Flac.Decoder.flush decoder c then 0
+                if Flac.Decoder.flush decoder then 0
                 else
                   (* Flushing failed, we are in an unknown state.. *)
                   raise End_of_stream
             | _ -> 0));
     decode =
       (fun buffer ->
-        let c =
-          Flac.Decoder.get_callbacks ?seek ?tell ?length read (fun data ->
-              let len = try Audio.length data with _ -> 0 in
-              processed := Int64.add !processed (Int64.of_int len);
-              buffer.Decoder.put_pcm ~samplerate data)
-        in
-        match Flac.Decoder.state decoder c with
+        (write_ref :=
+           fun data ->
+             let len = try Audio.length data with _ -> 0 in
+             processed := Int64.add !processed (Int64.of_int len);
+             buffer.Decoder.put_pcm ~samplerate data);
+        match Flac.Decoder.state decoder with
           | `Search_for_metadata | `Read_metadata | `Search_for_frame_sync
           | `Read_frame ->
-              Flac.Decoder.process decoder c
+              Flac.Decoder.process decoder
           | _ -> raise End_of_stream);
     eof = (fun _ -> ());
     close = (fun _ -> ());
@@ -118,7 +117,7 @@ let file_type filename =
     ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let write _ = () in
-      let h = Flac.Decoder.File.create_from_fd write fd in
+      let h = Flac.Decoder.File.create_from_fd ~write fd in
       let info = h.Flac.Decoder.File.info in
       let rate, channels =
         (info.Flac.Decoder.sample_rate, info.Flac.Decoder.channels)
@@ -161,7 +160,7 @@ let get_tags ~metadata:_ ~extension ~mime file =
     ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let write _ = () in
-      let h = Flac.Decoder.File.create_from_fd write fd in
+      let h = Flac.Decoder.File.create_from_fd ~write fd in
       match h.Flac.Decoder.File.comments with Some (_, m) -> m | None -> [])
 
 let metadata_decoder_priority =
@@ -191,7 +190,7 @@ let dresolver ~metadata:_ file =
     ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let write _ = () in
-      let h = Flac.Decoder.File.create_from_fd write fd in
+      let h = Flac.Decoder.File.create_from_fd ~write fd in
       let info = h.Flac.Decoder.File.info in
       match info.Flac.Decoder.total_samples with
         | x when x = Int64.zero -> raise Not_found

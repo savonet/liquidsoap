@@ -219,9 +219,7 @@ let register_track ?fill encoder track_encoder =
 
 (** Start streams, set state to Streaming. *)
 let streams_start encoder =
-  if Hashtbl.length encoder.tracks = 0 then
-    log#info "%s: Starting stream with no ogg track.." encoder.id;
-  log#info "%s: Starting all streams" encoder.id;
+  log#info "%s: Starting %d track(s)" encoder.id (Hashtbl.length encoder.tracks);
 
   (* Add skeleton information first. *)
   begin
