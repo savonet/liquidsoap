@@ -26,6 +26,7 @@ Fixed:
 
 - Fixed request resolution loop when enabling both `autocue`
   and `replaygain` metadata resolvers (#4245, fixed in #4246)
+- Fixed `flac` encoding segfault (#4286, #4274)
 - Fixed source `last_metadata` not being properly updated (#4262)
 - Convert all ICY (icecast) metadata from `input.http` to `utf8`.
 - Fixed `inotify` unwatching due to GC cleanup (#4275)
