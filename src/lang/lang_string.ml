@@ -357,7 +357,7 @@ module Version = struct
     let num = Re.Pcre.get_substring sub 1 in
     let str = try Re.Pcre.get_substring sub 2 with _ -> "" in
     let num =
-      let int_of_string s = if s = "x" then -1 else int_of_string s in
+      let int_of_string s = if s = "x" then max_int else int_of_string s in
       String.split_on_char '.' num |> List.map int_of_string
     in
     (num, str)
