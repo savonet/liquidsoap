@@ -979,6 +979,22 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  fallible_ogg.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} fallible_ogg.liq liquidsoap %{test_liq} fallible_ogg.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   ffmpeg-copy-encode.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe

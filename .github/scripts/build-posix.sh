@@ -41,6 +41,10 @@ echo "::group::Setting up specific dependencies"
 
 opam install -y xml-light
 
+git clone https://github.com/savonet/ocaml-xiph.git
+cd ocaml-xiph
+opam install -y .
+
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh

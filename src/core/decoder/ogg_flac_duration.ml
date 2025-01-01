@@ -37,22 +37,14 @@ let dresolver ~metadata:_ file =
         let serial = Ogg.Page.serialno page in
         let os = Ogg.Stream.create ~serial () in
         Ogg.Stream.put_page os page;
-        let packet = Ogg.Stream.get_packet os in
+        let packet = Ogg.Stream.peek_packet os in
         (* Test header. Do not catch anything, first page should be sufficient *)
         if not (Flac_ogg.Decoder.check_packet packet) then raise Not_found;
         let fill () =
           let page = Ogg.Sync.read sync in
           if Ogg.Page.serialno page = serial then Ogg.Stream.put_page os page
         in
-        let callbacks = Flac_ogg.Decoder.get_callbacks os (fun _ -> ()) in
-        let dec = Flac.Decoder.create callbacks in
-        let rec info () =
-          try Flac.Decoder.init dec callbacks
-          with Ogg.Not_enough_data ->
-            fill ();
-            info ()
-        in
-        info ()
+        Flac_ogg.Decoder.create ~fill ~write:(fun _ -> ()) os
       in
       (* Now find a flac stream *)
       let rec init () = try test_flac () with Not_found -> init () in
@@ -64,7 +56,7 @@ let dresolver ~metadata:_ file =
       samples /. float info.Flac.Decoder.sample_rate)
 
 let () =
-  Plug.register Request.dresolvers "ogg/flac" ~doc:""
+  Plug.register Request.dresolvers "ogg_flac" ~doc:""
     {
       dpriority = (fun () -> Liq_ogg_decoder.priority#get);
       file_extensions = (fun () -> Liq_ogg_decoder.file_extensions#get);
