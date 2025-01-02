@@ -461,7 +461,7 @@ video.text.available := [("gd", video.text.gd), ...video.text.available()]
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def video.text.gd =
+def video.add_text.gd =
   add_text_builder(video.text.gd)
 end
 %endif

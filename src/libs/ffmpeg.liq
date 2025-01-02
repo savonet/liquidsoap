@@ -511,19 +511,6 @@ def replaces video.add_text.ffmpeg.raw(
   ffmpeg.filter.null(graph, v)
 end
 
-# Display a text.
-# @category Source / Video processing
-# @param ~id Force the value of the source ID.
-# @param ~color Text color (in 0xRRGGBB format).
-# @param ~cycle Cycle text when it reaches left boundary.
-# @param ~font Path to ttf font file.
-# @param ~metadata Change text on a particular metadata (empty string means disabled).
-# @param ~size Font size.
-# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
-#               according to x and y in case they are variable).
-# @param ~x x offset.
-# @param ~y y offset.
-# @params Text to display.
 def video.add_text.ffmpeg.internal(
   ~id=null(),
   ~color=0xffffff,
@@ -540,7 +527,6 @@ def video.add_text.ffmpeg.internal(
 ) =
   id = string.id.default(default="video.add_text.ffmpeg", id)
   s = ffmpeg.raw.encode.audio_video(%ffmpeg(%audio.raw, %video.raw), s)
-  v = source({video=source.tracks(s).video})
 
   def mkfilter(graph) =
     v =
@@ -555,20 +541,51 @@ def video.add_text.ffmpeg.internal(
         y=y,
         graph=graph,
         d,
-        v
+        s
       )
 
-    ffmpeg.filter.video.output(graph, v)
+    v = ffmpeg.filter.video.output(graph, v)
+
+    a = ffmpeg.filter.audio.input(graph, source.tracks(s).audio)
+    a = ffmpeg.filter.acopy(graph, a)
+    a = ffmpeg.filter.audio.output(graph, a)
+
+    source(
+      id=id,
+      {
+        audio=a,
+        video=v,
+        metadata=track.metadata(a),
+        track_marks=track.track_marks(a)
+      }
+    )
   end
 
-  video = ffmpeg.filter.create(mkfilter)
-  tracks = source.tracks(s)
-  s = source(id=id, tracks.{video=video})
+  s = ffmpeg.filter.create(mkfilter)
   s = ffmpeg.raw.decode.audio_video(s)
   null.defined(duration) ? max_duration(null.get(duration), s) : s
 end
 
-let replaces video.add_text.ffmpeg = video.add_text.ffmpeg.internal
+# Display a text.
+# @category Source / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~color Text color (in 0xRRGGBB format).
+# @param ~cycle Cycle text when it reaches left boundary.
+# @param ~font Path to ttf font file.
+# @param ~metadata Change text on a particular metadata (empty string means disabled).
+# @param ~size Font size.
+# @param ~speed Horizontal speed in pixels per second (0 means no scrolling and update \
+#               according to x and y in case they are variable).
+# @param ~x x offset.
+# @param ~y y offset.
+# @params Text to display.
+def replaces video.add_text.ffmpeg(
+  %argsof(video.add_text.ffmpeg.internal),
+  d,
+  s
+) =
+  video.add_text.ffmpeg.internal(%argsof(video.add_text.ffmpeg.internal), d, s)
+end
 %endif
 
 # video.add_text.available := [("ffmpeg", video.add_text.ffmpeg.internal), ...video.add_text.available()]
