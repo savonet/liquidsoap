@@ -100,6 +100,8 @@ let init l =
 
 let () =
   Lifecycle.on_start ~name:"SDL initialization" (fun () ->
+      let major, minor, patch = Sdl.get_version () in
+      log#important "Loading SDL version %d.%d.%d" major minor patch;
       match !options with Some o -> check Sdl.init o | None -> ())
 
 module Surface = struct
