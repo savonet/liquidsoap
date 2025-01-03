@@ -1,31 +1,23 @@
-d = sine()
+d = sequence([sine(duration=3.), sine(duration=3.)])
 d = metadata.map(update=false, (fun (_) -> [("title", "delay")]), d)
 
-f = sine()
+f = sequence([sine(duration=3.), sine(duration=3.)])
 f = metadata.map(update=false, (fun (_) -> [("title", "fallback")]), f)
 
-s = fallback([delay(initial=true, 60.0, d), f])
+s = fallback([delay(initial=true, 1., d), f])
 
-is_done = ref(false)
+meta = ref([])
 
 s.on_metadata(
   fun (m) ->
     begin
+      meta := [...meta(), m["title"]]
       if
-        not is_done()
+        meta() == ["fallback", "delay", "fallback", "delay"]
       then
-        if
-          m["title"] == "fallback"
-        then
-          begin
-            is_done := true
-            test.pass()
-          end
-        else
-          test.fail()
-        end
+        test.pass()
       end
     end
 )
 
-output.dummy(s)
+output.dummy(fallible=true, s)
