@@ -147,6 +147,7 @@ let rec json_of_type_annotation ~to_json = function
       type_node ~typ:"invoke"
         ~extra:[("method", `String s)]
         (json_of_type_annotation ~to_json t)
+  | `Typeof v -> type_node ~typ:"typeof" (to_json v)
   | `Source (n, t) ->
       type_node ~typ:"source"
         ~extra:[("base", `String n)]
