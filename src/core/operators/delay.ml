@@ -29,6 +29,7 @@ class delay ~initial (source : source) delay =
   object (self)
     inherit operator ~name:"delay" [source]
     val mutable last_track = if initial then Unix.time () else 0.
+    val mutable first_track = true
     method fallible = true
     method remaining = source#remaining
 
@@ -44,7 +45,9 @@ class delay ~initial (source : source) delay =
     method private generate_frame =
       let frame = source#get_frame in
       match self#split_frame frame with
-        | buf, Some _ when last_track = 0. && Frame.position buf = 0 -> frame
+        | buf, Some _ when first_track && Frame.position buf = 0 ->
+            first_track <- false;
+            frame
         | buf, Some _ ->
             last_track <- Unix.time ();
             buf
