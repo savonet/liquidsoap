@@ -55,39 +55,6 @@ and pattern_entry =
 
 and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
 
-type meth_annotation = {
-  optional : bool;
-  name : string;
-  typ : type_annotation;
-  json_name : string option;
-}
-
-and source_track_annotation = {
-  track_name : string;
-  track_type : string;
-  track_params : track_annotation list;
-}
-
-and source_annotation = {
-  extensible : bool;
-  tracks : source_track_annotation list;
-}
-
-and argument = bool * string * type_annotation
-
-and type_annotation =
-  [ `Named of string
-  | `Nullable of type_annotation
-  | `List of type_annotation
-  | `Json_object of type_annotation
-  | `Tuple of type_annotation list
-  | `Arrow of argument list * type_annotation
-  | `Record of meth_annotation list
-  | `Method of type_annotation * meth_annotation list
-  | `Invoke of type_annotation * string
-  | `Source of string * source_annotation ]
-[@@deriving hash]
-
 type _of = { only : string list; except : string list; source : string }
 [@@deriving hash]
 
@@ -170,6 +137,38 @@ and time_el = {
   minutes : int option;
   seconds : int option;
 }
+
+and meth_annotation = {
+  optional_meth : bool;
+  name : string;
+  typ : type_annotation;
+  json_name : string option;
+}
+
+and source_track_annotation = {
+  track_name : string;
+  track_type : string;
+  track_params : track_annotation list;
+}
+
+and source_annotation = {
+  extensible : bool;
+  tracks : source_track_annotation list;
+}
+
+and argument = bool * string * type_annotation
+
+and type_annotation =
+  [ `Named of string
+  | `Nullable of type_annotation
+  | `List of type_annotation
+  | `Json_object of type_annotation
+  | `Tuple of type_annotation list
+  | `Arrow of argument list * type_annotation
+  | `Record of meth_annotation list
+  | `Method of type_annotation * meth_annotation list
+  | `Invoke of type_annotation * string
+  | `Source of string * source_annotation ]
 
 (* These terms are reduced at runtime *)
 and parsed_ast =

@@ -303,15 +303,15 @@ record_ty:
   | meth_ty COMMA record_ty { $1::$3 }
 
 meth_ty:
-  | VAR COLON ty            { { optional = false; name = $1; typ = $3; json_name = None } }
-  | VAR QUESTION COLON ty   { { optional = true; name = $1; typ = $4; json_name = None } }
+  | VAR COLON ty            { { optional_meth = false; name = $1; typ = $3; json_name = None } }
+  | VAR QUESTION COLON ty   { { optional_meth = true; name = $1; typ = $4; json_name = None } }
   | STRING VAR VAR COLON ty {
        match $2 with
-         |"as" ->             { optional = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc $1) }
+         |"as" ->             { optional_meth = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc $1) }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
   | STRING VAR VAR QUESTION COLON ty {
        match $2 with
-         |"as" ->             { optional = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
+         |"as" ->             { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
