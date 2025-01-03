@@ -35,6 +35,97 @@ let mk_parsed = Parsed_term.make
 let mk_fun ~pos arguments body =
   mk ~pos (`Fun Term.{ free_vars = None; name = None; arguments; body })
 
+let mk_source_ty ?pos name args =
+  let fn = !Hooks.mk_source_ty in
+  fn ?pos name args
+
+let mk_clock_ty ?pos () =
+  let fn = !Hooks.mk_clock_ty in
+  fn ?pos ()
+
+let mk_named_ty ?pos = function
+  | "_" -> Type.var ?pos:(Option.map Pos.of_lexing_pos pos) ()
+  | "unit" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.unit
+  | "never" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.Never
+  | "bool" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.Bool
+  | "int" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.Int
+  | "float" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.Float
+  | "string" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.String
+  | "ref" -> Type.reference (Type.var ())
+  | "clock" -> mk_clock_ty ?pos ()
+  | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
+  | "source_methods" -> !Hooks.source_methods_t ()
+  | name -> (
+      match Type.find_opt_typ name with
+        | Some c -> c ()
+        | None ->
+            let pos =
+              Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos
+            in
+            raise
+              (Term_base.Parse_error
+                 (pos, "Unknown type constructor: " ^ name ^ ".")))
+
+let typecheck = ref (fun ?env:_ _ -> assert false)
+
+let rec mk_parsed_ty ?pos ~env ~to_term = function
+  | `Named s -> mk_named_ty ?pos s
+  | `Nullable t ->
+      Type.(
+        make
+          ?pos:(Option.map Pos.of_lexing_pos pos)
+          (Nullable (mk_parsed_ty ?pos ~env ~to_term t)))
+  | `List t ->
+      Type.(
+        make
+          ?pos:(Option.map Pos.of_lexing_pos pos)
+          (List { t = mk_parsed_ty ?pos ~env ~to_term t; json_repr = `Tuple }))
+  | `Json_object t ->
+      Type.(
+        make
+          (List
+             {
+               t = mk_parsed_ty ?pos ~env ~to_term (`Tuple [`Named "string"; t]);
+               json_repr = `Object;
+             }))
+  | `Tuple l ->
+      Type.(
+        make
+          ?pos:(Option.map Pos.of_lexing_pos pos)
+          (Tuple (List.map (mk_parsed_ty ~env ~to_term ?pos) l)))
+  | `Arrow (args, t) ->
+      Type.(
+        make
+          (Arrow
+             ( List.map
+                 (fun (optional, name, t) ->
+                   (optional, name, mk_parsed_ty ~env ~to_term ?pos t))
+                 args,
+               mk_parsed_ty ?pos ~env ~to_term t )))
+  | `Record l ->
+      List.fold_left (mk_meth_ty ?pos ~env ~to_term) Type.(make (Tuple [])) l
+  | `Method (t, l) ->
+      List.fold_left
+        (mk_meth_ty ?pos ~env ~to_term)
+        (mk_parsed_ty ?pos ~env ~to_term t)
+        l
+  | `Invoke (t, s) -> snd (Type.invoke (mk_parsed_ty ?pos ~env ~to_term t) s)
+  | `Source (s, p) -> mk_source_ty ?pos s p
+
+and mk_meth_ty ?pos ~env ~to_term base
+    { Parsed_term.name; optional_meth = optional; typ; json_name } =
+  Type.(
+    make
+      (Meth
+         ( {
+             meth = name;
+             optional;
+             scheme = ([], mk_parsed_ty ?pos ~env ~to_term typ);
+             doc = "";
+             json_name;
+           },
+           base )))
+
 let program = Term_preprocessor.program
 
 let mk_expr ?fname processor lexbuf =
@@ -573,7 +664,7 @@ let expand_argsof ~pos ~env ~to_term args =
                typ =
                  (match arg.typ with
                    | None -> mk_var ()
-                   | Some typ -> Parser_helper.mk_ty typ);
+                   | Some typ -> mk_parsed_ty ~env ~to_term typ);
                default = Option.map (to_term ~env) arg.default;
              }
              :: args)
@@ -1051,7 +1142,7 @@ let mk_let ~env ~pos ~to_term ~comments
     in
     to_term ~env body
   in
-  let cast = Option.map (Parser_helper.mk_ty ~pos) cast in
+  let cast = Option.map (mk_parsed_ty ~pos ~env ~to_term) cast in
   let arglist = Option.map (expand_argsof ~pos ~env ~to_term) arglist in
   let doc =
     match
@@ -1196,7 +1287,8 @@ let rec to_ast ~env ~pos ~comments ast =
           parse_error ~pos (Printf.sprintf "Invalid float value: %s" f))
     | `Null -> `Null
     | `Cast { cast = t; typ } ->
-        `Cast { cast = to_term ~env t; typ = Parser_helper.mk_ty ~pos typ }
+        `Cast
+          { cast = to_term ~env t; typ = mk_parsed_ty ~pos ~env ~to_term typ }
     | `Invoke { invoked; optional; meth } ->
         let default = if optional then Some (mk_parsed ~pos `Null) else None in
         mk_invoke ~pos ~env ?default ~to_term invoked meth
