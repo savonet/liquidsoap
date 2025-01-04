@@ -195,6 +195,17 @@ request.deprecated_on_air_metadata := true
 
 However, it is highly recommended to migrate your script to use one of the new method.
 
+### `last_metadata`
+
+The implementation of `last_metadata` was updated to clear the last metadata when a new track begins. This is more in line with most user's expectation: last metadata
+is intended to reflect the metadata of the current track.
+
+If you need to, you can revert to the previous behavior using the source's `reset_last_metadata_on_track` method:
+
+```liquidsoap
+s.reset_last_metadata_on_track := false
+```
+
 ### Gstreamer
 
 `gstreamer` was removed. It had been deprecated for a while. We expect `ffmpeg` to carry most, if not all
