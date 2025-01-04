@@ -26,20 +26,31 @@
 open Source
 
 class delay ~initial (source : source) delay =
+  let initial_last_track, time, delay_ok =
+    let module Time = (val Clock.time_implementation () : Liq_time.T) in
+    let initial_last_track =
+      if initial then Time.time () else Time.of_float 0.
+    in
+    let time = Time.time in
+    let delay_ok last_track =
+      Time.(of_float (delay ()) |<=| (time () |-| last_track))
+    in
+    (initial_last_track, time, delay_ok)
+  in
   object (self)
     inherit operator ~name:"delay" [source]
-    val mutable last_track = if initial then Unix.time () else 0.
+    val mutable last_track = initial_last_track
     val mutable first_track = true
     method fallible = true
     method remaining = source#remaining
 
     method abort_track =
-      last_track <- Unix.time ();
+      last_track <- time ();
       source#abort_track
 
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private delay_ok = delay () <= Unix.time () -. last_track
+    method private delay_ok = delay_ok last_track
     method private can_generate_frame = self#delay_ok && source#is_ready
 
     method private generate_frame =
@@ -49,7 +60,8 @@ class delay ~initial (source : source) delay =
             first_track <- false;
             frame
         | buf, Some _ ->
-            last_track <- Unix.time ();
+            first_track <- false;
+            last_track <- time ();
             buf
         | buf, None -> buf
   end
