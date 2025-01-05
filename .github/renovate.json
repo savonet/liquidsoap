@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    "helpers:pinGitHubActionDigestsToSemver",
+    ":automergeMinor"
+  ],
+  "packageRules": [
+    {
+      "matchDepNames": [
+        "mknejp/delete-release-assets",
+        "savonet/aws-s3-docker-action",
+        "savonet/latest-tag"
+      ],
+      "matchManagers": ["github-actions"],
+      "enabled": false
+    },
+    {
+      "matchCategories": ["docker"],
+      "enabled": false
+    }
+  ]
+}
