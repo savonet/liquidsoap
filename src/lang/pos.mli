@@ -20,16 +20,36 @@
 
  *****************************************************************************)
 
-(** Runtime reducer from parsed terms to runtime terms. *)
+(** Operations on positions (in source files). *)
 
-type processor =
-  ( Parser.token * Lexing.position * Lexing.position,
-    Parser_helper.Term.t )
-  MenhirLib.Convert.revised
+type t
 
-val program : processor
-val typecheck : (?env:Typing.env -> Term.t -> unit) ref
-val mk_expr : ?fname:string -> processor -> Sedlexing.lexbuf -> Parsed_term.t
-val to_term : Parsed_term.t -> Term.t
-val to_encoder_params : Parsed_term.encoder_params -> Term.encoder_params
-val needs_toplevel : unit -> bool
+type pos = {
+  fname : string;
+  lstart : int;
+  lstop : int;
+  cstart : int;
+  cstop : int;
+}
+
+val pack_offset : int
+val pack : pos -> t
+val unpack : t -> pos
+val of_lexing_pos : Lexing.position * Lexing.position -> t
+val to_string : ?prefix:string -> t -> string
+val string_of_pos : ?prefix:string -> t -> string
+
+module Option : sig
+  type base = t
+  type t = base option
+
+  val to_string : ?prefix:string -> t -> string
+end
+
+module List : sig
+  type base = t
+  type t = base list
+
+  val to_pos : t -> base
+  val to_string : ?newlines:bool -> ?prefix:string -> t -> string
+end

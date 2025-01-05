@@ -74,7 +74,8 @@ let to_string ?(prefix = "at ") pos =
 let string_of_pos = to_string
 
 module Option = struct
-  type nonrec t = t option
+  type base = t
+  type t = base option
 
   let to_string ?prefix : t -> string = function
     | Some pos -> to_string ?prefix pos
@@ -82,9 +83,8 @@ module Option = struct
 end
 
 module List = struct
-  (** A list of positions, corresponding to a stack of calls. The toplevel one
-      is the external caller and the last one is the callee. *)
-  type nonrec t = t list
+  type base = t
+  type t = base list
 
   (** The most relevant position in a call stack. *)
   let rec to_pos = function
