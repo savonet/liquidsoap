@@ -190,7 +190,7 @@ If you are looking for an event-based API, you can use the output's `on_track` m
 For backward compatibility and easier migration, `on_air` and `on_air_timestamp` metadata can be enabled using the `settings.request.deprecated_on_air_metadata` setting:
 
 ```liquidsoap
-request.deprecated_on_air_metadata := true
+settings.request.deprecated_on_air_metadata := true
 ```
 
 However, it is highly recommended to migrate your script to use one of the new method.
