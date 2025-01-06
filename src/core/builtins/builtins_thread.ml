@@ -149,7 +149,7 @@ let _ =
   Lang.add_builtin ~base:thread "pause" ~category:`Programming
     ~descr:
       "Pause execution for a given amount of seconds. This puts the calling \
-       thread to skip and should not be used in the main streaming loop."
+       thread to sleep and should not be used in the main streaming loop."
     [("", Lang.float_t, None, Some "Number of seconds of pause.")]
     Lang.unit_t
     (fun p ->
