@@ -31,6 +31,7 @@ jobs:
       is_release: ${{ steps.build_details.outputs.is_release }}
       is_rolling_release: ${{ steps.build_details.outputs.is_rolling_release }}
       is_fork: ${{ steps.build_details.outputs.is_fork }}
+      publish_docker_image: ${{ steps.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group' }}
       build_os: ${{ steps.build_details.outputs.build_os }}
       build_platform: ${{ steps.build_details.outputs.build_platform }}
       build_include: ${{ steps.build_details.outputs.build_include }}
@@ -615,7 +616,6 @@ jobs:
   build_docker:
     runs-on: ${{ matrix.runs-on }}
     needs: [build_details, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
     strategy:
       fail-fast: false
       matrix:
@@ -639,14 +639,17 @@ jobs:
           echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Log in to the github registry
+        if: needs.build_details.outputs.publish_docker_image == 'true'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
+        env:
+          PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
         run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
+    needs: [build_details, build_posix, fetch_s3_artifacts]
+    if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -668,12 +671,13 @@ jobs:
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
+        env:
+          PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
         run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_minimal:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     strategy:
       fail-fast: false
       matrix:
@@ -697,14 +701,17 @@ jobs:
           echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Log in to the github registry
+        if: needs.build_details.outputs.publish_docker_image == 'true'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
+        env:
+          PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
         run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_alpine_minimal:
     runs-on: ${{ matrix.runs-on }}
     needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
+    if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -730,6 +737,8 @@ jobs:
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
+        env:
+          PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
         run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
 
   build_docker_release:

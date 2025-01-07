@@ -13,8 +13,11 @@ cp "$DEB_FILE" "$DEB_DEBUG_FILE" .
 
 DOCKERFILE=.github/docker/debian.dockerfile
 
-docker login -u "$USER" -p "$PASSWORD"
+if [ "${PUBLISH_DOCKER_IMAGE}" = "true" ]; then
+  PUSH_OPTION=--push
+fi
 
+# shellcheck disable=SC2086
 docker build \
   --pull \
   --no-cache \
@@ -23,8 +26,14 @@ docker build \
   --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" \
   --file "${DOCKERFILE}" \
   --tag "savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}" \
-  --push \
+  ${PUSH_OPTION} \
   .
+
+if [ "${PUBLISH_DOCKER_IMAGE}" != "true" ]; then
+  exit 0
+fi
+
+docker login -u "$USER" -p "$PASSWORD"
 
 docker pull "savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}"
 

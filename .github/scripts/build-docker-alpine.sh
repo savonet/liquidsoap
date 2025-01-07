@@ -10,8 +10,11 @@ ARCHITECTURE="$5"
 
 cp "$APK_FILE" .
 
-docker login -u "$USER" -p "$PASSWORD"
+if [ "${PUBLISH_DOCKER_IMAGE}" = "true" ]; then
+  PUSH_OPTION=--push
+fi
 
+# shellcheck disable=SC2086
 docker build \
   --pull \
   --no-cache \
@@ -19,8 +22,14 @@ docker build \
   --build-arg "APK_FILE=$APK_FILE" \
   --file .github/docker/alpine.dockerfile \
   --tag "savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}" \
-  --push \
+  ${PUSH_OPTION} \
   .
+
+if [ "${PUBLISH_DOCKER_IMAGE}" != "true" ]; then
+  exit 0
+fi
+
+docker login -u "$USER" -p "$PASSWORD"
 
 docker pull "savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}"
 
