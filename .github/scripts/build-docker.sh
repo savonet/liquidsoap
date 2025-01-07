@@ -11,7 +11,7 @@ ARCHITECTURE="$6"
 
 cp "$DEB_FILE" "$DEB_DEBUG_FILE" .
 
-DOCKERFILE=.github/docker/Dockerfile.production
+DOCKERFILE=.github/docker/debian.dockerfile
 
 docker login -u "$USER" -p "$PASSWORD"
 

@@ -17,7 +17,7 @@ docker build \
   --no-cache \
   --provenance false \
   --build-arg "APK_FILE=$APK_FILE" \
-  --file .github/docker/Dockerfile.production-alpine \
+  --file .github/docker/alpine.dockerfile \
   --tag "savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}" \
   --push \
   .
