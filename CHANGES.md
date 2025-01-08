@@ -9,6 +9,8 @@ New:
   `output.alsa` (#4243)
 - Reimplemented audioscrobbler support natively using the more
   recent protocol (#4250)
+- Added boolean getter to disable/enable normalization
+  (#4308)
 
 Changed:
 
