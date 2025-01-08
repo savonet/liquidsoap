@@ -651,10 +651,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build docker image
-        env:
-          PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
-        run: .github/scripts/build-docker.sh "${{ steps.debian_package.outputs.deb-file }}" "${{ steps.debian_debug_package.outputs.deb-file }}" "${{ needs.build_details.outputs.branch }}" "${{ matrix.platform }}"
+      - name: Build and push docker image
+        uses: docker/build-push-action@v6
+        with:
+          build-args: |
+            "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
+            "DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}"
+          context: .
+          file: .github/docker/debian.dockerfile
+          tags: |
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}"
+          push: ${{ needs.build_details.outputs.publish_docker_image }}
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
@@ -691,10 +699,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build docker image
-        env:
-          PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
-        run: .github/scripts/build-docker-alpine.sh "${{ steps.alpine_package.outputs.apk-file }}" "${{ needs.build_details.outputs.branch }}" "${{ matrix.platform }}"
+      - name: Build and push docker image
+        uses: docker/build-push-action@v6
+        with:
+          build-args: |
+            "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
+          context: .
+          file: .github/docker/alpine.dockerfile
+          tags: |
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}"
+          push: ${{ needs.build_details.outputs.publish_docker_image }}
 
   build_docker_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -734,14 +749,22 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build docker image
-        env:
-          PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
-        run: .github/scripts/build-docker.sh "${{ steps.debian_package.outputs.deb-file }}" "${{ steps.debian_debug_package.outputs.deb-file }}" "${{ needs.build_details.outputs.branch }}-minimal" "${{ matrix.platform }}"
+      - name: Build and push docker image
+        uses: docker/build-push-action@v6
+        with:
+          build-args: |
+            "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
+            "DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}"
+          context: .
+          file: .github/docker/debian.dockerfile
+          tags: |
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}"
+          push: ${{ needs.build_details.outputs.publish_docker_image }}
 
   build_docker_alpine_minimal:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
@@ -761,10 +784,6 @@ jobs:
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
-      - name: Get alpine debug package
-        run: |
-          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
-        id: alpine_dbg_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
         uses: docker/login-action@v3
@@ -778,10 +797,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build docker image
-        env:
-          PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
-        run: .github/scripts/build-docker-alpine.sh "${{ steps.alpine_package.outputs.apk-file }}" "${{ steps.alpine_dbg_package.outputs.apk-file }}" "${{ needs.build_details.outputs.branch }}-minimal" "${{ matrix.platform }}"
+      - name: Build and push docker image
+        uses: docker/build-push-action@v6
+        with:
+          build-args: |
+            "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
+          context: .
+          file: .github/docker/alpine.dockerfile
+          tags: |
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}"
+          push: ${{ needs.build_details.outputs.publish_docker_image }}
 
   build_docker_release:
     runs-on: ubuntu-latest
