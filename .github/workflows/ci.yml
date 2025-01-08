@@ -638,13 +638,23 @@ jobs:
         run: |
           echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
-      - name: Log in to the github registry
+      - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to GitHub Container Registry
+        if: needs.build_details.outputs.publish_docker_image == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build docker image
         env:
           PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+        run: .github/scripts/build-docker.sh "${{ steps.debian_package.outputs.deb-file }}" "${{ steps.debian_debug_package.outputs.deb-file }}" "${{ needs.build_details.outputs.branch }}" "${{ matrix.platform }}"
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
@@ -668,12 +678,23 @@ jobs:
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
-      - name: Log in to the github registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Login to Docker Hub
+        if: needs.build_details.outputs.publish_docker_image == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to GitHub Container Registry
+        if: needs.build_details.outputs.publish_docker_image == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build docker image
         env:
           PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
-        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+        run: .github/scripts/build-docker-alpine.sh "${{ steps.alpine_package.outputs.apk-file }}" "${{ needs.build_details.outputs.branch }}" "${{ matrix.platform }}"
 
   build_docker_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -700,13 +721,23 @@ jobs:
         run: |
           echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
-      - name: Log in to the github registry
+      - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to GitHub Container Registry
+        if: needs.build_details.outputs.publish_docker_image == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build docker image
         env:
           PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
-        run: .github/scripts/build-docker.sh ${{ steps.debian_package.outputs.deb-file }} ${{ steps.debian_debug_package.outputs.deb-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+        run: .github/scripts/build-docker.sh "${{ steps.debian_package.outputs.deb-file }}" "${{ steps.debian_debug_package.outputs.deb-file }}" "${{ needs.build_details.outputs.branch }}-minimal" "${{ matrix.platform }}"
 
   build_docker_alpine_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -734,12 +765,23 @@ jobs:
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_dbg_package
-      - name: Log in to the github registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Login to Docker Hub
+        if: needs.build_details.outputs.publish_docker_image == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to GitHub Container Registry
+        if: needs.build_details.outputs.publish_docker_image == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build docker image
         env:
           PUBLISH_DOCKER_IMAGE: ${{ needs.build_details.outputs.publish_docker_image }}
-        run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }}
+        run: .github/scripts/build-docker-alpine.sh "${{ steps.alpine_package.outputs.apk-file }}" "${{ steps.alpine_dbg_package.outputs.apk-file }}" "${{ needs.build_details.outputs.branch }}-minimal" "${{ matrix.platform }}"
 
   build_docker_release:
     runs-on: ubuntu-latest
