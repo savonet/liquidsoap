@@ -97,6 +97,7 @@ lufs_builtin = lufs
 # @param ~target Desired RMS (dB).
 # @param ~threshold Minimal RMS for activaing gain control (dB).
 # @param ~window Duration of the window used to compute the current RMS power (second).
+# @param ~enabled Whether normalization is enabled or not.
 # @param ~debug How often to print debug messages, in seconds, useful to finetune the parameters. You should set `set("log.level", 5)` to see them.
 # @param s Source to normalize.
 # @method gain Current amplification coefficient (in linear scale).
@@ -114,6 +115,7 @@ def replaces normalize(
   ~window=getter(.5),
   ~threshold=getter(-40.),
   ~track_sensitive=true,
+  ~enabled=getter(true),
   ~debug=null(),
   s
 ) =
@@ -134,23 +136,29 @@ def replaces normalize(
   gain_max = lin_of_dB(gain_max)
 
   def update() =
-    target = lin_of_dB(getter.get(target))
-    threshold = lin_of_dB(getter.get(threshold))
-    rms = rms()
     if
-      rms >= threshold
+      not (getter.get(enabled))
     then
+      v := 1.
+    else
+      target = lin_of_dB(getter.get(target))
+      threshold = lin_of_dB(getter.get(threshold))
+      rms = rms()
       if
-        v() * rms <= target
+        rms >= threshold
       then
-        up = 1. - exp(0. - frame / getter.get(up))
-        v := v() + up * ((target / rms) - v())
-      else
-        down = 1. - exp(0. - frame / getter.get(down))
-        v := v() + down * ((target / rms) - v())
-      end
+        if
+          v() * rms <= target
+        then
+          up = 1. - exp(0. - frame / getter.get(up))
+          v := v() + up * ((target / rms) - v())
+        else
+          down = 1. - exp(0. - frame / getter.get(down))
+          v := v() + down * ((target / rms) - v())
+        end
 
-      v := max(gain_min, min(gain_max, v()))
+        v := max(gain_min, min(gain_max, v()))
+      end
     end
   end
 
