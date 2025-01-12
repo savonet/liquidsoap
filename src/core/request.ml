@@ -408,9 +408,7 @@ let file_exists name =
   try
     Unix.access name [Unix.F_OK];
     true
-  with
-    | Unix.Unix_error (Unix.EACCES, _, _) -> true
-    | Unix.Unix_error _ -> false
+  with Unix.Unix_error _ -> false
 
 let file_is_readable name =
   try
