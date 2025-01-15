@@ -106,6 +106,13 @@ let common_options ~mode =
       Lang.string_t,
       Some (Lang.string "0.0.0.0"),
       Some "Address to bind on the local machine. Used only in listener mode" );
+    ( "ipv6only",
+      Lang.nullable_t Lang.bool_t,
+      Some (Lang.bool true),
+      Some
+        "If `true`, binding to the ipv6 wildcard address `::` will bind to \
+         both IPv6 and IPv4 wildcard address. Defaults to system default when \
+         `null`." );
     ( "polling_delay",
       Lang.float_t,
       Some (Lang.float 2.),
@@ -165,6 +172,7 @@ type common_options = {
   hostname : string;
   port : int;
   bind_address : Unix.sockaddr;
+  ipv6only : bool option;
   listen_callback : Srt.listen_callback option;
   streamid : string option;
   pbkeylen : int option;
@@ -190,6 +198,7 @@ let parse_common_options p =
            ( List.assoc "bind_address" p,
              Printf.sprintf "Invalid address: %s" (Printexc.to_string exn) ))
   in
+  let ipv6only = Lang.to_valued_option Lang.to_bool (List.assoc "ipv6only" p) in
   let passphrase_v = List.assoc "passphrase" p in
   let passphrase = Lang.to_valued_option Lang.to_string passphrase_v in
   (match passphrase with
@@ -251,6 +260,7 @@ let parse_common_options p =
     hostname = Lang.to_string (List.assoc "host" p);
     port = Lang.to_int (List.assoc "port" p);
     bind_address;
+    ipv6only;
     listen_callback;
     pbkeylen;
     enforced_encryption;
@@ -401,12 +411,15 @@ let string_of_address = function
   | Unix.ADDR_INET (addr, port) ->
       Printf.sprintf "%s:%d" (Unix.string_of_inet_addr addr) port
 
-let mk_socket ~payload_size ~messageapi () =
+let mk_socket ~payload_size ~ipv6only ~messageapi () =
   let s = Srt.create_socket () in
   Srt.setsockflag s Srt.payloadsize payload_size;
   Srt.setsockflag s Srt.transtype `Live;
   Srt.setsockflag s Srt.messageapi messageapi;
   Srt.setsockflag s Srt.enforced_encryption conf_enforced_encryption#get;
+  (match ipv6only with
+    | None -> ()
+    | Some v -> Srt.setsockflag s Srt.ipv6only v);
   s
 
 let close_socket s = Srt.close s
@@ -492,7 +505,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         (match Atomic.exchange socket None with
           | None -> ()
           | Some (_, s) -> close_socket s);
-        let s = mk_socket ~payload_size ~messageapi () in
+        let s = mk_socket ~ipv6only:None ~payload_size ~messageapi () in
         try
           Srt.setsockflag s Srt.sndsyn true;
           Srt.setsockflag s Srt.rcvsyn true;
@@ -557,8 +570,8 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   end
 
 class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
-  ~listen_callback ~payload_size ~messageapi ~bind_address ~read_timeout
-  ~write_timeout ~on_connect ~on_disconnect () =
+  ~listen_callback ~payload_size ~messageapi ~bind_address ~ipv6only
+  ~read_timeout ~write_timeout ~on_connect ~on_disconnect () =
   object (self)
     val mutable client_sockets = []
     method virtual id : string
@@ -577,8 +590,10 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
       match Atomic.get listening_socket with
         | Some s -> s
         | None -> (
-            let s = mk_socket ~payload_size ~messageapi () in
+            let s = mk_socket ~payload_size ~ipv6only ~messageapi () in
             try
+              Printf.printf "BIND SRT SOCKET: %s\n"
+                (string_of_address bind_address);
               Srt.bind s bind_address;
               let max_clients_callback =
                 Option.map
@@ -796,9 +811,9 @@ class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~max ~payload_size ~self_sync ~on_connect ~on_disconnect
-  ~read_timeout ~write_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart
-  format =
+  ~bind_address ~ipv6only ~max ~payload_size ~self_sync ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~messageapi ~dump ~on_start
+  ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
@@ -808,8 +823,8 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
     inherit
       listener
         ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-          ~max_clients:(Some 1) ~bind_address ~payload_size ~read_timeout
-          ~write_timeout ~messageapi ~on_connect ~on_disconnect ()
+          ~max_clients:(Some 1) ~bind_address ~ipv6only ~payload_size
+          ~read_timeout ~write_timeout ~messageapi ~on_connect ~on_disconnect ()
 
     method private get_socket =
       match self#get_sockets with
@@ -880,6 +895,7 @@ let _ =
         pbkeylen;
         passphrase;
         bind_address;
+        ipv6only;
         listen_callback;
         polling_delay;
         read_timeout;
@@ -913,9 +929,9 @@ let _ =
         | `Listener ->
             (new input_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-               ~bind_address ~read_timeout ~write_timeout ~payload_size
-               ~self_sync ~on_connect ~on_disconnect ~messageapi ~max ~dump
-               ~on_start ~on_stop ~autostart format
+               ~bind_address ~ipv6only ~read_timeout ~write_timeout
+               ~payload_size ~self_sync ~on_connect ~on_disconnect ~messageapi
+               ~max ~dump ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
@@ -1050,7 +1066,7 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
 class output_listener ~enforced_encryption ~pbkeylen ~passphrase
   ~listen_callback ~max_clients ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~register_telnet ~autostart ~on_connect ~on_disconnect
-  ~bind_address ~read_timeout ~write_timeout ~encoder_factory source =
+  ~bind_address ~ipv6only ~read_timeout ~write_timeout ~encoder_factory source =
   object (self)
     inherit
       output_base
@@ -1059,9 +1075,9 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
 
     inherit
       listener
-        ~bind_address ~payload_size ~read_timeout ~write_timeout ~messageapi
-          ~on_connect ~on_disconnect ~enforced_encryption ~pbkeylen ~passphrase
-          ~listen_callback ~max_clients ()
+        ~bind_address ~ipv6only ~payload_size ~read_timeout ~write_timeout
+          ~messageapi ~on_connect ~on_disconnect ~enforced_encryption ~pbkeylen
+          ~passphrase ~listen_callback ~max_clients ()
 
     method private client_error socket exn bt =
       Utils.log_exception ~log:self#log
@@ -1106,6 +1122,7 @@ let _ =
         pbkeylen;
         passphrase;
         bind_address;
+        ipv6only;
         listen_callback;
         polling_delay;
         read_timeout;
@@ -1155,8 +1172,8 @@ let _ =
         | `Listener ->
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~bind_address
-               ~read_timeout ~write_timeout ~payload_size ~autostart ~on_start
-               ~on_stop ~infallible ~register_telnet ~messageapi
+               ~ipv6only ~read_timeout ~write_timeout ~payload_size ~autostart
+               ~on_start ~on_stop ~infallible ~register_telnet ~messageapi
                ~encoder_factory ~on_connect ~on_disconnect ~listen_callback
                ~max_clients source
               :> < Output.output
