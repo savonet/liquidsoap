@@ -47,6 +47,7 @@ opam install -y .
 cd ..
 
 cd /tmp
+rm -rf ocaml-posix
 git clone https://github.com/savonet/ocaml-posix.git
 cd ocaml-posix
 opam pin -ny .
