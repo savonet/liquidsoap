@@ -47,8 +47,7 @@ opam install -y .
 
 git clone https://github.com/savonet/ocaml-posix.git
 cd ocaml-posix
-opam pin -ny .
-opam install -y posix-socket.2.1.0
+opam install -y .
 
 git clone https://github.com/savonet/ocaml-srt.git
 cd ocaml-srt
