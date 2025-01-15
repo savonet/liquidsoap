@@ -45,6 +45,14 @@ git clone https://github.com/savonet/ocaml-xiph.git
 cd ocaml-xiph
 opam install -y .
 
+git clone https://github.com/savonet/ocaml-posix.git
+cd ocaml-srt
+opam install -y .
+
+git clone https://github.com/savonet/ocaml-srt.git
+cd ocaml-srt
+opam install -y .
+
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
