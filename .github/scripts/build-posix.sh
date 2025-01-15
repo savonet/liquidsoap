@@ -44,15 +44,13 @@ opam install -y xml-light
 git clone https://github.com/savonet/ocaml-xiph.git
 cd ocaml-xiph
 opam install -y .
+cd ..
 
 git clone https://github.com/savonet/ocaml-posix.git
 cd ocaml-posix
 opam pin -ny .
 opam install -y posix-socket.2.1.0 posix-base.2.1.0 posix-time2.2.1.0 posix-types.2.1.0
-
-git clone https://github.com/savonet/ocaml-srt.git
-cd ocaml-srt
-opam install -y .
+cd ..
 
 cd /tmp/liquidsoap-full/liquidsoap
 
