@@ -92,6 +92,7 @@
     osc-unix
     portaudio
     posix-time2
+    posix-socket
     pulseaudio
     prometheus-liquidsoap
     samplerate
@@ -129,6 +130,7 @@
     (opus (< 0.2.0))
     (portaudio (< 0.2.0))
     (posix-time2 (< 2.0.2))
+    (posix-socket (>= 2.1.0))
     (pulseaudio (< 0.1.4))
     (samplerate (< 0.1.5))
     (shine (< 0.2.0))
