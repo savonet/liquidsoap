@@ -108,7 +108,7 @@ let common_options ~mode =
       Some "Address to bind on the local machine. Used only in listener mode" );
     ( "ipv6only",
       Lang.nullable_t Lang.bool_t,
-      Some (Lang.bool true),
+      Some (Lang.bool false),
       Some
         "If `true`, binding to the ipv6 wildcard address `::` will bind to \
          both IPv6 and IPv4 wildcard address. Defaults to system default when \
