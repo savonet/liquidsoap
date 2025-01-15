@@ -46,11 +46,11 @@ cd ocaml-xiph
 opam install -y .
 cd ..
 
+cd /tmp
 git clone https://github.com/savonet/ocaml-posix.git
 cd ocaml-posix
 opam pin -ny .
 opam install -y posix-socket.2.1.0 posix-base.2.1.0 posix-time2.2.1.0 posix-types.2.1.0
-cd ..
 
 cd /tmp/liquidsoap-full/liquidsoap
 
