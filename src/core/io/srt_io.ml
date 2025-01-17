@@ -25,6 +25,45 @@
 exception Done
 exception Not_connected
 
+type prefer_address = [ `System_default | `Ipv4 | `Ipv6 ]
+
+let conf_srt =
+  Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
+
+let conf_prefer_address =
+  Dtools.Conf.string
+    ~p:(conf_srt#plug "prefer_address")
+    ~d:"system"
+    "Set preference for resolving addresses. One of: `\"system\"`, `\"ipv4\"` \
+     or `\"ipv6\"`."
+
+let conf_log =
+  Dtools.Conf.bool ~p:(conf_srt#plug "log") ~d:true
+    "Route srt logs through liquidsoap's logs"
+
+let conf_verbosity =
+  Dtools.Conf.string
+    ~p:(conf_log#plug "verbosity")
+    "Verbosity" ~d:"warning"
+    ~comments:
+      [
+        "Set SRT log level, one of: \"critical\", \"error\", ";
+        "\"warning\", \"notice\" or \"debug\"";
+      ]
+
+let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") ~d:4 "Level"
+let conf_poll = Dtools.Conf.void ~p:(conf_srt#plug "poll") "Poll configuration"
+
+let conf_timeout =
+  Dtools.Conf.float ~p:(conf_poll#plug "timeout") ~d:0.1
+    "Timeout for polling loop, in seconda."
+
+let conf_enforced_encryption =
+  Dtools.Conf.bool
+    ~p:(conf_srt#plug "enforced_encryption")
+    ~d:true
+    "Enforce consistent encryption settings on both end of any connection."
+
 let string_of_address = function
   | Unix.ADDR_UNIX _ -> assert false
   | Unix.ADDR_INET (addr, port) ->
@@ -156,8 +195,9 @@ let common_options ~mode =
       Lang.nullable_t Lang.string_t,
       Some Lang.null,
       Some
-        "Preferred address type when resolving hostnames. One of: `\"ipv4\"` \
-         or `\"ipv6\"`. Defaults to system default when `null`." );
+        "Preferred address type when resolving hostnames. One of: \
+         `\"system\"`, `\"ipv4\"` or `\"ipv6\"`. Defaults to global \
+         `srt.prefer_connection` settings when `null`." );
     ( "ipv6only",
       Lang.nullable_t Lang.bool_t,
       Some Lang.null,
@@ -245,12 +285,17 @@ let parse_common_options p =
   let bind_address = Lang.to_string (List.assoc "bind_address" p) in
   let prefer_address =
     let v = List.assoc "prefer_address" p in
-    match Lang.to_valued_option Lang.to_string v with
-      | None -> `System_default
-      | Some "ipv4" -> `Ipv4
-      | Some "ipv6" -> `Ipv6
-      | Some _ ->
-          raise (Error.Invalid_value (v, "Valid values are: 'ipv4' or 'ipv6'."))
+    match
+      Option.value ~default:conf_prefer_address#get
+        (Lang.to_valued_option Lang.to_string v)
+    with
+      | "system" -> `System_default
+      | "ipv4" -> `Ipv4
+      | "ipv6" -> `Ipv6
+      | _ ->
+          raise
+            (Error.Invalid_value
+               (v, "Valid values are: `\"system\"`, `\"ipv4\"` or `\"ipv6\"`."))
   in
   let ipv6only = Lang.to_valued_option Lang.to_bool (List.assoc "ipv6only" p) in
   let passphrase_v = List.assoc "passphrase" p in
@@ -328,36 +373,6 @@ let parse_common_options p =
     on_connect = ref (fun () -> ignore (Lang.apply on_connect []));
     on_disconnect = ref (fun () -> ignore (Lang.apply on_disconnect []));
   }
-
-let conf_srt =
-  Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
-
-let conf_log =
-  Dtools.Conf.bool ~p:(conf_srt#plug "log") ~d:true
-    "Route srt logs through liquidsoap's logs"
-
-let conf_verbosity =
-  Dtools.Conf.string
-    ~p:(conf_log#plug "verbosity")
-    "Verbosity" ~d:"warning"
-    ~comments:
-      [
-        "Set SRT log level, one of: \"critical\", \"error\", ";
-        "\"warning\", \"notice\" or \"debug\"";
-      ]
-
-let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") ~d:4 "Level"
-let conf_poll = Dtools.Conf.void ~p:(conf_srt#plug "poll") "Poll configuration"
-
-let conf_timeout =
-  Dtools.Conf.float ~p:(conf_poll#plug "timeout") ~d:0.1
-    "Timeout for polling loop, in seconda."
-
-let conf_enforced_encryption =
-  Dtools.Conf.bool
-    ~p:(conf_srt#plug "enforced_encryption")
-    ~d:true
-    "Enforce consistent encryption settings on both end of any connection."
 
 let log = Log.make ["srt"]
 
