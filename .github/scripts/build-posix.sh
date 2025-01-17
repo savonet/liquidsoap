@@ -71,6 +71,9 @@ cd /tmp/liquidsoap-full
 # TODO: Remove gstreamer from liquidsoap-full
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
+# TODO: Remove taglib from liquidsoap-full
+sed -e 's@ocaml-taglib@#ocaml-taglib@' -i PACKAGES
+
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "::endgroup::"
