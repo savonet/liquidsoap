@@ -663,6 +663,8 @@ jobs:
             "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}"
             "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
+          provenance: false
+          sbom: false
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
@@ -710,6 +712,8 @@ jobs:
             "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}"
             "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
+          provenance: false
+          sbom: false
 
   build_docker_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -761,6 +765,8 @@ jobs:
             "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}"
             "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
+          provenance: false
+          sbom: false
 
   build_docker_alpine_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -808,6 +814,8 @@ jobs:
             "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}"
             "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
+          provenance: false
+          sbom: false
 
   build_docker_release:
     runs-on: ubuntu-24.04
