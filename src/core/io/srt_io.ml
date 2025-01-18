@@ -89,25 +89,25 @@ let getaddrinfo ~(log : Log.t) ~prefer_address address port =
           match prefer_address with
             | `System_default -> first_address
             | `Ipv4 ->
-                let rec f ptr cur =
+                let rec f ptr =
                   let sockaddr = !@ptr in
-                  if is_null sockaddr then cur
+                  if is_null sockaddr then first_address
                   else (
                     match !@(sockaddr |-> Sockaddr.sa_family) with
                       | id when id = af_inet -> sockaddr
-                      | _ -> f (ptr +@ 1) cur)
+                      | _ -> f (ptr +@ 1))
                 in
-                f ptr first_address
+                f ptr
             | `Ipv6 ->
-                let rec f ptr cur =
+                let rec f ptr =
                   let sockaddr = !@ptr in
-                  if is_null sockaddr then cur
+                  if is_null sockaddr then first_address
                   else (
                     match !@(sockaddr |-> Sockaddr.sa_family) with
                       | id when id = af_inet6 -> sockaddr
-                      | _ -> f (ptr +@ 1) cur)
+                      | _ -> f (ptr +@ 1))
                 in
-                f ptr first_address
+                f ptr
         in
         if log#active 5 then
           log#f 5 "Address %s:%n resolved to: %s" address port
