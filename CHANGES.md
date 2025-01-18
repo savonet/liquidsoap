@@ -23,6 +23,8 @@ Changed:
 - `output.icecast` now re-sends the last metadata when connecting to the
   remote server unless explicitly disabled using the `send_last_metadata_on_connect`
   option (#3906)
+- Add full explicit support for `ipv4` vs. `ipv6` resolution in SRT inputs and outputs,
+  add global `settings.srt.prefer_address` and `settings.icecast.prefer_address` (#4317)
 
 Fixed:
 
