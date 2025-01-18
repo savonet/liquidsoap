@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   build_details:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       branch: ${{ steps.build_details.outputs.branch }}
       sha: ${{ steps.build_details.outputs.sha }}
@@ -42,7 +42,7 @@ jobs:
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Get build details
         env:
           IS_FORK: ${{ github.event.pull_request.head.repo.fork == true }}
@@ -50,16 +50,16 @@ jobs:
         id: build_details
 
   build_no_depopts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:a9e3ce58f99dd80e06e50239cd51530c451d37e4a8fc6947ebcf7375ef1e41e4
       options: --user opam
     env:
       HOME: /home/opam
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
@@ -100,9 +100,9 @@ jobs:
           ./.github/scripts/build-doc.sh
 
   build_js:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:a9e3ce58f99dd80e06e50239cd51530c451d37e4a8fc6947ebcf7375ef1e41e4
       options: --user opam
     env:
       HOME: /home/opam
@@ -126,13 +126,13 @@ jobs:
           dune build --profile release ./src/js/interactive_js.bc.js
 
   tree_sitter_parse:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build_details
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: latest
       - name: Parse using tree-sitter
@@ -143,13 +143,13 @@ jobs:
           npm exec tree-sitter -- parse -q -s ../../**/*.liq
 
   lezer_parse:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build_details
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: latest
       - name: Parse using liquidsoap-lezer-print-tree
@@ -162,17 +162,17 @@ jobs:
           npm exec liquidsoap-lezer-print-tree -- -q ../../**/*.liq
 
   update_doc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build_details
     if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:a9e3ce58f99dd80e06e50239cd51530c451d37e4a8fc6947ebcf7375ef1e41e4
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
@@ -207,7 +207,7 @@ jobs:
           cp -rf html/* /tmp/${{ github.run_number }}/html
       - name: Push content
         if: success() && github.repository_owner == 'savonet'
-        uses: crazy-max/ghaction-github-pages@v4
+        uses: crazy-max/ghaction-github-pages@fbf0a4fa4e00f45accd6cf3232368436ec06ed59 # v4.1.0
         with:
           repo: savonet/savonet.github.io
           target_branch: master
@@ -217,10 +217,10 @@ jobs:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:a9e3ce58f99dd80e06e50239cd51530c451d37e4a8fc6947ebcf7375ef1e41e4
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
@@ -230,7 +230,7 @@ jobs:
       HOME: /home/opam
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Enable core dump
         run: |
@@ -291,14 +291,14 @@ jobs:
           chown -R opam "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "${{ needs.build_details.outputs.branch }}" "/tmp/${{ github.run_number }}/metrics"
       - name: Upload metrics artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         if: needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
         with:
           name: metrics
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Upload metrics
         if: needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: metrics
@@ -312,12 +312,12 @@ jobs:
           find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
       - name: Upload traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: traces-${{ matrix.target }}
           path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
       - name: Export potential core dumps
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         if: failure()
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}-${{ matrix.target }}
@@ -328,7 +328,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/core
 
   build_opam:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -337,12 +337,12 @@ jobs:
           - 5.2.x
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Update packages
         run: |
           sudo apt-get update
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@v3
+        uses: ocaml/setup-ocaml@c1574629b7cc38ef189d7228c2794fb5f9042478 # v3.2.4
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-pin: false
@@ -361,13 +361,13 @@ jobs:
         if: matrix.ocaml-compiler == '4.14.x'
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
       - name: Restore pre-commit cache
-        uses: actions/cache@v4
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Run pre-commit
         if: matrix.ocaml-compiler == '4.14.x'
-        uses: pre-commit/action@v3.0.1
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
@@ -386,7 +386,7 @@ jobs:
       IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
@@ -439,7 +439,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
@@ -469,7 +469,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}
 
   fetch_s3_artifacts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build_details, build_posix]
     steps:
       - name: Prepare directory
@@ -485,7 +485,7 @@ jobs:
           SOURCE: ${{ needs.build_details.outputs.s3-artifact-basepath }}
           TARGET: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
       - name: Upload S3 artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         if: needs.build_details.outputs.is_fork != 'true'
         with:
           name: alpine-packages
@@ -507,7 +507,7 @@ jobs:
       TOOLPREF64: /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
@@ -531,7 +531,7 @@ jobs:
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} "${{ steps.cpu_cores.outputs.count }}" "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
         id: build
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: ${{ steps.build.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/win32/dist
@@ -542,7 +542,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/win32
 
   update_release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       [
         build_details,
@@ -556,7 +556,7 @@ jobs:
     if: needs.build_details.outputs.is_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Tag commit
         uses: savonet/latest-tag@any-context
         with:
@@ -565,7 +565,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: List assets to upload
@@ -594,7 +594,7 @@ jobs:
           fail-if-no-release: false
           fail-if-no-assets: false
       - name: Upload assets to main repo release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
@@ -603,7 +603,7 @@ jobs:
           body: "${{ env.RELEASE_NOTES}}\n\n${{ env.CHANGELOG }}"
           draft: true
       - name: Upload assets to release repo
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
         with:
           token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
@@ -623,11 +623,11 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3.8.0
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
@@ -640,19 +640,19 @@ jobs:
         id: debian_debug_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Login to GitHub Container Registry
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6.11.0
         with:
           build-args: |
             "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
@@ -675,11 +675,11 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3.8.0
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get alpine package
@@ -688,19 +688,19 @@ jobs:
         id: alpine_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Login to GitHub Container Registry
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6.11.0
         with:
           build-args: |
             "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
@@ -721,11 +721,11 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3.8.0
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
@@ -738,19 +738,19 @@ jobs:
         id: debian_debug_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Login to GitHub Container Registry
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6.11.0
         with:
           build-args: |
             "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
@@ -773,11 +773,11 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3.8.0
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get alpine package
@@ -786,19 +786,19 @@ jobs:
         id: alpine_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Login to GitHub Container Registry
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6.11.0
         with:
           build-args: |
             "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
@@ -810,21 +810,21 @@ jobs:
           push: ${{ needs.build_details.outputs.publish_docker_image }}
 
   build_docker_release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build_details, run_tests, build_docker, build_docker_alpine]
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Push consolidated manifest
         run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
 
   build_docker_release-minimal:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build_details, build_docker_minimal, build_docker_alpine_minimal]
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Push consolidated manifest
         run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}-minimal
