@@ -107,7 +107,7 @@ class virtual base ~name tracks =
               Content.Metadata.get_data
                 (Frame.Fields.find Frame.Fields.metadata source#get_frame)
             in
-            Frame.add_all_metadata buf metadata
+            Frame.set_all_metadata buf metadata
   end
 
 (** Add/mix several sources together.

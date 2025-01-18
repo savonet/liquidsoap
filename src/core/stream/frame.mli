@@ -154,11 +154,8 @@ val is_partial : t -> bool
 (** List of track marks in a frame. *)
 val track_marks : t -> int list
 
-(** Add a track mark to a frame *)
-val add_track_mark : t -> int -> t
-
-(** Add a multiple track marks to a frame *)
-val add_track_marks : t -> int list -> t
+(** Set a unique track mark to a frame *)
+val set_track_mark : t -> int -> t
 
 (** [true] is frame has a track mark. *)
 val has_track_marks : t -> bool
@@ -185,11 +182,14 @@ val get_metadata : t -> int -> metadata option
 (** Retrieve all metadata. *)
 val get_all_metadata : t -> (int * metadata) list
 
-(** Attach multiple metadata to a frame. *)
-val add_all_metadata : t -> (int * metadata) list -> t
+(** Set all metadata on a frame. *)
+val set_all_metadata : t -> (int * metadata) list -> t
 
 (** Map a function over the frame's metadata. *)
-val map_metadata : t -> (int * metadata -> (int * metadata) option) -> t
+val map_metadata : t -> ((int * metadata) list -> (int * metadata) list) -> t
+
+(** Remove all metadata from the frame. *)
+val clear_metadata : t -> t
 
 (** {2 Content operations} *)
 

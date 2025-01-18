@@ -70,6 +70,6 @@ class virtual source ?name ~seek duration =
       if add_track_mark then (
         add_track_mark <- false;
         remaining <- track_size;
-        Frame.add_track_mark buf 0)
+        Frame.set_track_mark buf 0)
       else buf
   end

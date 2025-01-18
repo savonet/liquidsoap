@@ -44,22 +44,15 @@ class merge_metadata tracks =
       match self#ready_sources with
         | [] -> assert false
         | s :: rest ->
-            List.fold_left
-              (fun frame source ->
-                let l = Frame.get_all_metadata source#get_frame in
-                let l =
-                  List.fold_left
-                    (fun l (pos, m) ->
-                      ( pos,
-                        Frame.Metadata.append
-                          (Option.value ~default:Frame.Metadata.empty
-                             (Frame.get_metadata frame pos))
-                          m )
-                      :: l)
-                    [] l
-                in
-                Frame.add_all_metadata frame l)
-              s#get_frame rest
+            let frame = s#get_frame in
+            let metadata =
+              Frame.get_all_metadata frame
+              :: List.map
+                   (fun source -> Frame.get_all_metadata source#get_frame)
+                   rest
+            in
+            let metadata = List.flatten metadata in
+            Frame.set_all_metadata frame metadata
   end
 
 let _ =

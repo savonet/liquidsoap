@@ -435,7 +435,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
             empty_frame <- Some f;
             f
 
-    method end_of_track = Frame.add_track_mark self#empty_frame 0
+    method end_of_track = Frame.set_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
     val mutable on_metadata : (Frame.metadata -> unit) List.t = []
@@ -550,7 +550,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
               self#log#important
                 "Source created multiple tracks in a single frame! Sub-frame \
                  tracks are not supported and are merged into a single one..";
-              Frame.add_track_mark (Frame.drop_track_marks buf) p
+              Frame.set_track_mark (Frame.drop_track_marks buf) p
           | _ -> buf
       in
       let has_track_mark = track_marks <> [] in
@@ -625,7 +625,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       if merge () then Frame.drop_track_marks buf
       else (
         self#execute_on_track buf;
-        Frame.add_track_mark buf 0)
+        Frame.set_track_mark buf 0)
 
     method private can_reselect ~(reselect : reselect) (s : source) =
       s#is_ready

@@ -241,6 +241,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | `Connected (_, c) -> c
         | _ -> raise Not_connected
 
+    (* `icy-*` metadata seem to arrive at random position with the
+       http input. We store them here and add them to each new non-icy
+       metadata. *)
+    val mutable icy_metadata = Frame.Metadata.empty
+    val mutable icy_metadata_sent = false
+
     method private generate_frame =
       let size = Lazy.force Frame.size in
       try
@@ -255,17 +261,42 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           Generator.add_metadata self#buffer (Frame.Metadata.from_list meta);
           if new_track_on_metadata then Generator.add_track_mark self#buffer);
         let frame = Generator.slice self#buffer size in
-        (* Metadata can be added by the decoder and the demuxer so we filter at the frame level. *)
-        let metadata =
+        (* Make sure only one track mark is added per frame. *)
+        let frame =
+          match Frame.track_marks frame with
+            | m :: _ -> Frame.set_track_mark frame m
+            | _ -> frame
+        in
+        (* Metadata can be added by the decoder and the demuxer so we filter at the frame level.
+           Also, with the new media API, it's better tot only have one metadata per frame. *)
+        let p, metadata =
           List.fold_left
-            (fun metadata (p, m) ->
-              let m = metadata_filter m in
-              if 0 < Frame.Metadata.cardinal m then (p, m) :: metadata
-              else metadata)
-            []
+            (fun (p, m) (p', m') -> (min p p', Frame.Metadata.append m m'))
+            (max_int, Frame.Metadata.empty)
             (Frame.get_all_metadata frame)
         in
-        Frame.add_all_metadata frame metadata
+        let metadata =
+          Frame.Metadata.fold
+            (fun lbl v metadata ->
+              if String.starts_with ~prefix:"icy-" lbl then (
+                icy_metadata <- Frame.Metadata.add lbl v icy_metadata;
+                metadata)
+              else Frame.Metadata.add lbl v metadata)
+            metadata Frame.Metadata.empty
+        in
+        let metadata =
+          match
+            ( Frame.Metadata.is_empty metadata,
+              Frame.Metadata.is_empty icy_metadata )
+          with
+            | true, false when not icy_metadata_sent -> icy_metadata
+            | false, _ -> Frame.Metadata.append icy_metadata metadata
+            | _ -> Frame.Metadata.empty
+        in
+        let metadata = metadata_filter metadata in
+        icy_metadata_sent <- not (Frame.Metadata.is_empty icy_metadata);
+        if Frame.Metadata.is_empty metadata then Frame.clear_metadata frame
+        else Frame.set_all_metadata frame [(p, metadata)]
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log

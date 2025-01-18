@@ -145,7 +145,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
             if first_fill then (
               let m = Request.metadata cur.req in
               let buf = Frame.add_metadata buf 0 m in
-              let buf = Frame.add_track_mark buf 0 in
+              let buf = Frame.set_track_mark buf 0 in
               first_fill <- false;
               buf)
             else buf
@@ -160,7 +160,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
           in
           if Atomic.get should_skip || Frame.is_partial buf then (
             self#end_request;
-            let buf = Frame.add_track_mark buf (Frame.position buf) in
+            let buf = Frame.set_track_mark buf (Frame.position buf) in
             if self#fetch_request then fill buf else buf)
           else buf)
         else buf

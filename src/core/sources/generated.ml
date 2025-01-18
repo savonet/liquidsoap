@@ -102,7 +102,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
             if was_buffering || add_track_mark then (
               self#log#info "Adding track mark.";
               add_track_mark <- false;
-              Frame.add_track_mark buf 0)
+              Frame.set_track_mark buf 0)
             else buf
           in
           if Generator.length self#buffer = 0 then (
