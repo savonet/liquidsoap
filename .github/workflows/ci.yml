@@ -334,7 +334,7 @@ jobs:
       matrix:
         ocaml-compiler:
           - 4.14.x
-          - 5.2.x
+          - 5.3.x
     steps:
       - name: Checkout latest code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
