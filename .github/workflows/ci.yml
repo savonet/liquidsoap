@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   build_details:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     outputs:
       branch: ${{ steps.build_details.outputs.branch }}
       sha: ${{ steps.build_details.outputs.sha }}
@@ -50,7 +50,7 @@ jobs:
         id: build_details
 
   build_no_depopts:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     container:
       image: savonet/liquidsoap-ci:debian_bookworm@sha256:a9e3ce58f99dd80e06e50239cd51530c451d37e4a8fc6947ebcf7375ef1e41e4
@@ -100,7 +100,7 @@ jobs:
           ./.github/scripts/build-doc.sh
 
   build_js:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     container:
       image: savonet/liquidsoap-ci:debian_bookworm@sha256:a9e3ce58f99dd80e06e50239cd51530c451d37e4a8fc6947ebcf7375ef1e41e4
       options: --user opam
@@ -126,7 +126,7 @@ jobs:
           dune build --profile release ./src/js/interactive_js.bc.js
 
   tree_sitter_parse:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     steps:
       - name: Checkout latest code
@@ -143,7 +143,7 @@ jobs:
           npm exec tree-sitter -- parse -q -s ../../**/*.liq
 
   lezer_parse:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     steps:
       - name: Checkout latest code
@@ -162,7 +162,7 @@ jobs:
           npm exec liquidsoap-lezer-print-tree -- -q ../../**/*.liq
 
   update_doc:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
@@ -217,7 +217,7 @@ jobs:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     container:
       image: savonet/liquidsoap-ci:debian_bookworm@sha256:a9e3ce58f99dd80e06e50239cd51530c451d37e4a8fc6947ebcf7375ef1e41e4
@@ -328,7 +328,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/core
 
   build_opam:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     strategy:
       fail-fast: false
       matrix:
@@ -469,7 +469,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}
 
   fetch_s3_artifacts:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs: [build_details, build_posix]
     steps:
       - name: Prepare directory
@@ -542,7 +542,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/win32
 
   update_release:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs:
       [
         build_details,
@@ -818,7 +818,7 @@ jobs:
           sbom: false
 
   build_docker_release:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs: [build_details, run_tests, build_docker, build_docker_alpine]
     if: needs.build_details.outputs.docker_release
     steps:
@@ -828,7 +828,7 @@ jobs:
         run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
 
   build_docker_release-minimal:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04-4
     needs: [build_details, build_docker_minimal, build_docker_alpine_minimal]
     if: needs.build_details.outputs.docker_release
     steps:
