@@ -829,7 +829,13 @@ jobs:
 
   build_docker_release-minimal:
     runs-on: depot-ubuntu-24.04-4
-    needs: [build_details, build_docker_minimal, build_docker_alpine_minimal]
+    needs:
+      [
+        build_details,
+        run_tests,
+        build_docker_minimal,
+        build_docker_alpine_minimal,
+      ]
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
