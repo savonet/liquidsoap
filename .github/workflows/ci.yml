@@ -542,7 +542,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/win32
 
   update_release:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-22.04-4
     needs:
       [
         build_details,
