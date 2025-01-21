@@ -112,7 +112,7 @@ conflicts: [
   "ogg-windows" {< "0.7.4"}
   "opus-windows" {< "0.2.0"}
   "portaudio-windows" {< "0.2.0"}
-  "posix-socket" {< "2.1.0"}
+  "posix-socket-windows" {< "2.1.0"}
   "pulseaudio-windows" {< "0.1.4"}
   "samplerate-windows" {< "0.1.5"}
   "shine-windows" {< "0.2.0"}
