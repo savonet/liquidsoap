@@ -55,6 +55,7 @@ cd ..
 
 opam update
 opam remove -y jemalloc
+opam unpin -n posix-socket posix-base posix-time2 posix-types
 opam install -y tls.1.0.2 ca-certs mirage-crypto-rng cstruct saturn_lockfree.0.5.0 ppx_hash memtrace xml-light posix-socket.2.1.0 posix-base.2.1.0 posix-time2.2.1.0 posix-types.2.1.0
 
 cd /tmp/liquidsoap-full
