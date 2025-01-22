@@ -2,6 +2,8 @@
 
 New:
 
+- Added support for addressed resolution preference in SRT (#4317)
+- Added global address resolution settings for SRT and Icecast (#4317)
 - Added support for parsing and rendering XML natively (#4252)
 - Added support for `WAVE_FORMAT_EXTENSIBLE` to the internal
   wav dexcoder.
