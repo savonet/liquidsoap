@@ -2,6 +2,8 @@
 
 New:
 
+- Added support for addressed resolution preference in SRT (#4317)
+- Added global address resolution settings for SRT and Icecast (#4317)
 - Added support for parsing and rendering XML natively (#4252)
 - Added support for `WAVE_FORMAT_EXTENSIBLE` to the internal
   wav dexcoder.
@@ -23,6 +25,8 @@ Changed:
 - `output.icecast` now re-sends the last metadata when connecting to the
   remote server unless explicitly disabled using the `send_last_metadata_on_connect`
   option (#3906)
+- Add full explicit support for `ipv4` vs. `ipv6` resolution in SRT inputs and outputs,
+  add global `settings.srt.prefer_address` and `settings.icecast.prefer_address` (#4317)
 
 Fixed:
 

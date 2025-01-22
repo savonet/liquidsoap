@@ -1,4 +1,5 @@
 transport = http.transport.ssl(certificate="./ssl.cert", key="./ssl.key")
+settings.icecast.prefer_address := "ipv4"
 
 port = 1443
 

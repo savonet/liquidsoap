@@ -45,7 +45,8 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
-opam update windows
+opam update
+opam install -y srt-windows.0.3.2
 
 echo "::endgroup::"
 

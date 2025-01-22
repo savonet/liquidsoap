@@ -24,6 +24,16 @@
 
 module Http = Liq_http
 
+let conf_icecast =
+  Dtools.Conf.void ~p:(Configure.conf#plug "icecast") "Icecast configuration"
+
+let conf_prefer_address =
+  Dtools.Conf.string
+    ~p:(conf_icecast#plug "prefer_address")
+    ~d:"system"
+    "Set preference for resolving addresses. One of: `\"system\"`, `\"ipv4\"` \
+     or `\"ipv6\"`."
+
 let error_translator = function
   | Cry.Error _ as e -> Some (Cry.string_of_error e)
   | _ -> None
@@ -219,8 +229,9 @@ let proto frame_t =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some
-          "Preferred address type when resolving hostnames. One of: `\"ipv4\"` \
-           or `\"ipv6\"`. Defaults to system default when `null`." );
+          "Preferred address type when resolving hostnames. One of: \
+           `\"system\"`, `\"ipv4\"` or `\"ipv6\"`. Defaults to \
+           `settings.icecast.prefer_address` when `null`." );
       ( "transport",
         Lang.http_transport_base_t,
         Some (Lang.base_http_transport Http.unix_transport),
@@ -435,12 +446,17 @@ class output p =
   let transport = e Lang.to_http_transport "transport" in
   let prefer_address =
     let v = List.assoc "prefer_address" p in
-    match Lang.to_valued_option Lang.to_string v with
-      | None -> `System_default
-      | Some "ipv4" -> `Ipv4
-      | Some "ipv6" -> `Ipv6
-      | Some _ ->
-          raise (Error.Invalid_value (v, "Valid values are: 'ipv4' or 'ipv6'."))
+    match
+      Option.value ~default:conf_prefer_address#get
+        (Lang.to_valued_option Lang.to_string v)
+    with
+      | "system" -> `System_default
+      | "ipv4" -> `Ipv4
+      | "ipv6" -> `Ipv6
+      | _ ->
+          raise
+            (Error.Invalid_value
+               (v, "Valid values are: `\"system\"`, `\"ipv4\"` or `\"ipv6\"`."))
   in
   let transport = (transport :> Cry.transport) in
   let transport =
