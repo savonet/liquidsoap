@@ -49,7 +49,7 @@ rm -rf ocaml-posix
 git clone https://github.com/savonet/ocaml-posix.git
 cd ocaml-posix
 opam pin -ny .
-opam install -y posix-socket.2.1.1 posix-base.2.1.1 posix-time2.2.1.1 posix-types.2.1.1
+opam install -y posix-socket.2.2.0 posix-base.2.2.0 posix-time2.2.2.0 posix-types.2.2.0
 
 cd /tmp/liquidsoap-full/liquidsoap
 
