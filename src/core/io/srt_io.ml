@@ -77,37 +77,26 @@ let getaddrinfo ~(log : Log.t) ~prefer_address address port =
   hints |-> Addrinfo.ai_family <-@ af_unspec;
   hints |-> Addrinfo.ai_socktype <-@ sock_stream;
   match getaddrinfo ~hints ~port:(`Int port) address with
-    | ptr when is_null !@ptr ->
+    | [] ->
         Runtime_error.raise ~pos:[]
           ~message:
             (Printf.sprintf "getaddrinfo could not resolve address: %s:%i"
                address port)
           "srt"
-    | ptr ->
-        let first_address = !@ptr in
+    | first_address :: _ as resolved_addresses ->
+        let rec filter_address inet_type = function
+          | [] -> first_address
+          | sockaddr :: _ when !@(sockaddr |-> Sockaddr.sa_family) = inet_type
+            ->
+              sockaddr
+          | _ :: resolved_addresses ->
+              filter_address inet_type resolved_addresses
+        in
         let sockaddr =
           match prefer_address with
             | `System_default -> first_address
-            | `Ipv4 ->
-                let rec f ptr =
-                  let sockaddr = !@ptr in
-                  if is_null sockaddr then first_address
-                  else (
-                    match !@(sockaddr |-> Sockaddr.sa_family) with
-                      | id when id = af_inet -> sockaddr
-                      | _ -> f (ptr +@ 1))
-                in
-                f ptr
-            | `Ipv6 ->
-                let rec f ptr =
-                  let sockaddr = !@ptr in
-                  if is_null sockaddr then first_address
-                  else (
-                    match !@(sockaddr |-> Sockaddr.sa_family) with
-                      | id when id = af_inet6 -> sockaddr
-                      | _ -> f (ptr +@ 1))
-                in
-                f ptr
+            | `Ipv4 -> filter_address af_inet resolved_addresses
+            | `Ipv6 -> filter_address af_inet6 resolved_addresses
         in
         if log#active 5 then
           log#f 5 "Address %s:%n resolved to: %s" address port
