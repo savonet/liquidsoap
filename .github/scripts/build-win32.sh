@@ -45,8 +45,18 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
-opam update
-opam install -y srt-windows.0.3.2
+opam update windows
+
+cd /tmp
+rm -rf ocaml-posix
+git clone https://github.com/savonet/ocaml-posix.git
+cd ocaml-posix
+opam pin -ny .
+opam install -y posix-socket.2.2.0 posix-base.2.2.0 posix-time2.2.2.0 posix-types.2.2.0
+cd ..
+git clone https://github.com/savonet/ocaml-srt.git
+opam pin -ny .
+opam install -y srt
 
 echo "::endgroup::"
 
