@@ -26,6 +26,7 @@ exception Done
 exception Not_connected
 
 type prefer_address = [ `System_default | `Ipv4 | `Ipv6 ]
+type socket_mode = [ `Connect | `Listen | `Incoming | `Close ]
 
 let conf_srt =
   Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
@@ -134,7 +135,7 @@ let common_options ~mode =
              (false, "hs_version", Lang.int_t);
              (false, "peeraddr", Lang.string_t);
              (false, "streamid", Lang.nullable_t Lang.string_t);
-             (false, "", Builtins_srt.Socket_value.t);
+             (false, "", Builtins_srt.Socket_value.base_t);
            ]
            Lang.bool_t),
       Some Lang.null,
@@ -191,13 +192,22 @@ let common_options ~mode =
         "Preferred address type when resolving hostnames. One of: \
          `\"system\"`, `\"ipv4\"` or `\"ipv6\"`. Defaults to global \
          `srt.prefer_connection` settings when `null`." );
-    ( "ipv6only",
-      Lang.nullable_t Lang.bool_t,
+    ( "on_socket",
+      Lang.nullable_t
+        (Lang.fun_t
+           [
+             (false, "mode", Lang.string_t);
+             (false, "", Builtins_srt.Socket_value.base_t);
+           ]
+           Lang.unit_t),
       Some Lang.null,
       Some
-        "If `true`, binding to the ipv6 wildcard address `::` will bind to \
-         both IPv6 and IPv4 wildcard address. Defaults to system default when \
-         `null`." );
+        "Callback executed when a new SRT socket is created to set additional \
+         options, add monitoring, etc. `mode` should be one of: `\"connect\"` \
+         (socket created before connecting to a remote address), `\"listen\"` \
+         (socket created before binding for receiving new incoming \
+         connections), `\"incoming\"` (socket received as incoming connection) \
+         or `\"close\"` (socket is about to closed)." );
     ( "polling_delay",
       Lang.float_t,
       Some (Lang.float 2.),
@@ -239,7 +249,7 @@ let meth () =
       ( [],
         Lang.fun_t []
           (Lang.list_t
-             (Lang.product_t Lang.string_t Builtins_srt.Socket_value.t)) ),
+             (Lang.product_t Lang.string_t Builtins_srt.Socket_value.base_t)) ),
       "List of `(connected_address, connected_socket)`",
       fun s ->
         Lang.val_fun [] (fun _ ->
@@ -248,7 +258,7 @@ let meth () =
                  (fun (origin, s) ->
                    Lang.product
                      (Lang.string (Utils.name_of_sockaddr origin))
-                     (Builtins_srt.Socket_value.to_value s))
+                     (Builtins_srt.Socket_value.to_base_value s))
                  s#get_sockets)) );
   ]
 
@@ -258,7 +268,7 @@ type common_options = {
   port : int;
   bind_address : string;
   prefer_address : [ `System_default | `Ipv4 | `Ipv6 ];
-  ipv6only : bool option;
+  on_socket : mode:socket_mode -> Srt.socket -> unit;
   listen_callback : Srt.listen_callback option;
   streamid : string option;
   pbkeylen : int option;
@@ -290,7 +300,25 @@ let parse_common_options p =
             (Error.Invalid_value
                (v, "Valid values are: `\"system\"`, `\"ipv4\"` or `\"ipv6\"`."))
   in
-  let ipv6only = Lang.to_valued_option Lang.to_bool (List.assoc "ipv6only" p) in
+  let on_socket =
+    match Lang.to_option (List.assoc "on_socket" p) with
+      | None -> fun ~mode:_ _ -> ()
+      | Some fn ->
+          fun ~mode s ->
+            let mode =
+              match mode with
+                | `Connect -> "connect"
+                | `Listen -> "listen"
+                | `Incoming -> "incoming"
+                | `Close -> "close"
+            in
+            ignore
+              (Lang.apply fn
+                 [
+                   ("mode", Lang.string mode);
+                   ("", Builtins_srt.Socket_value.to_base_value s);
+                 ])
+  in
   let passphrase_v = List.assoc "passphrase" p in
   let passphrase = Lang.to_valued_option Lang.to_string passphrase_v in
   (match passphrase with
@@ -323,7 +351,7 @@ let parse_common_options p =
                  match streamid with
                    | None -> Lang.null
                    | Some s -> Lang.string s );
-               ("", Builtins_srt.Socket_value.to_value socket);
+               ("", Builtins_srt.Socket_value.to_base_value socket);
              ]))
       (Lang.to_option fn)
   in
@@ -351,7 +379,7 @@ let parse_common_options p =
     port = Lang.to_int (List.assoc "port" p);
     bind_address;
     prefer_address;
-    ipv6only;
+    on_socket;
     listen_callback;
     pbkeylen;
     enforced_encryption;
@@ -472,18 +500,19 @@ let string_of_address = function
   | Unix.ADDR_INET (addr, port) ->
       Printf.sprintf "%s:%d" (Unix.string_of_inet_addr addr) port
 
-let mk_socket ~payload_size ~ipv6only ~messageapi () =
+let mk_socket ~mode ~on_socket ~payload_size ~messageapi () =
   let s = Srt.create_socket () in
   Srt.setsockflag s Srt.payloadsize payload_size;
   Srt.setsockflag s Srt.transtype `Live;
   Srt.setsockflag s Srt.messageapi messageapi;
   Srt.setsockflag s Srt.enforced_encryption conf_enforced_encryption#get;
-  (match ipv6only with
-    | None -> ()
-    | Some v -> Srt.setsockflag s Srt.ipv6only v);
+  on_socket ~mode s;
   s
 
-let close_socket s = Srt.close s
+let close_socket ~on_socket s =
+  on_socket ~mode:`Close s;
+  Srt.close s
+
 let shutdown = Atomic.make false
 
 let () =
@@ -542,8 +571,9 @@ let () =
       ToDisconnect.iter (fun s -> s#disconnect) to_disconnect)
 
 class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~payload_size ~messageapi ~hostname ~port ~prefer_address
-  ~connection_timeout ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
+  ~polling_delay ~payload_size ~messageapi ~on_socket ~hostname ~port
+  ~prefer_address ~connection_timeout ~read_timeout ~write_timeout ~on_connect
+  ~on_disconnect =
   object (self)
     method virtual id : string
     method virtual should_stop : bool
@@ -566,8 +596,10 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         self#log#important "Connecting to srt://%s:%d.." hostname port;
         (match Atomic.exchange socket None with
           | None -> ()
-          | Some (_, s) -> close_socket s);
-        let s = mk_socket ~ipv6only:None ~payload_size ~messageapi () in
+          | Some (_, s) -> close_socket ~on_socket s);
+        let s =
+          mk_socket ~mode:`Connect ~on_socket ~payload_size ~messageapi ()
+        in
         try
           Srt.setsockflag s Srt.sndsyn true;
           Srt.setsockflag s Srt.rcvsyn true;
@@ -621,7 +653,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
       (match Atomic.exchange socket None with
         | None -> ()
         | Some (_, socket) ->
-            close_socket socket;
+            close_socket ~on_socket socket;
             !on_disconnect ());
       Atomic.set task_should_stop true;
       match connect_task with
@@ -633,7 +665,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
 
 class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
   ~listen_callback ~payload_size ~messageapi ~bind_address ~port ~prefer_address
-  ~ipv6only ~read_timeout ~write_timeout ~on_connect ~on_disconnect () =
+  ~on_socket ~read_timeout ~write_timeout ~on_connect ~on_disconnect () =
   object (self)
     val mutable client_sockets = []
     method virtual id : string
@@ -652,7 +684,9 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
       match Atomic.get listening_socket with
         | Some s -> s
         | None -> (
-            let s = mk_socket ~payload_size ~ipv6only ~messageapi () in
+            let s =
+              mk_socket ~mode:`Listen ~on_socket ~payload_size ~messageapi ()
+            in
             try
               Srt.bind_posix_socket s
                 (getaddrinfo ~log:self#log ~prefer_address bind_address port);
@@ -717,8 +751,9 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
             Utils.optional_apply
               (fun v -> Srt.(setsockflag client rcvtimeo v))
               read_timeout;
+            on_socket ~mode:`Incoming client;
             if self#should_stop then (
-              close_socket client;
+              close_socket ~on_socket client;
               raise Done);
             self#mutexify
               (fun () ->
@@ -742,12 +777,12 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
       let should_stop = self#should_stop in
       self#mutexify
         (fun () ->
-          List.iter (fun (_, s) -> close_socket s) client_sockets;
+          List.iter (fun (_, s) -> close_socket ~on_socket s) client_sockets;
           client_sockets <- [];
           (match (should_stop, Atomic.get listening_socket) with
             | true, Some s ->
                 Poll.remove_socket s;
-                close_socket s;
+                close_socket ~on_socket s;
                 Atomic.set listening_socket None
             | _ -> ());
           !on_disconnect ())
@@ -872,7 +907,7 @@ class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~port ~prefer_address ~ipv6only ~max ~payload_size ~self_sync
+  ~bind_address ~port ~prefer_address ~on_socket ~max ~payload_size ~self_sync
   ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~messageapi ~dump
   ~on_start ~on_stop ~autostart format =
   object (self)
@@ -884,7 +919,7 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
     inherit
       listener
         ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-          ~max_clients:(Some 1) ~bind_address ~port ~prefer_address ~ipv6only
+          ~max_clients:(Some 1) ~bind_address ~port ~prefer_address ~on_socket
           ~payload_size ~read_timeout ~write_timeout ~messageapi ~on_connect
           ~on_disconnect ()
 
@@ -898,7 +933,7 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~hostname ~port ~prefer_address ~max ~payload_size ~self_sync
   ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
-  ~messageapi ~dump ~on_start ~on_stop ~autostart format =
+  ~messageapi ~dump ~on_socket ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
@@ -910,7 +945,7 @@ class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         ~enforced_encryption ~pbkeylen ~passphrase ~streamid ~polling_delay
           ~hostname ~port ~prefer_address ~payload_size ~read_timeout
           ~write_timeout ~connection_timeout ~messageapi ~on_connect
-          ~on_disconnect
+          ~on_disconnect ~on_socket
 
     method get_sockets =
       match self#get_socket with s -> [s] | exception Not_found -> []
@@ -959,7 +994,7 @@ let _ =
         pbkeylen;
         passphrase;
         bind_address;
-        ipv6only;
+        on_socket;
         listen_callback;
         polling_delay;
         read_timeout;
@@ -993,7 +1028,7 @@ let _ =
         | `Listener ->
             (new input_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-               ~bind_address ~port ~prefer_address ~ipv6only ~read_timeout
+               ~bind_address ~port ~prefer_address ~on_socket ~read_timeout
                ~write_timeout ~payload_size ~self_sync ~on_connect
                ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
                ~autostart format
@@ -1005,7 +1040,7 @@ let _ =
                ~polling_delay ~hostname ~port ~prefer_address ~payload_size
                ~self_sync ~on_connect ~read_timeout ~write_timeout
                ~connection_timeout ~on_disconnect ~messageapi ~max ~dump
-               ~on_start ~on_stop ~autostart format
+               ~on_start ~on_socket ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
@@ -1102,9 +1137,9 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
 
 class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-  ~register_telnet ~autostart ~on_connect ~on_disconnect ~prefer_address ~port
-  ~hostname ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory
-  source =
+  ~register_telnet ~autostart ~on_socket ~on_connect ~on_disconnect
+  ~prefer_address ~port ~hostname ~read_timeout ~write_timeout
+  ~connection_timeout ~encoder_factory source =
   object (self)
     inherit
       output_base
@@ -1116,7 +1151,7 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         ~enforced_encryption ~pbkeylen ~passphrase ~streamid ~polling_delay
           ~hostname ~port ~prefer_address ~payload_size ~read_timeout
           ~write_timeout ~connection_timeout ~messageapi ~on_connect
-          ~on_disconnect
+          ~on_disconnect ~on_socket
 
     method private get_sockets =
       try [self#get_socket] with Not_connected -> []
@@ -1133,7 +1168,7 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
 class output_listener ~enforced_encryption ~pbkeylen ~passphrase
   ~listen_callback ~max_clients ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~register_telnet ~autostart ~on_connect ~on_disconnect
-  ~bind_address ~port ~prefer_address ~ipv6only ~read_timeout ~write_timeout
+  ~bind_address ~port ~prefer_address ~on_socket ~read_timeout ~write_timeout
   ~encoder_factory source =
   object (self)
     inherit
@@ -1143,7 +1178,7 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
 
     inherit
       listener
-        ~bind_address ~port ~prefer_address ~ipv6only ~payload_size
+        ~bind_address ~port ~prefer_address ~on_socket ~payload_size
           ~read_timeout ~write_timeout ~messageapi ~on_connect ~on_disconnect
           ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
           ~max_clients ()
@@ -1155,7 +1190,7 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
            (Printexc.to_string exn));
       self#mutexify
         (fun () ->
-          close_socket socket;
+          close_socket ~on_socket socket;
           client_sockets <-
             List.filter (fun (_, s) -> s <> socket) client_sockets)
         ()
@@ -1192,7 +1227,7 @@ let _ =
         pbkeylen;
         passphrase;
         bind_address;
-        ipv6only;
+        on_socket;
         listen_callback;
         polling_delay;
         read_timeout;
@@ -1236,13 +1271,13 @@ let _ =
                ~polling_delay ~hostname ~port ~prefer_address ~payload_size
                ~autostart ~on_start ~on_stop ~read_timeout ~write_timeout
                ~connection_timeout ~infallible ~register_telnet ~messageapi
-               ~encoder_factory ~on_connect ~on_disconnect source
+               ~encoder_factory ~on_socket ~on_connect ~on_disconnect source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Listener ->
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~bind_address ~port
-               ~prefer_address ~ipv6only ~read_timeout ~write_timeout
+               ~prefer_address ~on_socket ~read_timeout ~write_timeout
                ~payload_size ~autostart ~on_start ~on_stop ~infallible
                ~register_telnet ~messageapi ~encoder_factory ~on_connect
                ~on_disconnect ~listen_callback ~max_clients source
