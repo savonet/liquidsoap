@@ -27,6 +27,8 @@ Changed:
   option (#3906)
 - Add full explicit support for `ipv4` vs. `ipv6` resolution in SRT inputs and outputs,
   add global `settings.srt.prefer_address` and `settings.icecast.prefer_address` (#4317)
+- Added generic SRT socket get/set API. Added new socket options, including `latency`
+  and `ipv6only`.
 
 Fixed:
 
