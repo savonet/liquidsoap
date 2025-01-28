@@ -56,7 +56,6 @@ FILE "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3" MP3
     playlist.parse.cue(cue_file),
     [
       (
-        "Bronski beat - Smalltown boy (12 extended).mp3",
         [
           (
             "album",
@@ -73,10 +72,10 @@ FILE "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3" MP3
           ("track", "1"),
           ("date", "2020"),
           ("genre", "Electronica")
-        ]
+        ],
+        "Bronski beat - Smalltown boy (12 extended).mp3"
       ),
       (
-        "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3",
         [
           (
             "album",
@@ -90,7 +89,8 @@ FILE "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3" MP3
           ("track", "2"),
           ("date", "2020"),
           ("genre", "Electronica")
-        ]
+        ],
+        "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3"
       )
     ]
   )
@@ -159,7 +159,6 @@ FILE "Block Party - Silent Alarm.flac" WAVE
     playlist.parse.cue(cue_file),
     [
       (
-        "Block Party - Silent Alarm.flac",
         [
           ("liq_cue_in", "202.933333333"),
           ("liq_cue_out", "462.92"),
@@ -177,7 +176,8 @@ FILE "Block Party - Silent Alarm.flac" WAVE
           ),
           ("track", "1"),
           ("liq_index_zero", "0.0")
-        ]
+        ],
+        "Block Party - Silent Alarm.flac"
       ),
       (
         "Block Party - Silent Alarm.flac",
@@ -562,7 +562,6 @@ FILE "The Specials - Singles.wav" WAVE
     playlist.parse.cue(cue_file),
     [
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_out", "167.986666667"),
           ("album", "Singles"),
@@ -579,10 +578,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "168.36"),
           ("liq_cue_out", "341.666666667"),
@@ -604,10 +603,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "342.36"),
           ("liq_cue_out", "533.626666667"),
@@ -629,10 +628,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "534.493333333"),
           ("liq_cue_out", "659.266666667"),
@@ -654,10 +653,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "660.226666667"),
           ("liq_cue_out", "800.733333333"),
@@ -679,10 +678,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "800.893333333"),
           ("liq_cue_out", "989.893333333"),
@@ -704,10 +703,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "990.4"),
           ("liq_cue_out", "1219.36"),
@@ -726,10 +725,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "1220.26666667"),
           ("liq_cue_out", "1470.93333333"),
@@ -751,10 +750,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "1472.36"),
           ("liq_cue_out", "1703.4"),
@@ -776,10 +775,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "1703.56"),
           ("liq_cue_out", "2061.49333333"),
@@ -801,10 +800,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "2061.62666667"),
           ("liq_cue_out", "2296.66666667"),
@@ -823,10 +822,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "2296.73333333"),
           ("liq_cue_out", "2510.09333333"),
@@ -848,10 +847,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "2511.0"),
           ("liq_cue_out", "2750.73333333"),
@@ -873,10 +872,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "2751.96"),
           ("liq_cue_out", "2975.73333333"),
@@ -898,10 +897,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "2978.29333333"),
           ("liq_cue_out", "3251.0"),
@@ -923,10 +922,10 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       ),
       (
-        "The Specials - Singles.wav",
         [
           ("liq_cue_in", "3252.53333333"),
           ("album", "Singles"),
@@ -947,7 +946,8 @@ FILE "The Specials - Singles.wav" WAVE
           ("discid", "D00DA810"),
           ("date", "1991"),
           ("genre", "Ska")
-        ]
+        ],
+        "The Specials - Singles.wav"
       )
     ]
   )
@@ -1003,7 +1003,6 @@ FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
     playlist.parse.cue(cue_file),
     [
       (
-        "The Specials - Singles - 01 - Gangsters.wav",
         [
           ("title", "Gangsters"),
           (
@@ -1011,10 +1010,10 @@ FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
             "The Specials"
           ),
           ("track", "1")
-        ]
+        ],
+        "The Specials - Singles - 01 - Gangsters.wav"
       ),
       (
-        "The Specials - Singles - 02 - Rudi, A Message To You.wav",
         [
           (
             "title",
@@ -1026,7 +1025,8 @@ FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
           ),
           ("track", "2"),
           ("liq_pregap", "0.373333333333")
-        ]
+        ],
+        "The Specials - Singles - 02 - Rudi, A Message To You.wav"
       )
     ]
   )

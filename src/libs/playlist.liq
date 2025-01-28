@@ -390,7 +390,7 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
 
       cue_out =
         try
-          let (old_filename, old_meta) = list.hd(tracks)
+          let (old_meta, old_filename) = list.hd(tracks)
           if
             old_filename == filename
           then
@@ -440,7 +440,7 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
           ]
         )
 
-      [(filename, [...cue_in, ...cue_out, ...meta, ...rem]), ...tracks]
+      [([...cue_in, ...cue_out, ...meta, ...rem], filename), ...tracks]
     end
   end
 
@@ -453,7 +453,7 @@ let settings.playlist.mime_types.basic =
       "Mime-types used for guessing text-based playlists.",
     [
       {mime="audio/x-scpls", strict=true, parser=playlist.parse.scpls},
-      #{mime="application/x-cue", strict=true, parser=playlist.parse.cue},
+      {mime="application/x-cue", strict=true, parser=playlist.parse.cue},
       {mime="audio/x-mpegurl", strict=false, parser=playlist.parse.m3u},
       {mime="audio/mpegurl", strict=false, parser=playlist.parse.m3u},
       {mime="application/x-mpegURL", strict=false, parser=playlist.parse.m3u}
