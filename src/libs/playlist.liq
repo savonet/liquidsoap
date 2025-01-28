@@ -377,6 +377,15 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
       playlist.parse.cue.full(pwd=pwd, content)
     let album = title
     let album_performer = performer
+    rem =
+      list.map(
+        fun (el) ->
+          begin
+            let (name, value) = el
+            if name == "date" then ("year", value) else (name, value) end
+          end,
+        rem
+      )
 
     def seconds_of_timecode(timecode) =
       let {minutes, seconds, frames} = timecode
@@ -463,7 +472,13 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
               (index_zero_filename_metadata, index_zero_filename),
               ("tracknumber", string(position)),
               ("catalog", catalog),
-              ("artist", performer ?? album_performer),
+              ...(
+                null.defined(performer)
+                ? [("artist", performer), ("albumartist", album_performer)] :
+                  [("artist", album_performer)]
+
+              ),
+
               ("title", title),
               ("isrc", isrc),
               ("album", album)
