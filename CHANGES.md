@@ -18,6 +18,9 @@ Changed:
 
 - Make alsa I/O work with buffer size different than
   liquidsoap internal frame (#4236)
+- Reimplemented CUE file parser in native liquidsoap script,
+  added support for multiple files and EAC non-compliant extension
+  (#1373, #4330)
 - Make `"song"` metadata mapping to `"title"` metadata in
   `input.harbor` disabled when either `"artist"` or `"title"`
   is also passed. Add a configuration key to disable this mechanism.
