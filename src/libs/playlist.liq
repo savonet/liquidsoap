@@ -369,108 +369,115 @@ let settings.playlist.cue.postgap_metadata =
 # @category Liquidsoap
 # @param ~pwd Path to use for relative path resolution
 def replaces playlist.parse.cue(~pwd=null(), content) =
-  let {catalog?, title?, performer?, rem, tracks} =
-    playlist.parse.cue.full(pwd=pwd, content)
-  let album = title
-  let album_performer = performer
+  # Simple test: playlist should have at least one file..
+  if
+    r/FILE/.test(content)
+  then
+    let {catalog?, title?, performer?, rem, tracks} =
+      playlist.parse.cue.full(pwd=pwd, content)
+    let album = title
+    let album_performer = performer
 
-  def seconds_of_timecode(timecode) =
-    let {minutes, seconds, frames} = timecode
-    float(minutes) * 60. + float(seconds) + float(frames) / 75.
-  end
+    def seconds_of_timecode(timecode) =
+      let {minutes, seconds, frames} = timecode
+      float(minutes) * 60. + float(seconds) + float(frames) / 75.
+    end
 
-  def string_of_timecode(timecode) =
-    string(seconds_of_timecode(timecode))
-  end
+    def string_of_timecode(timecode) =
+      string(seconds_of_timecode(timecode))
+    end
 
-  def add_track(tracks, track) =
-    let {performer?, title?, isrc?, pregap?, postgap?, position, indexes} =
-      track
-    index_zero = list.assoc.nullable(0, indexes)
-    index_zero_filename = null.map(fun (m) -> m?.filename, index_zero)
-    index = list.assoc.nullable(1, indexes)
-    filename = null.map(fun (m) -> m?.filename, index)
-    cue_in_metadata = settings.playlist.cue_in_metadata()
-    cue_out_metadata = settings.playlist.cue_out_metadata()
-    pregap_metadata = settings.playlist.cue.pregap_metadata()
-    index_zero_metadata = settings.playlist.cue.index_zero_metadata()
-    index_zero_filename_metadata =
-      settings.playlist.cue.index_zero_filename_metadata()
-    postgap_metadata = settings.playlist.cue.postgap_metadata()
+    def add_track(tracks, track) =
+      let {performer?, title?, isrc?, pregap?, postgap?, position, indexes} =
+        track
+      index_zero = list.assoc.nullable(0, indexes)
+      index_zero_filename = null.map(fun (m) -> m?.filename, index_zero)
+      index = list.assoc.nullable(1, indexes)
+      filename = null.map(fun (m) -> m?.filename, index)
+      cue_in_metadata = settings.playlist.cue_in_metadata()
+      cue_out_metadata = settings.playlist.cue_out_metadata()
+      pregap_metadata = settings.playlist.cue.pregap_metadata()
+      index_zero_metadata = settings.playlist.cue.index_zero_metadata()
+      index_zero_filename_metadata =
+        settings.playlist.cue.index_zero_filename_metadata()
+      postgap_metadata = settings.playlist.cue.postgap_metadata()
 
-    if
-      not null.defined(filename) or (not null.defined(index))
-    then
-      log.important(
-        label="playlist.cue.parse",
-        "Track without filename or index: #{track}"
-      )
-      tracks
-    else
-      let timecode = null.get(index)
-      let filename = null.get(filename)
+      if
+        not null.defined(filename) or (not null.defined(index))
+      then
+        log.important(
+          label="playlist.cue.parse",
+          "Track without filename or index: #{track}"
+        )
+        tracks
+      else
+        let timecode = null.get(index)
+        let filename = null.get(filename)
 
-      timecode = seconds_of_timecode(timecode)
-      cue_in = timecode == 0. ? [] : [(cue_in_metadata, string(timecode))]
+        timecode = seconds_of_timecode(timecode)
+        cue_in = timecode == 0. ? [] : [(cue_in_metadata, string(timecode))]
 
-      cue_out =
-        try
-          let (old_meta, old_filename) = list.hd(tracks)
-          if
-            old_filename == filename
-          then
-            index_zero = list.assoc(default="", index_zero_metadata, old_meta)
+        cue_out =
+          try
+            let (old_meta, old_filename) = list.hd(tracks)
+            if
+              old_filename == filename
+            then
+              index_zero = list.assoc(default="", index_zero_metadata, old_meta)
 
-            cue_out =
-              if
-                index_zero != ""
-              then
-                index_zero
-              else
-                list.assoc(cue_out_metadata, old_meta)
-              end
+              cue_out =
+                if
+                  index_zero != ""
+                then
+                  index_zero
+                else
+                  list.assoc(cue_out_metadata, old_meta)
+                end
 
-            [(cue_out_metadata, cue_out)]
-          else
+              [(cue_out_metadata, cue_out)]
+            else
+              []
+            end
+          catch _ do
             []
           end
-        catch _ do
-          []
-        end
 
-      meta =
-        list.fold(
-          fun (meta, el) ->
-            begin
-              let (name, value) = el
-              if
-                null.defined(value)
-              then
-                [(name, null.get(value)), ...meta]
-              else
-                meta
-              end
-            end,
-          [],
-          [
-            (pregap_metadata, null.map(string_of_timecode, pregap)),
-            (postgap_metadata, null.map(string_of_timecode, postgap)),
-            (index_zero_metadata, null.map(string_of_timecode, index_zero)),
-            (index_zero_filename_metadata, index_zero_filename),
-            ("track", string(position)),
-            ("catalog", catalog),
-            ("artist", performer ?? album_performer),
-            ("title", title),
-            ("isrc", isrc),
-            ("album", album)
-          ]
-        )
+        meta =
+          list.fold(
+            fun (meta, el) ->
+              begin
+                let (name, value) = el
+                if
+                  null.defined(value)
+                then
+                  [(name, null.get(value)), ...meta]
+                else
+                  meta
+                end
+              end,
+            [],
+            [
+              (pregap_metadata, null.map(string_of_timecode, pregap)),
+              (postgap_metadata, null.map(string_of_timecode, postgap)),
+              (index_zero_metadata, null.map(string_of_timecode, index_zero)),
+              (index_zero_filename_metadata, index_zero_filename),
+              ("track", string(position)),
+              ("catalog", catalog),
+              ("artist", performer ?? album_performer),
+              ("title", title),
+              ("isrc", isrc),
+              ("album", album)
+            ]
+          )
 
-      [([...cue_in, ...cue_out, ...meta, ...rem], filename), ...tracks]
+        [([...cue_in, ...cue_out, ...meta, ...rem], filename), ...tracks]
+      end
     end
-  end
 
-  list.fold(add_track, [], list.rev(tracks))
+    list.fold(add_track, [], list.rev(tracks))
+  else
+    []
+  end
 end
 
 let settings.playlist.mime_types.basic =
