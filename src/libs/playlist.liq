@@ -118,49 +118,59 @@ def playlist.parse.cue.full(~pwd=null(), content) =
   end
 
   def end_parse_track(content) =
-    if
-      content == []
-    then
-      true
-    else
-      begin
-        s = list.hd(content)
-        null.defined(parse_track_attribute(s)) or null.defined(parse_file(s))
-      end
-    end
+    content == [] or null.defined(parse_track_attribute(list.hd(content)))
   end
 
-  def rec parse_track(~track, content) =
+  def rec parse_track(~file, ~track, content) =
     track =
       (track :
         {
           position: int,
-          filename?: string,
-          file_type?: string,
           track_type?: string,
           performer?: string,
           title?: string,
           isrc?: string,
           postgap?: {minutes: int, seconds: int, frames: int},
           pregap?: {minutes: int, seconds: int, frames: int},
-          indexes: [(int * {minutes: int, seconds: int, frames: int})]
+          indexes: [
+            (
+              int
+              *
+              {
+                filename?: string,
+                file_type?: string,
+                minutes: int,
+                seconds: int,
+                frames: int
+              }
+            )
+          ]
         }
       )
 
     if
       end_parse_track(content)
     then
-      (track, content)
+      (file, track, content)
     else
       let [s, ...content] = content
 
       index = parse_index(s)
+      new_file = parse_file(s)
 
-      let track =
+      let (file, track) =
         if
           null.defined(index)
         then
-          {...track, indexes=[...track.indexes, null.get(index)]}
+          let (idx, timecode) = null.get(index)
+          (
+            file,
+            {
+              ...track,
+              indexes=[...track.indexes, (idx, {...file, ...timecode})]
+            }
+          )
+        elsif null.defined(new_file) then (new_file, track)
         else
           track_attributes =
             [
@@ -204,9 +214,9 @@ def playlist.parse.cue.full(~pwd=null(), content) =
             end
           end
 
-          check_attribute(attribute_names)
+          (file, check_attribute(attribute_names))
         end
-      parse_track(track=track, content)
+      parse_track(file=file, track=track, content)
     end
   end
 
@@ -221,15 +231,25 @@ def playlist.parse.cue.full(~pwd=null(), content) =
           tracks: [
             {
               position: int,
-              filename?: string,
-              file_type?: string,
               track_type?: string,
               performer?: string,
               title?: string,
               isrc?: string,
               postgap?: {minutes: int, seconds: int, frames: int},
               pregap?: {minutes: int, seconds: int, frames: int},
-              indexes: [(int * {minutes: int, seconds: int, frames: int})]
+              indexes: [
+                (
+                  int
+                  *
+                  {
+                    filename?: string,
+                    file_type?: string,
+                    minutes: int,
+                    seconds: int,
+                    frames: int
+                  }
+                )
+              ]
             }
           ]
         }
@@ -261,8 +281,10 @@ def playlist.parse.cue.full(~pwd=null(), content) =
       elsif
         null.defined(track)
       then
-        let (track, content) =
-          parse_track(track={...null.get(track), ...file, indexes=[]}, content)
+        let (file, track, content) =
+          parse_track(
+            file=file, track={...null.get(track), indexes=[]}, content
+          )
         parse_content(
           file=file, sheet={...sheet, tracks=[...sheet.tracks, track]}, content
         )
@@ -282,7 +304,7 @@ def playlist.parse.cue.full(~pwd=null(), content) =
           then
             log.important(
               label="playlist.parse.cue.full",
-              "Could not parse attribute: #{s}"
+              "Could not parse attribute: #{string.quote(s)}"
             )
             sheet
           else
@@ -329,6 +351,13 @@ let settings.playlist.cue.index_zero_metadata =
     "liq_index_zero"
   )
 
+let settings.playlist.cue.index_zero_filename_metadata =
+  settings.make(
+    description=
+      "Metadata used to pass index 0 filename metadata",
+    "liq_index_zero_filename"
+  )
+
 let settings.playlist.cue.postgap_metadata =
   settings.make(
     description=
@@ -355,22 +384,18 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
   end
 
   def add_track(tracks, track) =
-    let {
-      filename?,
-      performer?,
-      title?,
-      isrc?,
-      pregap?,
-      postgap?,
-      position,
-      indexes
-    } = track
+    let {performer?, title?, isrc?, pregap?, postgap?, position, indexes} =
+      track
     index_zero = list.assoc.nullable(0, indexes)
+    index_zero_filename = null.map(fun (m) -> m?.filename, index_zero)
     index = list.assoc.nullable(1, indexes)
+    filename = null.map(fun (m) -> m?.filename, index)
     cue_in_metadata = settings.playlist.cue_in_metadata()
     cue_out_metadata = settings.playlist.cue_out_metadata()
     pregap_metadata = settings.playlist.cue.pregap_metadata()
     index_zero_metadata = settings.playlist.cue.index_zero_metadata()
+    index_zero_filename_metadata =
+      settings.playlist.cue.index_zero_filename_metadata()
     postgap_metadata = settings.playlist.cue.postgap_metadata()
 
     if
@@ -382,8 +407,8 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
       )
       tracks
     else
-      filename = null.get(filename)
-      timecode = null.get(index)
+      let timecode = null.get(index)
+      let filename = null.get(filename)
 
       timecode = seconds_of_timecode(timecode)
       cue_in = timecode == 0. ? [] : [(cue_in_metadata, string(timecode))]
@@ -431,6 +456,7 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
             (pregap_metadata, null.map(string_of_timecode, pregap)),
             (postgap_metadata, null.map(string_of_timecode, postgap)),
             (index_zero_metadata, null.map(string_of_timecode, index_zero)),
+            (index_zero_filename_metadata, index_zero_filename),
             ("track", string(position)),
             ("catalog", catalog),
             ("artist", performer ?? album_performer),

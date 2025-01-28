@@ -21,26 +21,46 @@ FILE "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3" MP3
       tracks=
         [
           {
-            indexes=[(1, {minutes=0, seconds=0, frames=0})],
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="mp3",
+                    filename=
+                      "Bronski beat - Smalltown boy (12 extended).mp3"
+                  }
+                )
+              ],
             title=
               "Smalltown boy (12 extended)",
             position=1,
             track_type="audio",
-            filename=
-              "Bronski beat - Smalltown boy (12 extended).mp3",
-            file_type="mp3",
             performer=
               "Bronski Beat"
           },
           {
-            indexes=[(1, {minutes=0, seconds=0, frames=0})],
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="mp3",
+                    filename=
+                      "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3"
+                  }
+                )
+              ],
             title=
               "Dont Stop The Music (Ed Marquis Remix)",
             position=2,
             track_type="audio",
-            filename=
-              "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3",
-            file_type="mp3",
             performer="Rihanna"
           }
         ],
@@ -118,14 +138,31 @@ FILE "Block Party - Silent Alarm.flac" WAVE
           {
             indexes=
               [
-                (0, {minutes=0, seconds=0, frames=0}),
-                (1, {minutes=3, seconds=22, frames=70})
+                (
+                  0,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "Block Party - Silent Alarm.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=70,
+                    seconds=22,
+                    minutes=3,
+                    file_type="wave",
+                    filename=
+                      "Block Party - Silent Alarm.flac"
+                  }
+                )
               ],
             performer=
               "Block Party",
-            file_type="wave",
-            filename=
-              "Block Party - Silent Alarm.flac",
             track_type="audio",
             position=1,
             title=
@@ -134,14 +171,31 @@ FILE "Block Party - Silent Alarm.flac" WAVE
           {
             indexes=
               [
-                (0, {minutes=7, seconds=42, frames=69}),
-                (1, {minutes=7, seconds=44, frames=69})
+                (
+                  0,
+                  {
+                    frames=69,
+                    seconds=42,
+                    minutes=7,
+                    file_type="wave",
+                    filename=
+                      "Block Party - Silent Alarm.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=69,
+                    seconds=44,
+                    minutes=7,
+                    file_type="wave",
+                    filename=
+                      "Block Party - Silent Alarm.flac"
+                  }
+                )
               ],
             performer=
               "Block Party",
-            file_type="wave",
-            filename=
-              "Block Party - Silent Alarm.flac",
             track_type="audio",
             position=2,
             title="Helicopter"
@@ -175,12 +229,15 @@ FILE "Block Party - Silent Alarm.flac" WAVE
             "Block Party"
           ),
           ("track", "1"),
+          (
+            "liq_index_zero_filename",
+            "Block Party - Silent Alarm.flac"
+          ),
           ("liq_index_zero", "0.0")
         ],
         "Block Party - Silent Alarm.flac"
       ),
       (
-        "Block Party - Silent Alarm.flac",
         [
           ("liq_cue_in", "464.92"),
           (
@@ -193,8 +250,13 @@ FILE "Block Party - Silent Alarm.flac" WAVE
             "Block Party"
           ),
           ("track", "2"),
+          (
+            "liq_index_zero_filename",
+            "Block Party - Silent Alarm.flac"
+          ),
           ("liq_index_zero", "462.92")
-        ]
+        ],
+        "Block Party - Silent Alarm.flac"
       )
     ]
   )
@@ -293,27 +355,54 @@ FILE "The Specials - Singles.wav" WAVE
       tracks=
         [
           {
-            indexes=[(1, {minutes=0, seconds=0, frames=0})],
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
             title="Gangsters",
             position=1,
             track_type="audio",
-            filename=
-              "The Specials - Singles.wav",
-            file_type="wave",
             performer=
               "The Specials"
           },
           {
             indexes=
               [
-                (0, {minutes=2, seconds=47, frames=74}),
-                (1, {minutes=2, seconds=48, frames=27})
+                (
+                  0,
+                  {
+                    frames=74,
+                    seconds=47,
+                    minutes=2,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=27,
+                    seconds=48,
+                    minutes=2,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=2,
             title=
@@ -322,14 +411,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=5, seconds=41, frames=50}),
-                (1, {minutes=5, seconds=42, frames=27})
+                (
+                  0,
+                  {
+                    frames=50,
+                    seconds=41,
+                    minutes=5,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=27,
+                    seconds=42,
+                    minutes=5,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=3,
             title=
@@ -338,14 +444,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=8, seconds=53, frames=47}),
-                (1, {minutes=8, seconds=54, frames=37})
+                (
+                  0,
+                  {
+                    frames=47,
+                    seconds=53,
+                    minutes=8,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=37,
+                    seconds=54,
+                    minutes=8,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=4,
             title=
@@ -354,14 +477,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=10, seconds=59, frames=20}),
-                (1, {minutes=11, seconds=0, frames=17})
+                (
+                  0,
+                  {
+                    frames=20,
+                    seconds=59,
+                    minutes=10,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=17,
+                    seconds=0,
+                    minutes=11,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=5,
             title=
@@ -370,14 +510,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=13, seconds=20, frames=55}),
-                (1, {minutes=13, seconds=20, frames=67})
+                (
+                  0,
+                  {
+                    frames=55,
+                    seconds=20,
+                    minutes=13,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=67,
+                    seconds=20,
+                    minutes=13,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=6,
             title=
@@ -386,14 +543,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=16, seconds=29, frames=67}),
-                (1, {minutes=16, seconds=30, frames=30})
+                (
+                  0,
+                  {
+                    frames=67,
+                    seconds=29,
+                    minutes=16,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=30,
+                    seconds=30,
+                    minutes=16,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=7,
             title="Stereotype"
@@ -401,14 +575,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=20, seconds=19, frames=27}),
-                (1, {minutes=20, seconds=20, frames=20})
+                (
+                  0,
+                  {
+                    frames=27,
+                    seconds=19,
+                    minutes=20,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=20,
+                    seconds=20,
+                    minutes=20,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=8,
             title=
@@ -417,14 +608,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=24, seconds=30, frames=70}),
-                (1, {minutes=24, seconds=32, frames=27})
+                (
+                  0,
+                  {
+                    frames=70,
+                    seconds=30,
+                    minutes=24,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=27,
+                    seconds=32,
+                    minutes=24,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=9,
             title=
@@ -433,14 +641,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=28, seconds=23, frames=30}),
-                (1, {minutes=28, seconds=23, frames=42})
+                (
+                  0,
+                  {
+                    frames=30,
+                    seconds=23,
+                    minutes=28,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=42,
+                    seconds=23,
+                    minutes=28,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=10,
             title=
@@ -449,14 +674,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=34, seconds=21, frames=37}),
-                (1, {minutes=34, seconds=21, frames=47})
+                (
+                  0,
+                  {
+                    frames=37,
+                    seconds=21,
+                    minutes=34,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=47,
+                    seconds=21,
+                    minutes=34,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=11,
             title="Why?"
@@ -464,14 +706,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=38, seconds=16, frames=50}),
-                (1, {minutes=38, seconds=16, frames=55})
+                (
+                  0,
+                  {
+                    frames=50,
+                    seconds=16,
+                    minutes=38,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=55,
+                    seconds=16,
+                    minutes=38,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=12,
             title=
@@ -480,14 +739,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=41, seconds=50, frames=7}),
-                (1, {minutes=41, seconds=51, frames=0})
+                (
+                  0,
+                  {
+                    frames=7,
+                    seconds=50,
+                    minutes=41,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=51,
+                    minutes=41,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=13,
             title=
@@ -496,14 +772,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=45, seconds=50, frames=55}),
-                (1, {minutes=45, seconds=51, frames=72})
+                (
+                  0,
+                  {
+                    frames=55,
+                    seconds=50,
+                    minutes=45,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=72,
+                    seconds=51,
+                    minutes=45,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=14,
             title=
@@ -512,14 +805,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=49, seconds=35, frames=55}),
-                (1, {minutes=49, seconds=38, frames=22})
+                (
+                  0,
+                  {
+                    frames=55,
+                    seconds=35,
+                    minutes=49,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=22,
+                    seconds=38,
+                    minutes=49,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=15,
             title=
@@ -528,14 +838,31 @@ FILE "The Specials - Singles.wav" WAVE
           {
             indexes=
               [
-                (0, {minutes=54, seconds=11, frames=0}),
-                (1, {minutes=54, seconds=12, frames=40})
+                (
+                  0,
+                  {
+                    frames=0,
+                    seconds=11,
+                    minutes=54,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=40,
+                    seconds=12,
+                    minutes=54,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
               ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles.wav",
             track_type="audio",
             position=16,
             title=
@@ -595,6 +922,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "2"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "167.986666667"),
           (
             "comment",
@@ -620,6 +951,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "3"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "341.666666667"),
           (
             "comment",
@@ -645,6 +980,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "4"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "533.626666667"),
           (
             "comment",
@@ -670,6 +1009,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "5"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "659.266666667"),
           (
             "comment",
@@ -695,6 +1038,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "6"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "800.733333333"),
           (
             "comment",
@@ -717,6 +1064,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "7"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "989.893333333"),
           (
             "comment",
@@ -742,6 +1093,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "8"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "1219.36"),
           (
             "comment",
@@ -767,6 +1122,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "9"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "1470.93333333"),
           (
             "comment",
@@ -792,6 +1151,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "10"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "1703.4"),
           (
             "comment",
@@ -814,6 +1177,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "11"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "2061.49333333"),
           (
             "comment",
@@ -839,6 +1206,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "12"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "2296.66666667"),
           (
             "comment",
@@ -864,6 +1235,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "13"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "2510.09333333"),
           (
             "comment",
@@ -889,6 +1264,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "14"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "2750.73333333"),
           (
             "comment",
@@ -914,6 +1293,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "15"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "2975.73333333"),
           (
             "comment",
@@ -938,6 +1321,10 @@ FILE "The Specials - Singles.wav" WAVE
             "The Specials"
           ),
           ("track", "16"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
           ("liq_index_zero", "3251.0"),
           (
             "comment",
@@ -971,23 +1358,43 @@ FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
       tracks=
         [
           {
-            indexes=[(1, {minutes=0, seconds=0, frames=0})],
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles - 01 - Gangsters.wav"
+                  }
+                )
+              ],
             title="Gangsters",
             position=1,
             track_type="audio",
-            filename=
-              "The Specials - Singles - 01 - Gangsters.wav",
-            file_type="wave",
             performer=
               "The Specials"
           },
           {
-            indexes=[(1, {minutes=0, seconds=0, frames=0})],
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles - 02 - Rudi, A Message To You.wav"
+                  }
+                )
+              ],
             performer=
               "The Specials",
-            file_type="wave",
-            filename=
-              "The Specials - Singles - 02 - Rudi, A Message To You.wav",
             track_type="audio",
             position=2,
             title=
@@ -1027,6 +1434,738 @@ FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
           ("liq_pregap", "0.373333333333")
         ],
         "The Specials - Singles - 02 - Rudi, A Message To You.wav"
+      )
+    ]
+  )
+
+  cue_file =
+    'REM GENRE Rap/Metal
+REM DATE 1996
+REM DISCID A30AEF0B
+REM COMMENT "ExactAudioCopy v1.0b3"
+PERFORMER "Rage Against The Machine"
+TITLE "Evil Empire"
+FILE "01 People Of The Sun.flac" WAVE
+  TRACK 01 AUDIO
+    TITLE "People Of The Sun"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502587
+    INDEX 01 00:00:00
+FILE "02 Bulls On Parade.flac" WAVE
+  TRACK 02 AUDIO
+    TITLE "Bulls On Parade"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502563
+    INDEX 01 00:00:00
+  TRACK 03 AUDIO
+    TITLE "Vietnow"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502588
+    INDEX 00 03:49:52
+FILE "03 Vietnow.flac" WAVE
+    INDEX 01 00:00:00
+  TRACK 04 AUDIO
+    TITLE "Revolver"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502589
+    INDEX 00 04:37:42
+FILE "04 Revolver.flac" WAVE
+    INDEX 01 00:00:00
+  TRACK 05 AUDIO
+    TITLE "Snakecharmer"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502590
+    INDEX 00 05:29:18
+FILE "05 Snakecharmer.flac" WAVE
+    INDEX 01 00:00:00
+  TRACK 06 AUDIO
+    TITLE "Tire Me"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502591
+    INDEX 00 03:54:43
+FILE "06 Tire Me.flac" WAVE
+    INDEX 01 00:00:00
+  TRACK 07 AUDIO
+    TITLE "Down Rodeo"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502592
+    INDEX 00 02:57:73
+FILE "07 Down Rodeo.flac" WAVE
+    INDEX 01 00:00:00
+FILE "08 Without A Face.flac" WAVE
+  TRACK 08 AUDIO
+    TITLE "Without A Face"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502594
+    INDEX 01 00:00:00
+FILE "09 Wind Below.flac" WAVE
+  TRACK 09 AUDIO
+    TITLE "Wind Below"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502593
+    INDEX 01 00:00:00
+FILE "10 Roll Right.flac" WAVE
+  TRACK 10 AUDIO
+    TITLE "Roll Right"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502595
+    INDEX 01 00:00:00
+  TRACK 11 AUDIO
+    TITLE "Year Of Tha Boomerang"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502596
+    INDEX 00 04:20:38
+FILE "11 Year Of Tha Boomerang.flac" WAVE
+    INDEX 01 00:00:00'
+
+  test.equal(
+    playlist.parse.cue.full(cue_file),
+    {
+      tracks=
+        [
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "01 People Of The Sun.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=1,
+            title=
+              "People Of The Sun",
+            isrc="USSM19502587"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "02 Bulls On Parade.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=2,
+            title=
+              "Bulls On Parade",
+            isrc="USSM19502563"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=52,
+                    seconds=49,
+                    minutes=3,
+                    file_type="wave",
+                    filename=
+                      "02 Bulls On Parade.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "03 Vietnow.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502588",
+            title="Vietnow",
+            position=3,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=42,
+                    seconds=37,
+                    minutes=4,
+                    file_type="wave",
+                    filename=
+                      "03 Vietnow.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "04 Revolver.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502589",
+            title="Revolver",
+            position=4,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=18,
+                    seconds=29,
+                    minutes=5,
+                    file_type="wave",
+                    filename=
+                      "04 Revolver.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "05 Snakecharmer.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502590",
+            title="Snakecharmer",
+            position=5,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=43,
+                    seconds=54,
+                    minutes=3,
+                    file_type="wave",
+                    filename=
+                      "05 Snakecharmer.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "06 Tire Me.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502591",
+            title=
+              "Tire Me",
+            position=6,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=73,
+                    seconds=57,
+                    minutes=2,
+                    file_type="wave",
+                    filename=
+                      "06 Tire Me.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "07 Down Rodeo.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502592",
+            title=
+              "Down Rodeo",
+            position=7,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "08 Without A Face.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=8,
+            title=
+              "Without A Face",
+            isrc="USSM19502594"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "09 Wind Below.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=9,
+            title=
+              "Wind Below",
+            isrc="USSM19502593"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "10 Roll Right.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=10,
+            title=
+              "Roll Right",
+            isrc="USSM19502595"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=38,
+                    seconds=20,
+                    minutes=4,
+                    file_type="wave",
+                    filename=
+                      "10 Roll Right.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "11 Year Of Tha Boomerang.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502596",
+            title=
+              "Year Of Tha Boomerang",
+            position=11,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          }
+        ],
+      performer=
+        "Rage Against The Machine",
+      rem=
+        [
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+      title=
+        "Evil Empire"
+    }
+  )
+
+  test.equal(
+    playlist.parse.cue(cue_file),
+    [
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502587"),
+          (
+            "title",
+            "People Of The Sun"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "1"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "01 People Of The Sun.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502563"),
+          (
+            "title",
+            "Bulls On Parade"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "2"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "02 Bulls On Parade.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502588"),
+          ("title", "Vietnow"),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "3"),
+          (
+            "liq_index_zero_filename",
+            "02 Bulls On Parade.flac"
+          ),
+          ("liq_index_zero", "229.693333333"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "03 Vietnow.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502589"),
+          ("title", "Revolver"),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "4"),
+          (
+            "liq_index_zero_filename",
+            "03 Vietnow.flac"
+          ),
+          ("liq_index_zero", "277.56"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "04 Revolver.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502590"),
+          ("title", "Snakecharmer"),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "5"),
+          (
+            "liq_index_zero_filename",
+            "04 Revolver.flac"
+          ),
+          ("liq_index_zero", "329.24"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "05 Snakecharmer.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502591"),
+          (
+            "title",
+            "Tire Me"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "6"),
+          (
+            "liq_index_zero_filename",
+            "05 Snakecharmer.flac"
+          ),
+          ("liq_index_zero", "234.573333333"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "06 Tire Me.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502592"),
+          (
+            "title",
+            "Down Rodeo"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "7"),
+          (
+            "liq_index_zero_filename",
+            "06 Tire Me.flac"
+          ),
+          ("liq_index_zero", "177.973333333"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "07 Down Rodeo.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502594"),
+          (
+            "title",
+            "Without A Face"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "8"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "08 Without A Face.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502593"),
+          (
+            "title",
+            "Wind Below"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "9"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "09 Wind Below.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502595"),
+          (
+            "title",
+            "Roll Right"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "10"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "10 Roll Right.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502596"),
+          (
+            "title",
+            "Year Of Tha Boomerang"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("track", "11"),
+          (
+            "liq_index_zero_filename",
+            "10 Roll Right.flac"
+          ),
+          ("liq_index_zero", "260.506666667"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "11 Year Of Tha Boomerang.flac"
       )
     ]
   )
