@@ -86,11 +86,15 @@ FILE "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3" MP3
             "Smalltown boy (12 extended)"
           ),
           (
+            "albumartist",
+            "Electronic Mix"
+          ),
+          (
             "artist",
             "Bronski Beat"
           ),
-          ("track", "1"),
-          ("date", "2020"),
+          ("tracknumber", "1"),
+          ("year", "2020"),
           ("genre", "Electronica")
         ],
         "Bronski beat - Smalltown boy (12 extended).mp3"
@@ -105,9 +109,13 @@ FILE "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3" MP3
             "title",
             "Dont Stop The Music (Ed Marquis Remix)"
           ),
+          (
+            "albumartist",
+            "Electronic Mix"
+          ),
           ("artist", "Rihanna"),
-          ("track", "2"),
-          ("date", "2020"),
+          ("tracknumber", "2"),
+          ("year", "2020"),
           ("genre", "Electronica")
         ],
         "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3"
@@ -225,10 +233,14 @@ FILE "Block Party - Silent Alarm.flac" WAVE
             "Like Eating Glass"
           ),
           (
+            "albumartist",
+            "Block Party"
+          ),
+          (
             "artist",
             "Block Party"
           ),
-          ("track", "1"),
+          ("tracknumber", "1"),
           (
             "liq_index_zero_filename",
             "Block Party - Silent Alarm.flac"
@@ -246,10 +258,14 @@ FILE "Block Party - Silent Alarm.flac" WAVE
           ),
           ("title", "Helicopter"),
           (
+            "albumartist",
+            "Block Party"
+          ),
+          (
             "artist",
             "Block Party"
           ),
-          ("track", "2"),
+          ("tracknumber", "2"),
           (
             "liq_index_zero_filename",
             "Block Party - Silent Alarm.flac"
@@ -894,16 +910,20 @@ FILE "The Specials - Singles.wav" WAVE
           ("album", "Singles"),
           ("title", "Gangsters"),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "1"),
+          ("tracknumber", "1"),
           (
             "comment",
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -918,10 +938,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Rudi, A Message To You"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "2"),
+          ("tracknumber", "2"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -932,7 +956,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -947,10 +971,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Nite Klub"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "3"),
+          ("tracknumber", "3"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -961,7 +989,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -976,10 +1004,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Too Much Too Young"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "4"),
+          ("tracknumber", "4"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -990,7 +1022,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1005,10 +1037,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Guns Of Navarone"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "5"),
+          ("tracknumber", "5"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1019,7 +1055,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1034,10 +1070,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Rat Race"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "6"),
+          ("tracknumber", "6"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1048,7 +1088,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1060,10 +1100,14 @@ FILE "The Specials - Singles.wav" WAVE
           ("album", "Singles"),
           ("title", "Stereotype"),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "7"),
+          ("tracknumber", "7"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1074,7 +1118,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1089,10 +1133,14 @@ FILE "The Specials - Singles.wav" WAVE
             "International Jet Set"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "8"),
+          ("tracknumber", "8"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1103,7 +1151,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1118,10 +1166,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Do Nothing"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "9"),
+          ("tracknumber", "9"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1132,7 +1184,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1147,10 +1199,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Ghost Town"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "10"),
+          ("tracknumber", "10"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1161,7 +1217,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1173,10 +1229,14 @@ FILE "The Specials - Singles.wav" WAVE
           ("album", "Singles"),
           ("title", "Why?"),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "11"),
+          ("tracknumber", "11"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1187,7 +1247,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1202,10 +1262,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Friday Night, Saturday Morning"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "12"),
+          ("tracknumber", "12"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1216,7 +1280,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1231,10 +1295,14 @@ FILE "The Specials - Singles.wav" WAVE
             "War Crimes"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "13"),
+          ("tracknumber", "13"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1245,7 +1313,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1260,10 +1328,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Racist Friend"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "14"),
+          ("tracknumber", "14"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1274,7 +1346,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1289,10 +1361,14 @@ FILE "The Specials - Singles.wav" WAVE
             "Nelson Mandela"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "15"),
+          ("tracknumber", "15"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1303,7 +1379,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1317,10 +1393,14 @@ FILE "The Specials - Singles.wav" WAVE
             "(What I Like Most About You Is Your) Girlfriend"
           ),
           (
+            "albumartist",
+            "The Specials"
+          ),
+          (
             "artist",
             "The Specials"
           ),
-          ("track", "16"),
+          ("tracknumber", "16"),
           (
             "liq_index_zero_filename",
             "The Specials - Singles.wav"
@@ -1331,7 +1411,7 @@ FILE "The Specials - Singles.wav" WAVE
             "ExactAudioCopy v0.95b4"
           ),
           ("discid", "D00DA810"),
-          ("date", "1991"),
+          ("year", "1991"),
           ("genre", "Ska")
         ],
         "The Specials - Singles.wav"
@@ -1416,7 +1496,7 @@ FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
             "artist",
             "The Specials"
           ),
-          ("track", "1")
+          ("tracknumber", "1")
         ],
         "The Specials - Singles - 01 - Gangsters.wav"
       ),
@@ -1430,7 +1510,7 @@ FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
             "artist",
             "The Specials"
           ),
-          ("track", "2"),
+          ("tracknumber", "2"),
           ("liq_pregap", "0.373333333333")
         ],
         "The Specials - Singles - 02 - Rudi, A Message To You.wav"
@@ -1872,16 +1952,20 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "People Of The Sun"
           ),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "1"),
+          ("tracknumber", "1"),
           (
             "comment",
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "01 People Of The Sun.flac"
@@ -1898,16 +1982,20 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "Bulls On Parade"
           ),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "2"),
+          ("tracknumber", "2"),
           (
             "comment",
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "02 Bulls On Parade.flac"
@@ -1921,10 +2009,14 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
           ("isrc", "USSM19502588"),
           ("title", "Vietnow"),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "3"),
+          ("tracknumber", "3"),
           (
             "liq_index_zero_filename",
             "02 Bulls On Parade.flac"
@@ -1935,7 +2027,7 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "03 Vietnow.flac"
@@ -1949,10 +2041,14 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
           ("isrc", "USSM19502589"),
           ("title", "Revolver"),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "4"),
+          ("tracknumber", "4"),
           (
             "liq_index_zero_filename",
             "03 Vietnow.flac"
@@ -1963,7 +2059,7 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "04 Revolver.flac"
@@ -1977,10 +2073,14 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
           ("isrc", "USSM19502590"),
           ("title", "Snakecharmer"),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "5"),
+          ("tracknumber", "5"),
           (
             "liq_index_zero_filename",
             "04 Revolver.flac"
@@ -1991,7 +2091,7 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "05 Snakecharmer.flac"
@@ -2008,10 +2108,14 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "Tire Me"
           ),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "6"),
+          ("tracknumber", "6"),
           (
             "liq_index_zero_filename",
             "05 Snakecharmer.flac"
@@ -2022,7 +2126,7 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "06 Tire Me.flac"
@@ -2039,10 +2143,14 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "Down Rodeo"
           ),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "7"),
+          ("tracknumber", "7"),
           (
             "liq_index_zero_filename",
             "06 Tire Me.flac"
@@ -2053,7 +2161,7 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "07 Down Rodeo.flac"
@@ -2070,16 +2178,20 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "Without A Face"
           ),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "8"),
+          ("tracknumber", "8"),
           (
             "comment",
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "08 Without A Face.flac"
@@ -2096,16 +2208,20 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "Wind Below"
           ),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "9"),
+          ("tracknumber", "9"),
           (
             "comment",
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "09 Wind Below.flac"
@@ -2122,16 +2238,20 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "Roll Right"
           ),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "10"),
+          ("tracknumber", "10"),
           (
             "comment",
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "10 Roll Right.flac"
@@ -2148,10 +2268,14 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "Year Of Tha Boomerang"
           ),
           (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
             "artist",
             "Rage Against The Machine"
           ),
-          ("track", "11"),
+          ("tracknumber", "11"),
           (
             "liq_index_zero_filename",
             "10 Roll Right.flac"
@@ -2162,7 +2286,7 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
             "ExactAudioCopy v1.0b3"
           ),
           ("discid", "A30AEF0B"),
-          ("date", "1996"),
+          ("year", "1996"),
           ("genre", "Rap/Metal")
         ],
         "11 Year Of Tha Boomerang.flac"
