@@ -3,13 +3,457 @@ let settings.playlist.mime_types =
     "Mime-types used for guessing playlist formats."
   )
 
+let playlist.parse.cue = ()
+
+# Parse a cue file
+# @category Liquidsoap
+# @param ~pwd Path to use for relative path resolution
+def playlist.parse.cue.full(~pwd=null(), content) =
+  content = string.split(separator="[\r\n]+", content)
+
+  def parse_file(s) =
+    matches = r/^FILE (.+)$/.exec(string.trim(s))
+    try
+      match = list.assoc(1, matches)
+      match_chars = string.chars(match)
+
+      def rec get_last(~char, cur, chars) =
+        let [...chars, last] = chars
+        if
+          last == char
+        then
+          filename = string.concat(separator="", chars)
+          file_type = string.trim(string.concat(separator="", cur))
+          file_type =
+            if
+              file_type == ""
+            then
+              null()
+            else
+              string.case(lower=true, file_type)
+            end
+          (filename, file_type)
+        else
+          get_last(char=char, [last, ...cur], chars)
+        end
+      end
+
+      let (filename, file_type) =
+        if
+          list.hd(match_chars) == '"'
+        then
+          let [_, ...chars] = match_chars
+          let (filename, file_type) = get_last(char='"', [], chars)
+          (string.unquote('"#{filename}"'), file_type)
+        else
+          get_last(
+            char=
+              " ",
+            [],
+            match_chars
+          )
+        end
+
+      pwd = pwd ?? ""
+      {filename="#{pwd}#{filename}", file_type=file_type}
+    catch _ do
+      null()
+    end
+  end
+
+  def parse_track_attribute(s) =
+    matches = r/^TRACK ([^\s]+)\s([^\s]+)?$/.exec(string.trim(s))
+    try
+      position = int_of_string(list.assoc(1, matches))
+      type = list.assoc(2, matches)
+
+      {position=position, track_type=string.case(lower=true, type)}
+    catch _ : [error.not_found] do
+      null()
+    end
+  end
+
+  def parse_rem(s) =
+    matches = r/^REM ([^\s]+) (.+)$/.exec(string.trim(s))
+    try
+      name = string.case(lower=true, list.assoc(1, matches))
+      value = string.unquote(list.assoc(2, matches))
+      (name, value)
+    catch _ : [error.not_found] do
+      null()
+    end
+  end
+
+  def parse_timecode(s) =
+    matches = r/^([\d]+):([\d]+):([\d]+)/.exec(string.trim(s))
+    try
+      minutes = int_of_string(list.assoc(1, matches))
+      seconds = int_of_string(list.assoc(2, matches))
+      frames = int_of_string(list.assoc(3, matches))
+
+      {minutes=minutes, seconds=seconds, frames=frames}
+    catch _ : [error.not_found] do
+      null()
+    end
+  end
+
+  def parse_index(s) =
+    matches = r/^INDEX ([\d]+) ([\d:]+)/.exec(string.trim(s))
+    try
+      index = int_of_string(list.assoc(1, matches))
+      timecode = list.assoc(2, matches)
+
+      (index, null.get(parse_timecode(timecode)))
+    catch _ do
+      null()
+    end
+  end
+
+  def parse_optional(~label, s) =
+    matches =
+      regexp(
+        "^#{string.case(lower=false, label)} (.+)$"
+      ).exec(string.trim(s))
+    null.map(string.unquote, list.assoc.nullable(1, matches))
+  end
+
+  def end_parse_track(content) =
+    if
+      content == []
+    then
+      true
+    else
+      begin
+        s = list.hd(content)
+        null.defined(parse_track_attribute(s)) or null.defined(parse_file(s))
+      end
+    end
+  end
+
+  def rec parse_track(~track, content) =
+    track =
+      (track :
+        {
+          position: int,
+          filename?: string,
+          file_type?: string,
+          track_type?: string,
+          performer?: string,
+          title?: string,
+          isrc?: string,
+          postgap?: {minutes: int, seconds: int, frames: int},
+          pregap?: {minutes: int, seconds: int, frames: int},
+          indexes: [(int * {minutes: int, seconds: int, frames: int})]
+        }
+      )
+
+    if
+      end_parse_track(content)
+    then
+      (track, content)
+    else
+      let [s, ...content] = content
+
+      index = parse_index(s)
+
+      let track =
+        if
+          null.defined(index)
+        then
+          {...track, indexes=[...track.indexes, null.get(index)]}
+        else
+          track_attributes =
+            [
+              ("title", fun (title) -> {...track, title=title}),
+              ("performer", fun (performer) -> {...track, performer=performer}),
+              (
+                "pregap",
+                fun (pregap) ->
+                  {...track, pregap=null.get(parse_timecode(pregap))}
+              ),
+              (
+                "postgap",
+                fun (postgap) ->
+                  {...track, postgap=null.get(parse_timecode(postgap))}
+              ),
+              ("isrc", fun (isrc) -> {...track, isrc=isrc})
+            ]
+          attribute_names = list.map(fst, track_attributes)
+
+          def rec check_attribute(attribute_names) =
+            if
+              attribute_names == []
+            then
+              log.important(
+                label="playlist.parse.cue.full",
+                "Could not parse track attribute: #{s}"
+              )
+              track
+            else
+              let [name, ...attribute_names] = attribute_names
+              let fn = list.assoc(name, track_attributes)
+              parsed = parse_optional(label=name, s)
+
+              if
+                null.defined(parsed)
+              then
+                fn(null.get(parsed))
+              else
+                check_attribute(attribute_names)
+              end
+            end
+          end
+
+          check_attribute(attribute_names)
+        end
+      parse_track(track=track, content)
+    end
+  end
+
+  def rec parse_content(~file, ~sheet, content) =
+    sheet =
+      (sheet :
+        {
+          catalog?: string,
+          performer?: string,
+          title?: string,
+          rem: [(string * string)],
+          tracks: [
+            {
+              position: int,
+              filename?: string,
+              file_type?: string,
+              track_type?: string,
+              performer?: string,
+              title?: string,
+              isrc?: string,
+              postgap?: {minutes: int, seconds: int, frames: int},
+              pregap?: {minutes: int, seconds: int, frames: int},
+              indexes: [(int * {minutes: int, seconds: int, frames: int})]
+            }
+          ]
+        }
+      )
+
+    if
+      content == []
+    then
+      sheet
+    else
+      let [s, ...content] = content
+
+      new_file = parse_file(s)
+      new_rem = parse_rem(s)
+      track = parse_track_attribute(s)
+
+      if
+        null.defined(new_file)
+      then
+        parse_content(file=new_file, sheet=sheet, content)
+      elsif
+        null.defined(new_rem)
+      then
+        parse_content(
+          file=file,
+          sheet={...sheet, rem=[null.get(new_rem), ...sheet.rem]},
+          content
+        )
+      elsif
+        null.defined(track)
+      then
+        let (track, content) =
+          parse_track(track={...null.get(track), ...file, indexes=[]}, content)
+        parse_content(
+          file=file, sheet={...sheet, tracks=[...sheet.tracks, track]}, content
+        )
+      else
+        sheet_attributes =
+          [
+            ("catalog", fun (catalog) -> {...sheet, catalog=catalog}),
+            ("performer", fun (performer) -> {...sheet, performer=performer}),
+            ("title", fun (title) -> {...sheet, title=title})
+          ]
+
+        attribute_names = list.map(fst, sheet_attributes)
+
+        def rec check_attribute(attribute_names) =
+          if
+            attribute_names == []
+          then
+            log.important(
+              label="playlist.parse.cue.full",
+              "Could not parse attribute: #{s}"
+            )
+            sheet
+          else
+            let [name, ...attribute_names] = attribute_names
+            let fn = list.assoc(name, sheet_attributes)
+            let parsed = parse_optional(label=name, s)
+
+            if
+              null.defined(parsed)
+            then
+              fn(null.get(parsed))
+            else
+              check_attribute(attribute_names)
+            end
+          end
+        end
+
+        parse_content(
+          file=file, sheet=check_attribute(attribute_names), content
+        )
+      end
+    end
+  end
+
+  parse_content(file=null(), sheet={tracks=[], rem=[]}, content)
+end
+
+let settings.playlist.cue =
+  settings.make.void(
+    "Settings for parsing cue files"
+  )
+
+let settings.playlist.cue.pregap_metadata =
+  settings.make(
+    description=
+      "Metadata used to pass pre-gap cue metadata",
+    "liq_pregap"
+  )
+
+let settings.playlist.cue.index_zero_metadata =
+  settings.make(
+    description=
+      "Metadata used to pass index 0 cue metadata",
+    "liq_index_zero"
+  )
+
+let settings.playlist.cue.postgap_metadata =
+  settings.make(
+    description=
+      "Metadata used to pass pre-gap cue metadata",
+    "liq_postgap"
+  )
+
+# Parse a cue file and return a value suitable for playlist parser registration.
+# @category Liquidsoap
+# @param ~pwd Path to use for relative path resolution
+def replaces playlist.parse.cue(~pwd=null(), content) =
+  let {catalog?, title?, performer?, rem, tracks} =
+    playlist.parse.cue.full(pwd=pwd, content)
+  let album = title
+  let album_performer = performer
+
+  def seconds_of_timecode(timecode) =
+    let {minutes, seconds, frames} = timecode
+    float(minutes) * 60. + float(seconds) + float(frames) / 75.
+  end
+
+  def string_of_timecode(timecode) =
+    string(seconds_of_timecode(timecode))
+  end
+
+  def add_track(tracks, track) =
+    let {
+      filename?,
+      performer?,
+      title?,
+      isrc?,
+      pregap?,
+      postgap?,
+      position,
+      indexes
+    } = track
+    index_zero = list.assoc.nullable(0, indexes)
+    index = list.assoc.nullable(1, indexes)
+    cue_in_metadata = settings.playlist.cue_in_metadata()
+    cue_out_metadata = settings.playlist.cue_out_metadata()
+    pregap_metadata = settings.playlist.cue.pregap_metadata()
+    index_zero_metadata = settings.playlist.cue.index_zero_metadata()
+    postgap_metadata = settings.playlist.cue.postgap_metadata()
+
+    if
+      not null.defined(filename) or (not null.defined(index))
+    then
+      log.important(
+        label="playlist.cue.parse",
+        "Track without filename or index: #{track}"
+      )
+      tracks
+    else
+      filename = null.get(filename)
+      timecode = null.get(index)
+
+      timecode = seconds_of_timecode(timecode)
+      cue_in = timecode == 0. ? [] : [(cue_in_metadata, string(timecode))]
+
+      cue_out =
+        try
+          let (old_filename, old_meta) = list.hd(tracks)
+          if
+            old_filename == filename
+          then
+            index_zero = list.assoc(default="", index_zero_metadata, old_meta)
+
+            cue_out =
+              if
+                index_zero != ""
+              then
+                index_zero
+              else
+                list.assoc(cue_out_metadata, old_meta)
+              end
+
+            [(cue_out_metadata, cue_out)]
+          else
+            []
+          end
+        catch _ do
+          []
+        end
+
+      meta =
+        list.fold(
+          fun (meta, el) ->
+            begin
+              let (name, value) = el
+              if
+                null.defined(value)
+              then
+                [(name, null.get(value)), ...meta]
+              else
+                meta
+              end
+            end,
+          [],
+          [
+            (pregap_metadata, null.map(string_of_timecode, pregap)),
+            (postgap_metadata, null.map(string_of_timecode, postgap)),
+            (index_zero_metadata, null.map(string_of_timecode, index_zero)),
+            ("track", string(position)),
+            ("catalog", catalog),
+            ("artist", performer ?? album_performer),
+            ("title", title),
+            ("isrc", isrc),
+            ("album", album)
+          ]
+        )
+
+      [(filename, [...cue_in, ...cue_out, ...meta, ...rem]), ...tracks]
+    end
+  end
+
+  list.fold(add_track, [], list.rev(tracks))
+end
+
 let settings.playlist.mime_types.basic =
   settings.make(
     description=
       "Mime-types used for guessing text-based playlists.",
     [
       {mime="audio/x-scpls", strict=true, parser=playlist.parse.scpls},
-      {mime="application/x-cue", strict=true, parser=playlist.parse.cue},
+      #{mime="application/x-cue", strict=true, parser=playlist.parse.cue},
       {mime="audio/x-mpegurl", strict=false, parser=playlist.parse.m3u},
       {mime="audio/mpegurl", strict=false, parser=playlist.parse.m3u},
       {mime="application/x-mpegURL", strict=false, parser=playlist.parse.m3u}
