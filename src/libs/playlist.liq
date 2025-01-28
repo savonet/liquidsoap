@@ -54,8 +54,8 @@ def playlist.parse.cue.full(~pwd=null(), content) =
           )
         end
 
-      pwd = pwd ?? ""
-      {filename="#{pwd}#{filename}", file_type=file_type}
+      filename = playlist.parse.get_file(pwd=pwd, filename)
+      {filename=filename, file_type=file_type}
     catch _ do
       null()
     end
