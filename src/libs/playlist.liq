@@ -461,7 +461,7 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
               (postgap_metadata, null.map(string_of_timecode, postgap)),
               (index_zero_metadata, null.map(string_of_timecode, index_zero)),
               (index_zero_filename_metadata, index_zero_filename),
-              ("track", string(position)),
+              ("tracknumber", string(position)),
               ("catalog", catalog),
               ("artist", performer ?? album_performer),
               ("title", title),
