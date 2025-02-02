@@ -207,7 +207,7 @@ jobs:
           make dist
           mkdir -p /tmp/${{ github.run_number }}/html
           cp -rf html/* /tmp/${{ github.run_number }}/html
-      - name: Push content
+      - name: Push doc content
         if: success() && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@fbf0a4fa4e00f45accd6cf3232368436ec06ed59 # v4.1.0
         with:
@@ -217,11 +217,15 @@ jobs:
           fqdn: www.liquidsoap.info
         env:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
-      - name: Deploy odoc
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+      - name: Push odoc content
+        if: success() && github.repository_owner == 'savonet'
+        uses: crazy-max/ghaction-github-pages@fbf0a4fa4e00f45accd6cf3232368436ec06ed59 # v4.1.0
         with:
-          branch: gh-pages
-          folder: ${{ github.run_number }}/odoc
+          repo: savonet/liquidsoap
+          target_branch: gh_pages
+          build_dir: ${{ github.run_number }}/odoc
+        env:
+          GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
     runs-on: depot-ubuntu-24.04-4
