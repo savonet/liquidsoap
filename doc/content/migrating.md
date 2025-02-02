@@ -190,10 +190,21 @@ If you are looking for an event-based API, you can use the output's `on_track` m
 For backward compatibility and easier migration, `on_air` and `on_air_timestamp` metadata can be enabled using the `settings.request.deprecated_on_air_metadata` setting:
 
 ```liquidsoap
-request.deprecated_on_air_metadata := true
+settings.request.deprecated_on_air_metadata := true
 ```
 
 However, it is highly recommended to migrate your script to use one of the new method.
+
+### `last_metadata`
+
+The implementation of `last_metadata` was updated to clear the last metadata when a new track begins. This is more in line with most user's expectation: last metadata
+is intended to reflect the metadata of the current track.
+
+If you need to, you can revert to the previous behavior using the source's `reset_last_metadata_on_track` method:
+
+```liquidsoap
+s.reset_last_metadata_on_track := false
+```
 
 ### Gstreamer
 

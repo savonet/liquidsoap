@@ -2,6 +2,8 @@
 
 New:
 
+- Added support for address resolution preference in SRT (#4317)
+- Added global address resolution settings for SRT and Icecast (#4317)
 - Added support for parsing and rendering XML natively (#4252)
 - Added support for `WAVE_FORMAT_EXTENSIBLE` to the internal
   wav dexcoder.
@@ -9,11 +11,16 @@ New:
   `output.alsa` (#4243)
 - Reimplemented audioscrobbler support natively using the more
   recent protocol (#4250)
+- Added boolean getter to disable/enable normalization
+  (#4308)
 
 Changed:
 
 - Make alsa I/O work with buffer size different than
   liquidsoap internal frame (#4236)
+- Reimplemented CUE file parser in native liquidsoap script,
+  added support for multiple files and EAC non-compliant extension
+  (#1373, #4330)
 - Make `"song"` metadata mapping to `"title"` metadata in
   `input.harbor` disabled when either `"artist"` or `"title"`
   is also passed. Add a configuration key to disable this mechanism.
@@ -21,6 +28,10 @@ Changed:
 - `output.icecast` now re-sends the last metadata when connecting to the
   remote server unless explicitly disabled using the `send_last_metadata_on_connect`
   option (#3906)
+- Add full explicit support for `ipv4` vs. `ipv6` resolution in SRT inputs and outputs,
+  add global `settings.srt.prefer_address` and `settings.icecast.prefer_address` (#4317)
+- Added generic SRT socket get/set API. Added new socket options, including `latency`
+  and `ipv6only`.
 
 Fixed:
 

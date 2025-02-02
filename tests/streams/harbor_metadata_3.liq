@@ -2,7 +2,7 @@ port = 3463
 
 def fn() =
   def on_metadata(m) =
-  print(m)
+    print(m)
     if
       m["title"] == ""
     and

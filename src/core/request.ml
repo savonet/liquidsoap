@@ -103,6 +103,7 @@ type t = {
   status : status Atomic.t;
   logger : Log.t;
   log : (Unix.tm * string) Queue.t;
+  initial_uri : string;
   indicators : indicator Queue.t;
   file_metadata : Frame.Metadata.t Atomic.t;
   on_air : on_air Queue.t;
@@ -115,11 +116,7 @@ let last_indicator r =
     | el :: _ -> el
     | [] -> assert false
 
-let initial_uri r =
-  match Queue.peek_opt r.indicators with
-    | Some { uri } -> uri
-    | None -> assert false
-
+let initial_uri { initial_uri } = initial_uri
 let status { status } = Atomic.get status
 
 let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
@@ -411,9 +408,7 @@ let file_exists name =
   try
     Unix.access name [Unix.F_OK];
     true
-  with
-    | Unix.Unix_error (Unix.EACCES, _, _) -> true
-    | Unix.Unix_error _ -> false
+  with Unix.Unix_error _ -> false
 
 let file_is_readable name =
   try
@@ -453,6 +448,7 @@ module Pool = Pool.Make (struct
       logger = Log.make [];
       log = Queue.create ();
       decoders = Hashtbl.create 1;
+      initial_uri = "";
       indicators = Queue.create ();
       file_metadata = Atomic.make Frame.Metadata.empty;
       on_air = Queue.create ();
@@ -516,6 +512,7 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
         logger = Log.make [];
         log = Queue.create ();
         decoders = Hashtbl.create 1;
+        initial_uri = uri;
         indicators = Queue.create ();
         file_metadata = Atomic.make Frame.Metadata.empty;
         on_air = Queue.create ();

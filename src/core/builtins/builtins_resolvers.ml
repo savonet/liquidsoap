@@ -106,6 +106,22 @@ let _ =
       if reentrant then reentrant_decoders := format :: !reentrant_decoders;
       Lang.unit)
 
+let _ =
+  Lang.add_builtin ~base:Builtins_sys.playlist_parse "get_file"
+    ~category:`Liquidsoap ~descr:"Resolve a uri relative to a given pwd."
+    [
+      ( "pwd",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Current directory to use for relative file path." );
+      ("", Lang.string_t, None, Some "URI");
+    ]
+    Lang.string_t
+    (fun p ->
+      let pwd = Lang.to_valued_option Lang.to_string (List.assoc "pwd" p) in
+      let uri = Lang.to_string (List.assoc "" p) in
+      Lang.string (Playlist_parser.get_file ?pwd uri))
+
 let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
   let return_t = Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t) in
   Lang.add_builtin ~base:Builtins_sys.playlist_parse name ~category:`Liquidsoap

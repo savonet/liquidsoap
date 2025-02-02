@@ -1,0 +1,2300 @@
+def f() =
+  cue_file =
+    'REM GENRE Electronica
+REM DATE 2020
+PERFORMER "Electronic Mix"
+TITLE "Musique a la carte"
+FILE "Bronski beat - Smalltown boy (12 extended).mp3" MP3
+  TRACK 01 AUDIO
+    TITLE "Smalltown boy (12 extended)"
+    PERFORMER "Bronski Beat"
+    INDEX 01 00:00:00
+FILE "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3" MP3
+  TRACK 02 AUDIO
+    TITLE "Dont Stop The Music (Ed Marquis Remix)"
+    PERFORMER "Rihanna"
+    INDEX 01 00:00:00'
+
+  test.equal(
+    playlist.parse.cue.full(cue_file),
+    {
+      tracks=
+        [
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="mp3",
+                    filename=
+                      "Bronski beat - Smalltown boy (12 extended).mp3"
+                  }
+                )
+              ],
+            title=
+              "Smalltown boy (12 extended)",
+            position=1,
+            track_type="audio",
+            performer=
+              "Bronski Beat"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="mp3",
+                    filename=
+                      "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3"
+                  }
+                )
+              ],
+            title=
+              "Dont Stop The Music (Ed Marquis Remix)",
+            position=2,
+            track_type="audio",
+            performer="Rihanna"
+          }
+        ],
+      title=
+        "Musique a la carte",
+      rem=[("date", "2020"), ("genre", "Electronica")],
+      performer=
+        "Electronic Mix"
+    }
+  )
+
+  test.equal(
+    playlist.parse.cue(cue_file),
+    [
+      (
+        [
+          (
+            "album",
+            "Musique a la carte"
+          ),
+          (
+            "title",
+            "Smalltown boy (12 extended)"
+          ),
+          (
+            "albumartist",
+            "Electronic Mix"
+          ),
+          (
+            "artist",
+            "Bronski Beat"
+          ),
+          ("tracknumber", "1"),
+          ("year", "2020"),
+          ("genre", "Electronica")
+        ],
+        "Bronski beat - Smalltown boy (12 extended).mp3"
+      ),
+      (
+        [
+          (
+            "album",
+            "Musique a la carte"
+          ),
+          (
+            "title",
+            "Dont Stop The Music (Ed Marquis Remix)"
+          ),
+          (
+            "albumartist",
+            "Electronic Mix"
+          ),
+          ("artist", "Rihanna"),
+          ("tracknumber", "2"),
+          ("year", "2020"),
+          ("genre", "Electronica")
+        ],
+        "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3"
+      )
+    ]
+  )
+
+  cue_file =
+    'PERFORMER "Block Party"
+TITLE "Silent Alarm"
+FILE "Block Party - Silent Alarm.flac" WAVE
+ TRACK 01 AUDIO
+   TITLE "Like Eating Glass"
+   PERFORMER "Block Party"
+   INDEX 00 00:00:00
+   INDEX 01 03:22:70
+ TRACK 02 AUDIO
+   TITLE "Helicopter"
+   PERFORMER "Block Party"
+   INDEX 00 07:42:69
+   INDEX 01 07:44:69'
+
+  test.equal(
+    playlist.parse.cue.full(cue_file),
+    {
+      tracks=
+        [
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "Block Party - Silent Alarm.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=70,
+                    seconds=22,
+                    minutes=3,
+                    file_type="wave",
+                    filename=
+                      "Block Party - Silent Alarm.flac"
+                  }
+                )
+              ],
+            performer=
+              "Block Party",
+            track_type="audio",
+            position=1,
+            title=
+              "Like Eating Glass"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=69,
+                    seconds=42,
+                    minutes=7,
+                    file_type="wave",
+                    filename=
+                      "Block Party - Silent Alarm.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=69,
+                    seconds=44,
+                    minutes=7,
+                    file_type="wave",
+                    filename=
+                      "Block Party - Silent Alarm.flac"
+                  }
+                )
+              ],
+            performer=
+              "Block Party",
+            track_type="audio",
+            position=2,
+            title="Helicopter"
+          }
+        ],
+      title=
+        "Silent Alarm",
+      rem=[],
+      performer=
+        "Block Party"
+    }
+  )
+
+  test.equal(
+    playlist.parse.cue(cue_file),
+    [
+      (
+        [
+          ("liq_cue_in", "202.933333333"),
+          ("liq_cue_out", "462.92"),
+          (
+            "album",
+            "Silent Alarm"
+          ),
+          (
+            "title",
+            "Like Eating Glass"
+          ),
+          (
+            "albumartist",
+            "Block Party"
+          ),
+          (
+            "artist",
+            "Block Party"
+          ),
+          ("tracknumber", "1"),
+          (
+            "liq_index_zero_filename",
+            "Block Party - Silent Alarm.flac"
+          ),
+          ("liq_index_zero", "0.0")
+        ],
+        "Block Party - Silent Alarm.flac"
+      ),
+      (
+        [
+          ("liq_cue_in", "464.92"),
+          (
+            "album",
+            "Silent Alarm"
+          ),
+          ("title", "Helicopter"),
+          (
+            "albumartist",
+            "Block Party"
+          ),
+          (
+            "artist",
+            "Block Party"
+          ),
+          ("tracknumber", "2"),
+          (
+            "liq_index_zero_filename",
+            "Block Party - Silent Alarm.flac"
+          ),
+          ("liq_index_zero", "462.92")
+        ],
+        "Block Party - Silent Alarm.flac"
+      )
+    ]
+  )
+
+  cue_file =
+    'REM GENRE Ska
+REM DATE 1991
+REM DISCID D00DA810
+REM COMMENT "ExactAudioCopy v0.95b4"
+PERFORMER "The Specials"
+TITLE "Singles"
+FILE "The Specials - Singles.wav" WAVE
+  TRACK 01 AUDIO
+    TITLE "Gangsters"
+    PERFORMER "The Specials"
+    INDEX 01 00:00:00
+  TRACK 02 AUDIO
+    TITLE "Rudi, A Message To You"
+    PERFORMER "The Specials"
+    INDEX 00 02:47:74
+    INDEX 01 02:48:27
+  TRACK 03 AUDIO
+    TITLE "Nite Klub"
+    PERFORMER "The Specials"
+    INDEX 00 05:41:50
+    INDEX 01 05:42:27
+  TRACK 04 AUDIO
+    TITLE "Too Much Too Young"
+    PERFORMER "The Specials"
+    INDEX 00 08:53:47
+    INDEX 01 08:54:37
+  TRACK 05 AUDIO
+    TITLE "Guns Of Navarone"
+    PERFORMER "The Specials"
+    INDEX 00 10:59:20
+    INDEX 01 11:00:17
+  TRACK 06 AUDIO
+    TITLE "Rat Race"
+    PERFORMER "The Specials"
+    INDEX 00 13:20:55
+    INDEX 01 13:20:67
+  TRACK 07 AUDIO
+    TITLE "Stereotype"
+    PERFORMER "The Specials"
+    INDEX 00 16:29:67
+    INDEX 01 16:30:30
+  TRACK 08 AUDIO
+    TITLE "International Jet Set"
+    PERFORMER "The Specials"
+    INDEX 00 20:19:27
+    INDEX 01 20:20:20
+  TRACK 09 AUDIO
+    TITLE "Do Nothing"
+    PERFORMER "The Specials"
+    INDEX 00 24:30:70
+    INDEX 01 24:32:27
+  TRACK 10 AUDIO
+    TITLE "Ghost Town"
+    PERFORMER "The Specials"
+    INDEX 00 28:23:30
+    INDEX 01 28:23:42
+  TRACK 11 AUDIO
+    TITLE "Why?"
+    PERFORMER "The Specials"
+    INDEX 00 34:21:37
+    INDEX 01 34:21:47
+  TRACK 12 AUDIO
+    TITLE "Friday Night, Saturday Morning"
+    PERFORMER "The Specials"
+    INDEX 00 38:16:50
+    INDEX 01 38:16:55
+  TRACK 13 AUDIO
+    TITLE "War Crimes"
+    PERFORMER "The Specials"
+    INDEX 00 41:50:07
+    INDEX 01 41:51:00
+  TRACK 14 AUDIO
+    TITLE "Racist Friend"
+    PERFORMER "The Specials"
+    INDEX 00 45:50:55
+    INDEX 01 45:51:72
+  TRACK 15 AUDIO
+    TITLE "Nelson Mandela"
+    PERFORMER "The Specials"
+    INDEX 00 49:35:55
+    INDEX 01 49:38:22
+  TRACK 16 AUDIO
+    TITLE "(What I Like Most About You Is Your) Girlfriend"
+    PERFORMER "The Specials"
+    INDEX 00 54:11:00
+    INDEX 01 54:12:40'
+
+  test.equal(
+    playlist.parse.cue.full(cue_file),
+    {
+      tracks=
+        [
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            title="Gangsters",
+            position=1,
+            track_type="audio",
+            performer=
+              "The Specials"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=74,
+                    seconds=47,
+                    minutes=2,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=27,
+                    seconds=48,
+                    minutes=2,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=2,
+            title=
+              "Rudi, A Message To You"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=50,
+                    seconds=41,
+                    minutes=5,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=27,
+                    seconds=42,
+                    minutes=5,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=3,
+            title=
+              "Nite Klub"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=47,
+                    seconds=53,
+                    minutes=8,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=37,
+                    seconds=54,
+                    minutes=8,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=4,
+            title=
+              "Too Much Too Young"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=20,
+                    seconds=59,
+                    minutes=10,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=17,
+                    seconds=0,
+                    minutes=11,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=5,
+            title=
+              "Guns Of Navarone"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=55,
+                    seconds=20,
+                    minutes=13,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=67,
+                    seconds=20,
+                    minutes=13,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=6,
+            title=
+              "Rat Race"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=67,
+                    seconds=29,
+                    minutes=16,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=30,
+                    seconds=30,
+                    minutes=16,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=7,
+            title="Stereotype"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=27,
+                    seconds=19,
+                    minutes=20,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=20,
+                    seconds=20,
+                    minutes=20,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=8,
+            title=
+              "International Jet Set"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=70,
+                    seconds=30,
+                    minutes=24,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=27,
+                    seconds=32,
+                    minutes=24,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=9,
+            title=
+              "Do Nothing"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=30,
+                    seconds=23,
+                    minutes=28,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=42,
+                    seconds=23,
+                    minutes=28,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=10,
+            title=
+              "Ghost Town"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=37,
+                    seconds=21,
+                    minutes=34,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=47,
+                    seconds=21,
+                    minutes=34,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=11,
+            title="Why?"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=50,
+                    seconds=16,
+                    minutes=38,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=55,
+                    seconds=16,
+                    minutes=38,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=12,
+            title=
+              "Friday Night, Saturday Morning"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=7,
+                    seconds=50,
+                    minutes=41,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=51,
+                    minutes=41,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=13,
+            title=
+              "War Crimes"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=55,
+                    seconds=50,
+                    minutes=45,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=72,
+                    seconds=51,
+                    minutes=45,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=14,
+            title=
+              "Racist Friend"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=55,
+                    seconds=35,
+                    minutes=49,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=22,
+                    seconds=38,
+                    minutes=49,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=15,
+            title=
+              "Nelson Mandela"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=0,
+                    seconds=11,
+                    minutes=54,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=40,
+                    seconds=12,
+                    minutes=54,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=16,
+            title=
+              "(What I Like Most About You Is Your) Girlfriend"
+          }
+        ],
+      title="Singles",
+      rem=
+        [
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("date", "1991"),
+          ("genre", "Ska")
+        ],
+      performer=
+        "The Specials"
+    }
+  )
+
+  test.equal(
+    playlist.parse.cue(cue_file),
+    [
+      (
+        [
+          ("liq_cue_out", "167.986666667"),
+          ("album", "Singles"),
+          ("title", "Gangsters"),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "1"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "168.36"),
+          ("liq_cue_out", "341.666666667"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Rudi, A Message To You"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "2"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "167.986666667"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "342.36"),
+          ("liq_cue_out", "533.626666667"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Nite Klub"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "3"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "341.666666667"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "534.493333333"),
+          ("liq_cue_out", "659.266666667"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Too Much Too Young"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "4"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "533.626666667"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "660.226666667"),
+          ("liq_cue_out", "800.733333333"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Guns Of Navarone"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "5"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "659.266666667"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "800.893333333"),
+          ("liq_cue_out", "989.893333333"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Rat Race"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "6"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "800.733333333"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "990.4"),
+          ("liq_cue_out", "1219.36"),
+          ("album", "Singles"),
+          ("title", "Stereotype"),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "7"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "989.893333333"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "1220.26666667"),
+          ("liq_cue_out", "1470.93333333"),
+          ("album", "Singles"),
+          (
+            "title",
+            "International Jet Set"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "8"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "1219.36"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "1472.36"),
+          ("liq_cue_out", "1703.4"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Do Nothing"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "9"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "1470.93333333"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "1703.56"),
+          ("liq_cue_out", "2061.49333333"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Ghost Town"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "10"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "1703.4"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "2061.62666667"),
+          ("liq_cue_out", "2296.66666667"),
+          ("album", "Singles"),
+          ("title", "Why?"),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "11"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "2061.49333333"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "2296.73333333"),
+          ("liq_cue_out", "2510.09333333"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Friday Night, Saturday Morning"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "12"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "2296.66666667"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "2511.0"),
+          ("liq_cue_out", "2750.73333333"),
+          ("album", "Singles"),
+          (
+            "title",
+            "War Crimes"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "13"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "2510.09333333"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "2751.96"),
+          ("liq_cue_out", "2975.73333333"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Racist Friend"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "14"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "2750.73333333"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "2978.29333333"),
+          ("liq_cue_out", "3251.0"),
+          ("album", "Singles"),
+          (
+            "title",
+            "Nelson Mandela"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "15"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "2975.73333333"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      ),
+      (
+        [
+          ("liq_cue_in", "3252.53333333"),
+          ("album", "Singles"),
+          (
+            "title",
+            "(What I Like Most About You Is Your) Girlfriend"
+          ),
+          (
+            "albumartist",
+            "The Specials"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "16"),
+          (
+            "liq_index_zero_filename",
+            "The Specials - Singles.wav"
+          ),
+          ("liq_index_zero", "3251.0"),
+          (
+            "comment",
+            "ExactAudioCopy v0.95b4"
+          ),
+          ("discid", "D00DA810"),
+          ("year", "1991"),
+          ("genre", "Ska")
+        ],
+        "The Specials - Singles.wav"
+      )
+    ]
+  )
+
+  cue_file =
+    'FILE "The Specials - Singles - 01 - Gangsters.wav" WAVE
+  TRACK 01 AUDIO
+    TITLE "Gangsters"
+    PERFORMER "The Specials"
+    INDEX 01 00:00:00
+FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
+  TRACK 02 AUDIO
+    TITLE "Rudi, A Message To You"
+    PERFORMER "The Specials"
+    PREGAP 00:00:28
+    INDEX 01 00:00:00'
+
+  test.equal(
+    playlist.parse.cue.full(cue_file),
+    {
+      tracks=
+        [
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles - 01 - Gangsters.wav"
+                  }
+                )
+              ],
+            title="Gangsters",
+            position=1,
+            track_type="audio",
+            performer=
+              "The Specials"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "The Specials - Singles - 02 - Rudi, A Message To You.wav"
+                  }
+                )
+              ],
+            performer=
+              "The Specials",
+            track_type="audio",
+            position=2,
+            title=
+              "Rudi, A Message To You",
+            pregap={minutes=0, seconds=0, frames=28}
+          }
+        ],
+      rem=[]
+    }
+  )
+
+  test.equal(
+    playlist.parse.cue(cue_file),
+    [
+      (
+        [
+          ("title", "Gangsters"),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "1")
+        ],
+        "The Specials - Singles - 01 - Gangsters.wav"
+      ),
+      (
+        [
+          (
+            "title",
+            "Rudi, A Message To You"
+          ),
+          (
+            "artist",
+            "The Specials"
+          ),
+          ("tracknumber", "2"),
+          ("liq_pregap", "0.373333333333")
+        ],
+        "The Specials - Singles - 02 - Rudi, A Message To You.wav"
+      )
+    ]
+  )
+
+  cue_file =
+    'REM GENRE Rap/Metal
+REM DATE 1996
+REM DISCID A30AEF0B
+REM COMMENT "ExactAudioCopy v1.0b3"
+PERFORMER "Rage Against The Machine"
+TITLE "Evil Empire"
+FILE "01 People Of The Sun.flac" WAVE
+  TRACK 01 AUDIO
+    TITLE "People Of The Sun"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502587
+    INDEX 01 00:00:00
+FILE "02 Bulls On Parade.flac" WAVE
+  TRACK 02 AUDIO
+    TITLE "Bulls On Parade"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502563
+    INDEX 01 00:00:00
+  TRACK 03 AUDIO
+    TITLE "Vietnow"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502588
+    INDEX 00 03:49:52
+FILE "03 Vietnow.flac" WAVE
+    INDEX 01 00:00:00
+  TRACK 04 AUDIO
+    TITLE "Revolver"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502589
+    INDEX 00 04:37:42
+FILE "04 Revolver.flac" WAVE
+    INDEX 01 00:00:00
+  TRACK 05 AUDIO
+    TITLE "Snakecharmer"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502590
+    INDEX 00 05:29:18
+FILE "05 Snakecharmer.flac" WAVE
+    INDEX 01 00:00:00
+  TRACK 06 AUDIO
+    TITLE "Tire Me"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502591
+    INDEX 00 03:54:43
+FILE "06 Tire Me.flac" WAVE
+    INDEX 01 00:00:00
+  TRACK 07 AUDIO
+    TITLE "Down Rodeo"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502592
+    INDEX 00 02:57:73
+FILE "07 Down Rodeo.flac" WAVE
+    INDEX 01 00:00:00
+FILE "08 Without A Face.flac" WAVE
+  TRACK 08 AUDIO
+    TITLE "Without A Face"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502594
+    INDEX 01 00:00:00
+FILE "09 Wind Below.flac" WAVE
+  TRACK 09 AUDIO
+    TITLE "Wind Below"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502593
+    INDEX 01 00:00:00
+FILE "10 Roll Right.flac" WAVE
+  TRACK 10 AUDIO
+    TITLE "Roll Right"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502595
+    INDEX 01 00:00:00
+  TRACK 11 AUDIO
+    TITLE "Year Of Tha Boomerang"
+    PERFORMER "Rage Against The Machine"
+    ISRC USSM19502596
+    INDEX 00 04:20:38
+FILE "11 Year Of Tha Boomerang.flac" WAVE
+    INDEX 01 00:00:00'
+
+  test.equal(
+    playlist.parse.cue.full(cue_file),
+    {
+      tracks=
+        [
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "01 People Of The Sun.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=1,
+            title=
+              "People Of The Sun",
+            isrc="USSM19502587"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "02 Bulls On Parade.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=2,
+            title=
+              "Bulls On Parade",
+            isrc="USSM19502563"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=52,
+                    seconds=49,
+                    minutes=3,
+                    file_type="wave",
+                    filename=
+                      "02 Bulls On Parade.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "03 Vietnow.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502588",
+            title="Vietnow",
+            position=3,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=42,
+                    seconds=37,
+                    minutes=4,
+                    file_type="wave",
+                    filename=
+                      "03 Vietnow.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "04 Revolver.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502589",
+            title="Revolver",
+            position=4,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=18,
+                    seconds=29,
+                    minutes=5,
+                    file_type="wave",
+                    filename=
+                      "04 Revolver.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "05 Snakecharmer.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502590",
+            title="Snakecharmer",
+            position=5,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=43,
+                    seconds=54,
+                    minutes=3,
+                    file_type="wave",
+                    filename=
+                      "05 Snakecharmer.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "06 Tire Me.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502591",
+            title=
+              "Tire Me",
+            position=6,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=73,
+                    seconds=57,
+                    minutes=2,
+                    file_type="wave",
+                    filename=
+                      "06 Tire Me.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "07 Down Rodeo.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502592",
+            title=
+              "Down Rodeo",
+            position=7,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "08 Without A Face.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=8,
+            title=
+              "Without A Face",
+            isrc="USSM19502594"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "09 Wind Below.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=9,
+            title=
+              "Wind Below",
+            isrc="USSM19502593"
+          },
+          {
+            indexes=
+              [
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "10 Roll Right.flac"
+                  }
+                )
+              ],
+            performer=
+              "Rage Against The Machine",
+            track_type="audio",
+            position=10,
+            title=
+              "Roll Right",
+            isrc="USSM19502595"
+          },
+          {
+            indexes=
+              [
+                (
+                  0,
+                  {
+                    frames=38,
+                    seconds=20,
+                    minutes=4,
+                    file_type="wave",
+                    filename=
+                      "10 Roll Right.flac"
+                  }
+                ),
+                (
+                  1,
+                  {
+                    frames=0,
+                    seconds=0,
+                    minutes=0,
+                    file_type="wave",
+                    filename=
+                      "11 Year Of Tha Boomerang.flac"
+                  }
+                )
+              ],
+            isrc="USSM19502596",
+            title=
+              "Year Of Tha Boomerang",
+            position=11,
+            track_type="audio",
+            performer=
+              "Rage Against The Machine"
+          }
+        ],
+      performer=
+        "Rage Against The Machine",
+      rem=
+        [
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("date", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+      title=
+        "Evil Empire"
+    }
+  )
+
+  test.equal(
+    playlist.parse.cue(cue_file),
+    [
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502587"),
+          (
+            "title",
+            "People Of The Sun"
+          ),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "1"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "01 People Of The Sun.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502563"),
+          (
+            "title",
+            "Bulls On Parade"
+          ),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "2"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "02 Bulls On Parade.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502588"),
+          ("title", "Vietnow"),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "3"),
+          (
+            "liq_index_zero_filename",
+            "02 Bulls On Parade.flac"
+          ),
+          ("liq_index_zero", "229.693333333"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "03 Vietnow.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502589"),
+          ("title", "Revolver"),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "4"),
+          (
+            "liq_index_zero_filename",
+            "03 Vietnow.flac"
+          ),
+          ("liq_index_zero", "277.56"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "04 Revolver.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502590"),
+          ("title", "Snakecharmer"),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "5"),
+          (
+            "liq_index_zero_filename",
+            "04 Revolver.flac"
+          ),
+          ("liq_index_zero", "329.24"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "05 Snakecharmer.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502591"),
+          (
+            "title",
+            "Tire Me"
+          ),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "6"),
+          (
+            "liq_index_zero_filename",
+            "05 Snakecharmer.flac"
+          ),
+          ("liq_index_zero", "234.573333333"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "06 Tire Me.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502592"),
+          (
+            "title",
+            "Down Rodeo"
+          ),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "7"),
+          (
+            "liq_index_zero_filename",
+            "06 Tire Me.flac"
+          ),
+          ("liq_index_zero", "177.973333333"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "07 Down Rodeo.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502594"),
+          (
+            "title",
+            "Without A Face"
+          ),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "8"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "08 Without A Face.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502593"),
+          (
+            "title",
+            "Wind Below"
+          ),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "9"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "09 Wind Below.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502595"),
+          (
+            "title",
+            "Roll Right"
+          ),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "10"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "10 Roll Right.flac"
+      ),
+      (
+        [
+          (
+            "album",
+            "Evil Empire"
+          ),
+          ("isrc", "USSM19502596"),
+          (
+            "title",
+            "Year Of Tha Boomerang"
+          ),
+          (
+            "albumartist",
+            "Rage Against The Machine"
+          ),
+          (
+            "artist",
+            "Rage Against The Machine"
+          ),
+          ("tracknumber", "11"),
+          (
+            "liq_index_zero_filename",
+            "10 Roll Right.flac"
+          ),
+          ("liq_index_zero", "260.506666667"),
+          (
+            "comment",
+            "ExactAudioCopy v1.0b3"
+          ),
+          ("discid", "A30AEF0B"),
+          ("year", "1996"),
+          ("genre", "Rap/Metal")
+        ],
+        "11 Year Of Tha Boomerang.flac"
+      )
+    ]
+  )
+
+  test.pass()
+end
+
+test.check(f)

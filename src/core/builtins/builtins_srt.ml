@@ -28,18 +28,37 @@ exception Done
 exception Not_connected
 
 module Socket_value = struct
-  let read_only_socket_options_specs = [("read_data", `Int Srt.rcvdata)]
+  let read_only_socket_options_specs = [("rcvdata", `Int Srt.rcvdata)]
+
+  let write_only_socket_options_specs =
+    [
+      ("messageapi", `Bool Srt.messageapi);
+      ("payloadsize", `Int Srt.payloadsize);
+      ("conntimeo", `Int Srt.conntimeo);
+      ("passphrase", `String Srt.passphrase);
+      ("enforced_encryption", `Bool Srt.enforced_encryption);
+    ]
 
   let read_write_socket_options_specs =
     [
-      ("read_timeout", `Int Srt.rcvtimeo);
-      ("write_timeout", `Int Srt.sndtimeo);
+      ("rcvsyn", `Bool Srt.rcvsyn);
+      ("sndsyn", `Bool Srt.sndsyn);
+      ("rcvtimeout", `Int Srt.rcvtimeo);
+      ("sndtimeout", `Int Srt.sndtimeo);
+      ("reuseaddr", `Bool Srt.reuseaddr);
+      ("rcvbuf", `Int Srt.rcvbuf);
+      ("sndbuf", `Int Srt.sndbuf);
+      ("udp_rcvbuf", `Int Srt.udp_rcvbuf);
+      ("udp_sndbuf", `Int Srt.udp_sndbuf);
       ("streamid", `String Srt.streamid);
       ("pbkeylen", `Int Srt.pbkeylen);
-      ("read_latency", `Int Srt.rcvlatency);
+      ("ipv6only", `Bool Srt.ipv6only);
+      ("rcvlatency", `Int Srt.rcvlatency);
+      ("peerlatency", `Int Srt.peerlatency);
+      ("latency", `Int Srt.latency);
     ]
 
-  let mk_socket_option name socket_opt =
+  let mk_read_socket_option name socket_opt =
     let t =
       match socket_opt with
         | `Int _ -> Lang.int_t
@@ -61,12 +80,52 @@ module Socket_value = struct
               let bt = Printexc.get_raw_backtrace () in
               Lang.raise_as_runtime ~bt ~kind:"srt" exn) )
 
+  let mk_write_socket_option name socket_opt =
+    let t =
+      match socket_opt with
+        | `Int _ -> Lang.int_t
+        | `Bool _ -> Lang.bool_t
+        | `String _ -> Lang.string_t
+    in
+    ( "set_" ^ name,
+      ([], Lang.fun_t [(false, "", t)] Lang.unit_t),
+      "Set " ^ name ^ " option",
+      fun s ->
+        Lang.val_fun
+          [("", "", None)]
+          (fun p ->
+            let v = List.assoc "" p in
+            try
+              (match socket_opt with
+                | `Int socket_opt ->
+                    Srt.setsockflag s socket_opt (Lang.to_int v)
+                | `Bool socket_opt ->
+                    Srt.setsockflag s socket_opt (Lang.to_bool v)
+                | `String socket_opt ->
+                    Srt.setsockflag s socket_opt (Lang.to_string v));
+              Lang.unit
+            with exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              Lang.raise_as_runtime ~bt ~kind:"srt" exn) )
+
   let socket_options_meths =
+    let read_meths =
+      List.fold_left
+        (fun cur (name, socket_opt) ->
+          mk_read_socket_option name socket_opt :: cur)
+        (List.fold_left
+           (fun cur (name, socket_opt) ->
+             mk_read_socket_option name socket_opt :: cur)
+           [] read_only_socket_options_specs)
+        read_write_socket_options_specs
+    in
     List.fold_left
-      (fun cur (name, socket_opt) -> mk_socket_option name socket_opt :: cur)
+      (fun cur (name, socket_opt) ->
+        mk_write_socket_option name socket_opt :: cur)
       (List.fold_left
-         (fun cur (name, socket_opt) -> mk_socket_option name socket_opt :: cur)
-         [] read_only_socket_options_specs)
+         (fun cur (name, socket_opt) ->
+           mk_write_socket_option name socket_opt :: cur)
+         read_meths write_only_socket_options_specs)
       read_write_socket_options_specs
 
   let stats_specs =
@@ -263,6 +322,10 @@ module Socket_value = struct
   let meths =
     socket_options_meths
     @ [
+        ( "id",
+          ([], Lang.int_t),
+          "Socket ID",
+          fun s -> Lang.int (Srt.socket_id s) );
         ( "status",
           ([], Lang.fun_t [] Lang.string_t),
           "Socket status",
@@ -327,9 +390,22 @@ module Socket_value = struct
                   (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)) );
       ]
 
+  let base_t = t
+
   let t =
     Lang.method_t t (List.map (fun (lbl, t, descr, _) -> (lbl, t, descr)) meths)
+
+  let to_base_value = to_value
 
   let to_value s =
     Lang.meth (to_value s) (List.map (fun (lbl, _, _, m) -> (lbl, m s)) meths)
 end
+
+let srt = Lang.add_module "srt"
+
+let clock =
+  Lang.add_builtin "socket" ~base:srt ~category:`Liquidsoap
+    ~descr:"Decorate a srt socket with all its methods."
+    [("", Socket_value.base_t, None, None)]
+    Socket_value.t
+    (fun p -> Socket_value.(to_value (of_value (List.assoc "" p))))

@@ -1,4 +1,5 @@
 log.level := 4
+settings.srt.prefer_address := "ipv4"
 
 port = 8004
 

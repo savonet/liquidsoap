@@ -1,4 +1,5 @@
 port = 8003
+settings.srt.prefer_address := "ipv4"
 
 def fn() =
   output.srt(

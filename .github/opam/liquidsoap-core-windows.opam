@@ -73,6 +73,7 @@ depopts: [
   "osx-secure-transport-windows"
   "portaudio-windows"
   "posix-time2-windows"
+  "posix-socket-windows"
   "pulseaudio-windows"
   "prometheus-liquidsoap-windows"
   "samplerate-windows"
@@ -111,12 +112,13 @@ conflicts: [
   "ogg-windows" {< "0.7.4"}
   "opus-windows" {< "0.2.0"}
   "portaudio-windows" {< "0.2.0"}
+  "posix-socket-windows" {< "2.1.0"}
   "pulseaudio-windows" {< "0.1.4"}
   "samplerate-windows" {< "0.1.5"}
   "shine-windows" {< "0.2.0"}
   "soundtouch-windows" {< "0.1.9"}
   "speex-windows" {< "0.4.0"}
-  "srt-windows" {< "0.3.0"}
+  "srt-windows" {< "0.3.3"}
   "ssl-windows" {< "0.5.2"}
   "sdl-liquidsoap-windows" {< "2"}
   "tsdl-image-windows" {< "0.3.2"}

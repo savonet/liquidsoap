@@ -1,4 +1,5 @@
 port = 6723
+settings.icecast.prefer_address := "ipv4"
 
 s = sine()
 

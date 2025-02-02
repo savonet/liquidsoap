@@ -41,7 +41,7 @@ repos:
     hooks:
       - id: codespell
         args: [-w, --ignore-words=.codespellignore]
-        exclude: ^doc/orig/fosdem2020
+        exclude: ^(doc/orig/fosdem2020|tests/language/cue_test.liq)
 
   - repo: local
     hooks:

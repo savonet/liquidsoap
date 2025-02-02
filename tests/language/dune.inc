@@ -51,6 +51,18 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  cue_test.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} cue_test.liq liquidsoap %{test_liq} cue_test.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   doc.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
