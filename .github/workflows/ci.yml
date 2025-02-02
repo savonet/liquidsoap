@@ -87,7 +87,7 @@ jobs:
           opam update
           opam pin -yn .
           opam install -y saturn_lockfree.0.5.0 ppx_hash
-          opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove -y inotify ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove -y inotify ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           opam install -y mem_usage
           echo "::endgroup::"
           cd liquidsoap

@@ -15,37 +15,7 @@
 
 (package
   (name liquidsoap)
-  (depends
-    (liquidsoap-core (= :version))
-    (liquidsoap-libs (and (>= 2.3.1) (< 2.3.2)))
-    (liquidsoap-libs-extra (and (>= 2.3.1) (< 2.3.2)))
-    (pandoc :with-doc)
-    (pandoc-include :with-doc))
-  (synopsis "Swiss-army knife for multimedia streaming")
-  (description
-"\| Liquidsoap is a powerful and flexible language for describing your
-"\| streams. It offers a rich collection of operators that you can combine
-"\| at will, giving you more power than you need for creating or
-"\| transforming streams. But liquidsoap is still very light and easy to
-"\| use, in the Unix tradition of simple strong components working
-"\| together.
-  ))
-
-(package
-   (name liquidsoap-libs-extra)
    (depends
-      (liquidsoap-libs (= :version))
-      (liquidsoap-lang :build))
-   (synopsis "Liquidosap standard library -- extra functionalities"))
-
-(package
-   (name liquidsoap-libs)
-   (depends (liquidsoap-lang :build))
-   (synopsis "Liquidosap standard library"))
-
-(package
-  (name liquidsoap-core)
-  (depends
     (ocaml (>= 4.14))
     (dtools (>= 0.4.5))
     (duppy (>= 0.9.4))
@@ -142,8 +112,18 @@
     (sdl-liquidsoap (< 2))
     (theora (< 1.0.0))
     (vorbis (< 1.0.0))
-    (xmlplaylist (< 0.1.3)))
-  (synopsis "Liquidsoap core library and binary"))
+    (xmlplaylist (< 0.1.3))
+    (pandoc :with-doc)
+    (pandoc-include :with-doc))
+  (synopsis "Swiss-army knife for multimedia streaming")
+  (description
+"\| Liquidsoap is a powerful and flexible language for describing your
+"\| streams. It offers a rich collection of operators that you can combine
+"\| at will, giving you more power than you need for creating or
+"\| transforming streams. But liquidsoap is still very light and easy to
+"\| use, in the Unix tradition of simple strong components working
+"\| together.
+  ))
 
 (package
   (name liquidsoap-lang)
