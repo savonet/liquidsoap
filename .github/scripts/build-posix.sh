@@ -99,6 +99,7 @@ OCAMLPATH="$(cat .ocamlpath)"
 export OCAMLPATH
 
 cd /tmp/liquidsoap-full/liquidsoap
+dune build @doc @doc-private
 dune build --profile=release
 
 echo "::endgroup::"

@@ -199,18 +199,14 @@ jobs:
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cd /tmp/liquidsoap-full/liquidsoap/
+          mkdir -p /tmp/${{ github.run_number }}/odoc
+          cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
           eval $(opam config env)
           dune build src/js
           cd /tmp/liquidsoap-full/website
           make dist
           mkdir -p /tmp/${{ github.run_number }}/html
           cp -rf html/* /tmp/${{ github.run_number }}/html
-          # Build with odoc
-          cd /tmp/liquidsoap-full/liquidsoap
-          opam install -y odoc
-          dune build @doc @doc-private
-          mkdir -p /tmp/${{ github.run_number }}/odoc
-          cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
       - name: Push content
         if: success() && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@fbf0a4fa4e00f45accd6cf3232368436ec06ed59 # v4.1.0
