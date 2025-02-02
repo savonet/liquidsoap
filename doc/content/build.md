@@ -69,7 +69,6 @@ Then, ask `opam` to list all the dependencies for `liquidsoap`:
 
 ```shell
 opam info liquidsoap
-opam info liquidsoap-core
 opam info liquidsoap-lang
 ```
 

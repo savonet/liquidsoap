@@ -59,7 +59,7 @@ opam install -y srt-windows.0.3.3
 echo "::endgroup::"
 
 echo "::group::Install liquidsoap-windows"
-opam install -y liquidsoap-core-windows
+opam install -y liquidsoap-windows
 echo "::endgroup::"
 
 echo "::group::Save build config"

@@ -1,7 +1,7 @@
 (executable
  (name liquidsoap)
  (public_name liquidsoap)
- (package liquidsoap-core)
+ (package liquidsoap)
  (link_flags -cclib %{env:LIQ_LDFLAGS=})
  (libraries liquidsoap_runtime)
  (modules liquidsoap))
