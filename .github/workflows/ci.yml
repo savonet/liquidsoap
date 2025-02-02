@@ -206,6 +206,7 @@ jobs:
           mkdir -p /tmp/${{ github.run_number }}/html
           cp -rf html/* /tmp/${{ github.run_number }}/html
           # Build with odoc
+          cd /tmp/liquidsoap-full/liquidsoap
           dune build @doc @doc-private
           mkdir -p /tmp/${{ github.run_number }}/odoc
           cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
