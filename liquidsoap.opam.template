@@ -17,5 +17,6 @@ be able to use SSL encryption in its input or output operators. You might want
 to install one of ssl or tls-liquidsoap package."""
     {success & !ssl-enabled & !tls-enabled}
 ]
+x-maintenance-intent: ["(latest)"]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
