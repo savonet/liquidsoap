@@ -218,7 +218,7 @@ jobs:
         env:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
       - name: Deploy odoc
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+        uses: JamesIves/github-pages-deploy-action@15de0f09300eea763baee31dff6c6184995c5f6a # v4.7.2
         with:
           branch: gh-pages
           folder: ${{ github.run_number }}/odoc
