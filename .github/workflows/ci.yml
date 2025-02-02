@@ -184,7 +184,7 @@ jobs:
       - name: Install node
         run: |
           apt-get update
-          apt-get install -y npm odoc
+          apt-get install -y npm
       - name: Install pandoc
         run: |
           cd /tmp
@@ -207,6 +207,7 @@ jobs:
           cp -rf html/* /tmp/${{ github.run_number }}/html
           # Build with odoc
           cd /tmp/liquidsoap-full/liquidsoap
+          opam install -y odoc
           dune build @doc @doc-private
           mkdir -p /tmp/${{ github.run_number }}/odoc
           cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
