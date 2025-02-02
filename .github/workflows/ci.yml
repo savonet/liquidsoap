@@ -184,7 +184,7 @@ jobs:
       - name: Install node
         run: |
           apt-get update
-          apt-get install -y npm
+          apt-get install -y npm odoc
       - name: Install pandoc
         run: |
           cd /tmp
@@ -205,6 +205,10 @@ jobs:
           make dist
           mkdir -p /tmp/${{ github.run_number }}/html
           cp -rf html/* /tmp/${{ github.run_number }}/html
+          # Build with odoc
+          dune build @doc @doc-private
+          mkdir -p /tmp/${{ github.run_number }}/odoc
+          cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
       - name: Push content
         if: success() && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@fbf0a4fa4e00f45accd6cf3232368436ec06ed59 # v4.1.0
@@ -215,6 +219,11 @@ jobs:
           fqdn: www.liquidsoap.info
         env:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
+      - name: Deploy odoc
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: gh-pages
+          folder: ${{ github.run_number }}/odoc
 
   run_tests:
     runs-on: depot-ubuntu-24.04-4
