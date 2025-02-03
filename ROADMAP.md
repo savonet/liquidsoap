@@ -30,6 +30,7 @@
 - use row variables for methods, using Garrigue's _Simple Type Inference for Structural Polymorphism_
 - can we reimplement something like [melt](https://www.mltframework.org/)?
 - support for WebRTC using WHIP / WHEP
+- support decorations on a subtitle image track
 
 ## For 2.2
 
