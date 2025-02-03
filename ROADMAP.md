@@ -31,6 +31,7 @@
 - can we reimplement something like [melt](https://www.mltframework.org/)?
 - support for WebRTC using WHIP / WHEP
 - support decorations on a subtitle image track
+- make bindings to pipewire to support webcams and screensharing
 
 ## For 2.2
 
