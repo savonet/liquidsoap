@@ -121,38 +121,44 @@ let json_of_annotated_string = function
       ast_node ~typ:"ground"
         [("value", `String (Printf.sprintf "%c%s%c" sep s sep))]
 
-let rec json_of_type_annotation = function
+let rec json_of_type_annotation ~to_json = function
   | `Named n -> type_node ~typ:"named" (`String n)
-  | `Nullable t -> type_node ~typ:"nullable" (json_of_type_annotation t)
-  | `List t -> type_node ~typ:"list" (json_of_type_annotation t)
-  | `Json_object t -> type_node ~typ:"json_object" (json_of_type_annotation t)
+  | `Nullable t ->
+      type_node ~typ:"nullable" (json_of_type_annotation ~to_json t)
+  | `List t -> type_node ~typ:"list" (json_of_type_annotation ~to_json t)
+  | `Json_object t ->
+      type_node ~typ:"json_object" (json_of_type_annotation ~to_json t)
   | `Tuple l ->
-      type_node ~typ:"tuple" (`Tuple (List.map json_of_type_annotation l))
+      type_node ~typ:"tuple"
+        (`Tuple (List.map (json_of_type_annotation ~to_json) l))
   | `Arrow (args, t) ->
       type_node ~typ:"arrow"
-        ~extra:[("args", `Tuple (List.map json_of_type_fun_arg args))]
-        (json_of_type_annotation t)
+        ~extra:
+          [("args", `Tuple (List.map (json_of_type_fun_arg ~to_json) args))]
+        (json_of_type_annotation ~to_json t)
   | `Record l ->
-      type_node ~typ:"record" (`Tuple (List.map json_of_meth_annotation l))
+      type_node ~typ:"record"
+        (`Tuple (List.map (json_of_meth_annotation ~to_json) l))
   | `Method (t, l) ->
       type_node ~typ:"method"
-        ~extra:[("base", json_of_type_annotation t)]
-        (`Tuple (List.map json_of_meth_annotation l))
+        ~extra:[("base", json_of_type_annotation ~to_json t)]
+        (`Tuple (List.map (json_of_meth_annotation ~to_json) l))
   | `Invoke (t, s) ->
       type_node ~typ:"invoke"
         ~extra:[("method", `String s)]
-        (json_of_type_annotation t)
+        (json_of_type_annotation ~to_json t)
+  | `Typeof v -> type_node ~typ:"typeof" (to_json v)
   | `Source (n, t) ->
       type_node ~typ:"source"
         ~extra:[("base", `String n)]
         (json_of_source_annotation t)
 
-and json_of_type_fun_arg (b, s, t) =
+and json_of_type_fun_arg ~to_json (b, s, t) =
   type_node ~typ:"fun_arg"
     ~extra:[("optional", `Bool b); ("label", `String s)]
-    (json_of_type_annotation t)
+    (json_of_type_annotation ~to_json t)
 
-and json_of_meth_annotation { optional_meth; name; typ; json_name } =
+and json_of_meth_annotation ~to_json { optional_meth; name; typ; json_name } =
   type_node ~typ:"method_annotation"
     ~extra:
       [
@@ -160,7 +166,7 @@ and json_of_meth_annotation { optional_meth; name; typ; json_name } =
         ("name", `String name);
         ("json_name", match json_name with None -> `Null | Some n -> `String n);
       ]
-    (json_of_type_annotation typ)
+    (json_of_type_annotation ~to_json typ)
 
 and json_of_source_annotation { extensible; tracks } =
   type_node ~typ:"source_annotation"
@@ -275,7 +281,7 @@ let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> (string * Json.t) list =
                    ( "typ",
                      match typ with
                        | None -> `Null
-                       | Some typ -> json_of_type_annotation typ );
+                       | Some typ -> json_of_type_annotation ~to_json typ );
                    ( "default",
                      match default with None -> `Null | Some d -> to_json d );
                  ]) );
@@ -340,7 +346,9 @@ let args_of_json_let ~to_json { decoration; pat; arglist; cast; def } =
                  (fun arg -> `Assoc (json_of_fun_arg ~to_json arg))
                  arglist) );
     ( "cast",
-      match cast with None -> `Null | Some t -> json_of_type_annotation t );
+      match cast with
+        | None -> `Null
+        | Some t -> json_of_type_annotation ~to_json t );
     ("definition", to_json def);
   ]
 
@@ -476,7 +484,7 @@ let rec to_ast_json ~to_json = function
   | `Null -> ast_node ~typ:"null" []
   | `Cast { cast = t; typ } ->
       ast_node ~typ:"cast"
-        [("left", to_json t); ("right", json_of_type_annotation typ)]
+        [("left", to_json t); ("right", json_of_type_annotation ~to_json typ)]
   | `Invoke { invoked; optional; meth } ->
       ast_node ~typ:"invoke"
         [
