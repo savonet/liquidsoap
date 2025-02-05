@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Builtins_request (liquidsoap_builtins@8e9bf4542caf.Builtins_request)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../odoc.support/odoc.css"/><meta name="generator" content="odoc 2.4.4"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../index.html">liquidsoap_builtins@8e9bf4542caf</a> &#x00BB; Builtins_request</nav><header class="odoc-preamble"><h1>Module <code><span>Builtins_request</span></code></h1></header><div class="odoc-content"><div class="odoc-spec"><div class="spec value anchored" id="val-request"><a href="#val-request" class="anchor"></a><code><span><span class="keyword">val</span> request : <a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-module_name">Lang.module_name</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-should_stop"><a href="#val-should_stop" class="anchor"></a><code><span><span class="keyword">val</span> should_stop : <span>bool <span class="xref-unresolved">Stdlib</span>.Atomic.t</span></span></code></div></div><div class="odoc-spec"><div class="spec exception anchored" id="exception-Process_failed"><a href="#exception-Process_failed" class="anchor"></a><code><span><span class="keyword">exception</span> </span><span><span class="exception">Process_failed</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-process"><a href="#class-process" class="anchor"></a><code><span><span class="keyword">class</span> </span><span><a href="class-process/index.html">process</a></span><span> : <span><span class="label">name</span>:string <span class="arrow">&#45;&gt;</span></span> <span><a href="../../liquidsoap_core@8e9bf4542caf/Request/index.html#type-t">Request.t</a> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-process_request"><a href="#val-process_request" class="anchor"></a><code><span><span class="keyword">val</span> process_request : 
+  <span><span class="label">log</span>:<a href="../../liquidsoap_core@8e9bf4542caf/Log/index.html#type-t">Log.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">name</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">ratio</span>:float <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">timeout</span>:float <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">sleep_latency</span>:float <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">process</span>:
+    <span>(<span><a href="../../liquidsoap_core@8e9bf4542caf/Source/class-source/index.html">Source.source</a> <span class="arrow">&#45;&gt;</span></span>
+      <span>&lt; abort_track : unit
+      ; active : bool
+      ; add_watcher : <span><a href="../../liquidsoap_core@8e9bf4542caf/Source/index.html#type-watcher">Source.watcher</a> <span class="arrow">&#45;&gt;</span></span> unit
+      ; buffer : <a href="../../liquidsoap_core@8e9bf4542caf/Generator/index.html#type-t">Generator.t</a>
+      ; clock : <a href="../../liquidsoap_core@8e9bf4542caf/Clock/index.html#type-t">Clock.t</a>
+      ; consumed : <span>int <span class="arrow">&#45;&gt;</span></span> unit
+      ; content_type : <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-content_type">Frame.content_type</a>
+      ; content_type_computation_allowed : unit
+      ; duration : int
+      ; elapsed : int
+      ; empty_frame : <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a>
+      ; end_of_track : <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a>
+      ; fallible : bool
+      ; force_sleep : unit
+      ; frame_audio_position : int
+      ; frame_has_track_mark : bool
+      ; frame_metadata : <span><span>(int * <a href="../../liquidsoap_core@8e9bf4542caf/Frame/Metadata/index.html#type-t">Frame.Metadata.t</a>)</span> list</span>
+      ; frame_position : int
+      ; frame_track_mark : <span>int option</span>
+      ; frame_type : <a href="../../liquidsoap_core@8e9bf4542caf/Type/index.html#type-t">Type.t</a>
+      ; get_frame : <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a>
+      ; get_mutable_content : <span><a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-field">Frame.field</a> <span class="arrow">&#45;&gt;</span></span> <a href="../../liquidsoap_core@8e9bf4542caf/Content/index.html#type-data">Content.data</a>
+      ; get_mutable_frame : <span><a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-field">Frame.field</a> <span class="arrow">&#45;&gt;</span></span> <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a>
+      ; get_partial_frame : <span><span>(<span><a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a> <span class="arrow">&#45;&gt;</span></span> <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a>)</span> <span class="arrow">&#45;&gt;</span></span> <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a>
+      ; has_content_type : bool
+      ; id : string
+      ; is_ready : bool
+      ; is_up : bool
+      ; last_image : <span><a href="../../liquidsoap_core@8e9bf4542caf/Frame/Fields/index.html#type-field">Frame.Fields.field</a> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">Mm</span>.Video.Canvas.image
+      ; last_metadata : <span><a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-metadata">Frame.metadata</a> option</span>
+      ; log : 
+        <span>&lt; active : <span>int <span class="arrow">&#45;&gt;</span></span> bool
+        ; critical : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+        ; debug : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+        ; f : 'a. <span>int <span class="arrow">&#45;&gt;</span></span> <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+        ; important : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+        ; info : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+        ; level : <span>int option</span>
+        ; set_level : <span>int <span class="arrow">&#45;&gt;</span></span> unit
+        ; severe : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>.. &gt;</span>
+      ; on_after_streaming_cycle : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+      ; on_before_streaming_cycle : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+      ; on_metadata : <span><span>(<span><a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-metadata">Frame.metadata</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+      ; on_sleep : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+      ; on_track : <span><span>(<span><a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-metadata">Frame.metadata</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+      ; on_wake_up : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+      ; peek_frame : <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a>
+      ; pos : <a href="../../liquidsoap-lang/Liquidsoap_lang/Pos/Option/index.html#type-t">Pos.Option.t</a>
+      ; register_command : 
+        <span><span class="optlabel">?usage</span>:string <span class="arrow">&#45;&gt;</span></span>
+        <span><span class="label">descr</span>:string <span class="arrow">&#45;&gt;</span></span>
+        <span>string <span class="arrow">&#45;&gt;</span></span>
+        <span><span>(<span>string <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+        unit
+      ; remaining : int
+      ; reset_last_metadata_on_track : bool
+      ; seek : <span>int <span class="arrow">&#45;&gt;</span></span> int
+      ; seek_source : <a href="../../liquidsoap_core@8e9bf4542caf/Source/class-source/index.html">Source.source</a>
+      ; self_sync : <span>[&lt; `Dynamic <span>| `Static</span> ]</span> * <span><a href="../../liquidsoap_core@8e9bf4542caf/Clock/index.html#type-sync_source">Clock.sync_source</a> option</span>
+      ; set_frame_data : 
+        'a. <span><a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-field">Frame.field</a> <span class="arrow">&#45;&gt;</span></span>
+        <span><span>(<span><span class="optlabel">?offset</span>:int <span class="arrow">&#45;&gt;</span></span> <span><span class="optlabel">?length</span>:int <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <a href="../../liquidsoap_core@8e9bf4542caf/Content/index.html#type-data">Content.data</a>)</span> <span class="arrow">&#45;&gt;</span></span>
+        <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+        <a href="../../liquidsoap_core@8e9bf4542caf/Frame/index.html#type-t">Frame.t</a>
+      ; set_id : <span><span class="optlabel">?definitive</span>:bool <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> unit
+      ; set_name : <span>string <span class="arrow">&#45;&gt;</span></span> unit
+      ; set_reset_last_metadata_on_track : <span>bool <span class="arrow">&#45;&gt;</span></span> unit
+      ; set_stack : <span><span><a href="../../liquidsoap_core@8e9bf4542caf/Pos/index.html#type-t">Pos.t</a> list</span> <span class="arrow">&#45;&gt;</span></span> unit
+      ; sleep : unit
+      ; source_sync : <span>bool <span class="arrow">&#45;&gt;</span></span> <span><a href="../../liquidsoap_core@8e9bf4542caf/Clock/index.html#type-sync_source">Clock.sync_source</a> option</span>
+      ; source_type : <span>[&lt; <a href="../../liquidsoap_core@8e9bf4542caf/Source/index.html#type-source_type">Source.source_type</a> ]</span>
+      ; stack : <span><a href="../../liquidsoap_core@8e9bf4542caf/Pos/index.html#type-t">Pos.t</a> list</span>
+      ; stack_unifier : <span><span><a href="../../liquidsoap_core@8e9bf4542caf/Pos/index.html#type-t">Pos.t</a> list</span> <a href="../../liquidsoap_core@8e9bf4542caf/Unifier/index.html#type-t">Unifier.t</a></span>
+      ; wake_up : unit.. &gt;</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../../liquidsoap_core@8e9bf4542caf/Request/index.html#type-t">Request.t</a> <span class="arrow">&#45;&gt;</span></span>
+  unit</span></code></div></div></div></body></html>

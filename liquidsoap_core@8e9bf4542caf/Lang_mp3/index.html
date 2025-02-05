@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Lang_mp3 (liquidsoap_core@8e9bf4542caf.Lang_mp3)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../odoc.support/odoc.css"/><meta name="generator" content="odoc 2.4.4"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../index.html">liquidsoap_core@8e9bf4542caf</a> &#x00BB; Lang_mp3</nav><header class="odoc-preamble"><h1>Module <code><span>Lang_mp3</span></code></h1></header><div class="odoc-content"><div class="odoc-spec"><div class="spec value anchored" id="val-type_of_encoder"><a href="#val-type_of_encoder" class="anchor"></a><code><span><span class="keyword">val</span> type_of_encoder : 
+  <span><span><span>[&gt; <span>`Anonymous of string</span>
+  <span><span>| `Labelled</span> of string * <span><a href="../../liquidsoap-lang/Liquidsoap_lang/Term/index.html#type-ast">Liquidsoap_lang.Term.ast</a> <a href="../../liquidsoap-lang/Liquidsoap_lang/Term/index.html#type-term">Liquidsoap_lang.Term.term</a></span></span> ]</span>
+    list</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../Type/index.html#type-t">Type.t</a> <a href="../Frame/Fields/index.html#type-t">Frame.Fields.t</a></span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-allowed_bitrates"><a href="#val-allowed_bitrates" class="anchor"></a><code><span><span class="keyword">val</span> allowed_bitrates : <span>int list</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-check_samplerate"><a href="#val-check_samplerate" class="anchor"></a><code><span><span class="keyword">val</span> check_samplerate : 
+  <span><span class="label">pos</span>:<span><a href="../../liquidsoap-lang/Liquidsoap_lang/Pos/index.html#type-t">Liquidsoap_lang.Pos.t</a> option</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>int <span class="xref-unresolved">Stdlib</span>.Lazy.t</span> <span class="arrow">&#45;&gt;</span></span>
+  <span>int <span class="xref-unresolved">Stdlib</span>.Lazy.t</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-mp3_base_defaults"><a href="#val-mp3_base_defaults" class="anchor"></a><code><span><span class="keyword">val</span> mp3_base_defaults : <span>unit <span class="arrow">&#45;&gt;</span></span> <a href="../Mp3_format/index.html#type-t">Mp3_format.t</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-mp3_base"><a href="#val-mp3_base" class="anchor"></a><code><span><span class="keyword">val</span> mp3_base : 
+  <span><a href="../Mp3_format/index.html#type-t">Mp3_format.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>[&lt; <span>`Anonymous of string</span>
+  <span><span>| `Encoder</span> of <span class="type-var">'a</span></span>
+  <span><span>| `Labelled</span> of string * <a href="../../liquidsoap-lang/Liquidsoap_lang/Value/index.html#type-t">Liquidsoap_lang.Value.t</a></span> Anonymous Labelled ]</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../Mp3_format/index.html#type-t">Mp3_format.t</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-make_cbr"><a href="#val-make_cbr" class="anchor"></a><code><span><span class="keyword">val</span> make_cbr : 
+  <span><span><span>[&lt; <span>`Anonymous of string</span>
+  <span><span>| `Encoder</span> of <span class="type-var">'a</span></span>
+  <span><span>| `Labelled</span> of string * <a href="../../liquidsoap-lang/Liquidsoap_lang/Value/index.html#type-t">Liquidsoap_lang.Value.t</a></span> Anonymous Labelled ]</span>
+    list</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../Encoder/index.html#type-format">Encoder.format</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-make_abr_vbr"><a href="#val-make_abr_vbr" class="anchor"></a><code><span><span class="keyword">val</span> make_abr_vbr : 
+  <span><span class="label">default</span>:<a href="../Mp3_format/index.html#type-t">Mp3_format.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>[&lt; <span>`Anonymous of string</span>
+  <span><span>| `Encoder</span> of <span class="type-var">'a</span></span>
+  <span><span>| `Labelled</span> of string * <a href="../../liquidsoap-lang/Liquidsoap_lang/Value/index.html#type-t">Liquidsoap_lang.Value.t</a></span> Anonymous Labelled ]</span>
+    list</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../Encoder/index.html#type-format">Encoder.format</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-make_abr"><a href="#val-make_abr" class="anchor"></a><code><span><span class="keyword">val</span> make_abr : 
+  <span><span><span>[&lt; <span>`Anonymous of string</span>
+  <span><span>| `Encoder</span> of <span class="type-var">'a</span></span>
+  <span><span>| `Labelled</span> of string * <a href="../../liquidsoap-lang/Liquidsoap_lang/Value/index.html#type-t">Liquidsoap_lang.Value.t</a></span> Anonymous Labelled ]</span>
+    list</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../Encoder/index.html#type-format">Encoder.format</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-make_vbr"><a href="#val-make_vbr" class="anchor"></a><code><span><span class="keyword">val</span> make_vbr : 
+  <span><span><span>[&lt; <span>`Anonymous of string</span>
+  <span><span>| `Encoder</span> of <span class="type-var">'a</span></span>
+  <span><span>| `Labelled</span> of string * <a href="../../liquidsoap-lang/Liquidsoap_lang/Value/index.html#type-t">Liquidsoap_lang.Value.t</a></span> Anonymous Labelled ]</span>
+    list</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../Encoder/index.html#type-format">Encoder.format</a></span></code></div></div></div></body></html>

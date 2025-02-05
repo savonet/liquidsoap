@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Pipe_output (liquidsoap_core@8e9bf4542caf.Pipe_output)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../odoc.support/odoc.css"/><meta name="generator" content="odoc 2.4.4"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../index.html">liquidsoap_core@8e9bf4542caf</a> &#x00BB; Pipe_output</nav><header class="odoc-preamble"><h1>Module <code><span>Pipe_output</span></code></h1><p>base class</p></header><div class="odoc-content"><div class="odoc-spec"><div class="spec value anchored" id="val-output"><a href="#val-output" class="anchor"></a><code><span><span class="keyword">val</span> output : <a href="../Lang/index.html#type-module_name">Lang.module_name</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-encoder_factory"><a href="#val-encoder_factory" class="anchor"></a><code><span><span class="keyword">val</span> encoder_factory : 
+  <span><span class="optlabel">?format</span>:<a href="../Encoder/index.html#type-format">Encoder.format</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../Lang/index.html#type-value">Lang.value</a> <span class="arrow">&#45;&gt;</span></span>
+  <span>string <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../Frame/Metadata/Export/index.html#type-t">Frame.Metadata.Export.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../Encoder/index.html#type-encoder">Encoder.encoder</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-base_proto"><a href="#val-base_proto" class="anchor"></a><code><span><span class="keyword">val</span> base_proto : <span><span>(string * <a href="../Lang/index.html#type-t">Lang.t</a> * <span><a href="../Lang/index.html#type-value">Lang.value</a> option</span> * <span>string option</span>)</span> list</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-base"><a href="#class-base" class="anchor"></a><code><span><span class="keyword">class</span> <span class="keyword">virtual</span> </span><span><a href="class-base/index.html">base</a></span><span> : <span><span class="optlabel">?clock</span>:<span><a href="../Clock/index.html#type-t">Clock.t</a> option</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="label">source</span>:<a href="../Lang/index.html#type-value">Lang.value</a> <span class="arrow">&#45;&gt;</span></span> <span><span class="label">name</span>:string <span class="arrow">&#45;&gt;</span></span> <span><span><span>(string
+                                                                 * <a href="../Lang/index.html#type-value">Lang.value</a>)</span>
+                                                                  list</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-url_proto"><a href="#val-url_proto" class="anchor"></a><code><span><span class="keyword">val</span> url_proto : 
+  <span><a href="../Lang/index.html#type-t">Lang.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(string * <a href="../Lang/index.html#type-t">Lang.t</a> * <span><a href="../Lang/index.html#type-value">Lang.value</a> option</span> * <span>string option</span>)</span> list</span></span></code></div><div class="spec-doc"><p>url output: discard encoded data, try to restart on encoding error (can be networking issues etc.)</p></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-url_output"><a href="#class-url_output" class="anchor"></a><code><span><span class="keyword">class</span> </span><span><a href="class-url_output/index.html">url_output</a></span><span> : <span><span><span>(string * <a href="../Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><p>Piped virtual class: open/close pipe, implements metadata interpolation and takes care of the various reload mechanisms.</p><div class="odoc-spec"><div class="spec value anchored" id="val-default_reopen_on_error"><a href="#val-default_reopen_on_error" class="anchor"></a><code><span><span class="keyword">val</span> default_reopen_on_error : <a href="../Lang/index.html#type-value">Lang.value</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-default_reopen_on_metadata"><a href="#val-default_reopen_on_metadata" class="anchor"></a><code><span><span class="keyword">val</span> default_reopen_on_metadata : <a href="../Lang/index.html#type-value">Lang.value</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-default_reopen_when"><a href="#val-default_reopen_when" class="anchor"></a><code><span><span class="keyword">val</span> default_reopen_when : <a href="../Lang/index.html#type-value">Lang.value</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-pipe_meth"><a href="#val-pipe_meth" class="anchor"></a><code><span><span class="keyword">val</span> pipe_meth : 
+  <span><span>(string
+   * <a href="../Lang/index.html#type-scheme">Lang.scheme</a>
+   * string
+   * <span>(<span><span>&lt; abort_track : unit
+        ; active : bool
+        ; add_watcher : <span><a href="../Source/index.html#type-watcher">Source.watcher</a> <span class="arrow">&#45;&gt;</span></span> unit
+        ; buffer : <a href="../Generator/index.html#type-t">Generator.t</a>
+        ; cleanup_pipe : unit
+        ; clock : <a href="../Clock/index.html#type-t">Clock.t</a>
+        ; close_encoder : <a href="../Strings/index.html#type-t">Strings.t</a>
+        ; close_pipe : unit
+        ; consumed : <span>int <span class="arrow">&#45;&gt;</span></span> unit
+        ; content_type : <a href="../Frame/index.html#type-content_type">Frame.content_type</a>
+        ; content_type_computation_allowed : unit
+        ; create_encoder : unit
+        ; duration : int
+        ; elapsed : int
+        ; empty_frame : <a href="../Frame/index.html#type-t">Frame.t</a>
+        ; encode : <span><a href="../Frame/index.html#type-t">Frame.t</a> <span class="arrow">&#45;&gt;</span></span> <a href="../Strings/index.html#type-t">Strings.t</a>
+        ; end_of_track : <a href="../Frame/index.html#type-t">Frame.t</a>
+        ; fallible : bool
+        ; force_sleep : unit
+        ; frame_audio_position : int
+        ; frame_has_track_mark : bool
+        ; frame_metadata : <span><span>(int * <a href="../Frame/Metadata/index.html#type-t">Frame.Metadata.t</a>)</span> list</span>
+        ; frame_position : int
+        ; frame_track_mark : <span>int option</span>
+        ; frame_type : <a href="../Type/index.html#type-t">Type.t</a>
+        ; get_frame : <a href="../Frame/index.html#type-t">Frame.t</a>
+        ; get_mutable_content : <span><a href="../Frame/index.html#type-field">Frame.field</a> <span class="arrow">&#45;&gt;</span></span> <a href="../Content/index.html#type-data">Content.data</a>
+        ; get_mutable_frame : <span><a href="../Frame/index.html#type-field">Frame.field</a> <span class="arrow">&#45;&gt;</span></span> <a href="../Frame/index.html#type-t">Frame.t</a>
+        ; get_partial_frame : <span><span>(<span><a href="../Frame/index.html#type-t">Frame.t</a> <span class="arrow">&#45;&gt;</span></span> <a href="../Frame/index.html#type-t">Frame.t</a>)</span> <span class="arrow">&#45;&gt;</span></span> <a href="../Frame/index.html#type-t">Frame.t</a>
+        ; has_content_type : bool
+        ; id : string
+        ; insert_metadata : <span><a href="../Frame/Metadata/Export/index.html#type-t">Frame.Metadata.Export.t</a> <span class="arrow">&#45;&gt;</span></span> unit
+        ; interpolate : <span><span class="optlabel">?subst</span>:<span>(<span>string <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> string
+        ; is_open : bool
+        ; is_ready : bool
+        ; is_up : bool
+        ; last_image : <span><a href="../Frame/Fields/index.html#type-field">Frame.Fields.field</a> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">Mm</span>.Video.Canvas.image
+        ; last_metadata : <span><a href="../Frame/index.html#type-metadata">Frame.metadata</a> option</span>
+        ; log : 
+          <span>&lt; active : <span>int <span class="arrow">&#45;&gt;</span></span> bool
+          ; critical : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+          ; debug : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+          ; f : 'a. <span>int <span class="arrow">&#45;&gt;</span></span> <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+          ; important : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+          ; info : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span>
+          ; level : <span>int option</span>
+          ; set_level : <span>int <span class="arrow">&#45;&gt;</span></span> unit
+          ; severe : 'a. <span><span><span>(<span class="type-var">'a</span>, unit, string, unit)</span> <span class="xref-unresolved">Stdlib</span>.format4</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span> &gt;</span>
+        ; need_reopen : unit
+        ; on_after_streaming_cycle : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+        ; on_before_streaming_cycle : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+        ; on_metadata : <span><span>(<span><a href="../Frame/index.html#type-metadata">Frame.metadata</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+        ; on_sleep : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+        ; on_track : <span><span>(<span><a href="../Frame/index.html#type-metadata">Frame.metadata</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+        ; on_wake_up : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> unit
+        ; open_pipe : unit
+        ; output : unit
+        ; peek_frame : <a href="../Frame/index.html#type-t">Frame.t</a>
+        ; pos : <a href="../../liquidsoap-lang/Liquidsoap_lang/Pos/Option/index.html#type-t">Pos.Option.t</a>
+        ; prepare_pipe : unit
+        ; register_command : 
+          <span><span class="optlabel">?usage</span>:string <span class="arrow">&#45;&gt;</span></span>
+          <span><span class="label">descr</span>:string <span class="arrow">&#45;&gt;</span></span>
+          <span>string <span class="arrow">&#45;&gt;</span></span>
+          <span><span>(<span>string <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+          unit
+        ; remaining : int
+        ; reopen : unit
+        ; reset : unit
+        ; reset_last_metadata_on_track : bool
+        ; seek : <span>int <span class="arrow">&#45;&gt;</span></span> int
+        ; seek_source : <a href="../Source/class-source/index.html">Source.source</a>
+        ; self_sync : <span>[ `Dynamic <span>| `Static</span> ]</span> * <span><a href="../Clock/index.html#type-sync_source">Clock.sync_source</a> option</span>
+        ; send : <span><a href="../Strings/index.html#type-t">Strings.t</a> <span class="arrow">&#45;&gt;</span></span> unit
+        ; set_frame_data : 
+          'a. <span><a href="../Frame/index.html#type-field">Frame.field</a> <span class="arrow">&#45;&gt;</span></span>
+          <span><span>(<span><span class="optlabel">?offset</span>:int <span class="arrow">&#45;&gt;</span></span> <span><span class="optlabel">?length</span>:int <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <a href="../Content/index.html#type-data">Content.data</a>)</span> <span class="arrow">&#45;&gt;</span></span>
+          <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+          <a href="../Frame/index.html#type-t">Frame.t</a>
+        ; set_id : <span><span class="optlabel">?definitive</span>:bool <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> unit
+        ; set_name : <span>string <span class="arrow">&#45;&gt;</span></span> unit
+        ; set_reset_last_metadata_on_track : <span>bool <span class="arrow">&#45;&gt;</span></span> unit
+        ; set_stack : <span><span><a href="../Pos/index.html#type-t">Pos.t</a> list</span> <span class="arrow">&#45;&gt;</span></span> unit
+        ; sleep : unit
+        ; source_sync : <span>bool <span class="arrow">&#45;&gt;</span></span> <span><a href="../Clock/index.html#type-sync_source">Clock.sync_source</a> option</span>
+        ; source_type : <a href="../Source/index.html#type-source_type">Source.source_type</a>
+        ; stack : <span><a href="../Pos/index.html#type-t">Pos.t</a> list</span>
+        ; stack_unifier : <span><span><a href="../Pos/index.html#type-t">Pos.t</a> list</span> <a href="../Unifier/index.html#type-t">Unifier.t</a></span>
+        ; start : unit
+        ; state : <a href="../Start_stop/index.html#type-state">Start_stop.state</a>
+        ; stop : unit
+        ; transition_to : <span><a href="../Start_stop/index.html#type-state">Start_stop.state</a> <span class="arrow">&#45;&gt;</span></span> unit
+        ; wake_up : unit
+        ; write_pipe : <span>string <span class="arrow">&#45;&gt;</span></span> <span>int <span class="arrow">&#45;&gt;</span></span> <span>int <span class="arrow">&#45;&gt;</span></span> unit &gt;</span> <span class="arrow">&#45;&gt;</span></span>
+   <a href="../Lang/index.html#type-value">Lang.value</a>)</span>)</span>
+    list</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-piped_output"><a href="#class-piped_output" class="anchor"></a><code><span><span class="keyword">class</span> <span class="keyword">virtual</span> </span><span><a href="class-piped_output/index.html">piped_output</a></span><span> : <span><span class="optlabel">?clock</span>:<span><a href="../Clock/index.html#type-t">Clock.t</a> option</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="label">name</span>:string <span class="arrow">&#45;&gt;</span></span> <span><span><span>(string * <a href="../Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-chan_proto"><a href="#val-chan_proto" class="anchor"></a><code><span><span class="keyword">val</span> chan_proto : 
+  <span><a href="../Lang/index.html#type-t">Lang.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span>string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(string * <a href="../Lang/index.html#type-t">Lang.t</a> * <span><a href="../Lang/index.html#type-value">Lang.value</a> option</span> * <span>string option</span>)</span> list</span></span></code></div><div class="spec-doc"><p>Out channel virtual class: takes care of current out channel and writing to it.</p></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-chan_output"><a href="#class-chan_output" class="anchor"></a><code><span><span class="keyword">class</span> <span class="keyword">virtual</span> 'a </span><span><a href="class-chan_output/index.html">chan_output</a></span><span> : <span><span><span>(string * <a href="../Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><p>File output</p><div class="odoc-spec"><div class="spec class anchored" id="class-file_output_base"><a href="#class-file_output_base" class="anchor"></a><code><span><span class="keyword">class</span> <span class="keyword">virtual</span> 'a </span><span><a href="class-file_output_base/index.html">file_output_base</a></span><span> : <span><span><span>(string * <a href="../Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-file_output"><a href="#class-file_output" class="anchor"></a><code><span><span class="keyword">class</span> </span><span><a href="class-file_output/index.html">file_output</a></span><span> : <span><span class="optlabel">?clock</span>:<span><a href="../Clock/index.html#type-t">Clock.t</a> option</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="label">format_val</span>:<a href="../Lang/index.html#type-value">Lang.value</a> <span class="arrow">&#45;&gt;</span></span> <span><span><span>(string * <a href="../Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-file_output_using_encoder"><a href="#class-file_output_using_encoder" class="anchor"></a><code><span><span class="keyword">class</span> </span><span><a href="class-file_output_using_encoder/index.html">file_output_using_encoder</a></span><span> : <span><span class="optlabel">?clock</span>:<span><a href="../Clock/index.html#type-t">Clock.t</a> option</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="label">format_val</span>:<a href="../Lang/index.html#type-value">Lang.value</a> <span class="arrow">&#45;&gt;</span></span> <span><span><span>(string * <a href="../Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-file_proto"><a href="#val-file_proto" class="anchor"></a><code><span><span class="keyword">val</span> file_proto : 
+  <span><a href="../Lang/index.html#type-t">Lang.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(string * <a href="../Lang/index.html#type-t">Lang.t</a> * <span><a href="../Lang/index.html#type-value">Lang.value</a> option</span> * <span>string option</span>)</span> list</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-new_file_output"><a href="#val-new_file_output" class="anchor"></a><code><span><span class="keyword">val</span> new_file_output : 
+  <span><span class="optlabel">?clock</span>:<a href="../Clock/index.html#type-t">Clock.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(string * <a href="../Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="class-piped_output/index.html">piped_output</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-output_file"><a href="#val-output_file" class="anchor"></a><code><span><span class="keyword">val</span> output_file : <a href="../Lang/index.html#type-module_name">Lang.module_name</a></span></code></div></div><p>External output</p><div class="odoc-spec"><div class="spec class anchored" id="class-external_output"><a href="#class-external_output" class="anchor"></a><code><span><span class="keyword">class</span> </span><span><a href="class-external_output/index.html">external_output</a></span><span> : <span><span class="optlabel">?clock</span>:<span><a href="../Clock/index.html#type-t">Clock.t</a> option</span> <span class="arrow">&#45;&gt;</span></span> <span><span><span>(string * <a href="../Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-pipe_proto"><a href="#val-pipe_proto" class="anchor"></a><code><span><span class="keyword">val</span> pipe_proto : 
+  <span><a href="../Lang/index.html#type-t">Lang.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span>string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(string * <a href="../Lang/index.html#type-t">Lang.t</a> * <span><a href="../Lang/index.html#type-value">Lang.value</a> option</span> * <span>string option</span>)</span> list</span></span></code></div></div></div></body></html>

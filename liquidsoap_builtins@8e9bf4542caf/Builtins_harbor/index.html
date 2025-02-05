@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Builtins_harbor (liquidsoap_builtins@8e9bf4542caf.Builtins_harbor)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../odoc.support/odoc.css"/><meta name="generator" content="odoc 2.4.4"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../index.html">liquidsoap_builtins@8e9bf4542caf</a> &#x00BB; Builtins_harbor</nav><header class="odoc-preamble"><h1>Module <code><span>Builtins_harbor</span></code></h1></header><div class="odoc-content"><div class="odoc-spec"><div class="spec value anchored" id="val-resp_t"><a href="#val-resp_t" class="anchor"></a><code><span><span class="keyword">val</span> resp_t : <a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-t">Lang.t</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-harbor"><a href="#val-harbor" class="anchor"></a><code><span><span class="keyword">val</span> harbor : <a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-module_name">Lang.module_name</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-harbor_http"><a href="#val-harbor_http" class="anchor"></a><code><span><span class="keyword">val</span> harbor_http : <a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-module_name">Lang.module_name</a></span></code></div></div><div class="odoc-spec"><div class="spec module anchored" id="module-Http"><a href="#module-Http" class="anchor"></a><code><span><span class="keyword">module</span> Http</span><span> = <a href="../../liquidsoap_core@8e9bf4542caf/Liq_http/index.html">Liq_http</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-request_t"><a href="#val-request_t" class="anchor"></a><code><span><span class="keyword">val</span> request_t : <a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-t">Lang.t</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-register_args"><a href="#val-register_args" class="anchor"></a><code><span><span class="keyword">val</span> register_args : <span><span>(string * <a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-t">Lang.t</a> * <span><a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-value">Lang.value</a> option</span> * <span>string option</span>)</span> list</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-parse_register_args"><a href="#val-parse_register_args" class="anchor"></a><code><span><span class="keyword">val</span> parse_register_args : 
+  <span><span><span>(string * <a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-value">Lang.value</a>)</span> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../../liquidsoap_core@8e9bf4542caf/Lang/index.html#type-regexp">Lang.regexp</a>
+  * int
+  * <a href="../../liquidsoap_core@8e9bf4542caf/Liq_http/index.html#type-transport">Liq_http.transport</a>
+  * <a href="../../liquidsoap_core@8e9bf4542caf/Harbor/index.html#type-http_verb">Harbor.http_verb</a>
+  * <span>(<span><span class="label">protocol</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">meth</span>:<a href="../../liquidsoap_core@8e9bf4542caf/Harbor/index.html#type-http_verb">Harbor.http_verb</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">data</span>:<span>(<span>float <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">headers</span>:<span><span>(string * string)</span> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">query</span>:<span><span>(string * string)</span> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">socket</span>:
+    <span>&lt; close : unit
+      ; file_descr : <span class="xref-unresolved">Unix</span>.file_descr
+      ; read : <span><span class="xref-unresolved">Stdlib</span>.Bytes.t <span class="arrow">&#45;&gt;</span></span> <span>int <span class="arrow">&#45;&gt;</span></span> <span>int <span class="arrow">&#45;&gt;</span></span> int
+      ; transport : 
+        <span>&lt; connect : 
+          <span><span class="optlabel">?bind_address</span>:string <span class="arrow">&#45;&gt;</span></span>
+          <span><span class="optlabel">?timeout</span>:float <span class="arrow">&#45;&gt;</span></span>
+          <span><span class="optlabel">?prefer</span>:<span>[&gt; `Ipv4 <span>| `Ipv6</span> <span>| `System_default</span> ]</span> <span class="arrow">&#45;&gt;</span></span>
+          <span>string <span class="arrow">&#45;&gt;</span></span>
+          <span>int <span class="arrow">&#45;&gt;</span></span>
+          <a href="../../liquidsoap_core@8e9bf4542caf/Liq_http/index.html#type-socket">Builtins_socket.Http.socket</a>
+        ; default_port : int
+        ; name : string
+        ; protocol : string
+        ; server : <a href="../../liquidsoap_core@8e9bf4542caf/Liq_http/index.html#type-server">Builtins_socket.Http.server</a>.. &gt;</span>
+      ; typ : string
+      ; wait_for : 
+        <span><span class="optlabel">?log</span>:<span>(<span>string <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+        <span><span>[&gt; <a href="../../liquidsoap_core@8e9bf4542caf/Liq_http/index.html#type-event">Builtins_socket.Http.event</a> ]</span> <span class="arrow">&#45;&gt;</span></span>
+        <span>float <span class="arrow">&#45;&gt;</span></span>
+        unit
+      ; write : <span><span class="xref-unresolved">Stdlib</span>.Bytes.t <span class="arrow">&#45;&gt;</span></span> <span>int <span class="arrow">&#45;&gt;</span></span> <span>int <span class="arrow">&#45;&gt;</span></span> int.. &gt;</span> <span class="arrow">&#45;&gt;</span></span>
+  <span>string <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'a</span>, <a href="../../liquidsoap_core@8e9bf4542caf/Harbor/index.html#type-reply">Harbor.reply</a>)</span> <span class="xref-unresolved">Duppy</span>.Monad.t</span>)</span></span></code></div></div></div></body></html>
