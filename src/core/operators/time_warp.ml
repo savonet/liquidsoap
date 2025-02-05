@@ -343,7 +343,7 @@ module AdaptativeBuffer = struct
             in
             let frame =
               match Frame.track_marks content with
-                | p :: _ -> Frame.add_track_mark frame (unscale p)
+                | p :: _ -> Frame.set_track_mark frame (unscale p)
                 | _ -> frame
             in
 
