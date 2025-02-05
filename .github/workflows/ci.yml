@@ -83,6 +83,7 @@ jobs:
           opam pin -yn .
           opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove -y inotify ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
+          opam install -y mem_usage
           cd liquidsoap
           ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
         env:
