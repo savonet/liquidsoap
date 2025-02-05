@@ -39,38 +39,11 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
-git clone https://github.com/savonet/ocaml-xiph.git
-cd ocaml-xiph
-opam install -y .
-cd ..
-
-cd /tmp
-rm -rf ocaml-posix
-git clone https://github.com/savonet/ocaml-posix.git
-cd ocaml-posix
-opam pin -ny .
-opam install -y posix-socket.2.2.0 posix-base.2.2.0 posix-time2.2.2.0 posix-types.2.2.0
-
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
-git clone https://github.com/savonet/ocaml-mem_usage.git
-cd ocaml-mem_usage
-opam install -y .
-cd ..
-
-opam update
-opam remove -y jemalloc
-opam install -y tls.1.0.2 ca-certs mirage-crypto-rng cstruct saturn_lockfree.0.5.0 ppx_hash memtrace xml-light odoc
-
 cd /tmp/liquidsoap-full
-
-# TODO: Remove gstreamer from liquidsoap-full
-sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
-
-# TODO: Remove taglib from liquidsoap-full
-sed -e 's@ocaml-taglib@#ocaml-taglib@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
