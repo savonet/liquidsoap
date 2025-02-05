@@ -53,6 +53,8 @@ echo "::group::Compiling"
 
 cd /tmp/liquidsoap-full
 
+cp PACKAGES.default PACKAGES
+
 # Workaround
 touch liquidsoap/configure
 
