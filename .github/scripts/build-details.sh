@@ -6,6 +6,7 @@ if [ -n "${GITHUB_HEAD_REF}" ]; then
   BRANCH="${GITHUB_HEAD_REF}"
 else
   BRANCH="${GITHUB_REF#refs/heads/}"
+  BRANCH="${GITHUB_REF#refs/tags/}"
 fi
 
 BRANCH="${BRANCH//\//_}"
