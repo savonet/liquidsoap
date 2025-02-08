@@ -166,8 +166,8 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     method private skip = skip <- true
 
     method private generate_frame =
-      Frame.map_metadata source#get_frame (fun (pos, m) ->
-          Some (pos, self#add_on_air m))
+      Frame.map_metadata source#get_frame
+        (List.map (fun (pos, m) -> (pos, self#add_on_air m)))
 
     method output =
       if self#is_ready && state = `Idle then start_stop#transition_to `Started;
