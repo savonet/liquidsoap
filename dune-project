@@ -98,6 +98,7 @@
     (magic (< 0.6))
     (ogg (< 1.0.0))
     (opus (< 0.2.0))
+    (odoc (< 3.0.0~beta1))
     (portaudio (< 0.2.0))
     (posix-time2 (< 2.0.2))
     (posix-socket (< 2.1.0))
