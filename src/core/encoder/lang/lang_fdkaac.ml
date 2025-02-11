@@ -62,7 +62,7 @@ let make params =
       bitrate = 64;
       bitrate_mode = `Constant;
       (* We use a hardcoded value in order not to force the evaluation of the
-           number of channels too early, see #933. *)
+         number of channels too early, see #933. *)
       channels = 2;
       samplerate = check_samplerate ~pos:None Frame.audio_rate;
       sbr_mode = false;

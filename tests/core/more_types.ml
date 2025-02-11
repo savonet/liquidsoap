@@ -14,20 +14,20 @@ let () =
   let cond =
     Term.make
       (`Invoke
-        { Term.invoked = x; invoke_default = Some (_false ()); meth = "foo" })
+         { Term.invoked = x; invoke_default = Some (_false ()); meth = "foo" })
   in
   let _then =
     Term.make
       (`Fun
-        {
-          Term.name = None;
-          arguments = [];
-          body =
-            Term.make ~t:x.Term.t
-              ~methods:(Term.Methods.add "foo" (_false ()) Term.Methods.empty)
-              x.Term.term;
-          free_vars = None;
-        })
+         {
+           Term.name = None;
+           arguments = [];
+           body =
+             Term.make ~t:x.Term.t
+               ~methods:(Term.Methods.add "foo" (_false ()) Term.Methods.empty)
+               x.Term.term;
+           free_vars = None;
+         })
   in
   let _else =
     Term.make
@@ -36,22 +36,22 @@ let () =
   let f =
     Term.make
       (`Fun
-        {
-          Term.free_vars = None;
-          name = None;
-          arguments =
-            [
-              {
-                Term.label = "x";
-                as_variable = None;
-                typ = Type.var ();
-                default = None;
-              };
-            ];
-          body =
-            Term.make
-              (`App (_if, [("", cond); ("then", _then); ("else", _else)]));
-        })
+         {
+           Term.free_vars = None;
+           name = None;
+           arguments =
+             [
+               {
+                 Term.label = "x";
+                 as_variable = None;
+                 typ = Type.var ();
+                 default = None;
+               };
+             ];
+           body =
+             Term.make
+               (`App (_if, [("", cond); ("then", _then); ("else", _else)]));
+         })
   in
   Typechecking.check ~throw:(fun exn -> raise exn) f;
   match (Type.deref f.Term.t).Type.descr with

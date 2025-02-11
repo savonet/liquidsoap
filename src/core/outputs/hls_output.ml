@@ -318,7 +318,8 @@ type metadata =
 
 let pending_metadata = function `Todo _ -> true | _ -> false
 
-(** A stream in the HLS (which typically contains many, with different qualities). *)
+(** A stream in the HLS (which typically contains many, with different
+    qualities). *)
 type stream = {
   name : string;
   format : Encoder.format;

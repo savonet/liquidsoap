@@ -22,8 +22,7 @@
 
 (** Decode files using an external decoder. *)
 
-(** First, an external decoder that receives
-  * on its stdin. *)
+(** First, an external decoder that receives on its stdin. *)
 
 let log = Log.make ["decoder"; "external"]
 
@@ -34,9 +33,8 @@ let on_stderr =
     log#debug "stderr: %s" (Bytes.unsafe_to_string (Bytes.sub buf 0 len));
     `Continue
 
-(** This function is used to wrap around the "real" input.
-  * It pipes its data to the external process and read
-  * the available output. *)
+(** This function is used to wrap around the "real" input. It pipes its data to
+    the external process and read the available output. *)
 let external_input process input =
   let buflen = Utils.pagesize in
   let buf = Bytes.create buflen in
@@ -95,8 +93,8 @@ let audio_n = Frame_base.format_of_channels ~pcm_kind:Content.Audio.kind
 
 let test_ctype f filename =
   (* 0 = file rejected,
-   * n<0 = file accepted, unknown number of audio channels,
-   * n>0 = file accepted, known number of channels. *)
+     n<0 = file accepted, unknown number of audio channels,
+     n>0 = file accepted, known number of channels. *)
   let ret = f filename in
   if ret = 0 then None
   else
@@ -133,12 +131,10 @@ let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =
       dresolver;
     }
 
-(** Now an external decoder that directly operates
-  * on the file. The remaining time in this case
-  * can only be approximative. It is -1 while
-  * the file is being decoded and the length
-  * of the buffer when the external decoder
-  * has exited. *)
+(** Now an external decoder that directly operates on the file. The remaining
+    time in this case can only be approximative. It is -1 while the file is
+    being decoded and the length of the buffer when the external decoder has
+    exited. *)
 
 let log = Log.make ["decoder"; "external"; "oblivious"]
 

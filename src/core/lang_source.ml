@@ -432,7 +432,8 @@ let add_value_flag v flag =
     | Value.Float _ | Value.String _ | Value.Bool _ | Value.Null _ -> ()
     | v -> Value.add_flag v flag
 
-(** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
+(** Ensure that the frame contents of all the sources occurring in the value
+    agree with [t]. *)
 let check_content v t =
   let check t t' = Typing.(t <: t') in
   let rec check_value v t =
@@ -539,18 +540,20 @@ let check_content v t =
   in
   check_value v t
 
-(** An operator is a builtin function that builds a source.
-  * It is registered using the wrapper [add_operator].
-  * Creating the associated function type (and function) requires some work:
-  *  - Specify which content_kind the source will carry:
-  *    a given fixed number of channels, any fixed, a variable number?
-  *  - The content_kind can also be linked to a type variable,
-  *    e.g. the parameter of a format type.
-  * From this high-level description a type is created. Often it will
-  * carry a type constraint.
-  * Once the type has been inferred, the function might be executed,
-  * and at this point the type might still not be known completely
-  * so we have to force its value within the acceptable range. *)
+(** An operator is a builtin function that builds a source. It is registered
+    using the wrapper [add_operator]. Creating the associated function type (and
+    function) requires some work:
+    - Specify which content_kind the source will carry: a given fixed number of
+      channels, any fixed, a variable number?
+    - The content_kind can also be linked to a type variable, e.g. the parameter
+      of a format type.
+
+    From this high-level description a type is created. Often it will carry a
+    type constraint.
+
+    Once the type has been inferred, the function might be executed, and at this
+    point the type might still not be known completely so we have to force its
+    value within the acceptable range. *)
 
 let _meth = meth
 

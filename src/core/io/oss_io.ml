@@ -34,9 +34,8 @@ end)
 
 let sync_source = SyncSource.make ()
 
-(** Wrapper for calling set_* functions and checking that the desired
-  * value has been accepted. If not, the current behavior is a bit
-  * too violent. *)
+(** Wrapper for calling set_* functions and checking that the desired value has
+    been accepted. If not, the current behavior is a bit too violent. *)
 let force f fd x =
   let x' = f fd x in
   if x <> x' then failwith "cannot obtain desired OSS settings"

@@ -35,9 +35,8 @@ val samplerate_converter : unit -> samplerate_converter
 
 type wav_converter = bytes -> int -> int -> Content.Audio.data
 
-(** samplesize is in bits.
-    Formats: unsigned 8 bit (u8) or
-             signed 16 bit little endian (s16le) *)
+(** samplesize is in bits. Formats: unsigned 8 bit (u8) or signed 16 bit little
+    endian (s16le) *)
 val from_iff :
   format:Wav_aiff.format -> channels:int -> samplesize:int -> wav_converter
 

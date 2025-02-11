@@ -45,9 +45,9 @@ type callback = Bytes.t -> int -> int -> int
 
 val callback_ops : callback read_ops
 
-(** Open the named file for reading, and return a new wav descriptor.
-   Raise [Sys_error] if the file could not be opened and [Not_a_iff_file]
-   if it hasn't the right format. *)
+(** Open the named file for reading, and return a new wav descriptor. Raise
+    [Sys_error] if the file could not be opened and [Not_a_iff_file] if it
+    hasn't the right format. *)
 val fopen : string -> in_channel t
 
 (** Generic opener. *)
@@ -69,8 +69,8 @@ val data_length : 'a t -> int
 (** [close w] close the wav descriptor [w] *)
 val close : 'a t -> unit
 
-(** Returns the WAV header that declares the given format.
-  * The lengths of file and data are set to their maximum possible value. *)
+(** Returns the WAV header that declares the given format. The lengths of file
+    and data are set to their maximum possible value. *)
 val wav_header :
   ?len:int ->
   channels:int ->
@@ -79,6 +79,6 @@ val wav_header :
   unit ->
   string
 
-(** Returns the duration of the data.
-    Warning: value may not be accurate for streams. *)
+(** Returns the duration of the data. Warning: value may not be accurate for
+    streams. *)
 val duration : 'a t -> float

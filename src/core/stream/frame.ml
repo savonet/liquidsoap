@@ -24,9 +24,9 @@ include Frame_settings
 include Frame_base
 open Content
 
-(** Compatibilities between content kinds, types and values.
-  * [sub a b] if [a] is more permissive than [b]..
-  * TODO this is the other way around... it's correct in Lang, phew! *)
+(** Compatibilities between content kinds, types and values. [sub a b] if [a] is
+    more permissive than [b].. TODO this is the other way around... it's correct
+    in Lang, phew! *)
 
 let string_of_format = string_of_format
 

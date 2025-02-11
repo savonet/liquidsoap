@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Where the server commands are registered, and the server interfaces are
-  * created and controlled. *)
+    created and controlled. *)
 
 open Dtools
 
@@ -72,10 +72,10 @@ val write : after:(unit -> string) -> string -> unit
 (** Read from the client. *)
 val read : after:(string -> string) -> Duppy.Io.marker -> unit
 
-(** [add ~ns ~descr command f] adds a new command [command] in a given namespace ~ns.
-  * When the command is called, the function [f] is executed with the argument of
-  * the command as parameter. The return value of [f] is then displayed. ~descr is
-  * the command description. *)
+(** [add ~ns ~descr command f] adds a new command [command] in a given namespace
+    ~ns. When the command is called, the function [f] is executed with the
+    argument of the command as parameter. The return value of [f] is then
+    displayed. ~descr is the command description. *)
 val add :
   ns:namespace ->
   ?usage:string ->
@@ -88,11 +88,11 @@ val add :
 val remove : ns:namespace -> string -> unit
 
 (** [exec command] executes the [command], returns its result.
-  * @raise Not_found if the command does not exist.  *)
+    @raise Not_found if the command does not exist. *)
 val exec : string -> string
 
-(** Register a handle to be executed on server start or immediately
-    if the server has already started. *)
+(** Register a handle to be executed on server start or immediately if the
+    server has already started. *)
 val on_start : (unit -> unit) -> unit
 
 (** Start server and telnet if enabled. *)

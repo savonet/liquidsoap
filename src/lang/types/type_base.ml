@@ -28,21 +28,21 @@ let debug_levels = ref false
 
 let debug_variance = ref false
 
-(* Type information comes attached to the AST from the parsing,
- * with appropriate sharing of the type variables. Then the type inference
- * performs in-place unification.
- *
- * In order to report precise type error messages, we put very dense
- * parsing location information in the type. Every layer of it can have
- * a location. Destructive unification introduces links in such a way
- * that the old location is still accessible.
- *
- * The level annotation represents the number of abstractions which surround
- * the type in the AST -- function arguments and let-in definitions.
- * It is used to safely generalize types.
- *
- * Finally, constraints can be attached to existential (unknown, '_a)
- * and universal ('a) type variables. *)
+(** Type information comes attached to the AST from the parsing, with
+    appropriate sharing of the type variables. Then the type inference performs
+    in-place unification.
+
+    In order to report precise type error messages, we put very dense parsing
+    location information in the type. Every layer of it can have a location.
+    Destructive unification introduces links in such a way that the old location
+    is still accessible.
+
+    The level annotation represents the number of abstractions which surround
+    the type in the AST -- function arguments and let-in definitions. It is used
+    to safely generalize types.
+
+    Finally, constraints can be attached to existential (unknown, '_a) and
+    universal ('a) type variables. *)
 
 (** {2 Types} *)
 
@@ -71,8 +71,7 @@ module R = struct
     | `UVar of 'a var (* universal variable *)
     | `Ellipsis (* omitted sub-term *)
     | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
-    | `Debug of
-      string * 'a t * string
+    | `Debug of string * 'a t * string
       (* add annotations before / after, mostly used for debugging *) ]
 
   and 'a var = string * 'a Type_constraints.t

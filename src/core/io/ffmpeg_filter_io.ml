@@ -129,7 +129,7 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
                       let metadata =
                         if pass_metadata then (
                           (* Pass only one metadata. *)
-                          match Frame.get_all_metadata memo with
+                            match Frame.get_all_metadata memo with
                             | (_, m) :: _ -> Frame.Metadata.to_list m
                             | _ -> [])
                         else []
@@ -146,8 +146,8 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
         frames
   end
 
-(** From the script perspective, the operator sending data to a filter graph
-  * is an output. *)
+(** From the script perspective, the operator sending data to a filter graph is
+    an output. *)
 class audio_output ~pass_metadata ~name ~frame_t ~field source =
   object
     inherit [[ `Audio ]] base_output ~pass_metadata ~name ~frame_t ~field source

@@ -29,23 +29,22 @@ let debug = ref false
 
 (** {1 Type checking / inference} *)
 
-(** Can a function return type be generalized after being applied?
-    Current implementation considers it safe to generalize when all
-    universal types in the function return type are specified by a non-optional
-    argument.
+(** Can a function return type be generalized after being applied? Current
+    implementation considers it safe to generalize when all universal types in
+    the function return type are specified by a non-optional argument.
 
-    For instance, this can be generalized:
+    For instance,
+    - this can be generalized:
       [def f() = fun (x) -> x end; fn = f() : fun ('a) -> 'a ]
-    But this cannot:
-      [s = single() : source('A) ]
-    and this cannot either:
+    - but this cannot: [s = single() : source('A) ]
+    - and this cannot either:
       [def f() = fun (x=null()) -> ref(x) end; fn = f() : (?'A?) -> ref('A) ]
 
     When all universal types in the return are specified by a non-optional
     argument, we are assured that anything that would be generalized is later
-    specified when the required argument is passed. If this argument is still
-    of a universal type, then the argument's universal type takes over the
-    type that was generalized. *)
+    specified when the required argument is passed. If this argument is still of
+    a universal type, then the argument's universal type takes over the type
+    that was generalized. *)
 
 let function_app_value_restriction fn =
   let rec filter_app_vars l t =
@@ -70,8 +69,7 @@ let function_app_value_restriction fn =
           let pl =
             List.fold_left
               (fun pl -> function
-                | true, _, _ -> pl
-                | false, _, t -> filter_app_vars pl t)
+                | true, _, _ -> pl | false, _, t -> filter_app_vars pl t)
               [] p
           in
           List.filter (fun v -> not (List.memq v pl)) l
@@ -314,7 +312,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
              better error messages. Otherwise generate its type and unify -- in
              that case the optionality can't be guessed and mandatory is the
              default. *)
-          match (Type.demeth a.t).Type.descr with
+            match (Type.demeth a.t).Type.descr with
             | Type.Arrow (ap, t) ->
                 (* Find in l the first arg labeled lbl, return it together with the
                    remaining of the list. *)

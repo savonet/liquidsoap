@@ -267,10 +267,10 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
           let params =
             Some
               (`Video
-                {
-                  Ffmpeg_copy_content.avg_frame_rate = Some target_frame_rate;
-                  params = Avcodec.params encoder;
-                })
+                 {
+                   Ffmpeg_copy_content.avg_frame_rate = Some target_frame_rate;
+                   params = Avcodec.params encoder;
+                 })
           in
           let effective_t =
             Type.make

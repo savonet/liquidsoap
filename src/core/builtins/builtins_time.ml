@@ -41,8 +41,8 @@ let _ =
 let time =
   Lang.add_builtin ~category:`Time "time"
     ~descr:
-      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds." []
-    Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
+      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
+    [] Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
 
 let _ =
   Lang.add_builtin ~category:`Time ~base:time "up"

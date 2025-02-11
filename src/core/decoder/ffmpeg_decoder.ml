@@ -953,10 +953,10 @@ let mk_streams ~ctype ~decode_first_metadata container =
           | Some format when Ffmpeg_copy_content.is_format format ->
               ( Streams.add idx
                   (`Audio_packet
-                    ( stream,
-                      check_metadata stream
-                        (Ffmpeg_copy_decoder.mk_audio_decoder ~stream_idx
-                           ~format ~field ~stream params) ))
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_copy_decoder.mk_audio_decoder ~stream_idx
+                            ~format ~field ~stream params) ))
                   streams,
                 pos + 1 )
           | _ -> (streams, pos + 1))
@@ -971,43 +971,43 @@ let mk_streams ~ctype ~decode_first_metadata container =
           | Some format when Ffmpeg_raw_content.Audio.is_format format ->
               ( Streams.add idx
                   (`Audio_frame
-                    ( stream,
-                      check_metadata stream
-                        (Ffmpeg_raw_decoder.mk_audio_decoder ~stream_idx ~format
-                           ~stream ~field params) ))
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_raw_decoder.mk_audio_decoder ~stream_idx
+                            ~format ~stream ~field params) ))
                   streams,
                 pos + 1 )
           | Some format when Content.Audio.is_format format ->
               let channels = Content.Audio.channels_of_format format in
               ( Streams.add idx
                   (`Audio_frame
-                    ( stream,
-                      check_metadata stream
-                        (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
-                           ~stream ~field ~pcm_kind:Content.Audio.kind params)
-                    ))
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
+                            ~stream ~field ~pcm_kind:Content.Audio.kind params)
+                     ))
                   streams,
                 pos + 1 )
           | Some format when Content_pcm_s16.is_format format ->
               let channels = Content_pcm_s16.channels_of_format format in
               ( Streams.add idx
                   (`Audio_frame
-                    ( stream,
-                      check_metadata stream
-                        (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
-                           ~stream ~field ~pcm_kind:Content_pcm_s16.kind params)
-                    ))
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
+                            ~stream ~field ~pcm_kind:Content_pcm_s16.kind params)
+                     ))
                   streams,
                 pos + 1 )
           | Some format when Content_pcm_f32.is_format format ->
               let channels = Content_pcm_f32.channels_of_format format in
               ( Streams.add idx
                   (`Audio_frame
-                    ( stream,
-                      check_metadata stream
-                        (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
-                           ~stream ~field ~pcm_kind:Content_pcm_f32.kind params)
-                    ))
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
+                            ~stream ~field ~pcm_kind:Content_pcm_f32.kind params)
+                     ))
                   streams,
                 pos + 1 )
           | _ -> (streams, pos + 1))
@@ -1022,10 +1022,10 @@ let mk_streams ~ctype ~decode_first_metadata container =
           | Some format when Ffmpeg_copy_content.is_format format ->
               ( Streams.add idx
                   (`Video_packet
-                    ( stream,
-                      check_metadata stream
-                        (Ffmpeg_copy_decoder.mk_video_decoder ~stream_idx
-                           ~format ~field ~stream params) ))
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_copy_decoder.mk_video_decoder ~stream_idx
+                            ~format ~field ~stream params) ))
                   streams,
                 pos + 1 )
           | _ -> (streams, pos + 1))
@@ -1040,20 +1040,20 @@ let mk_streams ~ctype ~decode_first_metadata container =
           | Some format when Ffmpeg_raw_content.Video.is_format format ->
               ( Streams.add idx
                   (`Video_frame
-                    ( stream,
-                      check_metadata stream
-                        (Ffmpeg_raw_decoder.mk_video_decoder ~stream_idx ~format
-                           ~stream ~field params) ))
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_raw_decoder.mk_video_decoder ~stream_idx
+                            ~format ~stream ~field params) ))
                   streams,
                 pos + 1 )
           | Some format when Content.Video.is_format format ->
               let width, height = Content.Video.dimensions_of_format format in
               ( Streams.add idx
                   (`Video_frame
-                    ( stream,
-                      check_metadata stream
-                        (Ffmpeg_internal_decoder.mk_video_decoder ~width ~height
-                           ~stream ~field params) ))
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_internal_decoder.mk_video_decoder ~width
+                            ~height ~stream ~field params) ))
                   streams,
                 pos + 1 )
           | _ -> (streams, pos + 1))
@@ -1067,15 +1067,15 @@ let mk_streams ~ctype ~decode_first_metadata container =
           if Avcodec.Unknown.get_params_id params = `Timed_id3 then
             ( Streams.add idx
                 (`Data_packet
-                  ( stream,
-                    fun ~buffer p ->
-                      let metadata =
-                        try parse_timed_id3 (Avcodec.Packet.content p)
-                        with _ -> []
-                      in
-                      if metadata <> [] then
-                        Generator.add_metadata buffer.Decoder.generator
-                          (Frame.Metadata.from_list metadata) ))
+                   ( stream,
+                     fun ~buffer p ->
+                       let metadata =
+                         try parse_timed_id3 (Avcodec.Packet.content p)
+                         with _ -> []
+                       in
+                       if metadata <> [] then
+                         Generator.add_metadata buffer.Decoder.generator
+                           (Frame.Metadata.from_list metadata) ))
                 streams,
               pos + 1 )
           else (streams, pos + 1)
@@ -1230,9 +1230,10 @@ let create_stream_decoder ~ctype mime input =
 let get_file_type ~metadata ~ctype filename =
   (* If file is an image, leave internal decoding to
      the image decoder. *)
-  match
-    (Utils.get_ext_opt filename, Frame.Fields.find_opt Frame.Fields.video ctype)
-  with
+    match
+      ( Utils.get_ext_opt filename,
+        Frame.Fields.find_opt Frame.Fields.video ctype )
+    with
     | Some ext, Some format
       when List.mem ext image_file_extensions#get
            && Content.Video.is_format format ->
