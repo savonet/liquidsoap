@@ -40,7 +40,7 @@ let () =
                           Option.value
                             ~default:
                               (`String
-                                "+dash+skip_sidx+skip_trailer+frag_custom")
+                                 "+dash+skip_sidx+skip_trailer+frag_custom")
                             (Hashtbl.find_opt ffmpeg.Ffmpeg_format.opts
                                "movflags")
                         in

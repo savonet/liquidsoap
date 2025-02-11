@@ -25,8 +25,7 @@ open Source
 
 let video_fade = Lang.add_module ~base:Modules.video "fade"
 
-(** Fade-in at the beginning of every track.
-  * The [duration] is in seconds. *)
+(** Fade-in at the beginning of every track. The [duration] is in seconds. *)
 class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
   object (self)
     inherit operator ~name:"video.fade.in" [source]
@@ -251,7 +250,7 @@ let extract p =
        (* A few typical shapes..
         * In theory, any mapping from [0:1] to [0:1] is OK,
         * preferably monotonic and one-to-one. *)
-       match Lang.to_string mode with
+         match Lang.to_string mode with
          | "lin" -> fun x -> x
          | "log" ->
              let curve = 10. in

@@ -63,7 +63,7 @@ let create_encoder ~opus ~comments () =
           Opus.Encoder.apply_control (`Set_dtx opus.Opus_format.dtx) x;
           Opus.Encoder.apply_control
             (`Set_phase_inversion_disabled
-              (not opus.Opus_format.phase_inversion)) x;
+               (not opus.Opus_format.phase_inversion)) x;
           enc := Some x;
           x
   in

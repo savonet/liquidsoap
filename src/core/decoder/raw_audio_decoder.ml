@@ -74,13 +74,14 @@ let create ~format input =
         | `F32LE ->
             (* TODO: handle endianness *)
             fun () ->
-             let ans = ref Int32.zero in
-             for i = 3 downto 0 do
-               ans := Int32.shift_left !ans 8;
-               ans := Int32.add !ans (Int32.of_int (int_of_char src.[!pos + i]))
-             done;
-             pos := !pos + sample_size;
-             Int32.float_of_bits !ans
+              let ans = ref Int32.zero in
+              for i = 3 downto 0 do
+                ans := Int32.shift_left !ans 8;
+                ans :=
+                  Int32.add !ans (Int32.of_int (int_of_char src.[!pos + i]))
+              done;
+              pos := !pos + sample_size;
+              Int32.float_of_bits !ans
     in
     for i = 0 to len - 1 do
       for c = 0 to channels - 1 do

@@ -470,7 +470,7 @@ let decode64 s =
   done;
   let result =
     (* Remove up to two bytes depending on the padding. *)
-    match !padding with
+      match !padding with
       | 0 -> !result
       | 1 -> List.tl !result
       | 2 -> List.tl (List.tl !result)
@@ -511,7 +511,7 @@ let encode64 s =
   Bytes.unsafe_to_string dst
 
 (* URL encoding/decoding according to RFC 1738, RFC 1630.
- * Borrowed from ocamlnet. *)
+   Borrowed from ocamlnet. *)
 
 (** Converts k to a 2-digit hexadecimal string. *)
 let to_hex2 =

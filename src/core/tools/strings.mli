@@ -36,7 +36,8 @@ val of_string : string -> t
 (** Create a buffer from the given bytes which will be copied. *)
 val of_bytes : bytes -> t
 
-(** Create a buffer from the given bytes which will not be copied (be careful). *)
+(** Create a buffer from the given bytes which will not be copied (be careful).
+*)
 val unsafe_of_bytes : bytes -> t
 
 (** Render a buffer into bytes/string. This operation can be costly (in terms of
@@ -131,8 +132,8 @@ module Mutable : sig
       careful). *)
   val unsafe_of_bytes : bytes -> t
 
-  (** Render a buffer into a string/bytes. This operation can be costly (in terms of
-      memory copies), avoid it. *)
+  (** Render a buffer into a string/bytes. This operation can be costly (in
+      terms of memory copies), avoid it. *)
   val to_string : t -> string
 
   val to_bytes : t -> bytes
@@ -175,7 +176,7 @@ module Mutable : sig
   val fold_view : ('a -> StringView.t -> 'a) -> 'a -> t -> 'a
 
   (** Map a function over all the strings (with given offset and length)
-     contained in the buffer. *)
+      contained in the buffer. *)
   val map : (string -> int -> int -> string * int * int) -> t -> t
 
   val map_view : (StringView.t -> StringView.t) -> t -> t

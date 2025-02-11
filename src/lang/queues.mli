@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-(** Note: these queues a lock-free and not intended to hold large number
-    of values. *)
+(** Note: these queues a lock-free and not intended to hold large number of
+    values. *)
 
 module Queue : sig
   type 'a t

@@ -95,7 +95,7 @@ let _ =
       s)
 
 (** Insert metadata at the beginning if none is set. Currently used by the
-   switch classes. *)
+    switch classes. *)
 class replay meta src =
   object
     inherit operator ~name:"replay_metadata" [src]

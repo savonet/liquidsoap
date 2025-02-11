@@ -140,7 +140,7 @@ let dotvar tokenizer =
   token
 
 (** Change MINUS to UMINUS if the minus is not preceded by a number (or an
-   expression which could produce a number). *)
+    expression which could produce a number). *)
 let uminus tokenizer =
   let no_uminus = ref false in
   let token () =

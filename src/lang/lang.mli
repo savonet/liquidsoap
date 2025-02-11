@@ -44,7 +44,7 @@ val split_meths : value -> (string * value) list * value
 (** {2 Computation} *)
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
-   of the application. *)
+    of the application. *)
 val apply : ?pos:Pos.t list -> value -> env -> value
 
 (** {3 Helpers for source builtins} *)
@@ -123,7 +123,7 @@ val to_fun : value -> (string * value) list -> value
 val to_getter : value -> unit -> value
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
-  * This is useful for retrieving arguments of a function. *)
+    This is useful for retrieving arguments of a function. *)
 val assoc : 'a -> int -> ('a * 'b) list -> 'b
 
 val int_t : t
@@ -146,11 +146,10 @@ val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
 
-(** [fun_t args r] is the type of a function taking [args] as parameters
-  * and returning values of type [r].
-  * The elements of [r] are of the form [(b,l,t)] where [b] indicates if
-  * the argument is optional, [l] is the label of the argument ([""] means no
-  * label) and [t] is the type of the argument. *)
+(** [fun_t args r] is the type of a function taking [args] as parameters and
+    returning values of type [r]. The elements of [r] are of the form [(b,l,t)]
+    where [b] indicates if the argument is optional, [l] is the label of the
+    argument ([""] means no label) and [t] is the type of the argument. *)
 val fun_t : (bool * string * t) list -> t -> t
 
 val univ_t : ?constraints:Type.constr list -> unit -> t
@@ -175,17 +174,16 @@ val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
 val reference : (unit -> value) -> (value -> unit) -> value
 
-(** Build a function from an OCaml function. Items in the prototype indicate
-    the label and optional values. Second string value is used when renaming
+(** Build a function from an OCaml function. Items in the prototype indicate the
+    label and optional values. Second string value is used when renaming
     argument name, e.g. `fun (foo=_, ...) -> ` *)
 val val_fun : (string * string * value option) list -> (env -> value) -> value
 
 (** Build a function from a term. *)
 val term_fun : (string * string * value option) list -> Term.t -> value
 
-(** Build a constant function.
-  * It is slightly less opaque and allows the printing of the closure
-  * when the constant is ground. *)
+(** Build a constant function. It is slightly less opaque and allows the
+    printing of the closure when the constant is ground. *)
 val val_cst_fun : (string * value option) list -> value -> value
 
 (** Extract position from the environment. Used inside function execution. *)

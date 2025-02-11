@@ -49,8 +49,8 @@ module Img = Image.Generic
 type converter = Img.t -> Img.t -> unit
 
 (* A converter plugin is a name, a list of input formats,
-   * a list of output formats,
-   * a function to create a converter. *)
+ * a list of output formats,
+ * a function to create a converter. *)
 type converter_plug =
   Img.Pixel.format list * Img.Pixel.format list * (unit -> converter)
 

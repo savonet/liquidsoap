@@ -20,23 +20,20 @@
 
  *****************************************************************************)
 
-(** A generator is a collection of content with different
-    length. The set of content contained by a generator is
-    given by its [content_type] to which metadata and track
-    marks are always added.
+(** A generator is a collection of content with different length. The set of
+    content contained by a generator is given by its [content_type] to which
+    metadata and track marks are always added.
 
-    For now, metadata and track breaks content have infinite
-    length. All other content have finite length.
+    For now, metadata and track breaks content have infinite length. All other
+    content have finite length.
 
-    A generator buffered length is the largest content length,
-    excluding metadata and track breaks. If that length exceeds
-    [max_length], the generator is truncated to keep it under
-    that value.
+    A generator buffered length is the largest content length, excluding
+    metadata and track breaks. If that length exceeds [max_length], the
+    generator is truncated to keep it under that value.
 
-    A generator length is the smallest content length,
-    again excluding metadata and track breaks. This is the
-    maximum content length that can be taken out of the
-    generator. *)
+    A generator length is the smallest content length, again excluding metadata
+    and track breaks. This is the maximum content length that can be taken out
+    of the generator. *)
 
 type t
 

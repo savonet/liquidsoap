@@ -33,7 +33,7 @@ let flac_gen params =
     {
       Flac_format.fill = None;
       (* We use a hardcoded value in order not to force the evaluation of the
-           number of channels too early, see #933. *)
+         number of channels too early, see #933. *)
       channels = 2;
       samplerate = Frame.audio_rate;
       bits_per_sample = 16;

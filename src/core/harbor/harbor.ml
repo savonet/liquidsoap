@@ -149,26 +149,22 @@ module type T = sig
 
   (* Source input *)
 
-  class virtual source :
-    object
-      inherit Source.source
+  class virtual source : object
+    inherit Source.source
 
-      method virtual relay :
-        string ->
-        (string * string) list ->
-        ?read:(socket -> bytes -> int -> int -> int) ->
-        socket ->
-        unit
+    method virtual relay :
+      string ->
+      (string * string) list ->
+      ?read:(socket -> bytes -> int -> int -> int) ->
+      socket ->
+      unit
 
-      method virtual insert_metadata : Frame.metadata -> unit
-
-      method virtual login :
-        string * (socket:socket -> string -> string -> bool)
-
-      method virtual icy_charset : string option
-      method virtual meta_charset : string option
-      method virtual get_mime_type : string option
-    end
+    method virtual insert_metadata : Frame.metadata -> unit
+    method virtual login : string * (socket:socket -> string -> string -> bool)
+    method virtual icy_charset : string option
+    method virtual meta_charset : string option
+    method virtual get_mime_type : string option
+  end
 
   val http_auth_check :
     ?query:(string * string) list ->
@@ -506,8 +502,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           (http_error_page 404 "Not found" "This mountpoint isn't available.")
     in
     let* () =
-      if (* ICY and Xaudiocast auth check was done before.. *)
-         not auth then exec_http_auth_check ~login:s#login h headers
+      if
+        (* ICY and Xaudiocast auth check was done before.. *)
+        not auth
+      then exec_http_auth_check ~login:s#login h headers
       else Duppy.Monad.return ()
     in
     try
@@ -951,7 +949,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let* auth, huri, smethod =
         (* X-audiocast sends lines of the form:
            [SOURCE password path] *)
-        match hprotocol with
+          match hprotocol with
           | `Xaudiocast_uri uri ->
               let password = huri in
               (* We check authentication here *)
@@ -1126,7 +1124,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     out_s
 
   (* This, contrary to the find_xx functions
-   * creates the handlers when they are missing. *)
+     creates the handlers when they are missing. *)
   let get_handler ~pos ~transport ~icy port =
     try
       let { handler; fds; transport = t } = Hashtbl.find opened_ports port in

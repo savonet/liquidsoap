@@ -22,11 +22,11 @@
 
 open Source
 
-(** Given a list of [sources], play one track from each of the first
-  * sources, then loop on the last one. Optionally, merge tracks when
-  * advancing in the sequence. The [merge] flag will *not* merge tracks
-  * while looping on the last source -- this behavior would not be suited
-  * to the current use of [sequence] in transitions. *)
+(** Given a list of [sources], play one track from each of the first sources,
+    then loop on the last one. Optionally, merge tracks when advancing in the
+    sequence. The [merge] flag will *not* merge tracks while looping on the last
+    source -- this behavior would not be suited to the current use of [sequence]
+    in transitions. *)
 class sequence ?(merge = false) ?(single_track = true) sources =
   let self_sync_type = Clock_base.self_sync_type sources in
   let seq_sources = Atomic.make sources in

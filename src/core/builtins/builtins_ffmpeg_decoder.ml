@@ -179,18 +179,18 @@ let decode_audio_frame ~field ~mode generator =
         match !current_converter with None -> () | Some (c, _, _) -> c `Flush)
   in
 
-  let convert
-        : 'a 'b.
-          get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
-          decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
-          [ `Frame of Frame.t | `Flush ] ->
-          unit =
+  let convert :
+      'a 'b.
+      get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
+      decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
+      [ `Frame of Frame.t | `Flush ] ->
+      unit =
    fun ~get_data ~decoder -> function
-    | `Frame frame ->
-        let frame = Frame.get frame field in
-        let { Content.Video.data; _ } = get_data frame in
-        if data = [] then () else decoder (`Frame frame)
-    | `Flush -> decoder `Flush
+     | `Frame frame ->
+         let frame = Frame.get frame field in
+         let { Content.Video.data; _ } = get_data frame in
+         if data = [] then () else decoder (`Frame frame)
+     | `Flush -> decoder `Flush
   in
 
   match mode with
@@ -387,18 +387,18 @@ let decode_video_frame ~field ~mode generator =
              !last_params)
   in
 
-  let convert
-        : 'a 'b.
-          get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
-          decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
-          [ `Frame of Frame.t | `Flush ] ->
-          unit =
+  let convert :
+      'a 'b.
+      get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
+      decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
+      [ `Frame of Frame.t | `Flush ] ->
+      unit =
    fun ~get_data ~decoder -> function
-    | `Frame frame ->
-        let frame = Frame.get frame field in
-        let { Content.Video.data; _ } = get_data frame in
-        if data = [] then () else decoder (`Frame frame)
-    | `Flush -> decoder `Flush
+     | `Frame frame ->
+         let frame = Frame.get frame field in
+         let { Content.Video.data; _ } = get_data frame in
+         if data = [] then () else decoder (`Frame frame)
+     | `Flush -> decoder `Flush
   in
 
   match mode with

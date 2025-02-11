@@ -45,10 +45,10 @@ let meth = Start_stop.meth ()
 
 module Queue = Liquidsoap_lang.Queues.Queue
 
-(** Given abstract start stop and send methods, creates an output.  Takes care
-    of pulling the data out of the source, type checkings, maintains a queue of
-    last ten metadata and setups standard Server commands, including
-    start/stop. *)
+(** Given abstract start stop and send methods, creates an output. Takes care of
+    pulling the data out of the source, type checkings, maintains a queue of
+    last ten metadata and setups standard Server commands, including start/stop.
+*)
 class virtual output ~output_kind ?clock ?(name = "") ~infallible
   ~register_telnet ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
   val_source autostart =

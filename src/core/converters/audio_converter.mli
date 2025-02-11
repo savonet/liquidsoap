@@ -41,9 +41,9 @@ module Samplerate : sig
   (** [create chan_nb] creates a converter. *)
   val create : int -> t
 
-  (** [resample converter ratio data]: converts input data at given
-      ratio. Raises [Invalid_data] if number of channels do not match the number
-      passed at [create]. *)
+  (** [resample converter ratio data]: converts input data at given ratio.
+      Raises [Invalid_data] if number of channels do not match the number passed
+      at [create]. *)
   val resample :
     t ->
     float ->
@@ -70,7 +70,7 @@ module Channel_layout : sig
   val create : layout -> layout -> t
 
   (** [convert converter data]: converts input data to the destination layout.
-      Raises [Invalid_data] if input layout does not match the layout passed
-      as [create]. *)
+      Raises [Invalid_data] if input layout does not match the layout passed as
+      [create]. *)
   val convert : t -> Content_audio.data -> Content_audio.data
 end

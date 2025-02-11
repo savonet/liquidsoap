@@ -61,12 +61,12 @@ module M = Icecast_utils.Icecast_v (Icecast)
 open M
 
 (* Max total length for ICY metadata is 255*16
- * Format is: "StreamTitle='%s';StreamUrl='%s'"
- * "StreamTitle='';"; is 15 chars long, "StreamUrl='';"
- * is 13 chars long, leaving 4052 chars remaining.
- * Splitting those in:
- * * max title length = 3852
- * * max url length = 200 *)
+   Format is: "StreamTitle='%s';StreamUrl='%s'"
+   "StreamTitle='';"; is 15 chars long, "StreamUrl='';"
+   is 13 chars long, leaving 4052 chars remaining.
+   Splitting those in:
+     max title length = 3852
+     max url length = 200 *)
 let max_title = 3852
 let max_url = 200
 
@@ -297,8 +297,8 @@ let client_task c =
     ();
   Duppy.Monad.catch (client_task c) (fun _ -> Duppy.Monad.raise ())
 
-(** Sending encoded data to a shout-compatible server.
-    * It directly takes the Lang param list and extracts stuff from it. *)
+(** Sending encoded data to a shout-compatible server. It directly takes the
+    Lang param list and extracts stuff from it. *)
 class output p =
   let pos = Lang.pos p in
   let e f v = f (List.assoc v p) in

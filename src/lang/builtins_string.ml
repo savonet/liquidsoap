@@ -507,8 +507,8 @@ let _ =
 
 let () =
   (* Register as [name] the function which composes [in_value],[func] and
-   * [out_value], and returns [default] in exceptional cases -- which MUST not
-   * occur when default is not supplied. *)
+     [out_value], and returns [default] in exceptional cases -- which MUST not
+     occur when default is not supplied. *)
   let register_tt doc name category func ~needs_default in_type in_value
       out_value out_type =
     let raise_doc =

@@ -29,10 +29,10 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
   ~threshold =
   object (self)
     (** State can be either
-        - `Noise l: the source is considered to be emitting,
-           but it has been silent for l samples;
-        - `Blank l: the source is considered to be silent,
-           but it has been noisy for l samples. *)
+        - `Noise l: the source is considered to be emitting, but it has been
+          silent for l samples;
+        - `Blank l: the source is considered to be silent, but it has been noisy
+          for l samples. *)
     val state = Atomic.make (if start_blank then `Blank 0 else `Noise 0)
 
     val dB_levels = Atomic.make None
@@ -54,8 +54,8 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       end;
       Atomic.set state s
 
-    (** This method should be called after the frame [s] has been
-        filled, where [p0] is the position in [s] before filling. *)
+    (** This method should be called after the frame [s] has been filled, where
+        [p0] is the position in [s] before filling. *)
     method private check_blank s =
       if Frame.track_marks s <> [] then (
         if

@@ -133,11 +133,11 @@ let create_decoder ?(merge_tracks = false) source input =
     (* Make sure the stream has what we need *)
     (* TODO this should be done based on the kind, not the mode,
      *      which should be (re)set accordingly *)
-    match
-      ( tracks.Ogg_decoder.audio_track,
-        tracks.Ogg_decoder.video_track,
-        mode buffer )
-    with
+      match
+        ( tracks.Ogg_decoder.audio_track,
+          tracks.Ogg_decoder.video_track,
+          mode buffer )
+      with
       | Some audio, Some video, `Both ->
           add_meta Ogg_decoder.audio_info audio;
           add_meta Ogg_decoder.video_info video

@@ -77,7 +77,8 @@ module Band = struct
     b.band_v' <- b.band_v;
     b.band_v <- v
 
-  (** Update the value of the band. This function should be called every size samples. *)
+  (** Update the value of the band. This function should be called every size
+      samples. *)
   let update ?(debug = false) ~alpha b =
     (* Square of the value for the DFT band. *)
     let x =
@@ -195,7 +196,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
           ((* Find relevant bands. *)
            let found = Bands.detect bands threshold in
            (* Update the state *)
-           match found with
+             match found with
              | [f1; f2] -> (
                  let f = (f1, f2) in
                  let dt = size /. samplerate in

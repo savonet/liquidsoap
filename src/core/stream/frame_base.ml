@@ -78,8 +78,7 @@ module Fields = struct
     fun ?audio ?video ?midi () ->
       List.fold_left
         (fun fields -> function
-          | _, None -> fields
-          | field, Some v -> add field v fields)
+          | _, None -> fields | field, Some v -> add field v fields)
         empty
         [(audio_f, audio); (video_f, video); (midi_f, midi)]
 end

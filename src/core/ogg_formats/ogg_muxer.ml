@@ -58,11 +58,9 @@ type 'a stream = {
 
 type track = Audio_track of audio stream | Video_track of video stream
 
-(** You may register new tracks on state Eos or Bos.
-  * You can't register new track on state Streaming.
-  * You may finalize at any state, provided at least
-  * single track is registered. However, this is not
-  * recommended. *)
+(** You may register new tracks on state Eos or Bos. You can't register new
+    track on state Streaming. You may finalize at any state, provided at least
+    single track is registered. However, this is not recommended. *)
 type state = Eos | Streaming | Bos
 
 type t = {
@@ -107,8 +105,8 @@ let set_remaining_of_ogg_track x v =
     | Audio_track x -> x.remaining <- v
     | Video_track x -> x.remaining <- v
 
-(** As per specifications, we need a random injective sequence of
-  * nativeint. This might not be assumed here, but chances are very low.. *)
+(** As per specifications, we need a random injective sequence of nativeint.
+    This might not be assumed here, but chances are very low.. *)
 let random_state = Random.State.make_self_init ()
 
 let get_serial () =
@@ -285,18 +283,14 @@ let remaining_pages encoder =
   let f _ t x = if remaining_of_ogg_track t <> None then x + 1 else x in
   Hashtbl.fold f encoder.tracks 0
 
-(** Fill output data with available pages.
-  * The algorithm works as follow:
-  *  + The encoder has a global position
-  *  + Each time a page ends at a position
-  *    that is ahead of the encoder position,
-  *    the page is kept as remaining.
-  *  + When there is one remaining page per
-  *    track, we take the least of them and
-  *    add it. The encoder position is then
-  *    bumped.
-  *  + As soon as the encoder's position is ahead
-  *    of a page, then this page can be written *)
+(** Fill output data with available pages. The algorithm works as follow:
+    + The encoder has a global position
+    + Each time a page ends at a position that is ahead of the encoder position,
+      the page is kept as remaining.
+    + When there is one remaining page per track, we take the least of them and
+      add it. The encoder position is then bumped.
+    + As soon as the encoder's position is ahead of a page, then this page can
+      be written *)
 let add_available src encoder =
   let rec fill src dst =
     (* First we check if there is a remaining
@@ -343,8 +337,7 @@ let add_available src encoder =
 
 let queue_add src p = Queue.add p src.available
 
-(** Encode data. Implicitly calls [streams_start]
-  * if not called before. *)
+(** Encode data. Implicitly calls [streams_start] if not called before. *)
 let encode encoder id data =
   if encoder.state = Bos then streams_start encoder;
   if encoder.state = Eos then (
@@ -364,9 +357,8 @@ let encode encoder id data =
               add_available t encoder
           | _ -> raise Invalid_data)
 
-(** Finish a track.
-  * Not all data will necessarily be outputted here. It is possible
-  * that muxing needs also another track to end.. *)
+(** Finish a track. Not all data will necessarily be outputted here. It is
+    possible that muxing needs also another track to end.. *)
 let end_of_track encoder id =
   let track = Hashtbl.find encoder.tracks id in
   if encoder.state = Bos then (

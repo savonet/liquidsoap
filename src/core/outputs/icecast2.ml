@@ -145,12 +145,12 @@ module Icecast = struct
           match audio with
             | Some
                 (Ogg_format.Vorbis
-                  {
-                    Vorbis_format.channels = n;
-                    mode = Vorbis_format.VBR q;
-                    samplerate = s;
-                    _;
-                  }) ->
+                   {
+                     Vorbis_format.channels = n;
+                     mode = Vorbis_format.VBR q;
+                     samplerate = s;
+                     _;
+                   }) ->
                 {
                   quality = Some (string_of_float q);
                   bitrate = None;
@@ -159,12 +159,12 @@ module Icecast = struct
                 }
             | Some
                 (Ogg_format.Vorbis
-                  {
-                    Vorbis_format.channels = n;
-                    mode = Vorbis_format.ABR (_, b, _);
-                    samplerate = s;
-                    _;
-                  }) ->
+                   {
+                     Vorbis_format.channels = n;
+                     mode = Vorbis_format.ABR (_, b, _);
+                     samplerate = s;
+                     _;
+                   }) ->
                 {
                   quality = None;
                   bitrate = b;
@@ -173,12 +173,12 @@ module Icecast = struct
                 }
             | Some
                 (Ogg_format.Vorbis
-                  {
-                    Vorbis_format.channels = n;
-                    mode = Vorbis_format.CBR b;
-                    samplerate = s;
-                    _;
-                  }) ->
+                   {
+                     Vorbis_format.channels = n;
+                     mode = Vorbis_format.CBR b;
+                     samplerate = s;
+                     _;
+                   }) ->
                 {
                   quality = None;
                   bitrate = Some b;
@@ -343,8 +343,8 @@ let proto frame_t =
       ("", Lang.source_t frame_t, None, None);
     ]
 
-(** Sending encoded data to a shout-compatible server.
-  * It directly takes the Lang param list and extracts stuff from it. *)
+(** Sending encoded data to a shout-compatible server. It directly takes the
+    Lang param list and extracts stuff from it. *)
 class output p =
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
@@ -506,16 +506,14 @@ class output p =
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false ~on_start ~on_stop ~name source
 
-    (** In this operator, we don't exactly follow the start/stop
-    * mechanism of Output.encoded because we want to control
-    * in a more subtle way the connection/disconnection with
-    * icecast.
-    * So we have specific icecast_start/stop procedures that
-    * only deal with the shout connection.
-    * And the global output_start/stop also deal with the encoder.
-    * As a result, if shout gets disconnected, encoding will keep
-    * going, and the sending will keep being attempted, which
-    * will at some point trigger a restart. *)
+    (** In this operator, we don't exactly follow the start/stop mechanism of
+        Output.encoded because we want to control in a more subtle way the
+        connection/disconnection with icecast. So we have specific
+        icecast_start/stop procedures that only deal with the shout connection.
+        And the global output_start/stop also deal with the encoder. As a
+        result, if shout gets disconnected, encoding will keep going, and the
+        sending will keep being attempted, which will at some point trigger a
+        restart. *)
 
     (** Time after which we should attempt to connect. *)
     val mutable restart_time = 0.
@@ -527,9 +525,9 @@ class output p =
 
     method encode frame =
       (* We assume here that there always is
-       * an encoder available when the source
-       * is connected. *)
-      match (Cry.get_status connection, encoder) with
+         an encoder available when the source
+         is connected. *)
+        match (Cry.get_status connection, encoder) with
         | Cry.Connected _, Some enc -> enc.Encoder.encode frame
         | _ -> Strings.empty
 
@@ -548,7 +546,7 @@ class output p =
             | None -> ()
             | Some v -> Hashtbl.replace icy_meta "song" (f v));
         (* Do nothing if shout connection isn't available *)
-        match Cry.get_status connection with
+          match Cry.get_status connection with
           | Cry.Connected _ -> (
               try
                 Cry.update_metadata
@@ -563,7 +561,7 @@ class output p =
           | Cry.Disconnected -> ())
       else (
         (* Encoder is not always present.. *)
-        match encoder with
+          match encoder with
           | Some encoder -> encoder.Encoder.insert_metadata m
           | None -> ())
 
@@ -654,7 +652,7 @@ class output p =
         on_connect ()
       with
       (* In restart mode, no_connect and no_login are not fatal.
-       * The output will just try to reconnect later. *)
+         The output will just try to reconnect later. *)
       | e ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log
@@ -669,7 +667,7 @@ class output p =
 
     method icecast_stop =
       (* In some cases it might be possible to output the remaining data,
-       * but it's not worth the trouble. *)
+         but it's not worth the trouble. *)
       begin
         try ignore ((Option.get encoder).Encoder.stop ()) with _ -> ()
       end;

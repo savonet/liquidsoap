@@ -22,14 +22,12 @@
 
 open Mm
 
-(** These classes define conversion operators that accept a source streaming
-  * at least one audio channel, and no other kind of channel, and return
-  * a source that streams stereo audio.
-  *
-  * We only have a basic implementation for now. In the future we may
-  * perform smart conversions from 5 channels audio. We may also want to
-  * detect stereo with one silent channel (often the right) and treat
-  * it as mono. *)
+(** These classes define conversion operators that accept a source streaming at
+    least one audio channel, and no other kind of channel, and return a source
+    that streams stereo audio. * We only have a basic implementation for now. In
+    the future we may perform smart conversions from 5 channels audio. We may
+    also want to detect stereo with one silent channel (often the right) and
+    treat it as mono. *)
 
 (** Duplicate mono into stereo, drop channels when there are more than two. *)
 class basic ~field source =

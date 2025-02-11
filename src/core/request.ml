@@ -202,9 +202,8 @@ let duration ?resolvers ~metadata file =
           Some duration
   with _ -> None
 
-(** [get_filename request] returns
-  * [Some f] if the request successfully lead to a local file [f],
-  * [None] otherwise. *)
+(** [get_filename request] returns [Some f] if the request successfully lead to
+    a local file [f], [None] otherwise. *)
 let get_filename t = if resolved t then Some (last_indicator t).uri else None
 
 (** Manage requests' metadata *)
@@ -245,7 +244,7 @@ let add_root_metadata t m =
   in
 
   (* STATUS *)
-  match (timestamp, Atomic.get t.status) with
+    match (timestamp, Atomic.get t.status) with
     | Some d, _ ->
         let m =
           Frame.Metadata.add "on_air" (pretty_date (Unix.localtime d)) m
@@ -400,8 +399,8 @@ let resolve_metadata ~initial_metadata ~excluded name =
 
 (** Sys.file_exists doesn't make a difference between existing files and files
     without enough permissions to list their attributes, for example when they
-    are in a directory without x permission.  The two following functions allow a
-    more precise diagnostic.  We do not use them everywhere in this file, but
+    are in a directory without x permission. The two following functions allow a
+    more precise diagnostic. We do not use them everywhere in this file, but
     only when splitting existence and readability checks yields better logs. *)
 
 let file_exists name =

@@ -1,4 +1,5 @@
-(** Digesting strings according to SHA-1, see RFC 3174 and https://en.wikipedia.org/wiki/SHA-1 *)
+(** Digesting strings according to SHA-1, see RFC 3174 and
+    https://en.wikipedia.org/wiki/SHA-1 *)
 
 module Int32 = struct
   include Int32

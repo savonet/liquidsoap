@@ -20,24 +20,27 @@
 
  *****************************************************************************)
 
-(** Asynchronous process handler. This module wraps around [Unix.open_process_full]
-  * and [Unix.select] to manipulate external processes. Its API can be used in two
-  * different ways:
-  *  - Provide callbacks for reading and writing to the process' standard outputs.
-  *    These callbacks are executed when [Unix.select] returns their respective
-  *    file descriptors as available for writing/reading. Thus, read and write
-  *    inside these callbacks should not be blocking although [Unix.select]
-  *    documentation stipulates that "large" writes may still be blocking.
-  *  - Use direct, blocking, read/write on the process' standard output.
-  *    in this case, reading and writing may be blocking, following the
-  *    usual [Unix.write] and [Unix.read] semantics.
-  * The API abstracts the file descriptors and provides writing/reading
-  * callbacks instead. Please note that there is no way to detect when the
-  * process has exited unless reaching a zero-length read in its standard
-  * output or error. Also, the default [on_stdout] and [on_stderr] callbacks
-  * do not read from these. Therefore it is important to read all data coming
-  * from at least one of these two outputs in order to make sure that the module
-  * properly detects when the process has exited. *)
+(** Asynchronous process handler. This module wraps around
+    [Unix.open_process_full] and [Unix.select] to manipulate external processes.
+
+    Its API can be used in two different ways:
+    - Provide callbacks for reading and writing to the process' standard
+      outputs. These callbacks are executed when [Unix.select] returns their
+      respective file descriptors as available for writing/reading. Thus, read
+      and write inside these callbacks should not be blocking although
+      [Unix.select] documentation stipulates that "large" writes may still be
+      blocking.
+    - Use direct, blocking, read/write on the process' standard output. in this
+      case, reading and writing may be blocking, following the usual
+      [Unix.write] and [Unix.read] semantics.
+
+    The API abstracts the file descriptors and provides writing/reading
+    callbacks instead. Please note that there is no way to detect when the
+    process has exited unless reaching a zero-length read in its standard output
+    or error. Also, the default [on_stdout] and [on_stderr] callbacks do not
+    read from these. Therefore it is important to read all data coming from at
+    least one of these two outputs in order to make sure that the module
+    properly detects when the process has exited. *)
 
 (** A process. *)
 type t
@@ -46,8 +49,8 @@ type t
 type continuation =
   [ `Continue
   | `Stop
-    (** triggers an asynchronous process stop, closing the process' stdin
-             and waiting for termination *)
+    (** triggers an asynchronous process stop, closing the process' stdin and
+        waiting for termination *)
   | `Kill  (** kill the process immediately *)
   | `Delay of float  (** wait for a given amount of seconds *)
   | `Reschedule of Tutils.priority
@@ -68,9 +71,9 @@ type status = [ `Exception of exn | `Status of Unix.process_status ]
 exception Finished
 
 (** Create a process handler. Decisions returned by the callbacks are applied
-   synchronously, i.e. when returning [`Stop], the process' stdin is closed
-   immediately after the callback has returned. The process is restarted when
-   the function [on_stop] returns [true]. *)
+    synchronously, i.e. when returning [`Stop], the process' stdin is closed
+    immediately after the callback has returned. The process is restarted when
+    the function [on_stop] returns [true]. *)
 val run :
   ?priority:Tutils.priority ->
   ?env:string array ->
@@ -88,7 +91,7 @@ val run :
 val set_priority : t -> Tutils.priority -> unit
 
 (** Asynchronous stop. The process' stdin will be closed some time in the
-   future. *)
+    future. *)
 val stop : t -> unit
 
 (** Asynchronous kill. The process will be killed some time in the future. *)
@@ -101,13 +104,13 @@ val stopped : t -> bool
 val really_write : ?offset:int -> ?length:int -> bytes -> push -> unit
 
 (** Synchronous (blocking) write on the process' stdin. Raises [Finished] if the
-   process has been stopped/killed. *)
+    process has been stopped/killed. *)
 val on_stdin : t -> (push -> 'a) -> 'a
 
 (** Synchronous (blocking) read on the process' stdout. Raises [Finished] if the
-   process has been stopped/killed. *)
+    process has been stopped/killed. *)
 val on_stdout : t -> (pull -> 'a) -> 'a
 
 (** Synchronous (blocking) read on the process' stdout. Raises [Finished] if the
-   process has been stopped/killed. *)
+    process has been stopped/killed. *)
 val on_stderr : t -> (pull -> 'a) -> 'a

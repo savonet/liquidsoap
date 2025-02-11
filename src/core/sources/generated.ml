@@ -21,8 +21,8 @@
  *****************************************************************************)
 
 (* Reads data from an audio buffer generator.
- * A thread safe generator should be used if it has to be fed concurrently.
- * Store [bufferize] seconds before declaring itself as ready. *)
+   A thread safe generator should be used if it has to be fed concurrently.
+   Store [bufferize] seconds before declaring itself as ready. *)
 class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
   ~empty_on_abort () =
   let bufferize = Frame.main_of_seconds bufferize in

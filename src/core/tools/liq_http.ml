@@ -114,8 +114,9 @@ let parse_url url =
   in
   let sub =
     try Re.Pcre.exec ~rex:basic_rex url
-    with Not_found -> (* raise Invalid_url *)
-                      failwith "Invalid URL."
+    with Not_found ->
+      (* raise Invalid_url *)
+      failwith "Invalid URL."
   in
   let protocol = Re.Pcre.get_substring sub 1 in
   let host = Re.Pcre.get_substring sub 2 in
@@ -148,11 +149,11 @@ let read_crlf ?(log = fun _ -> ()) ?(max = 4096) ?(count = 2) ~timeout
   let stop = ref false in
   let c = Bytes.create 1 in
   (* We need to parse char by char because
-   * we want to make sure we stop at the exact
-   * end of [\r]?\n in order to pass a socket
-   * which is placed at the exact char after it.
-   * The maximal length is a security but it may
-   * be lifted.. *)
+     we want to make sure we stop at the exact
+     end of [\r]?\n in order to pass a socket
+     which is placed at the exact char after it.
+     The maximal length is a security but it may
+     be lifted.. *)
   while !count_n < count && !n < max && not !stop do
     (* This is quite ridiculous but we have
      * no way to know how much data is available

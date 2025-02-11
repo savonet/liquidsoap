@@ -140,8 +140,8 @@ let () =
        (Decoder.conf_file_extensions#plug "mp3"))
 
 (* Get the number of channels of audio in a mpeg audio file.
- * This is done by decoding a first chunk of data, thus checking
- * that libmad can actually open the file -- which doesn't mean much. *)
+   This is done by decoding a first chunk of data, thus checking
+   that libmad can actually open the file -- which doesn't mean much. *)
 let file_type filename =
   let fd = Mad.openfile filename in
   Fun.protect

@@ -99,12 +99,12 @@ let conf_midi_channels =
 (** Format parameters *)
 
 (* The user can set some parameters in the initial configuration script.
- * Once we start working with them, changing them again is dangerous.
- * Since Dtools doesn't allow that, below is a trick to read the settings
- * only once. Later changes will never be taken into account. *)
+   Once we start working with them, changing them again is dangerous.
+   Since Dtools doesn't allow that, below is a trick to read the settings
+   only once. Later changes will never be taken into account. *)
 
 (* This variable prevents forcing the value of a lazy configuration
- * item before the user gets a chance to override the default. *)
+   item before the user gets a chance to override the default. *)
 let lazy_config_eval = ref false
 let delayed_eval = Queue.create ()
 
@@ -127,9 +127,9 @@ let delayed_conf ~to_string x =
 
 let ( !! ) = Lazy.force
 
-(** The channel numbers are only defaults, used when channel numbers
-  * cannot be inferred / are not forced from the context.
-  * I'm currently unsure how much they are really useful. *)
+(** The channel numbers are only defaults, used when channel numbers cannot be
+    inferred / are not forced from the context. I'm currently unsure how much
+    they are really useful. *)
 
 let audio_channels = delayed_conf ~to_string:string_of_int conf_audio_channels
 
@@ -143,7 +143,7 @@ let audio_rate = delayed_conf ~to_string:string_of_int conf_audio_samplerate
 let video_rate = delayed_conf ~to_string:string_of_int conf_video_framerate
 
 (* TODO: midi rate is assumed to be the same as audio,
- *   so we should not have two different values *)
+     so we should not have two different values *)
 let midi_rate = delayed_conf ~to_string:string_of_int conf_audio_samplerate
 
 (** Greatest common divisor. *)
@@ -161,8 +161,8 @@ let lcm a b = a / gcd a b * b
 (** [upper_multiple k m] is the least multiple of [k] that is [>=m]. *)
 let upper_multiple k m = if m mod k = 0 then m else (1 + (m / k)) * k
 
-(** The main clock is the slowest possible that can convert to both
-  * the audio and video clocks. *)
+(** The main clock is the slowest possible that can convert to both the audio
+    and video clocks. *)
 let main_rate =
   delayed (fun () ->
       match (!!audio_rate, !!video_rate) with
@@ -198,10 +198,10 @@ let seconds_of_main d = float d /. float !!main_rate
 let seconds_of_audio d = float d /. float !!audio_rate
 let seconds_of_video d = float d /. float !!video_rate
 
-(** The frame size (in main ticks) should allow for an integer
-  * number of samples of all types (audio, video).
-  * With audio@44100Hz and video@25Hz, ticks=samples and one video
-  * sample takes 1764 ticks: we need frames of size N*1764. *)
+(** The frame size (in main ticks) should allow for an integer number of samples
+    of all types (audio, video). With audio@44100Hz and video@25Hz,
+    ticks=samples and one video sample takes 1764 ticks: we need frames of size
+    N*1764. *)
 let size =
   delayed (fun () ->
       let audio = !!audio_rate in

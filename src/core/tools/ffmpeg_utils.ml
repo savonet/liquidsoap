@@ -175,7 +175,8 @@ let mk_hardware_context ~hwaccel ~hwaccel_pixel_format ~hwaccel_device ~opts
             log#important
               "Codec %s has internal hardware capabilities that should work \
                without specific settings but hwaccel_device %S\n\
-              \             is selected." codec_name
+              \             is selected."
+              codec_name
               (Option.get hwaccel_device)
         | { Avcodec.methods; _ }
           when List.mem `Internal methods && hwaccel_pixel_format <> None ->

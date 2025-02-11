@@ -406,10 +406,9 @@ let log_handler { Srt.Log.message } =
   in
   log#f conf_level#get "%s" message
 
-(** Common polling task for all srt input/output.
-  * sockets entering a poll are always set to non-blocking
-  * and set back to blocking when exiting. They are also always
-  * removed from the poll when done. *)
+(** Common polling task for all srt input/output. sockets entering a poll are
+    always set to non-blocking and set back to blocking when exiting. They are
+    also always removed from the poll when done. *)
 module Poll = struct
   type t = {
     p : Srt.Poll.t;

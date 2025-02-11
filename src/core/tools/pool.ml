@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-(** Manage an unbounded pool of objects identified by integers.
-  * This is used for Requests. *)
+(** Manage an unbounded pool of objects identified by integers. This is used for
+    Requests. *)
 
 module type T = sig
   (** Type of objects stored in the pool. *)

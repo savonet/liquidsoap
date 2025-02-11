@@ -20,8 +20,8 @@
 
  *****************************************************************************)
 
-(** Utility for operators that need to control child source clocks. See [clock.mli]
-    for a more detailed description. *)
+(** Utility for operators that need to control child source clocks. See
+    [clock.mli] for a more detailed description. *)
 
 class virtual base ~check_self_sync children_val =
   let children = List.map Lang.to_source children_val in

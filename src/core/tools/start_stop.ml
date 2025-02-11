@@ -30,7 +30,8 @@
 type state = [ `Started | `Stopped | `Idle ]
 
 (** Base class for sources with start/stop methods. Class ineheriting it should
-    declare their own [start]/[stop] method and users should call [#set_start]  *)
+    declare their own [start]/[stop] method and users should call [#set_start]
+*)
 class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
   object (self)
     val mutable state : state = `Idle

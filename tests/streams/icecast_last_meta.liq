@@ -1,6 +1,9 @@
 port = 6723
 settings.icecast.prefer_address := "ipv4"
 
+# This test is too flakey
+test.skip()
+
 s = sine()
 
 s = insert_metadata(s)

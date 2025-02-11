@@ -23,17 +23,16 @@
 open Mm
 
 (** Create a buffer between two clocks.
-  *
-  * This creates an active operator in the inner clock (the action consists
-  * in filling the buffer) but it does not create or force in any
-  * way the clock that's going to animate it.
-  *
-  * We actually create two sources, to avoid the mess of having a same
-  * source belonging to one clock but being animated by another.
-  * This makes it possible to have the inner clock stop and shutdown
-  * the source that feeds the buffer, without disturbing the other clock
-  * in which the buffer-consumer will still behave OK (except obviously
-  * that the buffer will empty). *)
+
+    This creates an active operator in the inner clock (the action consists in
+    filling the buffer) but it does not create or force in any way the clock
+    that's going to animate it.
+
+    We actually create two sources, to avoid the mess of having a same source
+    belonging to one clock but being animated by another. This makes it possible
+    to have the inner clock stop and shutdown the source that feeds the buffer,
+    without disturbing the other clock in which the buffer-consumer will still
+    behave OK (except obviously that the buffer will empty). *)
 module Buffer = struct
   (* The kind of value shared by a producer and a consumer. *)
   type control = {

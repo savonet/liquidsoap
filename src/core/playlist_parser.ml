@@ -71,7 +71,8 @@ type plugin = {
   parser : parser;
 }
 
-(** Parsers are given a string and return a list of metadatas,uri, if possible. *)
+(** Parsers are given a string and return a list of metadatas,uri, if possible.
+*)
 let parsers : plugin Plug.t =
   Plug.create ~doc:"Method to parse playlist." "playlist formats"
 
@@ -86,12 +87,10 @@ let get_file ?pwd file =
 
 exception Exit of (string * playlist)
 
-(** Get a valid parser for [string].
-  * The validity is not based on file type but only on success of the
-  * parser instantiation.
-  * Being based on file extension is weak, and troublesome when accessing a
-  * remote file -- that would force us to create a local temporary file with the
-  * same extension. *)
+(** Get a valid parser for [string]. The validity is not based on file type but
+    only on success of the parser instantiation. Being based on file extension
+    is weak, and troublesome when accessing a remote file -- that would force us
+    to create a local temporary file with the same extension. *)
 let search_valid ?pwd string =
   try
     let plugins = Plug.list parsers in

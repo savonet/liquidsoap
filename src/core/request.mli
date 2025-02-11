@@ -23,8 +23,8 @@
 (** A request is something from which we can produce a file. *)
 
 (** An indicator is a resource location (URI), when meaningful, it can be
-    declared as temporary if liquidsoap should destroy it after usage (this means
-    deleting a local file). *)
+    declared as temporary if liquidsoap should destroy it after usage (this
+    means deleting a local file). *)
 type indicator
 
 (** Root configuration node. *)
@@ -37,8 +37,8 @@ val indicator :
 (** Return a prettified string. *)
 val pretty_date : Unix.tm -> string
 
-(** Type of requests, which are devices for obtaining a local file from an
-    URI. *)
+(** Type of requests, which are devices for obtaining a local file from an URI.
+*)
 type t
 
 (** Create a request. *)
@@ -58,7 +58,7 @@ val initial_uri : t -> string
 
 (** Destroying of a requests causes its file to be deleted if it's a temporary
     one, for example a downloaded file. If the metadata ["persistent"] is set to
-    ["true"], destroying doesn't happen, unless [force] is set too.  Persistent
+    ["true"], destroying doesn't happen, unless [force] is set too. Persistent
     sources are useful for static URIs (see below for the definition of
     staticity, and in [src/sources/one_file.ml] for an example of use). *)
 val destroy : ?force:bool -> t -> unit
@@ -88,13 +88,12 @@ val from_id : int -> t option
 
 (** {1 Resolving}
 
-    Resolving consists in many steps. Every step consist in rewriting the
-    first URI into other URIs. The process ends when the last URI
-    is a local filename. For example, the initial URI can be a database query,
-    which is then turned into a remote locations, which is then
-    tentatively downloaded...
-    At each step [protocol.resolve uri timeout] is called,
-    and the function is expected to push the new URIs in the request. *)
+    Resolving consists in many steps. Every step consist in rewriting the first
+    URI into other URIs. The process ends when the last URI is a local filename.
+    For example, the initial URI can be a database query, which is then turned
+    into a remote locations, which is then tentatively downloaded... At each
+    step [protocol.resolve uri timeout] is called, and the function is expected
+    to push the new URIs in the request. *)
 
 (** Something that resolves an URI. *)
 type resolver = string -> log:(string -> unit) -> float -> indicator option
@@ -107,7 +106,7 @@ type protocol = { resolve : resolver; static : string -> bool }
 val is_static : string -> bool
 
 (** Resolving can fail because an URI is invalid, or doesn't refer to a valid
-  * audio file, or simply because there was no enough time left. *)
+    audio file, or simply because there was no enough time left. *)
 type resolve_flag = [ `Resolved | `Failed | `Timeout ]
 
 (** Metadata resolvers priorities. *)
@@ -116,9 +115,9 @@ val conf_metadata_decoder_priorities : Dtools.Conf.ut
 (** Read the request's metadata. *)
 val read_metadata : t -> unit
 
-(** [resolve ?timeout request] tries to resolve the request within
-    [timeout] seconds. Defaults to [settings.request.timeout] when
-    [timeout] is not passed. *)
+(** [resolve ?timeout request] tries to resolve the request within [timeout]
+    seconds. Defaults to [settings.request.timeout] when [timeout] is not
+    passed. *)
 val resolve : ?timeout:float -> t -> resolve_flag
 
 (** [resolved r] if there's an available local filename. It can be true even if
@@ -132,10 +131,10 @@ val get_filename : t -> string option
 
 (** {1 Metadatas} *)
 
-(** Metadata are resolved from the first indicator to the last,
-    the last one overriding the ones before. The only exception are
-    root metadata, which are metadata internal to liquidsoap such
-    as request id and etc. These cannot be overridden by resolvers. *)
+(** Metadata are resolved from the first indicator to the last, the last one
+    overriding the ones before. The only exception are root metadata, which are
+    metadata internal to liquidsoap such as request id and etc. These cannot be
+    overridden by resolvers. *)
 val metadata : t -> Frame.metadata
 
 (** {1 Logging}
@@ -151,9 +150,9 @@ val log : t -> string
 (** Duration resolvers. *)
 val conf_dresolvers : string list Dtools.Conf.t
 
-(** [duration ?resolvers ~metadata filename] computes the duration of audio data contained in
-    [filename]. The computation may be expensive. Set [resolvers] to a list of specific decoders
-    to use for getting duration.
+(** [duration ?resolvers ~metadata filename] computes the duration of audio data
+    contained in [filename]. The computation may be expensive. Set [resolvers]
+    to a list of specific decoders to use for getting duration.
     @raise Not_found if no duration computation method is found. *)
 val duration :
   ?resolvers:string list -> metadata:Frame.metadata -> string -> float option
@@ -161,8 +160,8 @@ val duration :
 (** [true] is a decoder exists for the given content-type. *)
 val has_decoder : ctype:Frame.content_type -> t -> bool
 
-(** Return a decoder if the file has been resolved, guaranteed to have
-    available data to deliver. *)
+(** Return a decoder if the file has been resolved, guaranteed to have available
+    data to deliver. *)
 val get_decoder :
   ctype:Frame.content_type -> t -> Decoder.file_decoder_ops option
 
@@ -183,9 +182,9 @@ type dresolver = {
 (** Functions for computing duration. *)
 val dresolvers : dresolver Plug.t
 
-(** Type for a metadata resolver. Resolvers are executed in priority
-    order and the first returned metadata take precedence over any other
-    one later returned. *)
+(** Type for a metadata resolver. Resolvers are executed in priority order and
+    the first returned metadata take precedence over any other one later
+    returned. *)
 type metadata_resolver = {
   priority : unit -> int;
   resolver :

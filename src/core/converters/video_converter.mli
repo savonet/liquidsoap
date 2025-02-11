@@ -42,9 +42,9 @@ type converter_plug =
 val video_converters : converter_plug Plug.t
 
 (** [find_converter source destination] tries to find a converter from source
-    format to destination format. Proportional scale is implicitly set via global
-    configuration key for now. Returns a conversion function: frame -> frame ->
-    unit. *)
+    format to destination format. Proportional scale is implicitly set via
+    global configuration key for now. Returns a conversion function: frame ->
+    frame -> unit. *)
 val find_converter :
   Image.Generic.Pixel.format ->
   Image.Generic.Pixel.format ->

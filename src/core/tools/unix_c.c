@@ -26,9 +26,9 @@
 #include <time.h>
 
 /* Some libraries mess with locale. In OCaml, locale should always
- * be "C", otherwise float_of_string and other functions do not behave
- * as expected. This issues arises in particular when using telnet
- * commands that need floats and when loading modules in bytecode mode.. */
+   be "C", otherwise float_of_string and other functions do not behave
+   as expected. This issues arises in particular when using telnet
+   commands that need floats and when loading modules in bytecode mode.. */
 CAMLprim value liquidsoap_set_locale(value _locale) {
   CAMLparam1(_locale);
   const char *locale = String_val(_locale);

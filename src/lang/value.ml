@@ -26,8 +26,8 @@ open Term_hash
 module Custom = Term.Custom
 module Methods = Runtime_term.Methods
 
-(** We derive a hash of the environment to invalidate the cache
-    when the builtin env change. We mostly keep name and methods. *)
+(** We derive a hash of the environment to invalidate the cache when the builtin
+    env change. We mostly keep name and methods. *)
 type env = (string * t) list
 
 and dynamic_methods = {
@@ -130,7 +130,7 @@ let methods = function
   | Fun { methods }
   | FFI { methods } ->
       methods
-  [@@inline always]
+[@@inline always]
 
 let map_methods v fn =
   match v with
@@ -144,7 +144,7 @@ let map_methods v fn =
     | List ({ methods } as p) -> List { p with methods = fn methods }
     | Fun ({ methods } as p) -> Fun { p with methods = fn methods }
     | FFI ({ methods } as p) -> FFI { p with methods = fn methods }
-  [@@inline always]
+[@@inline always]
 
 let pos = function
   | Int { pos }
@@ -158,7 +158,7 @@ let pos = function
   | Fun { pos }
   | FFI { pos } ->
       pos
-  [@@inline always]
+[@@inline always]
 
 let set_pos v pos =
   match v with
@@ -172,7 +172,7 @@ let set_pos v pos =
     | List p -> List { p with pos }
     | Fun p -> Fun { p with pos }
     | FFI p -> FFI { p with pos }
-  [@@inline always]
+[@@inline always]
 
 let has_flag v flag =
   match v with
@@ -184,7 +184,7 @@ let has_flag v flag =
     | Fun { flags }
     | FFI { flags } ->
         Flags.has flags flag
-  [@@inline always]
+[@@inline always]
 
 let add_flag v flag =
   match v with
@@ -195,7 +195,7 @@ let add_flag v flag =
     | List p -> p.flags <- Flags.add p.flags flag
     | Fun p -> p.flags <- Flags.add p.flags flag
     | FFI p -> p.flags <- Flags.add p.flags flag
-  [@@inline always]
+[@@inline always]
 
 let unit = `Tuple []
 let is_unit = function Tuple { value = [] } -> true | _ -> false
@@ -333,12 +333,16 @@ let compare a b =
       let a =
         make
           (`Tuple
-            (List.map (fun (lbl, v) -> make (`Tuple [make (`String lbl); v])) a))
+             (List.map
+                (fun (lbl, v) -> make (`Tuple [make (`String lbl); v]))
+                a))
       in
       let b =
         make
           (`Tuple
-            (List.map (fun (lbl, v) -> make (`Tuple [make (`String lbl); v])) b))
+             (List.map
+                (fun (lbl, v) -> make (`Tuple [make (`String lbl); v]))
+                b))
       in
       aux (a, b))
     else aux (a, b)
