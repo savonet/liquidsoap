@@ -107,19 +107,12 @@ let track_marks frame =
 let has_track_marks frame = track_marks frame <> []
 let has_track_mark frame pos = List.mem pos (track_marks frame)
 
-let add_track_marks frame l =
+let set_track_mark frame pos =
   let old_marks = get frame Fields.track_marks in
-  let length =
-    List.fold_left
-      (fun length pos -> max pos length)
-      (Content.length old_marks) l
-  in
+  let length = max (Content.length old_marks) pos in
   let new_marks = Content.make ~length (Content.format old_marks) in
-  Content.Track_marks.set_data new_marks
-    (List.sort_uniq Stdlib.compare (l @ Content.Track_marks.get_data old_marks));
+  Content.Track_marks.set_data new_marks [pos];
   Fields.add Fields.track_marks new_marks frame
-
-let add_track_mark frame pos = add_track_marks frame [pos]
 
 let drop_track_marks frame =
   Fields.add Fields.track_marks
@@ -136,33 +129,20 @@ let get_all_metadata frame =
 let get_metadata b t =
   try Some (List.assoc t (get_all_metadata b)) with Not_found -> None
 
-let add_all_metadata frame l =
-  let old_metadata = get frame Fields.metadata in
-  let length =
-    List.fold_left
-      (fun length (pos, _) -> max pos length)
-      (Content.length old_metadata)
-      l
-  in
-  let new_metadata = Content.make ~length (Content.format old_metadata) in
-  Content.Metadata.set_data new_metadata
-    (List.sort_uniq
-       (fun (p, _) (p', _) -> Stdlib.compare p p')
-       (l @ Content.Metadata.get_data old_metadata));
-  Fields.add Fields.metadata new_metadata frame
-
 let map_metadata frame fn =
-  let metadata = get_all_metadata frame in
-  let metadata = List.filter_map fn metadata in
-  add_all_metadata frame metadata
+  let metadata = get frame Fields.metadata in
+  let new_metadata = fn (Content.Metadata.get_data metadata) in
+  let length =
+    max (Content.length metadata)
+      (List.fold_left (fun p (p', _) -> max p p') 0 new_metadata)
+  in
+  let new_metadata_content = Content.make ~length (Content.format metadata) in
+  Content.Metadata.set_data new_metadata_content new_metadata;
+  Fields.add Fields.metadata new_metadata_content frame
 
-let add_metadata frame pos m = add_all_metadata frame [(pos, m)]
+let clear_metadata frame = map_metadata frame (fun _ -> [])
+let add_metadata frame pos m = map_metadata frame (fun meta -> (pos, m) :: meta)
+let set_all_metadata frame m' = map_metadata frame (fun _ -> m')
 
 let free_metadata frame pos =
-  let metadata = get frame Fields.metadata in
-  let new_metadata =
-    Content.make ~length:(Content.length metadata) (Content.format metadata)
-  in
-  Content.Metadata.set_data new_metadata
-    (List.filter (fun (p, _) -> p <> pos) (Content.Metadata.get_data metadata));
-  Fields.add Fields.metadata new_metadata frame
+  map_metadata frame (fun meta -> List.filter (fun (p, _) -> p <> pos) meta)
