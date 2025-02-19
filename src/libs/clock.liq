@@ -9,6 +9,10 @@
 #                  When passed, all streaming errors are silenced. Intended \
 #                  mostly for debugging purposes.
 def clock.assign_new(~sync="auto", ~id=null(), ~on_error=null(), sources) =
-  clock = clock.create(id=id, sync=sync, on_error=on_error)
-  list.iter(fun (s) -> clock.unify(s.clock), sources)
+  c = clock.create(id=id, sync=sync, on_error=on_error)
+
+  list.iter(fun (s) -> c.unify(s.clock), sources)
+
+  # Clock unification can override id so we reset it here.
+  if null.defined(id) then c.id := null.get(id) end
 end

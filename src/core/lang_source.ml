@@ -44,9 +44,12 @@ module ClockValue = struct
   let methods =
     [
       ( "id",
-        Lang.fun_t [] Lang.string_t,
+        Lang.ref_t Lang.string_t,
         "The clock's id",
-        fun c -> Lang.val_fun [] (fun _ -> Lang.string (Clock.id c)) );
+        fun c ->
+          let get () = Lang.string (Clock.id c) in
+          let set v = Clock.set_id c (Lang.to_string v) in
+          Lang.reference get set );
       ( "sync",
         Lang.fun_t [] Lang.string_t,
         "The clock's current sync mode. One of: `\"stopped\"`, `\"stopping\"`, \

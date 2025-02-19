@@ -136,6 +136,7 @@ let _id clock =
   ^ match clock.sub_ids with [] -> "" | l -> "." ^ String.concat "." l
 
 let id c = _id (Unifier.deref c)
+let set_id c id = Unifier.set (Unifier.deref c).id id
 
 let attach c s =
   let clock = Unifier.deref c in

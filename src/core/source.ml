@@ -78,7 +78,9 @@ let finalise s =
 
 class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
   let frame_type = Type.var () in
-  let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
+  let clock =
+    match clock with Some c -> c | None -> Clock.create ~stack ~id:name ()
+  in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
