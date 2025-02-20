@@ -190,7 +190,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
       after_streaming_cycle;
     }
   in
-  s#add_watcher watcher
+  if false then s#add_watcher watcher
 
 let _ =
   let source_monitor_register_t =
