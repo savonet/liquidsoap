@@ -21,9 +21,9 @@
  *****************************************************************************)
 
 (* The annotate protocol allows to set the initial metadata for a request:
- * annotate:key1=val1,key2=val2,...:uri
- * is resolved into uri, and adds the bindings to the request metadata.
- * The values can be "strings", or directly integers, floats or identifiers. *)
+   annotate:key1=val1,key2=val2,...:uri
+   is resolved into uri, and adds the bindings to the request metadata.
+   The values can be "strings", or directly integers, floats or identifiers. *)
 
 exception Error of string
 

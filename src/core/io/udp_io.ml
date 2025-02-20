@@ -28,14 +28,14 @@ module Tutils = struct
   (* Thread with preemptive kill/wait mechanism, see mli for details. *)
 
   (** Preemptive stoppable thread.
-   *
-   * The thread function receives a [should_stop,has_stop] pair on startup.
-   * It should regularly poll the [should_stop] and stop when asked to.
-   * Before stopping it should call [has_stopped].
-   *
-   * The function returns a [kill,wait] pair. The first function should be
-   * called to request that the thread stops, and the second to wait
-   * that it has effectively stopped. *)
+
+      The thread function receives a [should_stop,has_stop] pair on startup. It
+      should regularly poll the [should_stop] and stop when asked to. Before
+      stopping it should call [has_stopped].
+
+      The function returns a [kill,wait] pair. The first function should be
+      called to request that the thread stops, and the second to wait that it
+      has effectively stopped. *)
   let stoppable_thread f name =
     let cond = Condition.create () in
     let lock = Mutex.create () in
@@ -182,8 +182,8 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
         Generator.add_track_mark self#buffer;
 
         (* Closing the socket is slightly overkill but
-         * we need to recreate the decoder anyway, which
-         * might loose some data too. *)
+           we need to recreate the decoder anyway, which
+           might loose some data too. *)
         Unix.close socket;
         begin
           match e with

@@ -110,11 +110,11 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     method self_sync =
       match self_sync with
         | Some v -> (`Static, self#source_sync v)
-        | None -> (
+        | None ->
             ( `Dynamic,
               match self#current_source with
                 | Some s -> snd s#self_sync
-                | None -> None ))
+                | None -> None )
   end
 
 let _ =

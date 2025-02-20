@@ -313,7 +313,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
               yv <- Array.make_matrix channels zplane_numpoles 0.;
 
               (* Do we need to transform to Bandstop or Allpass? *)
-              match filter_type with
+                match filter_type with
                 | Band_stop ->
                     (* Band-stop filter *)
                     self#log#info "This is a band-stop filter.";

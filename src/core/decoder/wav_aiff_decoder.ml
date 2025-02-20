@@ -52,9 +52,9 @@ let input_ops =
   { Wav_aiff.really_input; input_byte; input; seek; close = (fun _ -> ()) }
 
 (* It might be more efficient to write our code for an input
- * channel and use directly the one we have when decoding files
- * or external processes, if we could wrap the input function used
- * for decoding stream (in http and harbor) as an in_channel. *)
+   channel and use directly the one we have when decoding files
+   or external processes, if we could wrap the input function used
+   for decoding stream (in http and harbor) as an in_channel. *)
 let create ?header input =
   let decoder = ref (fun ~buffer:_ -> assert false) in
   let header = ref header in

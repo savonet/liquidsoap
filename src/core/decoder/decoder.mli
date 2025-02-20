@@ -30,9 +30,9 @@ type stream = string
 type input = {
   read : bytes -> int -> int -> int;
   (* Seek to an absolute position in bytes.
-   * Returns the current position after seeking
-   * or raises [No_seek] if no seek operation
-   * is available. *)
+     Returns the current position after seeking
+     or raises [No_seek] if no seek operation
+     is available. *)
   lseek : (int -> int) option;
   tell : (unit -> int) option;
   length : (unit -> int) option;
@@ -57,7 +57,7 @@ type decoder = {
   decode : buffer -> unit;
   eof : buffer -> unit;
   (* [seek x]: Skip [x] main ticks.
-   * Returns the number of ticks atcually skipped. *)
+     Returns the number of ticks atcually skipped. *)
   seek : int -> int;
   close : unit -> unit;
 }
@@ -88,11 +88,11 @@ type decoder_specs = {
   (* None means accept all file extensions. *)
   file_extensions : unit -> string list option;
   (* Mime types are parsed up-to the first ;
-   * so a file with mime-type foo/bar; bla
-   * matches mime-type foo/bar. Furthermore,
-   * for streams, a stream with mime foo/bar<whatever>
-   * matches mime-type foo/bar.
-   * None means accept all mime-types. *)
+     so a file with mime-type foo/bar; bla
+     matches mime-type foo/bar. Furthermore,
+     for streams, a stream with mime foo/bar<whatever>
+     matches mime-type foo/bar.
+     None means accept all mime-types. *)
   mime_types : unit -> string list option;
   (* None means no decodable content for that file. *)
   file_type :
@@ -125,8 +125,8 @@ val test_file :
   stream ->
   bool
 
-(** Test if we can decode for a content_type. This include cases where we
-    know how to convert channel layout. *)
+(** Test if we can decode for a content_type. This include cases where we know
+    how to convert channel layout. *)
 val can_decode_type : Frame.content_type -> Frame.content_type -> bool
 
 val get_file_decoder :

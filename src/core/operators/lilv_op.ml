@@ -186,7 +186,7 @@ class lilv_nosource plugin outputs params =
   end
 
 (** An LV2 plugin without audio output (e.g. to observe the stream). The input
-   stream is returned. *)
+    stream is returned. *)
 class lilv_noout source plugin inputs params =
   object
     inherit base source

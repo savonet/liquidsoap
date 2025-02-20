@@ -48,8 +48,8 @@ class consumer ~clock buffer =
     method remaining = Generator.length buffer
   end
 
-(** [rms_width] is in samples.
-  * [cross_length] is in ticks (like #remaining estimations) and must be at least one frame. *)
+(** [rms_width] is in samples. [cross_length] is in ticks (like #remaining
+    estimations) and must be at least one frame. *)
 class cross val_source ~end_duration_getter ~override_end_duration
   ~override_duration ~start_duration_getter ~override_start_duration
   ~override_max_start_duration ~persist_override ~rms_width ~assume_autocue

@@ -333,22 +333,22 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
             if cache_pos > 0 || can_generate_frame then
               Atomic.set streaming_state
                 (`Ready
-                  (fun () ->
-                    let buf =
-                      if can_generate_frame && cache_pos < size then
-                        Frame.append cache self#instrumented_generate_frame
-                      else cache
-                    in
-                    let buf_pos = Frame.position buf in
-                    let buf =
-                      if size < buf_pos then (
-                        _cache <- Some (Frame.after buf size);
-                        Frame.slice buf size)
-                      else (
-                        _cache <- None;
-                        buf)
-                    in
-                    Atomic.set streaming_state (`Done buf)))
+                   (fun () ->
+                     let buf =
+                       if can_generate_frame && cache_pos < size then
+                         Frame.append cache self#instrumented_generate_frame
+                       else cache
+                     in
+                     let buf_pos = Frame.position buf in
+                     let buf =
+                       if size < buf_pos then (
+                         _cache <- Some (Frame.after buf size);
+                         Frame.slice buf size)
+                       else (
+                         _cache <- None;
+                         buf)
+                     in
+                     Atomic.set streaming_state (`Done buf)))
             else Atomic.set streaming_state `Unavailable;
             Clock.after_tick self#clock (fun () -> self#after_streaming_cycle)
         | _ -> ()
@@ -388,12 +388,12 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     method get_mutable_frame field =
       Frame.set self#get_frame field (self#get_mutable_content field)
 
-    method set_frame_data
-        : 'a.
-          Frame.field ->
-          (?offset:int -> ?length:int -> 'a -> Content.data) ->
-          'a ->
-          Frame.t =
+    method set_frame_data :
+        'a.
+        Frame.field ->
+        (?offset:int -> ?length:int -> 'a -> Content.data) ->
+        'a ->
+        Frame.t =
       fun field lift data -> Frame.set_data self#get_frame field lift data
 
     method private split_frame frame =

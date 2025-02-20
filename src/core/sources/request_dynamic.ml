@@ -258,7 +258,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
             | _ -> assert false)
 
     (** This method should be called whenever the feeding task has a new
-      opportunity to feed the queue, in case it is sleeping. *)
+        opportunity to feed the queue, in case it is sleeping. *)
     method private notify_new_request =
       match Atomic.get state with
         | `Started (d, { notify }) when d <= Unix.gettimeofday () -> notify ()

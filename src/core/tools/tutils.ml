@@ -120,8 +120,8 @@ let seems_locked =
 
 let log = Log.make ["threads"]
 
-(** Manage a set of threads and make sure they terminate correctly,
-  * i.e. not by raising an exception. *)
+(** Manage a set of threads and make sure they terminate correctly, i.e. not by
+    raising an exception. *)
 
 let lock = Mutex.create ()
 
@@ -317,8 +317,8 @@ type event =
   | `Both of Unix.file_descr ]
 
 (* Wait for [`Read socket], [`Write socket] or [`Both socket] for at most
- * [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
- * if timeout is reached. *)
+   [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
+   if timeout is reached. *)
 let wait_for =
   let end_r, end_w = Unix.pipe ~cloexec:true () in
   Lifecycle.before_core_shutdown ~name:"wait_for shutdown" (fun () ->

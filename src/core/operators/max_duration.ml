@@ -20,10 +20,9 @@
 
  *****************************************************************************)
 
-(** This one is a bit tricky as we want to make sure
- *  that the underlying source is cleaned up when it's done
- *  pulling. Used in switch-based transitions to avoid infinite
- *  stack of sources. *)
+(** This one is a bit tricky as we want to make sure that the underlying source
+    is cleaned up when it's done pulling. Used in switch-based transitions to
+    avoid infinite stack of sources. *)
 class max_duration ~override_meta ~duration source =
   object (self)
     inherit Source.operator ~name:"max_duration" []

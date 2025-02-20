@@ -339,11 +339,11 @@ jobs:
         run: |
           opam install --cli=2.1 --confirm-level=unsafe-yes .
       - name: Install ocamlformat
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '5.3.x'
         run: |
-          opam install ocamlformat=0.25.1
+          opam install ocamlformat=0.27.0
       - name: Set PY env variable.
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '5.3.x'
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
       - name: Restore pre-commit cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
@@ -351,7 +351,7 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Run pre-commit
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '5.3.x'
         uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
 
   build_posix:

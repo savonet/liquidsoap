@@ -44,7 +44,7 @@ external force_locale : string -> unit = "liquidsoap_set_locale"
 
 (** Get page size. *)
 external pagesize : unit -> int = "liquidsoap_get_pagesize"
-  [@@noalloc]
+[@@noalloc]
 
 let pagesize = pagesize ()
 let () = force_locale "C"
@@ -57,8 +57,8 @@ let rec prefix p l =
     | _, [] -> false
     | hp :: tp, hl :: tl -> hp = hl && prefix tp tl
 
-(** Remove the first element satisfying a predicate, raising Not_found
-  * if none is found. *)
+(** Remove the first element satisfying a predicate, raising Not_found if none
+    is found. *)
 let remove_one f l =
   let rec aux acc = function
     | [] -> raise Not_found
@@ -66,14 +66,11 @@ let remove_one f l =
   in
   aux [] l
 
-(* Read all data from a given filename.
- * We cannot use really_input with the
- * reported length of the file because
- * some OSes such as windows may do implicit
- * conversions (file opened in text mode in
- * win32), thus making the actual number of
- * characters that can be read from the file
- * different than its reported length.. *)
+(** Read all data from a given filename. We cannot use really_input with the
+    reported length of the file because some OSes such as windows may do
+    implicit conversions (file opened in text mode in win32), thus making the
+    actual number of characters that can be read from the file different than
+    its reported length.. *)
 let read_all filename =
   let channel = open_in filename in
   let tmp = Bytes.create pagesize in
@@ -130,10 +127,10 @@ let () = Printexc.register_printer unix_translator
 (* Here we take care not to introduce new redexes when substituting *)
 
 (* Interpolation:
- * takes a (string -> string) lookup function (raise Not_found on failure) and
- * a string containing special patterns like $(v) or $(if $(v),"bla","bli")
- * and interpolates them just like make does, using the hash table for
- * variable definitions. *)
+   takes a (string -> string) lookup function (raise Not_found on failure) and
+   a string containing special patterns like $(v) or $(if $(v),"bla","bli")
+   and interpolates them just like make does, using the hash table for
+   variable definitions. *)
 let interpolate =
   let log = Log.make ["string"; "interpolate"] in
   (* TODO Use PCRE *)
@@ -198,7 +195,7 @@ let which_opt ~path s = try Some (which ~path s) with Not_found -> None
 
 (** Get current timezone. *)
 external timezone : unit -> int = "liquidsoap_get_timezone"
-  [@@noalloc]
+[@@noalloc]
 
 external timezone_by_name : unit -> string * string
   = "liquidsoap_get_timezone_by_name"
@@ -305,8 +302,7 @@ let is_dir d =
 
 let dir_exists d = Sys.file_exists d && is_dir d
 
-(** Create a directory, and its parents if needed.
-  * Raise Unix_error on error. *)
+(** Create a directory, and its parents if needed. Raise Unix_error on error. *)
 let rec mkdir ~perm dir =
   if Sys.file_exists dir then
     if is_dir dir then ()
@@ -321,8 +317,8 @@ let get_tempdir () =
   else Option.value (Sys.getenv_opt "TMPDIR") ~default:"/tmp"
 
 (* This is not guaranteed to work 100% but should
- * be ok on reasonable cases. A problematic cases
- * is for instance: http://bla.com/foo.mp3?gni=bla.truc *)
+   be ok on reasonable cases. A problematic cases
+   is for instance: http://bla.com/foo.mp3?gni=bla.truc *)
 
 (** Get a file/uri extension. *)
 let get_ext s =
@@ -384,11 +380,11 @@ let normalize_parameter_string s =
   in
   s
 
-(** A function to reopen a file descriptor
-  * Thanks to Xavier Leroy!
-  * Ref: http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/
-  *      a7e3bbdfaab33603320d75dbdcd40c37.en.html
-  *)
+(** A function to reopen a file descriptor Thanks to Xavier Leroy!
+
+    Ref:
+    http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/a7e3bbdfaab33603320d75dbdcd40c37.en.html
+*)
 let reopen_out outchan filename =
   flush outchan;
   let fd1 = Unix.descr_of_out_channel outchan in

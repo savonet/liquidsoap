@@ -44,8 +44,8 @@ let warning_header ~formatter idx pos =
   let pos = Pos.Option.to_string pos in
   Format.fprintf formatter "@[%s:\n%s\n%s %i: " (position pos) e warning idx
 
-(** Exception raised by report_error after an error has been displayed.
-  * Unknown errors are re-raised, so that their content is not totally lost. *)
+(** Exception raised by report_error after an error has been displayed. Unknown
+    errors are re-raised, so that their content is not totally lost. *)
 exception Error
 
 let strict = ref false
@@ -210,11 +210,11 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
    so the return value has to be something else than [unit] in those cases. Essentially, this means
    that [default] becomes [fun () -> raise Error] to keep typechecking consistent.. *)
 let report :
-      'a.
-      ?lexbuf:Sedlexing.lexbuf ->
-      ?default:(unit -> 'a) ->
-      (throw:(exn -> unit) -> unit -> 'a) ->
-      'a =
+    'a.
+    ?lexbuf:Sedlexing.lexbuf ->
+    ?default:(unit -> 'a) ->
+    (throw:(exn -> unit) -> unit -> 'a) ->
+    'a =
  fun ?lexbuf ?(default = fun () -> raise Error) f ->
   let throw = throw ?lexbuf () in
   if !Term.conf_debug_errors then f ~throw ()

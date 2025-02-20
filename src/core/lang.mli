@@ -54,7 +54,7 @@ val iter_sources :
 (** {2 Computation} *)
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
-   of the application. *)
+    of the application. *)
 val apply : ?pos:Liquidsoap_lang.Pos.t list -> value -> env -> value
 
 (** {3 Helpers for registering protocols} *)
@@ -178,7 +178,7 @@ val to_valued_ref :
 val to_http_transport : value -> Liq_http.transport
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].
-  * This is useful for retrieving arguments of a function. *)
+    This is useful for retrieving arguments of a function. *)
 val assoc : 'a -> int -> ('a * 'b) list -> 'b
 
 val int_t : t
@@ -219,11 +219,10 @@ val internal_tracks_t : unit -> t
    applied. *)
 val pcm_audio_t : unit -> t
 
-(** [fun_t args r] is the type of a function taking [args] as parameters
-  * and returning values of type [r].
-  * The elements of [r] are of the form [(b,l,t)] where [b] indicates if
-  * the argument is optional, [l] is the label of the argument ([""] means no
-  * label) and [t] is the type of the argument. *)
+(** [fun_t args r] is the type of a function taking [args] as parameters and
+    returning values of type [r]. The elements of [r] are of the form [(b,l,t)]
+    where [b] indicates if the argument is optional, [l] is the label of the
+    argument ([""] means no label) and [t] is the type of the argument. *)
 val fun_t : (bool * string * t) list -> t -> t
 
 val univ_t : ?constraints:Liquidsoap_lang.Type.constr list -> unit -> t
@@ -261,17 +260,16 @@ val reference : (unit -> value) -> (value -> unit) -> value
 val http_transport : Liq_http.transport -> value
 val base_http_transport : Liq_http.transport -> value
 
-(** Build a function from an OCaml function. Items in the prototype indicate
-    the label and optional values. Second string value is used when renaming
+(** Build a function from an OCaml function. Items in the prototype indicate the
+    label and optional values. Second string value is used when renaming
     argument name, e.g. `fun (foo=_, ...) -> ` *)
 val val_fun : (string * string * value option) list -> (env -> value) -> value
 
 (** Build a function from a term. *)
 val term_fun : (string * string * value option) list -> Term.t -> value
 
-(** Build a constant function.
-  * It is slightly less opaque and allows the printing of the closure
-  * when the constant is ground. *)
+(** Build a constant function. It is slightly less opaque and allows the
+    printing of the closure when the constant is ground. *)
 val val_cst_fun : (string * value option) list -> value -> value
 
 (** Extract position from the environment. Used inside function execution. *)

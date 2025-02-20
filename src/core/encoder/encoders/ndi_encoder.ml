@@ -20,7 +20,8 @@
 
  *****************************************************************************)
 
-(** NDI encoder. This encoder does nothing and can only by used with `output.ndi` *)
+(** NDI encoder. This encoder does nothing and can only by used with
+    `output.ndi` *)
 
 let encoder ~pos _ =
   let error () =

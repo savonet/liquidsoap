@@ -76,10 +76,10 @@ let decoder_oblivious = Lang.add_module ~base:decoder "oblivious"
 
 let _ =
   (* The type of the test function for external decoders.
-   * Return is one of:
-   * . 0: no audio
-   * . -1: audio with unknown number of channels.
-   * . x >= 1: audio with a fixed number (x) of channels. *)
+     Return is one of:
+     . 0: no audio
+     . -1: audio with unknown number of channels.
+     . x >= 1: audio with a fixed number (x) of channels. *)
   let test_file_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.int_t in
   let test_arg =
     ( "test",
@@ -310,8 +310,8 @@ let _ =
 
 let _ =
   (* Cheap implementation of "getopt" which does not really deserve its name
-   * since it has little to do with the standards that getopt(3) implements.
-   * A complete rework of argv() and getopt() should eventually be done. *)
+     since it has little to do with the standards that getopt(3) implements.
+     A complete rework of argv() and getopt() should eventually be done. *)
   let argv = Shebang.argv in
   let offset =
     (* Index of the last non-script parameter on the command-line. *)

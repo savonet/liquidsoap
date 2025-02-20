@@ -22,8 +22,7 @@
 
 open Mm
 
-(** Read MIDI files.
-  * The metadata support is TODO. *)
+(** Read MIDI files. The metadata support is TODO. *)
 
 exception Invalid_header
 exception Invalid_data

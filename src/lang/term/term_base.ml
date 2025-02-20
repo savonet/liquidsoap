@@ -91,8 +91,8 @@ let string_of_pat = function
   | `PVar l -> String.concat "." l
   | `PTuple l -> "(" ^ String.concat ", " l ^ ")"
 
-(** String representation of terms, (almost) assuming they are in normal
-    form. *)
+(** String representation of terms, (almost) assuming they are in normal form.
+*)
 
 let rec to_string (v : t) =
   let to_base_string (v : t) =
@@ -263,8 +263,7 @@ and free_fun_vars = function
       let fv =
         List.fold_left
           (fun fv -> function
-            | { default = Some d } -> Vars.union fv (free_vars d)
-            | _ -> fv)
+            | { default = Some d } -> Vars.union fv (free_vars d) | _ -> fv)
           Vars.empty arguments
       in
       let fv = Vars.union fv (free_vars ~bound body) in
@@ -274,8 +273,8 @@ and free_fun_vars = function
 and free_vars ?(bound = []) body : Vars.t =
   Vars.diff (free_term_vars body) (Vars.of_list bound)
 
-(** Values which can be ignored (and will thus not raise a warning if
-   ignored). *)
+(** Values which can be ignored (and will thus not raise a warning if ignored).
+*)
 let can_ignore t =
   match (Type.demeth t).Type.descr with
     | Type.Tuple [] | Type.Var _ -> true
@@ -290,7 +289,7 @@ exception Unbound of Pos.Option.t * string
 exception Ignored of t
 
 (** [No_label (f,lbl,first,x)] indicates that the parameter [x] could not be
-    passed to the function [f] because the latter has no label [lbl].  The
+    passed to the function [f] because the latter has no label [lbl]. The
     [first] information tells whether [lbl=x] is the first parameter with label
     [lbl] in the considered application, which makes the message a bit more
     helpful. *)

@@ -34,14 +34,14 @@ module Base = struct
   let length { length } = length
 
   let blit :
-        'a 'b.
-        copy:('b -> 'b) ->
-        ('a, 'b) content ->
-        int ->
-        ('a, 'b) content ->
-        int ->
-        int ->
-        unit =
+      'a 'b.
+      copy:('b -> 'b) ->
+      ('a, 'b) content ->
+      int ->
+      ('a, 'b) content ->
+      int ->
+      int ->
+      unit =
    fun ~copy src src_pos dst dst_pos len ->
     (* No compatibility check here, it's
        assumed to have been done beforehand. *)
@@ -65,8 +65,7 @@ module Base = struct
       List.stable_sort (fun (pos, _) (pos', _) -> compare pos pos') data
 
   let fill :
-        'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit
-      =
+      'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit =
    fun src src_pos dst dst_pos len ->
     blit ~copy:(fun x -> x) src src_pos dst dst_pos len
 

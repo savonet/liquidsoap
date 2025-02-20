@@ -28,12 +28,13 @@ let argv =
   (* Full path to the executed binary. *)
   let binname = Sys.argv.(0) in
   (* Name of the script executed. *)
-  match Sys.getenv_opt "_" with
+    match Sys.getenv_opt "_" with
     | Some scriptname ->
         if
           (* Normal invocation. *)
           binname === scriptname
-          || (* Invocation from gdb/strace/valgrind... When liquidsoap is invoked
+          ||
+          (* Invocation from gdb/strace/valgrind... When liquidsoap is invoked
                 through gdb, env[_] is "../gdb". For a real #! invocation, env[_] (the
                 script name) should be found on the command-line, either at position 1
                 or 2. *)
