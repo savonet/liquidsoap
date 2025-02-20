@@ -62,7 +62,7 @@ rm -rf APKBUILD /home/opam/packages/tmp/"${ALPINE_ARCH}"
 echo "::group:: building ${APK_PACKAGE}-minimal.."
 
 # shellcheck disable=SC2086
-opam remove -y $MINIMAL_EXCLUDE_DEPS
+opam remove -y --confirm-level=unsafe-yes $MINIMAL_EXCLUDE_DEPS
 
 eval "$(opam config env)"
 
