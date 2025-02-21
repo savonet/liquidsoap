@@ -757,7 +757,7 @@ def playlist.list(
     default()
 %endif
 
-  source.set_name(s, "playlist.list.reloadable")
+  source.set_id(s, "playlist.list.reloadable")
 
   # The reload function
   def reload(~empty_queue=true, p) =
@@ -1096,7 +1096,7 @@ def replaces playlist(
     list.length(files())
   end
 
-  source.set_name(s, "playlist")
+  source.set_id(s, "playlist")
 
   # Set up reloading for seconds and watch
   if

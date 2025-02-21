@@ -141,7 +141,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
       self#on_wake_up (fun () ->
           (* We prefer [name] as an ID over the default, but do not overwrite
              user-defined ID. Our ID will be used for the server interface. *)
-          if name <> "" then self#set_id ~definitive:false name;
+          if name <> "" then self#set_id ~force:false name;
 
           self#log#debug "Clock is %s." (Clock.id self#clock);
           self#log#important "Content type is %s."

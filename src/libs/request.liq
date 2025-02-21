@@ -142,7 +142,7 @@ def request.queue(
       end
   )
 
-  source.set_name(s, "request.queue")
+  source.set_id(s, "request.queue")
   fetch := s.fetch
 
   if

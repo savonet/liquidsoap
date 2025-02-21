@@ -23,8 +23,8 @@
 let source = Muxer.source
 
 let _ =
-  Lang.add_builtin ~base:source "set_name" ~category:(`Source `Liquidsoap)
-    ~descr:"Set the name of an operator."
+  Lang.add_builtin ~base:source "set_id" ~category:(`Source `Liquidsoap)
+    ~descr:"Set the id of an operator."
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);
       ("", Lang.string_t, None, None);
@@ -33,7 +33,7 @@ let _ =
     (fun p ->
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let n = Lang.assoc "" 2 p |> Lang.to_string in
-      s#set_name n;
+      s#set_id n;
       Lang.unit)
 
 let _ =
