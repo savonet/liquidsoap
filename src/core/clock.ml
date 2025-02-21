@@ -447,7 +447,7 @@ and _clock_thread ~clock x =
          x.log#info "Clock thread is starting";
          run ())
        ()
-       ("clk." ^ _id clock))
+       ("Clock " ^ _id clock))
 
 and _can_start ?(force = false) clock =
   let has_output =

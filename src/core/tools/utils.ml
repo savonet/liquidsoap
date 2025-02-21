@@ -36,6 +36,26 @@ module Thread = struct
   external set_current_thread_name : string -> unit
     = "liquidsoap_set_current_thread_name"
 
+  let set_current_thread_name s =
+    let s =
+      if Liquidsoap_lang.Build_config.system = "linux" then (
+        let s =
+          Re.Pcre.substitute
+            ~rex:(Re.Pcre.regexp "[aeiou\\s]+")
+            ~subst:(fun _ -> "")
+            s
+        in
+        let s =
+          Re.Pcre.substitute
+            ~rex:(Re.Pcre.regexp "[^a-zA-Z0-9-_]+")
+            ~subst:(fun _ -> ":")
+            s
+        in
+        "Liq:" ^ s)
+      else s
+    in
+    set_current_thread_name s
+
   include Thread
 end
 
