@@ -38,10 +38,16 @@ module Thread = struct
 
   let set_current_thread_name s =
     let s =
-      if Liquidsoap_lang.Build_config.system = "linux" then (
+      if true || Liquidsoap_lang.Build_config.system = "linux" then (
         let s =
           Re.Pcre.substitute
-            ~rex:(Re.Pcre.regexp "[aeiou\\s]+")
+            ~rex:(Re.Pcre.regexp "[\\s]+[aeiou]")
+            ~subst:(fun s -> String.capitalize_ascii (String.trim s))
+            s
+        in
+        let s =
+          Re.Pcre.substitute
+            ~rex:(Re.Pcre.regexp "[aeiouy\\s]+")
             ~subst:(fun _ -> "")
             s
         in
@@ -51,7 +57,39 @@ module Thread = struct
             ~subst:(fun _ -> ":")
             s
         in
-        "Liq:" ^ s)
+        let s =
+          List.fold_left
+            (fun s c ->
+              Re.Pcre.substitute
+                ~rex:(Re.Pcre.regexp ("[" ^ c ^ "]+"))
+                ~subst:(fun _ -> c)
+                s)
+            s
+            [
+              "b";
+              "c";
+              "d";
+              "f";
+              "g";
+              "h";
+              "i";
+              "j";
+              "k";
+              "l";
+              "m";
+              "n";
+              "p";
+              "q";
+              "r";
+              "s";
+              "t";
+              "v";
+              "w";
+              "x";
+              "z";
+            ]
+        in
+        "LQ:" ^ s)
       else s
     in
     set_current_thread_name s
