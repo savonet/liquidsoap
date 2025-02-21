@@ -1,3 +1,11 @@
+# 2.3.2 (unreleased)
+
+Fixed:
+
+- Optimized CPU usage (#4369)
+
+---
+
 # 2.3.1 (2025-02-05)
 
 New:
