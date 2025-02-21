@@ -24,10 +24,10 @@
    support seek by doing nothing. However, for other, seek should be
    disabled. Thus, if [seek] is [true], the seek function is [fun x -> x]
    otherwise it is [fun _ -> 0] *)
-class virtual source ?name ~seek duration =
+class virtual source ~name ~seek duration =
   let track_size = Option.map Frame.main_of_seconds duration in
   object (self)
-    inherit Source.source ?name ()
+    inherit Source.source ~name ()
     method fallible = track_size <> None
     val mutable remaining = track_size
     method private can_generate_frame = remaining <> Some 0

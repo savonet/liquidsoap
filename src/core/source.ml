@@ -76,11 +76,9 @@ let finalise s =
       (Printf.sprintf "Error when leaving output %s: %s!" s#id
          (Printexc.to_string e))
 
-class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
+class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
-  let clock =
-    match clock with Some c -> c | None -> Clock.create ~stack ~id:name ()
-  in
+  let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -108,23 +106,17 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     val mutable log = source_log
     method private create_log = log <- Log.make [self#id]
     method log = log
-    val mutable id = ""
-    val mutable definitive_id = false
-    val mutable name = name
-    method set_name n = name <- n
-    initializer id <- Lang_string.generate_id name
+    val mutable id = name
     method id = id
 
-    method set_id ?(definitive = true) s =
+    method set_id ?(force = true) s =
       let s =
         Re.Pcre.substitute
           ~rex:(Re.Pcre.regexp "[ \t\n.]")
           ~subst:(fun _ -> "_")
           s
       in
-      if not definitive_id then (
-        id <- Lang_string.generate_id s;
-        definitive_id <- definitive);
+      if force then id <- Lang_string.generate_id s;
 
       (* Sometimes the ID is changed during initialization, in order to make it
          equal to the server name, which is only registered at initialization
@@ -132,6 +124,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
          changes, and [log] has already been initialized, reset it. *)
       if log != source_log then self#create_log
 
+    initializer self#set_id (Lang_string.generate_id name)
     val mutex = Mutex.create ()
 
     method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
@@ -574,9 +567,9 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
-and virtual active_operator ?stack ?clock ?name sources =
+and virtual active_operator ?stack ?clock ~name sources =
   object (self)
-    inherit operator ?stack ?clock ?name sources
+    inherit operator ?stack ?clock ~name sources
     method! source_type : source_type = `Active (self :> active)
 
     (** Do whatever needed when the latency gets too big and is reset. *)
@@ -585,14 +578,14 @@ and virtual active_operator ?stack ?clock ?name sources =
 
 (** Shortcuts for defining sources with no children *)
 
-and virtual source ?stack ?clock ?name () =
+and virtual source ?stack ?clock ~name () =
   object
-    inherit operator ?stack ?clock ?name []
+    inherit operator ?stack ?clock ~name []
   end
 
-class virtual active_source ?stack ?clock ?name () =
+class virtual active_source ?stack ?clock ~name () =
   object
-    inherit active_operator ?stack ?clock ?name []
+    inherit active_operator ?stack ?clock ~name []
   end
 
 (* Reselect type. This drives the choice of next source.

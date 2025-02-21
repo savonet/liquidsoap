@@ -120,7 +120,7 @@ type state =
   | `Stopped of active_sync_mode ]
 
 type clock = {
-  id : string Unifier.t;
+  id : string option Unifier.t;
   sub_ids : string list;
   stack : Pos.t list Atomic.t;
   state : state Atomic.t;
@@ -131,12 +131,18 @@ type clock = {
 
 and t = clock Unifier.t
 
+let _default_id { id; pending_activations } =
+  match (Unifier.deref id, Queue.elements pending_activations) with
+    | Some id, _ -> id
+    | None, el :: _ -> el#id
+    | None, _ -> "generic"
+
 let _id clock =
-  Unifier.deref clock.id
+  _default_id clock
   ^ match clock.sub_ids with [] -> "" | l -> "." ^ String.concat "." l
 
 let id c = _id (Unifier.deref c)
-let set_id c id = Unifier.set (Unifier.deref c).id id
+let set_id c id = Unifier.set (Unifier.deref c).id (Some id)
 
 let attach c s =
   let clock = Unifier.deref c in
@@ -249,7 +255,15 @@ let unify =
       (Queue.push clock'.pending_activations);
     Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
     Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
-    Unifier.(clock.id <-- clock'.id);
+    (match (Unifier.deref clock.id, Unifier.deref clock'.id) with
+      | None, None -> Unifier.(clock.id <-- clock'.id)
+      | Some _, None -> Unifier.(clock'.id <-- clock.id)
+      | None, Some _ -> Unifier.(clock.id <-- clock'.id)
+      | Some _, Some id ->
+          log#important
+            "Clocks %s and %s both have id already set. Setting id to %s"
+            (descr c) (descr c') id;
+          Unifier.(clock.id <-- clock'.id));
     Unifier.(c <-- c');
     Queue.filter clocks (fun el -> active_sync_mode el <> `Passive && el != c)
   in
@@ -464,7 +478,7 @@ and _can_start ?(force = false) clock =
     | _ -> `False
 
 and _start ?force ~sync clock =
-  Unifier.set clock.id (Lang_string.generate_id (Unifier.deref clock.id));
+  Unifier.set clock.id (Some (Lang_string.generate_id (_default_id clock)));
   let id = _id clock in
   log#important "Starting clock %s with %d source(s) and sync: %s" id
     (Queue.length clock.pending_activations)
@@ -506,8 +520,7 @@ and start ?force c =
     | `True sync -> _start ?force ~sync clock
     | `False -> ()
 
-let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
-    ?(sync = `Automatic) () =
+let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
   let c =

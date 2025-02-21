@@ -78,7 +78,7 @@ type watcher = {
 class virtual source :
   ?stack:Pos.t list ->
   ?clock:Clock.t ->
-  ?name:string ->
+  name:string ->
   unit ->
 object
   method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
@@ -88,8 +88,7 @@ object
   (** Identifier of the source. *)
   method id : string
 
-  method set_name : string -> unit
-  method set_id : ?definitive:bool -> string -> unit
+  method set_id : ?force:bool -> string -> unit
 
   (** Position in script *)
   method pos : Pos.Option.t
@@ -332,7 +331,7 @@ end
 and virtual active_source :
   ?stack:Pos.t list ->
   ?clock:Clock.t ->
-  ?name:string ->
+  name:string ->
   unit ->
 object
   inherit source
@@ -347,7 +346,7 @@ end
 class virtual operator :
   ?stack:Pos.t list ->
   ?clock:Clock.t ->
-  ?name:string ->
+  name:string ->
   source list ->
 object
   inherit source
@@ -358,7 +357,7 @@ end
 class virtual active_operator :
   ?stack:Pos.t list ->
   ?clock:Clock.t ->
-  ?name:string ->
+  name:string ->
   source list ->
 object
   inherit active_source
