@@ -203,6 +203,7 @@
   ppm_decoder
   process_handler
   producer_consumer
+  queues
   raw_audio_decoder
   replaygain_op
   request

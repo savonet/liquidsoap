@@ -33,13 +33,13 @@ type sync_source = ..
 type self_sync = [ `Static | `Dynamic ] * sync_source option
 
 module Queue = struct
-  include Liquidsoap_lang.Queues.Queue
+  include Queues.Queue
 
   let push q v = if not (exists q (fun v' -> v == v')) then push q v
 end
 
 module WeakQueue = struct
-  include Liquidsoap_lang.Queues.WeakQueue
+  include Queues.WeakQueue
 
   let push q v = if not (exists q (fun v' -> v == v')) then push q v
 end

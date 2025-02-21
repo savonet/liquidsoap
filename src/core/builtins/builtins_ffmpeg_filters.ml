@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Builtins_ffmpeg_base
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 (** FFmpeg filter graphs initialization is pretty tricky. Things to consider:
     - FFmpeg filters are using a push paradigm, pushing from the sources down to
