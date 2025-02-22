@@ -41,7 +41,7 @@
    (-> file_watcher.mtime.ml)))
  (foreign_stubs
   (language c)
-  (names unix_c defer_c content_pcm_c))
+  (names unix_c defer_c content_pcm_c lufs_c))
  (wrapped false)
  (library_flags -linkall)
  (modules
