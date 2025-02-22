@@ -43,7 +43,7 @@ let proto =
 
 let meth = Start_stop.meth ()
 
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 (** Given abstract start stop and send methods, creates an output. Takes care of
     pulling the data out of the source, type checkings, maintains a queue of

@@ -20,19 +20,27 @@
 
  *****************************************************************************)
 
+module OrigQueue = Queue
+
 module Queue = struct
-  include Saturn_lockfree.Queue
+  type 'a t = { m : Mutex.t; q : 'a Queue.t }
+
+  exception Empty = Queue.Empty
+
+  let create () = { m = Mutex.create (); q = Queue.create () }
+  let apply { m; q } fn = Mutex_utils.mutexify m fn q [@@inline always]
+  let is_empty q = apply q Queue.is_empty
+  let push q v = apply q (fun q -> Queue.push v q)
+  let pop_opt q = apply q (fun q -> Queue.take_opt q)
+  let peek_opt q = apply q Queue.peek_opt
 
   let flush_elements q =
-    let rec flush_elements_f elements =
-      match pop_exn q with
-        | el -> flush_elements_f (el :: elements)
-        | exception Empty -> List.rev elements
-    in
-    flush_elements_f []
+    let q' = Queue.create () in
+    apply q (fun q -> Queue.transfer q q');
+    List.rev (Queue.fold (fun l el -> el :: l) [] q')
 
-  let pop q = try pop_exn q with Empty -> raise Not_found
-  let peek q = try peek_exn q with Empty -> raise Not_found
+  let pop q = apply q Queue.pop
+  let peek q = apply q Queue.peek
   let flush_iter q fn = List.iter fn (flush_elements q)
 
   let flush_fold q fn ret =
@@ -40,14 +48,8 @@ module Queue = struct
     List.fold_left flush_fold_f ret (flush_elements q)
 
   let elements q =
-    let rec elements_f l =
-      match pop_exn q with
-        | el -> elements_f (el :: l)
-        | exception Empty -> List.rev l
-    in
-    let elements = elements_f [] in
-    List.iter (push q) elements;
-    elements
+    let q = apply q (fun q -> Queue.copy q) in
+    List.rev (Queue.fold (fun l el -> el :: l) [] q)
 
   let exists q fn = List.exists fn (elements q)
   let length q = List.length (elements q)
@@ -55,15 +57,15 @@ module Queue = struct
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let filter_f el = if fn el then push q el in
-    List.iter filter_f (flush_elements q)
+    let elements = flush_elements q in
+    apply q (fun q ->
+        List.iter (fun el -> if fn el then Queue.push el q) elements)
 end
 
 module WeakQueue = struct
   include Queue
 
-  type 'a q = 'a t
-  type 'a t = 'a Weak.t q
+  type nonrec 'a t = 'a Weak.t t
 
   let push q v =
     let w = Weak.create 1 in
@@ -75,21 +77,6 @@ module WeakQueue = struct
         for i = 0 to Weak.length x - 1 do
           match Weak.get x i with Some v -> fn v | None -> ()
         done)
-
-  let batch_size = 1024
-
-  let push_batches q elements =
-    let len = List.length elements in
-    let n_batches = int_of_float (ceil (float len /. float batch_size)) in
-    for i = 0 to n_batches - 1 do
-      let entry = Weak.create batch_size in
-      let offset = i * batch_size in
-      let max_pos = min (len - offset) batch_size in
-      for pos = 0 to max_pos - 1 do
-        Weak.set entry pos (Some (List.nth elements (pos + offset)))
-      done;
-      Queue.push q entry
-    done
 
   let elements q =
     let rec elements_f rem =
@@ -110,7 +97,13 @@ module WeakQueue = struct
         | None -> rem
     in
     let rem = elements_f [] in
-    push_batches q rem;
+    let len = List.length rem in
+    if len > 0 then (
+      let entry = Weak.create len in
+      for i = 0 to len - 1 do
+        Weak.set entry i (Some (List.nth rem i))
+      done;
+      Queue.push q entry);
     rem
 
   let exists q fn = List.exists fn (elements q)
@@ -119,16 +112,16 @@ module WeakQueue = struct
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let rec filter_f () =
-      match pop_exn q with
+    let rec filter_f q =
+      match OrigQueue.pop q with
         | el ->
             for i = 0 to Weak.length el - 1 do
               match Weak.get el i with
                 | Some p when fn p -> ()
                 | _ -> Weak.set el i None
             done;
-            filter_f ()
-        | exception Empty -> ()
+            filter_f q
+        | exception Queue.Empty -> ()
     in
-    filter_f ()
+    apply q filter_f
 end

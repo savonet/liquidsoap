@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Source
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 let conf_prefetch =
   Dtools.Conf.int ~p:(Request.conf#plug "prefetch") ~d:1 "Default prefetch"

@@ -24,7 +24,7 @@ open Mm
 
 exception Unavailable
 
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]

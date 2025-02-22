@@ -23,7 +23,7 @@
 module Runtime = Liquidsoap_lang.Runtime
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 let usage =
   {|Usage : liquidsoap [OPTION, SCRIPT or EXPR]...

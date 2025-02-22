@@ -132,7 +132,6 @@
   (depends
     (ocaml (>= 4.14))
     dune-site
-    (saturn_lockfree (>= 0.5.0))
     (re (>= 1.11.0))
     (ppx_string :build)
     (ppx_hash :build)

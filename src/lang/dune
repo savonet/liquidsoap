@@ -90,7 +90,6 @@
   liquidsoap-lang.console
   dune-site
   re
-  saturn_lockfree
   str
   unix
   menhirLib
@@ -145,7 +144,6 @@
   plug
   preprocessor
   profiler
-  queues
   repr
   ref_type
   runtime

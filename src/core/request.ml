@@ -27,7 +27,7 @@ exception No_indicator
 exception Request_resolved
 exception Duration of float
 
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
