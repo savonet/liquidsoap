@@ -35,9 +35,9 @@ module IIR = struct
 
   type t = {
     channels : int;
-    mutable x : sample * sample;
+    x : sample * sample;
     (* (x', x'') *)
-    mutable y : sample * sample;
+    y : sample * sample;
     (* (y', y'') *)
     a1 : float;
     a2 : float;
@@ -80,23 +80,15 @@ module IIR = struct
   let stage2 =
     create ~a1:(-1.99004745483398) ~a2:0.99007225036621 ~b0:1. ~b1:(-2.) ~b2:1.
 
-  (** Process a sample. *)
+  external process : t -> float array -> float array -> unit
+    = "liquidsoap_lufs_process"
+  [@@noalloc]
+
   let process iir x =
     let channels = iir.channels in
     assert (Array.length x = channels);
-    let x', x'' = iir.x in
-    let y', y'' = iir.y in
     let y = Array.make channels 0. in
-    for i = 0 to channels - 1 do
-      y.(i) <-
-        (iir.b0 *. x.(i))
-        +. (iir.b1 *. x'.(i))
-        +. (iir.b2 *. x''.(i))
-        -. (iir.a1 *. y'.(i))
-        -. (iir.a2 *. y''.(i))
-    done;
-    iir.x <- (x, x');
-    iir.y <- (y, y');
+    process iir x y;
     y
 end
 
