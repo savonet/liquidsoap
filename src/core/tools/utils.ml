@@ -38,7 +38,7 @@ module Thread = struct
 
   let set_current_thread_name s =
     let s =
-      if true || Liquidsoap_lang.Build_config.system = "linux" then (
+      if Liquidsoap_lang.Build_config.system = "linux" then (
         let s =
           Re.Pcre.substitute
             ~rex:(Re.Pcre.regexp "[\\s]+[aeiou]")
