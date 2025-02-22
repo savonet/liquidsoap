@@ -2,7 +2,7 @@
 
 Fixed:
 
-- Optimized CPU usage (#4369)
+- Optimized CPU usage (#4369, #4370)
 
 ---
 
