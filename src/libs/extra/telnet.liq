@@ -221,3 +221,34 @@ def replaces input.http(%argsof(input.http), s) =
   s
 end
 %endif
+
+# @docof lufs
+def replaces lufs(%argsof(lufs), s) =
+  s = lufs(%argsof(lufs), s)
+  s.on_wake_up(
+    memoize(
+      {
+        server.register(
+          namespace=source.id(s),
+          description=
+            "Current value for the LUFS (short-term value computed over the \
+             duration specified by the `window` parameter).",
+          "lufs",
+          fun (_) ->
+            "#{s.lufs()} LUFS"
+        )
+
+        server.register(
+          namespace=source.id(s),
+          description=
+            "Momentary LUFS (over a 400ms window).",
+          "lufs_momentary",
+          fun (_) ->
+            "#{s.lufs_momentary()} LUFS"
+        )
+      }
+    )
+  )
+
+  s
+end
