@@ -131,8 +131,19 @@ class lufs window source =
           stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
           stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate))
 
+    val mutable lufs_integrated = 0.
+    val mutable lufs_integrated_len = 0
+
+    method lufs_integrated =
+      if lufs_integrated_len = 0 then nan
+      else loudness (lufs_integrated /. float lufs_integrated_len)
+
+    method private add_integrated_block v =
+      lufs_integrated <- lufs_integrated +. v;
+      lufs_integrated_len <- lufs_integrated_len + 1
+
     (** Compute LUFS. *)
-    method compute =
+    method compute ms_blocks =
       (* Compute ms of overlapping 400ms blocks. *)
       let blocks =
         let rec aux b' b'' b''' = function
@@ -147,17 +158,19 @@ class lufs window source =
       (* Relative threshold. *)
       let threshold = loudness (List.mean absolute) -. 10. in
       (* Blocks over relative threshold. *)
-      let relative = List.filter (fun z -> loudness z > threshold) blocks in
-      (* Compute LUFS. *)
-      loudness (List.mean relative)
+      List.filter (fun z -> loudness z > threshold) blocks
+
+    method lufs = loudness (List.mean (self#compute ms_blocks))
 
     (** Momentary LUFS. *)
-    method momentary = loudness (List.mean (List.prefix 4 ms_blocks))
+    method lufs_momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
-    method private generate_frame =
+    method private process_frame ?(new_track = false) frame =
+      if new_track then (
+        lufs_integrated <- 0.;
+        lufs_integrated_len <- 0);
       let channels = self#audio_channels in
       let len_100ms = Frame.audio_of_seconds 0.1 in
-      let frame = source#get_frame in
       let position = AFrame.position frame in
       let buf = AFrame.pcm frame in
       for i = 0 to position - 1 do
@@ -173,12 +186,21 @@ class lufs window source =
         ms_len <- ms_len + 1;
         (* When we have 100ms of squares we push the block. *)
         if ms_len >= len_100ms then (
-          ms_blocks <- (ms /. float_of_int len_100ms) :: ms_blocks;
+          let v = ms /. float_of_int len_100ms in
+          ms_blocks <- v :: ms_blocks;
+          self#add_integrated_block v;
           ms <- 0.;
           ms_len <- 0)
       done;
       (* Keep only a limited (by the window) number of blocks. *)
-      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks;
+      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
+
+    method private generate_frame =
+      let frame = source#get_frame in
+      (match self#split_frame frame with
+        | _, Some frame when Frame.position frame > 0 ->
+            self#process_frame ~new_track:true frame
+        | frame, _ -> self#process_frame frame);
       frame
   end
 
@@ -194,11 +216,15 @@ let _ =
           ([], Lang.fun_t [] Lang.float_t),
           "Current value for the LUFS (short-term value computed over the \
            duration specified by the `window` parameter).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#compute) );
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs) );
+        ( "lufs_integrated",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Average LUFS value over the current track.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_integrated) );
         ( "lufs_momentary",
           ([], Lang.fun_t [] Lang.float_t),
           "Momentary LUFS (over a 400ms window).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#momentary) );
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_momentary) );
       ]
     ~return_t
     ~descr:
