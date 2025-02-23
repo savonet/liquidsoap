@@ -103,6 +103,64 @@ end
 (** Compute the loudness from the mean of squares. *)
 let loudness z = -0.691 +. (10. *. log10 z)
 
+let energy z = Float.pow 10. ((z +. 0.691) /. 10.)
+let min_lufs = -70.
+
+module LufsIntegratedHistogram = struct
+  let granularity = 100.
+
+  type histogram_entry = {
+    mutable count : int;
+    loudness : float;
+    energy : float;
+  }
+
+  type histogram = {
+    mutable pending : float list;
+    mutable entries : (int * histogram_entry) list;
+    mutable threshold : float;
+    mutable threshold_count : int;
+  }
+
+  let pos loudness = int_of_float ((loudness -. min_lufs) *. granularity)
+
+  let create () =
+    { pending = []; entries = []; threshold = 0.; threshold_count = 0 }
+
+  let get_entry h pos =
+    try List.assoc pos h.entries
+    with Not_found ->
+      let loudness = (float pos /. granularity) +. min_lufs in
+      let entry = { count = 0; loudness; energy = energy loudness } in
+      h.entries <- (pos, entry) :: h.entries;
+      entry
+
+  let append h v =
+    let blocks = v :: h.pending in
+    if List.length blocks = 4 then (
+      h.pending <- [];
+      let power = List.mean blocks in
+      let loudness = loudness power in
+      if min_lufs <= loudness then (
+        let entry = get_entry h (pos loudness) in
+        entry.count <- entry.count + 1;
+        h.threshold <- h.threshold +. power;
+        h.threshold_count <- h.threshold_count + 1))
+    else h.pending <- blocks
+
+  let compute { entries; threshold; threshold_count } =
+    let threshold = loudness (threshold /. float threshold_count) -. 10. in
+    let power, total =
+      List.fold_left
+        (fun (power, total) (_, { count; loudness; energy }) ->
+          if threshold <= loudness then
+            (power +. (energy *. float count), total + count)
+          else (power, total))
+        (0., 0) entries
+    in
+    loudness (power /. float total)
+end
+
 class lufs window source =
   object (self)
     inherit operator [source] ~name:"lufs"
@@ -131,19 +189,17 @@ class lufs window source =
           stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
           stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate))
 
-    val mutable lufs_integrated = 0.
-    val mutable lufs_integrated_len = 0
-
-    method lufs_integrated =
-      if lufs_integrated_len = 0 then nan
-      else loudness (lufs_integrated /. float lufs_integrated_len)
+    val mutable lufs_integrated = LufsIntegratedHistogram.create ()
+    method lufs_integrated = LufsIntegratedHistogram.compute lufs_integrated
 
     method private add_integrated_block v =
-      lufs_integrated <- lufs_integrated +. v;
-      lufs_integrated_len <- lufs_integrated_len + 1
+      LufsIntegratedHistogram.append lufs_integrated v
+
+    method private reset_lufs_integrated =
+      lufs_integrated <- LufsIntegratedHistogram.create ()
 
     (** Compute LUFS. *)
-    method compute ms_blocks =
+    method lufs =
       (* Compute ms of overlapping 400ms blocks. *)
       let blocks =
         let rec aux b' b'' b''' = function
@@ -154,21 +210,18 @@ class lufs window source =
         aux ms_blocks
       in
       (* Blocks over absolute threshold. *)
-      let absolute = List.filter (fun z -> loudness z > -70.) blocks in
+      let absolute = List.filter (fun z -> loudness z > min_lufs) blocks in
       (* Relative threshold. *)
       let threshold = loudness (List.mean absolute) -. 10. in
       (* Blocks over relative threshold. *)
-      List.filter (fun z -> loudness z > threshold) blocks
-
-    method lufs = loudness (List.mean (self#compute ms_blocks))
+      let relative = List.filter (fun z -> loudness z > threshold) blocks in
+      loudness (List.mean relative)
 
     (** Momentary LUFS. *)
     method lufs_momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
     method private process_frame ?(new_track = false) frame =
-      if new_track then (
-        lufs_integrated <- 0.;
-        lufs_integrated_len <- 0);
+      if new_track then self#reset_lufs_integrated;
       let channels = self#audio_channels in
       let len_100ms = Frame.audio_of_seconds 0.1 in
       let position = AFrame.position frame in
