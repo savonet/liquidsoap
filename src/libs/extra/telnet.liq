@@ -241,6 +241,15 @@ def replaces lufs(%argsof(lufs), s) =
         server.register(
           namespace=source.id(s),
           description=
+            "Average LUFS value over the current track.",
+          "lufs_integrated",
+          fun (_) ->
+            "#{s.lufs_integrated()} LUFS"
+        )
+
+        server.register(
+          namespace=source.id(s),
+          description=
             "Momentary LUFS (over a 400ms window).",
           "lufs_momentary",
           fun (_) ->

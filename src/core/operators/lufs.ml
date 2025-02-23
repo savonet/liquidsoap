@@ -103,6 +103,64 @@ end
 (** Compute the loudness from the mean of squares. *)
 let loudness z = -0.691 +. (10. *. log10 z)
 
+let energy z = Float.pow 10. ((z +. 0.691) /. 10.)
+let min_lufs = -70.
+
+module LufsIntegratedHistogram = struct
+  let granularity = 100.
+
+  type histogram_entry = {
+    mutable count : int;
+    loudness : float;
+    energy : float;
+  }
+
+  type histogram = {
+    mutable pending : float list;
+    mutable entries : (int * histogram_entry) list;
+    mutable threshold : float;
+    mutable threshold_count : int;
+  }
+
+  let pos loudness = int_of_float ((loudness -. min_lufs) *. granularity)
+
+  let create () =
+    { pending = []; entries = []; threshold = 0.; threshold_count = 0 }
+
+  let get_entry h pos =
+    try List.assoc pos h.entries
+    with Not_found ->
+      let loudness = (float pos /. granularity) +. min_lufs in
+      let entry = { count = 0; loudness; energy = energy loudness } in
+      h.entries <- (pos, entry) :: h.entries;
+      entry
+
+  let append h v =
+    let blocks = v :: h.pending in
+    if List.length blocks = 4 then (
+      h.pending <- [];
+      let power = List.mean blocks in
+      let loudness = loudness power in
+      if min_lufs <= loudness then (
+        let entry = get_entry h (pos loudness) in
+        entry.count <- entry.count + 1;
+        h.threshold <- h.threshold +. power;
+        h.threshold_count <- h.threshold_count + 1))
+    else h.pending <- blocks
+
+  let compute { entries; threshold; threshold_count } =
+    let threshold = loudness (threshold /. float threshold_count) -. 10. in
+    let power, total =
+      List.fold_left
+        (fun (power, total) (_, { count; loudness; energy }) ->
+          if threshold <= loudness then
+            (power +. (energy *. float count), total + count)
+          else (power, total))
+        (0., 0) entries
+    in
+    loudness (power /. float total)
+end
+
 class lufs window source =
   object (self)
     inherit operator [source] ~name:"lufs"
@@ -131,8 +189,17 @@ class lufs window source =
           stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
           stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate))
 
+    val mutable lufs_integrated = LufsIntegratedHistogram.create ()
+    method lufs_integrated = LufsIntegratedHistogram.compute lufs_integrated
+
+    method private add_integrated_block v =
+      LufsIntegratedHistogram.append lufs_integrated v
+
+    method private reset_lufs_integrated =
+      lufs_integrated <- LufsIntegratedHistogram.create ()
+
     (** Compute LUFS. *)
-    method compute =
+    method lufs =
       (* Compute ms of overlapping 400ms blocks. *)
       let blocks =
         let rec aux b' b'' b''' = function
@@ -143,21 +210,20 @@ class lufs window source =
         aux ms_blocks
       in
       (* Blocks over absolute threshold. *)
-      let absolute = List.filter (fun z -> loudness z > -70.) blocks in
+      let absolute = List.filter (fun z -> loudness z > min_lufs) blocks in
       (* Relative threshold. *)
       let threshold = loudness (List.mean absolute) -. 10. in
       (* Blocks over relative threshold. *)
       let relative = List.filter (fun z -> loudness z > threshold) blocks in
-      (* Compute LUFS. *)
       loudness (List.mean relative)
 
     (** Momentary LUFS. *)
-    method momentary = loudness (List.mean (List.prefix 4 ms_blocks))
+    method lufs_momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
-    method private generate_frame =
+    method private process_frame ?(new_track = false) frame =
+      if new_track then self#reset_lufs_integrated;
       let channels = self#audio_channels in
       let len_100ms = Frame.audio_of_seconds 0.1 in
-      let frame = source#get_frame in
       let position = AFrame.position frame in
       let buf = AFrame.pcm frame in
       for i = 0 to position - 1 do
@@ -173,12 +239,21 @@ class lufs window source =
         ms_len <- ms_len + 1;
         (* When we have 100ms of squares we push the block. *)
         if ms_len >= len_100ms then (
-          ms_blocks <- (ms /. float_of_int len_100ms) :: ms_blocks;
+          let v = ms /. float_of_int len_100ms in
+          ms_blocks <- v :: ms_blocks;
+          self#add_integrated_block v;
           ms <- 0.;
           ms_len <- 0)
       done;
       (* Keep only a limited (by the window) number of blocks. *)
-      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks;
+      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
+
+    method private generate_frame =
+      let frame = source#get_frame in
+      (match self#split_frame frame with
+        | _, Some frame when Frame.position frame > 0 ->
+            self#process_frame ~new_track:true frame
+        | frame, _ -> self#process_frame frame);
       frame
   end
 
@@ -194,11 +269,15 @@ let _ =
           ([], Lang.fun_t [] Lang.float_t),
           "Current value for the LUFS (short-term value computed over the \
            duration specified by the `window` parameter).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#compute) );
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs) );
+        ( "lufs_integrated",
+          ([], Lang.fun_t [] Lang.float_t),
+          "Average LUFS value over the current track.",
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_integrated) );
         ( "lufs_momentary",
           ([], Lang.fun_t [] Lang.float_t),
           "Momentary LUFS (over a 400ms window).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#momentary) );
+          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_momentary) );
       ]
     ~return_t
     ~descr:
