@@ -116,13 +116,14 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           ~subst:(fun _ -> "_")
           s
       in
-      if force then id <- Lang_string.generate_id s;
+      if force && s <> id then (
+        id <- Lang_string.generate_id s;
 
-      (* Sometimes the ID is changed during initialization, in order to make it
+        (* Sometimes the ID is changed during initialization, in order to make it
          equal to the server name, which is only registered at initialization
          time in order to avoid bloating from unused sources. If the ID
          changes, and [log] has already been initialized, reset it. *)
-      if log != source_log then self#create_log
+        if log != source_log then self#create_log)
 
     initializer self#set_id (Lang_string.generate_id name)
     val mutex = Mutex.create ()
