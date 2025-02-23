@@ -243,3 +243,22 @@
    --
    ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
    ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4)))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  lufs_integrated.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Integrated LUFS computation"
+   liquidsoap
+   %{test_liq}
+   lufs_integrated.liq)))
