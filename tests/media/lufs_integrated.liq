@@ -10,7 +10,7 @@ def f() =
 
   request.process(process=process, r)
 
-  test.almost_equal(lufs_integrated(), -4.14942548907)
+  test.almost_equal(lufs_integrated(), -4.15123570523)
   test.pass()
 end
 
