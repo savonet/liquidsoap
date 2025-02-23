@@ -193,20 +193,50 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             ctype <- Some ct;
             ct
 
+    val mutable audio_channels = -1
+
     method private audio_channels =
-      match Frame.Fields.find_opt Frame.Fields.audio self#content_type with
-        | Some c when Content.Audio.is_format c ->
-            Content.Audio.channels_of_format c
-        | Some c when Content_pcm_s16.is_format c ->
-            Content_pcm_s16.channels_of_format c
-        | Some c when Content_pcm_f32.is_format c ->
-            Content_pcm_f32.channels_of_format c
-        | _ -> raise Content.Invalid
+      match audio_channels with
+        | -1 ->
+            let c =
+              match
+                Frame.Fields.find_opt Frame.Fields.audio self#content_type
+              with
+                | Some c when Content.Audio.is_format c ->
+                    Content.Audio.channels_of_format c
+                | Some c when Content_pcm_s16.is_format c ->
+                    Content_pcm_s16.channels_of_format c
+                | Some c when Content_pcm_f32.is_format c ->
+                    Content_pcm_f32.channels_of_format c
+                | _ -> raise Content.Invalid
+            in
+            audio_channels <- c;
+            c
+        | c -> c
+
+    val mutable samplerate = -1.
+
+    method private samplerate =
+      match samplerate with
+        | -1. ->
+            let s = float_of_int (Lazy.force Frame.audio_rate) in
+            samplerate <- s;
+            s
+        | s -> s
+
+    val mutable video_dimensions = None
 
     method private video_dimensions =
-      Content.Video.dimensions_of_format
-        (Option.get
-           (Frame.Fields.find_opt Frame.Fields.video self#content_type))
+      match video_dimensions with
+        | None ->
+            let dim =
+              Content.Video.dimensions_of_format
+                (Option.get
+                   (Frame.Fields.find_opt Frame.Fields.video self#content_type))
+            in
+            video_dimensions <- Some dim;
+            dim
+        | Some dim -> dim
 
     val mutable on_wake_up = []
     method on_wake_up fn = on_wake_up <- fn :: on_wake_up

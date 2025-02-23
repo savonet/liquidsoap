@@ -165,6 +165,7 @@ object
   (** This method fails when content is not PCM. *)
   method private audio_channels : int
 
+  method private samplerate : float
   method private video_dimensions : int * int
 
   (** A buffer that can be used by the source. *)

@@ -112,8 +112,6 @@ class lufs window source =
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    method channels = self#audio_channels
-    method samplerate = float_of_int (Lazy.force Frame.audio_rate)
     val mutable stage1 = id
     val mutable stage2 = id
 
@@ -128,7 +126,7 @@ class lufs window source =
 
     initializer
       self#on_wake_up (fun () ->
-          let channels = self#channels in
+          let channels = self#audio_channels in
           let samplerate = self#samplerate in
           stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
           stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate))
@@ -157,7 +155,7 @@ class lufs window source =
     method momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
     method private generate_frame =
-      let channels = self#channels in
+      let channels = self#audio_channels in
       let len_100ms = Frame.audio_of_seconds 0.1 in
       let frame = source#get_frame in
       let position = AFrame.position frame in
