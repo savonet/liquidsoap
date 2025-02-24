@@ -31,28 +31,22 @@ end
 
 (** Second order IIR filter. *)
 module IIR = struct
-  type sample = float array
+  type stage
+  type t = int * stage * stage
 
-  type t = {
-    channels : int;
-    x : sample * sample;
-    (* (x', x'') *)
-    y : sample * sample;
-    (* (y', y'') *)
-    a1 : float;
-    a2 : float;
-    b0 : float;
-    b1 : float;
-    b2 : float;
-  }
+  external create :
+    channels:int ->
+    a1:float ->
+    a2:float ->
+    b0:float ->
+    b1:float ->
+    b2:float ->
+    stage = "liquidsoap_lufs_create_bytecode" "liquidsoap_lufs_create_native"
 
   (** Create and IIR filter. The coefficients are given for a samplerate of 48
       kHz and are adjusted for required target samplerate. *)
   let create ~channels ~samplerate ~a1 ~a2 ~b0 ~b1 ~b2 =
-    let blank = Array.make channels 0. in
-    let x = (blank, blank) in
-    let y = (blank, blank) in
-    if samplerate = 48000. then { channels; x; y; a1; a2; b0; b1; b2 }
+    if samplerate = 48000. then create ~channels ~a1 ~a2 ~b0 ~b1 ~b2
     else (
       (* The coefficients of the specification are given for a 48 kHz samplerate,
          this computes the values for other samplerates. This is "strongly
@@ -71,25 +65,27 @@ module IIR = struct
       let b2 = (vh -. (vb *. k /. q) +. (vl *. k *. k)) *. a in
       let a1 = 2. *. ((k *. k) -. 1.) *. a in
       let a2 = (1. -. (k /. q) +. (k *. k)) *. a in
-      { channels; x; y; a1; a2; b0; b1; b2 })
+      create ~channels ~a1 ~a2 ~b0 ~b1 ~b2)
 
-  let stage1 =
-    create ~a1:(-1.69065929318241) ~a2:0.73248077421585 ~b0:1.53512485958697
-      ~b1:(-2.69169618940638) ~b2:1.19839281085285
+  let create ~channels ~samplerate =
+    let stage1 =
+      create ~a1:(-1.69065929318241) ~a2:0.73248077421585 ~b0:1.53512485958697
+        ~b1:(-2.69169618940638) ~b2:1.19839281085285 ~channels ~samplerate
+    in
+    let stage2 =
+      create ~a1:(-1.99004745483398) ~a2:0.99007225036621 ~b0:1. ~b1:(-2.)
+        ~b2:1. ~channels ~samplerate
+    in
+    (channels, stage1, stage2)
 
-  let stage2 =
-    create ~a1:(-1.99004745483398) ~a2:0.99007225036621 ~b0:1. ~b1:(-2.) ~b2:1.
-
-  external process : t -> float array -> float array -> unit
-    = "liquidsoap_lufs_process"
+  external process :
+    stage1:stage -> stage2:stage -> float array array -> (float[@unboxed])
+    = "liquidsoap_lufs_process_bytecode" "liquidsoap_lufs_process_native"
   [@@noalloc]
 
-  let process iir x =
-    let channels = iir.channels in
-    assert (Array.length x = channels);
-    let y = Array.make channels 0. in
-    process iir x y;
-    y
+  let process (channels, stage1, stage2) samples =
+    assert (Array.length samples = channels);
+    process ~stage1 ~stage2 samples
 end
 
 (** Compute the loudness from the mean of squares. *)
@@ -162,24 +158,25 @@ class lufs window source =
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    val mutable stage1 = id
-    val mutable stage2 = id
-
-    (** Current mean square (weighted sum over channels). *)
-    val mutable ms = 0.
-
-    (** Length of current mean square in samples *)
-    val mutable ms_len = 0
 
     (** Last 100ms blocks. *)
     val mutable ms_blocks = []
 
+    val mutable len_100ms = 0
+    val mutable iir = None
+
+    method private iir =
+      match iir with
+        | None ->
+            let channels = self#audio_channels in
+            let samplerate = self#samplerate in
+            let h = IIR.create ~channels ~samplerate in
+            iir <- Some h;
+            h
+        | Some v -> v
+
     initializer
-      self#on_wake_up (fun () ->
-          let channels = self#audio_channels in
-          let samplerate = self#samplerate in
-          stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
-          stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate))
+      self#on_wake_up (fun () -> len_100ms <- Frame.main_of_seconds 0.1)
 
     val mutable lufs_integrated = LufsIntegratedHistogram.create ()
     method lufs_integrated = LufsIntegratedHistogram.compute lufs_integrated
@@ -188,6 +185,7 @@ class lufs window source =
       LufsIntegratedHistogram.append lufs_integrated v
 
     method private reset_lufs_integrated =
+      iir <- None;
       lufs_integrated <- LufsIntegratedHistogram.create ()
 
     (** Compute LUFS. *)
@@ -212,40 +210,22 @@ class lufs window source =
     (** Momentary LUFS. *)
     method lufs_momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
-    method private process_frame ?(new_track = false) frame =
-      if new_track then self#reset_lufs_integrated;
-      let channels = self#audio_channels in
-      let len_100ms = Frame.audio_of_seconds 0.1 in
-      let position = AFrame.position frame in
-      let buf = AFrame.pcm frame in
-      for i = 0 to position - 1 do
-        let x = Array.init channels (fun c -> buf.(c).(i)) in
-        (* Prefilter. *)
-        let x = stage1 x in
-        let x = stage2 x in
-        (* Add squares. *)
-        for c = 0 to channels - 1 do
-          let xc = x.(c) in
-          ms <- ms +. (xc *. xc)
-        done;
-        ms_len <- ms_len + 1;
-        (* When we have 100ms of squares we push the block. *)
-        if ms_len >= len_100ms then (
-          let v = ms /. float_of_int len_100ms in
-          ms_blocks <- v :: ms_blocks;
-          self#add_integrated_block v;
-          ms <- 0.;
-          ms_len <- 0)
+    method private process_frame frame =
+      Generator.append self#buffer frame;
+      while len_100ms < Generator.length self#buffer do
+        let frame = Generator.slice self#buffer len_100ms in
+        if Frame.has_track_marks frame then self#reset_lufs_integrated;
+        let buf = AFrame.pcm frame in
+        let power = IIR.process self#iir buf in
+        self#add_integrated_block power;
+        ms_blocks <- power :: ms_blocks
       done;
       (* Keep only a limited (by the window) number of blocks. *)
       ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
 
     method private generate_frame =
       let frame = source#get_frame in
-      (match self#split_frame frame with
-        | _, Some frame when Frame.position frame > 0 ->
-            self#process_frame ~new_track:true frame
-        | frame, _ -> self#process_frame frame);
+      self#process_frame frame;
       frame
   end
 
