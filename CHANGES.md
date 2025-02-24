@@ -1,5 +1,10 @@
 # 2.3.2 (unreleased)
 
+New:
+
+- Added support for multiple metadata fields in
+  ogg and flac metadata.
+
 Fixed:
 
 - Optimized CPU usage (#4369, #4370)
