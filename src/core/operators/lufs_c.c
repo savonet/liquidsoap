@@ -80,8 +80,8 @@ static inline void liquidsoap_lufs_process_stage(iir_t *iir, double *x,
   memcpy(iir->y1, y, buf_len);
 }
 
-CAMLprim double liquidsoap_lufs_process(value _stage1, value _stage2, value _x,
-                                        value _ret) {
+CAMLprim value liquidsoap_lufs_process(value _stage1, value _stage2, value _x,
+                                       value _ret) {
   CAMLparam4(_stage1, _stage2, _x, _ret);
   double tmp1[MAX_CHANNELS], tmp2[MAX_CHANNELS];
   double power = 0;
