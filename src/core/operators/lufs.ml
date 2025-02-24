@@ -81,7 +81,6 @@ module IIR = struct
   external process :
     stage1:stage -> stage2:stage -> float array array -> (float[@unboxed])
     = "liquidsoap_lufs_process_bytecode" "liquidsoap_lufs_process_native"
-  [@@noalloc]
 
   let process (channels, stage1, stage2) samples =
     assert (Array.length samples = channels);
