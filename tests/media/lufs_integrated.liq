@@ -6,11 +6,11 @@ def f() =
     source.on_frame(s, {lufs_integrated := s.lufs_integrated()})
   end
 
-  r = request.create("@mp3[mono].mp3")
+  r = request.create("@wav[stereo].wav")
 
   request.process(process=process, r)
 
-  test.almost_equal(digits=3, lufs_integrated(), -4.15123570523)
+  test.almost_equal(digits=3, lufs_integrated(), -0.69)
   test.pass()
 end
 

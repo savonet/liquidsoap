@@ -67,21 +67,23 @@ CAMLprim value liquidsoap_lufs_create_bytecode(value *argv, int argn) {
 
 static inline void liquidsoap_lufs_process_stage(iir_t *iir, double *x,
                                                  double *y) {
-  int i;
+  int i, c;
   size_t buf_len = iir->channels * sizeof(double);
 
   for (i = 0; i < iir->channels; i++)
     y[i] = iir->b0 * x[i] + iir->b1 * iir->x1[i] + iir->b2 * iir->x2[i] -
            iir->a1 * iir->y1[i] - iir->a2 * iir->y2[i];
 
-  memcpy(iir->x2, iir->x1, buf_len);
-  memcpy(iir->x1, x, buf_len);
-  memcpy(iir->y2, iir->y1, buf_len);
-  memcpy(iir->y1, y, buf_len);
+  for (c = 0; c < iir->channels; c++) {
+    iir->x2[c] = iir->x1[c];
+    iir->x1[c] = x[c];
+    iir->y2[c] = iir->y1[c];
+    iir->y1[c] = y[c];
+  }
 }
 
-CAMLprim value liquidsoap_lufs_process_native(value _stage1, value _stage2,
-                                              value _x, value _ret) {
+CAMLprim value liquidsoap_lufs_process(value _stage1, value _stage2, value _x,
+                                       value _ret) {
   CAMLparam4(_stage1, _stage2, _x, _ret);
   double tmp1[MAX_CHANNELS], tmp2[MAX_CHANNELS];
   double power = 0;
@@ -101,11 +103,5 @@ CAMLprim value liquidsoap_lufs_process_native(value _stage1, value _stage2,
       power += tmp1[c] * tmp1[c];
   }
 
-  CAMLreturn(power / samples);
-}
-
-CAMLprim value liquidsoap_lufs_process_bytecode(value _stage1, value _stage2,
-                                                value _x, value _ret) {
-  return caml_copy_double(
-      liquidsoap_lufs_process_native(_stage1, _stage2, _x, _ret));
+  CAMLreturn(caml_copy_double(power / samples));
 }
