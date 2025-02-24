@@ -80,8 +80,8 @@ static inline void liquidsoap_lufs_process_stage(iir_t *iir, double *x,
   memcpy(iir->y1, y, buf_len);
 }
 
-CAMLprim value liquidsoap_lufs_process_native(value _stage1, value _stage2,
-                                              value _x, value _ret) {
+CAMLprim double liquidsoap_lufs_process(value _stage1, value _stage2, value _x,
+                                        value _ret) {
   CAMLparam4(_stage1, _stage2, _x, _ret);
   double tmp1[MAX_CHANNELS], tmp2[MAX_CHANNELS];
   double power = 0;
@@ -101,11 +101,5 @@ CAMLprim value liquidsoap_lufs_process_native(value _stage1, value _stage2,
       power += tmp1[c] * tmp1[c];
   }
 
-  CAMLreturn(power / samples);
-}
-
-CAMLprim value liquidsoap_lufs_process_bytecode(value _stage1, value _stage2,
-                                                value _x, value _ret) {
-  return caml_copy_double(
-      liquidsoap_lufs_process_native(_stage1, _stage2, _x, _ret));
+  CAMLreturn(caml_copy_double(power / samples));
 }
