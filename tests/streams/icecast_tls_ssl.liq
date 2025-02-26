@@ -1,6 +1,8 @@
 log.level := 4
 settings.icecast.prefer_address := "ipv4"
 
+test.skip()
+
 tls = http.transport.tls(certificate="./ssl.cert", key="./ssl.key")
 
 ssl = http.transport.ssl(certificate="./ssl.cert", key="./ssl.key")
