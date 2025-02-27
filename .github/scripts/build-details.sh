@@ -3,7 +3,7 @@
 set -e
 
 if [ -n "${GITHUB_HEAD_REF}" ]; then
-  BRANCH="${GITHUB_HEAD_REF}"
+  BRANCH="${GITHUB_HEAD_REF#refs_heads_}"
 else
   BRANCH="${GITHUB_REF#refs/heads/}"
   BRANCH="${GITHUB_REF#refs/tags/}"
