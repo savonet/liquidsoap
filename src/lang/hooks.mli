@@ -1,4 +1,4 @@
-(* Language essentials. *)
+(* Language essentials *)
 
 type log =
   < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
