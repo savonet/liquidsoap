@@ -5,10 +5,12 @@ set -e
 if [ -n "${GITHUB_HEAD_REF}" ]; then
   BRANCH="${GITHUB_HEAD_REF#refs_heads_}"
 else
-  BRANCH="${GITHUB_REF#refs/heads/}"
-  BRANCH="${GITHUB_REF#refs/tags/}"
+  BRANCH="${GITHUB_REF}"
 fi
 
+BRANCH="${BRANCH#refs_heads_}"
+BRANCH="${BRANCH#refs/heads/}"
+BRANCH="${BRANCH#refs/tags/}"
 BRANCH="${BRANCH//\//_}"
 
 echo "Detected branch: ${BRANCH}"
