@@ -3,11 +3,14 @@
 New:
 
 - Added support for multiple metadata fields in
-  ogg and flac metadata.
+  ogg and flac metadata
+- Added support for track-level REM ALBUM in cue file parsing
+  (#4381)
 
 Fixed:
 
 - Optimized CPU usage (#4369, #4370)
+- Fixed cue-out bug in cue file parsing (#4381)
 
 ---
 

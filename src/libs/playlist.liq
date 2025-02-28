@@ -129,6 +129,7 @@ def playlist.parse.cue.full(~pwd=null(), content) =
           track_type?: string,
           performer?: string,
           title?: string,
+          album?: string,
           isrc?: string,
           postgap?: {minutes: int, seconds: int, frames: int},
           pregap?: {minutes: int, seconds: int, frames: int},
@@ -186,6 +187,33 @@ def playlist.parse.cue.full(~pwd=null(), content) =
                 fun (postgap) ->
                   {...track, postgap=null.get(parse_timecode(postgap))}
               ),
+              (
+                "rem",
+                fun (rem) ->
+                  begin
+                    parsed =
+                      parse_rem(
+                        "REM #{rem}"
+                      )
+                    if
+                      null.defined(parsed)
+                    then
+                      let (label, value) = null.get(parsed)
+                      if
+                        label == "album"
+                      then
+                        {...track, album=value}
+                      else
+                        log.important(
+                          label="playlist.parse.cue.full",
+                          "Unknown track attribute REM #{rem}, please file a bug \
+                           report!"
+                        )
+                        track
+                      end
+                    end
+                  end
+              ),
               ("isrc", fun (isrc) -> {...track, isrc=isrc})
             ]
           attribute_names = list.map(fst, track_attributes)
@@ -234,6 +262,7 @@ def playlist.parse.cue.full(~pwd=null(), content) =
               track_type?: string,
               performer?: string,
               title?: string,
+              album?: string,
               isrc?: string,
               postgap?: {minutes: int, seconds: int, frames: int},
               pregap?: {minutes: int, seconds: int, frames: int},
@@ -375,7 +404,7 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
   then
     let {catalog?, title?, performer?, rem, tracks} =
       playlist.parse.cue.full(pwd=pwd, content)
-    let album = title
+    let playlist_album = title
     let album_performer = performer
     rem =
       list.map(
@@ -397,8 +426,16 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
     end
 
     def add_track(tracks, track) =
-      let {performer?, title?, isrc?, pregap?, postgap?, position, indexes} =
-        track
+      let {
+        performer?,
+        title?,
+        album?,
+        isrc?,
+        pregap?,
+        postgap?,
+        position,
+        indexes
+      } = track
       index_zero = list.assoc.nullable(0, indexes)
       index_zero_filename = null.map(fun (m) -> m?.filename, index_zero)
       index = list.assoc.nullable(1, indexes)
@@ -440,7 +477,7 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
                 then
                   index_zero
                 else
-                  list.assoc(cue_out_metadata, old_meta)
+                  list.assoc(cue_in_metadata, old_meta)
                 end
 
               [(cue_out_metadata, cue_out)]
@@ -481,7 +518,7 @@ def replaces playlist.parse.cue(~pwd=null(), content) =
 
               ("title", title),
               ("isrc", isrc),
-              ("album", album)
+              ("album", album ?? playlist_album)
             ]
           )
 
