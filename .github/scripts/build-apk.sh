@@ -61,9 +61,8 @@ rm -rf APKBUILD /home/opam/packages/tmp/"${ALPINE_ARCH}"
 
 echo "::group:: building ${APK_PACKAGE}-minimal.."
 
-# TODO: cleanup when https://github.com/ocaml/opam/issues/6397 is fixed.
 # shellcheck disable=SC2086
-opam remove -y $MINIMAL_EXCLUDE_DEPS conf-sdl2 conf-sqlite3 conf-gd conf-libffi
+opam remove -y --assume-depexts $MINIMAL_EXCLUDE_DEPS
 
 eval "$(opam config env)"
 
