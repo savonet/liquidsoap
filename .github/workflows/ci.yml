@@ -413,7 +413,7 @@ jobs:
         id: build_apk
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          apk add alpine-sdk
+          apk add alpine-sdk zip
           adduser opam abuild
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
