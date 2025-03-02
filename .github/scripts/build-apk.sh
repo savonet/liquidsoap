@@ -103,7 +103,8 @@ fi
 
 echo "::group:: Zipping files.."
 
-zip -r "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/build-${ARCH}.zip" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
+zip -r "/tmp/build-${ARCH}.zip" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
+mv "/tmp/build-${ARCH}.zip" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 
 {
   echo "basename=${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
