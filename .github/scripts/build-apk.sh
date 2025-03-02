@@ -97,9 +97,13 @@ if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
 
   cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
+
+  echo "::endgroup::"
 fi
 
-echo "::endgroup::"
+echo "::group:: Zipping files.."
+
+zip -r "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine.zip" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 
 {
   echo "basename=${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
