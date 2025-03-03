@@ -105,6 +105,7 @@ echo "::group:: Zipping files.."
 
 cd "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 zip "build-${ARCH}.zip" ./*
+rm -f ./*.config ./*.apk
 
 {
   echo "basename=${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
