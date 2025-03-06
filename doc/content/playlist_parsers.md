@@ -23,7 +23,7 @@ All formats are identified by their _mime-type_ or _content-type_. Supported for
   - `application/xspf+xml`, [XSPF](http://en.wikipedia.org/wiki/Xspf), **strict**
   - `application/rss+xml`, [Podcast](http://en.wikipedia.org/wiki/Podcast), **strict**
  
-Playlist format is driven by the **Content-Type** and **Content-Disposition** *(see m3u example below)*. You should make sure that your HTTP endpoint returns appropriate values for those. 
+Playlist format is driven by the **Content-Type** and **Content-Disposition** HTTP headers *(see m3u example below)*. You should make sure that your HTTP endpoint returns appropriate values for those. 
 
 As last resort, you should be able to use the `settings.http.mime.extnames` settings to add or adjust support 
 for your endpoint's mime-type if liquidsoap supports its corresponding playlist format. See for instance issue [#3451](https://github.com/savonet/liquidsoap/issues/3451).
