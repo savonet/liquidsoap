@@ -23,7 +23,10 @@ All formats are identified by their _mime-type_ or _content-type_. Supported for
   - `application/xspf+xml`, [XSPF](http://en.wikipedia.org/wiki/Xspf), **strict**
   - `application/rss+xml`, [Podcast](http://en.wikipedia.org/wiki/Podcast), **strict**
  
-In order for liquidsoap to detect and parse the remote playlist you have to add the MIME type to your settings.http.mime.extnames in the liquidsoap script as well as remote http endpoint has to return correct **Content-Type** and **Content-Disposition** headers *(see m3u example below)*.
+Playlist format is driven by the **Content-Type** and **Content-Disposition** *(see m3u example below)*. You should make sure that your HTTP endpoint returns appropriate values for those. 
+
+As last resort, you should be able to use the `settings.http.mime.extnames` settings to add or adjust support 
+for your endpoint's mime-type if liquidsoap supports its corresponding playlist format. See for instance issue [#3451](https://github.com/savonet/liquidsoap/issues/3451).
 
 ## Usage
 
@@ -42,7 +45,6 @@ liquidsoap script:
 ```liquidsoap
 #!/usr/local/bin/liquidsoap
 
-settings.http.mime.extnames := [...settings.http.mime.extnames(), ("audio/x-mpegurl", ".m3u")]
 p = playlist(reload=10, "http://localhost:8080/radio/playlists/0/playlist.m3u")
 ```
 
@@ -52,8 +54,12 @@ import express from "express";
 const app = express();
 app.get('/radio/playlists/:id/playlist.m3u', async (req, res) => {
   const playlist = ["/media/foo.mp3", "/media/bar.mp3"]
-  res.set('Content-Type', 'audio/x-mpegurl')
+  // Liquidsoap will use the file extension from the `Content-Disposition` header to guess
+  // the playlist format
   res.set(`Content-Disposition: attachment; filename="playlist-${req.params.id}.m3u`);
+  
+  // Otherwise, it will try to guess the file extension from the playlist mime-type.
+  res.set('Content-Type', 'audio/x-mpegurl')
   res.send(playlist.join("\r\n")+"\r\n").status(200).end()
 })
 const server = app.listen(8080);
