@@ -51,18 +51,21 @@ p = playlist(reload=10, "http://localhost:8080/radio/playlists/0/playlist.m3u")
 nodejs/express app:
 ```js
 import express from "express";
+
 const app = express();
-app.get('/radio/playlists/:id/playlist.m3u', async (req, res) => {
+
+app.get("/radio/playlists/:id/playlist.m3u", async (req, res) => {
   const playlist = ["/media/foo.mp3", "/media/bar.mp3"]
 
   // Liquidsoap will use the file extension from the `Content-Disposition` header to guess
   // the playlist format
-  res.set(`Content-Disposition: attachment; filename="playlist-${req.params.id}.m3u"`);
+  res.set("Content-Disposition", `attachment; filename="playlist-${req.params.id}.m3u"`);
   
   // Otherwise, it will try to guess the file extension from the playlist mime-type.
-  res.set('Content-Type', 'audio/x-mpegurl')
-  res.send(playlist.join("\r\n")+"\r\n").status(200).end()
-})
+  res.set("Content-Type", "audio/x-mpegurl");
+  res.send(playlist.join("\r\n")+"\r\n").status(200).end();
+});
+
 const server = app.listen(8080);
 ```
 
