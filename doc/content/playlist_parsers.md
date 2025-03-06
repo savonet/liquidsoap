@@ -19,7 +19,7 @@ All formats are identified by their _mime-type_ or _content-type_. Supported for
 
 - Xml formats:
   - `video/x-ms-asf`, `audio/x-ms-asx`: [ASX](http://en.wikipedia.org/wiki/Advanced_Stream_Redirector), **strict**
-  - `application/smil`, `application/smil+xml`, [SMIL](http://en.wikipedia.org/wiki/Synchronized_Multimedia_Integration_Language), **strict**
+  - `application/smil+xml`, `application/smil+xml`, [SMIL](http://en.wikipedia.org/wiki/Synchronized_Multimedia_Integration_Language), **strict**
   - `application/xspf+xml`, [XSPF](http://en.wikipedia.org/wiki/Xspf), **strict**
   - `application/rss+xml`, [Podcast](http://en.wikipedia.org/wiki/Podcast), **strict**
  
