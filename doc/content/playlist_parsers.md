@@ -23,7 +23,7 @@ All formats are identified by their _mime-type_ or _content-type_. Supported for
   - `application/xspf+xml`, [XSPF](http://en.wikipedia.org/wiki/Xspf), **strict**
   - `application/rss+xml`, [Podcast](http://en.wikipedia.org/wiki/Podcast), **strict**
  
-In order for liquidsoap to detect and parse the remote playlist you have to add the MIME type to your settings.http.mime.extnames in the liquidsoap script as well as remote http endpoint has to return correct **Content-Type** and **Content-Disposition** headers.
+In order for liquidsoap to detect and parse the remote playlist you have to add the MIME type to your settings.http.mime.extnames in the liquidsoap script as well as remote http endpoint has to return correct **Content-Type** and **Content-Disposition** headers *(see m3u example below)*.
 
 ## Usage
 
@@ -36,7 +36,8 @@ and some programming magic. You can check the code source for `playlist.reloadab
 for a detailed example.
 
 ### Remote M3U playlist example
-Here is an example returning a m3u formatted playlist from nodejs/express
+Here is an example of a m3u playlist being read from nodejs/express .
+
 liquidsoap script:
 ```liquidsoap
 #!/usr/local/bin/liquidsoap
@@ -45,7 +46,7 @@ settings.http.mime.extnames := [...settings.http.mime.extnames(), ("audio/x-mpeg
 p = playlist(reload=10, "http://localhost:8080/radio/playlists/0/playlist.m3u")
 ```
 
-nodejs/express:
+nodejs/express app:
 ```js
 import express from "express";
 const app = express();
