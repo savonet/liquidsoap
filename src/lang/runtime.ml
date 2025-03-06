@@ -308,7 +308,7 @@ let interactive =
   MenhirLib.Convert.Simplified.traditional2revised Parser.interactive
 
 let mk_expr ?fname processor lexbuf =
-  report
+  report ~lexbuf
     ~default:(fun () -> raise Error)
     (fun ~throw:_ () ->
       let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in

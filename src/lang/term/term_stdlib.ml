@@ -61,7 +61,7 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
   let script = List.fold_left (Printf.sprintf "%s\n%%include %S") "" libs in
   let lexbuf = Sedlexing.Utf8.from_string script in
   let parsed_stdlib, stdlib =
-    Runtime.report
+    Runtime.report ~lexbuf
       ~default:(fun () -> raise Runtime.Error)
       (fun ~throw:_ () ->
         let parsed_stdlib = Term_reducer.mk_expr Term_reducer.program lexbuf in

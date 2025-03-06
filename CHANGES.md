@@ -11,6 +11,7 @@ Fixed:
 
 - Optimized CPU usage (#4369, #4370)
 - Fixed cue-out bug in cue file parsing (#4381)
+- Bring back parse error location. (#4362)
 
 ---
 
