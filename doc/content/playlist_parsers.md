@@ -57,7 +57,7 @@ app.get('/radio/playlists/:id/playlist.m3u', async (req, res) => {
 
   // Liquidsoap will use the file extension from the `Content-Disposition` header to guess
   // the playlist format
-  res.set(`Content-Disposition: attachment; filename="playlist-${req.params.id}.m3u`);
+  res.set(`Content-Disposition: attachment; filename="playlist-${req.params.id}.m3u"`);
   
   // Otherwise, it will try to guess the file extension from the playlist mime-type.
   res.set('Content-Type', 'audio/x-mpegurl')
