@@ -50,7 +50,7 @@ exception Error
 
 let strict = ref false
 
-let throw ?(formatter = Format.std_formatter) ?lexbuf () =
+let throw ?(formatter = Format.std_formatter) ~lexbuf () =
   let print_error ~formatter idx error =
     flush_all ();
     let pos =
@@ -211,12 +211,12 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
    that [default] becomes [fun () -> raise Error] to keep typechecking consistent.. *)
 let report :
     'a.
-    ?lexbuf:Sedlexing.lexbuf ->
     ?default:(unit -> 'a) ->
+    lexbuf:Sedlexing.lexbuf option ->
     (throw:(exn -> unit) -> unit -> 'a) ->
     'a =
- fun ?lexbuf ?(default = fun () -> raise Error) f ->
-  let throw = throw ?lexbuf () in
+ fun ?(default = fun () -> raise Error) ~lexbuf f ->
+  let throw = throw ~lexbuf () in
   if !Term.conf_debug_errors then f ~throw ()
   else (
     try f ~throw ()
@@ -251,7 +251,7 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
                 let term =
                   match term with
                     | None ->
-                        report
+                        report ~lexbuf:None
                           ~default:(fun () -> raise Error)
                           (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
                     | Some tm -> tm
@@ -267,14 +267,14 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
                   (`Cast { cast = checked_term; typ })
         in
         time (fun () ->
-            report
+            report ~lexbuf:None
               ~default:(fun () -> ())
               (fun ~throw () -> Typechecking.check ?env ~throw checked_term));
 
         if Lazy.force Term.debug then
           Printf.eprintf "Checking for unused variables...\n%!";
         (* Check for unused variables, relies on types *)
-        report
+        report ~lexbuf:None
           ~default:(fun () -> ())
           (fun ~throw () -> Term.check_unused ~throw ~lib full_term);
         let full_term =
@@ -286,7 +286,7 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
 
 let eval_term ?name ~toplevel ast =
   let eval () =
-    report
+    report ~lexbuf:None
       ~default:(fun () -> assert false)
       (fun ~throw:_ () ->
         if toplevel then Evaluation.eval_toplevel ast else Evaluation.eval ast)
@@ -308,7 +308,7 @@ let interactive =
   MenhirLib.Convert.Simplified.traditional2revised Parser.interactive
 
 let mk_expr ?fname processor lexbuf =
-  report ~lexbuf
+  report ~lexbuf:(Some lexbuf)
     ~default:(fun () -> raise Error)
     (fun ~throw:_ () ->
       let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
@@ -360,7 +360,7 @@ let interactive () =
     Format.printf "# %!";
     if
       try
-        report ~lexbuf
+        report ~lexbuf:(Some lexbuf)
           ~default:(fun () -> ())
           (fun ~throw () ->
             let _, expr = mk_expr interactive lexbuf in
@@ -406,7 +406,7 @@ let load_libs ?stdlib () =
           let lexbuf = Sedlexing.Utf8.from_channel ic in
           Sedlexing.set_filename lexbuf fname;
           let parsed_term =
-            report
+            report ~lexbuf:(Some lexbuf)
               ~default:(fun () -> raise Error)
               (fun ~throw:_ () -> Term_reducer.mk_expr ~fname program lexbuf)
           in

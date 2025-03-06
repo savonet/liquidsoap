@@ -61,7 +61,7 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
   let script = List.fold_left (Printf.sprintf "%s\n%%include %S") "" libs in
   let lexbuf = Sedlexing.Utf8.from_string script in
   let parsed_stdlib, stdlib =
-    Runtime.report ~lexbuf
+    Runtime.report ~lexbuf:(Some lexbuf)
       ~default:(fun () -> raise Runtime.Error)
       (fun ~throw:_ () ->
         let parsed_stdlib = Term_reducer.mk_expr Term_reducer.program lexbuf in
@@ -77,7 +77,7 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
     Atomic.set Type_base.var_name_atom var_name;
     Atomic.set Type_base.var_id_atom var_id;
     let checked_term =
-      Runtime.report
+      Runtime.report ~lexbuf:None
         ~default:(fun () -> raise Runtime.Error)
         (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
     in

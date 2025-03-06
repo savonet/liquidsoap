@@ -591,7 +591,7 @@ let rec to_json { pos; term; comments } : Json.t =
 
 let parse_string ?(formatter = Format.err_formatter) content =
   let lexbuf = Sedlexing.Utf8.from_string content in
-  let throw = Runtime.throw ~formatter ~lexbuf () in
+  let throw = Runtime.throw ~formatter ~lexbuf:(Some lexbuf) () in
   try
     let tokenizer = Preprocessor.mk_tokenizer lexbuf in
     let term = Runtime.program tokenizer in
