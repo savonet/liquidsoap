@@ -58,7 +58,9 @@ let on_execute =
   Dom_html.handler (fun _ ->
       let expr = Js.to_string (getLiqCode ()) in
       let lexbuf = Sedlexing.Utf8.from_string expr in
-      let throw = Runtime.throw ~formatter:Format.str_formatter ~lexbuf () in
+      let throw =
+        Runtime.throw ~formatter:Format.str_formatter ~lexbuf:(Some lexbuf) ()
+      in
       let tokenizer = Preprocessor.mk_tokenizer lexbuf in
       let parsed_term = Runtime.program tokenizer in
       let json = Liquidsoap_tooling.Parsed_json.to_json parsed_term in
