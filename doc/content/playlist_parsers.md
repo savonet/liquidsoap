@@ -22,6 +22,8 @@ All formats are identified by their _mime-type_ or _content-type_. Supported for
   - `application/smil`, `application/smil+xml`, [SMIL](http://en.wikipedia.org/wiki/Synchronized_Multimedia_Integration_Language), **strict**
   - `application/xspf+xml`, [XSPF](http://en.wikipedia.org/wiki/Xspf), **strict**
   - `application/rss+xml`, [Podcast](http://en.wikipedia.org/wiki/Podcast), **strict**
+ 
+In order for liquidsoap to detect and parse the remote playlist you have to add the MIME type to your settings.http.mime.extnames in the liquidsoap script as well as remote http endpoint has to return correct **Content-Type** and **Content-Disposition** headers.
 
 ## Usage
 
@@ -32,6 +34,29 @@ pick a random track, the first one etc.
 Additionally, you can also manually parse and process a playlist using `request.create` and `request.resolve`
 and some programming magic. You can check the code source for `playlist.reloadable` in our standard library
 for a detailed example.
+
+### Remote M3U playlist example
+Here is an example returning a m3u formatted playlist from nodejs/express
+liquidsoap script:
+```liquidsoap
+#!/usr/local/bin/liquidsoap
+
+settings.http.mime.extnames := [...settings.http.mime.extnames(), ("audio/x-mpegurl", ".m3u")]
+p = playlist(reload=10, "http://localhost:8080/radio/playlists/0/playlist.m3u")
+```
+
+nodejs/express:
+```js
+import express from "express";
+const app = express();
+app.get('/radio/playlists/:id/playlist.m3u', async (req, res) => {
+  const playlist = ["/media/foo.mp3", "/media/bar.mp3"]
+  res.set('Content-Type', 'audio/x-mpegurl')
+  res.set(`Content-Disposition: attachment; filename="playlist-${req.params.id}.m3u`);
+  res.send(playlist.join("\r\n")+"\r\n").status(200).end()
+})
+const server = app.listen(8080);
+```
 
 ## Special case: CUE format
 
