@@ -848,6 +848,7 @@ let settings.http.mime.extnames =
     [
       ("audio/mp3", ".mp3"),
       ("audio/mpeg", ".mp3"),
+      ("audio/x-mpegurl", ".m3u"),
       ("application/ogg", ".ogg"),
       ("application/x-ogg", ".ogg"),
       ("audio/x-ogg", ".ogg"),
@@ -865,7 +866,8 @@ let settings.http.mime.extnames =
       ("image/jpeg", ".jpg"),
       ("image/png", ".png"),
       ("application/pdf", ".pdf"),
-      ("image/bmp", ".bmp")
+      ("image/bmp", ".bmp"),
+      ("text/plain", ".txt")
     ]
   )
 
