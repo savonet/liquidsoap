@@ -111,34 +111,48 @@ let create_decoder ~ctype ~width ~height ~metadata img =
   let duration =
     try
       let seconds = float_of_string (Frame.Metadata.find "duration" metadata) in
-      if seconds < 0. then -1 else Frame.video_of_seconds seconds
+      if seconds < 0. then -1 else Frame.main_of_seconds seconds
     with Not_found -> -1
   in
-  let duration = ref duration in
+  let duration = Atomic.make duration in
   let fclose () = () in
-  let remaining () =
-    if !duration = -1 then -1 else Frame.main_of_video !duration
-  in
+  let remaining () = Atomic.get duration in
   let generator =
     Content.Video.make_generator
       (Content.Video.get_params (Frame.Fields.find Frame.Fields.video ctype))
   in
   let fread length =
-    let frame = Frame.create ~length Frame.Fields.empty in
-    let video =
-      Content.Video.generate
-        ~create:(fun ~pos:_ ~width:_ ~height:_ () -> img)
-        generator length
+    let length =
+      match Atomic.get duration with
+        | -1 -> length
+        | 0 -> 0
+        | d ->
+            let length = min d length in
+            Atomic.set duration (d - length);
+            length
     in
-    let frame =
-      Frame.set_data frame Frame.Fields.video Content.Video.lift_data video
-    in
-    match Frame.Fields.find_opt Frame.Fields.audio ctype with
-      | None -> frame
-      | Some format ->
-          let pcm = Content.Audio.get_data (Content.make ~length format) in
-          Audio.clear pcm 0 (Frame.audio_of_main length);
-          Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data pcm
+    let frame = Frame.create ~length ctype in
+    match length with
+      | 0 -> frame
+      | length -> (
+          let video =
+            Content.Video.generate
+              ~create:(fun ~pos:_ ~width:_ ~height:_ () -> img)
+              generator length
+          in
+          let frame =
+            Frame.set_data frame Frame.Fields.video Content.Video.lift_data
+              video
+          in
+          match Frame.Fields.find_opt Frame.Fields.audio ctype with
+            | None -> frame
+            | Some format ->
+                let pcm =
+                  Content.Audio.get_data (Content.make ~length format)
+                in
+                Audio.clear pcm 0 (Frame.audio_of_main length);
+                Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data
+                  pcm)
   in
   { Decoder.fread; remaining; fseek = (fun len -> len); fclose }
 

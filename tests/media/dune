@@ -262,3 +262,39 @@
    liquidsoap
    %{test_liq}
    lufs_integrated.liq)))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps long-video.mp4)
+ (target test-image.png)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -i
+   long-video.mp4
+   -frames:v
+   1
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps
+  test-image.png
+  image_decoder_duration.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Image decoder with fixed duration"
+   liquidsoap
+   %{test_liq}
+   image_decoder_duration.liq)))
