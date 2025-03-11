@@ -260,6 +260,23 @@ let meth () =
                      (Lang.string (Utils.name_of_sockaddr origin))
                      (Builtins_srt.Socket_value.to_base_value s))
                  s#get_sockets)) );
+    ( "connect",
+      ([], Lang.fun_t [] Lang.unit_t),
+      "In sender mode, connect to remote server. In listener mode, setup \
+       listening socket.",
+      fun s ->
+        Lang.val_fun [] (fun _ ->
+            s#set_should_stop false;
+            s#connect;
+            Lang.unit) );
+    ( "disconnect",
+      ([], Lang.fun_t [] Lang.unit_t),
+      "Disconnect all connected socket.",
+      fun s ->
+        Lang.val_fun [] (fun _ ->
+            s#set_should_stop true;
+            s#disconnect;
+            Lang.unit) );
   ]
 
 type common_options = {
@@ -528,7 +545,7 @@ class virtual base () =
     val should_stop = Atomic.make false
     val id = id ()
     method private should_stop = Atomic.get shutdown || Atomic.get should_stop
-    method private set_should_stop = Atomic.set should_stop
+    method set_should_stop = Atomic.set should_stop
     method srt_id = id
   end
 
@@ -636,7 +653,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         self#log#important "Connect failed: %s" (Printexc.to_string exn);
         if not (Atomic.get task_should_stop) then polling_delay else -1.
 
-    method private connect =
+    method connect =
       Atomic.set task_should_stop false;
       match connect_task with
         | Some t -> Duppy.Async.wake_up t
@@ -731,7 +748,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
               Srt.close s;
               Printexc.raise_with_backtrace exn bt)
 
-    method private connect =
+    method connect =
       let rec accept_connection s =
         try
           let client, origin = Srt.accept s in
@@ -1032,7 +1049,10 @@ let _ =
                ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
                ~autostart format
               :> < Start_stop.active_source
-                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list
+                 ; set_should_stop : bool -> unit
+                 ; connect : unit
+                 ; disconnect : unit >)
         | `Caller ->
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
@@ -1041,7 +1061,10 @@ let _ =
                ~connection_timeout ~on_disconnect ~messageapi ~max ~dump
                ~on_start ~on_socket ~on_stop ~autostart format
               :> < Start_stop.active_source
-                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list
+                 ; set_should_stop : bool -> unit
+                 ; connect : unit
+                 ; disconnect : unit >))
 
 class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~register_telnet ~autostart ~on_disconnect ~encoder_factory source
@@ -1057,14 +1080,14 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
         ~output_kind:"srt" ~on_start ~on_stop ~infallible ~register_telnet
           ~export_cover_metadata:false ~autostart ~name:"output.srt" source
 
-    val mutable encoder = None
+    val mutable encoder = Atomic.make None
 
     initializer
       let on_disconnect_cur = !on_disconnect in
       on_disconnect :=
         fun () ->
           ignore (Strings.Mutable.flush buffer);
-          encoder <- None;
+          Atomic.set encoder None;
           on_disconnect_cur ()
 
     method private send_chunk =
@@ -1088,6 +1111,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
         try f pos socket
         with exn ->
           let bt = Printexc.get_raw_backtrace () in
+          self#stop_encoder;
           self#client_error socket exn bt
       in
       List.iter (f 0) self#get_sockets
@@ -1101,11 +1125,11 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
     method private get_encoder =
       self#mutexify
         (fun () ->
-          match encoder with
+          match Atomic.get encoder with
             | Some enc -> enc
             | None ->
                 let enc = encoder_factory self#id Frame.Metadata.Export.empty in
-                encoder <- Some enc;
+                Atomic.set encoder (Some enc);
                 enc)
         ()
 
@@ -1119,7 +1143,23 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
 
     method private stop =
       self#mutexify (fun () -> Atomic.set should_stop true) ();
+      self#stop_encoder;
+      self#send_chunks;
       self#disconnect
+
+    method stop_encoder =
+      if self#is_connected then (
+        try
+          self#mutexify
+            (Strings.Mutable.append_strings buffer)
+            (self#get_encoder.Encoder.stop ())
+        with exn ->
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log:self#log ~bt
+            (Printf.sprintf "Error while stopping encoder: %s"
+               (Printexc.to_string exn)));
+      ignore (Strings.Mutable.flush buffer);
+      Atomic.set encoder None
 
     method private encode frame =
       if self#is_connected then self#get_encoder.Encoder.encode frame
@@ -1272,7 +1312,10 @@ let _ =
                ~connection_timeout ~infallible ~register_telnet ~messageapi
                ~encoder_factory ~on_socket ~on_connect ~on_disconnect source
               :> < Output.output
-                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list
+                 ; set_should_stop : bool -> unit
+                 ; connect : unit
+                 ; disconnect : unit >)
         | `Listener ->
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~bind_address ~port
@@ -1281,4 +1324,7 @@ let _ =
                ~register_telnet ~messageapi ~encoder_factory ~on_connect
                ~on_disconnect ~listen_callback ~max_clients source
               :> < Output.output
-                 ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
+                 ; get_sockets : (Unix.sockaddr * Srt.socket) list
+                 ; set_should_stop : bool -> unit
+                 ; connect : unit
+                 ; disconnect : unit >))
