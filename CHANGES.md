@@ -14,6 +14,8 @@ Fixed:
 - Fixed support for `duration` metadata in image decoder (#4397)
 - Fixed cue-out bug in cue file parsing (#4381)
 - Bring back parse error location. (#4362)
+- Fixed SRT encoding when restarting a stream with reverse data flow
+  (#4399)
 
 ---
 
