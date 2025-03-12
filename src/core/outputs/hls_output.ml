@@ -1080,21 +1080,22 @@ class hls_output p =
       if segment.len + len > segment_main_duration then
         ( true,
           Printf.sprintf
-            "Terminating current segment on stream %s to make expected length"
-            s.name,
+            "Terminating current segment %d on stream %s to make expected \
+             length"
+            segment.id s.name,
           true )
       else if s.id3_enabled && pending_metadata s.metadata then
         ( true,
           Printf.sprintf
-            "Terminating current segment on stream %s to insert new metadata"
-            s.name,
+            "Terminating current segment %d on stream %s to insert new metadata"
+            segment.id s.name,
           false )
       else if Atomic.get s.pending_extra_tags <> [] then
         ( true,
           Printf.sprintf
-            "Terminating current segment on stream %s to insert pending extra \
-             tags"
-            s.name,
+            "Terminating current segment %d on stream %s to insert pending \
+             extra tags"
+            segment.id s.name,
           false )
       else (false, "", false)
 
