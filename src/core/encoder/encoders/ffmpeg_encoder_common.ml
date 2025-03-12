@@ -131,7 +131,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
     let format = mk_format ffmpeg in
     let interleaved =
       match ffmpeg.interleaved with
-        | `Default -> 0 < List.length ffmpeg.streams
+        | `Default -> 1 < List.length ffmpeg.streams
         | `True -> true
         | `False -> false
     in
