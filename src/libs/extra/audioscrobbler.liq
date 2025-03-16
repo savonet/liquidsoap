@@ -427,31 +427,11 @@ def audioscrobbler.submit(
     )
 
   def now_playing(m) =
-    try
-      audioscrobbler.api.track.updateNowPlaying.metadata(
-        username=username,
-        password=password,
-        api_key=api_key,
-        api_secret=api_secret,
-        session_key=session_key,
-        metadata_preprocessor(m)
-      )
-    catch err do
-      log.important(
-        "Error while submitting nowplaying info for #{source.id(s)}: #{err}"
-      )
-    end
-  end
-
-  s = source.on_metadata(s, now_playing)
-  f =
-    fun (rem, m) ->
-      # Avoid skipped songs
-      if
-        rem > 0. or force
-      then
+    thread.run(
+      delay=0.,
+      {
         try
-          audioscrobbler.api.track.scrobble.metadata(
+          audioscrobbler.api.track.updateNowPlaying.metadata(
             username=username,
             password=password,
             api_key=api_key,
@@ -461,9 +441,41 @@ def audioscrobbler.submit(
           )
         catch err do
           log.important(
-            "Error while submitting scrobble info for #{source.id(s)}: #{err}"
+            "Error while submitting nowplaying info for #{source.id(s)}: #{err}"
           )
         end
+      }
+    )
+  end
+
+  s = source.on_metadata(s, now_playing)
+  f =
+    fun (rem, m) ->
+      # Avoid skipped songs
+      if
+        rem > 0. or force
+      then
+        thread.run(
+          delay=0.,
+          {
+            try
+              audioscrobbler.api.track.scrobble.metadata(
+                username=username,
+                password=password,
+                api_key=api_key,
+                api_secret=api_secret,
+                session_key=session_key,
+                metadata_preprocessor(m)
+              )
+            catch err do
+              log.important(
+                "Error while submitting scrobble info for #{source.id(s)}: #{
+                  err
+                }"
+              )
+            end
+          }
+        )
       else
         log(
           label="audioscrobbler.submit",

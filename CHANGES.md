@@ -16,6 +16,8 @@ Fixed:
 - Bring back parse error location. (#4362)
 - Fixed SRT encoding when restarting a stream with reverse data flow
   (#4399)
+- Make sure that audioscrobbler `on_track`/`on_end` operations are
+  sent to a asynchronous task queue.
 
 ---
 
