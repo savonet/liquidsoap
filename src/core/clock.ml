@@ -149,14 +149,14 @@ let attach c s =
   Queue.push clock.pending_activations s
 
 let _detach x s =
-  Queue.filter x.pending_activations (fun s' -> s == s');
+  Queue.filter_out x.pending_activations (fun s' -> s == s');
   match Atomic.get x.state with
     | `Stopped _ -> ()
     | `Stopping { outputs; active_sources; passive_sources }
     | `Started { outputs; active_sources; passive_sources } ->
-        Queue.filter outputs (fun s' -> s == s');
-        WeakQueue.filter active_sources (fun s' -> s == s');
-        WeakQueue.filter passive_sources (fun s' -> s == s')
+        Queue.filter_out outputs (fun s' -> s == s');
+        WeakQueue.filter_out active_sources (fun s' -> s == s');
+        WeakQueue.filter_out passive_sources (fun s' -> s == s')
 
 let detach c s = _detach (Unifier.deref c) s
 
@@ -201,12 +201,6 @@ let _sync ?(pending = false) x =
     | `Stopping _ -> `Stopping
     | `Started { sync } -> (sync :> sync_mode)
 
-(* Return the current sync, used to make decisions based on the
-   clock's sync value, regardless of potential unification. *)
-let active_sync_mode c =
-  match Atomic.get (Unifier.deref c).state with
-    | `Stopped sync | `Stopping { sync } | `Started { sync } -> sync
-
 let sync c = _sync (Unifier.deref c)
 let cleanup_source s = try s#force_sleep with _ -> ()
 let clocks = Queue.create ()
@@ -216,7 +210,7 @@ let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
   WeakQueue.iter passive_sources cleanup_source;
   WeakQueue.iter active_sources cleanup_source;
   Queue.iter clock.sub_clocks stop;
-  Queue.filter clocks (fun c -> Unifier.deref c == clock)
+  Queue.filter_out clocks (fun c -> Unifier.deref c == clock)
 
 and stop c =
   let clock = Unifier.deref c in
@@ -265,7 +259,7 @@ let unify =
             (descr c) (descr c') id;
           Unifier.(clock.id <-- clock'.id));
     Unifier.(c <-- c');
-    Queue.filter clocks (fun el -> active_sync_mode el <> `Passive && el != c)
+    Queue.filter_out clocks (fun el -> el == c)
   in
   fun ~pos c c' ->
     let _c = Unifier.deref c in

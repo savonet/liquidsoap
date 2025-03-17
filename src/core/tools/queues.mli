@@ -48,6 +48,7 @@ module Queue : sig
   val fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
   val length : 'a t -> int
   val filter : 'a t -> ('a -> bool) -> unit
+  val filter_out : 'a t -> ('a -> bool) -> unit
 end
 
 module WeakQueue : sig
@@ -62,4 +63,5 @@ module WeakQueue : sig
   val fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
   val length : 'a t -> int
   val filter : 'a t -> ('a -> bool) -> unit
+  val filter_out : 'a t -> ('a -> bool) -> unit
 end

@@ -60,6 +60,8 @@ module Queue = struct
     let elements = flush_elements q in
     apply q (fun q ->
         List.iter (fun el -> if fn el then Queue.push el q) elements)
+
+  let filter_out q fn = filter q (fun el -> not (fn el))
 end
 
 module WeakQueue = struct
@@ -124,4 +126,6 @@ module WeakQueue = struct
         | exception Queue.Empty -> ()
     in
     apply q filter_f
+
+  let filter_out q fn = filter q (fun el -> not (fn el))
 end
