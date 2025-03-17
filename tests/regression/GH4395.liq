@@ -19,3 +19,7 @@ output.srt(id="output.srt", mode="listener", port=port, %opus, sine())
 thread.run(delay=3., s.disconnect)
 
 thread.run(delay=4., s.connect)
+
+thread.run(delay=6., s.disconnect)
+
+thread.run(delay=7., s.connect)
