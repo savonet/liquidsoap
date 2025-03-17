@@ -100,14 +100,14 @@ class blank duration =
       match (Atomic.get position, self#remaining) with
         | `New_track, _ ->
             Atomic.set position (`Elapsed length);
-            Frame.add_track_mark frame 0
+            Frame.set_track_mark frame 0
         | `Elapsed d, -1 ->
             Atomic.set position (`Elapsed (d + length));
             frame
         | `Elapsed d, r ->
             if r < length then (
               Atomic.set position (`Elapsed (length - r));
-              Frame.add_track_mark frame r)
+              Frame.set_track_mark frame r)
             else (
               Atomic.set position (`Elapsed (d + length));
               frame)
