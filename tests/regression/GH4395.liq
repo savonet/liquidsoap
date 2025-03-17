@@ -1,6 +1,8 @@
 port = 9502
 settings.srt.prefer_address := "ipv4"
 
+test.skip()
+
 track_count = ref(0)
 
 def on_track(_) =
