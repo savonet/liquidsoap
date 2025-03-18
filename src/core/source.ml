@@ -79,9 +79,6 @@ let finalise s =
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
-  let () =
-    if String.starts_with ~prefix:"on_metadata_" name then raise Not_found
-  in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
