@@ -6,7 +6,7 @@ type t =
   ; important : 'a. ('a, unit, string, unit) format4 -> 'a
   ; info : 'a. ('a, unit, string, unit) format4 -> 'a
   ; debug : 'a. ('a, unit, string, unit) format4 -> 'a
-  ; level : int option
+  ; level : int
   ; set_level : int -> unit >
 
 val make : Dtools.Conf.path -> t
