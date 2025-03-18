@@ -603,15 +603,6 @@ let _ =
       in
       Lang.string (String.make n c))
 
-let _ =
-  Lang.add_builtin ~base:string "id" ~category:`String
-    ~descr:"Generate an identifier with given operator name."
-    [("", Lang.string_t, None, Some "Operator name.")]
-    Lang.string_t
-    (fun p ->
-      let name = List.assoc "" p |> Lang.to_string in
-      Lang.string (Lang_string.generate_id name))
-
 let string_base64 = Lang.add_module ~base:string "base64"
 
 let _ =

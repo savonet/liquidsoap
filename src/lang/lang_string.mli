@@ -78,7 +78,6 @@ module Version : sig
 end
 
 val home_unrelate : string -> string
-val generate_id : string -> string
 val encode64 : string -> string
 val decode64 : string -> string
 val url_encode : ?plus:bool -> string -> string

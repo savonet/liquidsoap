@@ -120,7 +120,7 @@ type state =
   | `Stopped of active_sync_mode ]
 
 type clock = {
-  id : string option Unifier.t;
+  id : Lang_string.id option Unifier.t;
   sub_ids : string list;
   stack : Pos.t list Atomic.t;
   state : state Atomic.t;
@@ -133,7 +133,7 @@ and t = clock Unifier.t
 
 let _default_id { id; pending_activations } =
   match (Unifier.deref id, Queue.elements pending_activations) with
-    | Some id, _ -> id
+    | Some id, _ -> Lang_string.string_of_id id
     | None, el :: _ -> el#id
     | None, _ -> "generic"
 
@@ -142,7 +142,9 @@ let _id clock =
   ^ match clock.sub_ids with [] -> "" | l -> "." ^ String.concat "." l
 
 let id c = _id (Unifier.deref c)
-let set_id c id = Unifier.set (Unifier.deref c).id (Some id)
+
+let set_id c id =
+  Unifier.set (Unifier.deref c).id (Some (Lang_string.generate_id id))
 
 let attach c s =
   let clock = Unifier.deref c in
@@ -256,7 +258,8 @@ let unify =
       | Some _, Some id ->
           log#important
             "Clocks %s and %s both have id already set. Setting id to %s"
-            (descr c) (descr c') id;
+            (descr c) (descr c')
+            (Lang_string.string_of_id id);
           Unifier.(clock.id <-- clock'.id));
     Unifier.(c <-- c');
     Queue.filter_out clocks (fun el -> el == c)
@@ -520,7 +523,7 @@ let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
   let c =
     Unifier.make
       {
-        id = Unifier.make id;
+        id = Unifier.make (Option.map Lang_string.generate_id id);
         sub_ids;
         stack = Atomic.make stack;
         pending_activations = Queue.create ();
