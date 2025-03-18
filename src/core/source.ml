@@ -107,7 +107,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private create_log = log <- Log.make [self#id]
     method log = log
     val mutable id = Lang_string.generate_id name
-    method id = Lang_string.string_of_id id
+    method id = id
 
     method set_id ?(force = true) s =
       let s =

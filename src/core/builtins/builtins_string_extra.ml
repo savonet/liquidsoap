@@ -182,4 +182,4 @@ let _ =
     Lang.string_t
     (fun p ->
       let name = List.assoc "" p |> Lang.to_string in
-      Lang.string Lang_string.(string_of_id (generate_id name)))
+      Lang.string (Lang_string.generate_id name))

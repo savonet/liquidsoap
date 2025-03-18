@@ -120,7 +120,7 @@ type state =
   | `Stopped of active_sync_mode ]
 
 type clock = {
-  id : Lang_string.id option Unifier.t;
+  id : string option Unifier.t;
   sub_ids : string list;
   stack : Pos.t list Atomic.t;
   state : state Atomic.t;
@@ -133,7 +133,7 @@ and t = clock Unifier.t
 
 let _default_id { id; pending_activations } =
   match (Unifier.deref id, Queue.elements pending_activations) with
-    | Some id, _ -> Lang_string.string_of_id id
+    | Some id, _ -> id
     | None, el :: _ -> el#id
     | None, _ -> "generic"
 
@@ -258,8 +258,7 @@ let unify =
       | Some _, Some id ->
           log#important
             "Clocks %s and %s both have id already set. Setting id to %s"
-            (descr c) (descr c')
-            (Lang_string.string_of_id id);
+            (descr c) (descr c') id;
           Unifier.(clock.id <-- clock'.id));
     Unifier.(c <-- c');
     Queue.filter_out clocks (fun el -> el == c)
