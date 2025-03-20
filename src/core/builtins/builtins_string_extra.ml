@@ -174,3 +174,12 @@ let _ =
           ("picture_type", Lang.int pic.Metadata.ID3v2.pic_type);
           ("description", Lang.string pic.Metadata.ID3v2.pic_description);
         ])
+
+let _ =
+  Lang.add_builtin ~base:string "id" ~category:`String
+    ~descr:"Generate an identifier with given operator name."
+    [("", Lang.string_t, None, Some "Operator name.")]
+    Lang.string_t
+    (fun p ->
+      let name = List.assoc "" p |> Lang.to_string in
+      Lang.string (Lang_string.generate_id name))

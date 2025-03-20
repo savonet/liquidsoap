@@ -142,7 +142,9 @@ let _id clock =
   ^ match clock.sub_ids with [] -> "" | l -> "." ^ String.concat "." l
 
 let id c = _id (Unifier.deref c)
-let set_id c id = Unifier.set (Unifier.deref c).id (Some id)
+
+let set_id c id =
+  Unifier.set (Unifier.deref c).id (Some (Lang_string.generate_id id))
 
 let attach c s =
   let clock = Unifier.deref c in
@@ -520,7 +522,7 @@ let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
   let c =
     Unifier.make
       {
-        id = Unifier.make id;
+        id = Unifier.make (Option.map Lang_string.generate_id id);
         sub_ids;
         stack = Atomic.make stack;
         pending_activations = Queue.create ();

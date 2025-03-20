@@ -1,5 +1,4 @@
 log.level := 4
-settings.log.level.lifecycle := 5
 settings.init.force_start := true
 
 test = ()

@@ -882,7 +882,7 @@ let _ =
           }
       in
       let ret = Lang.apply ~pos:(Lang.pos p) fn [("", Graph.to_value graph)] in
-      let id = Lang_string.generate_id "ffmpeg.filter" in
+      let id = "ffmpeg.filter" in
       let output_clock = Clock.create ~id () in
       let input_clock =
         Clock.create_sub_clock ~id:(id ^ ".input") output_clock

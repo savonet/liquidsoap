@@ -106,7 +106,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable log = source_log
     method private create_log = log <- Log.make [self#id]
     method log = log
-    val mutable id = name
+    val mutable id = Lang_string.generate_id name
     method id = id
 
     method set_id ?(force = true) s =
@@ -116,7 +116,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           ~subst:(fun _ -> "_")
           s
       in
-      if force && s <> id then (
+      if force && s <> self#id then (
         id <- Lang_string.generate_id s;
 
         (* Sometimes the ID is changed during initialization, in order to make it
@@ -125,7 +125,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
          changes, and [log] has already been initialized, reset it. *)
         if log != source_log then self#create_log)
 
-    initializer self#set_id (Lang_string.generate_id name)
     val mutex = Mutex.create ()
 
     method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
@@ -259,7 +258,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           self#content_type_computation_allowed;
           if log == source_log then self#create_log;
           source_log#info
-            "Source %s gets up with content type: %s and frame type: %s." id
+            "Source %s gets up with content type: %s and frame type: %s."
+            self#id
             (Frame.string_of_content_type self#content_type)
             (Type.to_string self#frame_type);
           self#log#debug "Clock is %s." (Clock.id self#clock);
@@ -280,7 +280,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method force_sleep =
       if Atomic.compare_and_set is_up `True `False then (
-        source_log#info "Source %s gets down." id;
+        source_log#info "Source %s gets down." self#id;
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep =
