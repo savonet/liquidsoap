@@ -80,6 +80,11 @@ module WeakQueue = struct
           match Weak.get x i with Some v -> fn v | None -> ()
         done)
 
+  let flush_elements q =
+    let elements = ref [] in
+    flush_iter q (fun el -> elements := el :: !elements);
+    List.rev !elements
+
   let elements q =
     let rec elements_f rem =
       match Queue.pop_opt q with
