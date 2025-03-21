@@ -40,7 +40,7 @@ echo "::endgroup::"
 echo "::group::Setting up specific dependencies"
 
 opam update
-opam install -y ocaml.5.3.1 --update-invariant
+#opam install -y ocaml.5.3.1 --update-invariant
 opam install -y odoc.3.0.0~beta1
 
 cd /tmp/liquidsoap-full/liquidsoap

@@ -67,4 +67,4 @@ def time.zone.set(tz) =
   environment.set("TZ", tz)
 end
 
-runtime.gc.set(runtime.gc.get().{space_overhead=80})
+runtime.gc.set(runtime.gc.get().{space_overhead=80, allocation_policy=0})
