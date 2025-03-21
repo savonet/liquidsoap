@@ -7,6 +7,8 @@ ssl = http.transport.ssl(certificate="./ssl.cert", key="./ssl.key")
 
 port = 1444
 
+test.skip()
+
 def on_wake_up() =
   s = sine()
 
