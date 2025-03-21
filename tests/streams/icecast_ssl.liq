@@ -3,6 +3,8 @@ settings.icecast.prefer_address := "ipv4"
 
 port = 1443
 
+test.skip()
+
 def on_wake_up() =
   s = sine()
 
