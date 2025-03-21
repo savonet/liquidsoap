@@ -401,6 +401,11 @@ jobs:
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
+      - name: DEBUG
+        run: |
+          echo "artifact name: ${{ steps.build_deb.outputs.basename }}"
+          echo "list of files:"
+          find ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
