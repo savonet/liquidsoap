@@ -25,6 +25,22 @@ body:
     validations:
       required: true
   - type: textarea
+    id: log
+    attributes:
+      label: Log extracts
+      description: |
+        Please provide extracts from your logs. Make sure to set `log.level := 4`.
+    validations:
+      required: false
+  - type: textarea
+    id: script
+    attributes:
+      label: Script extracts
+      description: |
+        Please provide extracts from your liquidsoap script.
+    validations:
+      required: false
+  - type: textarea
     id: version
     attributes:
       label: Liquidsoap version
