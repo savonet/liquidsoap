@@ -123,16 +123,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
              (not s.source#fallible) && (not single) && trivially_true d)
            children)
 
-    (** We let [generate_from_multiple_sources] drive source re-selection. The
-        class knows about [track_sentive]. Source selection should occur once at
-        the beginning of the streaming cycle and possibly in the middle of it if
-        we reach a track mark and the operator is [track_sensitive]. On each
-        call, [generate_from_multiple_sources] will set [reselect] with the
-        appropriate value when it's [`Ok] to reselect the source that was
-        already selected. *)
     method get_source ~reselect () =
       match selected with
-        | Some s when reselect = `Ok -> Some s.effective_source
         | Some s
           when (track_sensitive () || satisfied s.predicate)
                && self#can_reselect
@@ -233,9 +225,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
               | Some s when s.effective_source#is_ready ->
                   excluded_sources <- s.child :: excluded_sources;
                   Some s.effective_source
-              | _ ->
-                  assert (reselect <> `Ok);
-                  None)
+              | _ -> None)
 
     method self_sync =
       ( Lazy.force self_sync_type,

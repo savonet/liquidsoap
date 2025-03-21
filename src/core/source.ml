@@ -636,6 +636,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual private set_last_metadata : Frame.t -> unit
     method virtual log : Log.t
     method virtual id : string
+    val mutable ready_source = None
 
     method private can_generate_frame =
       match
@@ -643,8 +644,12 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
           ~reselect:(if track_sensitive () then `Ok else `Force)
           ()
       with
-        | Some s -> s#is_ready
-        | None -> false
+        | Some s when s#is_ready ->
+            ready_source <- Some s;
+            true
+        | _ ->
+            ready_source <- None;
+            false
 
     val mutable current_source = None
 
@@ -672,18 +677,8 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
             | buf, _ -> buf)
 
     method private generate_frame =
-      let s =
-        match self#get_source ~reselect:`Ok () with
-          | None ->
-              failwith
-                (Printf.sprintf "Source %s was not able to reselect a source!"
-                   self#id)
-          | Some s when not s#is_ready ->
-              failwith
-                (Printf.sprintf "Source %s selected a source that is not ready!"
-                   self#id)
-          | Some s -> s
-      in
+      let s = Option.get ready_source in
+      assert s#is_ready;
       let buf = self#continue_frame s in
       let size = Lazy.force Frame.size in
       let rec f ~last_source ~last_chunk buf =
