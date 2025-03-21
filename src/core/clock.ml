@@ -205,6 +205,7 @@ let _sync ?(pending = false) x =
 
 let sync c = _sync (Unifier.deref c)
 let cleanup_source s = try s#force_sleep with _ -> ()
+let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
 let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
@@ -425,8 +426,7 @@ and _tick ~clock x =
   Atomic.incr x.ticks;
   check_stopped ();
   _after_tick ~clock x;
-  check_stopped ();
-  Queue.iter clocks start
+  check_stopped ()
 
 and _clock_thread ~clock x =
   let has_sources_to_process () =
@@ -516,6 +516,22 @@ and start ?force c =
     | `True sync -> _start ?force ~sync clock
     | `False -> ()
 
+let add_pending_clock =
+  (* Make sure that we're not collecting clocks between
+     the time they have sources attached to them and before
+     we get a chance to call [start_pending]. *)
+  let finalise c =
+    let clock = Unifier.deref c in
+    match _can_start clock with
+      | `True sync when sync <> `Passive ->
+          _start ~sync clock;
+          Queue.push clocks c
+      | _ -> ()
+  in
+  fun c ->
+    Gc.finalise finalise c;
+    WeakQueue.push pending_clocks c
+
 let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
@@ -531,7 +547,7 @@ let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
         on_error = on_error_queue;
       }
   in
-  if sync <> `Passive then Queue.push clocks c;
+  if sync <> `Passive then add_pending_clock c;
   c
 
 let time c =
@@ -540,18 +556,20 @@ let time c =
   Time.to_float (_time c)
 
 let start_pending () =
-  let c = Queue.flush_elements clocks in
+  let c = WeakQueue.flush_elements pending_clocks in
   let c = List.map (fun c -> (c, Unifier.deref c)) c in
   let c = List.sort_uniq (fun (_, c) (_, c') -> Stdlib.compare c c') c in
   List.iter
     (fun (c, clock) ->
-      (match Atomic.get clock.state with
+      match Atomic.get clock.state with
         | `Stopped _ -> (
             match _can_start clock with
-              | `True sync -> _start ~sync clock
-              | `False -> ())
-        | _ -> ());
-      Queue.push clocks c)
+              | `True `Passive -> ()
+              | `True sync ->
+                  _start ~sync clock;
+                  Queue.push clocks c
+              | `False -> WeakQueue.push pending_clocks c)
+        | _ -> ())
     c
 
 let () =
@@ -598,4 +616,4 @@ let create ?stack ?on_error ?id ?sync () = create ?stack ?on_error ?id ?sync ()
 let clocks () =
   List.sort_uniq
     (fun c c' -> Stdlib.compare (Unifier.deref c) (Unifier.deref c'))
-    (Queue.elements clocks)
+    (WeakQueue.elements pending_clocks @ Queue.elements clocks)

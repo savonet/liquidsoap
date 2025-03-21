@@ -57,6 +57,7 @@ module WeakQueue : sig
   val create : unit -> 'a t
   val push : 'a t -> 'a -> unit
   val flush_iter : 'a t -> ('a -> unit) -> unit
+  val flush_elements : 'a t -> 'a list
   val elements : 'a t -> 'a list
   val exists : 'a t -> ('a -> bool) -> bool
   val iter : 'a t -> ('a -> unit) -> unit
