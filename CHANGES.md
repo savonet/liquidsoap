@@ -18,6 +18,10 @@ Fixed:
   (#4399)
 - Make sure that audioscrobbler `on_track`/`on_end` operations are
   sent to a asynchronous task queue.
+- Fixed resources accumulation leading to catchup when using `crossfade`
+  (#4419, #4410)
+- Fixed source reselection logic issue that was causing crashes when using
+  `switch` and `fallback` operators (#4420)
 
 ---
 
