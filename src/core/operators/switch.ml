@@ -132,7 +132,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         already selected. *)
     method get_source ~reselect () =
       match selected with
-        | Some s when reselect = `Ok -> s.effective_source
+        | Some s when reselect = `Ok -> Some s.effective_source
         | Some s
           when (track_sensitive () || satisfied s.predicate)
                && self#can_reselect
