@@ -125,6 +125,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
     method get_source ~reselect () =
       match selected with
+        | Some s when reselect = `Ok -> s.effective_source
         | Some s
           when (track_sensitive () || satisfied s.predicate)
                && self#can_reselect
@@ -225,7 +226,9 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
               | Some s when s.effective_source#is_ready ->
                   excluded_sources <- s.child :: excluded_sources;
                   Some s.effective_source
-              | _ -> None)
+              | _ ->
+                  assert (reselect <> `Ok);
+                  None)
 
     method self_sync =
       ( Lazy.force self_sync_type,
