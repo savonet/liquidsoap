@@ -11,8 +11,6 @@ IS_RELEASE="$6"
 MINIMAL_EXCLUDE_DEPS="$7"
 DEB_RELEASE=1
 
-ARCH=$(dpkg --print-architecture)
-
 COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export DEBFULLNAME="The Savonet Team"
@@ -106,6 +104,6 @@ fi
 mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
 
 {
-  echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
-  echo "basename-minimal=${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
+  echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}"
+  echo "basename-minimal=${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}"
 } >> "${GITHUB_OUTPUT}"
