@@ -5,15 +5,15 @@ set -e
 BRANCH="$1"
 DOCKER_TAG="$2"
 ARCH="$3"
-ALPINE_ARCH="$4"
-IS_ROLLING_RELEASE="$5"
-IS_RELEASE="$6"
-MINIMAL_EXCLUDE_DEPS="$7"
+IS_ROLLING_RELEASE="$4"
+IS_RELEASE="$5"
+MINIMAL_EXCLUDE_DEPS="$6"
 APK_RELEASE=0
 
 cd /tmp/liquidsoap-full/liquidsoap
 
 APK_VERSION=$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)
+ALPINE_ARCH=$(uname -m)
 COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export LIQUIDSOAP_BUILD_TARGET=posix
@@ -42,7 +42,6 @@ cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post-inst
 abuild-keygen -a -n
 abuild
 
-find /home/opam/packages/
 mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 
 echo "::endgroup::"

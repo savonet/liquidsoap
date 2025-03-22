@@ -418,7 +418,7 @@ jobs:
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam "${GITHUB_OUTPUT}"
-          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
+          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
       - name: Upload alpine packages artifacts
         if: needs.build_details.outputs.is_fork != 'true' && matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
