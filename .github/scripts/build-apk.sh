@@ -42,6 +42,7 @@ cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post-inst
 abuild-keygen -a -n
 abuild
 
+find /home/opam/packages/
 mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 
 echo "::endgroup::"
