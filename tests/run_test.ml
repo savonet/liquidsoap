@@ -57,8 +57,8 @@ let run () =
     let min, sec = runtime () in
     Printf.eprintf "%sRan test %s: %s (Test time: %02dm:%02ds)\n" error_prefix
       colorized_test colorized_timeout min sec;
-    print_log ();
     (match !pid_ref with Some p -> Unix.kill p Sys.sigkill | None -> ());
+    print_log ();
     cleanup ();
     exit 1
   in
