@@ -13,7 +13,7 @@ let run () =
 
   let print_log () =
     try
-      Unix.close stdout;
+      (try Unix.close stdout with _ -> ());
       let buffer_size = 1024 in
       let buffer = Bytes.create buffer_size in
       let fd = Unix.openfile logfile [Unix.O_RDONLY] 0 in
@@ -57,8 +57,8 @@ let run () =
     let min, sec = runtime () in
     Printf.eprintf "%sRan test %s: %s (Test time: %02dm:%02ds)\n" error_prefix
       colorized_test colorized_timeout min sec;
-    print_log ();
     (match !pid_ref with Some p -> Unix.kill p Sys.sigkill | None -> ());
+    print_log ();
     cleanup ();
     exit 1
   in
