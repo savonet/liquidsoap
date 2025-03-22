@@ -6,4 +6,4 @@ log.level.set(5)
 o = output.dummy(blank())
 o.on_shutdown(test.pass)
 
-o.on_wake_up({output.dummy(fallible=true, source.fail.init())})
+thread.run(delay=2., {output.dummy(fallible=true, source.fail.init())})
