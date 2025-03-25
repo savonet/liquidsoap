@@ -36,6 +36,11 @@ let conf_encoding =
     ~d:["UTF-8"; "ISO-8859-1"; "UTF-16"]
     "List of encodings to try for automatic encoding detection."
 
+let conf_max_string_length =
+  Dtools.Conf.int
+    ~p:(conf_charset#plug "max_string_length")
+    ~d:1024 "Do not recode strings over that length."
+
 module C = CamomileLib.CharEncoding.Configure (struct
   let basedir = conf_path#get
   let datadir = Filename.concat basedir "database"

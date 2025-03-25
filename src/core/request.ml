@@ -344,7 +344,7 @@ let conf_recode =
 
 let conf_recode_excluded =
   Dtools.Conf.list
-    ~d:["apic"; "metadata_block_picture"; "coverart"]
+    ~d:["pic"; "apic"; "metadata_block_picture"; "coverart"]
     ~p:(conf_recode#plug "exclude")
     "Exclude these metadata from automatic recording."
 
@@ -362,7 +362,10 @@ let resolve_metadata ~initial_metadata ~excluded name =
   let convert =
     if conf_recode#get then (
       let excluded = conf_recode_excluded#get in
-      fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
+      fun k v ->
+        if not (List.mem (String.lowercase_ascii k) excluded) then
+          Charset.convert v
+        else v)
     else fun _ x -> x
   in
   let extension = try Some (Utils.get_ext name) with _ -> None in

@@ -7,6 +7,12 @@ New:
 - Added support for track-level REM ALBUM in cue file parsing
   (#4381)
 
+Changed:
+
+- Added `"pic"` to list of excluded metadata for automatic charset conversion.
+- Added `settings.charset.max_string_length` setting to prevent automatic charset
+  conversions of strings over that length.
+
 Fixed:
 
 - Optimized CPU usage (#4369, #4370)
