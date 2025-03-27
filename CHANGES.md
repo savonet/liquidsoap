@@ -28,6 +28,7 @@ Fixed:
   (#4419, #4410)
 - Fixed source reselection logic issue that was causing crashes when using
   `switch` and `fallback` operators (#4420)
+- Fixed self-sync logic with pulse audio outputs (#4429)
 
 ---
 
