@@ -115,7 +115,8 @@ let store ~dirtype filename value =
           Fun.protect
             ~finally:(fun () ->
               close_out_noerr oc;
-              if Sys.file_exists tmp_file then Sys.remove tmp_file)
+              try if Sys.file_exists tmp_file then Sys.remove tmp_file
+              with _ -> ())
             (fun () ->
               Marshal.to_channel oc value [Marshal.Closures];
               Sys.rename tmp_file filename);
