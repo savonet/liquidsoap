@@ -526,22 +526,29 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: List assets to upload
+        id: release_assets
         run: |
-          echo "RELEASE_ASSETS<<EOF" >> $GITHUB_ENV
-          find artifacts/${{ needs.build_details.outputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config|\.zip$' | sort -u >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "release_assets<<EOF" >> $GITHUB_OUTPUT
+          find artifacts/${{ needs.build_details.outputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config|\.zip$' | sort -u >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Generate release notes
+        id: release_notes
         run: |
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           if [ ${{ needs.build_details.outputs.is_rolling_release }} = "true" ]; then
-            cat doc/content/rolling-release.md >> $GITHUB_ENV
+            cat doc/content/rolling-release.md >> $GITHUB_OUTPUT
+            echo "\n\n" >> $GITHUB_OUTPUT
           fi
-          echo "EOF" >> $GITHUB_ENV
-      - name: Generate changelog
+          cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Generate release assets notes
+        id: release_assets_notes
         run: |
-          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-          cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          cat doc/content/release-assets.md >> $GITHUB_OUTPUT
+          echo "\n\n" >> $GITHUB_OUTPUT
+          cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Delete old release assets
         uses: mknejp/delete-release-assets@v1
         with:
@@ -555,20 +562,20 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
-          files: ${{ env.RELEASE_ASSETS }}
+          files: ${{ steps.release_assets.outputs.release_assets }}
           prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
-          body: "${{ env.RELEASE_NOTES}}\n\n${{ env.CHANGELOG }}"
-          draft: true
+          body: ${{ steps.release_notes.outputs.release_notes }}
+          draft: ${{ !needs.build_details.outputs.is_rolling_release }}
       - name: Upload assets to release repo
         uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
         with:
           token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
-          files: ${{ env.RELEASE_ASSETS }}
+          files: ${{ steps.release_assets.outputs.release_assets }}
           repository: savonet/liquidsoap-release-assets
           prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
-          body_path: doc/content/release-assets.md
-          draft: true
+          body: ${{ steps.release_assets_notes.outputs.release_notes }}
+          draft: ${{ !needs.build_details.outputs.is_rolling_release }}
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
