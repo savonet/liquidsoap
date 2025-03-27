@@ -108,7 +108,7 @@ let store ~dirtype filename value =
               | `System -> !system_file_perms
           in
           let tmp_file, oc =
-            Filename.open_temp_file
+            Filename.open_temp_file ~mode:[Open_binary]
               ~temp_dir:(Filename.dirname filename)
               ~perms "tmp" ".liq-cache"
           in
