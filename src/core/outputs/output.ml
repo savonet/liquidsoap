@@ -66,7 +66,6 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     method virtual private start : unit
     method virtual private stop : unit
     method virtual private send_frame : Frame.t -> unit
-    method self_sync = source#self_sync
     method fallible = not infallible
     method! source_type : source_type = `Output (self :> Source.active)
 
@@ -193,6 +192,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
 
 class dummy ?clock ~infallible ~on_start ~on_stop ~autostart ~register_telnet
   source =
+  let s = Lang.to_source source in
   object
     inherit
       output
@@ -203,6 +203,7 @@ class dummy ?clock ~infallible ~on_start ~on_stop ~autostart ~register_telnet
     method private start = ()
     method private stop = ()
     method private send_frame _ = ()
+    method self_sync = s#self_sync
   end
 
 let _ =

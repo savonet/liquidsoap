@@ -15,6 +15,8 @@ class encoded_test =
         ~autostart:false ~export_cover_metadata:false
         (Lang.source (new Noise.noise None))
 
+    method self_sync = (`Static, None)
+
     method insert_metadata _ =
       assert !send_called;
       insert_metadata_called := true

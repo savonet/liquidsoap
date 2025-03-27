@@ -346,7 +346,8 @@ class output p =
            (List.assoc "buffer" p, "Maximum buffering inferior to burst length"))
     else ()
   in
-  let source = Lang.assoc "" 2 p in
+  let source_val = Lang.assoc "" 2 p in
+  let source = Lang.to_source source_val in
   let mount = s "mount" in
   let uri =
     match mount.[0] with '/' -> mount | _ -> Printf.sprintf "%c%s" '/' mount
@@ -419,7 +420,7 @@ class output p =
     inherit
       [Strings.t] Output.encoded
         ~output_kind:"output.harbor" ~infallible ~register_telnet ~autostart
-          ~export_cover_metadata:false ~on_start ~on_stop ~name:mount source
+          ~export_cover_metadata:false ~on_start ~on_stop ~name:mount source_val
 
     val mutable dump = None
     val mutable encoder = None
@@ -431,6 +432,7 @@ class output p =
     val burst_data = Strings.Mutable.empty ()
     val metadata = { metadata = None; metadata_m = Mutex.create () }
     method encode frame = (Option.get encoder).Encoder.encode frame
+    method self_sync = source#self_sync
 
     method insert_metadata m =
       let m = Frame.Metadata.Export.to_metadata m in

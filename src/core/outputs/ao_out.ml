@@ -44,7 +44,7 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~on_start ~on_stop
 
     val mutable device = None
 
-    method! self_sync =
+    method self_sync =
       if self_sync then
         (`Dynamic, if device <> None then Some sync_source else None)
       else (`Static, None)

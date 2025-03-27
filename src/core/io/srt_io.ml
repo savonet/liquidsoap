@@ -1178,12 +1178,13 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~payload_size ~messageapi ~on_start ~on_stop ~infallible
   ~register_telnet ~autostart ~on_socket ~on_connect ~on_disconnect
   ~prefer_address ~port ~hostname ~read_timeout ~write_timeout
-  ~connection_timeout ~encoder_factory source =
+  ~connection_timeout ~encoder_factory source_val =
+  let source = Lang.to_source source_val in
   object (self)
     inherit
       output_base
         ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source
+          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source_val
 
     inherit
       caller
@@ -1191,6 +1192,8 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
           ~hostname ~port ~prefer_address ~payload_size ~read_timeout
           ~write_timeout ~connection_timeout ~messageapi ~on_connect
           ~on_disconnect ~on_socket
+
+    method self_sync = source#self_sync
 
     method private get_sockets =
       try [self#get_socket] with Not_connected -> []
@@ -1208,12 +1211,13 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
   ~listen_callback ~max_clients ~payload_size ~messageapi ~on_start ~on_stop
   ~infallible ~register_telnet ~autostart ~on_connect ~on_disconnect
   ~bind_address ~port ~prefer_address ~on_socket ~read_timeout ~write_timeout
-  ~encoder_factory source =
+  ~encoder_factory source_val =
+  let source = Lang.to_source source_val in
   object (self)
     inherit
       output_base
         ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source
+          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source_val
 
     inherit
       listener
@@ -1221,6 +1225,8 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
           ~read_timeout ~write_timeout ~messageapi ~on_connect ~on_disconnect
           ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
           ~max_clients ()
+
+    method self_sync = source#self_sync
 
     method private client_error socket exn bt =
       Utils.log_exception ~log:self#log

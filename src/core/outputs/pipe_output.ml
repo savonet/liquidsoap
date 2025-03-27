@@ -39,7 +39,7 @@ let base_proto =
     Some "Export cover metadata." )
   :: Output.proto
 
-class virtual base ?clock ~source ~name p =
+class virtual base ?clock ~source:source_val ~name p =
   let e f v = f (List.assoc v p) in
   (* Output settings *)
   let autostart = e Lang.to_bool "start" in
@@ -60,7 +60,7 @@ class virtual base ?clock ~source ~name p =
     inherit
       [Strings.t] Output.encoded
         ?clock ~infallible ~register_telnet ~on_start ~on_stop ~autostart
-          ~export_cover_metadata ~output_kind:"output.file" ~name source
+          ~export_cover_metadata ~output_kind:"output.file" ~name source_val
 
     val mutable encoder = None
     val mutable current_metadata = None
@@ -209,7 +209,7 @@ class url_output p =
         Strings.empty
 
     method write_pipe _ _ _ = ()
-    method! self_sync = (`Static, self#source_sync self_sync)
+    method self_sync = (`Static, self#source_sync self_sync)
   end
 
 let _ =
@@ -431,6 +431,7 @@ class virtual ['a] chan_output p =
 (** File output *)
 
 class virtual ['a] file_output_base p =
+  let source = Lang.to_source (Lang.assoc "" 3 p) in
   let filename = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let on_close = List.assoc "on_close" p in
   let on_close s = Lang.to_unit (Lang.apply on_close [("", Lang.string s)]) in
@@ -449,6 +450,7 @@ class virtual ['a] file_output_base p =
       self#interpolate ~subst filename
 
     method virtual open_out_gen : open_flag list -> int -> string -> 'a
+    method self_sync = source#self_sync
 
     method private prepare_filename =
       let mode =
@@ -597,7 +599,7 @@ class external_output ?clock p =
     inherit piped_output ?clock ~name:"output.external" p
     inherit [out_channel] chan_output p
     method encoder_factory = encoder_factory format_val
-    method! self_sync = (`Static, self#source_sync self_sync)
+    method self_sync = (`Static, self#source_sync self_sync)
 
     method open_chan =
       let process = process () in

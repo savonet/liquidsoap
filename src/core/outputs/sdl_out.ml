@@ -26,16 +26,19 @@ open Mm
 
 open Tsdl
 
-class output ~infallible ~register_telnet ~on_start ~on_stop ~autostart source =
+class output ~infallible ~register_telnet ~on_start ~on_stop ~autostart
+  source_val =
   let () = Sdl_utils.init [Sdl.Init.video] in
+  let source = Lang.to_source source_val in
   object (self)
     inherit
       Output.output
         ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~register_telnet
-          ~on_start ~on_stop source autostart
+          ~on_start ~on_stop source_val autostart
 
     val mutable fullscreen = false
     val mutable window = None
+    method self_sync = source#self_sync
 
     method start =
       let w, h = self#video_dimensions in
