@@ -127,7 +127,7 @@ object
       implemented by the various operators. *)
   method virtual self_sync : Clock.self_sync
 
-  method source_sync : bool -> Clock.self_sync
+  method source_sync : bool -> Clock.sync_source option
 
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit

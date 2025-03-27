@@ -165,8 +165,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | Some s -> s
 
     method source_sync self_sync =
-      if self_sync then (`Dynamic, Some self#self_sync_source)
-      else self#self_sync
+      if self_sync then Some self#self_sync_source else None
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
