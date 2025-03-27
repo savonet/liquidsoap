@@ -66,21 +66,6 @@ let () =
                 0 ffmpeg.streams
             in
             let get_stream, remove_stream = mk_stream_store copy_count in
-            let keyframes =
-              List.map
-                (fun (field, _) -> (field, Atomic.make false))
-                ffmpeg.streams
-            in
-            let on_keyframe = Atomic.make (fun () -> ()) in
-            let on_stream_keyframe field =
-              if hls then
-                Some
-                  (fun () ->
-                    let on_keyframe = Atomic.get on_keyframe in
-                    on_keyframe ();
-                    Atomic.set (List.assoc field keyframes) true)
-              else None
-            in
             let mk_streams output =
               List.fold_left
                 (fun streams (field, stream) ->
@@ -88,9 +73,9 @@ let () =
                     | `Drop -> streams
                     | `Copy keyframe_opt ->
                         Frame.Fields.add field
-                          (Ffmpeg_copy_encoder.mk_stream_copy
-                             ~on_keyframe:(on_stream_keyframe field) ~get_stream
-                             ~remove_stream ~keyframe_opt ~field output)
+                          (Ffmpeg_copy_encoder.mk_stream_copy ~on_keyframe:None
+                             ~get_stream ~remove_stream ~keyframe_opt ~field
+                             output)
                           streams
                     | `Encode Ffmpeg_format.{ codec = None } ->
                         Lang_encoder.raise_error ~pos
@@ -107,8 +92,8 @@ let () =
                           } ->
                         Frame.Fields.add field
                           (Ffmpeg_internal_encoder.mk_audio ~pos
-                             ~on_keyframe:(on_stream_keyframe field) ~mode
-                             ~params ~options ~codec ~field output)
+                             ~on_keyframe:None ~mode ~params ~options ~codec
+                             ~field output)
                           streams
                     | `Encode
                         Ffmpeg_format.
@@ -120,10 +105,10 @@ let () =
                           } ->
                         Frame.Fields.add field
                           (Ffmpeg_internal_encoder.mk_video ~pos
-                             ~on_keyframe:(on_stream_keyframe field) ~mode
-                             ~params ~options ~codec ~field output)
+                             ~on_keyframe:None ~mode ~params ~options ~codec
+                             ~field output)
                           streams)
                 Frame.Fields.empty ffmpeg.streams
             in
-            encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg)
+            encoder ~pos ~mk_streams ffmpeg)
     | _ -> None)

@@ -119,7 +119,7 @@ let convert_options opts =
         `String Avutil.Channel_layout.(get_description (find layout))
     | _ -> assert false)
 
-let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
+let encoder ~pos ~mk_streams ffmpeg meta =
   let buf = Strings.Mutable.empty () in
   let make () =
     let options = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
@@ -281,29 +281,10 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
   in
   let split_encode frame =
     let encoder = Atomic.get encoder in
-    let can_split () =
-      List.for_all (fun (_, keyframe) -> Atomic.get keyframe) keyframes
-    in
-    let flushed =
-      if can_split () then Atomic.make (Some (Strings.Mutable.flush buf))
-      else (
-        let flushed = Atomic.make None in
-        Atomic.set on_keyframe (fun () ->
-            match (can_split (), Atomic.get flushed) with
-              | true, None ->
-                  Atomic.set flushed (Some (Strings.Mutable.flush buf))
-              | _ -> ());
-        flushed)
-    in
-    Fun.protect
-      (fun () -> encode ~encoder frame)
-      ~finally:(fun () -> Atomic.set on_keyframe (fun () -> ()));
+    let flushed = Strings.Mutable.flush buf in
+    encode ~encoder frame;
     let encoded = Strings.Mutable.flush buf in
-    match Atomic.get flushed with
-      | Some flushed ->
-          List.iter (fun (_, keyframe) -> Atomic.set keyframe false) keyframes;
-          `Ok (flushed, encoded)
-      | None -> `Nope encoded
+    `Ok (flushed, encoded)
   in
   let encode frame =
     encode ~encoder:(Atomic.get encoder) frame;
