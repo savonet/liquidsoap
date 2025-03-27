@@ -314,7 +314,7 @@ let _self_sync ~clock x =
   let is_self_sync = List.length self_sync_sources = 1 in
   if x.is_self_sync <> is_self_sync && x.sync = `Automatic then (
     x.log#important "Switching to %sself-sync mode"
-      (if is_self_sync then "" else "none ");
+      (if is_self_sync then "" else "non ");
     x.is_self_sync <- is_self_sync);
   is_self_sync
 
