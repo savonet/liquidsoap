@@ -143,8 +143,6 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           if name <> "" then self#set_id ~force:false name;
 
           self#log#debug "Clock is %s." (Clock.id self#clock);
-          self#log#important "Content type is %s."
-            (Frame.string_of_content_type self#content_type);
 
           if Frame.Fields.is_empty self#content_type then
             failwith

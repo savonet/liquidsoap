@@ -215,11 +215,7 @@ end
 # @category Source / Input
 # @param ~timeout Timeout in seconds for resolving the request.
 # @param r Request to play.
-def request.once(
-  ~id=null("request.once"),
-  ~timeout=null(),
-  r
-) =
+def request.once(~id=null("request.once"), ~timeout=null(), r) =
   id = string.id.default(default="request.once", id)
 
   done = ref(false)
@@ -346,12 +342,7 @@ def request.single(
   end
 
   def mk_source(id) =
-    request.dynamic(
-      id=id,
-      prefetch=prefetch,
-      synchronous=infallible,
-      next
-    )
+    request.dynamic(id=id, prefetch=prefetch, synchronous=infallible, next)
   end
 
   # We want to mark infallible source as such. `source.dynamic` is a nice
@@ -428,23 +419,31 @@ def request.player(~simultaneous=true) =
     simultaneous
   then
     l = ref([])
+    s = ref(add(normalize=false, l()))
 
     # Perform some garbage collection in order to avoid that the list grows too
     # much.
-    def collect() =
+    def collect(~reload_source) =
+      len = list.length(l())
       l := list.filter(source.is_ready, l())
+      if
+        reload_source and list.length(l()) != len
+      then
+        s := add(normalize=false, l())
+      end
     end
 
     def play(r) =
-      collect()
-      l := request.once(r)::l()
+      collect(reload_source=false)
+      l := [request.once(r), ...l()]
+      s := add(normalize=false, l())
     end
 
-    source.dynamic({add(normalize=false, l())}).{
+    source.dynamic(s).{
       play=play,
       length=
         {
-          collect()
+          collect(reload_source=true)
           list.length(l())
         }
     }
