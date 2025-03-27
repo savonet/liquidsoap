@@ -118,6 +118,7 @@ let store ~dirtype filename value =
               if Sys.file_exists tmp_file then Sys.remove tmp_file)
             (fun () ->
               Marshal.to_channel oc value [Marshal.Closures];
+              close_out_noerr oc;
               Sys.rename tmp_file filename);
           let fn = !Hooks.cache_maintenance in
           fn dirtype
