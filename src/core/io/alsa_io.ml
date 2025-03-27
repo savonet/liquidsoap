@@ -183,7 +183,7 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet
         ~infallible ~register_telnet ~on_stop ~on_start ~name
           ~output_kind:"output.alsa" val_source start
 
-    inherit base ~buffer_size ~self_sync dev [Pcm.Playback]
+    inherit! base ~buffer_size ~self_sync dev [Pcm.Playback]
     val mutable samplerate_converter = None
 
     method samplerate_converter =
