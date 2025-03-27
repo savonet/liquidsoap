@@ -98,6 +98,7 @@ module Unifier = Liquidsoap_lang.Unifier
 
 type active_params = {
   sync : active_sync_mode;
+  mutable is_self_sync : bool;
   log : Log.t;
   time_implementation : Liq_time.implementation;
   t0 : Liq_time.t;
@@ -310,7 +311,12 @@ let _self_sync ~clock x =
            stack = Atomic.get clock.stack;
            sync_sources = self_sync_sources;
          });
-  List.length self_sync_sources = 1
+  let is_self_sync = List.length self_sync_sources = 1 in
+  if x.is_self_sync <> is_self_sync && x.sync = `Automatic then (
+    x.log#important "Switching to %sself-sync mode"
+      (if is_self_sync then "" else "none ");
+    x.is_self_sync <- is_self_sync);
+  is_self_sync
 
 let ticks c =
   match Atomic.get (Unifier.deref c).state with
@@ -490,6 +496,7 @@ and _start ?force ~sync clock =
   let x =
     {
       frame_duration;
+      is_self_sync = false;
       log_delay;
       log_delay_threshold;
       max_latency;
