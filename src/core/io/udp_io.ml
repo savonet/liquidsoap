@@ -54,17 +54,19 @@ module Tutils = struct
 end
 
 class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
-  ~hostname ~port ~encoder_factory source =
+  ~hostname ~port ~encoder_factory source_val =
+  let source = Lang.to_source source_val in
   object (self)
     inherit
       [Strings.t] Output.encoded
         ~output_kind:"udp" ~on_start ~on_stop ~register_telnet ~infallible
           ~autostart ~export_cover_metadata:false
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
-        source
+        source_val
 
     val mutable socket_send = None
     val mutable encoder = None
+    method self_sync = source#self_sync
 
     method private start =
       let socket =

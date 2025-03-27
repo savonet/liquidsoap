@@ -46,7 +46,6 @@ class virtual base ~self_sync ~client ~device =
     val client_name = client
     val dev = device
     val mutable stream = None
-    method virtual log : Log.t
 
     method self_sync : Clock.self_sync =
       if self_sync then
@@ -79,7 +78,7 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
   object (self)
     inherit base ~self_sync ~client ~device
 
-    inherit!
+    inherit
       Output.output
         ~infallible ~register_telnet ~on_stop ~on_start ~name
           ~output_kind:"output.pulseaudio" val_source start

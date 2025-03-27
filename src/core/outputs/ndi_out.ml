@@ -60,7 +60,7 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~on_start
 
     val mutable sender = None
 
-    method! self_sync =
+    method self_sync =
       if self_sync then
         (`Dynamic, if sender <> None then Some sync_source else None)
       else (`Static, None)

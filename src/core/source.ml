@@ -154,10 +154,19 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable sources : operator list = sources
 
     method virtual self_sync : Clock.self_sync
+    val mutable self_sync_source = None
+
+    method private self_sync_source =
+      match self_sync_source with
+        | None ->
+            let s = SourceSync.make (self :> < id : string >) in
+            self_sync_source <- Some s;
+            s
+        | Some s -> s
 
     method source_sync self_sync =
-      if self_sync then Some (SourceSync.make (self :> < id : string >))
-      else None
+      if self_sync then (`Dynamic, Some self#self_sync_source)
+      else self#self_sync
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we

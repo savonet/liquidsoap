@@ -52,7 +52,7 @@ class output ~self_sync ~on_start ~on_stop ~infallible ~register_telnet ~start
 
     val mutable fd = None
 
-    method! self_sync =
+    method self_sync =
       if self_sync then (`Dynamic, if fd <> None then Some sync_source else None)
       else (`Static, None)
 

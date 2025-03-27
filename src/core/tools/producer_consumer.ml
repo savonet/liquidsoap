@@ -44,6 +44,7 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
     val mutable producer_buffer = Generator.create Frame.Fields.empty
     method set_producer_buffer b = producer_buffer <- b
     method set_output_enabled v = output_enabled <- v
+    method self_sync = s#self_sync
     method! reset = ()
     method start = ()
     method stop = write_frame producer_buffer `Flush

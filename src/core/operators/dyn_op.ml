@@ -109,7 +109,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
 
     method self_sync =
       match self_sync with
-        | Some v -> (`Static, self#source_sync v)
+        | Some v -> self#source_sync v
         | None ->
             ( `Dynamic,
               match self#current_source with

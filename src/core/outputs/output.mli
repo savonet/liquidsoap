@@ -40,7 +40,6 @@ class virtual output :
 object
   inherit Source.active_source
   method fallible : bool
-  method self_sync : Clock.self_sync
   method remaining : int
   method abort_track : unit
   method private can_generate_frame : bool
@@ -95,4 +94,5 @@ object
   method private start : unit
   method private stop : unit
   method private send_frame : Frame.t -> unit
+  method self_sync : Clock.self_sync
 end

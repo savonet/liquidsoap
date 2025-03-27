@@ -620,7 +620,8 @@ class hls_output p =
         then 7
         else 3)
   in
-  let source = Lang.assoc "" 3 p in
+  let source_val = Lang.assoc "" 3 p in
+  let source = Lang.to_source source_val in
   let main_playlist_filename = Lang.to_string (List.assoc "playlist" p) in
   let main_playlist_extra_tags =
     List.map
@@ -641,7 +642,7 @@ class hls_output p =
       [(int * Strings.t option * Strings.t) list] Output.encoded
         ~infallible ~register_telnet ~on_start ~on_stop ~autostart
           ~export_cover_metadata:false ~output_kind:"output.file"
-          ~name:main_playlist_filename source
+          ~name:main_playlist_filename source_val
 
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
@@ -650,6 +651,7 @@ class hls_output p =
     method streams = streams
     val mutable current_position = (0, 0)
     val mutable state : hls_state = `Idle
+    method self_sync = source#self_sync
 
     method private toggle_state event =
       match (event, state) with

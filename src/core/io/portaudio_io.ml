@@ -162,7 +162,7 @@ class output ~self_sync ~start ~on_start ~on_stop ~infallible ~register_telnet
 
     val mutable stream = None
 
-    method! self_sync =
+    method self_sync =
       if self_sync then
         (`Dynamic, if stream <> None then Some sync_source else None)
       else (`Static, None)

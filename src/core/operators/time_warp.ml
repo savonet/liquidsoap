@@ -85,6 +85,7 @@ module Buffer = struct
     ~max_buffer source_val c =
     let prebuf = Frame.main_of_seconds pre_buffer in
     let maxbuf = Frame.main_of_seconds max_buffer in
+    let source = Lang.to_source source_val in
     object
       inherit
         Output.output
@@ -94,6 +95,7 @@ module Buffer = struct
       method! reset = ()
       method start = ()
       method stop = ()
+      method self_sync = source#self_sync
       val source = Lang.to_source source_val
 
       method send_frame frame =
@@ -361,6 +363,7 @@ module AdaptativeBuffer = struct
   class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
     source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
+    let source = Lang.to_source source_val in
     object (self)
       inherit
         Output.output
@@ -371,6 +374,7 @@ module AdaptativeBuffer = struct
       method! reset = ()
       method start = ()
       method stop = ()
+      method self_sync = source#self_sync
       val source = Lang.to_source source_val
 
       method send_frame frame =

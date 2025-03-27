@@ -416,7 +416,8 @@ class output p =
       | None | Some "" -> Charset.utf8
       | Some s -> Charset.of_string s
   in
-  let source = Lang.assoc "" 2 p in
+  let source_val = Lang.assoc "" 2 p in
+  let source = Lang.to_source source_val in
   let icy_id = Lang.to_int (List.assoc "icy_id" p) in
   let mount = s "mount" in
   let name =
@@ -504,7 +505,7 @@ class output p =
     inherit
       [Strings.t] Output.encoded
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
-          ~export_cover_metadata:false ~on_start ~on_stop ~name source
+          ~export_cover_metadata:false ~on_start ~on_stop ~name source_val
 
     (** In this operator, we don't exactly follow the start/stop mechanism of
         Output.encoded because we want to control in a more subtle way the
@@ -522,6 +523,7 @@ class output p =
     val mutable dump = None
 
     val mutable encoder = None
+    method self_sync = source#self_sync
 
     method encode frame =
       (* We assume here that there always is
@@ -640,7 +642,7 @@ class output p =
         Cry.connect connection handler;
         self#log#important "Connection setup was successful.";
 
-        (match (Lang.to_source source)#last_metadata with
+        (match source#last_metadata with
           | Some m when send_last_metadata_on_connect -> (
               try
                 self#insert_metadata
