@@ -54,7 +54,7 @@ cd ocaml-posix
 opam pin -ny .
 opam install -y posix-socket.2.2.0 posix-base.2.2.0
 
-opam install -y srt-windows.0.3.3
+opam install -y srt-windows.0.3.3 prometheus-app-windows cohttp-lwt-unix-windows
 
 echo "::endgroup::"
 
