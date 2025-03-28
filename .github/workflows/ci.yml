@@ -466,7 +466,7 @@ jobs:
       image: savonet/liquidsoap-win32-${{ matrix.system }}
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
-      OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,re-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,winsvc-windows,mem_usage-windows
+      OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,re-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,winsvc-windows,mem_usage-windows,prometheus-app-windows,cohttp-lwt-unix-windows
       IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
       TOOLPREF64: /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-
     steps:
