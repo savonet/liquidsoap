@@ -44,8 +44,15 @@ Alpine packages are also provided as part of our [release process](https://githu
 ## Docker
 
 We provide production-ready docker images via [Docker hub](https://hub.docker.com/r/savonet/liquidsoap).
-Docker images are tagged with a release tag (e.g. `v2.1.4`) and with the sha of their git commit (e.g. `a24bf49`). Please note
-that images tagged with a release tag may change while images tagged with a commit sha will not.
+Docker images are tagged with a release tag (e.g. `v2.1.4`) and with the sha of their git commit (e.g. `a24bf49`).
+
+For instance, to fetch release `2.3.1`, you would do:
+
+```shell
+docker pull savonet/liquidsoap:v2.3.1
+```
+
+Please note that images tagged with a release tag may change while images tagged with a commit sha will not.
 
 ## Windows
 
