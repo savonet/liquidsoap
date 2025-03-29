@@ -198,7 +198,7 @@ jobs:
           cp -rf html/* /tmp/${{ github.run_number }}/html
       - name: Push doc content
         if: success() && github.repository_owner == 'savonet'
-        uses: crazy-max/ghaction-github-pages@fbf0a4fa4e00f45accd6cf3232368436ec06ed59 # v4.1.0
+        uses: crazy-max/ghaction-github-pages@df5cc2bfa78282ded844b354faee141f06b41865 # v4.2.0
         with:
           repo: savonet/savonet.github.io
           target_branch: master
@@ -208,7 +208,7 @@ jobs:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
       - name: Push odoc content
         if: success() && github.repository_owner == 'savonet'
-        uses: crazy-max/ghaction-github-pages@fbf0a4fa4e00f45accd6cf3232368436ec06ed59 # v4.1.0
+        uses: crazy-max/ghaction-github-pages@df5cc2bfa78282ded844b354faee141f06b41865 # v4.2.0
         with:
           repo: savonet/liquidsoap
           target_branch: gh_pages
