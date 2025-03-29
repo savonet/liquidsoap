@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Vorbis_encoder (liquidsoap_vorbis@8e9bf4542caf.Vorbis_encoder)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../odoc.support/odoc.css"/><meta name="generator" content="odoc 3.0.0_beta1"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../index.html">🏠</a> &#x00BB; <a href="../index.html">liquidsoap_vorbis@8e9bf4542caf</a> &#x00BB; Vorbis_encoder</nav><header class="odoc-preamble"><h1>Module <code><span>Vorbis_encoder</span></code></h1></header><div class="odoc-content"><div class="odoc-spec"><div class="spec value anchored" id="val-create_gen"><a href="#val-create_gen" class="anchor"></a><code><span><span class="keyword">val</span> create_gen : 
+  <span><span class="xref-unresolved">Vorbis</span>.Encoder.t <span class="arrow">&#45;&gt;</span></span>
+  <span>int <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(string * string)</span> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../../liquidsoap_ogg@8e9bf4542caf/Ogg_muxer/index.html#type-stream_encoder">Ogg_muxer.stream_encoder</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-create_abr"><a href="#val-create_abr" class="anchor"></a><code><span><span class="keyword">val</span> create_abr : 
+  <span><span class="label">channels</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">samplerate</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">min_rate</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">max_rate</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">average_rate</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">metadata</span>:<span><span>(string * string)</span> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <span>unit <span class="arrow">&#45;&gt;</span></span>
+  <a href="../../liquidsoap_ogg@8e9bf4542caf/Ogg_muxer/index.html#type-stream_encoder">Ogg_muxer.stream_encoder</a></span></code></div><div class="spec-doc"><p>Rates are given in bits per seconds, i.e. 128000 instead of 128..</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-create_cbr"><a href="#val-create_cbr" class="anchor"></a><code><span><span class="keyword">val</span> create_cbr : 
+  <span><span class="label">channels</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">samplerate</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">bitrate</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">metadata</span>:<span><span>(string * string)</span> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <span>unit <span class="arrow">&#45;&gt;</span></span>
+  <a href="../../liquidsoap_ogg@8e9bf4542caf/Ogg_muxer/index.html#type-stream_encoder">Ogg_muxer.stream_encoder</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-create"><a href="#val-create" class="anchor"></a><code><span><span class="keyword">val</span> create : 
+  <span><span class="label">channels</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">samplerate</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">quality</span>:float <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">metadata</span>:<span><span>(string * string)</span> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <span>unit <span class="arrow">&#45;&gt;</span></span>
+  <a href="../../liquidsoap_ogg@8e9bf4542caf/Ogg_muxer/index.html#type-stream_encoder">Ogg_muxer.stream_encoder</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-create_vorbis"><a href="#val-create_vorbis" class="anchor"></a><code><span><span class="keyword">val</span> create_vorbis : <span><a href="../../liquidsoap_core@8e9bf4542caf/Ogg_format/index.html#type-audio">Ogg_format.audio</a> <span class="arrow">&#45;&gt;</span></span> <a href="../../liquidsoap_ogg@8e9bf4542caf/Ogg_encoder/index.html#type-track">Ogg_encoder.track</a></span></code></div></div></div></body></html>
