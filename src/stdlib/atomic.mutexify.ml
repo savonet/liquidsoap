@@ -13,28 +13,34 @@ let mutexify m f x =
 [@@inline always]
 
 let make v = { m = Mutex.create (); v }
-let get r = mutexify r.m (fun () -> r.v) ()
-let set r = mutexify r.m (fun v -> r.v <- v)
+let get r = mutexify r.m (fun [@inline] () -> r.v) ()
+let set r v = mutexify r.m (fun [@inline] v -> r.v <- v) v
 
-let[@inline never] exchange r =
-  mutexify r.m (fun v ->
+let exchange r v =
+  mutexify r.m
+    (fun [@inline] v ->
       let cur = r.v in
       r.v <- v;
       cur)
+    v
 
-let[@inline never] compare_and_set r seen =
-  mutexify r.m (fun v ->
+let compare_and_set r seen v =
+  mutexify r.m
+    (fun [@inline] v ->
       let cur = r.v in
       if cur == seen then (
         r.v <- v;
         true)
       else false)
+    v
 
-let[@inline never] fetch_and_add r =
-  mutexify r.m (fun n ->
+let fetch_and_add r n =
+  mutexify r.m
+    (fun [@inline] n ->
       let cur = r.v in
       r.v <- cur + n;
       cur)
+    n
 
-let incr r = ignore (fetch_and_add r 1)
-let decr r = ignore (fetch_and_add r (-1))
+let incr r = ignore ((fetch_and_add [@inlined]) r 1)
+let decr r = ignore ((fetch_and_add [@inlined]) r (-1))
