@@ -42,5 +42,5 @@ let fetch_and_add r n =
       cur)
     n
 
-let incr r = ignore ((fetch_and_add [@inlined]) r 1)
-let decr r = ignore ((fetch_and_add [@inlined]) r (-1))
+let incr r = ignore (fetch_and_add r 1)
+let decr r = ignore (fetch_and_add r (-1))
