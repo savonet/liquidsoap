@@ -1,0 +1,22 @@
+(library
+ (name custom_stdlib)
+ (public_name liquidsoap-lang.custom-stdlib)
+ (wrapped false)
+ (modules atomic)
+ (libraries threads))
+
+(rule
+ (target atomic.ml)
+ (deps atomic.mutexify.ml)
+ (enabled_if
+  (< %{ocaml_version} 5.0))
+ (action
+  (copy atomic.mutexify.ml atomic.ml)))
+
+(rule
+ (target atomic.ml)
+ (deps atomic.stdlib.ml)
+ (enabled_if
+  (>= %{ocaml_version} 5.0))
+ (action
+  (copy atomic.stdlib.ml atomic.ml)))
