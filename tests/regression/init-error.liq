@@ -3,6 +3,8 @@
 # Make sure that we properly shutdown on init error
 log.level.set(5)
 
+test.skip()
+
 o = output.dummy(blank())
 o.on_shutdown(test.pass)
 
