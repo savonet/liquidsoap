@@ -9,7 +9,7 @@ ALPINE_ARCH="$4"
 IS_ROLLING_RELEASE="$5"
 IS_RELEASE="$6"
 MINIMAL_EXCLUDE_DEPS="$7"
-APK_RELEASE=0
+APK_RELEASE=1
 
 cd /tmp/liquidsoap-full/liquidsoap
 
