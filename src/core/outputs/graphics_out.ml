@@ -21,12 +21,14 @@
 
 open Mm
 
-class output ~infallible ~register_telnet ~autostart ~on_start ~on_stop source =
+class output ~infallible ~register_telnet ~autostart ~on_start ~on_stop
+  source_val =
+  let source = Lang.to_source source_val in
   object (self)
     inherit
       Output.output
         ~name:"graphics" ~output_kind:"output.graphics" ~infallible
-          ~register_telnet ~on_start ~on_stop source autostart
+          ~register_telnet ~on_start ~on_stop source_val autostart
 
     val mutable sleep = false
     method stop = sleep <- true
@@ -37,6 +39,8 @@ class output ~infallible ~register_telnet ~autostart ~on_start ~on_stop source =
       Graphics.set_window_title "Liquidsoap";
       Graphics.resize_window width height;
       sleep <- false
+
+    method self_sync = source#self_sync
 
     method send_frame buf =
       match (VFrame.data buf).Content.Video.data with
