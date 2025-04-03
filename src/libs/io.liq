@@ -26,7 +26,7 @@ let replaces output = output.pulseaudio
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
-# @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
+# @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
 def replaces output(
   ~id=null(),
