@@ -47,8 +47,7 @@ eval "$(opam config env)"
 opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
 opam update
 
-opam install -y posix-socket.2.2.0 posix-base.2.2.0 srt-windows.0.3.3 prometheus-app-windows cohttp-lwt-unix-windows
-opam reinstall -y ffmpeg-avutil-windows
+opam install -y posix-socket.2.2.0 posix-base.2.2.0 srt-windows.0.3.3 prometheus-app-windows cohttp-lwt-unix-windows ffmpeg-avutil.1.2.3
 
 echo "::endgroup::"
 
