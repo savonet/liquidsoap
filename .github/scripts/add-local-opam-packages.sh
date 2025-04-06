@@ -8,7 +8,7 @@ RELEASE=$GITHUB_SHA
 
 eval "$(opam config env)"
 
-opam pin list  | grep ffmpeg | cut -d'.' -f 1 | sort -u | xargs opam unpin -n
+opam unpin --all -n
 
 cd "${BASE_DIR}"
 
