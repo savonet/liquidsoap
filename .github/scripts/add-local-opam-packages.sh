@@ -8,6 +8,8 @@ RELEASE=$GITHUB_SHA
 
 eval "$(opam config env)"
 
+opam pin list  | grep ffmpeg | cut -d'.' -f 1 | sort -u | xargs opam unpin -n
+
 cd "${BASE_DIR}"
 
 mkdir -p "./.github/opam/packages/liquidsoap-windows/liquidsoap-windows.${RELEASE}"
