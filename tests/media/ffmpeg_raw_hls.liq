@@ -71,17 +71,15 @@ def check_stream() =
     ) = ojson
 
     video_stream =
-      list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)
+      list.find((fun (stream) -> stream.codec_name == "h264"), parsed.streams)
 
     audio_stream =
       list.find(
-        (fun (stream) -> null.defined(stream.sample_rate)), parsed.streams
+        (fun (stream) -> stream.codec_name == "aac"), parsed.streams
       )
 
     if
       null.get(video_stream.codec_name) == "h264"
-    and
-      null.get(video_stream.pix_fmt) == "yuv420p"
     and
       null.get(audio_stream.channel_layout) == "stereo"
     and
