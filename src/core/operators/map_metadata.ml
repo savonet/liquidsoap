@@ -22,6 +22,17 @@
 
 open Source
 
+let conf_metadata =
+  Dtools.Conf.void ~p:(Configure.conf#plug "Metadata") "Metadata settings"
+
+let conf_metadata_map =
+  Dtools.Conf.void ~p:(conf_metadata#plug "map") "Metadata map settings"
+
+let conf_metadata_map_strip =
+  Dtools.Conf.bool
+    ~p:(conf_metadata_map#plug "strip")
+    ~d:true "Default value for the `strip` parameter."
+
 class map_metadata source rewrite_f insert_missing update strip =
   object (self)
     inherit operator ~name:"metadata.map" [source]
@@ -89,8 +100,8 @@ let register =
           "Update metadata. If false, existing metadata are cleared and only \
            returned values are set as new metadata." );
       ( "strip",
-        Lang.bool_t,
-        Some (Lang.bool false),
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
         Some
           "Completely remove empty metadata. Operates on both empty values and \
            empty metadata chunk." );
@@ -100,7 +111,7 @@ let register =
         Some
           "Treat track beginnings without metadata as having empty ones. The \
            operational order is: create empty if needed, map and strip if \
-           enabled." );
+           enabled. Defaults to `settings.metadata.map.strip` when `null`." );
       ("", return_t, None, None);
     ]
     ~category:`Track ~descr:"Rewrite metadata on the fly using a function."
@@ -110,6 +121,7 @@ let register =
       assert (field = Frame.Fields.metadata);
       let f = Lang.assoc "" 1 p in
       let update = Lang.to_bool (List.assoc "update" p) in
-      let strip = Lang.to_bool (List.assoc "strip" p) in
+      let strip = Lang.to_valued_option Lang.to_bool (List.assoc "strip" p) in
+      let strip = Option.value ~default:conf_metadata_map_strip#get strip in
       let missing = Lang.to_bool (List.assoc "insert_missing" p) in
       (field, new map_metadata source f missing update strip))
