@@ -261,3 +261,14 @@ def replaces lufs(%argsof(lufs), s) =
 
   s
 end
+
+server.register(
+  description=
+    "Shutdown the running liquidsoap instance",
+  "shutdown",
+  fun (_) ->
+    begin
+      shutdown()
+      "OK"
+    end
+)
