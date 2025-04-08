@@ -80,7 +80,6 @@ depopts: [
   "sdl-liquidsoap"
   "vorbis"
   "yaml"
-  "xmlplaylist"
 ]
 conflicts: [
   "alsa" {< "0.3.0"}
@@ -118,7 +117,6 @@ conflicts: [
   "sdl-liquidsoap" {< "2"}
   "theora" {< "1.0.0"}
   "vorbis" {< "1.0.0"}
-  "xmlplaylist" {< "0.1.3"}
   "pandoc" {with-doc}
   "pandoc-include" {with-doc}
 ]
