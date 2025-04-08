@@ -182,3 +182,22 @@
    (depends tsdl (tsdl-image (>= 0.3.2)) tsdl-ttf)
    (synopsis "Virtual package installing liquidsoap dependencies for SDL optional features")
 )
+
+(package
+ (name dtools)
+ (version 0.4.6)
+ (synopsis "Library providing various helper functions to make daemons")
+ (depends
+  (ocaml (>= 4.05.0))
+  dune)
+ (depopts syslog))
+
+(package
+ (name metadata)
+ (version 0.3.1)
+ (synopsis "Read metadata from various file formats")
+ (description "A pure OCaml library for reading files from various formats.")
+ (depends
+   (ocaml (>= 4.14.0))
+ )
+)

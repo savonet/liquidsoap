@@ -1,0 +1,2 @@
+#!/bin/sh
+dune exec --no-print-directory ./mimetype.exe -- $@

@@ -1,0 +1,13 @@
+(library
+ (name dtools)
+ (public_name dtools)
+ (libraries
+  str
+  threads
+  unix
+  (select
+   dtools_syslog.ml
+   from
+   (syslog -> dtools_syslog.impl.ml)
+   (-> dtools_syslog.noop.ml)))
+ (synopsis "Library providing various helper functions to make daemons"))
