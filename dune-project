@@ -209,3 +209,33 @@
  (description "The cry library is an implementation of the various icecast & shoutcast protocols to connect to streaming servers such as icecast")
  (depends (ocaml (>= 4.12.0)) dune base-bytes)
 )
+
+(package
+ (name mm)
+ (version 0.8.6)
+ (synopsis "The mm library contains high-level APIs to create and manipulate multimedia streams (audio, video, MIDI)")
+ (depends
+  (ocaml (>= 4.08))
+  (ocaml (and :with-test (>= 4.12)))
+  dune
+  dune-configurator)
+ (depopts
+  alsa
+  ao
+  mad
+  pulseaudio
+  ocamlsdl
+  theora)
+(conflicts
+  (mad (< 0.5.0))
+  (alsa (< 0.3.0))))
+
+(package
+ (name duppy)
+ (version 0.9.5)
+ (synopsis "Library providing monadic threads")
+ (depends
+  (ocaml (>= 4.07.0))
+  dune
+  (re (>= 1.7.2)))
+)

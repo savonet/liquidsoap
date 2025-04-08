@@ -1,0 +1,58 @@
+(executable
+ (name discover)
+ (modules discover)
+ (foreign_stubs
+  (language c)
+  (names endianness))
+ (libraries dune.configurator))
+
+(executable
+ (name setup)
+ (modules
+  setup
+  setup_alsa
+  setup_ao
+  setup_mad
+  setup_oss
+  setup_pulseaudio
+  setup_sdl
+  setup_theora)
+ (foreign_stubs
+  (language c)
+  (names endianness_setup))
+ (libraries
+  (select
+   setup_alsa.ml
+   from
+   (mm.alsa -> setup_alsa.enabled.ml)
+   (-> setup_alsa.disabled.ml))
+  (select
+   setup_ao.ml
+   from
+   (mm.ao -> setup_ao.enabled.ml)
+   (-> setup_ao.disabled.ml))
+  (select
+   setup_mad.ml
+   from
+   (mm.mad -> setup_mad.enabled.ml)
+   (-> setup_mad.disabled.ml))
+  (select
+   setup_oss.ml
+   from
+   (mm.oss -> setup_oss.enabled.ml)
+   (-> setup_oss.disabled.ml))
+  (select
+   setup_pulseaudio.ml
+   from
+   (mm.pulseaudio -> setup_pulseaudio.enabled.ml)
+   (-> setup_pulseaudio.disabled.ml))
+  (select
+   setup_sdl.ml
+   from
+   (mm.sdl -> setup_sdl.enabled.ml)
+   (-> setup_sdl.disabled.ml))
+  (select
+   setup_theora.ml
+   from
+   (mm.theora -> setup_theora.enabled.ml)
+   (-> setup_theora.disabled.ml))))

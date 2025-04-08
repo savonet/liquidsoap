@@ -1,0 +1,149 @@
+0.9.5 (2025-02-23)
+=====
+* Make pipe write unblocking.
+* Use ceil for `poll` timeout. This was causing a lot of unnecessary
+  wake-ups with timeouts. Update to this version is recommended!
+
+0.9.4 (2024-03-18)
+=====
+* Fix poll segfault.
+
+0.9.3 (2023-07-06)
+======
+* Make sure sure `ready_m` is release last to prevent any exception raised
+  after it unlocked. Refs: savonet/liquidsoap#2585
+* Added optional `on_error` to catch queue errors.
+
+0.9.2 (07-10-2021)
+=====
+* Fix deadlock issue at shutdown.
+
+0.9.1 (06-21-2021)
+=====
+* Make `stop` synchronous, waiting for all tasks to stop
+  while sending `Condition.signal`. Should avoid potential
+  race-conditions when signaling tasks to end.
+
+0.9.0 (07-10-2020)
+=====
+* Add offset/length to writing functions.
+* Convert to dune.
+* Drop unused SSL and SecureTransport optional libs.
+
+0.8.0 (12-11-2018)
+=====
+* Removed camlp4 syntactic sugar (unmaintained, unused in liquidsoap now).
+
+0.7.4 (10-11-2018)
+=====
+* Fix stack overflow by making recursive function fully tail-rec. (ref savonet/liquidsoap#640)
+
+0.7.3 (12-09-2018)
+=====
+* Fix write/select logic on windows systems. (savonet/liquidsoap#610)
+* Avoid race conditions when shutting down.
+
+0.7.2 (28-08-2018)
+=====
+* Add placeholder implementation for `caml_poll` on Win32.
+
+0.7.1 (18-08-2018)
+=====
+* Use poll() when available.
+* Wake up all queues when shutting down.
+
+0.7.0 (03-11-2017)
+=====
+* Fix bytes compatibility with OCaml 4.06 and above.
+* Fix camlp4 availability test.
+
+0.6.1 (23-08-2017)
+=====
+* Added SecureTransport support.
+
+0.6.0 (11-04-2017)
+=====
+* Added SSL support.
+
+0.5.2 (03-08-2015)
+=====
+* Dummy github release.
+
+0.5.1 (05-08-2013)
+=====
+* Removed win32 select work-around: patch applied upstream.
+
+0.5.0 (04-03-2013)
+=====
+* Remove Panic exception and let original exception bubble through.
+
+0.4.2 (08-10-2011)
+=====
+* Reimplemented monadic Mutex and Condition.
+* Consume more than one char when waking up Async tasks.
+
+0.4.1 (04-08-2011)
+=====
+* Added optional timeout for
+  all [Duppy.Io] and [Duppy.Monad.Io]
+  operations.
+* Fixed handling of EINTR: update the
+  timeout when restarting after being
+  interrupted.
+
+0.4.0 (26-06-2011)
+=====
+* Added a monad API to write
+  server code.
+* Close both sides of the pipe
+  in Duppy.Async
+* Make calls to [stop] and [wake_up]
+  thread-safe in Duppy.Async
+* Catch Unix.EINTR when calling Unix.select.
+
+0.3.2 (19-08-2010)
+=====
+* Switch from Thread.select to
+  Unix.select. They are the same on
+  POSIX and only Unix.select is available
+  on Win32..
+* Do not use assertions on Mutex.try_lock
+  on Win32: on this plateform, a thread can
+  double-lock a mutex, making the assertion
+  inconsistent.
+
+0.3.1 (14-10-2009)
+=====
+* Really catch raised exception on Duppy.Io
+  operations: catching was missing on recurrent
+  calls.
+
+0.3.0 (18-06-2009)
+=====
+* Added support for --enable-debugging configure option
+* Fixed Makefile for BSD: call $(MAKE) for generating documentation.
+* Added the possibility to restart the task after the returned positive
+  delay in Async.
+* Added unknown exceptions on Duppy.Io when calling on_error.
+
+0.2.0 (17-02-2009)
+=====
+* Fixed typo in Duppy.Async: exception is now Stopped.
+
+0.1.2 (01-07-2008)
+=====
+* Changed logic in shutdown for Async interface:
+  now [Duppy.Async.shutdown t] also wakes the task if
+  asleep. Still it can't stop a running task.
+* Fixed race conditions when a queue starts the select loop:
+  a task could be submitted, but no queue would wake up.
+
+0.1.1 (15-04-2008)
+=====
+* Fixed Conditions usage for non-unix systems
+* Fixed typos in the documentation, added some details
+* Installs .cmx file
+
+0.1.0 (07-03-2008)
+=====
+* Initial release
