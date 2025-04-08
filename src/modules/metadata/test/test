@@ -1,2 +1,2 @@
 #!/bin/sh
-dune exec --no-print-directory ./test.exe -- $@
+dune exec --no-print-directory ./test.exe -- "$@"
