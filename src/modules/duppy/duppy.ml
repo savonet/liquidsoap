@@ -88,7 +88,7 @@ let clear_tasks s =
 
 let create ?(on_error = Printexc.raise_with_backtrace) ?(compare = compare) () =
   let out_pipe, in_pipe = Unix.pipe () in
-  Unix.set_nonblock in_pipe;
+  if not Sys.win32 then Unix.set_nonblock in_pipe;
   {
     on_error;
     out_pipe;
@@ -387,7 +387,7 @@ module Async = struct
   let add ~priority (scheduler : 'a scheduler) f =
     (* A pipe to wake up the task *)
     let out_pipe, in_pipe = Unix.pipe () in
-    Unix.set_nonblock in_pipe;
+    if not Sys.win32 then Unix.set_nonblock in_pipe;
     let stop = ref false in
     let tmp = Bytes.create 1024 in
     let rec task l =
