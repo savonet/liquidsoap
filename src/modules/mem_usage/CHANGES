@@ -1,0 +1,28 @@
+0.1.2 (2025-01-18)
+=====
+* Fixed compilation on freebsd.
+
+0.1.1 (2024-04-17)
+=====
+* Added private and swapped process memory.
+
+0.1.0 (2024-01-31)
+======
+* Widen memory size integers (#4)
+* Allow compilation with OCaml 5 (#5)
+
+0.0.4 (2022-06-28)
+=====
+* Fixed buffer overflow using `fscanf`
+
+0.0.3 (2022-04-30)
+======
+* Fix parsing of proc file on linux.
+
+0.0.2 (2022-04-27)
+======
+* Fix segfault (#1)
+
+0.0.1 (2022-02-14)
+======
+* Initial release 💝

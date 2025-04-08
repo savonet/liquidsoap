@@ -239,3 +239,12 @@
   dune
   (re (>= 1.7.2)))
 )
+
+(package
+ (name mem_usage)
+ (version 0.1.2)
+ (synopsis "Cross-platform stats about memory usage")
+ (depends
+   (ocaml (>= 4.08))
+   dune)
+)

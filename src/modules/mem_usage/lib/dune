@@ -1,0 +1,24 @@
+(library
+ (name mem_usage)
+ (public_name mem_usage)
+ (synopsis "Cross-platform memory usage information")
+ (foreign_stubs
+  (language c)
+  (names mem_usage)
+  (flags
+   (:standard
+    (:include c_flags.%{system}.sexp))))
+ (c_library_flags
+  (:include c_library_flags.%{system}.sexp)))
+
+(rule
+ (target c_flags.%{system}.sexp)
+ (mode fallback)
+ (action
+  (write-file %{target} "()")))
+
+(rule
+ (target c_library_flags.%{system}.sexp)
+ (mode fallback)
+ (action
+  (write-file %{target} "()")))
