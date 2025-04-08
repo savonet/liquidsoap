@@ -1,0 +1,5 @@
+(library
+ (name xmlplaylist)
+ (optional)
+ (libraries xmlm)
+ (synopsis "Parser for various xml playlists"))

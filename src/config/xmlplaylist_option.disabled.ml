@@ -1,1 +1,2 @@
-noop.disabled.ml
+let detected = "no (requires xmlm)"
+let enabled = false

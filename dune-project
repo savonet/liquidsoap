@@ -76,8 +76,7 @@
     theora
     sdl-liquidsoap
     vorbis
-    yaml
-    xmlplaylist)
+    yaml)
  (conflicts
     (alsa (< 0.3.0))
     (ao (< 0.2.0))
@@ -114,7 +113,6 @@
     (sdl-liquidsoap (< 2))
     (theora (< 1.0.0))
     (vorbis (< 1.0.0))
-    (xmlplaylist (< 0.1.3))
     (pandoc :with-doc)
     (pandoc-include :with-doc))
   (synopsis "Swiss-army knife for multimedia streaming")
