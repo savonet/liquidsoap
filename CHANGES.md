@@ -1,3 +1,12 @@
+# 2.3.3 (unreleased)
+
+Changed:
+
+- `dtools`, `duppy` and `xmlplaylist` have been moved into the liquidsoap code
+  base and will no longer be developed or required as stand-alone packages (#12582)
+
+---
+
 # 2.3.2 (2025-04-01) 🃏
 
 New:
