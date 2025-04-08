@@ -201,3 +201,11 @@
    (ocaml (>= 4.14.0))
  )
 )
+
+(package
+ (name cry)
+ (version 1.0.3)
+ (synopsis "OCaml client for the various icecast & shoutcast source protocols")
+ (description "The cry library is an implementation of the various icecast & shoutcast protocols to connect to streaming servers such as icecast")
+ (depends (ocaml (>= 4.12.0)) dune base-bytes)
+)
