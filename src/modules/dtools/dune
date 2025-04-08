@@ -1,6 +1,5 @@
 (library
  (name dtools)
- (public_name dtools)
  (libraries
   str
   threads

@@ -1,3 +1,0 @@
-S src/*
-B src/*
-PKG ssl

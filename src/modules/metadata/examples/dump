@@ -1,2 +1,0 @@
-#!/bin/sh
-dune exec --no-print-directory ./dump.exe -- "$@"

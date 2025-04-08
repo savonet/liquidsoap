@@ -1,2 +1,0 @@
-#!/bin/sh
-dune exec ./replaygain.exe "$*"
