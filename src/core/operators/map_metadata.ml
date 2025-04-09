@@ -36,7 +36,7 @@ let conf_metadata_map_strip =
 let conf_metadata_map_insert_missing =
   Dtools.Conf.bool
     ~p:(conf_metadata_map#plug "insert_missing")
-    ~d:true "Default value for the `insert_missing` parameter."
+    ~d:false "Default value for the `insert_missing` parameter."
 
 class map_metadata source rewrite_f insert_missing update strip =
   object (self)
