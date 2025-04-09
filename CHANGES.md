@@ -1,5 +1,9 @@
 # 2.3.3 (unreleased)
 
+Fixed:
+
+- Don't insert empty metadata into shoutcast streams (#4408)
+
 Changed:
 
 - `dtools`, `duppy` and `xmlplaylist` have been moved into the liquidsoap code
