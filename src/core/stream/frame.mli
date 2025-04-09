@@ -175,7 +175,7 @@ exception No_metadata
 val add_metadata : t -> int -> metadata -> t
 
 (* Remove a metadata at a given position. *)
-val free_metadata : t -> int -> t
+val remove_metadata : t -> int -> t
 
 (** Retrieve metadata at a given position. *)
 val get_metadata : t -> int -> metadata option

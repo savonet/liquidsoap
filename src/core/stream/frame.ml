@@ -158,7 +158,7 @@ let map_metadata frame fn =
 
 let add_metadata frame pos m = add_all_metadata frame [(pos, m)]
 
-let free_metadata frame pos =
+let remove_metadata frame pos =
   let metadata = get frame Fields.metadata in
   let new_metadata =
     Content.make ~length:(Content.length metadata) (Content.format metadata)

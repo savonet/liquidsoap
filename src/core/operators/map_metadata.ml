@@ -49,7 +49,7 @@ class map_metadata source rewrite_f insert_missing update strip =
       List.fold_left
         (fun buf (t, m) ->
           let m = self#rewrite m in
-          if strip && Frame.Metadata.is_empty m then Frame.free_metadata buf t
+          if strip && Frame.Metadata.is_empty m then Frame.remove_metadata buf t
           else Frame.add_metadata buf t m)
         buf
         (Frame.get_all_metadata buf)
