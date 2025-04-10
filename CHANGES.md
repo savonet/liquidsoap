@@ -1,9 +1,16 @@
 # 2.3.3 (unreleased)
 
+Fixed:
+
+- Do not send empty metadata to shoutcast servers (#4408)
+
 Changed:
 
 - `dtools`, `duppy` and `xmlplaylist` have been moved into the liquidsoap code
   base and will no longer be developed or required as stand-alone packages (#12582)
+- Changed default value of `metadata.map` `strip` argument to `true` and `insert_missing`
+  to `false` Added `settings.metadata.map.strip` and `settings.metadata.map.insert_missing`
+  configuration keys to revert to previous defaults. (#4447)
 
 ---
 
