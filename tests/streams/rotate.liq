@@ -1,5 +1,10 @@
 def mksource(id="", url) =
-  metadata.map(id=id, fun (_) -> [("source", id)], mksafe(playlist(url)))
+  metadata.map(
+    insert_missing=true,
+    id=id,
+    fun (_) -> [("source", id)],
+    mksafe(playlist(url))
+  )
 end
 
 jingles = mksource("jingles", "jingles")
