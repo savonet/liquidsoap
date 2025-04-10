@@ -9,7 +9,7 @@ def m1(_) =
   [("id", "s1")]
 end
 
-s1 = metadata.map(id="s1-map", m1, s1)
+s1 = metadata.map(insert_missing=true,id="s1-map", m1, s1)
 s1_ready = ref(true)
 s1 = switch(id="s1", track_sensitive=false, [(s1_ready, s1)])
 s1_weight = ref(1)
@@ -19,7 +19,7 @@ def m2(_) =
   [("id", "s2")]
 end
 
-s2 = metadata.map(id="s2-map", m2, s2)
+s2 = metadata.map(insert_missing=true,id="s2-map", m2, s2)
 s2_ready = ref(false)
 s2 = switch(id="s2", track_sensitive=false, [(s2_ready, s2)])
 s2_weight = ref(1)

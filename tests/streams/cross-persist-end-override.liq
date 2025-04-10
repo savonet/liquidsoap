@@ -1,11 +1,11 @@
 success = ref(false)
 
 a = sine(duration=5., 440.)
-a = metadata.map(id="a", update=false, (fun (_) -> [("source", "a")]), a)
+a = metadata.map(insert_missing=true,id="a", update=false, (fun (_) -> [("source", "a")]), a)
 
 b = sine(duration=5., 880.)
 b =
-  metadata.map(
+  metadata.map(insert_missing=true,
     id="b",
     update=false,
     (fun (_) -> [("source", "b"), ("liq_cross_end_duration", "1.1")]),
@@ -13,7 +13,7 @@ b =
   )
 
 c = sine(duration=5., 440.)
-c = metadata.map(id="c", update=false, (fun (_) -> [("source", "c")]), c)
+c = metadata.map(insert_missing=true,id="c", update=false, (fun (_) -> [("source", "c")]), c)
 
 s = sequence([a, b, c])
 s = crossfade(persist_override=true, start_duration=5., end_duration=4., s)

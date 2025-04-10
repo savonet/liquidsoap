@@ -1,10 +1,10 @@
 first_blank =
-  metadata.map(
+  metadata.map(insert_missing=true,
     id="first_blank", fun (_) -> [("title", "first_blank")], blank(duration=3.)
   )
 
 after_blank =
-  metadata.map(
+  metadata.map(insert_missing=true,
     id="after_blank", fun (_) -> [("title", "after_blank")], sine(duration=10.)
   )
 
@@ -14,7 +14,7 @@ blank_strip =
   blank.strip(id="blank_strip", max_blank=5., start_blank=true, blank_sequence)
 
 fallback_sine =
-  metadata.map(id="fallback_sine", fun (_) -> [("title", "fallback")], sine())
+  metadata.map(insert_missing=true,id="fallback_sine", fun (_) -> [("title", "fallback")], sine())
 
 s =
   fallback(

@@ -1,8 +1,8 @@
 d = sequence([sine(duration=3.), sine(duration=3.)])
-d = metadata.map(update=false, (fun (_) -> [("title", "delay")]), d)
+d = metadata.map(insert_missing=true,update=false, (fun (_) -> [("title", "delay")]), d)
 
 f = sequence([sine(duration=3.), sine(duration=3.)])
-f = metadata.map(update=false, (fun (_) -> [("title", "fallback")]), f)
+f = metadata.map(insert_missing=true,update=false, (fun (_) -> [("title", "fallback")]), f)
 
 s = fallback([delay(1., d), f])
 

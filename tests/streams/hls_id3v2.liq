@@ -167,6 +167,7 @@ end
 s = sine()
 s =
   metadata.map(
+    insert_missing=true,
     fun (_) ->
       [
         (
