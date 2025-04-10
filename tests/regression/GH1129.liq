@@ -9,7 +9,7 @@ def m1(_) =
   [("id", "s1")]
 end
 
-s1 = metadata.map(insert_missing=true,id="s1", m1, s1)
+s1 = metadata.map(insert_missing=true, id="s1", m1, s1)
 s2_ready = ref(false)
 s2 = switch(id="s2", [({!s2_ready}, blank(duration=0.04))])
 
@@ -17,14 +17,14 @@ def m2(_) =
   [("id", "s2")]
 end
 
-s2 = metadata.map(insert_missing=true,id="s2", m2, s2)
+s2 = metadata.map(insert_missing=true, id="s2", m2, s2)
 s3 = blank(id="s3", duration=0.04)
 
 def m3(_) =
   [("id", "s3")]
 end
 
-s3 = metadata.map(insert_missing=true,id="s3", m3, s3)
+s3 = metadata.map(insert_missing=true, id="s3", m3, s3)
 
 def f(m) =
   s2_ready := !s2_ready or m["id"] == "s3"
