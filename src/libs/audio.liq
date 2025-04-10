@@ -360,10 +360,37 @@ end
 # Defer the source's audio track by a given amount of time. Source will be
 # available when the given `delay` has been fully buffered. Use this operator
 # instead of `buffer` when buffering large amount of data as initial delay.
+#
+# This operator encodes and decodes the audio content. See `defer.pcm_s16` for
+# a low-level operator using directly the `pcm_s16` format.
 # @argsof track.audio.defer[!id]
 # @param ~id Force the source's ID
-def defer(
-  ~id=null("defer"),
+def defer(~id=null("defer"), %argsof(track.audio.defer[!id]), s) =
+  let {audio = a} = source.tracks(s)
+  a = track.encode.audio.pcm_s16(a)
+  a = track.audio.defer(%argsof(track.audio.defer[!id]), a)
+  a = track.decode.audio.pcm_s16(a)
+
+  source(
+    id=id,
+    {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
+  )
+end
+
+# Defer the source's audio track by a given amount of time. Source will be
+# available when the given `delay` has been fully buffered. Use this operator
+# instead of `buffer` when buffering large amount of data as initial delay.
+#
+# This operator uses a source already using `pcm_s16` audio data. It can
+# be used to prevent unneeded data copy. Typically, decoders that know
+# how to decode to `pcm_s16` (like `ffmpeg`) will decode directly
+# into the format and encoders who support it (also `%ffmpeg`)
+# will encoder directly from the `pcm_s16` data. Use `defer` if you
+# prefer a more user-friendly operator.
+# @argsof track.audio.defer[!id]
+# @param ~id Force the source's ID
+def defer.pcm_s16(
+  ~id=null("defer.pcm_s16"),
   %argsof(track.audio.defer[!id]),
   (s:source(audio=pcm_s16))
 ) =

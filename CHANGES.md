@@ -2,6 +2,8 @@
 
 Changed:
 
+- Made `defer` more user-friendly by operating directly on generic `source(audio=pcm('a))`
+  sources. Renamed old `defer` to `defer.pcm_s16`
 - `dtools`, `duppy` and `xmlplaylist` have been moved into the liquidsoap code
   base and will no longer be developed or required as stand-alone packages (#12582)
 
