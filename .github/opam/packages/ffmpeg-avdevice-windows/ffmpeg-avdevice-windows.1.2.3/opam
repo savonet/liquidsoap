@@ -33,5 +33,5 @@ build: [
 ]
 dev-repo: "git+https://github.com/savonet/ocaml-ffmpeg.git"
 url {
-  src: "https://github.com/savonet/ocaml-ffmpeg/archive/main.tar.gz"
+  src: "https://github.com/savonet/ocaml-ffmpeg/archive/on_key_frame_init.tar.gz"
 }
