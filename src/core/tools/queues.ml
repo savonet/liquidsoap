@@ -20,47 +20,50 @@
 
  *****************************************************************************)
 
-module OrigQueue = Queue
-
 module Queue = struct
-  type 'a t = { m : Mutex.t; q : 'a Queue.t }
+  type 'a t = { m : Mutex.t; mutable l : 'a List.t }
 
-  exception Empty = Queue.Empty
+  let create () = { m = Mutex.create (); l = [] }
+  let apply q fn = Mutex_utils.mutexify q.m fn q [@@inline always]
+  let is_empty q = apply q (function { l = [] } -> true | _ -> false)
+  let push q v = apply q (fun q -> q.l <- q.l @ [v])
+  let append q v = apply q (fun q -> q.l <- v :: q.l)
 
-  let create () = { m = Mutex.create (); q = Queue.create () }
-  let apply { m; q } fn = Mutex_utils.mutexify m fn q [@@inline always]
-  let is_empty q = apply q Queue.is_empty
-  let push q v = apply q (fun q -> Queue.push v q)
-  let pop_opt q = apply q (fun q -> Queue.take_opt q)
-  let peek_opt q = apply q Queue.peek_opt
+  let pop_opt q =
+    apply q (function
+      | { l = el :: rest } ->
+          q.l <- rest;
+          Some el
+      | _ -> None)
+
+  let peek_opt q = apply q (function { l = el :: _ } -> Some el | _ -> None)
 
   let flush_elements q =
-    let q' = Queue.create () in
-    apply q (fun q -> Queue.transfer q q');
-    List.rev (Queue.fold (fun l el -> el :: l) [] q')
+    apply q (fun q ->
+        let l = q.l in
+        q.l <- [];
+        l)
 
-  let pop q = apply q Queue.pop
-  let peek q = apply q Queue.peek
+  let pop q =
+    apply q (function
+      | { l = el :: rest } ->
+          q.l <- rest;
+          el
+      | _ -> raise Not_found)
+
+  let peek q = apply q (function { l = el :: _ } -> el | _ -> raise Not_found)
   let flush_iter q fn = List.iter fn (flush_elements q)
 
   let flush_fold q fn ret =
     let flush_fold_f ret el = fn el ret in
     List.fold_left flush_fold_f ret (flush_elements q)
 
-  let elements q =
-    let q = apply q (fun q -> Queue.copy q) in
-    List.rev (Queue.fold (fun l el -> el :: l) [] q)
-
+  let elements q = apply q (fun { l } -> l)
   let exists q fn = List.exists fn (elements q)
   let length q = List.length (elements q)
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
-
-  let filter q fn =
-    let elements = flush_elements q in
-    apply q (fun q ->
-        List.iter (fun el -> if fn el then Queue.push el q) elements)
-
+  let filter q fn = apply q (fun q -> q.l <- List.filter fn q.l)
   let filter_out q fn = filter q (fun el -> not (fn el))
 end
 
@@ -119,16 +122,15 @@ module WeakQueue = struct
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let rec filter_f q =
-      match OrigQueue.pop q with
-        | el ->
-            for i = 0 to Weak.length el - 1 do
-              match Weak.get el i with
-                | Some p when fn p -> ()
-                | _ -> Weak.set el i None
-            done;
-            filter_f q
-        | exception Queue.Empty -> ()
+    let filter_f q =
+      List.iter
+        (fun el ->
+          for i = 0 to Weak.length el - 1 do
+            match Weak.get el i with
+              | Some p when fn p -> ()
+              | _ -> Weak.set el i None
+          done)
+        q.l
     in
     apply q filter_f
 

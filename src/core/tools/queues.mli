@@ -33,6 +33,7 @@ module Queue : sig
   (** Raises [Not_found] when no element can be found. *)
   val pop : 'a t -> 'a
 
+  val append : 'a t -> 'a -> unit
   val pop_opt : 'a t -> 'a option
 
   (** Raises [Not_found] when no element can be found. *)
