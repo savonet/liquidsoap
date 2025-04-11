@@ -230,16 +230,14 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
 
   let opts = Hashtbl.copy options in
 
-  let on_keyframe, on_keyframe_ref =
-    match on_keyframe with
-      | None -> (None, None)
-      | Some fn ->
-          let on_keyframe_ref = ref fn in
-          let on_keyframe () =
-            let fn = !on_keyframe_ref in
-            fn ()
-          in
-          (Some on_keyframe, Some on_keyframe_ref)
+  let intra_only = ref false in
+
+  let on_keyframe =
+    Option.map
+      (fun fn () ->
+        if not !intra_only then Av.flush output;
+        fn ())
+      on_keyframe
   in
 
   let stream =
@@ -273,21 +271,11 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       (Printf.sprintf "Unrecognized options: %s"
          (Ffmpeg_format.string_of_options options));
 
-  let intra_only =
-    let params = Av.get_codec_params stream in
-    match Avcodec.descriptor params with
-      | None -> true
-      | Some { Avcodec.properties } -> List.mem `Intra_only properties
-  in
-
-  (match (on_keyframe_ref, not intra_only) with
-    | Some v, true ->
-        let fn = !v in
-        v :=
-          fun () ->
-            Av.flush output;
-            fn ()
-    | _ -> ());
+  let params = Av.get_codec_params stream in
+  (intra_only :=
+     match Avcodec.descriptor params with
+       | None -> true
+       | Some { Avcodec.properties } -> List.mem `Intra_only properties);
 
   let codec_attr () = Av.codec_attr stream in
 
@@ -363,16 +351,14 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       codec
   in
 
-  let on_keyframe, on_keyframe_ref =
-    match on_keyframe with
-      | None -> (None, None)
-      | Some fn ->
-          let on_keyframe_ref = ref fn in
-          let on_keyframe () =
-            let fn = !on_keyframe_ref in
-            fn ()
-          in
-          (Some on_keyframe, Some on_keyframe_ref)
+  let intra_only = ref false in
+
+  let on_keyframe =
+    Option.map
+      (fun fn () ->
+        if not !intra_only then Av.flush output;
+        fn ())
+      on_keyframe
   in
 
   let stream =
@@ -392,21 +378,11 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       (Printf.sprintf "Unrecognized options: %s"
          (Ffmpeg_format.string_of_options options));
 
-  let intra_only =
-    let params = Av.get_codec_params stream in
-    match Avcodec.descriptor params with
-      | None -> true
-      | Some { Avcodec.properties } -> List.mem `Intra_only properties
-  in
-
-  (match (on_keyframe_ref, not intra_only) with
-    | Some v, true ->
-        let fn = !v in
-        v :=
-          fun () ->
-            Av.flush output;
-            fn ()
-    | _ -> ());
+  let params = Av.get_codec_params stream in
+  (intra_only :=
+     match Avcodec.descriptor params with
+       | None -> true
+       | Some { Avcodec.properties } -> List.mem `Intra_only properties);
 
   let codec_attr () = Av.codec_attr stream in
 
