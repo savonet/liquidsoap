@@ -71,14 +71,14 @@ For both types of releases, we reserve the right to update, delete and add asset
 
 ## Tooling
 
-|             |                                                                                                                                                    |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Formatting  | [liquidsoap-prettier](https://github.com/savonet/liquidsoap-prettier)                                                                              |
-| VSCode      | [vscode-liquidsoap](https://marketplace.visualstudio.com/items?itemName=savonet.vscode-liquidsoap)                                                 |
-| Neovim      | [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter), [formatter.nvim](https://github.com/mhartington/formatter.nvim)
-| Tree Sitter | [tree-sitter-liquidsoap](https://github.com/savonet/tree-sitter-liquidsoap)                                                                        |
-| CodeMirror  | [codemirror-lang-liquidsoap](https://github.com/savonet/codemirror-lang-liquidsoap)                                                                |
-| Playground  | [https://www.liquidsoap.info/try/](https://www.liquidsoap.info/try/)                                                                               |
+|             |                                                                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Formatting  | [liquidsoap-prettier](https://github.com/savonet/liquidsoap-prettier)                                                                  |
+| VSCode      | [vscode-liquidsoap](https://marketplace.visualstudio.com/items?itemName=savonet.vscode-liquidsoap)                                     |
+| Neovim      | [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter), [formatter.nvim](https://github.com/mhartington/formatter.nvim) |
+| Tree Sitter | [tree-sitter-liquidsoap](https://github.com/savonet/tree-sitter-liquidsoap)                                                            |
+| CodeMirror  | [codemirror-lang-liquidsoap](https://github.com/savonet/codemirror-lang-liquidsoap)                                                    |
+| Playground  | [https://www.liquidsoap.info/try/](https://www.liquidsoap.info/try/)                                                                   |
 
 ## Documentation
 
