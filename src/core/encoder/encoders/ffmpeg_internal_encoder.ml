@@ -230,9 +230,19 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
 
   let opts = Hashtbl.copy options in
 
+  let intra_only = ref false in
+
+  let on_keyframe =
+    Option.map
+      (fun fn () ->
+        if not !intra_only then Av.flush output;
+        fn ())
+      on_keyframe
+  in
+
   let stream =
     try
-      Av.new_audio_stream ~sample_rate:target_samplerate
+      Av.new_audio_stream ?on_keyframe ~sample_rate:target_samplerate
         ~time_base:target_liq_audio_sample_time_base
         ~channel_layout:target_channel_layout
         ~sample_format:target_sample_format ~opts ~codec output
@@ -261,20 +271,11 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       (Printf.sprintf "Unrecognized options: %s"
          (Ffmpeg_format.string_of_options options));
 
-  let intra_only =
-    let params = Av.get_codec_params stream in
-    match Avcodec.descriptor params with
-      | None -> true
-      | Some { Avcodec.properties } -> List.mem `Intra_only properties
-  in
-
-  let on_keyframe =
-    Option.map
-      (fun on_keyframe () ->
-        if not intra_only then Av.flush output;
-        on_keyframe ())
-      on_keyframe
-  in
+  let params = Av.get_codec_params stream in
+  (intra_only :=
+     match Avcodec.descriptor params with
+       | None -> true
+       | Some { Avcodec.properties } -> List.mem `Intra_only properties);
 
   let codec_attr () = Av.codec_attr stream in
 
@@ -291,8 +292,7 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     try
       write_audio_frame ~time_base:(Av.get_time_base stream)
         ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
-        ~sample_format:target_sample_format ~frame_size
-        (Av.write_frame ?on_keyframe stream)
+        ~sample_format:target_sample_format ~frame_size (Av.write_frame stream)
     with e ->
       log#severe "Error writing audio frame: %s." (Printexc.to_string e);
       raise e
@@ -351,8 +351,18 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       codec
   in
 
+  let intra_only = ref false in
+
+  let on_keyframe =
+    Option.map
+      (fun fn () ->
+        if not !intra_only then Av.flush output;
+        fn ())
+      on_keyframe
+  in
+
   let stream =
-    Av.new_video_stream ~time_base:target_video_frame_time_base
+    Av.new_video_stream ?on_keyframe ~time_base:target_video_frame_time_base
       ~pixel_format:stream_pixel_format ?hardware_context
       ~frame_rate:{ Avutil.num = target_fps; den = 1 }
       ~width:target_width ~height:target_height ~opts ~codec output
@@ -368,20 +378,11 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       (Printf.sprintf "Unrecognized options: %s"
          (Ffmpeg_format.string_of_options options));
 
-  let intra_only =
-    let params = Av.get_codec_params stream in
-    match Avcodec.descriptor params with
-      | None -> true
-      | Some { Avcodec.properties } -> List.mem `Intra_only properties
-  in
-
-  let on_keyframe =
-    Option.map
-      (fun on_keyframe () ->
-        if not intra_only then Av.flush output;
-        on_keyframe ())
-      on_keyframe
-  in
+  let params = Av.get_codec_params stream in
+  (intra_only :=
+     match Avcodec.descriptor params with
+       | None -> true
+       | Some { Avcodec.properties } -> List.mem `Intra_only properties);
 
   let codec_attr () = Av.codec_attr stream in
 
@@ -427,7 +428,7 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     in
     Avutil.Frame.set_pts frame frame_pts;
     start_pts := Int64.succ !start_pts;
-    Av.write_frame ?on_keyframe stream frame
+    Av.write_frame stream frame
   in
 
   let fps_converter ~stream_idx ~time_base frame =
