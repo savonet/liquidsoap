@@ -1,5 +1,10 @@
 # 2.3.3 (unreleased)
 
+New:
+
+- `input.srt`: add `ipv6only` to allow to bind only to ipv6 addresses.
+  Set it to `true` when `bind_address` is ipv6.
+
 Fixed:
 
 - Do not send empty metadata to shoutcast servers (#4408)
