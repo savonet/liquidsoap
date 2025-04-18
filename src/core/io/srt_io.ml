@@ -774,13 +774,12 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
       let rec accept_connection s =
         try
           let client, origin = Srt.accept s in
+          (try self#log#info "New connection from %s" (string_of_address origin)
+           with exn ->
+             self#log#important "Error while fetching connection source: %s"
+               (Printexc.to_string exn));
           try
             Poll.add_socket ~mode:`Read s accept_connection;
-            (try
-               self#log#info "New connection from %s" (string_of_address origin)
-             with exn ->
-               self#log#important "Error while fetching connection source: %s"
-                 (Printexc.to_string exn));
             Srt.(setsockflag client sndsyn true);
             Srt.(setsockflag client rcvsyn true);
             Utils.optional_apply
