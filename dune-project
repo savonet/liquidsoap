@@ -1,4 +1,4 @@
-(lang dune 3.6)
+(lang dune 3.18)
 (using menhir 2.1)
 (using dune_site 0.1)
 (name liquidsoap)
@@ -8,6 +8,7 @@
 (maintainers "The Savonet Team <savonet-users@lists.sourceforge.net>")
 (homepage "https://github.com/savonet/liquidsoap")
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
+(maintenance_intent "(latest)")
 
 (version 2.3.3)
 (generate_opam_files true)

@@ -16,7 +16,7 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "3.6"}
+  "dune" {>= "3.18"}
   "ocaml" {>= "4.14"}
   "dtools" {>= "0.4.6"}
   "duppy" {>= "0.9.4"}
@@ -136,6 +136,7 @@ build: [
   ]
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
+x-maintenance-intent: ["(latest)"]
 post-messages: [
   """\
 We're sorry that your liquidsoap install failed. Check out our installation
@@ -155,6 +156,5 @@ be able to use SSL encryption in its input or output operators. You might want
 to install one of ssl or tls-liquidsoap package."""
     {success & !ssl-enabled & !tls-enabled}
 ]
-x-maintenance-intent: ["(latest)"]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"

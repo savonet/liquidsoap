@@ -9,7 +9,7 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "3.6"}
+  "dune" {>= "3.18"}
   "prometheus-app"
   "cohttp-lwt-unix"
   "odoc" {with-doc}
@@ -31,3 +31,4 @@ build: [
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"
+x-maintenance-intent: ["(latest)"]
