@@ -12,6 +12,7 @@
 
 (version 2.3.3)
 (generate_opam_files true)
+(opam_file_location inside_opam_directory)
 (executables_implicit_empty_intf true)
 
 (package
