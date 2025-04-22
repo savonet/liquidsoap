@@ -25,7 +25,7 @@ eval "$(opam config env)"
 OCAMLPATH="$(cat ../.ocamlpath)"
 export OCAMLPATH
 
-LIQ_VERSION=$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)
+LIQ_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
 LIQ_TAG=$(echo "${DOCKER_TAG}" | sed -e 's#_#-#g')
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
