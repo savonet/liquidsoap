@@ -462,7 +462,7 @@ class virtual ['a] file_output_base p =
         | None -> (
             let filename = self#filename in
             try
-              Utils.mkdir ~perm:dir_perm (Filename.dirname filename);
+              Utils.ensure_dir ~perm:dir_perm filename;
               Atomic.set current_filename (Some filename);
               (filename, mode, perm)
             with Sys_error _ as exn ->

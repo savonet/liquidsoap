@@ -437,15 +437,15 @@ class hls_output p =
             Filename.concat hls_directory filename
           else filename
         in
-        let dir = Filename.dirname filename in
-        (try Utils.mkdir ~perm:dir_perm dir
+        (try Utils.ensure_dir ~perm:dir_perm filename
          with exn ->
            raise
              (Error.Invalid_value
                 ( List.assoc "persist_at" p,
                   Printf.sprintf
-                    "Error while creating directory %s for persisting state: %s"
-                    (Lang_string.quote_string dir)
+                    "Error while creating directory for persisting state at \
+                     %s: %s"
+                    (Lang_string.quote_string filename)
                     (Printexc.to_string exn) )));
         filename)
       (Lang.to_option (List.assoc "persist_at" p))
@@ -699,6 +699,7 @@ class hls_output p =
             ~finally:(fun () -> try Sys.remove tmp_file with _ -> ())
             (fun () ->
               let fname = Filename.concat hls_directory (filename ()) in
+              Utils.ensure_dir ~perm:dir_perm fname;
               saved_filename <- Some fname;
               let state =
                 if Sys.file_exists fname then `Updated else `Created

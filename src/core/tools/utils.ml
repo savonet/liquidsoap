@@ -370,6 +370,10 @@ let rec mkdir ~perm dir =
     if up = "." then () else mkdir ~perm up;
     Unix.mkdir dir perm)
 
+let ensure_dir ~perm filename =
+  let dir = Filename.dirname filename in
+  mkdir ~perm dir
+
 let get_tempdir () =
   if Sys.win32 then Option.value (Sys.getenv_opt "TEMP") ~default:"C:\\temp"
   else Option.value (Sys.getenv_opt "TMPDIR") ~default:"/tmp"
