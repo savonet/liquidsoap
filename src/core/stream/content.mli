@@ -62,6 +62,8 @@ module type ContentSpecs = sig
 
   val params : data -> params
   val merge : params -> params -> params
+
+  (* [compatible src dst] *)
   val compatible : params -> params -> bool
   val string_of_params : params -> string
 
@@ -125,6 +127,8 @@ val is_empty : data -> bool
 val format : data -> format
 val duplicate : format -> format
 val merge : format -> format -> unit
+
+(* [compatible src dst] *)
 val compatible : format -> format -> bool
 val string_of_format : format -> string
 

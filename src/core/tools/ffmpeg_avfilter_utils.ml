@@ -148,3 +148,123 @@ module Fps = struct
           input `Flush;
           try flush cb output with Avutil.Error `Eof -> ())
 end
+
+module AFormat = struct
+  type filter = {
+    input : [ `Audio ] Avfilter.input;
+    output : [ `Audio ] Avfilter.output;
+    time_base : Avutil.rational;
+  }
+
+  type t = [ `Filter of filter | `Pass_through of Avutil.rational ]
+
+  type config = {
+    sample_format : Avutil.Sample_format.t;
+    channel_layout : Avutil.Channel_layout.t;
+    sample_rate : int;
+  }
+
+  let time_base = function
+    | `Filter { time_base } -> time_base
+    | `Pass_through time_base -> time_base
+
+  let init ~src ~dst ~src_time_base () =
+    let config = Avfilter.init () in
+    let _abuffer =
+      let args =
+        [
+          `Pair
+            ("sample_fmt", `Int (Avutil.Sample_format.get_id src.sample_format));
+          `Pair
+            ( "channel_layout",
+              `String (Avutil.Channel_layout.get_description src.channel_layout)
+            );
+          `Pair ("sample_rate", `Int src.sample_rate);
+          `Pair ("time_base", `Rational src_time_base);
+        ]
+      in
+      Avfilter.attach ~name:"abuffer" ~args Avfilter.abuffer config
+    in
+    let aformat =
+      match
+        List.find_opt
+          (fun { Avfilter.name } -> name = "aformat")
+          Avfilter.filters
+      with
+        | Some aformat -> aformat
+        | None -> failwith "Could not find aformat ffmpeg filter!"
+    in
+    let aformat =
+      let args =
+        [
+          `Pair
+            ("sample_fmts", `Int (Avutil.Sample_format.get_id dst.sample_format));
+          `Pair
+            ( "channel_layouts",
+              `String (Avutil.Channel_layout.get_description dst.channel_layout)
+            );
+          `Pair ("sample_rates", `Int dst.sample_rate);
+        ]
+      in
+      Avfilter.attach ~name:"aformat" ~args aformat config
+    in
+    let _abuffersink =
+      Avfilter.attach ~name:"abuffersink" Avfilter.abuffersink config
+    in
+    Avfilter.link
+      (List.hd Avfilter.(_abuffer.io.outputs.audio))
+      (List.hd Avfilter.(aformat.io.inputs.audio));
+    Avfilter.link
+      (List.hd Avfilter.(aformat.io.outputs.audio))
+      (List.hd Avfilter.(_abuffersink.io.inputs.audio));
+    let graph = Avfilter.launch config in
+    let _, input = List.hd Avfilter.(graph.inputs.audio) in
+    let _, output = List.hd Avfilter.(graph.outputs.audio) in
+    let time_base = Avfilter.(time_base output.context) in
+    { input; output; time_base }
+
+  let init ?dst_sample_format ?dst_channel_layout ?dst_sample_rate
+      ~src_sample_format ~src_channel_layout ~src_sample_rate ~src_time_base ()
+      =
+    match (dst_sample_format, dst_channel_layout, dst_sample_rate) with
+      | None, None, None -> `Pass_through src_time_base
+      | _ ->
+          let src =
+            {
+              sample_format = src_sample_format;
+              channel_layout = src_channel_layout;
+              sample_rate = src_sample_rate;
+            }
+          in
+          let dst =
+            {
+              sample_format =
+                Option.value ~default:src_sample_format dst_sample_format;
+              channel_layout =
+                Option.value ~default:src_channel_layout dst_channel_layout;
+              sample_rate =
+                Option.value ~default:src_sample_rate dst_sample_rate;
+            }
+          in
+          `Filter (init ~src ~dst ~src_time_base ())
+
+  let rec flush cb output =
+    try
+      cb (output.Avfilter.handler ());
+      flush cb output
+    with Avutil.Error `Eagain -> ()
+
+  let convert converter frame cb =
+    match converter with
+      | `Pass_through _ -> cb frame
+      | `Filter { input; output } ->
+          input (`Frame frame);
+          flush cb output
+
+  let eof converter cb =
+    match converter with
+      | `Pass_through _ -> ()
+      | `Filter { input; output } -> (
+          input `Flush;
+          try flush cb output with Avutil.Error `Eof -> ())
+end

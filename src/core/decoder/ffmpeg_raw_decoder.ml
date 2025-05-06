@@ -51,17 +51,36 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
               put_data buffer.Decoder.generator data
           | None -> ())
 
-let mk_audio_decoder ~stream_idx ~format ~stream ~field params =
+let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;
-  ignore
-    (Content.merge format
-       Ffmpeg_raw_content.(Audio.lift_params (AudioSpecs.mk_params params)));
-  let stream_time_base = Av.get_time_base stream in
+  let dst_format = Ffmpeg_raw_content.Audio.get_params format in
+  let converter =
+    let src_channel_layout = Avcodec.Audio.get_channel_layout src_params in
+    let src_sample_format = Avcodec.Audio.get_sample_format src_params in
+    let src_sample_rate = Avcodec.Audio.get_sample_rate src_params in
+    Ffmpeg_avfilter_utils.AFormat.init ~src_channel_layout ~src_sample_format
+      ~src_sample_rate ~src_time_base:(Av.get_time_base stream)
+      ?dst_channel_layout:
+        dst_format.Ffmpeg_raw_content.AudioSpecs.channel_layout
+      ?dst_sample_format:dst_format.Ffmpeg_raw_content.AudioSpecs.sample_format
+      ?dst_sample_rate:dst_format.Ffmpeg_raw_content.AudioSpecs.sample_rate ()
+  in
+  let stream_time_base = Ffmpeg_avfilter_utils.AFormat.time_base converter in
   let lift_data data = Ffmpeg_raw_content.Audio.lift_data data in
-  let mk_params = Ffmpeg_raw_content.AudioSpecs.mk_params in
-  mk_decoder ~stream_idx ~lift_data ~mk_params ~stream_time_base
-    ~put_data:(fun g c -> Generator.put g field c)
-    params
+  let mk_params f = f in
+  let decoder =
+    mk_decoder ~stream_idx ~lift_data ~mk_params ~stream_time_base
+      ~put_data:(fun g c -> Generator.put g field c)
+      dst_format
+  in
+  fun ~buffer -> function
+    | `Flush ->
+        Ffmpeg_avfilter_utils.AFormat.eof converter (fun frame ->
+            decoder ~buffer (`Frame frame));
+        decoder ~buffer `Flush
+    | `Frame frame ->
+        Ffmpeg_avfilter_utils.AFormat.convert converter frame (fun frame ->
+            decoder ~buffer (`Frame frame))
 
 let mk_video_decoder ~stream_idx ~format ~stream ~field params =
   Ffmpeg_decoder_common.set_video_stream_decoder stream;

@@ -42,3 +42,25 @@ module Fps : sig
 
   val eof : t -> ([ `Video ] Avutil.frame -> unit) -> unit
 end
+
+module AFormat : sig
+  type t
+
+  val time_base : t -> Avutil.rational
+
+  val init :
+    ?dst_sample_format:Avutil.Sample_format.t ->
+    ?dst_channel_layout:Avutil.Channel_layout.t ->
+    ?dst_sample_rate:int ->
+    src_sample_format:Avutil.Sample_format.t ->
+    src_channel_layout:Avutil.Channel_layout.t ->
+    src_sample_rate:int ->
+    src_time_base:Avutil.rational ->
+    unit ->
+    t
+
+  val convert :
+    t -> [ `Audio ] Avutil.frame -> ([ `Audio ] Avutil.frame -> unit) -> unit
+
+  val eof : t -> ([ `Audio ] Avutil.frame -> unit) -> unit
+end

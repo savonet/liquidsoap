@@ -727,11 +727,12 @@ let get_type ~ctype ~format ~url container =
                    (Ffmpeg_copy_content.lift_params (Some (`Audio p))));
               Frame.Fields.add field format content_type
           | p, Some format when Ffmpeg_raw_content.Audio.is_format format ->
-              ignore
-                (Content.merge format
-                   Ffmpeg_raw_content.(
-                     Audio.lift_params (AudioSpecs.mk_params p)));
-              Frame.Fields.add field format content_type
+              let dst_format =
+                Ffmpeg_raw_content.(Audio.lift_params (AudioSpecs.mk_params p))
+              in
+              (try ignore (Content.merge format dst_format)
+               with _ when Content.compatible format dst_format -> ());
+              Frame.Fields.add field dst_format content_type
           | p, Some format ->
               Frame.Fields.add field
                 (Frame_base.format_of_channels ~pcm_kind:(Content.kind format)
