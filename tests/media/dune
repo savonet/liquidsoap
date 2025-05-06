@@ -141,6 +141,27 @@
  (alias mediatest)
  (package liquidsoap)
  (deps
+  @ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4
+  @wav[mono].wav
+  @wav[stereo].wav
+  ffmpeg_raw_implicit_conversion.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg raw implicit conversion"
+   liquidsoap
+   %{test_liq}
+   ffmpeg_raw_implicit_conversion.liq)))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps
   all_media_files
   ffmpeg_complex_filter.liq
   ../../src/bin/liquidsoap.exe
