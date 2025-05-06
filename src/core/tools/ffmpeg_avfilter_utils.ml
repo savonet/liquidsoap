@@ -226,27 +226,36 @@ module AFormat = struct
   let init ?dst_sample_format ?dst_channel_layout ?dst_sample_rate
       ~src_sample_format ~src_channel_layout ~src_sample_rate ~src_time_base ()
       =
-    match (dst_sample_format, dst_channel_layout, dst_sample_rate) with
-      | None, None, None -> `Pass_through src_time_base
-      | _ ->
-          let src =
-            {
-              sample_format = src_sample_format;
-              channel_layout = src_channel_layout;
-              sample_rate = src_sample_rate;
-            }
-          in
-          let dst =
-            {
-              sample_format =
-                Option.value ~default:src_sample_format dst_sample_format;
-              channel_layout =
-                Option.value ~default:src_channel_layout dst_channel_layout;
-              sample_rate =
-                Option.value ~default:src_sample_rate dst_sample_rate;
-            }
-          in
-          `Filter (init ~src ~dst ~src_time_base ())
+    let dst_sample_format =
+      Option.value ~default:src_sample_format dst_sample_format
+    in
+    let dst_channel_layout =
+      Option.value ~default:src_channel_layout dst_channel_layout
+    in
+    let dst_sample_rate =
+      Option.value ~default:src_sample_rate dst_sample_rate
+    in
+    if
+      src_sample_format == dst_sample_format
+      && Avutil.Channel_layout.compare src_channel_layout dst_channel_layout
+      && src_sample_rate == dst_sample_rate
+    then `Pass_through src_time_base
+    else (
+      let src =
+        {
+          sample_format = src_sample_format;
+          channel_layout = src_channel_layout;
+          sample_rate = src_sample_rate;
+        }
+      in
+      let dst =
+        {
+          sample_format = dst_sample_format;
+          channel_layout = dst_channel_layout;
+          sample_rate = dst_sample_rate;
+        }
+      in
+      `Filter (init ~src ~dst ~src_time_base ()))
 
   let rec flush cb output =
     try
