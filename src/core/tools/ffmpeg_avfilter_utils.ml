@@ -164,6 +164,17 @@ module AFormat = struct
     sample_rate : int;
   }
 
+  let channel_layout_arg channel_layout =
+    match Avutil.Channel_layout.get_native_id channel_layout with
+      | Some id -> `Int64 id
+      | None ->
+          let channel_layout =
+            Avutil.Channel_layout.get_default
+              (Avutil.Channel_layout.get_nb_channels channel_layout)
+          in
+          `Int64
+            (Option.get (Avutil.Channel_layout.get_native_id channel_layout))
+
   let time_base = function
     | `Filter { time_base } -> time_base
     | `Pass_through time_base -> time_base
@@ -178,10 +189,7 @@ module AFormat = struct
               `String
                 (Option.get (Avutil.Sample_format.get_name src.sample_format))
             );
-          `Pair
-            ( "channel_layout",
-              `String (Avutil.Channel_layout.get_description src.channel_layout)
-            );
+          `Pair ("channel_layout", channel_layout_arg src.channel_layout);
           `Pair ("sample_rate", `Int src.sample_rate);
           `Pair ("time_base", `Rational src_time_base);
         ]
@@ -205,10 +213,7 @@ module AFormat = struct
               `String
                 (Option.get (Avutil.Sample_format.get_name dst.sample_format))
             );
-          `Pair
-            ( "channel_layouts",
-              `String (Avutil.Channel_layout.get_description dst.channel_layout)
-            );
+          `Pair ("channel_layouts", channel_layout_arg dst.channel_layout);
           `Pair ("sample_rates", `Int dst.sample_rate);
         ]
       in
