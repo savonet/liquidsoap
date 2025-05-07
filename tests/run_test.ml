@@ -55,15 +55,17 @@ let run_process ~action cmd args =
   in
 
   let pid_ref = ref None in
+  let running = ref false in
 
   let on_timeout () =
-    let min, sec = runtime () in
-    Printf.eprintf "%s%s test %s: %s (time: %02dm:%02ds)\n" error_prefix action
-      colorized_test colorized_timeout min sec;
-    (match !pid_ref with Some p -> Unix.kill p Sys.sigkill | None -> ());
-    print_log ();
-    cleanup ();
-    exit 1
+    if !running then (
+      let min, sec = runtime () in
+      Printf.eprintf "%s%s test %s: %s (time: %02dm:%02ds)\n" error_prefix
+        action colorized_test colorized_timeout min sec;
+      (match !pid_ref with Some p -> Unix.kill p Sys.sigkill | None -> ());
+      print_log ();
+      cleanup ();
+      exit 1)
   in
 
   ignore
@@ -74,20 +76,24 @@ let run_process ~action cmd args =
        ());
 
   let pid = Unix.create_process cmd args stdin stdout stdout in
+  running := true;
   pid_ref := Some pid;
 
   match Unix.waitpid [] pid with
     | _, Unix.WEXITED 0 ->
+        running := false;
         let min, sec = runtime () in
         Printf.eprintf "%s test %s: %s (time: %02dm:%02ds)\n" action
           colorized_test colorized_ok min sec;
         if Sys.getenv_opt "LIQ_VERBOSE_TEST" <> None then print_log ();
         cleanup ()
     | _, Unix.WEXITED 123 ->
+        running := false;
         Printf.eprintf "%s%s test %s: %s\n" warning_prefix action colorized_test
           colorized_skipped;
         exit 0
     | _ ->
+        running := false;
         let min, sec = runtime () in
         Printf.eprintf "%s%s test %s: %s (time: %02dm:%02ds)\n" action
           error_prefix colorized_test colorized_failed min sec;
