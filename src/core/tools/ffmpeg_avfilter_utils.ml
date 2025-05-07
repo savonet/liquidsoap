@@ -174,7 +174,10 @@ module AFormat = struct
       let args =
         [
           `Pair
-            ("sample_fmt", `Int (Avutil.Sample_format.get_id src.sample_format));
+            ( "sample_fmt",
+              `String
+                (Option.get (Avutil.Sample_format.get_name src.sample_format))
+            );
           `Pair
             ( "channel_layout",
               `String (Avutil.Channel_layout.get_description src.channel_layout)
@@ -198,7 +201,10 @@ module AFormat = struct
       let args =
         [
           `Pair
-            ("sample_fmts", `Int (Avutil.Sample_format.get_id dst.sample_format));
+            ( "sample_fmts",
+              `String
+                (Option.get (Avutil.Sample_format.get_name dst.sample_format))
+            );
           `Pair
             ( "channel_layouts",
               `String (Avutil.Channel_layout.get_description dst.channel_layout)
