@@ -5,7 +5,7 @@ out = {"ffmpeg_raw_implicit_conversion-#{random.int()}.ts"}
 
 files =
   [
-    "@ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4",
+    "@ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4",
     "@wav[mono].wav",
     "@wav[stereo].wav"
   ]

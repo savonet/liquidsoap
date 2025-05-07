@@ -165,15 +165,14 @@ module AFormat = struct
   }
 
   let channel_layout_arg channel_layout =
-    match Avutil.Channel_layout.get_native_id channel_layout with
+    match Avutil.Channel_layout.get_mask channel_layout with
       | Some id -> `Int64 id
       | None ->
           let channel_layout =
             Avutil.Channel_layout.get_default
               (Avutil.Channel_layout.get_nb_channels channel_layout)
           in
-          `Int64
-            (Option.get (Avutil.Channel_layout.get_native_id channel_layout))
+          `Int64 (Option.get (Avutil.Channel_layout.get_mask channel_layout))
 
   let time_base = function
     | `Filter { time_base } -> time_base

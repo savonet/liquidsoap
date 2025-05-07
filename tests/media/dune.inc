@@ -162,13 +162,13 @@
 (rule
   (alias mediatest)
   (package liquidsoap)
-  (target @ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]]_encoder.liq)
+  (target @ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']]_encoder.liq)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
     (:encoder_in ./encoder_audio_only.liq.in))
   (action
     (with-stdout-to %{target}
-      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",samplerate=48000))" audio_only "@ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4"))))
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",samplerate=\"48k\"))" audio_only "@ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4"))))
 (rule
   (alias mediatest)
   (package liquidsoap)
@@ -460,16 +460,16 @@
 (rule
  (alias mediatest)
  (package liquidsoap)
- (target @ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4)
+ (target @ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4)
  (deps
-  (:encoder @ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]]_encoder.liq)
+  (:encoder @ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']]_encoder.liq)
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",samplerate=48000))")))
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",samplerate=\"48k\"))")))
 (rule
  (alias mediatest)
  (package liquidsoap)
@@ -595,7 +595,7 @@
 @ogg[@flac[stereo]].ogg
 @ogg[@opus[mono]].ogg
 @ogg[@opus[stereo]].ogg
-@ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4
+@ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac']].mp4
 @ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4
 @ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4
@@ -1241,7 +1241,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} "Mono decoding test for @ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4" liquidsoap %{test_liq} mono.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4")))
+  (run %{run_test} "Mono decoding test for @ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4" liquidsoap %{test_liq} mono.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4")))
 (rule
  (alias mediatest)
  (package liquidsoap)
@@ -1254,7 +1254,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} "Stereo decoding test for @ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4" liquidsoap %{test_liq} stereo.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4")))
+  (run %{run_test} "Stereo decoding test for @ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4" liquidsoap %{test_liq} stereo.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4")))
 (rule
  (alias mediatest)
  (package liquidsoap)
@@ -1267,7 +1267,7 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} "FFmpeg audio decoder test for @ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4" liquidsoap %{test_liq} ffmpeg_audio_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4")))
+  (run %{run_test} "FFmpeg audio decoder test for @ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4" liquidsoap %{test_liq} ffmpeg_audio_decoder.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4")))
 (rule
  (alias mediatest)
  (package liquidsoap)

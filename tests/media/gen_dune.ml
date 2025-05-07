@@ -52,7 +52,7 @@ let audio_formats =
     "%ogg(%flac(stereo)).ogg";
     "%ogg(%opus(mono)).ogg";
     "%ogg(%opus(stereo)).ogg";
-    {|%ffmpeg(format="mp4",%audio(codec="aac",samplerate=48000)).mp4|};
+    {|%ffmpeg(format="mp4",%audio(codec="aac",samplerate="48k")).mp4|};
     {|%ffmpeg(format="mp4",%audio(codec="aac")).mp4|};
     {|%ffmpeg(format="mp4",%audio(pcm_s16,codec="aac")).mp4|};
     {|%ffmpeg(format="mp4",%audio(pcm_f32,codec="aac")).mp4|};
