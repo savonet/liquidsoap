@@ -141,9 +141,7 @@
  (alias mediatest)
  (package liquidsoap)
  (deps
-  @ffmpeg[format='mp4',@audio[codec='aac',samplerate=48000]].mp4
-  @wav[mono].wav
-  @wav[stereo].wav
+  all_media_files
   ffmpeg_raw_implicit_conversion.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
