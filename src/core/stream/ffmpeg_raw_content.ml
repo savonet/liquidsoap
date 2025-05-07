@@ -115,15 +115,32 @@ module AudioSpecs = struct
             }
       | _ -> None
 
-  let compatible p p' =
-    let c ?(compare = fun x x' -> x = x') = function
-      | None, _ | _, None -> true
-      | Some p, Some p' -> compare p p'
-    in
-    c ~compare:Avutil.Channel_layout.compare
-      (p.channel_layout, p'.channel_layout)
-    && c (p.sample_format, p'.sample_format)
-    && c (p.sample_rate, p'.sample_rate)
+  let compatible src dst =
+    match src with
+      | {
+       channel_layout = Some src_channel_layout;
+       sample_format = Some src_sample_format;
+       sample_rate = Some src_sample_rate;
+      } -> (
+          try
+            ignore
+              (Ffmpeg_avfilter_utils.AFormat.init ~src_channel_layout
+                 ~src_sample_format ~src_sample_rate
+                 ~src_time_base:(Ffmpeg_utils.liq_main_ticks_time_base ())
+                 ?dst_channel_layout:dst.channel_layout
+                 ?dst_sample_format:dst.sample_format
+                 ?dst_sample_rate:dst.sample_rate ());
+            true
+          with _ -> false)
+      | _ ->
+          let c ?(compare = fun x x' -> x = x') = function
+            | None, _ | _, None -> true
+            | Some p, Some p' -> compare p p'
+          in
+          c ~compare:Avutil.Channel_layout.compare
+            (src.channel_layout, dst.channel_layout)
+          && c (src.sample_format, dst.sample_format)
+          && c (src.sample_rate, dst.sample_rate)
 
   let merge p p' =
     {

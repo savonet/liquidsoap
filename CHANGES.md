@@ -5,6 +5,8 @@ New:
 - `input.srt`: add `ipv6only` to allow to bind only to ipv6 addresses.
   Set it to `true` when `bind_address` is ipv6.
 - Allow HLS segment names to contain sub-directories.
+- Implicitly convert ffmpeg raw audio data, making it much more practical
+  to write scripts using the raw ffmpeg format (#4478)
 
 Fixed:
 
