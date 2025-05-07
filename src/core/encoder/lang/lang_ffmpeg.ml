@@ -66,11 +66,18 @@ let channels args =
                  name (Term.to_string tm))
     with Not_found -> 2)
 
+let parse_int str =
+  try
+    let f = Avutil.expr_parse_and_eval str in
+    if not (Float.is_integer f) then raise Not_found;
+    int_of_float f
+  with _ -> int_of_string str
+
 let to_int t =
   match t with
     | Value.Int { value = i } -> i
-    | Value.String { value = s } -> int_of_string s
-    | Value.Float { value = f } -> int_of_float f
+    | Value.String { value = s } -> parse_int s
+    | Value.Float { value = f } when Float.is_integer f -> int_of_float f
     | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "integer expected"
 
 let to_string t =
@@ -83,7 +90,7 @@ let to_string t =
 let to_float t =
   match t with
     | Value.Int { value = i } -> float i
-    | Value.String { value = s } -> float_of_string s
+    | Value.String { value = s } -> Avutil.expr_parse_and_eval s
     | Value.Float { value = f } -> f
     | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "float expected"
 

@@ -562,7 +562,7 @@ let abuffer_args frame =
   let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
   let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
   let channel_layout_params =
-    match Avutil.Channel_layout.get_native_id channel_layout with
+    match Avutil.Channel_layout.get_mask channel_layout with
       | Some id -> ("channel_layout", `Int64 id)
       | None ->
           let channel_layout =
@@ -570,8 +570,7 @@ let abuffer_args frame =
               (Avutil.Channel_layout.get_nb_channels channel_layout)
           in
           ( "channel_layout",
-            `Int64
-              (Option.get (Avutil.Channel_layout.get_native_id channel_layout))
+            `Int64 (Option.get (Avutil.Channel_layout.get_mask channel_layout))
           )
   in
   let sample_format = Avutil.Audio.frame_get_sample_format frame in
