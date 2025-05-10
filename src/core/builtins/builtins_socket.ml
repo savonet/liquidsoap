@@ -405,8 +405,8 @@ module Socket_value = struct
           "Connect a socket to an address." );
       ]
 
-  let to_unix_value v =
-    let socket = Http.unix_socket v in
+  let to_unix_value ~pos v =
+    let socket = Http.unix_socket ~pos v in
     let server = socket#transport#server in
     Lang.meth (to_server_value socket)
       [
@@ -452,7 +452,8 @@ let _ =
       let domain = Socket_domain.of_value (List.assoc "domain" p) in
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
-      Socket_value.to_unix_value (Unix.socket ~cloexec:true domain typ protocol))
+      Socket_value.to_unix_value ~pos:(Lang.pos p)
+        (Unix.socket ~cloexec:true domain typ protocol))
 
 let _ =
   Lang.add_builtin ~base:socket "pair" ~category:`Internet
@@ -472,9 +473,10 @@ let _ =
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
       let s, s' = Unix.socketpair ~cloexec:true domain typ protocol in
+      let pos = Lang.pos p in
       Lang.product
-        (Socket_value.to_unix_value s)
-        (Socket_value.to_unix_value s'))
+        (Socket_value.to_unix_value ~pos s)
+        (Socket_value.to_unix_value ~pos s'))
 
 let socket_domain = Lang.add_module ~base:socket "domain"
 let socket_type = Lang.add_module ~base:socket "type"

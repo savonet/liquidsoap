@@ -8,10 +8,6 @@ New:
 - Implicitly convert ffmpeg raw audio data, making it much more practical
   to write scripts using the raw ffmpeg format (#4478)
 
-Fixed:
-
-- Do not send empty metadata to shoutcast servers (#4408)
-
 Changed:
 
 - Made `defer` more user-friendly by operating directly on generic `source(audio=pcm('a))`
@@ -21,6 +17,12 @@ Changed:
 - Changed default value of `metadata.map` `strip` argument to `true` and `insert_missing`
   to `false` Added `settings.metadata.map.strip` and `settings.metadata.map.insert_missing`
   configuration keys to revert to previous defaults. (#4447)
+
+Fixed:
+
+- Do not send empty metadata to shoutcast servers (#4408)
+- Automatically close file descriptor opened via scripted values with a log message
+  warning of file descriptor leaks (#4481)
 
 ---
 

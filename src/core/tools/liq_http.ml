@@ -33,6 +33,7 @@ and transport =
       socket
   ; server : server >
 
+let socket_log = Log.make ["socket"]
 let connect = Cry.unix_connect
 
 let rec accept ?timeout sock =
@@ -57,17 +58,40 @@ let rec accept ?timeout sock =
     | Unix.Unix_error (Unix.EWOULDBLOCK, _, _) when has_timeout ->
         check_timeout ()
 
-let rec unix_socket fd =
+let rec unix_socket ~pos fd =
   let s = Cry.unix_socket fd in
-  object
-    method typ = s#typ
-    method file_descr = fd
-    method transport = unix_transport ()
-    method wait_for = s#wait_for
-    method write = s#write
-    method read = s#read
-    method close = s#close
-  end
+  let closed = ref false in
+  let finalise () =
+    if not !closed then (
+      let pos =
+        match pos with
+          | [] -> "unknown"
+          | _ ->
+              String.concat ", " (List.map (fun pos -> Pos.to_string pos) pos)
+      in
+      socket_log#important
+        "File descriptor closed during garbage collection, you may have a file \
+         descriptor leak in your application! File descriptor opened at \
+         position: %s"
+        pos;
+      try s#close with _ -> ())
+  in
+  let s =
+    object
+      method typ = s#typ
+      method file_descr = fd
+      method transport = unix_transport ()
+      method wait_for = s#wait_for
+      method write = s#write
+      method read = s#read
+
+      method close =
+        s#close;
+        closed := true
+    end
+  in
+  Gc.finalise_last finalise s;
+  s
 
 and unix_transport () =
   object (self)
@@ -77,7 +101,7 @@ and unix_transport () =
 
     method connect ?bind_address ?timeout ?prefer host port =
       let fd = Cry.unix_connect ?bind_address ?timeout ?prefer host port in
-      unix_socket fd
+      unix_socket ~pos:[] fd
 
     method server =
       object
@@ -85,7 +109,7 @@ and unix_transport () =
 
         method accept ?timeout fd =
           let fd, addr = accept ?timeout fd in
-          (unix_socket fd, addr)
+          (unix_socket ~pos:[] fd, addr)
       end
   end
 
