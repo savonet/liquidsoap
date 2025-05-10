@@ -69,9 +69,9 @@ let rec unix_socket ~pos fd =
           | _ ->
               String.concat ", " (List.map (fun pos -> Pos.to_string pos) pos)
       in
-      socket_log#important
-        "File descriptor closed during garbage collection, you may have a file \
-         descriptor leak in your application! File descriptor opened at \
+      socket_log#critical
+        "File descriptor closed during garbage collection, you must have a \
+         file descriptor leak in your application! File descriptor opened at \
          position: %s"
         pos;
       try s#close with _ -> ())
