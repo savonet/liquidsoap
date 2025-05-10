@@ -430,7 +430,9 @@ let _ =
       let path = Lang_string.home_unrelate (Lang.to_string (List.assoc "" p)) in
       try
         Builtins_socket.Socket_value.(
-          to_value (Http.unix_socket (Unix.openfile path flags file_perms)))
+          to_value
+            (Http.unix_socket ~pos:(Lang.pos p)
+               (Unix.openfile path flags file_perms)))
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)
