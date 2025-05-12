@@ -5,8 +5,6 @@ transport = http.transport.tls(certificate="./ssl.cert", key="./ssl.key")
 
 port = 1441
 
-test.skip()
-
 def on_wake_up() =
   s = sine()
 
