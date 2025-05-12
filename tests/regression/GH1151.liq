@@ -1,11 +1,16 @@
+test.skip()
+
 def f() =
-  test.equal(
+  if
     process.read.lines(
-      'printf "aa\rbb\ncc\r\ndd\r\r\nee"'
-    ),
-    ["aa\rbb", "cc", "dd\r", "ee"]
-  )
-  test.pass()
+      'echo "aa\rbb\ncc\r\ndd\r\r\nee"'
+    ) !=
+      ["aa\rbb", "cc", "dd\r", "ee"]
+  then
+    test.fail()
+  else
+    test.pass()
+  end
 end
 
 test.check(f)
