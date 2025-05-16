@@ -2,15 +2,6 @@
 
 set -e
 
-GITHUB_SHA="$1"
-BRANCH="$2"
-DOCKER_TAG="$3"
-PLATFORM="$4"
-IS_ROLLING_RELEASE="$5"
-IS_RELEASE="$6"
-MINIMAL_EXCLUDE_DEPS="$7"
-DEB_RELEASE=1
-
 ARCH=$(dpkg --print-architecture)
 
 COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)

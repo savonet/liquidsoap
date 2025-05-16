@@ -41,6 +41,7 @@ jobs:
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
+      ocaml_version: ${{ steps.build_details.outputs.ocaml_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -361,10 +362,11 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.build_details.outputs.build_os) }}
+        ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     container:
-      image: savonet/liquidsoap-ci:${{ matrix.os }}
+      image: savonet/liquidsoap-ci:${{ matrix.os }}-${{ matrix.ocaml_version }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
@@ -395,12 +397,21 @@ jobs:
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          BRANCH: ${{ needs.build_details.outputs.branch }}
+          DOCKER_TAG: ${{ matrix.os }}-ocaml${{ matrix.ocaml_version }}
+          PLATFORM: ${{ matrix.platform }}
+          IS_ROLLING_RELEASE: ${{ needs.build_details.outputs.is_rolling_release }}
+          IS_RELEASE: ${{ needs.build_details.outputs.is_release }}
+          MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          DEB_RELEASE: 1
         run: |
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
+          sudo -u opam -E ./.github/scripts/build-deb.sh
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -411,6 +422,15 @@ jobs:
       - name: Build alpine package
         if: matrix.os == 'alpine'
         id: build_apk
+        env:
+          BRANCH: ${{ needs.build_details.outputs.branch }}
+          DOCKER_TAG: ${{ matrix.os }}-ocaml${{ matrix.ocaml_version }}
+          ARCH: ${{ matrix.platform }}
+          ALPINE_ARCH: ${{ matrix.alpine-arch }}
+          IS_ROLLING_RELEASE: ${{ needs.build_details.outputs.is_rolling_release }}
+          IS_RELEASE: ${{ needs.build_details.outputs.is_release }}
+          MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          APK_RELEASE: 0
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           apk add alpine-sdk
@@ -418,7 +438,7 @@ jobs:
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam "${GITHUB_OUTPUT}"
-          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
+          sudo -u opam -E ./.github/scripts/build-apk.sh
       - name: Upload alpine packages artifacts
         if: needs.build_details.outputs.is_fork != 'true' && matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
@@ -584,6 +604,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
@@ -596,11 +617,11 @@ jobs:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
       - name: Get debian debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
@@ -626,8 +647,8 @@ jobs:
           context: .
           file: .github/docker/debian.dockerfile
           tags: |
-            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}"
-            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}"
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
           provenance: false
           sbom: false
@@ -640,6 +661,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
@@ -652,7 +674,7 @@ jobs:
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
       - name: Get alpine package
         run: |
-          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
+          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
@@ -677,8 +699,8 @@ jobs:
           context: .
           file: .github/docker/alpine.dockerfile
           tags: |
-            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}"
-            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}"
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
           provenance: false
           sbom: false

@@ -2,15 +2,6 @@
 
 set -e
 
-BRANCH="$1"
-DOCKER_TAG="$2"
-ARCH="$3"
-ALPINE_ARCH="$4"
-IS_ROLLING_RELEASE="$5"
-IS_RELEASE="$6"
-MINIMAL_EXCLUDE_DEPS="$7"
-APK_RELEASE=0
-
 cd /tmp/liquidsoap-full/liquidsoap
 
 APK_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
