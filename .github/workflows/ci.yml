@@ -401,14 +401,15 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           BRANCH: ${{ needs.build_details.outputs.branch }}
           DOCKER_TAG: ${{ matrix.os }}-ocaml${{ matrix.ocaml_version }}
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           PLATFORM: ${{ matrix.platform }}
           IS_ROLLING_RELEASE: ${{ needs.build_details.outputs.is_rolling_release }}
           IS_RELEASE: ${{ needs.build_details.outputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
           DEB_RELEASE: 1
         run: |
-          mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
-          chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
+          mkdir -p "${LIQ_TMP_DIR}"
+          chown -R opam "${LIQ_TMP_DIR}"
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh
@@ -426,6 +427,7 @@ jobs:
           BRANCH: ${{ needs.build_details.outputs.branch }}
           DOCKER_TAG: ${{ matrix.os }}-ocaml${{ matrix.ocaml_version }}
           ARCH: ${{ matrix.platform }}
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           ALPINE_ARCH: ${{ matrix.alpine-arch }}
           IS_ROLLING_RELEASE: ${{ needs.build_details.outputs.is_rolling_release }}
           IS_RELEASE: ${{ needs.build_details.outputs.is_release }}
@@ -435,8 +437,8 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           apk add alpine-sdk
           adduser opam abuild
-          mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
-          chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
+          mkdir -p "${LIQ_TMP_DIR}"
+          chown -R opam "${LIQ_TMP_DIR}"
           chown -R opam "${GITHUB_OUTPUT}"
           sudo -u opam -E ./.github/scripts/build-apk.sh
       - name: Upload alpine packages artifacts

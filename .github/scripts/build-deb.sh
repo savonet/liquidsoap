@@ -47,9 +47,9 @@ echo "::endgroup::"
 if [ "${PLATFORM}" = "amd64" ]; then
   echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-  ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+  ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
-  mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+  mv /tmp/liquidsoap-full/*.deb "${LIQ_TMP_DIR}"
 fi
 
 echo "::endgroup::"
@@ -89,12 +89,12 @@ echo "::endgroup::"
 if [ "${PLATFORM}" = "amd64" ]; then
   echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-  ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+  ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
   echo "::endgroup::"
 fi
 
-mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+mv /tmp/liquidsoap-full/*.deb "${LIQ_TMP_DIR}"
 
 {
   echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
