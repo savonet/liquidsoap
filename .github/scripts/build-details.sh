@@ -67,6 +67,9 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
 echo "Ocaml version to build: 4.14.2, 5.3.0"
 OCAML_VERSION='["4.14.2", "5.3.0"]'
 
+echo "OCaml docker release version: 4.14.2"
+OCAML_DOCKER_RELEASE_VERSION="5.3.0"
+
 {
   echo "branch=${BRANCH}"
   echo "is_release=${IS_RELEASE}"
@@ -82,4 +85,5 @@ OCAML_VERSION='["4.14.2", "5.3.0"]'
   echo "save_traces=${SAVE_TRACES}"
   echo "is_snapshot=${IS_SNAPSHOT}"
   echo "ocaml_version=${OCAML_VERSION}"
+  echo "ocaml_docker_release_version=${OCAML_DOCKER_RELEASE_VERSION}"
 } >> "${GITHUB_OUTPUT}"
