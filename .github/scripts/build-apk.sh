@@ -2,15 +2,6 @@
 
 set -e
 
-BRANCH="$1"
-DOCKER_TAG="$2"
-ARCH="$3"
-ALPINE_ARCH="$4"
-IS_ROLLING_RELEASE="$5"
-IS_RELEASE="$6"
-MINIMAL_EXCLUDE_DEPS="$7"
-APK_RELEASE=0
-
 cd /tmp/liquidsoap-full/liquidsoap
 
 APK_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
@@ -20,12 +11,12 @@ export LIQUIDSOAP_BUILD_TARGET=posix
 export ABUILD_APK_INDEX_OPTS="--allow-untrusted"
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
-  APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_ARCH}"
+  APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_TAG}-${ALPINE_ARCH}"
 elif [ -n "${IS_RELEASE}" ]; then
-  APK_PACKAGE="liquidsoap-${ALPINE_ARCH}"
+  APK_PACKAGE="liquidsoap-${ALPINE_TAG}-${ALPINE_ARCH}"
 else
-  TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
-  APK_PACKAGE="liquidsoap-${TAG}-${ALPINE_ARCH}"
+  ALPINE_BRANCH=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
+  APK_PACKAGE="liquidsoap-${ALPINE_BRANCH}-${ALPINE_TAG}-${ALPINE_ARCH}"
 fi
 
 echo "::group:: build ${APK_PACKAGE}.."
@@ -42,7 +33,7 @@ cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post-inst
 abuild-keygen -a -n
 abuild
 
-mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
+mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "${LIQ_TMP_DIR}"
 
 echo "::endgroup::"
 
@@ -52,7 +43,7 @@ if [ "${ARCH}" = "amd64" ]; then
   eval "$(opam config env)"
   OCAMLPATH=$(cat .ocamlpath)
   export OCAMLPATH
-  cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.config"
+  cd liquidsoap && ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.config"
 
   echo "::endgroup::"
 fi
@@ -88,14 +79,14 @@ cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}-minimal.p
 abuild-keygen -a -n
 abuild
 
-mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
+mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "${LIQ_TMP_DIR}"
 
 echo "::endgroup::"
 
 if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
 
-  cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
+  cd liquidsoap && ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
 fi
 
 echo "::endgroup::"
