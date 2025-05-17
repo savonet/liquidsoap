@@ -426,7 +426,7 @@ jobs:
         id: build_apk
         env:
           BRANCH: ${{ needs.build_details.outputs.branch }}
-          DOCKER_TAG: ${{ matrix.os }}-ocaml${{ matrix.ocaml_version }}
+          ALPINE_TAG: ocaml${{ matrix.ocaml_version }}
           ARCH: ${{ matrix.platform }}
           LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           ALPINE_ARCH: ${{ matrix.alpine-arch }}

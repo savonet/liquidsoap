@@ -11,12 +11,12 @@ export LIQUIDSOAP_BUILD_TARGET=posix
 export ABUILD_APK_INDEX_OPTS="--allow-untrusted"
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
-  APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_ARCH}"
+  APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_TAG}-${ALPINE_ARCH}"
 elif [ -n "${IS_RELEASE}" ]; then
-  APK_PACKAGE="liquidsoap-${ALPINE_ARCH}"
+  APK_PACKAGE="liquidsoap-${ALPINE_TAG}-${ALPINE_ARCH}"
 else
-  TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
-  APK_PACKAGE="liquidsoap-${TAG}-${ALPINE_ARCH}"
+  ALPINE_BRANCH=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
+  APK_PACKAGE="liquidsoap-${ALPINE_BRANCH}-${ALPINE_TAG}-${ALPINE_ARCH}"
 fi
 
 echo "::group:: build ${APK_PACKAGE}.."
