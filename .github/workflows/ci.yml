@@ -758,8 +758,8 @@ jobs:
           context: .
           file: .github/docker/debian.dockerfile
           tags: |
-            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}-${{ matrix.ocaml_version }}"
-            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}-${{ matrix.ocaml_version }}"
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
           provenance: false
           sbom: false
@@ -810,8 +810,8 @@ jobs:
           context: .
           file: .github/docker/alpine.dockerfile
           tags: |
-            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}-${{ matrix.ocaml_version }}"
-            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}-${{ matrix.ocaml_version }}"
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
           provenance: false
           sbom: false
