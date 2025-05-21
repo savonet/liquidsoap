@@ -8,6 +8,11 @@ echo "{ \"experimental\": \"enabled\" }" > ~/.docker/config.json
 
 COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)$(echo "${GITHUB_SHA}" | cut -d'-' -f 2 -s | while read -r i; do echo "-$i"; done)
 
+echo "TAG: ${TAG}"
+echo "OCAML_DOCKER_RELEASE_VERSION: ${OCAML_DOCKER_RELEASE_VERSION}"
+echo "amd64 image: savonet/liquidsoap-ci-build:${TAG}_amd64-${OCAML_DOCKER_RELEASE_VERSION}"
+echo "arm64 image: savonet/liquidsoap-ci-build:${TAG}_arm64-${OCAML_DOCKER_RELEASE_VERSION}"
+
 docker login -u "$USER" -p "$PASSWORD"
 
 docker manifest create "savonet/liquidsoap:${TAG}" --amend "savonet/liquidsoap-ci-build:${TAG}_amd64-${OCAML_DOCKER_RELEASE_VERSION}" --amend "savonet/liquidsoap-ci-build:${TAG}_arm64-${OCAML_DOCKER_RELEASE_VERSION}"
