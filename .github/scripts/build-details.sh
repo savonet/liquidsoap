@@ -68,7 +68,7 @@ echo "Ocaml version to build: 4.14.2, 5.3.0"
 OCAML_VERSION='["4.14.2", "5.3.0"]'
 
 echo "OCaml docker release version: 4.14.2"
-OCAML_DOCKER_RELEASE_VERSION="5.3.0"
+OCAML_DOCKER_RELEASE_VERSION="4.14.2"
 
 {
   echo "branch=${BRANCH}"
