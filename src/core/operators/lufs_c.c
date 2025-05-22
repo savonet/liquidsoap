@@ -44,7 +44,7 @@ CAMLprim value liquidsoap_lufs_create_native(value _channels, value _a1,
   if (channels > MAX_CHANNELS)
     caml_failwith("LUFS: too many channels! Maximum channels is 12.");
 
-  iir_t *iir = calloc(sizeof(iir_t), 1);
+  iir_t *iir = calloc(1, sizeof(iir_t));
   if (!iir)
     caml_raise_out_of_memory();
 
@@ -82,9 +82,8 @@ static inline void liquidsoap_lufs_process_stage(iir_t *iir, double *x,
   }
 }
 
-CAMLprim value liquidsoap_lufs_process(value _stage1, value _stage2, value _x,
-                                       value _ret) {
-  CAMLparam4(_stage1, _stage2, _x, _ret);
+CAMLprim value liquidsoap_lufs_process(value _stage1, value _stage2, value _x) {
+  CAMLparam3(_stage1, _stage2, _x);
   double tmp1[MAX_CHANNELS], tmp2[MAX_CHANNELS];
   double power = 0;
   int samples = Wosize_val(Field(_x, 0)) / Double_wosize;
