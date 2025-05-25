@@ -1,4 +1,4 @@
-log.level := 5
+log.level := 4
 
 a = sine(duration=20., 440.)
 a =
@@ -7,11 +7,11 @@ a =
     update=false,
     fun (_) ->
       [
-        ("liq_cross_duration", "5."),
+        ("liq_cross_duration", "3."),
+        ("liq_fade_out", "1."),
         ("liq_fade_out_type", "exp"),
-        ("liq_fade_out_curve", "10"),
-        ("liq_fade_out_delay", "2"),
-        ("liq_fade_out", "3.")
+        ("liq_fade_out_curve", "50"),
+        ("liq_fade_out_delay", "2.")
       ],
     a
   )
@@ -23,9 +23,10 @@ b =
     update=false,
     fun (_) ->
       [
-        ("liq_fade_out_type", "lin"),
-        ("liq_fade_in_delay", "2"),
-        ("liq_fade_in", "2.")
+        ("liq_fade_in", "1."),
+        ("liq_fade_in_type", "exp"),
+        ("liq_fade_in_curve", "50"),
+        ("liq_fade_in_delay", "0.3")
       ],
     b
   )
