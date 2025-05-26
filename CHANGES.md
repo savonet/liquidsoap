@@ -1,4 +1,4 @@
-# 2.3.3 (unreleased)
+# 2.3.3 (2025-05-16)
 
 New:
 
@@ -23,6 +23,7 @@ Fixed:
 - Do not send empty metadata to shoutcast servers (#4408)
 - Automatically close file descriptor opened via scripted values with a log message
   warning of file descriptor leaks (#4481)
+- Fixed segfault in new `lufs` C code introduced with release `2.3.2` (#4490)
 
 ---
 
