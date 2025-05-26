@@ -855,5 +855,5 @@ jobs:
           GHCR_USER: ${{ github.actor }}
           GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_SHA: ${{ github.sha }}
-          OCAML_DOCKER_RELEASE_VERSION: ${{ needs.build_details.outputs.ocaml_docker_release_version }}
+          OCAML_DOCKER_RELEASE_VERSION: ocaml${{ needs.build_details.outputs.ocaml_docker_release_version }}
         run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}-minimal
