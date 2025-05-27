@@ -325,7 +325,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method virtual private generate_frame : Frame.t
 
     method is_ready =
-      if self#is_up then (
+      if self#is_up && Clock.started self#clock then (
         self#before_streaming_cycle;
         match Atomic.get streaming_state with
           | `Ready _ | `Done _ -> true
