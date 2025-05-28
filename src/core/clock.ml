@@ -497,8 +497,21 @@ and _can_start ?(force = false) clock =
 and _start ?force ~sync clock =
   Unifier.set clock.id (Some (Lang_string.generate_id (_default_id clock)));
   let id = _id clock in
-  log#important "Starting clock %s with %d source(s) and sync: %s" id
-    (Queue.length clock.pending_activations)
+  let sources =
+    List.fold_left
+      (fun sources s ->
+        let source_type =
+          match s#source_type with
+            | `Passive -> "passive"
+            | `Active _ -> "active"
+            | `Output _ -> "output"
+        in
+        Printf.sprintf "%s (%s)" s#id source_type :: sources)
+      []
+      (Queue.elements clock.pending_activations)
+  in
+  let sources = String.concat ", " sources in
+  log#important "Starting clock %s with sources: %s and sync: %s" id sources
     (string_of_sync_mode sync);
   let time_implementation = time_implementation () in
   let module Time = (val time_implementation : Liq_time.T) in
