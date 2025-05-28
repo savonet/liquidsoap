@@ -178,8 +178,12 @@ let _ =
 let _ =
   Lang.add_builtin ~base:string "id" ~category:`String
     ~descr:"Generate an identifier with given operator name."
-    [("", Lang.string_t, None, Some "Operator name.")]
+    [
+      ("category", Lang.string_t, Some (Lang.string ""), Some "Category");
+      ("", Lang.string_t, None, Some "Operator name.");
+    ]
     Lang.string_t
     (fun p ->
       let name = List.assoc "" p |> Lang.to_string in
-      Lang.string (Lang_string.generate_id name))
+      let category = List.assoc "category" p |> Lang.to_string in
+      Lang.string (Lang_string.generate_id ~category name))
