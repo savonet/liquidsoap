@@ -222,10 +222,10 @@ and stop c =
     | `Stopped _ | `Stopping _ -> ()
     | `Started ({ sync = `Passive } as x) ->
         _cleanup ~clock x;
-        x.log#debug "Clock stopped";
+        x.log#important "Clock stopped";
         Atomic.set clock.state (`Stopped `Passive)
     | `Started x ->
-        x.log#debug "Clock stopping";
+        x.log#important "Clock stopping";
         Atomic.set clock.state (`Stopping x)
 
 let clocks_started = Atomic.make false
@@ -440,17 +440,32 @@ and _clock_thread ~clock x =
     || 0 < Queue.length x.outputs
     || 0 < WeakQueue.length x.active_sources
   in
+  let clock_stopped () =
+    match Atomic.get clock.state with `Started _ -> true | _ -> false
+  in
+  let global_stop () = Atomic.get global_stop in
   let on_stop () =
-    x.log#info "Clock thread has stopped";
+    let reasons =
+      [
+        ("clock stopped", clock_stopped ());
+        ("global stop", global_stop ());
+        ("no more sources to process", has_sources_to_process ());
+      ]
+    in
+    let reasons =
+      List.fold_left
+        (fun reasons -> function
+          | _, false -> reasons | reason, true -> reason :: reasons)
+        [] reasons
+    in
+    x.log#important "Clock thread has stopped: %s." (String.concat ", " reasons);
     _cleanup ~clock x;
     Atomic.set clock.state (`Stopped x.sync)
   in
   let run () =
     try
       while
-        (match Atomic.get clock.state with `Started _ -> true | _ -> false)
-        && (not (Atomic.get global_stop))
-        && has_sources_to_process ()
+        clock_stopped () && (not (global_stop ())) && has_sources_to_process ()
       do
         _tick ~clock x
       done;
@@ -460,7 +475,7 @@ and _clock_thread ~clock x =
   ignore
     (Tutils.create
        (fun () ->
-         x.log#info "Clock thread is starting";
+         x.log#important "Clock thread is starting";
          run ())
        ()
        ("Clock " ^ _id clock))
