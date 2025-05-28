@@ -145,10 +145,11 @@ let _id clock =
 let id c = _id (Unifier.deref c)
 let generate_id = Lang_string.generate_id ~category:"clock"
 
-let set_id c id =
-  let current_id = (Unifier.deref c).id in
-  if Unifier.deref current_id <> Some id then
-    Unifier.set current_id (Some (generate_id id))
+let _set_id _clock new_id =
+  if Unifier.deref _clock.id <> Some new_id then
+    Unifier.set _clock.id (Some (generate_id new_id))
+
+let set_id clock new_id = _set_id (Unifier.deref clock) new_id
 
 let attach c s =
   let clock = Unifier.deref c in
@@ -478,7 +479,7 @@ and _clock_thread ~clock x =
   ignore
     (Tutils.create
        (fun () ->
-         x.log#important "Clock thread is starting";
+         x.log#info "Clock thread is starting";
          run ())
        ()
        ("Clock " ^ _id clock))
@@ -498,7 +499,7 @@ and _can_start ?(force = false) clock =
     | _ -> `False
 
 and _start ?force ~sync clock =
-  Unifier.set clock.id (Some (generate_id (_default_id clock)));
+  _set_id clock (_default_id clock);
   let id = _id clock in
   let sources =
     List.fold_left
