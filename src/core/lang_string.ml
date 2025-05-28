@@ -9,12 +9,13 @@ module IdMap = Weak.Make (struct
   let hash { category; name } = Hashtbl.hash (category ^ name)
 end)
 
-(** Generate an identifier from the name of the source. *)
+(** Generate a unique unifier based on name and category. *)
 let generate_id =
   let m = Mutex.create () in
   let h = IdMap.create 10 in
-  fun ~category ->
-    Mutex_utils.mutexify m (fun name ->
+  fun ~category name ->
+    Mutex_utils.mutexify m
+      (fun () ->
         let base_id = IdMap.merge h { category; name; counter = 0 } in
         let id =
           Bytes.(
@@ -27,3 +28,4 @@ let generate_id =
         base_id.counter <- base_id.counter + 1;
         Gc.finalise_last (fun () -> ignore (Sys.opaque_identity base_id)) id;
         id)
+      ()

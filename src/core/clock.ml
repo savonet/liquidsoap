@@ -144,7 +144,11 @@ let _id clock =
 
 let id c = _id (Unifier.deref c)
 let generate_id = Lang_string.generate_id ~category:"clock"
-let set_id c id = Unifier.set (Unifier.deref c).id (Some (generate_id id))
+
+let set_id c id =
+  let current_id = (Unifier.deref c).id in
+  if Unifier.deref current_id <> Some id then
+    Unifier.set current_id (Some (generate_id id))
 
 let attach c s =
   let clock = Unifier.deref c in
