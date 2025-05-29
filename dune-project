@@ -10,7 +10,7 @@
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
 (maintenance_intent "(latest)")
 
-(version 2.3.3)
+(version 2.3.4)
 (generate_opam_files true)
 (opam_file_location inside_opam_directory)
 (executables_implicit_empty_intf true)

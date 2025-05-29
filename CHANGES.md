@@ -1,3 +1,15 @@
+2.3.4 (unreleased)
+
+Changed:
+
+- Improved source and clock naming (#4497)
+
+Fixed:
+
+- Don't mark source as ready until their clock has started. (#4496)
+
+---
+
 # 2.3.3 (2025-05-16)
 
 New:
