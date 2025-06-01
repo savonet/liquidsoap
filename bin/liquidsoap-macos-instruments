@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# shellcheck disable=SC2046
+DIR=$(cd $(dirname "$0")/.. && pwd)
+export DIR
+
+opam exec dune -- exec --display=quiet --no-print-directory --root="$DIR" src/bin/liquidsoap-macos-instruments.exe -- --stdlib "$DIR"/src/libs/stdlib.liq "$@"
