@@ -106,7 +106,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable log = source_log
     method private create_log = log <- Log.make [self#id]
     method log = log
-    val mutable id = Lang_string.generate_id name
+    val mutable id = Lang_string.generate_id ~category:"source" name
     method id = id
 
     method set_id ?(force = true) s =
@@ -117,7 +117,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           s
       in
       if force && s <> self#id then (
-        id <- Lang_string.generate_id s;
+        id <- Lang_string.generate_id ~category:"source" s;
 
         (* Sometimes the ID is changed during initialization, in order to make it
          equal to the server name, which is only registered at initialization
@@ -325,7 +325,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method virtual private generate_frame : Frame.t
 
     method is_ready =
-      if self#is_up then (
+      if self#is_up && Clock.started self#clock then (
         self#before_streaming_cycle;
         match Atomic.get streaming_state with
           | `Ready _ | `Done _ -> true

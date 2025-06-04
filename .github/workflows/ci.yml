@@ -56,7 +56,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-4
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm@sha256:5f422ea79a6837ba5465d25037f6edb72f003e10766b05c80eb154369aac1803
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:0b50b648dc365da7aabc9730938055036305cfefe2a5a2b35eb3e057ec210756
       options: --user opam
     env:
       HOME: /home/opam
@@ -99,7 +99,7 @@ jobs:
   build_js:
     runs-on: depot-ubuntu-24.04-4
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm@sha256:5f422ea79a6837ba5465d25037f6edb72f003e10766b05c80eb154369aac1803
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:0b50b648dc365da7aabc9730938055036305cfefe2a5a2b35eb3e057ec210756
       options: --user opam
     env:
       HOME: /home/opam
@@ -162,7 +162,7 @@ jobs:
     needs: build_details
     if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm@sha256:5f422ea79a6837ba5465d25037f6edb72f003e10766b05c80eb154369aac1803
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:0b50b648dc365da7aabc9730938055036305cfefe2a5a2b35eb3e057ec210756
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
@@ -222,7 +222,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-4
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm@sha256:5f422ea79a6837ba5465d25037f6edb72f003e10766b05c80eb154369aac1803
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:0b50b648dc365da7aabc9730938055036305cfefe2a5a2b35eb3e057ec210756
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
@@ -640,7 +640,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6.17.0
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
@@ -693,7 +693,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6.17.0
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
@@ -748,7 +748,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6.17.0
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
@@ -801,7 +801,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6.17.0
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
@@ -855,5 +855,5 @@ jobs:
           GHCR_USER: ${{ github.actor }}
           GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_SHA: ${{ github.sha }}
-          OCAML_DOCKER_RELEASE_VERSION: ${{ needs.build_details.outputs.ocaml_docker_release_version }}
+          OCAML_DOCKER_RELEASE_VERSION: ocaml${{ needs.build_details.outputs.ocaml_docker_release_version }}
         run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}-minimal

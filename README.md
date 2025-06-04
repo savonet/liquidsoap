@@ -9,7 +9,7 @@ offers a rich collection of operators that you can combine to create and
 transform streams. Liquidsoap is very light and easy to use, in the Unix
 tradition of simple strong components working together.
 
-Copyright 2003-2024 Savonet team
+Copyright 2003-2025 Savonet team
 
 [![GPL license](https://img.shields.io/github/license/savonet/liquidsoap)](https://github.com/savonet/liquidsoap/blob/master/COPYING)
 ![CI](https://github.com/savonet/liquidsoap/workflows/CI/badge.svg)
@@ -39,7 +39,7 @@ See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.ht
 Current release status by version:
 | Branch | Latest release | Supported | Rolling Release |
 | --------|----------------|-----------|-----------------|
-| `2.3.x` |[2.3.2](https://github.com/savonet/liquidsoap/releases/tag/v2.3.2) (docker: `savonet/liquidsoap:v2.3.2`) | ✅ | [2.3.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.3.x) (docker: `savonet/liquidsoap:rolling-release-v2.3.x` |
+| `2.3.x` |[2.3.3](https://github.com/savonet/liquidsoap/releases/tag/v2.3.3) (docker: `savonet/liquidsoap:v2.3.3`) | ✅ | [2.3.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.3.x) (docker: `savonet/liquidsoap:rolling-release-v2.3.x` |
 | `2.2.x` | [2.2.5](https://github.com/savonet/liquidsoap/releases/tag/v2.2.5) (docker: `savonet/liquidsoap:v2.2.5`) | ❌ | [2.2.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.2.x) (docker: `savonet/liquidsoap:rolling-release-v2.2.x` |
 | `2.1.x` | [2.1.4](https://github.com/savonet/liquidsoap/releases/tag/v2.1.4) (docker: `savonet/liquidsoap:v2.1.4`) | ❌ | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) (docker: `savonet/liquidsoap:rolling-release-v2.1.x` |
 

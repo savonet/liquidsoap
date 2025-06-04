@@ -143,9 +143,13 @@ let _id clock =
   ^ match clock.sub_ids with [] -> "" | l -> "." ^ String.concat "." l
 
 let id c = _id (Unifier.deref c)
+let generate_id = Lang_string.generate_id ~category:"clock"
 
-let set_id c id =
-  Unifier.set (Unifier.deref c).id (Some (Lang_string.generate_id id))
+let _set_id _clock new_id =
+  if Unifier.deref _clock.id <> Some new_id then
+    Unifier.set _clock.id (Some (generate_id new_id))
+
+let set_id clock new_id = _set_id (Unifier.deref clock) new_id
 
 let attach c s =
   let clock = Unifier.deref c in
@@ -222,10 +226,10 @@ and stop c =
     | `Stopped _ | `Stopping _ -> ()
     | `Started ({ sync = `Passive } as x) ->
         _cleanup ~clock x;
-        x.log#debug "Clock stopped";
+        x.log#important "Clock stopped";
         Atomic.set clock.state (`Stopped `Passive)
     | `Started x ->
-        x.log#debug "Clock stopping";
+        x.log#important "Clock stopping";
         Atomic.set clock.state (`Stopping x)
 
 let clocks_started = Atomic.make false
@@ -440,17 +444,32 @@ and _clock_thread ~clock x =
     || 0 < Queue.length x.outputs
     || 0 < WeakQueue.length x.active_sources
   in
+  let clock_stopped () =
+    match Atomic.get clock.state with `Started _ -> true | _ -> false
+  in
+  let global_stop () = Atomic.get global_stop in
   let on_stop () =
-    x.log#info "Clock thread has stopped";
+    let reasons =
+      [
+        ("clock stopped", clock_stopped ());
+        ("global stop", global_stop ());
+        ("no more sources to process", has_sources_to_process ());
+      ]
+    in
+    let reasons =
+      List.fold_left
+        (fun reasons -> function
+          | _, false -> reasons | reason, true -> reason :: reasons)
+        [] reasons
+    in
+    x.log#important "Clock thread has stopped: %s." (String.concat ", " reasons);
     _cleanup ~clock x;
     Atomic.set clock.state (`Stopped x.sync)
   in
   let run () =
     try
       while
-        (match Atomic.get clock.state with `Started _ -> true | _ -> false)
-        && (not (Atomic.get global_stop))
-        && has_sources_to_process ()
+        clock_stopped () && (not (global_stop ())) && has_sources_to_process ()
       do
         _tick ~clock x
       done;
@@ -480,10 +499,23 @@ and _can_start ?(force = false) clock =
     | _ -> `False
 
 and _start ?force ~sync clock =
-  Unifier.set clock.id (Some (Lang_string.generate_id (_default_id clock)));
+  _set_id clock (_default_id clock);
   let id = _id clock in
-  log#important "Starting clock %s with %d source(s) and sync: %s" id
-    (Queue.length clock.pending_activations)
+  let sources =
+    List.fold_left
+      (fun sources s ->
+        let source_type =
+          match s#source_type with
+            | `Passive -> "passive"
+            | `Active _ -> "active"
+            | `Output _ -> "output"
+        in
+        Printf.sprintf "%s (%s)" s#id source_type :: sources)
+      []
+      (Queue.elements clock.pending_activations)
+  in
+  let sources = String.concat ", " sources in
+  log#important "Starting clock %s with sources: %s and sync: %s" id sources
     (string_of_sync_mode sync);
   let time_implementation = time_implementation () in
   let module Time = (val time_implementation : Liq_time.T) in
@@ -545,7 +577,7 @@ let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
   let c =
     Unifier.make
       {
-        id = Unifier.make (Option.map Lang_string.generate_id id);
+        id = Unifier.make (Option.map generate_id id);
         sub_ids;
         stack = Atomic.make stack;
         pending_activations = Queue.create ();
