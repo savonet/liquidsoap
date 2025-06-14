@@ -12,12 +12,12 @@
 # @param ~options_status_code Provides a status code to use for successful OPTIONS requests, since some legacy browsers (IE11, various SmartTVs) choke on 204.
 def harbor.http.middleware.cors(
   ~origin=null("*"),
-  ~origin_callback=null(),
+  ~origin_callback=null,
   ~methods=["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
-  ~allowed_headers=null(),
+  ~allowed_headers=null,
   ~exposed_headers=[],
   ~credentials=false,
-  ~max_age=null(),
+  ~max_age=null,
   ~preflight_continue=false,
   ~options_status_code=204
 ) =
@@ -82,7 +82,7 @@ def harbor.http.middleware.cors(
           then
             req.headers["access-control-request-headers"]
           else
-            null()
+            null
           end
 
         if

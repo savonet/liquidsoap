@@ -757,7 +757,11 @@ and update_invoke_default ~pos ~optional expr name value =
     | _ -> expr
 
 let mk_invoke ?(default : Parsed_term.t option) ~pos ~env ~to_term expr v =
-  let expr = to_term ~env expr in
+  let expr =
+    match expr.Parsed_term.term with
+      | `Var "null" -> mk ~pos (`Var "null")
+      | _ -> to_term ~env expr
+  in
   let default = Option.map (to_term ~env) default in
   let optional, value =
     match default with Some v -> (true, v) | None -> (false, mk ~pos `Null)
@@ -1290,11 +1294,17 @@ let rec to_ast ~env ~pos ~comments ast =
         let default = if optional then Some (mk_parsed ~pos `Null) else None in
         mk_invoke ~pos ~env ?default ~to_term invoked meth
     | `Open (t, t') -> `Open (to_term ~env t, to_term ~env t')
+    | `Var "null" -> `Null
     | `Var s -> `Var s
     | `Seq (t, t') -> `Seq (to_term ~env t, to_term ~env t')
     | `App (t, args) ->
         let args = expand_appof ~pos ~env ~to_term args in
-        `App (to_term ~env t, args)
+        let t =
+          match t.Parsed_term.term with
+            | `Var "null" -> mk ~pos (`Var "null")
+            | _ -> to_term ~env t
+        in
+        `App (t, args)
     | `Fun (args, body) -> `Fun (to_func ~pos ~env ~to_term args body)
     | `RFun (name, args, body) ->
         `Fun (to_func ~pos ~env ~to_term ~name args body)
@@ -1374,4 +1384,10 @@ and to_term ~env (tm : Parsed_term.t) : Term.t =
         { t = mk_var ~pos:tm.pos (); term; methods = Methods.empty; flags }
 
 let to_encoder_params = to_encoder_params ~env:[] ~to_term
-let to_term tm = to_term ~env:[] tm
+
+let to_term ~throw tm =
+  List.iter
+    (function
+      | `Deprecated s -> throw (Term.Deprecated (s, Pos.of_lexing_pos tm.pos)))
+    tm.annotations;
+  to_term ~env:[] tm

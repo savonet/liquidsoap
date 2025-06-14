@@ -21,7 +21,7 @@ end
 # @category Internet
 # @param ~boundary Specify boundary to use for multipart/form-data.
 # @param data data to insert
-def http.multipart_form_data(~boundary=null(), data) =
+def http.multipart_form_data(~boundary=null, data) =
   def default_boundary() =
     range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
     l = list.init(12, fun (_) -> string.char.ascii.random(range))
@@ -97,10 +97,10 @@ end
 # @method status_message Set response status message
 def http.response(
   ~http_version="1.1",
-  ~status_code=null(),
-  ~status_message=null(),
+  ~status_code=null,
+  ~status_message=null,
   ~headers=[],
-  ~content_type=null(),
+  ~content_type=null,
   ~data=getter("")
 ) =
   status_code =
@@ -290,7 +290,7 @@ def http.response(
     if not status_sent() then socket.write(mk_status()) end
   end
 
-  def multipart_form(~boundary=null(), contents) =
+  def multipart_form(~boundary=null, contents) =
     if
       headers_sent()
     then
@@ -632,7 +632,7 @@ def get_mime_process(file) =
       )
     )
 
-  if mime == "" then null() else mime end
+  if mime == "" then null else mime end
 end
 
 # @flag hidden
@@ -769,13 +769,13 @@ upload_file_fn =
 # @param url URL to post to.
 def http.post.file(
   ~name="file",
-  ~content_type=null(),
+  ~content_type=null,
   ~headers=[],
-  ~boundary=null(),
-  ~filename=null(),
-  ~file=null(),
-  ~contents=null(),
-  ~timeout=null(),
+  ~boundary=null,
+  ~filename=null,
+  ~file=null,
+  ~contents=null,
+  ~timeout=null,
   ~redirect=true,
   url
 ) =
@@ -810,13 +810,13 @@ end
 # @param url URL to put to.
 def http.put.file(
   ~name="file",
-  ~content_type=null(),
+  ~content_type=null,
   ~headers=[],
-  ~boundary=null(),
-  ~filename=null(),
-  ~file=null(),
-  ~contents=null(),
-  ~timeout=null(),
+  ~boundary=null,
+  ~filename=null,
+  ~file=null,
+  ~contents=null,
+  ~timeout=null,
   ~redirect=true,
   url
 ) =
@@ -895,7 +895,7 @@ def http.headers.content_type(headers) =
         headers
       )
     catch _ : [error.not_found] do
-      null()
+      null
     end
 
   mime = null.map(snd, mime)
@@ -930,7 +930,7 @@ def http.headers.content_disposition(headers) =
         headers
       )
     catch _ : [error.not_found] do
-      null()
+      null
     end
 
   def parse_arg(arg) =
@@ -940,9 +940,9 @@ def http.headers.content_disposition(headers) =
 
   def parse_filename(args) =
     plain_filename = args["filename"]
-    plain_filename = plain_filename == "" ? null() : plain_filename
+    plain_filename = plain_filename == "" ? null : plain_filename
     encoded_filename = args["filename*"]
-    encoded_filename = encoded_filename == "" ? null() : encoded_filename
+    encoded_filename = encoded_filename == "" ? null : encoded_filename
     encoded_filename =
       null.map(
         fun (encoded_filename) ->
@@ -971,7 +971,7 @@ def http.headers.content_disposition(headers) =
 
   def parse_name(args) =
     name = args["name"]
-    name = name == "" ? null() : name
+    name = name == "" ? null : name
     name = null.map(fun (name) -> url.decode(string.unquote(name)), name)
     (name, list.filter(fun (v) -> fst(v) != "name", args))
   end
@@ -1009,9 +1009,9 @@ def http.headers.extname(headers) =
       null.defined(content_disposition?.filename)
     then
       extname = file.extension(null.get(content_disposition?.filename))
-      extname == "" ? null() : extname
+      extname == "" ? null : extname
     else
-      null()
+      null
     end
 
   if
@@ -1023,8 +1023,8 @@ def http.headers.extname(headers) =
   then
     extnames = settings.http.mime.extnames()
     extname = extnames[null.get(content_type).mime]
-    extname == "" ? null() : extname
+    extname == "" ? null : extname
   else
-    null()
+    null
   end
 end
