@@ -2,7 +2,7 @@
 # @category Source / Audio processing
 # @flag extra
 # @argsof track.audio.compand
-def compand(~id=null.make("compand"), %argsof(track.audio.compand[!id]), s) =
+def compand(~id=null("compand"), %argsof(track.audio.compand[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -16,7 +16,7 @@ end
 # @category Source / Audio processing
 # @argsof track.audio.comb
 # @flag extra
-def comb(~id=null.make("comb"), %argsof(track.audio.comb[!id]), s) =
+def comb(~id=null("comb"), %argsof(track.audio.comb[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,

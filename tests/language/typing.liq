@@ -218,7 +218,7 @@ def f() =
   ({} : {foo?: int})
   ({foo=null} : {foo?: int})
   ({foo=123} : {foo?: int})
-  ({foo=null.make(null)} : {foo?: int?})
+  ({foo=null(null)} : {foo?: int?})
   ([({} : {foo?: int}), (), {foo=123}] : [{foo?: int}])
   ([(), {foo=123}] : [{foo?: int}])
 

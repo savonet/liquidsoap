@@ -20,11 +20,9 @@
 
  *****************************************************************************)
 
-let null = Lang.add_module "_null"
-
-let _ =
+let null =
   let a = Lang.univ_t () in
-  Lang.add_builtin ~base:null "make" ~category:`Programming
+  Lang.add_builtin "_null" ~category:`Programming
     ~descr:"Create a nullable value."
     [("", Lang.nullable_t a, Some Lang.null, Some "Value to make nullable.")]
     (Lang.nullable_t a)

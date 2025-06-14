@@ -1,7 +1,7 @@
 # Create an audio source from the given track, with
 # metadata and track marks from that same track.
 # @category Source / Track processing
-def source.audio(~id=null.make("source.audio"), audio) =
+def source.audio(~id=null("source.audio"), audio) =
   source(
     id=id,
     {
@@ -15,7 +15,7 @@ end
 # Create a video source from the given track, with
 # metadata and track marks from that same track.
 # @category Source / Track processing
-def source.video(~id=null.make("source.video"), video) =
+def source.video(~id=null("source.video"), video) =
   source(
     id=id,
     {
@@ -31,7 +31,7 @@ end
 #               when `null`.
 # @category Metadata
 def track.metadata.deduplicate(
-  ~id=null.make("track.metadata.deduplicate"),
+  ~id=null("track.metadata.deduplicate"),
   ~using=null,
   t
 ) =
@@ -69,7 +69,7 @@ end
 #               when `null`.
 # @param ~id Source id
 # @param s source
-def metadata.deduplicate(~id=null.make("metadata.deduplicate"), ~using=null, s) =
+def metadata.deduplicate(~id=null("metadata.deduplicate"), ~using=null, s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -81,7 +81,7 @@ end
 # @category Source / Track processing
 # @argsof track.metadata.map
 def metadata.map(
-  ~id=null.make("metadata.map"),
+  ~id=null("metadata.map"),
   %argsof(track.metadata.map[!id]),
   f,
   (s:source)
@@ -107,7 +107,7 @@ end
 # Creates a source that plays only one track of the input source.
 # @category Source / Track processing
 # @param s The input source.
-def once(~id=null.make("once"), s) =
+def once(~id=null("once"), s) =
   sequence(id=id, [(s : source), source.fail()])
 end
 
@@ -119,7 +119,7 @@ end
 # @param ~min_noise Minimum duration of noise required to end silence, in seconds.
 # @param ~track_sensitive Reset blank counter at each track.
 def blank.skip(
-  ~id=null.make("blank.skip"),
+  ~id=null("blank.skip"),
   ~threshold=-40.,
   ~max_blank=20.,
   ~min_noise=0.,
@@ -169,7 +169,7 @@ end
 # @param ~insert_missing Treat track beginnings without metadata as having empty one.
 # @param ~merge Merge the track with its appended track.
 # @flag extra
-def append(~id=null.make("append"), ~insert_missing=true, ~merge=false, s, f) =
+def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   last_meta = ref(null)
   pending = ref(null)
 
@@ -236,7 +236,7 @@ end
 # @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent any track prepend.
 # @param ~merge Merge the track with its appended track.
 # @flag extra
-def prepend(~id=null.make("prepend"), ~merge=false, s, f) =
+def prepend(~id=null("prepend"), ~merge=false, s, f) =
   last_meta = ref(null)
 
   def on_meta(m) =

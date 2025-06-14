@@ -52,7 +52,7 @@ def f() =
   test.equal(json.stringify(json5=true, nan), 'NaN')
   let b = json()
   b.add("b", 1)
-  s = json.stringify({a=null.make({a=1}), b=null.make(b)})
+  s = json.stringify({a=null({a=1}), b=null(b)})
   test.equal(
     s,
     "{ \"a\": { \"a\": 1 }, \"b\": { \"b\": 1 } }"
@@ -253,7 +253,7 @@ def f() =
     }
   }'
   let json.parse x = data
-  test.equal(x?.foo.gni?.bla, null.make(123))
+  test.equal(x?.foo.gni?.bla, null(123))
   data = '{
     "foo": {}
   }'

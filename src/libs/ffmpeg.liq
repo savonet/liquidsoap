@@ -4,7 +4,7 @@ let ffmpeg.raw.encode = ()
 
 # Encode a source's audio content
 # @category Source / Conversion
-def ffmpeg.encode.audio(~id=null.make("ffmpeg.encode.audio"), f, s) =
+def ffmpeg.encode.audio(~id=null("ffmpeg.encode.audio"), f, s) =
   audio = track.ffmpeg.encode.audio(f, source.tracks(s).audio)
   source(
     id=id,
@@ -18,7 +18,7 @@ end
 
 # Encode a source's audio content
 # @category Source / Conversion
-def ffmpeg.raw.encode.audio(~id=null.make("ffmpeg.raw.encode.audio"), f, s) =
+def ffmpeg.raw.encode.audio(~id=null("ffmpeg.raw.encode.audio"), f, s) =
   audio = track.ffmpeg.raw.encode.audio(f, source.tracks(s).audio)
   source(
     id=id,
@@ -32,7 +32,7 @@ end
 
 # Encode a source's video content
 # @category Source / Conversion
-def ffmpeg.encode.video(~id=null.make("ffmpeg.encode.video"), f, s) =
+def ffmpeg.encode.video(~id=null("ffmpeg.encode.video"), f, s) =
   video = track.ffmpeg.encode.video(f, source.tracks(s).video)
   source(
     id=id,
@@ -46,7 +46,7 @@ end
 
 # Encode a source's video content
 # @category Source / Conversion
-def ffmpeg.raw.encode.video(~id=null.make("ffmpeg.raw.encode.video"), f, s) =
+def ffmpeg.raw.encode.video(~id=null("ffmpeg.raw.encode.video"), f, s) =
   video = track.ffmpeg.raw.encode.video(f, source.tracks(s).video)
   source(
     id=id,
@@ -60,7 +60,7 @@ end
 
 # Encode a source's audio and video content
 # @category Source / Conversion
-def ffmpeg.encode.audio_video(~id=null.make("ffmpeg.encode.audio_video"), f, s) =
+def ffmpeg.encode.audio_video(~id=null("ffmpeg.encode.audio_video"), f, s) =
   let {audio, video} = source.tracks(s)
   audio = track.ffmpeg.encode.audio(f, audio)
   video = track.ffmpeg.encode.video(f, video)
@@ -78,7 +78,7 @@ end
 # Encode a source's audio and video content
 # @category Source / Conversion
 def ffmpeg.raw.encode.audio_video(
-  ~id=null.make("ffmpeg.raw.encode.audio_video"),
+  ~id=null("ffmpeg.raw.encode.audio_video"),
   f,
   s
 ) =
@@ -103,7 +103,7 @@ let ffmpeg.raw.decode = ()
 
 # Decode a source's audio content
 # @category Source / Conversion
-def ffmpeg.decode.audio(~id=null.make("ffmpeg.decode.audio"), s) =
+def ffmpeg.decode.audio(~id=null("ffmpeg.decode.audio"), s) =
   audio = track.ffmpeg.decode.audio(source.tracks(s).audio)
   source(
     id=id,
@@ -117,7 +117,7 @@ end
 
 # Decode a source's audio content
 # @category Source / Conversion
-def ffmpeg.raw.decode.audio(~id=null.make("ffmpeg.raw.decode.audio"), s) =
+def ffmpeg.raw.decode.audio(~id=null("ffmpeg.raw.decode.audio"), s) =
   audio = track.ffmpeg.raw.decode.audio(source.tracks(s).audio)
   source(
     id=id,
@@ -131,7 +131,7 @@ end
 
 # Decode a source's video content
 # @category Source / Conversion
-def ffmpeg.decode.video(~id=null.make("ffmpeg.decode.video"), s) =
+def ffmpeg.decode.video(~id=null("ffmpeg.decode.video"), s) =
   video = track.ffmpeg.decode.video(source.tracks(s).video)
   source(
     id=id,
@@ -145,7 +145,7 @@ end
 
 # Decode a source's video content
 # @category Source / Conversion
-def ffmpeg.raw.decode.video(~id=null.make("ffmpeg.raw.decode.video"), s) =
+def ffmpeg.raw.decode.video(~id=null("ffmpeg.raw.decode.video"), s) =
   video = track.ffmpeg.raw.decode.video(source.tracks(s).video)
   source(
     id=id,
@@ -159,7 +159,7 @@ end
 
 # Decode a source's audio and video content
 # @category Source / Conversion
-def ffmpeg.decode.audio_video(~id=null.make("ffmpeg.decode.audio_video"), s) =
+def ffmpeg.decode.audio_video(~id=null("ffmpeg.decode.audio_video"), s) =
   let {audio, video} = source.tracks(s)
   audio = track.ffmpeg.decode.audio(audio)
   video = track.ffmpeg.decode.video(video)
@@ -177,7 +177,7 @@ end
 # Decode a source's audio and video content
 # @category Source / Conversion
 def ffmpeg.raw.decode.audio_video(
-  ~id=null.make("ffmpeg.raw.decode.audio_video"),
+  ~id=null("ffmpeg.raw.decode.audio_video"),
   s
 ) =
   let {audio, video} = source.tracks(s)

@@ -4,7 +4,7 @@
 # @param ~id Force the value of the source ID.
 # @param fn The applied function.
 # @param s The input source.
-def map_first_track(~id=null.make("map_first_track"), fn, s) =
+def map_first_track(~id=null("map_first_track"), fn, s) =
   fallback(id=id, track_sensitive=true, [fn((once(s) : source)), s])
 end
 
@@ -18,7 +18,7 @@ end
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
 def rotate.merge(
-  ~id=null.make("rotate.merge"),
+  ~id=null("rotate.merge"),
   ~transitions=[],
   ~weights=[],
   sources
@@ -72,7 +72,7 @@ end
 # @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
 # @param sources Sources to toggle from
 def overlap_sources(
-  ~id=null.make("overlap_sources"),
+  ~id=null("overlap_sources"),
   ~normalize=false,
   ~start_next="liq_start_next",
   ~weights=[],
@@ -185,7 +185,7 @@ def source.say_metadata =
     "say:#{say_metadata}"
   end
 
-  fun (~id=null.make("source.say_metadata"), ~pattern=pattern, s) ->
+  fun (~id=null("source.say_metadata"), ~pattern=pattern, s) ->
     append(id=id, s, fun (m) -> once(single(pattern(m))))
 end
 

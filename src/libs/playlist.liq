@@ -724,8 +724,8 @@ def playlist.list(
   ~max_fail=10,
   ~on_fail=null,
   ~timeout=null,
-  ~cue_in_metadata=null.make("liq_cue_in"),
-  ~cue_out_metadata=null.make("liq_cue_out"),
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
   playlist
 ) =
   ignore(native)
@@ -993,8 +993,8 @@ def replaces playlist(
   ~reload=0,
   ~reload_mode="seconds",
   ~timeout=null,
-  ~cue_in_metadata=null.make("liq_cue_in"),
-  ~cue_out_metadata=null.make("liq_cue_out"),
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
   ~register_server_commands=true,
   uri
 ) =
@@ -1144,7 +1144,7 @@ def replaces playlist(
       if
         file.exists(playlist_uri())
       then
-        ref(null.make(file.watch(playlist_uri(), s.reload)))
+        ref(null(file.watch(playlist_uri(), s.reload)))
       else
         ref(null)
       end

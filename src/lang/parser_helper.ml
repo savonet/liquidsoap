@@ -161,18 +161,8 @@ let mk_app ~pos ~var_pos v arglist =
   let v, annotations =
     match v with
       | "_null" ->
-          let v =
-            mk ~pos:var_pos
-              (`Invoke
-                 {
-                   invoked = mk ~pos:var_pos (`Var "_null");
-                   meth = `String "make";
-                   optional = false;
-                 })
-          in
-          ( v,
-            if arglist = [] then [`Deprecated "use `null`"]
-            else [`Deprecated "use `null.make`"] )
+          let v = mk ~pos:var_pos (`Var "_null") in
+          (v, if arglist = [] then [`Deprecated "use `null`"] else [])
       | v -> (mk ~pos:var_pos (`Var v), [])
   in
   mk ~annotations ~pos (`App (v, arglist))

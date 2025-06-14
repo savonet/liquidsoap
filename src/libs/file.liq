@@ -283,7 +283,7 @@ def file.metadata.flac.cover.decode(s) =
   height = read_int()
   color_depth = read_int()
   number_of_colors = read_int()
-  number_of_colors = number_of_colors > 0 ? null.make(number_of_colors) : null
+  number_of_colors = number_of_colors > 0 ? null(number_of_colors) : null
   data_len = read_int()
   data = string.sub(encoding="ascii", s, start=i(), length=data_len)
   if
@@ -294,7 +294,7 @@ def file.metadata.flac.cover.decode(s) =
     )
     null
   else
-    null.make(
+    null(
       data.{
         picture_type=pic_type,
         mime=mime,

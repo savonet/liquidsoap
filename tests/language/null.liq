@@ -1,6 +1,6 @@
 def f() =
   test.equal(null ?? "bla", "bla")
-  test.equal(null.make("foo") ?? "bla", "foo")
+  test.equal(null("foo") ?? "bla", "foo")
   test.equal(null.case(null, {true}, fun (_) -> false), true)
   test.equal(null.case("x", {true}, fun (_) -> false), false)
   test.equal(null.get("x"), "x")

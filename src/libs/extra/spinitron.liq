@@ -197,7 +197,7 @@ def spinitron.submit.metadata(
   end
 
   opt_arg =
-    fun (label, default) -> conv_opt_arg(fun (x) -> null.make(x), label, default)
+    fun (label, default) -> conv_opt_arg(fun (x) -> null(x), label, default)
 
   live = conv_opt_arg(bool_of_string, "live", live)
   start = opt_arg("start", start)
