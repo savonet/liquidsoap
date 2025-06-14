@@ -227,6 +227,14 @@ let _ =
            (Lang_string.Version.of_string Build_config.version)
         <= 0))
 
+let liquidsoap_script = Lang.add_module ~base:liquidsoap "script"
+
+let _ =
+  Lang.add_builtin_base ~category:`Liquidsoap
+    ~descr:"Path to the current script, if available" ~base:liquidsoap_script
+    "path" `Null
+    (Lang.nullable_t Lang.string_t)
+
 let liquidsoap_build_config = Lang.add_module ~base:liquidsoap "build_config"
 
 let _ =
