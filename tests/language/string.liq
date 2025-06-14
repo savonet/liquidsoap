@@ -82,7 +82,7 @@ def f() =
   )
   test.equal(string.quote("aa'bb"), "\"aa'bb\"")
   test.equal(string.residual(prefix="ab", "abcd"), "cd")
-  test.equal(string.residual(prefix="xx", "abcd"), null.make())
+  test.equal(string.residual(prefix="xx", "abcd"), null)
   test.equal(string.nth("abcde", 2), 99)
   test.equal(string.index(substring="cd", "abcde"), 2)
   test.equal(string.index(substring="e", "abcde"), 4)

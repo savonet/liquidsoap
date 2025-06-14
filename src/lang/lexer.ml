@@ -224,6 +224,8 @@ let rec token lexbuf =
     | "else" -> ELSE
     | "elsif" -> ELSIF
     | "->" -> YIELDS
+    | "null", "." -> NULLDOT
+    | "null" -> NULL
     | encoder ->
         let e = Sedlexing.Utf8.lexeme lexbuf in
         let e = String.sub e 1 (String.length e - 1) in

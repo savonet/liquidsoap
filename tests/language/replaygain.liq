@@ -8,7 +8,7 @@ def test_metadata_replaygain() =
     metadata.replaygain([("r128_track_gain", "-32768")]), -32768. / 256.
   )
 
-  test.equal(metadata.replaygain([("r128_track_gain", "foo")]), null.make())
+  test.equal(metadata.replaygain([("r128_track_gain", "foo")]), null)
   test.equal(
     metadata.replaygain(
       [
@@ -18,9 +18,9 @@ def test_metadata_replaygain() =
         )
       ]
     ),
-    null.make()
+    null
   )
-  test.equal(metadata.replaygain([("r128_track_gain", "")]), null.make())
+  test.equal(metadata.replaygain([("r128_track_gain", "")]), null)
 
   test.equal(
     metadata.replaygain(
@@ -131,23 +131,21 @@ def test_metadata_replaygain() =
     1.
   )
 
-  test.equal(metadata.replaygain([("replaygain_track_gain", "")]), null.make())
-  test.equal(
-    metadata.replaygain([("replaygain_track_gain", "foo")]), null.make()
-  )
+  test.equal(metadata.replaygain([("replaygain_track_gain", "")]), null)
+  test.equal(metadata.replaygain([("replaygain_track_gain", "foo")]), null)
 
-  test.equal(metadata.replaygain([]), null.make())
+  test.equal(metadata.replaygain([]), null)
   test.equal(
     metadata.replaygain(
       [("r128_track_gain", "foo"), ("replaygain_track_gain", "1")]
     ),
-    null.make()
+    null
   )
   test.equal(
     metadata.replaygain(
       [("replaygain_track_gain", "1"), ("r128_track_gain", "foo")]
     ),
-    null.make()
+    null
   )
 
   test.pass()

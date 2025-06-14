@@ -15,7 +15,7 @@ end
 # Return the head (first element) of a list, or `default` if the list is empty.
 # @category List
 # @param ~default Default value if key does not exist.
-def list.hd(~default=null.make(), l) =
+def list.hd(~default=null, l) =
   list.dcase(
     l,
     {
@@ -52,7 +52,7 @@ end
 
 # Return the last element of a list.
 # @category List
-def list.last(~default=null.make(), l) =
+def list.last(~default=null, l) =
   list.nth(default=default, l, list.length(l) - 1)
 end
 
@@ -169,7 +169,7 @@ end
 # `error.not_found` if no default value is specified.
 # @category List
 # @param ~default Value returned if the key is not found.
-def list.assoc(~default=null.make(), key, l) =
+def list.assoc(~default=null, key, l) =
   ret = ref(💣())
   err = error.register("assoc")
   try
@@ -220,7 +220,7 @@ def list.assoc.nullable(key, l) =
   try
     list.assoc(key, l)
   catch _ do
-    null.make()
+    null
   end
 end
 
@@ -312,7 +312,7 @@ end
 # @param ~default Returned value when the predicate is not found.
 # @param p Predicate.
 # @param l List
-def list.find(~default=null.make(), p, l) =
+def list.find(~default=null, p, l) =
   ret = ref(💣())
   err = error.register("find")
   try
@@ -357,7 +357,7 @@ def list.iterator(l) =
   def f() =
     list.case(
       l(),
-      null.make(),
+      null,
       fun (x, t) ->
         begin
           l := t
@@ -415,7 +415,7 @@ end
 # @category List
 # @param ~default Value returned if the list is empty.
 # @param l List in which the element should be picked.
-def list.pick(~default=null.make(), l) =
+def list.pick(~default=null, l) =
   if
     list.is_empty(l)
   then

@@ -6,7 +6,7 @@ def handler(req) =
   req.socket.close()
 
   # Null indicates that we're using the socket directly.
-  null.make()
+  null
 end
 
 harbor.http.register.simple("/custom", port=3456, handler)

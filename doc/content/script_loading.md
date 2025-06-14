@@ -15,6 +15,9 @@ in `secret.liq`, and then refer to that variable in your main script
 need to communicate `main.liq` there won't be any risk of divulgating your
 password.
 
+When available, the variable `liquidsoap.script.path` contains the path of the current script's
+file and `null` otherwise.
+
 ## The pervasive script library
 
 In fact, liquidsoap also implicitly loads scripts before those that you specify

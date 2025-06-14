@@ -201,7 +201,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~device V4L2 device to use.
-def input.v4l2(~id=null.make(), ~max_buffer=0.5, ~device="/dev/video0") =
+def input.v4l2(~id=null, ~max_buffer=0.5, ~device="/dev/video0") =
   (input.ffmpeg(id=id, format="v4l2", max_buffer=max_buffer, device) :
     source(video=canvas)
   )
@@ -213,10 +213,10 @@ end
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~duration Duration of the source.
 def video.testsrc.ffmpeg(
-  ~id=null.make(),
+  ~id=null,
   ~pattern="testsrc",
   ~max_buffer=0.5,
-  ~duration=null.make()
+  ~duration=null
 ) =
   size = "size=#{settings.frame.video.width()}x#{settings.frame.video.height()}"
   rate = "rate=#{settings.frame.video.framerate()}"
@@ -232,7 +232,7 @@ end
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~listen Act as a RTMP server and wait for incoming connection
 # @param url URL to read RTMP from, in the form `rtmp://IP:PORT/ENDPOINT`
-def input.rtmp(~id=null.make(), ~max_buffer=5., ~listen=true, url) =
+def input.rtmp(~id=null, ~max_buffer=5., ~listen=true, url) =
   input.ffmpeg(
     id=id,
     max_buffer=max_buffer,
@@ -268,8 +268,8 @@ let video.add_text.ffmpeg.raw = ()
 def video.add_text.ffmpeg.raw.filter(
   ~color=0xffffff,
   ~cycle=true,
-  ~font=null.make(),
-  ~metadata=null.make(),
+  ~font=null,
+  ~metadata=null,
   ~size=18,
   ~speed=70,
   ~x=getter(10),
@@ -458,8 +458,8 @@ end
 def replaces video.add_text.ffmpeg.raw(
   ~color=0xffffff,
   ~cycle=true,
-  ~font=null.make(),
-  ~metadata=null.make(),
+  ~font=null,
+  ~metadata=null,
   ~size=18,
   ~speed=70,
   ~x=getter(10),
@@ -512,12 +512,12 @@ def replaces video.add_text.ffmpeg.raw(
 end
 
 def video.add_text.ffmpeg.internal(
-  ~id=null.make(),
+  ~id=null,
   ~color=0xffffff,
   ~cycle=true,
-  ~font=null.make(),
-  ~duration=null.make(),
-  ~metadata=null.make(),
+  ~font=null,
+  ~duration=null,
+  ~metadata=null,
   ~size=18,
   ~speed=70,
   ~x=getter(10),
@@ -599,7 +599,7 @@ let ffmpeg.filter.audio_video = ()
 # Return a source with audio and video from a filter's output.
 # @category Source / Output
 # @param id Force the value of the source ID.
-def ffmpeg.filter.audio_video.output(~id=null.make(), graph, audio, video) =
+def ffmpeg.filter.audio_video.output(~id=null, graph, audio, video) =
   audio = ffmpeg.filter.audio.output(graph, audio.tracks().audio)
   video = ffmpeg.filter.video.output(graph, video.tracks().video)
   source(id=id, {audio=audio, video=video})

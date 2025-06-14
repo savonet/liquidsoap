@@ -1116,7 +1116,7 @@ let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
 
 # Record capture with optional methods:
 let { foo? } = ()
-# foo = null.make()
+# foo = null
 
 let { foo? } = { foo = 123 }
 # foo = 123
@@ -1301,7 +1301,7 @@ empty:
 
 ```liquidsoap
 def list.hd(l)
-  if l == [] then null.make() else list.hd(l) end
+  if l == [] then null else list.hd(l) end
 end
 ```
 
