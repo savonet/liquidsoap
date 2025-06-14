@@ -333,9 +333,14 @@ and eval_term ~eval_check env tm =
          tm.methods)
 
 and eval ~eval_check env tm =
-  let v = eval_term ~eval_check env tm in
-  eval_check ~env ~tm v;
-  v
+  try
+    let v = eval_term ~eval_check env tm in
+    eval_check ~env ~tm v;
+    v
+  with exn ->
+    let bt = Printexc.get_raw_backtrace () in
+    Printf.printf "Error on term: %s\n" (Term.to_string tm);
+    Printexc.raise_with_backtrace exn bt
 
 let apply ?pos t p =
   let eval_check = !Hooks.eval_check in
