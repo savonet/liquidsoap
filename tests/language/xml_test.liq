@@ -31,7 +31,7 @@ def f() =
           ble=123,
           blu=false,
           blo=1.23,
-          bar=(null(), "bla".{xml_params=[("option", "aab")]}),
+          bar=(null.make(), "bla".{xml_params=[("option", "aab")]}),
           foo="gni".{xml_params={opt=12.3}}
         }
     }

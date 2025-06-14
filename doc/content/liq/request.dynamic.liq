@@ -9,7 +9,7 @@ def get_next() =
   if
     files == []
   then
-    null()
+    null.make()
   else
     file = list.nth(files, pos())
     pos := pos() + 1 mod list.length(files)

@@ -6,7 +6,7 @@ def f() =
     0.1
   end
 
-  last_call = ref(null())
+  last_call = ref(null.make())
   def next() =
     t = time()
     called_at = last_call()
@@ -19,7 +19,7 @@ def f() =
       if 2 < retry_delay_called_count() then test.pass() end
       request.create("invalid")
     else
-      null()
+      null.make()
     end
   end
 

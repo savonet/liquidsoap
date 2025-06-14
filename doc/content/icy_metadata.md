@@ -16,7 +16,7 @@ in liquidsoap. We list some of those here.
 ## Enable/disable ICY metadata updates
 
 You can enable or disable icy metadata update in `output.icecast`
-by setting the `send_icy_metadata` parameter to `null()`, `true` or `false`. The default value is `null()` and does the following:
+by setting the `send_icy_metadata` parameter to `null`, `true` or `false`. The default value is `null` and does the following:
 
 - Set `true` for: mp3, aac, aac+, wav
 - Set `false` for any format using the ogg container
@@ -34,7 +34,7 @@ We provide a default implementation that returns `artist` or `title` metadata
 when only one of these two is available and `$(artist) - $(title)` otherwise.
 
 You can use the `icy_song` parameter to use your own implementation. Returning
-`null()` from that function disables the metadata altogether.
+`null` from that function disables the metadata altogether.
 
 ## Update metadata manually
 

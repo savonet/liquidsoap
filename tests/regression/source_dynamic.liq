@@ -5,7 +5,7 @@ s_ref = ref((fallback([]) : source))
 def next() =
   r = request.create("../streams/file1.png")
   ignore(request.resolve(r))
-  s = request.dynamic(id="image-dyn", fun () -> null())
+  s = request.dynamic(id="image-dyn", fun () -> null.make())
   s.set_queue([r])
   s
 end
@@ -24,7 +24,7 @@ s_ref = ref((fallback([]) : source))
 def next() =
   r = request.create("../streams/file1.mp3")
   ignore(request.resolve(r))
-  s = request.dynamic(id="audio-dyn", fun () -> null())
+  s = request.dynamic(id="audio-dyn", fun () -> null.make())
   s.set_queue([r])
   s
 end

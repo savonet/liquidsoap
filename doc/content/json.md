@@ -184,11 +184,11 @@ test =
   if null.defined(scripts) then
     null.get(scripts.test)
   else
-    null ()
+    null.make()
   end
 
 # Use the ?? syntax:
-test = (scripts ?? { test = null() }).test
+test = (scripts ?? { test = null.make() }).test
 ```
 
 #### Tuple types
