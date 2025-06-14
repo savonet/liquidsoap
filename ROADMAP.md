@@ -13,6 +13,12 @@
 - use source getters for switch in order to be able to play two tracks ever day
   (#2880)
 
+### From lioquidshop 5:
+
+- Better handling over core module erasure
+- Switch stream callbacks to async first
+- Add variable with current liq script name.
+
 ### Maybe TODO:
 
 - remove requests and use sources instead everywhere (a request is a source with
@@ -41,7 +47,7 @@
 - ~~Online version (#2397)~~
   - ~~Available at: https://www.liquidsoap.info/try/~~
   - ~~Needs some cleanup, definition of a minimal JS library.~~
-- ~~Switch to `dune`~~wh
+- ~~Switch to `dune`~~
 - ~~Separate standard library (in pure liq)~~
 - ~~support for multi-track audio~~
 - ~~live switch with ffmpeg encoded content~~
