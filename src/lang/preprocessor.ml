@@ -189,10 +189,13 @@ let strip_newlines tokenizer =
       | None -> (
           match tokenizer () with
             | Parser.PP_ENDL, _ -> token ()
-            | (Parser.VAR _, _) as v ->
+            | ((Parser.UNDERSCORE, _) as v)
+            | ((Parser.NULL, _) as v)
+            | ((Parser.VAR _, _) as v) ->
                 state := Some v;
                 token ()
             | x -> x)
+      | Some ((Parser.NULL, _) as v) -> inject_varlpar "null" v
       | Some ((Parser.VAR var, _) as v) -> inject_varlpar var v
       | Some ((Parser.UNDERSCORE, _) as v) -> inject_varlpar "_" v
       | Some x ->
