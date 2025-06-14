@@ -68,7 +68,6 @@ CAMLprim value liquidsoap_lufs_create_bytecode(value *argv, int argn) {
 static inline void liquidsoap_lufs_process_stage(iir_t *iir, double *x,
                                                  double *y) {
   int i, c;
-  size_t buf_len = iir->channels * sizeof(double);
 
   for (i = 0; i < iir->channels; i++)
     y[i] = iir->b0 * x[i] + iir->b1 * iir->x1[i] + iir->b2 * iir->x2[i] -
