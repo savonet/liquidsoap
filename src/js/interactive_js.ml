@@ -65,7 +65,7 @@ let on_execute =
       let parsed_term = Runtime.program tokenizer in
       let json = Liquidsoap_tooling.Parsed_json.to_json parsed_term in
       let json = Liquidsoap_lang.Json.to_string json in
-      let term = Term_reducer.to_term parsed_term in
+      let term = Term_reducer.to_term ~throw parsed_term in
       let result = execute ~throw term in
       formatLiqCode (Js.string json) (fun formatted ->
           setOutput

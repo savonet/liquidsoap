@@ -3,14 +3,14 @@ let audio.encode = ()
 
 # Encode audio track to pcm_s16
 # @category Source / Audio processing
-def audio.encode.pcm_s16(~id=null("audio.encode.pcm_s16"), s) =
+def audio.encode.pcm_s16(~id=null.make("audio.encode.pcm_s16"), s) =
   let {audio, ...tracks} = source.tracks(s)
   source(id=id, tracks.{audio=track.encode.audio.pcm_s16(audio)})
 end
 
 # Encode audio track to pcm_f32
 # @category Source / Audio processing
-def audio.encode.pcm_f32(~id=null("audio.encode.pcm_f32"), s) =
+def audio.encode.pcm_f32(~id=null.make("audio.encode.pcm_f32"), s) =
   let {audio, ...tracks} = source.tracks(s)
   source(id=id, tracks.{audio=track.encode.audio.pcm_f32(audio)})
 end
@@ -19,14 +19,14 @@ let audio.decode = ()
 
 # Decode audio track to pcm_s16
 # @category Source / Audio processing
-def audio.decode.pcm_s16(~id=null("audio.decode.pcm_s16"), s) =
+def audio.decode.pcm_s16(~id=null.make("audio.decode.pcm_s16"), s) =
   let {audio, ...tracks} = source.tracks(s)
   source(id=id, tracks.{audio=track.decode.audio.pcm_s16(audio)})
 end
 
 # Decode audio track to pcm_f32
 # @category Source / Audio processing
-def audio.decode.pcm_f32(~id=null("audio.decode.pcm_f32"), s) =
+def audio.decode.pcm_f32(~id=null.make("audio.decode.pcm_f32"), s) =
   let {audio, ...tracks} = source.tracks(s)
   source(id=id, tracks.{audio=track.decode.audio.pcm_f32(audio)})
 end
@@ -47,14 +47,14 @@ end
 # @category Source / Audio processing
 # @param f Multiplicative factor.
 # @argsof track.audio.amplify
-def amplify(~id=null("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
+def amplify(~id=null.make("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
   tracks = source.tracks(s)
   source(
     id=id,
     tracks.{
       audio=
         track.audio.amplify(
-          id=null("track.amplify"),
+          id=null.make("track.amplify"),
           %argsof(track.audio.amplify[!id]),
           f,
           tracks.audio
@@ -68,7 +68,7 @@ end
 # values higher than `1` become `1`. `nan` values become `0`.
 # @category Source / Audio processing
 # @argsof track.audio.clip
-def clip(~id=null("clip"), %argsof(track.audio.clip[!id]), s) =
+def clip(~id=null.make("clip"), %argsof(track.audio.clip[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -104,7 +104,7 @@ lufs_builtin = lufs
 # @method target_gain Current target amplification coefficient (in linear scale).
 # @method rms Current rms (in linear scale).
 def replaces normalize(
-  ~id=null,
+  ~id=null.make(),
   ~target=getter(-13.),
   ~up=getter(10.),
   ~down=getter(.1),
@@ -116,7 +116,7 @@ def replaces normalize(
   ~threshold=getter(-40.),
   ~track_sensitive=true,
   ~enabled=getter(true),
-  ~debug=null,
+  ~debug=null.make(),
   s
 ) =
   let (s, rms) =
@@ -196,7 +196,7 @@ end
 
 # Swap two channels of a stereo source.
 # @category Source / Conversion
-def swap(id=null("swap"), s) =
+def swap(id=null.make("swap"), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=track.audio.swap(tracks.audio)})
 end
@@ -204,7 +204,7 @@ end
 # Produce mono audio by taking the mean of all audio channels.
 # @category Source / Conversion
 # @argsof track.audio.mean
-def mean(~id=null("mean"), %argsof(track.audio.mean[!id]), s) =
+def mean(~id=null.make("mean"), %argsof(track.audio.mean[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -214,7 +214,7 @@ end
 
 # Convert any pcm audio source into a stereo source.
 # @category Source / Conversion
-def stereo(~id=null("stereo"), s) =
+def stereo(~id=null.make("stereo"), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=track.audio.stereo(tracks.audio)})
 end
@@ -222,16 +222,19 @@ end
 # Extract the left channel of a stereo track
 # @category Source / Conversion
 # @param t Track to extract from
-def track.audio.stereo.left(~id=null("track.audio.stereo.left"), t) =
+def track.audio.stereo.left(~id=null.make("track.audio.stereo.left"), t) =
   track.audio.amplify(
-    id=id, override=null, 2., track.audio.mean(track.audio.stereo.pan(-1., t))
+    id=id,
+    override=null.make(),
+    2.,
+    track.audio.mean(track.audio.stereo.pan(-1., t))
   )
 end
 
 # Extract the left channel of a stereo source
 # @category Source / Conversion
 # @param s Source to extract from
-def stereo.left(~id=null("stereo.left"), s) =
+def stereo.left(~id=null.make("stereo.left"), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=track.audio.stereo.left(tracks.audio)})
 end
@@ -239,16 +242,19 @@ end
 # Extract the right channel of a stereo track
 # @category Source / Conversion
 # @param s Track to extract from
-def track.audio.stereo.right(~id=null("track.audio.stereo.right"), t) =
+def track.audio.stereo.right(~id=null.make("track.audio.stereo.right"), t) =
   track.audio.amplify(
-    id=id, override=null, 2., track.audio.mean(track.audio.stereo.pan(1., t))
+    id=id,
+    override=null.make(),
+    2.,
+    track.audio.mean(track.audio.stereo.pan(1., t))
   )
 end
 
 # Extract the right channel of a stereo source
 # @category Source / Conversion
 # @param s Source to extract from
-def stereo.right(~id=null("stereo.right"), s) =
+def stereo.right(~id=null.make("stereo.right"), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=track.audio.stereo.right(tracks.audio)})
 end
@@ -256,7 +262,7 @@ end
 # Spacializer which allows controlling the width of the signal.
 # @category Source / Audio processing
 # @param w Width of the signal (-1: mono, 0.: original, 1.: wide stereo).
-def stereo.width(~id=null("stereo.width"), w=getter(0.), (s:source)) =
+def stereo.width(~id=null.make("stereo.width"), w=getter(0.), (s:source)) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=track.audio.stereo.width(w, tracks.audio)})
 end
@@ -266,7 +272,7 @@ end
 # @argsof track.audio.stereo.pan
 # @param pan Pan value. Should be between `-1` (left side) and `1` (right side).
 def stereo.pan(
-  ~id=null("stereo.pan"),
+  ~id=null.make("stereo.pan"),
   %argsof(track.audio.stereo.pan[!id]),
   pan,
   (s:source)
@@ -287,7 +293,7 @@ end
 # @category Source / Audio processing
 # @argsof track.audio.stretch
 def stretch(
-  ~id=null("stretch"),
+  ~id=null.make("stretch"),
   %argsof(track.audio.stretch[!id]),
   (s:source)
 ) =
@@ -303,7 +309,7 @@ let stereo.ms = ()
 # @category Source / Audio processing
 # @argsof track.audio.stereo.ms.decode
 def stereo.ms.decode(
-  ~id=null("stereo.ms.decode"),
+  ~id=null.make("stereo.ms.decode"),
   %argsof(track.audio.stereo.ms.decode[!id]),
   (s:source)
 ) =
@@ -323,7 +329,7 @@ end
 # @category Source / Audio processing
 # @argsof track.audio.stereo.ms.encode
 def stereo.ms.encode(
-  ~id=null("stereo.ms.encode"),
+  ~id=null.make("stereo.ms.encode"),
   %argsof(track.audio.stereo.ms.encode[!id]),
   (s:source)
 ) =
@@ -344,7 +350,7 @@ end
 # @argsof track.audio.stereotool
 # @category Source / Audio processing
 def stereotool(
-  ~id=null("stereotool"),
+  ~id=null.make("stereotool"),
   %argsof(track.audio.stereotool[!id]),
   s
 ) =
@@ -365,7 +371,7 @@ end
 # a low-level operator using directly the `pcm_s16` format.
 # @argsof track.audio.defer[!id]
 # @param ~id Force the source's ID
-def defer(~id=null("defer"), %argsof(track.audio.defer[!id]), s) =
+def defer(~id=null.make("defer"), %argsof(track.audio.defer[!id]), s) =
   let {audio = a} = source.tracks(s)
   a = track.encode.audio.pcm_s16(a)
   a = track.audio.defer(%argsof(track.audio.defer[!id]), a)
@@ -390,7 +396,7 @@ end
 # @argsof track.audio.defer[!id]
 # @param ~id Force the source's ID
 def defer.pcm_s16(
-  ~id=null("defer.pcm_s16"),
+  ~id=null.make("defer.pcm_s16"),
   %argsof(track.audio.defer[!id]),
   (s:source(audio=pcm_s16))
 ) =

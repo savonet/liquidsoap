@@ -2,7 +2,7 @@
 # @category Source / Audio processing
 # @flag extra
 # @argsof track.audio.compand
-def compand(~id=null("compand"), %argsof(track.audio.compand[!id]), s) =
+def compand(~id=null.make("compand"), %argsof(track.audio.compand[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -16,7 +16,7 @@ end
 # @category Source / Audio processing
 # @argsof track.audio.comb
 # @flag extra
-def comb(~id=null("comb"), %argsof(track.audio.comb[!id]), s) =
+def comb(~id=null.make("comb"), %argsof(track.audio.comb[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -57,7 +57,7 @@ end
 # @category Source / Audio processing
 # @flag extra
 def limit(
-  ~id=null,
+  ~id=null.make(),
   ~attack=getter(50.),
   ~release=getter(200.),
   ~ratio=getter(20.),
@@ -87,7 +87,7 @@ let limiter = limit
 # @param ~low Lower frequency of the bandpass filter.
 # @param ~high Higher frequency of the bandpass filter.
 # @param ~q Q factor.
-def filter.iir.eq.low_high(~id=null, ~low, ~high, ~q=1., s) =
+def filter.iir.eq.low_high(~id=null.make(), ~low, ~high, ~q=1., s) =
   s =
     if
       not (getter.is_constant(high) and getter.get(high) == infinity)
@@ -345,7 +345,7 @@ end
 # @category Source / Audio processing
 # @param ~id Force the value of the source ID.
 # @param ~register_server_commands Register corresponding server commands
-def mix(~id=null, ~register_server_commands=true, sources) =
+def mix(~id=null.make(), ~register_server_commands=true, sources) =
   id = string.id.default(default="mixer", id)
   inputs =
     list.map(
@@ -585,7 +585,7 @@ end
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
 def output.file.dash(
-  ~id=null,
+  ~id=null.make(),
   ~fallible=false,
   ~on_start={()},
   ~on_stop={()},

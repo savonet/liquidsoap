@@ -49,7 +49,7 @@ end
 
 # Split a string in two at first "separator".
 # @category String
-def string.split.first(~encoding=null, ~separator, s) =
+def string.split.first(~encoding=null.make(), ~separator, s) =
   n = string.length(encoding=encoding, s)
   l = string.length(encoding=encoding, separator)
   i = string.index(substring=separator, s)
@@ -76,7 +76,7 @@ end
 # @param ~suffix Suffix to look for.
 # @param s The string to look into.
 def string.contains(
-  ~encoding=null,
+  ~encoding=null.make(),
   ~prefix="",
   ~substring="",
   ~suffix="",
@@ -139,7 +139,7 @@ end
 # @category String
 # @param ~encoding Encoding used to split characters. Should be one of: `"utf8"` or `"ascii"`
 # @param ~prefix Requested prefix.
-def string.residual(~encoding=null, ~prefix, s) =
+def string.residual(~encoding=null.make(), ~prefix, s) =
   n = string.length(encoding=encoding, prefix)
   if
     string.contains(encoding=encoding, prefix=prefix, s)
@@ -151,7 +151,7 @@ def string.residual(~encoding=null, ~prefix, s) =
       length=string.length(encoding=encoding, s) - n
     )
   else
-    null
+    null.make()
   end
 end
 
@@ -268,7 +268,7 @@ end
 # following JSON and javascript specification.
 # @category String
 # @param ~encoding One of: `"ascii"` or `"utf8"`. If `null`, `utf8` is tried first and `ascii` is used as a fallback if this fails.
-def string.quote(~encoding=null, s) =
+def string.quote(~encoding=null.make(), s) =
   def special_char(~encoding, s) =
     if
       s == "'"
@@ -331,7 +331,7 @@ def string.data_uri.decode(s) =
 
     data.{mime=mime}
   else
-    null
+    null.make()
   end
 end
 

@@ -9,7 +9,7 @@
 # @method last How long ago a file was played (in seconds), `infinity` is returned if the song has never been played.
 def playlog(
   ~duration=infinity,
-  ~persistency=null,
+  ~persistency=null.make(),
   ~hash=fun (m) -> m["filename"]
 ) =
   l = ref([])
@@ -21,7 +21,7 @@ def playlog(
     if
       file.exists(null.get(persistency))
     then
-      let json.parse (parsed : [(string * float)]?) =
+      let json.parse (parsed : [(string*float)]?) =
         file.contents(null.get(persistency))
 
       if null.defined(parsed) then l := null.get(parsed) end

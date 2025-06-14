@@ -32,12 +32,12 @@ end
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
 def request.queue(
-  ~id=null,
+  ~id=null.make(),
   ~interactive=true,
-  ~prefetch=null,
+  ~prefetch=null.make(),
   ~native=false,
   ~queue=[],
-  ~timeout=null
+  ~timeout=null.make()
 ) =
   ignore(native)
   id = string.id.default(default="request.queue", id)
@@ -54,7 +54,7 @@ def request.queue(
       queue := q
       (r : request)
     else
-      null
+      null.make()
     end
   end
 
@@ -214,7 +214,7 @@ end
 # @category Source / Input
 # @param ~timeout Timeout in seconds for resolving the request.
 # @param r Request to play.
-def request.once(~id=null("request.once"), ~timeout=null, r) =
+def request.once(~id=null.make("request.once"), ~timeout=null.make(), r) =
   id = string.id.default(default="request.once", id)
 
   done = ref(false)
@@ -224,7 +224,7 @@ def request.once(~id=null("request.once"), ~timeout=null, r) =
     if
       done()
     then
-      null
+      null.make()
     else
       done := true
       if
@@ -258,10 +258,10 @@ end
 # @param ~fallible Enforce fallibility of the request.
 # @param r Request
 def request.single(
-  ~id=null("request.single"),
-  ~prefetch=null,
-  ~timeout=null,
-  ~fallible=null,
+  ~id=null.make("request.single"),
+  ~prefetch=null.make(),
+  ~timeout=null.make(),
+  ~fallible=null.make(),
   r
 ) =
   id = string.id.default(default="single", id)
@@ -299,7 +299,7 @@ def request.single(
     )
   end
 
-  static_request = ref(null)
+  static_request = ref(null.make())
 
   def on_wake_up(s) =
     if
@@ -333,7 +333,7 @@ def request.single(
     then
       request.destroy(null.get(static_request()))
     end
-    static_request := null
+    static_request := null.make()
   end
 
   def next() =
@@ -376,10 +376,10 @@ end
 # @param uri URI where to find the file
 def single(
   %argsof(request.single[!id,!fallible]),
-  ~id=null("single"),
+  ~id=null.make("single"),
   ~fallible=false,
-  ~cue_in_metadata=null("liq_cue_in"),
-  ~cue_out_metadata=null("liq_cue_out"),
+  ~cue_in_metadata=null.make("liq_cue_in"),
+  ~cue_out_metadata=null.make("liq_cue_out"),
   uri
 ) =
   r =
@@ -447,11 +447,11 @@ def request.player(~simultaneous=true) =
         }
     }
   else
-    next_source = ref(null)
+    next_source = ref(null.make())
 
     def next() =
       s = next_source()
-      next_source := null
+      next_source := null.make()
       s
     end
 

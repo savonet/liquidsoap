@@ -9,8 +9,8 @@
 def replaces thread.run(
   ~fast=true,
   ~delay=0.,
-  ~on_error=null,
-  ~every=null,
+  ~on_error=null.make(),
+  ~every=null.make(),
   f
 ) =
   every = every ?? getter(-1.)
@@ -54,7 +54,7 @@ def thread.when(
   ~every=getter(0.5),
   ~once=false,
   ~changed=true,
-  ~on_error=null,
+  ~on_error=null.make(),
   p,
   f
 ) =
@@ -83,4 +83,4 @@ def default_error_handler(~backtrace, err) =
   )
 end
 
-thread.on_error(null, default_error_handler)
+thread.on_error(null.make(), default_error_handler)

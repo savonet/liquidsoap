@@ -1,7 +1,7 @@
 # Create an audio source from the given track, with
 # metadata and track marks from that same track.
 # @category Source / Track processing
-def source.audio(~id=null("source.audio"), audio) =
+def source.audio(~id=null.make("source.audio"), audio) =
   source(
     id=id,
     {
@@ -15,7 +15,7 @@ end
 # Create a video source from the given track, with
 # metadata and track marks from that same track.
 # @category Source / Track processing
-def source.video(~id=null("source.video"), video) =
+def source.video(~id=null.make("source.video"), video) =
   source(
     id=id,
     {
@@ -31,8 +31,8 @@ end
 #               when `null`.
 # @category Metadata
 def track.metadata.deduplicate(
-  ~id=null("track.metadata.deduplicate"),
-  ~using=null,
+  ~id=null.make("track.metadata.deduplicate"),
+  ~using=null.make(),
   t
 ) =
   last_meta = ref([])
@@ -69,7 +69,7 @@ end
 #               when `null`.
 # @param ~id Source id
 # @param s source
-def metadata.deduplicate(~id=null("metadata.deduplicate"), ~using=null, s) =
+def metadata.deduplicate(~id=null.make("metadata.deduplicate"), ~using=null.make(), s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -81,7 +81,7 @@ end
 # @category Source / Track processing
 # @argsof track.metadata.map
 def metadata.map(
-  ~id=null("metadata.map"),
+  ~id=null.make("metadata.map"),
   %argsof(track.metadata.map[!id]),
   f,
   (s:source)
@@ -107,7 +107,7 @@ end
 # Creates a source that plays only one track of the input source.
 # @category Source / Track processing
 # @param s The input source.
-def once(~id=null("once"), s) =
+def once(~id=null.make("once"), s) =
   sequence(id=id, [(s : source), source.fail()])
 end
 
@@ -119,7 +119,7 @@ end
 # @param ~min_noise Minimum duration of noise required to end silence, in seconds.
 # @param ~track_sensitive Reset blank counter at each track.
 def blank.skip(
-  ~id=null("blank.skip"),
+  ~id=null.make("blank.skip"),
   ~threshold=-40.,
   ~max_blank=20.,
   ~min_noise=0.,
@@ -144,7 +144,7 @@ end
 # @param ~delay Time to wait before the first run (in seconds).
 # @param ~every How often to run the function (in seconds). The function is run once if `null`.
 # @param f Function to run.
-def source.run(s, ~delay=0., ~every=null, f) =
+def source.run(s, ~delay=0., ~every=null.make(), f) =
   next = ref(delay)
 
   def check() =
@@ -169,14 +169,14 @@ end
 # @param ~insert_missing Treat track beginnings without metadata as having empty one.
 # @param ~merge Merge the track with its appended track.
 # @flag extra
-def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
-  last_meta = ref(null)
-  pending = ref(null)
+def append(~id=null.make("append"), ~insert_missing=true, ~merge=false, s, f) =
+  last_meta = ref(null.make())
+  pending = ref(null.make())
 
   def next() =
     p = pending()
-    pending := null
-    last_meta := null
+    pending := null.make()
+    last_meta := null.make()
 
     if null.defined(p) then null.get(p) else (s : source) end
   end
@@ -193,8 +193,8 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
       if
         m["liq_append"] == "false"
       then
-        last_meta := null
-        pending := null
+        last_meta := null.make()
+        pending := null.make()
       elsif
         last_meta() != m
       then
@@ -219,12 +219,12 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
       fun (s) -> pending.set(s),
     cancel_pending=
       # Cancel any pending appended source.
-      fun () -> pending.set(null),
+      fun () -> pending.set(null.make()),
     skip=
       # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
       fun (~cancel_pending=true) ->
         begin
-          if cancel_pending then pending.set(null) end
+          if cancel_pending then pending.set(null.make()) end
           s.skip()
         end
   }
@@ -236,19 +236,19 @@ end
 # @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent any track prepend.
 # @param ~merge Merge the track with its appended track.
 # @flag extra
-def prepend(~id=null("prepend"), ~merge=false, s, f) =
-  last_meta = ref(null)
+def prepend(~id=null.make("prepend"), ~merge=false, s, f) =
+  last_meta = ref(null.make())
 
   def on_meta(m) =
     if
       m["liq_prepend"] == "false"
     then
-      last_meta := null
+      last_meta := null.make()
     elsif last_meta() != m then last_meta := m
     end
   end
 
-  s = source.on_track(s, fun (m) -> m == [] ? last_meta := null : on_meta(m) )
+  s = source.on_track(s, fun (m) -> m == [] ? last_meta := null.make() : on_meta(m) )
   s = source.on_metadata(s, on_meta)
 
   def next() =
@@ -256,7 +256,7 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
       null.defined(last_meta)
     then
       m = last_meta()
-      last_meta := null
+      last_meta := null.make()
       if
         null.defined(m)
       then

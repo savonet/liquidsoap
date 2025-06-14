@@ -26,15 +26,15 @@ end
 # @param ~y y position.
 # @param req Image request
 def request.image(
-  ~id=null,
+  ~id=null.make(),
   ~fallible=false,
-  ~width=null,
-  ~height=null,
+  ~width=null.make(),
+  ~height=null.make(),
   ~x=getter(0),
   ~y=getter(0),
   req
 ) =
-  last_req = ref(null)
+  last_req = ref(null.make())
 
   def next() =
     req = (getter.get(req) : request)
@@ -47,7 +47,7 @@ def request.image(
       image = video.crop(image)
       video.resize(id=id, x=x, y=y, width=width, height=height, image)
     else
-      null
+      null.make()
     end
   end
 
@@ -83,10 +83,10 @@ let orig_request = request
 # @param ~y y position.
 # @param ~request Request to add to the video track
 def track.video.add_request(
-  ~id=null("track.video.add_request"),
+  ~id=null.make("track.video.add_request"),
   ~fallible=false,
-  ~width=null,
-  ~height=null,
+  ~width=null.make(),
+  ~height=null.make(),
   ~x=getter(0),
   ~y=getter(0),
   ~request,
@@ -111,10 +111,10 @@ end
 # @param ~y y position.
 # @param ~file Path to the image file.
 def track.video.add_image(
-  ~id=null("track.video.add_image"),
+  ~id=null.make("track.video.add_image"),
   ~fallible=false,
-  ~width=null,
-  ~height=null,
+  ~width=null.make(),
+  ~height=null.make(),
   ~x=getter(0),
   ~y=getter(0),
   ~file,
@@ -137,10 +137,10 @@ end
 # @param ~y y position.
 # @param ~request Request to add to the video channel
 def video.add_request(
-  ~id=null("video.add_request"),
+  ~id=null.make("video.add_request"),
   ~fallible=false,
-  ~width=null,
-  ~height=null,
+  ~width=null.make(),
+  ~height=null.make(),
   ~x=getter(0),
   ~y=getter(0),
   ~request,
@@ -171,10 +171,10 @@ end
 # @param ~y y position.
 # @param ~file Path to the image file.
 def video.add_image(
-  ~id=null("video.add_image"),
+  ~id=null.make("video.add_image"),
   ~fallible=false,
-  ~width=null,
-  ~height=null,
+  ~width=null.make(),
+  ~height=null.make(),
   ~x=getter(0),
   ~y=getter(0),
   ~file,
@@ -194,7 +194,7 @@ end
 # @category Source / Video processing
 # @param s Audio source whose metadata contain cover-art.
 def video.cover(s) =
-  last_filename = ref(null)
+  last_filename = ref(null.make())
   fail = (source.fail() : source)
 
   def next() =
@@ -228,7 +228,7 @@ def video.cover(s) =
         fail
       end
     else
-      null
+      null.make()
     end
   end
 
@@ -249,7 +249,7 @@ let output.youtube.live = ()
 # @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
 # @param ~key Your secret youtube key
 def output.youtube.live.rtmp(
-  ~id=null,
+  ~id=null.make(),
   ~fallible=false,
   ~on_start={()},
   ~on_stop={()},
@@ -285,7 +285,7 @@ end
 # @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
 # @param ~key Your secret youtube key
 def output.youtube.live.hls(
-  ~id=null,
+  ~id=null.make(),
   ~fallible=false,
   ~on_start={()},
   ~on_stop={()},
@@ -349,12 +349,12 @@ end
 # @flag hidden
 def add_text_builder(f) =
   def at(
-    ~id=null,
-    ~duration=null,
+    ~id=null.make(),
+    ~duration=null.make(),
     ~color=getter(0xffffff),
     ~cycle=true,
-    ~font=null,
-    ~metadata=null,
+    ~font=null.make(),
+    ~metadata=null.make(),
     ~size=getter(18),
     ~speed=0,
     ~x=getter(10),
@@ -547,10 +547,10 @@ thread.run(
 # @param ~size Font size.
 # @param text Text to display.
 def replaces video.text(
-  ~id=null,
+  ~id=null.make(),
   ~color=getter(0xffffff),
-  ~duration=null,
-  ~font=null,
+  ~duration=null.make(),
+  ~font=null.make(),
   ~size=getter(18),
   text
 ) =
@@ -579,12 +579,12 @@ end
 # @param ~on_cycle Function called when text is cycling.
 # @params d Text to display.
 def replaces video.add_text(
-  ~id=null,
-  ~duration=null,
+  ~id=null.make(),
+  ~duration=null.make(),
   ~color=0xffffff,
   ~cycle=true,
-  ~font=null,
-  ~metadata=null,
+  ~font=null.make(),
+  ~metadata=null.make(),
   ~size=18,
   ~speed=0,
   ~x=getter(10),
@@ -652,7 +652,7 @@ end
 # @method prev Go to previous file.
 # @method current Currently displayed file.
 def video.slideshow(
-  ~id=null,
+  ~id=null.make(),
   ~cyclic=getter(true),
   ~advance=getter(-1.),
   l=[]
@@ -661,11 +661,11 @@ def video.slideshow(
   l = ref(l)
   n = ref(-1)
 
-  next_source = ref(null)
+  next_source = ref(null.make())
 
   def next() =
     s = next_source()
-    next_source := null
+    next_source := null.make()
     s
   end
 
@@ -754,7 +754,7 @@ end
 # @argsof track.video.tile
 # @argsof track.audio.add[!id]
 def video.tile(
-  ~id=null("video.tile"),
+  ~id=null.make("video.tile"),
   %argsof(track.audio.add[!id]),
   %argsof(track.video.tile[!id]),
   ~weights=[],

@@ -8,7 +8,7 @@
 # @param ~default Default cover file when no cover is available
 # @param ~mime_types Recognized mime types and their corresponding file extensions.
 def file.cover.manager(
-  ~id=null,
+  ~id=null.make(),
   ~mime_types=[
     ("image/gif", "gif"),
     ("image/jpg", "jpeg"),
@@ -39,7 +39,7 @@ def file.cover.manager(
           label=id,
           "File #{string.quote(filename)} has no cover."
         )
-        null
+        null.make()
       else
         cover = null.get(cover)
         extension = mime_types[cover.mime]
@@ -52,7 +52,7 @@ def file.cover.manager(
               string.quote(cover.mime)
             }."
           )
-          null
+          null.make()
         else
           cover_file = file.temp("#{id}_", ".#{extension}")
           file.write(cover_file, data=cover)
