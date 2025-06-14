@@ -214,7 +214,7 @@ end
 # @category Source / Input
 # @param ~timeout Timeout in seconds for resolving the request.
 # @param r Request to play.
-def request.once(~id=null.make("request.once"), ~timeout=null, r) =
+def request.once(~id=null("request.once"), ~timeout=null, r) =
   id = string.id.default(default="request.once", id)
 
   done = ref(false)
@@ -258,7 +258,7 @@ end
 # @param ~fallible Enforce fallibility of the request.
 # @param r Request
 def request.single(
-  ~id=null.make("request.single"),
+  ~id=null("request.single"),
   ~prefetch=null,
   ~timeout=null,
   ~fallible=null,
@@ -376,10 +376,10 @@ end
 # @param uri URI where to find the file
 def single(
   %argsof(request.single[!id,!fallible]),
-  ~id=null.make("single"),
+  ~id=null("single"),
   ~fallible=false,
-  ~cue_in_metadata=null.make("liq_cue_in"),
-  ~cue_out_metadata=null.make("liq_cue_out"),
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
   uri
 ) =
   r =

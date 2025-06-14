@@ -182,7 +182,7 @@ def f() =
   x = ({foo=null} : {foo?: int?})
   test.equal(f(x), null)
   test.equal(f(true), null)
-  test.equal(f({foo=1}), null.make(1))
+  test.equal(f({foo=1}), null(1))
 
   # We want to make sure that:
   def f(x) =
@@ -193,8 +193,8 @@ def f() =
   # i.e. that { foo = (fun (_) -> { } ) } is a valid argument
   test.equal(f({foo=(fun (_) -> {})}), null)
   test.equal(f(112.{foo=(fun (_) -> false)}), null)
-  test.equal(f({foo=(fun (_) -> {gni=2})}), null.make(2))
-  test.equal(f(345.{foo=(fun (_) -> "aabb".{gni=2})}), null.make(2))
+  test.equal(f({foo=(fun (_) -> {gni=2})}), null(2))
+  test.equal(f(345.{foo=(fun (_) -> "aabb".{gni=2})}), null(2))
 
   # We want to make sure that:
   def f(x) =

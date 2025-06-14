@@ -30,7 +30,7 @@ def openai.chat(
   ~key,
   ~base_url="https://api.openai.com",
   ~model="gpt-3.5-turbo",
-  ~timeout=null.make(30.),
+  ~timeout=null(30.),
   (
   messages:
   [
@@ -109,7 +109,7 @@ def openai.speech(
   ~key,
   ~base_url="https://api.openai.com",
   ~model="tts-1",
-  ~timeout=null.make(30.),
+  ~timeout=null(30.),
   ~voice,
   ~response_format="mp3",
   ~speed=1.,

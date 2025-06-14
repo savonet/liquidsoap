@@ -83,7 +83,7 @@ let orig_request = request
 # @param ~y y position.
 # @param ~request Request to add to the video track
 def track.video.add_request(
-  ~id=null.make("track.video.add_request"),
+  ~id=null("track.video.add_request"),
   ~fallible=false,
   ~width=null,
   ~height=null,
@@ -111,7 +111,7 @@ end
 # @param ~y y position.
 # @param ~file Path to the image file.
 def track.video.add_image(
-  ~id=null.make("track.video.add_image"),
+  ~id=null("track.video.add_image"),
   ~fallible=false,
   ~width=null,
   ~height=null,
@@ -137,7 +137,7 @@ end
 # @param ~y y position.
 # @param ~request Request to add to the video channel
 def video.add_request(
-  ~id=null.make("video.add_request"),
+  ~id=null("video.add_request"),
   ~fallible=false,
   ~width=null,
   ~height=null,
@@ -171,7 +171,7 @@ end
 # @param ~y y position.
 # @param ~file Path to the image file.
 def video.add_image(
-  ~id=null.make("video.add_image"),
+  ~id=null("video.add_image"),
   ~fallible=false,
   ~width=null,
   ~height=null,
@@ -754,7 +754,7 @@ end
 # @argsof track.video.tile
 # @argsof track.audio.add[!id]
 def video.tile(
-  ~id=null.make("video.tile"),
+  ~id=null("video.tile"),
   %argsof(track.audio.add[!id]),
   %argsof(track.video.tile[!id]),
   ~weights=[],

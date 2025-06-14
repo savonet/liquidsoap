@@ -122,11 +122,11 @@ def f() =
 
   test.equal(
     string.data_uri.decode("data:foo/bar;base64,4pyo"),
-    null.make("✨".{mime="foo/bar"})
+    null("✨".{mime="foo/bar"})
   )
 
   test.equal(
-    string.data_uri.decode("data:foo/bar,✨"), null.make("✨".{mime="foo/bar"})
+    string.data_uri.decode("data:foo/bar,✨"), null("✨".{mime="foo/bar"})
   )
 
   test.equal(

@@ -11,7 +11,7 @@
 # @param ~preflight_continue Pass the CORS preflight response to the nexnhandler.
 # @param ~options_status_code Provides a status code to use for successful OPTIONS requests, since some legacy browsers (IE11, various SmartTVs) choke on 204.
 def harbor.http.middleware.cors(
-  ~origin=null.make("*"),
+  ~origin=null("*"),
   ~origin_callback=null,
   ~methods=["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
   ~allowed_headers=null,

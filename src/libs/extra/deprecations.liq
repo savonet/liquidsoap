@@ -885,7 +885,7 @@ end
 # Deprecated: integrated into requests resolution.
 # @flag deprecated
 def cue_cut(
-  ~id=null.make(""),
+  ~id=null(""),
   ~cue_in_metadata="",
   ~cue_out_metadata="",
   ~on_cue_in=(fun () -> ()),
