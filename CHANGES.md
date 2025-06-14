@@ -1,5 +1,12 @@
 2.3.4 (unreleased)
 
+New:
+
+- `null` can now be used directly without having to call `null()`.
+  `null(value)` calls are still valid and can be used to create
+  non-null values with nullable types. Calls to `null()` are marked
+  as deprecated (#4516)
+
 Changed:
 
 - Improved source and clock naming (#4497)
