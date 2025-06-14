@@ -8,7 +8,7 @@ end
 # and no default value was specified.
 # @category Programming
 # @param ~default Returned value when the value is `null`.
-def null.get(~default=null, x) =
+def null.get(~default=null.make(), x) =
   null.case(
     x,
     {
@@ -34,7 +34,7 @@ end
 # otherwise.
 # @category Programming
 def null.map(f, x) =
-  null.case(x, {null}, fun (x) -> f(x))
+  null.case(x, {null.make()}, fun (x) -> f(x))
 end
 
 # Find the first element of a list for which the image of the function is not
@@ -44,7 +44,7 @@ end
 # @param ~default Returned value when no element is found.
 # @param f Function.
 # @param l List.
-def null.find(~default=null, f, l) =
+def null.find(~default=null.make(), f, l) =
   def rec aux(l) =
     f =
       list.case(

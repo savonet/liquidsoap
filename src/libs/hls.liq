@@ -50,9 +50,9 @@ end
 # @docof output.file.hls
 def replaces output.file.hls(
   %argsof(output.file.hls[!main_playlist_writer]),
-  ~main_playlist_writer=null(
+  ~main_playlist_writer=null.make(
     fun (~extra_tags, ~prefix, ~version, streams) ->
-      null(
+      null.make(
         hls.playlist.main(
           extra_tags=extra_tags, prefix=prefix, version=version, streams
         )
@@ -79,7 +79,7 @@ let input.hls = ()
 # @param ~reload How often (in seconds) the playlist should be reloaded.
 # @param uri Playlist URI.
 # @flag experimental
-def input.hls.native(~id=null, ~reload=10., uri) =
+def input.hls.native(~id=null.make(), ~reload=10., uri) =
   playlistr = ref([])
   sequence = ref(0)
   playlist_uri = ref(uri)
@@ -152,7 +152,7 @@ def input.hls.native(~id=null, ~reload=10., uri) =
       sequence := sequence() + 1
       request.create(ret)
     else
-      null
+      null.make()
     end
   end
 
@@ -197,7 +197,7 @@ let replaces input.hls = input.ffmpeg
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param uri Playlist URI.
-def input.hls(~id=null, uri) =
+def input.hls(~id=null.make(), uri) =
   input.hls(id=id, uri)
 end
 
@@ -260,7 +260,7 @@ def replaces output.harbor.hls(
   ~headers=[("Access-Control-Allow-Origin", "*")],
   ~port=8000,
   ~path="/",
-  ~tmpdir=null,
+  ~tmpdir=null.make(),
   ~transport=http.transport.unix,
   formats,
   s
@@ -304,7 +304,7 @@ def output.harbor.hls.https(
   ~headers=[("Access-Control-Allow-Origin", "*")],
   ~port=8000,
   ~path="/",
-  ~tmpdir=null,
+  ~tmpdir=null.make(),
   formats,
   s
 ) =

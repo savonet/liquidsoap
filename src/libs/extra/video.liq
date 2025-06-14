@@ -11,8 +11,8 @@
 # @param ~mime_types Recognized mime types and their corresponding file extensions.
 def video.add_cover(
   ~fallible=false,
-  ~width=null,
-  ~height=null,
+  ~width=null.make(),
+  ~height=null.make(),
   ~x=getter(0),
   ~y=getter(0),
   ~mime_types=[

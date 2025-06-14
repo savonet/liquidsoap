@@ -8,7 +8,7 @@
 # @param ~on_error Error callback executed when a streaming error occurs. \
 #                  When passed, all streaming errors are silenced. Intended \
 #                  mostly for debugging purposes.
-def clock.assign_new(~sync="auto", ~id=null, ~on_error=null, sources) =
+def clock.assign_new(~sync="auto", ~id=null.make(), ~on_error=null.make(), sources) =
   c = clock.create(id=id, sync=sync, on_error=on_error)
   list.iter(fun (s) -> c.unify(s.clock), sources)
 end

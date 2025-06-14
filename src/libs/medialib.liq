@@ -12,13 +12,13 @@
 # @method add_directory Add a new directory which should be scanned.
 # @method clear Remove all known metadata.
 def medialib(
-  ~id=null,
-  ~persistency=null,
-  ~refresh=null,
+  ~id=null.make(),
+  ~persistency=null.make(),
+  ~refresh=null.make(),
   ~standardize=fun (m) -> m,
   ~initial_progress=true,
   ~directories=[],
-  dir=null
+  dir=null.make()
 ) =
   id = string.id.default(default="medialib", id)
   refresh_time = refresh
@@ -89,7 +89,7 @@ def medialib(
       if
         not (file.exists(f))
       then
-        null
+        null.make()
       elsif
         needs_update(f, m)
       then
@@ -194,22 +194,22 @@ def medialib(
   # Find all files matching given criteria.
   def find(
     ~case_sensitive=true,
-    ~artist=null,
-    ~artist_contains=null,
-    ~artist_matches=null,
-    ~album=null,
-    ~genre=null,
-    ~title=null,
-    ~title_contains=null,
-    ~filename=null,
-    ~filename_contains=null,
-    ~filename_matches=null,
-    ~year=null,
-    ~year_ge=null,
-    ~year_lt=null,
-    ~bpm=null,
-    ~bpm_ge=null,
-    ~bpm_lt=null,
+    ~artist=null.make(),
+    ~artist_contains=null.make(),
+    ~artist_matches=null.make(),
+    ~album=null.make(),
+    ~genre=null.make(),
+    ~title=null.make(),
+    ~title_contains=null.make(),
+    ~filename=null.make(),
+    ~filename_contains=null.make(),
+    ~filename_matches=null.make(),
+    ~year=null.make(),
+    ~year_ge=null.make(),
+    ~year_lt=null.make(),
+    ~bpm=null.make(),
+    ~bpm_ge=null.make(),
+    ~bpm_lt=null.make(),
     ~predicate=(fun (_) -> true)
   ) =
     def p(m) =
@@ -399,13 +399,13 @@ end
 # @method add_directory Add a new directory which should be scanned.
 # @method clear Remove all known metadata.
 def medialib.sqlite(
-  ~id=null,
+  ~id=null.make(),
   ~database,
-  ~refresh=null,
+  ~refresh=null.make(),
   ~standardize=fun (m) -> m,
   ~initial_progress=true,
   ~directories=[],
-  dir=null
+  dir=null.make()
 ) =
   id = string.id.default(default="medialib.sqlite", id)
   refresh_time = refresh
@@ -493,10 +493,10 @@ def medialib.sqlite(
             try
               map(x)
             catch _ do
-              null
+              null.make()
             end
           end
-          if list.assoc.mem(k, m) then map(list.assoc(k, m)) else null end
+          if list.assoc.mem(k, m) then map(list.assoc(k, m)) else null.make() end
         end
         id = fun (x) -> x
         m =
@@ -579,23 +579,23 @@ def medialib.sqlite(
   # Find all files matching given criteria.
   def find(
     ~case_sensitive=true,
-    ~artist=null,
-    ~artist_contains=null,
-    ~artist_matches=null,
-    ~album=null,
-    ~genre=null,
-    ~title=null,
-    ~title_contains=null,
-    ~filename=null,
-    ~filename_contains=null,
-    ~filename_matches=null,
-    ~year=null,
-    ~year_ge=null,
-    ~year_lt=null,
-    ~bpm=null,
-    ~bpm_ge=null,
-    ~bpm_lt=null,
-    ~condition=null
+    ~artist=null.make(),
+    ~artist_contains=null.make(),
+    ~artist_matches=null.make(),
+    ~album=null.make(),
+    ~genre=null.make(),
+    ~title=null.make(),
+    ~title_contains=null.make(),
+    ~filename=null.make(),
+    ~filename_contains=null.make(),
+    ~filename_matches=null.make(),
+    ~year=null.make(),
+    ~year_ge=null.make(),
+    ~year_lt=null.make(),
+    ~bpm=null.make(),
+    ~bpm_ge=null.make(),
+    ~bpm_lt=null.make(),
+    ~condition=null.make()
   ) =
     predicates = ref([])
     def pred(p) =

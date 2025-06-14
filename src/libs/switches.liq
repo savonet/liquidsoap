@@ -7,7 +7,7 @@
 # @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 def fallback(
-  ~id=null,
+  ~id=null.make(),
   ~override="liq_transition_length",
   ~replay_metadata=true,
   ~track_sensitive=true,
@@ -39,7 +39,7 @@ end
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 def rotate(
-  ~id=null,
+  ~id=null.make(),
   ~override="liq_transition_length",
   ~replay_metadata=true,
   ~transition_length=5.,
@@ -157,7 +157,7 @@ end
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child the probability that it is selected.
 def replaces random(
-  ~id=null,
+  ~id=null.make(),
   ~override="liq_transition_length",
   ~replay_metadata=true,
   ~transition_length=5.,

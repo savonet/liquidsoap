@@ -29,7 +29,7 @@ let replaces output = output.pulseaudio
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
 def replaces output(
-  ~id=null,
+  ~id=null.make(),
   ~fallible=true,
   ~on_start={()},
   ~on_stop={()},
@@ -69,7 +69,7 @@ let output.video = output.graphics
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
 def output.video(
-  ~id=null,
+  ~id=null.make(),
   ~fallible=true,
   ~on_start={()},
   ~on_stop={()},
@@ -92,7 +92,7 @@ end
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
 def output.audio_video(
-  ~id=null,
+  ~id=null.make(),
   ~fallible=true,
   ~on_start={()},
   ~on_stop={()},
@@ -120,7 +120,7 @@ def output.audio_video(
 end
 
 def replaces input(
-  ~id=null,
+  ~id=null.make(),
   ~start=true,
   ~on_start={()},
   ~on_stop={()},
@@ -157,7 +157,7 @@ let replaces input = input.pulseaudio
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 def replaces input(
-  ~id=null,
+  ~id=null.make(),
   ~start=true,
   ~on_start={()},
   ~on_stop={()},

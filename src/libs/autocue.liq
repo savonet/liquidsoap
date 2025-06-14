@@ -263,7 +263,7 @@ def autocue.internal.implementation(
       label="autocue.internal.metadata",
       "Override metadata detected for #{filename}, disabling autocue!"
     )
-    null
+    null.make()
   else
     log(
       level=4,
@@ -274,18 +274,18 @@ def autocue.internal.implementation(
 %ifdef request.duration.ffmpeg
     duration = request.duration.ffmpeg(resolve_metadata=false, filename)
 %else
-    duration = null
+    duration = null.make()
 %endif
 
     if
-      duration == null
+      duration == null.make()
     then
       log(
         level=2,
         label="autocue.internal",
         "Could not get request duration, internal autocue disabled!"
       )
-      null
+      null.make()
     else
       duration = null.get(duration)
 
@@ -302,7 +302,7 @@ def autocue.internal.implementation(
           label="autocue.internal",
           "Autocue computation failed!"
         )
-        null
+        null.make()
       else
         # Get the 2nd last frame which is the last with loudness data
         frame = list.nth(frames, list.length(frames) - 2)
@@ -981,7 +981,7 @@ def enable_autocue_metadata() =
       user_supplied_amplify =
         list.filter_map(
           fun (el) ->
-            if list.mem(fst(el), all_amplify) then fst(el) else null end,
+            if list.mem(fst(el), all_amplify) then fst(el) else null.make() end,
           metadata
         )
 
@@ -1054,8 +1054,8 @@ def enable_autocue_metadata() =
   mime_types = settings.decoder.mime_types.ffmpeg()
   file_extensions = settings.decoder.file_extensions.ffmpeg()
 %else
-  mime_types = null
-  file_extensions = null
+  mime_types = null.make()
+  file_extensions = null.make()
 %endif
 
   decoder.metadata.add(
