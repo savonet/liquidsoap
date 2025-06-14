@@ -1,5 +1,10 @@
 2.3.4 (unreleased)
 
+New:
+
+- Added `liquidsoap.script.path` that contains the path to the current
+  script's file, if available.
+
 Changed:
 
 - Improved source and clock naming (#4497)

@@ -89,6 +89,7 @@
  (libraries
   liquidsoap-lang.console
   dune-site
+  fileutils
   re
   str
   unix
