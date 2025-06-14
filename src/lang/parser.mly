@@ -68,7 +68,6 @@ open Parser_helper
 %token UNDERSCORE
 %token NOT
 %token GET SET
-%token NULL
 %token <bool> PP_IFDEF
 %token PP_IFVERSION
 %token ARGS_OF
@@ -90,7 +89,6 @@ open Parser_helper
 %left BIN1 AT
 %left BIN2 MINUS
 %left BIN3 TIMES
-%nonassoc NULL
 %nonassoc COALESCE     (* (x ?? y) == z *)
 %nonassoc QUESTION_DOT (* (x ?. y) == z *)
 %right COLONCOLON
@@ -227,10 +225,7 @@ expr:
   | LCUR record optional_comma RCUR  { mk ~pos:$loc (`Methods (None, $2)) }
   | LCUR RCUR                        { mk ~pos:$loc (`Methods (None, [])) }
   | expr QUESTION_DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = true }) }
-  | NULL QUESTION_DOT invoke         { mk ~pos:$loc (`Invoke { invoked = mk ~pos:$loc($1) (`Var "null"); meth = $3; optional = true }) }
   | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = false }) }
-  | NULL DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = mk ~pos:$loc($1) (`Var "null"); meth = $3; optional = false }) }
-  | NULL                             { mk ~pos:$loc `Null }
   | VARLPAR app_list RPAR            { mk_app ~pos:$loc ~var_pos:$loc($1) $1 $2 }
   | expr COLONCOLON expr             { mk ~pos:$loc (`Append ($1, $3)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (`Assoc (mk ~pos:$loc($1) (`Var $1), $2)) }

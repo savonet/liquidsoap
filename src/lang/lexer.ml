@@ -276,7 +276,6 @@ let rec token lexbuf =
     | '_' -> UNDERSCORE
     | "true" -> BOOL true
     | "false" -> BOOL false
-    | "null" -> NULL
     | int_literal -> INT (Sedlexing.Utf8.lexeme lexbuf)
     | decimal_literal, ".{" ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
