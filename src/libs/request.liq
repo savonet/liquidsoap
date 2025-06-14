@@ -32,12 +32,12 @@ end
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
 def request.queue(
-  ~id=null(),
+  ~id=null,
   ~interactive=true,
-  ~prefetch=null(),
+  ~prefetch=null,
   ~native=false,
   ~queue=[],
-  ~timeout=null()
+  ~timeout=null
 ) =
   ignore(native)
   id = string.id.default(default="request.queue", id)
@@ -54,7 +54,7 @@ def request.queue(
       queue := q
       (r : request)
     else
-      null()
+      null
     end
   end
 
@@ -214,7 +214,7 @@ end
 # @category Source / Input
 # @param ~timeout Timeout in seconds for resolving the request.
 # @param r Request to play.
-def request.once(~id=null("request.once"), ~timeout=null(), r) =
+def request.once(~id=null("request.once"), ~timeout=null, r) =
   id = string.id.default(default="request.once", id)
 
   done = ref(false)
@@ -224,7 +224,7 @@ def request.once(~id=null("request.once"), ~timeout=null(), r) =
     if
       done()
     then
-      null()
+      null
     else
       done := true
       if
@@ -259,9 +259,9 @@ end
 # @param r Request
 def request.single(
   ~id=null("request.single"),
-  ~prefetch=null(),
-  ~timeout=null(),
-  ~fallible=null(),
+  ~prefetch=null,
+  ~timeout=null,
+  ~fallible=null,
   r
 ) =
   id = string.id.default(default="single", id)
@@ -299,7 +299,7 @@ def request.single(
     )
   end
 
-  static_request = ref(null())
+  static_request = ref(null)
 
   def on_wake_up(s) =
     if
@@ -333,7 +333,7 @@ def request.single(
     then
       request.destroy(null.get(static_request()))
     end
-    static_request := null()
+    static_request := null
   end
 
   def next() =
@@ -447,11 +447,11 @@ def request.player(~simultaneous=true) =
         }
     }
   else
-    next_source = ref(null())
+    next_source = ref(null)
 
     def next() =
       s = next_source()
-      next_source := null()
+      next_source := null
       s
     end
 

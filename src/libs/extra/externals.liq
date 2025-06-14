@@ -63,7 +63,7 @@ def enable_external_ffmpeg_decoder() =
   end
 
   if
-    file.which(ffmpeg) != null() and file.which(ffprobe) != null()
+    file.which(ffmpeg) != null and file.which(ffprobe) != null
   then
     log(
       label="external.decoder",
@@ -139,7 +139,7 @@ def enable_external_mpc_decoder() =
   end
 
   if
-    file.which(mpcdec) != null()
+    file.which(mpcdec) != null
   then
     log(
       label="external.decoder",
@@ -188,7 +188,7 @@ def enable_external_flac_decoder() =
   flac = settings.decoder.external.flac.path()
   metaflac = settings.decoder.external.metaflac.path()
   if
-    file.which(flac) != null()
+    file.which(flac) != null
   then
     log(
       label="external.decoder",
@@ -199,7 +199,7 @@ def enable_external_flac_decoder() =
 
     def test_flac(fname) =
       if
-        file.which(metaflac) != null()
+        file.which(metaflac) != null
       then
         channels =
           list.hd(
@@ -242,7 +242,7 @@ def enable_external_flac_decoder() =
   end
 
   if
-    file.which(metaflac) != null()
+    file.which(metaflac) != null
   then
     log(
       label="decoder.external",
@@ -348,7 +348,7 @@ def enable_external_faad_decoder() =
   end
 
   if
-    file.which(faad) != null()
+    file.which(faad) != null
   then
     log(
       label="decoder.external",
@@ -629,7 +629,7 @@ end
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.external.ffmpeg(
-  ~id=null(),
+  ~id=null,
   ~show_command=false,
   ~flush=false,
   ~fallible=false,
@@ -693,7 +693,7 @@ end
 # @param ~directory Directory to write to
 # @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.file.hls.ffmpeg(
-  ~id=null(),
+  ~id=null,
   ~flush=false,
   ~fallible=false,
   ~on_start={()},
@@ -753,7 +753,7 @@ let output.file.dash = ()
 # @param ~directory Directory to write to
 # @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.file.dash.ffmpeg(
-  ~id=null(),
+  ~id=null,
   ~flush=false,
   ~fallible=false,
   ~on_start={()},

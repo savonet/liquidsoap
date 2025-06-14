@@ -308,6 +308,8 @@ exception Missing_arguments of Pos.Option.t * (string * Type.t) list
     well as the ability to distinguish toplevel and inner let-in terms. *)
 exception Unused_variable of (string * Pos.t)
 
+exception Deprecated of (string * Pos.t)
+
 let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =
     let v =

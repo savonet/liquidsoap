@@ -2,7 +2,7 @@
 # @flag extra
 # @category Source / Visualization
 # @param ~id Force the value of the source ID.
-def server.rms(~id=null(), s) =
+def server.rms(~id=null, s) =
   let s = rms(id=id, s)
 
   def rms(_) =
@@ -27,7 +27,7 @@ end
 # @flag extra
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
-def server.insert_metadata(~id=null(), s) =
+def server.insert_metadata(~id=null, s) =
   s = insert_metadata(id=id, s)
   insert = s.insert_metadata
 

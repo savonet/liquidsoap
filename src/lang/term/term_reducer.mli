@@ -30,6 +30,6 @@ type processor =
 val program : processor
 val typecheck : (?env:Typing.env -> Term.t -> unit) ref
 val mk_expr : ?fname:string -> processor -> Sedlexing.lexbuf -> Parsed_term.t
-val to_term : Parsed_term.t -> Term.t
+val to_term : throw:(exn -> unit) -> Parsed_term.t -> Term.t
 val to_encoder_params : Parsed_term.encoder_params -> Term.encoder_params
 val needs_toplevel : unit -> bool

@@ -24,6 +24,7 @@ open Term_hash
 include Runtime_term
 module Custom = Term_base.Custom
 
+type term_annotation = [ `Deprecated of string ]
 type comment = [ `Before of string list | `After of string list ]
 type pos = Term_base.parsed_pos
 
@@ -220,6 +221,7 @@ and t = {
   term : parsed_ast;
   pos : pos; [@hash.ignore]
   mutable comments : (pos * comment) list; [@hash.ignore]
+  annotations : term_annotation list; [@hash.ignore]
 }
 [@@deriving hash]
 
@@ -235,7 +237,9 @@ and encoder_params =
 and encoder = string * encoder_params
 
 let unit = `Tuple []
-let make ?(comments = []) ~pos term = { pos; term; comments }
+
+let make ?(comments = []) ?(annotations = []) ~pos term =
+  { pos; term; comments; annotations }
 
 let rec iter_term fn ({ term } as tm) =
   if term <> `Eof then fn tm;
