@@ -72,7 +72,6 @@ val mk_json_assoc_object_ty :
 
 val mk :
   ?comments:(pos * Parsed_term.comment) list ->
-  ?annotations:Parsed_term.term_annotation list ->
   pos:pos ->
   Term.parsed_ast ->
   Term.t
@@ -92,4 +91,3 @@ val mk_encoder : pos:pos -> string -> Term.encoder_params -> Term.t
 val args_of_json_parse : pos:pos -> (string * 'a) list -> (string * 'a) list
 val render_string_ref : (pos:pos -> char * string -> string) ref
 val render_string : pos:pos -> char * string -> string
-val mk_app : pos:pos -> var_pos:pos -> string -> Term.app_arg list -> Term.t

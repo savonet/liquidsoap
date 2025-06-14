@@ -156,13 +156,3 @@ let mk_let ~pos _let body =
   mk ~pos ast
 
 let mk_encoder ~pos e p = mk ~pos (`Encoder (e, p))
-
-let mk_app ~pos ~var_pos v arglist =
-  let v, annotations =
-    match v with
-      | "_null" ->
-          let v = mk ~pos:var_pos (`Var "_null") in
-          (v, if arglist = [] then [`Deprecated "use `null`"] else [])
-      | v -> (mk ~pos:var_pos (`Var v), [])
-  in
-  mk ~annotations ~pos (`App (v, arglist))
