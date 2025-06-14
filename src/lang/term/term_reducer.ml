@@ -1295,6 +1295,10 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
     | `Var s -> `Var s
     | `Seq (t, t') -> `Seq (to_term ~env t, to_term ~env t')
     | `App (t, args) ->
+        (match (t, args) with
+          | { term = `Var "_null"; pos }, [] ->
+              throw (Term.Deprecated ("use `null`", Pos.of_lexing_pos pos))
+          | _ -> ());
         let args = expand_appof ~pos ~env ~to_term args in
         `App (to_term ~env t, args)
     | `Fun (args, body) -> `Fun (to_func ~pos ~env ~to_term args body)
@@ -1310,10 +1314,6 @@ and to_func ~pos ~env ~to_term ?name arguments body =
   }
 
 and to_term ~throw ~env (tm : Parsed_term.t) : Term.t =
-  List.iter
-    (function
-      | `Deprecated s -> throw (Term.Deprecated (s, Pos.of_lexing_pos tm.pos)))
-    tm.annotations;
   let to_term = to_term ~throw in
   match tm.term with
     | `Seq ({ pos; term = `If_def _ as ast }, t')
