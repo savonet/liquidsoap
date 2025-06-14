@@ -226,7 +226,7 @@ let _ =
     takes care of the various reload mechanisms. *)
 
 let default_reopen_on_error =
-  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> null()"
+  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> null"
 
 let default_reopen_on_metadata =
   Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> false"

@@ -23,8 +23,8 @@ audioscrobbler = ()
 
 def audioscrobbler.request(
   ~base_url="http://ws.audioscrobbler.com/2.0",
-  ~api_key=null(),
-  ~api_secret=null(),
+  ~api_key=null,
+  ~api_secret=null,
   params
 ) =
   api_key = api_key ?? settings.audioscrobbler.api_key()
@@ -75,8 +75,8 @@ end
 def audioscrobbler.auth(
   ~username,
   ~password,
-  ~api_key=null(),
-  ~api_secret=null()
+  ~api_key=null,
+  ~api_secret=null
 ) =
   resp =
     audioscrobbler.request(
@@ -112,17 +112,17 @@ let audioscrobbler.api = {track=()}
 def audioscrobbler.api.track.updateNowPlaying(
   ~username,
   ~password,
-  ~session_key=null(),
-  ~api_key=null(),
-  ~api_secret=null(),
+  ~session_key=null,
+  ~api_key=null,
+  ~api_secret=null,
   ~artist,
   ~track,
-  ~album=null(),
-  ~context=null(),
-  ~trackNumber=null(),
-  ~mbid=null(),
-  ~albumArtist=null(),
-  ~duration=null()
+  ~album=null,
+  ~context=null,
+  ~trackNumber=null,
+  ~mbid=null,
+  ~albumArtist=null,
+  ~duration=null
 ) =
   session_key =
     session_key
@@ -211,7 +211,7 @@ def audioscrobbler.api.apply_meta(
   m
 ) =
   def c(v) =
-    v == "" ? null() : v
+    v == "" ? null : v
   end
   track = m["title"]
   artist = m["artist"]
@@ -229,7 +229,7 @@ def audioscrobbler.api.apply_meta(
       try
         null.map(int_of_string, c(m["tracknumber"]))
       catch _ do
-        null()
+        null
       end
     albumArtist = c(m["albumartist"])
     ignore(
@@ -255,9 +255,9 @@ end
 def audioscrobbler.api.track.updateNowPlaying.metadata(
   ~username,
   ~password,
-  ~session_key=null(),
-  ~api_key=null(),
-  ~api_secret=null(),
+  ~session_key=null,
+  ~api_key=null,
+  ~api_secret=null,
   m
 ) =
   audioscrobbler.api.apply_meta(
@@ -278,20 +278,20 @@ end
 def audioscrobbler.api.track.scrobble(
   ~username,
   ~password,
-  ~session_key=null(),
-  ~api_key=null(),
-  ~api_secret=null(),
+  ~session_key=null,
+  ~api_key=null,
+  ~api_secret=null,
   ~artist,
   ~track,
-  ~timestamp=null(),
-  ~album=null(),
-  ~context=null(),
-  ~streamId=null(),
+  ~timestamp=null,
+  ~album=null,
+  ~context=null,
+  ~streamId=null,
   ~chosenByUser=true,
-  ~trackNumber=null(),
-  ~mbid=null(),
-  ~albumArtist=null(),
-  ~duration=null()
+  ~trackNumber=null,
+  ~mbid=null,
+  ~albumArtist=null,
+  ~duration=null
 ) =
   session_key =
     session_key
@@ -382,9 +382,9 @@ end
 def audioscrobbler.api.track.scrobble.metadata(
   ~username,
   ~password,
-  ~session_key=null(),
-  ~api_key=null(),
-  ~api_secret=null(),
+  ~session_key=null,
+  ~api_key=null,
+  ~api_secret=null,
   m
 ) =
   audioscrobbler.api.apply_meta(
@@ -411,8 +411,8 @@ end
 def audioscrobbler.submit(
   ~username,
   ~password,
-  ~api_key=null(),
-  ~api_secret=null(),
+  ~api_key=null,
+  ~api_secret=null,
   ~delay=10.,
   ~force=false,
   ~metadata_preprocessor=fun (m) -> m,

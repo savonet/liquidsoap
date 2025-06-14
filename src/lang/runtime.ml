@@ -89,6 +89,10 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf () =
       warning_header ~formatter 4 (Some pos);
       Format.fprintf formatter "Unused variable %s@]@." s;
       if !strict then raise Error
+  | Term.Deprecated (s, pos) ->
+      flush_all ();
+      warning_header ~formatter 5 (Some pos);
+      Format.fprintf formatter "Deprecated: %s@]@." s
   (* Errors *)
   | Failure s when s = "lexing: empty token" ->
       print_error ~formatter 1 "Empty token";
@@ -253,7 +257,8 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
                     | None ->
                         report ~lexbuf:None
                           ~default:(fun () -> raise Error)
-                          (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
+                          (fun ~throw () ->
+                            Term_reducer.to_term ~throw parsed_term)
                     | Some tm -> tm
                 in
                 (term, term, None)
@@ -310,9 +315,9 @@ let interactive =
 let mk_expr ?fname processor lexbuf =
   report ~lexbuf:(Some lexbuf)
     ~default:(fun () -> raise Error)
-    (fun ~throw:_ () ->
+    (fun ~throw () ->
       let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
-      (parsed_term, Term_reducer.to_term parsed_term))
+      (parsed_term, Term_reducer.to_term ~throw parsed_term))
 
 let parse s =
   let lexbuf = Sedlexing.Utf8.from_string s in

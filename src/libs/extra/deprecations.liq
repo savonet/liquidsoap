@@ -50,7 +50,7 @@ end
 # Deprecated: use mksafe and playlist instead.
 # @flag deprecated
 def playlist.safe(
-  ~id=null(),
+  ~id=null,
   ~mime_type="",
   ~mode="randomize",
   ~on_track={()},
@@ -115,7 +115,7 @@ end
 # `reload_mode` argument to `"never"` and `loop` to `false`.
 # @flag deprecated
 def playlist.once(
-  ~id=null(),
+  ~id=null,
   ~random=false,
   ~reload_mode="",
   ~prefetch=1,
@@ -165,7 +165,7 @@ end
 
 # Deprecated: this function will be removed in a future release
 # @flag deprecated
-def id(~id=null(), s) =
+def id(~id=null, s) =
   deprecated("id", "")
   ignore(id)
   s
@@ -347,7 +347,7 @@ end
 
 # Deprecated: this function has been replaced by `source.fail`.
 # @flag deprecated
-def empty(~id=null()) =
+def empty(~id=null) =
   deprecated("empty", "source.fail")
   source.fail(id=id)
 end
@@ -472,7 +472,7 @@ end
 
 # @flag deprecated
 def output.preferred(
-  ~id=null(),
+  ~id=null,
   ~fallible=false,
   ~on_start={()},
   ~on_stop={()},
@@ -495,7 +495,7 @@ end
 # Deprecated: use `input` instead.
 # @flag deprecated
 def in(
-  ~id=null(),
+  ~id=null,
   ~start=true,
   ~on_start={()},
   ~on_stop={()},
@@ -637,7 +637,7 @@ end
 # Deprecated: use `playlist` instead
 # @flag deprecated
 def playlist.reloadable(
-  ~id=null(),
+  ~id=null,
   ~mime_type="",
   ~mode="randomize",
   ~on_track={()},
@@ -675,7 +675,7 @@ def request.dynamic.list(%argsof(request.dynamic), f) =
       list.iter(add(), list.rev(q))
       r
     else
-      null()
+      null
     end
   end
 
@@ -841,14 +841,14 @@ end
 
 # Deprecated: use `source.stereo`
 # @flag deprecated
-def audio_to_stereo(~id=null(), s) =
+def audio_to_stereo(~id=null, s) =
   deprecated("audio_to_stereo", "stereo")
   stereo(id=id, s)
 end
 
 # Deprecated: use `source.tracks` and `source`
 # @flag deprecated
-def merge_tracks(~id=null(), s) =
+def merge_tracks(~id=null, s) =
   deprecated("merge_tracks", "source")
   let {track_marks = _, ...tracks} = source.tracks(s)
   source(id=id, tracks)
@@ -857,7 +857,7 @@ end
 %ifdef compress
 # Deprecated: use `compress`
 # @flag deprecated
-def compress.old(~id=null(), s) =
+def compress.old(~id=null, s) =
   deprecated("compress.old", "compress")
   compress(id=id, s)
 end

@@ -11,7 +11,7 @@ def f() =
     first := false
     sine(id="sineF", 880.)
   else
-    null()
+    null
   end
 end
 

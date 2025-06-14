@@ -1116,7 +1116,7 @@ let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
 
 # Record capture with optional methods:
 let { foo? } = ()
-# foo = null()
+# foo = null
 
 let { foo? } = { foo = 123 }
 # foo = 123
@@ -1301,7 +1301,7 @@ empty:
 
 ```liquidsoap
 def list.hd(l)
-  if l == [] then null() else list.hd(l) end
+  if l == [] then null else list.hd(l) end
 end
 ```
 
@@ -1313,7 +1313,7 @@ whose type would be
 
 since it takes as argument a list whose elements are of type `'a` and returns a
 list whose elements are `'a` or `null`. As it can be observed above, the null
-value is created with `null()`.
+value is created with `null`.
 
 In order to use a nullable value, one typically uses the construction `x ?? d`
 which is the value `x` excepting when it is null, in which case it is the

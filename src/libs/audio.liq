@@ -104,7 +104,7 @@ lufs_builtin = lufs
 # @method target_gain Current target amplification coefficient (in linear scale).
 # @method rms Current rms (in linear scale).
 def replaces normalize(
-  ~id=null(),
+  ~id=null,
   ~target=getter(-13.),
   ~up=getter(10.),
   ~down=getter(.1),
@@ -116,7 +116,7 @@ def replaces normalize(
   ~threshold=getter(-40.),
   ~track_sensitive=true,
   ~enabled=getter(true),
-  ~debug=null(),
+  ~debug=null,
   s
 ) =
   let (s, rms) =
@@ -224,7 +224,7 @@ end
 # @param t Track to extract from
 def track.audio.stereo.left(~id=null("track.audio.stereo.left"), t) =
   track.audio.amplify(
-    id=id, override=null(), 2., track.audio.mean(track.audio.stereo.pan(-1., t))
+    id=id, override=null, 2., track.audio.mean(track.audio.stereo.pan(-1., t))
   )
 end
 
@@ -241,7 +241,7 @@ end
 # @param s Track to extract from
 def track.audio.stereo.right(~id=null("track.audio.stereo.right"), t) =
   track.audio.amplify(
-    id=id, override=null(), 2., track.audio.mean(track.audio.stereo.pan(1., t))
+    id=id, override=null, 2., track.audio.mean(track.audio.stereo.pan(1., t))
   )
 end
 

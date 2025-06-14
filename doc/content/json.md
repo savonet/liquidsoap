@@ -188,7 +188,7 @@ test =
   end
 
 # Use the ?? syntax:
-test = (scripts ?? { test = null() }).test
+test = (scripts ?? { test = null }).test
 ```
 
 #### Tuple types

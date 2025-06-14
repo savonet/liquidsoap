@@ -65,7 +65,7 @@ def f() =
       width=0,
       height=0,
       color_depth=0,
-      number_of_colors=null()
+      number_of_colors=null
     }
   )
 

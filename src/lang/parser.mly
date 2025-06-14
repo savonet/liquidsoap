@@ -36,6 +36,8 @@ open Parser_helper
 %token <string * char list > REGEXP
 %token <string> INT PP_INT_DOT_LCUR
 %token <string> FLOAT
+%token NULL
+%token NULLDOT
 %token <bool> BOOL
 %token <Parsed_term.time_el> TIME
 %token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
@@ -221,12 +223,13 @@ expr:
   | expr DOT LCUR record RCUR        { mk ~pos:$loc (`Methods (Some $1, $4)) }
   | expr DOT LCUR record optional_comma RCUR
                                      { mk ~pos:$loc (`Methods (Some $1, $4)) }
+  | NULL                             { mk ~pos:$loc `Null }
   | LCUR record RCUR                 { mk ~pos:$loc (`Methods (None, $2)) }
   | LCUR record optional_comma RCUR  { mk ~pos:$loc (`Methods (None, $2)) }
   | LCUR RCUR                        { mk ~pos:$loc (`Methods (None, [])) }
   | expr QUESTION_DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = true }) }
   | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = false }) }
-  | VARLPAR app_list RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var $1), $2)) }
+  | VARLPAR app_list RPAR            { mk_app ~pos:$loc ~var_pos:$loc($1) $1 $2 }
   | expr COLONCOLON expr             { mk ~pos:$loc (`Append ($1, $3)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (`Assoc (mk ~pos:$loc($1) (`Var $1), $2)) }
   | expr DOT VARLBRA expr RBRA       { let src = mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; optional = false; meth = `String $3})) in
@@ -398,6 +401,7 @@ app_list:
   | app_list_elem COMMA app_list { $1::$3 }
 
 optvar:
+  | NULL       { "_null" }
   | VAR        { $1 }
   | UNDERSCORE { "_" }
 

@@ -212,7 +212,7 @@ let default_icy_song =
   elsif title != "" then
     title
   else
-    null()
+    null
   end
 end|}
 

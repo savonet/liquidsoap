@@ -3,7 +3,7 @@ def f() =
   on_cleanup({file.remove(tmp)})
   s = insert_metadata(sine())
   insert_metadata = s.insert_metadata
-  err = ref(null())
+  err = ref(null)
 
   def on_frame() =
     null.case(
@@ -11,7 +11,7 @@ def f() =
       {()},
       fun (e) ->
         begin
-          err := null()
+          err := null
           error.raise(e)
         end
     )

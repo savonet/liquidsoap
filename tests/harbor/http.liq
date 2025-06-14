@@ -252,7 +252,7 @@ def f() =
       "HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n"
     )
     req.socket.close()
-    null()
+    null
   end
 
   harbor.http.register.simple("/custom", port=3456, handler)

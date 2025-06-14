@@ -20,7 +20,7 @@ def test.pass() =
 end
 
 # End test with a failure.
-def test.fail(reason=null()) =
+def test.fail(reason=null) =
   reason =
     if
       null.defined(reason)
@@ -191,7 +191,7 @@ def test.not_almost_equal(~digits=7, first, second) =
   end
 end
 
-def test.raises(fn, e=null()) =
+def test.raises(fn, e=null) =
   try
     ignore(fn())
     error.raise(
@@ -226,7 +226,7 @@ def test.check(f) =
 end
 
 # Add a metric
-def test.metric(~category, ~name, ~value, ~unit, ~min=null()) =
+def test.metric(~category, ~name, ~value, ~unit, ~min=null) =
   min =
     null.defined(min)
     ?
@@ -248,4 +248,4 @@ def on_error(~backtrace, error) =
   test.fail()
 end
 
-thread.on_error(null(), on_error)
+thread.on_error(null, on_error)

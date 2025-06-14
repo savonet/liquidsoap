@@ -787,7 +787,7 @@ end
 # @param ~id Id of the source. Variable names are prefixed with this.
 # @param ~bands Number of bands.
 # @param s Source to compress.
-def compress.multiband.interactive(~id=null(), ~bands=5, s) =
+def compress.multiband.interactive(~id=null, ~bands=5, s) =
   id = string.id.default(default="compress.multiband.interactive", id)
   prefix = id ^ "_"
   wet = interactive.float(prefix ^ "wet", min=0., max=1., 1.)
