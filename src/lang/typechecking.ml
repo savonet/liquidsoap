@@ -38,8 +38,7 @@ let debug = ref false
       [def f() = fun (x) -> x end; fn = f() : fun ('a) -> 'a ]
     - but this cannot: [s = single() : source('A) ]
     - and this cannot either:
-      [def f() = fun (x=null.make()) -> ref(x) end; fn = f() : (?'A?) -> ref('A)
-       ]
+      [def f() = fun (x=null) -> ref(x) end; fn = f() : (?'A?) -> ref('A) ]
 
     When all universal types in the return are specified by a non-optional
     argument, we are assured that anything that would be generalized is later

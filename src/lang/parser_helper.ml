@@ -160,17 +160,19 @@ let mk_encoder ~pos e p = mk ~pos (`Encoder (e, p))
 let mk_app ~pos ~var_pos v arglist =
   let v, annotations =
     match v with
-      | "null" ->
+      | "_null" ->
           let v =
             mk ~pos:var_pos
               (`Invoke
                  {
-                   invoked = mk ~pos:var_pos (`Var "null");
+                   invoked = mk ~pos:var_pos (`Var "_null");
                    meth = `String "make";
                    optional = false;
                  })
           in
-          (v, [`Deprecated "use `null.make`"])
+          ( v,
+            if arglist = [] then [`Deprecated "use `null`"]
+            else [`Deprecated "use `null.make`"] )
       | v -> (mk ~pos:var_pos (`Var v), [])
   in
   mk ~annotations ~pos (`App (v, arglist))

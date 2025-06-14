@@ -8,7 +8,7 @@ let playlist.parse.cue = ()
 # Parse a cue file
 # @category Liquidsoap
 # @param ~pwd Path to use for relative path resolution
-def playlist.parse.cue.full(~pwd=null.make(), content) =
+def playlist.parse.cue.full(~pwd=null, content) =
   content = string.split(separator="[\r\n]+", content)
 
   def parse_file(s) =
@@ -28,7 +28,7 @@ def playlist.parse.cue.full(~pwd=null.make(), content) =
             if
               file_type == ""
             then
-              null.make()
+              null
             else
               string.case(lower=true, file_type)
             end
@@ -57,7 +57,7 @@ def playlist.parse.cue.full(~pwd=null.make(), content) =
       filename = playlist.parse.get_file(pwd=pwd, filename)
       {filename=filename, file_type=file_type}
     catch _ do
-      null.make()
+      null
     end
   end
 
@@ -69,7 +69,7 @@ def playlist.parse.cue.full(~pwd=null.make(), content) =
 
       {position=position, track_type=string.case(lower=true, type)}
     catch _ : [error.not_found] do
-      null.make()
+      null
     end
   end
 
@@ -80,7 +80,7 @@ def playlist.parse.cue.full(~pwd=null.make(), content) =
       value = string.unquote(list.assoc(2, matches))
       (name, value)
     catch _ : [error.not_found] do
-      null.make()
+      null
     end
   end
 
@@ -93,7 +93,7 @@ def playlist.parse.cue.full(~pwd=null.make(), content) =
 
       {minutes=minutes, seconds=seconds, frames=frames}
     catch _ : [error.not_found] do
-      null.make()
+      null
     end
   end
 
@@ -105,7 +105,7 @@ def playlist.parse.cue.full(~pwd=null.make(), content) =
 
       (index, null.get(parse_timecode(timecode)))
     catch _ do
-      null.make()
+      null
     end
   end
 
@@ -358,7 +358,7 @@ def playlist.parse.cue.full(~pwd=null.make(), content) =
     end
   end
 
-  parse_content(file=null.make(), sheet={tracks=[], rem=[]}, content)
+  parse_content(file=null, sheet={tracks=[], rem=[]}, content)
 end
 
 let settings.playlist.cue =
@@ -397,7 +397,7 @@ let settings.playlist.cue.postgap_metadata =
 # Parse a cue file and return a value suitable for playlist parser registration.
 # @category Liquidsoap
 # @param ~pwd Path to use for relative path resolution
-def replaces playlist.parse.cue(~pwd=null.make(), content) =
+def replaces playlist.parse.cue(~pwd=null, content) =
   # Simple test: playlist should have at least one file..
   if
     r/FILE/.test(content)
@@ -619,7 +619,7 @@ def playlist.id(~default, uri) =
   if
     basename == "."
   then
-    string.id.default(default=default, null.make())
+    string.id.default(default=default, null)
   else
     basename
   end
@@ -630,12 +630,7 @@ end
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic detection.
 # @param ~timeout Timeout for resolving the playlist
 # @param uri Path to the playlist
-def playlist.files(
-  ~id=null.make(),
-  ~mime_type=null.make(),
-  ~timeout=null.make(),
-  uri
-) =
+def playlist.files(~id=null, ~mime_type=null, ~timeout=null, uri) =
   id = id ?? playlist.id(default="playlist.files", uri)
 
   if
@@ -718,17 +713,17 @@ let stdlib_native = native
 # @method reload Reload the playlist with given list of songs.
 # @method remaining_files Songs remaining to be played.
 def playlist.list(
-  ~id=null.make(),
-  ~check_next=null.make(),
-  ~prefetch=null.make(),
+  ~id=null,
+  ~check_next=null,
+  ~prefetch=null,
   ~loop=true,
   ~mode="normal",
   ~native=false,
   ~on_loop={()},
   ~on_done={()},
   ~max_fail=10,
-  ~on_fail=null.make(),
-  ~timeout=null.make(),
+  ~on_fail=null,
+  ~timeout=null,
   ~cue_in_metadata=null.make("liq_cue_in"),
   ~cue_out_metadata=null.make("liq_cue_out"),
   playlist
@@ -773,7 +768,7 @@ def playlist.list(
 
   # Delay the creation of next after the source because we need it to resolve
   # requests at the right content type.
-  next_fun = ref(fun () -> null.make())
+  next_fun = ref(fun () -> null)
 
   def next() =
     f = next_fun()
@@ -872,7 +867,7 @@ def playlist.list(
       file == "" or (failed_count() >= max_fail and time() < failed_time() + 1.)
     then
       # Playlist failed too many times recently, don't try next for now.
-      null.make()
+      null
     else
       log.debug(
         label=id,
@@ -983,21 +978,21 @@ end
 # @method length Length of the of the playlist (the number of songs it contains).
 # @method remaining_files Songs remaining to be played.
 def replaces playlist(
-  ~id=null.make(),
-  ~check_next=null.make(),
-  ~prefetch=null.make(),
+  ~id=null,
+  ~check_next=null,
+  ~prefetch=null,
   ~loop=true,
   ~max_fail=10,
-  ~mime_type=null.make(),
+  ~mime_type=null,
   ~mode="randomize",
   ~native=false,
   ~on_done={()},
-  ~on_fail=null.make(),
+  ~on_fail=null,
   ~on_reload=(fun (_) -> ()),
   ~prefix="",
   ~reload=0,
   ~reload_mode="seconds",
-  ~timeout=null.make(),
+  ~timeout=null,
   ~cue_in_metadata=null.make("liq_cue_in"),
   ~cue_out_metadata=null.make("liq_cue_out"),
   ~register_server_commands=true,
@@ -1115,7 +1110,7 @@ def replaces playlist(
     )
 
   # The reload function
-  def s.reload(~empty_queue=true, ~uri=null.make()) =
+  def s.reload(~empty_queue=true, ~uri=null) =
     if
       failed_loads() < max_fail
     then
@@ -1151,7 +1146,7 @@ def replaces playlist(
       then
         ref(null.make(file.watch(playlist_uri(), s.reload)))
       else
-        ref(null.make())
+        ref(null)
       end
 
     watched_uri = ref(playlist_uri())
@@ -1164,13 +1159,7 @@ def replaces playlist(
         if null.defined(w) then null.get(w).unwatch() end
         watched_uri := uri
         watcher :=
-          if
-            file.exists(uri)
-          then
-            file.watch(uri, s.reload)
-          else
-            null.make()
-          end
+          if file.exists(uri) then file.watch(uri, s.reload) else null end
       end
     end
 

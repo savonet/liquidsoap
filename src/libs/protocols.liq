@@ -135,7 +135,7 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
         "Removing #{output}."
       )
       file.remove(output)
-      null.make()
+      null
     end
   end
 
@@ -157,7 +157,7 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
         level=3,
         "Failed to resolve #{uri}"
       )
-      null.make()
+      null
     end
   end
 end
@@ -180,7 +180,7 @@ protocol.add(
 # @param cmd Command line to execute
 # @param ~extname Output file extension (with no leading '.')
 # @param ~uri Input uri
-def process.uri(~timeout=null.make(), ~extname, ~uri="", cmd) =
+def process.uri(~timeout=null, ~extname, ~uri="", cmd) =
   timeout = null.case(timeout, {""}, fun (t) -> "timeout=" ^ string(t) ^ ",")
   cmd = r/:/g.replace(fun (_) -> "$(colon)", cmd)
   uri = if uri != "" then ":#{uri}" else "" end
@@ -201,7 +201,7 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
   ret = http.head(timeout=timeout, uri)
   code = ret.status_code ?? 999
   extname =
-    if 200 <= code and code < 300 then http.headers.extname(ret.headers) else null.make() end
+    200 <= code and code < 300 ? http.headers.extname(ret.headers) : null
 
   extname =
     if
@@ -253,14 +253,14 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
         }"
       )
 
-      null.make()
+      null
     end
   catch err do
     log(
       level=3,
       "Error while fetching http data: #{err}"
     )
-    null.make()
+    null
   end
 end
 
@@ -627,14 +627,14 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
         level=3,
         "Failed to resolve #{uri}"
       )
-      null.make()
+      null
     end
   else
     log(
       level=3,
       "Failed to resolve #{arg}"
     )
-    null.make()
+    null
   end
 end
 
@@ -658,7 +658,7 @@ def protocol.stereo(~rlog=_, ~maxtime=_, arg) =
     log.info(
       "Stereo: failed to resolve request #{arg}"
     )
-    null.make()
+    null
   else
     request.dump(%wav, file, request.create(arg))
     file
@@ -875,21 +875,21 @@ let settings.protocol.aws.profile =
   settings.make(
     description=
       "Use a specific profile from your credential file.",
-    null.make()
+    null
   )
 
 let settings.protocol.aws.endpoint =
   settings.make(
     description=
       "Alternative endpoint URL (useful for other S3 implementations).",
-    null.make()
+    null
   )
 
 let settings.protocol.aws.region =
   settings.make(
     description=
       "AWS Region",
-    null.make()
+    null
   )
 
 let settings.protocol.aws.path =
@@ -1030,7 +1030,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
   if
     list.exists(fun (l) -> list.length(l) != 2, args)
   then
-    null.make()
+    null
   else
     args =
       list.map(
@@ -1091,7 +1091,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
       synth(square(duration=duration(), frequency()))
     elsif shape() == "blank" then synth(blank(duration=duration()))
     else
-      null.make()
+      null
     end
   end
 end

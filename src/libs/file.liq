@@ -52,7 +52,7 @@ def file.write.stream(
   ~perms=0o644,
   ~append=false,
   ~atomic=false,
-  ~temp_dir=null.make(),
+  ~temp_dir=null,
   p
 ) =
   let (fd, exec) =
@@ -121,7 +121,7 @@ def replaces file.write(
   ~perms=0o644,
   ~append=false,
   ~atomic=false,
-  ~temp_dir=null.make(),
+  ~temp_dir=null,
   path
 ) =
   cb =
@@ -183,7 +183,7 @@ def file.iterator(fname) =
   fun () ->
     begin
       s = f()
-      (s == "") ? null.make() : s
+      (s == "") ? null : s
     end
 end
 
@@ -198,7 +198,7 @@ def file.mime.cli(fname) =
       )
     )
 
-  mime == "" ? null.make() : mime
+  mime == "" ? null : mime
 end
 
 # Get a file's mime type. Uses libmagic if enabled, otherwise try
@@ -283,7 +283,7 @@ def file.metadata.flac.cover.decode(s) =
   height = read_int()
   color_depth = read_int()
   number_of_colors = read_int()
-  number_of_colors = if number_of_colors > 0 then null.make(number_of_colors) else null.make() end
+  number_of_colors = number_of_colors > 0 ? null.make(number_of_colors) : null
   data_len = read_int()
   data = string.sub(encoding="ascii", s, start=i(), length=data_len)
   if
@@ -292,7 +292,7 @@ def file.metadata.flac.cover.decode(s) =
     log.info(
       "Failed to read cover metadata"
     )
-    null.make()
+    null
   else
     null.make(
       data.{
@@ -317,7 +317,7 @@ def file.metadata.flac.cover.encode(
   ~width,
   ~height,
   ~color_depth,
-  ~number_of_colors=null.make(),
+  ~number_of_colors=null,
   data
 ) =
   def encode_string(s) =

@@ -5,7 +5,7 @@ def f() =
     )
 
   test.equal(content_disposition.type, "inline")
-  test.equal(content_disposition?.filename, null.make())
+  test.equal(content_disposition?.filename, null)
   test.equal(content_disposition.args, [])
   content_disposition =
     null.get(

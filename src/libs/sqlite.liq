@@ -36,7 +36,7 @@ def replaces sqlite(file) =
     db.exec(sql)
   end
 
-  def db.select(~table, what="*", ~where="", ~limit=null.make()) =
+  def db.select(~table, what="*", ~where="", ~limit=null) =
     where =
       if
         where == ""

@@ -33,7 +33,7 @@ def f() =
   db.insert(table="test", {n=5, s="bla", f=2.5})
   db.insert(table="test", {n=5, s="bli", f=1.})
   db.insert(table="test", {n=20, s="blu", f=0.2})
-  db.insert(table="test", {n=666, s="blu", f=null.make()})
+  db.insert(table="test", {n=666, s="blu", f=null})
   db.exec(
     "INSERT INTO test VALUES (5,#{sqlite.escape('hello')},1.2)"
   )

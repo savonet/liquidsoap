@@ -9,15 +9,15 @@ def spinitron.submit.raw(
   ~host="https://spinitron.com/api",
   ~api_key,
   ~live=false,
-  ~start=null.make(),
-  ~duration=null.make(),
+  ~start=null,
+  ~duration=null,
   ~artist,
-  ~release=null.make(),
-  ~label=null.make(),
-  ~genre=null.make(),
+  ~release=null,
+  ~label=null,
+  ~genre=null,
   ~song,
-  ~composer=null.make(),
-  ~isrc=null.make()
+  ~composer=null,
+  ~isrc=null
 ) =
   params = [("song", song), ("artist", artist)]
 
@@ -186,8 +186,8 @@ def spinitron.submit.metadata(
         )
       ]
   ),
-  ~artist=null.make(),
-  ~song=null.make(),
+  ~artist=null,
+  ~song=null,
   m
 ) =
   m = [...m, ...mapper(m)]
@@ -211,7 +211,7 @@ def spinitron.submit.metadata(
   isrc = opt_arg("isrc", isrc)
 
   if
-    artist == null.make() or song == null.make()
+    artist == null or song == null
   then
     error.raise(
       error.invalid,
@@ -237,7 +237,7 @@ end
 # @param m Metadata to submit. Overrides optional arguments when present.
 # @param ~api_key API key
 def spinitron.submit.on_metadata(
-  ~id=null.make(),
+  ~id=null,
   %argsof(spinitron.submit.metadata),
   s
 ) =

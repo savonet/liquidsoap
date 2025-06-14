@@ -98,7 +98,7 @@ end
 # @param m Metadata from which the cover should be extracted.
 # @param ~coverart_mime Mime type to use for `"coverart"` metadata. Support disabled if `null`.
 # @method mime MIME type for the cover.
-def metadata.cover(~coverart_mime=null.make(), m) =
+def metadata.cover(~coverart_mime=null, m) =
   fname = metadata.filename(m)
   if
     list.assoc.mem("coverart", m) and null.defined(coverart_mime)
@@ -117,7 +117,7 @@ def metadata.cover(~coverart_mime=null.make(), m) =
       log.info(
         "Failed to read cover metadata for #{fname}."
       )
-      null.make()
+      null
     else
       null.get(cover)
     end
@@ -175,7 +175,7 @@ def metadata.cover(~coverart_mime=null.make(), m) =
       log.info(
         "No cover found for #{fname}."
       )
-      null.make()
+      null
     end
   end
 end
@@ -216,7 +216,7 @@ let metadata.json = ()
 # @param ~compact Output compact text.
 # @param ~json5 Use json5 extended spec.
 def metadata.json.stringify(
-  ~coverart_mime=null.make(),
+  ~coverart_mime=null,
   ~base64=true,
   ~compact=false,
   ~json5=false,

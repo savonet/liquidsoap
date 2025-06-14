@@ -195,7 +195,7 @@ end
 # @param ~every Duration of a track (in seconds).
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
-def chop(~id=null.make(), ~every=getter(3.), ~metadata=getter([]), s) =
+def chop(~id=null, ~every=getter(3.), ~metadata=getter([]), s) =
   s = insert_metadata(s)
 
   # Track time in the source's context:
@@ -246,7 +246,7 @@ let stdlib_fallback = fallback
 # @flag extra
 # @param s The main source.
 # @param ~fallback The fallback source. Defaults to `blank` if `null`.
-def fallback.skip(s, ~fallback=null.make()) =
+def fallback.skip(s, ~fallback=null) =
   fallback = fallback ?? (blank() : source)
   avail = ref(true)
 
@@ -285,15 +285,15 @@ stdlib_file = file
 #                           duplicated metadata.
 # @param ~delete Delete the CUE files when starting if it exists.
 def source.cue(
-  ~title=null.make(),
-  ~performer=null.make(),
-  ~file=null.make(),
-  ~file_type=null.make(),
-  ~comment=null.make(),
-  ~year=null.make(),
-  ~map_metadata=fun (m) -> (m : [(string * string)]),
-  ~last_tracks=null.make(),
-  ~temp_dir=null.make(),
+  ~title=null,
+  ~performer=null,
+  ~file=null,
+  ~file_type=null,
+  ~comment=null,
+  ~year=null,
+  ~map_metadata=fun (m) -> (m : [(string*string)]),
+  ~last_tracks=null,
+  ~temp_dir=null,
   ~deduplicate_using=["title", "artist", "album", "isrc", "cue_year"],
   ~delete=true,
   filename,

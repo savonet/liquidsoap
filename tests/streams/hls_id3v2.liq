@@ -8,13 +8,13 @@ def run_check() =
   to_check =
     ref(
       {
-        aac=null.make(),
-        shine=null.make(),
-        lame=null.make(),
-        fdkaac=null.make(),
-        ts_with_meta=null.make(),
-        ts=null.make(),
-        mp4=null.make()
+        aac=null,
+        shine=null,
+        lame=null,
+        fdkaac=null,
+        ts_with_meta=null,
+        ts=null,
+        mp4=null
       }
     )
 

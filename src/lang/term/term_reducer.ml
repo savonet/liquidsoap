@@ -686,7 +686,7 @@ let expand_appof ~pos ~env ~to_term args =
     in:
       `x?.foo.gni.bla(123)?.gno.gni`,
     the default for `x.foo` becomes:
-      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null.make() }}}}`
+      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null }}}}`
     we also need to keep track of which methods are optional in the default value's type
     to make sure it doesn't force optional methods to be mandatory during type checking. *)
 let mk_app_invoke_default ~pos ~args body =
@@ -791,7 +791,7 @@ let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
     | `Invoke { invoked; meth = `String m } ->
         mk_invoke ~pos ~env ~default ~to_term invoked (`String m)
     | _ ->
-        let null = mk ~pos (`Var "null") in
+        let null = mk ~pos (`Var "_null") in
         let op =
           mk ~pos
             (`Invoke { invoked = null; invoke_default = None; meth = "default" })
@@ -1294,11 +1294,6 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
     | `Open (t, t') -> `Open (to_term ~env t, to_term ~env t')
     | `Var s -> `Var s
     | `Seq (t, t') -> `Seq (to_term ~env t, to_term ~env t')
-    | `App (({ Parsed_term.term = `Var "null"; pos } as t), args) ->
-        throw (Term.Deprecated ("use `null.make`", Pos.of_lexing_pos pos));
-        let args = expand_appof ~pos ~env ~to_term args in
-        let t = mk ~pos (mk_invoke ~pos ~env ~to_term t (`String "make")) in
-        `App (t, args)
     | `App (t, args) ->
         let args = expand_appof ~pos ~env ~to_term args in
         `App (to_term ~env t, args)

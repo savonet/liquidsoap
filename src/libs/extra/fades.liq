@@ -1,7 +1,7 @@
 # Plot the first crossfade transition. Used for visualizing and testing
 # crossfade transitions.
 # @flag extra
-def cross.plot(~png=null.make(), ~dir=null.make(), s) =
+def cross.plot(~png=null, ~dir=null, s) =
   dir =
     if
       null.defined(dir)
@@ -24,7 +24,7 @@ def cross.plot(~png=null.make(), ~dir=null.make(), s) =
 
   def store_rms(~id, s) =
     s = rms(duration=settings.frame.duration(), s)
-    t0 = ref(null.make())
+    t0 = ref(null)
 
     source.on_frame(
       before=false,

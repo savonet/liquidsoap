@@ -32,7 +32,7 @@ end
 # @category Metadata
 def track.metadata.deduplicate(
   ~id=null.make("track.metadata.deduplicate"),
-  ~using=null.make(),
+  ~using=null,
   t
 ) =
   last_meta = ref([])
@@ -69,7 +69,7 @@ end
 #               when `null`.
 # @param ~id Source id
 # @param s source
-def metadata.deduplicate(~id=null.make("metadata.deduplicate"), ~using=null.make(), s) =
+def metadata.deduplicate(~id=null.make("metadata.deduplicate"), ~using=null, s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -144,7 +144,7 @@ end
 # @param ~delay Time to wait before the first run (in seconds).
 # @param ~every How often to run the function (in seconds). The function is run once if `null`.
 # @param f Function to run.
-def source.run(s, ~delay=0., ~every=null.make(), f) =
+def source.run(s, ~delay=0., ~every=null, f) =
   next = ref(delay)
 
   def check() =
@@ -170,13 +170,13 @@ end
 # @param ~merge Merge the track with its appended track.
 # @flag extra
 def append(~id=null.make("append"), ~insert_missing=true, ~merge=false, s, f) =
-  last_meta = ref(null.make())
-  pending = ref(null.make())
+  last_meta = ref(null)
+  pending = ref(null)
 
   def next() =
     p = pending()
-    pending := null.make()
-    last_meta := null.make()
+    pending := null
+    last_meta := null
 
     if null.defined(p) then null.get(p) else (s : source) end
   end
@@ -193,8 +193,8 @@ def append(~id=null.make("append"), ~insert_missing=true, ~merge=false, s, f) =
       if
         m["liq_append"] == "false"
       then
-        last_meta := null.make()
-        pending := null.make()
+        last_meta := null
+        pending := null
       elsif
         last_meta() != m
       then
@@ -219,12 +219,12 @@ def append(~id=null.make("append"), ~insert_missing=true, ~merge=false, s, f) =
       fun (s) -> pending.set(s),
     cancel_pending=
       # Cancel any pending appended source.
-      fun () -> pending.set(null.make()),
+      fun () -> pending.set(null),
     skip=
       # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
       fun (~cancel_pending=true) ->
         begin
-          if cancel_pending then pending.set(null.make()) end
+          if cancel_pending then pending.set(null) end
           s.skip()
         end
   }
@@ -237,18 +237,18 @@ end
 # @param ~merge Merge the track with its appended track.
 # @flag extra
 def prepend(~id=null.make("prepend"), ~merge=false, s, f) =
-  last_meta = ref(null.make())
+  last_meta = ref(null)
 
   def on_meta(m) =
     if
       m["liq_prepend"] == "false"
     then
-      last_meta := null.make()
+      last_meta := null
     elsif last_meta() != m then last_meta := m
     end
   end
 
-  s = source.on_track(s, fun (m) -> m == [] ? last_meta := null.make() : on_meta(m) )
+  s = source.on_track(s, fun (m) -> m == [] ? last_meta := null : on_meta(m) )
   s = source.on_metadata(s, on_meta)
 
   def next() =
@@ -256,7 +256,7 @@ def prepend(~id=null.make("prepend"), ~merge=false, s, f) =
       null.defined(last_meta)
     then
       m = last_meta()
-      last_meta := null.make()
+      last_meta := null
       if
         null.defined(m)
       then

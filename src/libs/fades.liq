@@ -68,7 +68,7 @@ let settings.fade.out.curve =
 # @param ~duration Duration in seconds.
 # @param ~on_done Function to execute when the fade is finished
 def mkfade(
-  ~curve=getter(null.make()),
+  ~curve=getter(null),
   ~type=getter("lin"),
   ~start=0.,
   ~stop=1.,
@@ -161,7 +161,7 @@ end
 # @category Source / Fade
 # @flag hidden
 def fade.scale(~id="fade.scale", x, s) =
-  amplify(id=id, override=null.make(), x, s)
+  amplify(id=id, override=null, x, s)
 end
 
 # Fade the end of tracks.
@@ -181,9 +181,9 @@ end
 # @param ~type Fader shape. One of: "lin"", "sin", "log" or "exp". Defaults to `settings.fade.out.type` if `null`.
 def fade.out(
   ~id="fade.out",
-  ~duration=null.make(),
+  ~duration=null,
   ~delay=0.,
-  ~curve=null.make(),
+  ~curve=null,
   ~override_duration="liq_fade_out",
   ~override_type="liq_fade_out_type",
   ~override_curve="liq_fade_out_curve",
@@ -191,7 +191,7 @@ def fade.out(
   ~persist_overrides=false,
   ~track_sensitive=false,
   ~initial_metadata=[],
-  ~type=null.make(),
+  ~type=null,
   s
 ) =
   def log(x) =
@@ -308,12 +308,12 @@ def fade.out(
       if
         m[override_curve] == "default"
       then
-        curve := null.make()
+        curve := null
       else
         try
           curve := float_of_string(m[override_curve])
         catch _ do
-          curve := null.make()
+          curve := null
         end
       end
 
@@ -397,7 +397,7 @@ def fade.skip(
   ~id="fade.skip",
   ~duration=5.,
   ~delay=0.,
-  ~curve=null.make(),
+  ~curve=null,
   ~override_duration="liq_fade_skip",
   ~override_type="liq_fade_skip_type",
   ~override_curve="liq_fade_skip_curve",
@@ -483,12 +483,12 @@ def fade.skip(
       if
         m[override_curve] == "default"
       then
-        curve := null.make()
+        curve := null
       else
         try
           curve := float_of_string(m[override_curve])
         catch _ do
-          curve := null.make()
+          curve := null
         end
       end
 
@@ -558,9 +558,9 @@ end
 # @param ~type Fader shape. One of: "lin"", "sin", "log" or "exp". Defaults to `settings.fade.in.type` if `null`.
 def fade.in(
   ~id="fade.in",
-  ~duration=null.make(),
+  ~duration=null,
   ~delay=0.,
-  ~curve=null.make(),
+  ~curve=null,
   ~override_duration="liq_fade_in",
   ~override_type="liq_fade_in_type",
   ~override_curve="liq_fade_in_curve",
@@ -568,7 +568,7 @@ def fade.in(
   ~persist_overrides=false,
   ~track_sensitive=false,
   ~initial_metadata=[],
-  ~type=null.make(),
+  ~type=null,
   s
 ) =
   def log(x) =
@@ -660,12 +660,12 @@ def fade.in(
       if
         m[override_curve] == "default"
       then
-        curve := null.make()
+        curve := null
       else
         try
           curve := float_of_string(m[override_curve])
         catch _ do
-          curve := null.make()
+          curve := null
         end
       end
 

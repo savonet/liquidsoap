@@ -490,7 +490,7 @@ Changed:
   into, respectively, `decoder.add`, `decoder.oblivious.add`, `decoder.metadata.add`
 - Deprecated `get_mime`, added `file.mime.libmagic` and `file.mime.cli`, made
   `file.mime` try `file.mime.libmagic` if present and `file.mime.cli` otherwise,
-  changed returned value when no mime was found to `null()`.
+  changed returned value when no mime was found to `null`.
 - Return a nullable float in `request.duration`.
 - Removed `--list-plugins-json` and `--list-plugins-xml` options.
 - Added `--list-functions-json` option.

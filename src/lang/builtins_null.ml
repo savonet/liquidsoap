@@ -20,10 +20,7 @@
 
  *****************************************************************************)
 
-let null =
-  let a = Lang.univ_t () in
-  Lang.add_builtin_base "null" ~category:`Programming ~descr:"The null value."
-    `Null (Lang.nullable_t a)
+let null = Lang.add_module "_null"
 
 let _ =
   let a = Lang.univ_t () in

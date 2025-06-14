@@ -36,6 +36,8 @@ open Parser_helper
 %token <string * char list > REGEXP
 %token <string> INT PP_INT_DOT_LCUR
 %token <string> FLOAT
+%token NULL
+%token NULLDOT
 %token <bool> BOOL
 %token <Parsed_term.time_el> TIME
 %token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
@@ -221,6 +223,7 @@ expr:
   | expr DOT LCUR record RCUR        { mk ~pos:$loc (`Methods (Some $1, $4)) }
   | expr DOT LCUR record optional_comma RCUR
                                      { mk ~pos:$loc (`Methods (Some $1, $4)) }
+  | NULL                             { mk ~pos:$loc `Null }
   | LCUR record RCUR                 { mk ~pos:$loc (`Methods (None, $2)) }
   | LCUR record optional_comma RCUR  { mk ~pos:$loc (`Methods (None, $2)) }
   | LCUR RCUR                        { mk ~pos:$loc (`Methods (None, [])) }
@@ -398,6 +401,7 @@ app_list:
   | app_list_elem COMMA app_list { $1::$3 }
 
 optvar:
+  | NULL       { "_null" }
   | VAR        { $1 }
   | UNDERSCORE { "_" }
 
