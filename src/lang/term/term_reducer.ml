@@ -1294,6 +1294,11 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
     | `Open (t, t') -> `Open (to_term ~env t, to_term ~env t')
     | `Var s -> `Var s
     | `Seq (t, t') -> `Seq (to_term ~env t, to_term ~env t')
+    | `App (({ Parsed_term.term = `Var "null"; pos } as t), args) ->
+        throw (Term.Deprecated ("use `null.make`", Pos.of_lexing_pos pos));
+        let args = expand_appof ~pos ~env ~to_term args in
+        let t = mk ~pos (mk_invoke ~pos ~env ~to_term t (`String "make")) in
+        `App (t, args)
     | `App (t, args) ->
         let args = expand_appof ~pos ~env ~to_term args in
         `App (to_term ~env t, args)
