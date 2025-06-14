@@ -112,7 +112,7 @@ def f() =
 
   # Invalid type generalization
   incorrect(
-    'def f(x=null()) = ref(x) end r = f(); r.set(1); r.set("aabb")'
+    'def f(x=null.make()) = ref(x) end r = f(); r.set(1); r.set("aabb")'
   )
 
   incorrect('fallback(transitions=[fun(~l)->1],[blank()])')
@@ -363,7 +363,7 @@ def f() =
     "fun (x) -> x.foo.gni?.bla(1,2,3).blo"
   )
   correct(
-    "fun (x) -> x?.foo(123).gni ?? null()"
+    "fun (x) -> x?.foo(123).gni ?? null.make()"
   )
   section("EVAL")
   incorrect("let eval x = '123'

@@ -686,7 +686,7 @@ let expand_appof ~pos ~env ~to_term args =
     in:
       `x?.foo.gni.bla(123)?.gno.gni`,
     the default for `x.foo` becomes:
-      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null() }}}}`
+      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null.make() }}}}`
     we also need to keep track of which methods are optional in the default value's type
     to make sure it doesn't force optional methods to be mandatory during type checking. *)
 let mk_app_invoke_default ~pos ~args body =
@@ -1223,7 +1223,9 @@ let rec to_encoder_params ~env ~to_term l =
 and to_encoder ~env ~to_term (lbl, params) =
   (lbl, to_encoder_params ~env ~to_term params)
 
-let rec to_ast ~env ~pos ~comments ast =
+let rec to_ast ~throw ~env ~pos ~comments ast =
+  let to_ast = to_ast ~throw in
+  let to_term = to_term ~throw in
   match ast with
     | `Methods _ | `Block _ | `Parenthesis _ | `Eof | `Include _ -> assert false
     | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
@@ -1307,7 +1309,12 @@ and to_func ~pos ~env ~to_term ?name arguments body =
     free_vars = None;
   }
 
-and to_term ~env (tm : Parsed_term.t) : Term.t =
+and to_term ~throw ~env (tm : Parsed_term.t) : Term.t =
+  List.iter
+    (function
+      | `Deprecated s -> throw (Term.Deprecated (s, Pos.of_lexing_pos tm.pos)))
+    tm.annotations;
+  let to_term = to_term ~throw in
   match tm.term with
     | `Seq ({ pos; term = `If_def _ as ast }, t')
     | `Seq ({ pos; term = `If_encoder _ as ast }, t')
@@ -1370,14 +1377,11 @@ and to_term ~env (tm : Parsed_term.t) : Term.t =
                 Flags.(add empty octal_int)
             | _ -> Flags.empty
         in
-        let term = to_ast ~env ~pos:tm.pos ~comments:tm.comments term in
+        let term = to_ast ~throw ~env ~pos:tm.pos ~comments:tm.comments term in
         { t = mk_var ~pos:tm.pos (); term; methods = Methods.empty; flags }
 
-let to_encoder_params = to_encoder_params ~env:[] ~to_term
+let to_encoder_params ~throw =
+  let to_term = to_term ~throw in
+  to_encoder_params ~env:[] ~to_term
 
-let to_term ~throw tm =
-  List.iter
-    (function
-      | `Deprecated s -> throw (Term.Deprecated (s, Pos.of_lexing_pos tm.pos)))
-    tm.annotations;
-  to_term ~env:[] tm
+let to_term ~throw tm = to_term ~throw ~env:[] tm

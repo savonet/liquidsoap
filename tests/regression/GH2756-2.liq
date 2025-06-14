@@ -3,7 +3,7 @@ def f() =
   on_cleanup({file.remove(tmp)})
   s = insert_metadata(sine())
   insert_metadata = s.insert_metadata
-  err = ref(null())
+  err = ref(null.make())
 
   def on_frame() =
     null.case(
@@ -11,7 +11,7 @@ def f() =
       {()},
       fun (e) ->
         begin
-          err := null()
+          err := null.make()
           error.raise(e)
         end
     )
@@ -33,7 +33,7 @@ def f() =
       "Got error!"
     )
     callstack := [...(callstack()), "error"]
-    null()
+    null.make()
   end
 
   clock.assign_new(

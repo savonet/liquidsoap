@@ -216,9 +216,9 @@ def f() =
   (() : unit.{  })
   ({foo=123} : {foo?: int})
   ({} : {foo?: int})
-  ({foo=null()} : {foo?: int})
+  ({foo=null.make()} : {foo?: int})
   ({foo=123} : {foo?: int})
-  ({foo=null(null())} : {foo?: int?})
+  ({foo=null.make(null.make())} : {foo?: int?})
   ([({} : {foo?: int}), (), {foo=123}] : [{foo?: int}])
   ([(), {foo=123}] : [{foo?: int}])
 

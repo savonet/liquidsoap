@@ -38,7 +38,7 @@ def f() =
   test.equal(list.assoc(default=0, "", [("a", 1), ("b", 2)]), 0)
   test.equal(list.assoc("b", [("a", 1), ("b", 2)]), 2)
   test.equal(list.assoc.nullable("b", [("a", 1), ("b", 2)]), 2)
-  test.equal(list.assoc.nullable("x", [("a", 1), ("b", 2)]), null())
+  test.equal(list.assoc.nullable("x", [("a", 1), ("b", 2)]), null.make())
   test.equal(
     list.assoc.remove("a", [("b", 2), ("a", 1), ("a", 3)]), [("b", 2), ("a", 3)]
   )
