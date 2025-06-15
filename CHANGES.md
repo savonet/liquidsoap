@@ -4,6 +4,10 @@ New:
 
 - Added `liquidsoap.script.path` that contains the path to the current
   script's file, if available.
+- `null` can now be used directly without having to call `null()`.
+  `null(value)` calls are still valid and can be used to create
+  non-null values with nullable types. Calls to `null()` are marked
+  as deprecated (#4516)
 
 Changed:
 
