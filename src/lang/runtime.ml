@@ -93,6 +93,10 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
       flush_all ();
       warning_header ~formatter 5 (Some pos);
       Format.fprintf formatter "Deprecated: %s@]@." s
+  | Typechecking.Top_level_override (s, pos) ->
+      flush_all ();
+      warning_header ~formatter 6 pos;
+      Format.fprintf formatter "Top-level variable %s is overridden!@]@." s
   (* Errors *)
   | Failure s when s = "lexing: empty token" ->
       print_error ~formatter 1 "Empty token";
@@ -276,7 +280,9 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
         time (fun () ->
             report ~lexbuf:None
               ~default:(fun () -> ())
-              (fun ~throw () -> Typechecking.check ?env ~throw checked_term));
+              (fun ~throw () ->
+                Typechecking.check ?env
+                  ~check_top_level_override:(stdlib <> None) ~throw checked_term));
 
         if Lazy.force Term.debug then
           Printf.eprintf "Checking for unused variables...\n%!";
@@ -371,7 +377,7 @@ let interactive () =
           ~default:(fun () -> ())
           (fun ~throw () ->
             let _, expr = mk_expr interactive lexbuf in
-            Typechecking.check ~throw expr;
+            Typechecking.check ~throw ~check_top_level_override:true expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore (Evaluation.eval_toplevel ~interactive:true expr));
         true
