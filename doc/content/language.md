@@ -1504,7 +1504,7 @@ The default creation permissions for user cache files is: `0o600` so only the us
 
 One side-benefit from loading a script from cache is that the entire typechecking process is skipped.
 
-This can result is significant reduction in the initial memory consumption, typically down from about `375MB` to about `80MB`!
+This leads to a significant reduction in initial memory consumption, typically down from about `375MB` to about `80MB`!
 
 If memory consumption is a concern but you are not sure you can cache your script, you can also set the environment variable
 `settings.init.compact_before_start` to `true`:
