@@ -87,7 +87,9 @@ let () =
     }
   in
   try
-    Typechecking.check ~throw:(fun exn -> raise exn) invoke;
+    Typechecking.check
+      ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
+      invoke;
     raise Failed
   with
     | Failed -> raise Failed
