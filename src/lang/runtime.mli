@@ -62,6 +62,7 @@ val load_libs : ?stdlib:string -> unit -> unit
 val throw :
   ?formatter:Format.formatter ->
   lexbuf:Sedlexing.lexbuf option ->
+  bt:Printexc.raw_backtrace ->
   unit ->
   exn ->
   unit
@@ -81,5 +82,5 @@ val error_header : formatter:Format.formatter -> int -> Pos.Option.t -> unit
 val report :
   ?default:(unit -> 'a) ->
   lexbuf:Sedlexing.lexbuf option ->
-  (throw:(exn -> unit) -> unit -> 'a) ->
+  (throw:(bt:Printexc.raw_backtrace -> exn -> unit) -> unit -> 'a) ->
   'a

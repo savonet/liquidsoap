@@ -50,7 +50,7 @@ exception Error
 
 let strict = ref false
 
-let throw ?(formatter = Format.std_formatter) ~lexbuf () =
+let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
   let print_error ~formatter idx error =
     flush_all ();
     let pos =
@@ -71,24 +71,24 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf () =
         "Trying to ignore a function,@ which is of type %s.@ Did you forget to \
          apply it to arguments?@]@."
         (Type.to_string tm.Term.t);
-      if !strict then raise Error
+      if !strict then Printexc.raise_with_backtrace Error bt
   | Term.Ignored tm when Type.is_source tm.Term.t ->
       flush_all ();
       warning_header ~formatter 2 tm.Term.t.Type.pos;
       Format.fprintf formatter
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
-      if !strict then raise Error
+      if !strict then Printexc.raise_with_backtrace Error bt
   | Term.Ignored tm ->
       flush_all ();
       warning_header ~formatter 3 tm.Term.t.Type.pos;
       Format.fprintf formatter "This expression should have type unit.@]@.";
-      if !strict then raise Error
+      if !strict then Printexc.raise_with_backtrace Error bt
   | Term.Unused_variable (s, pos) ->
       flush_all ();
       warning_header ~formatter 4 (Some pos);
       Format.fprintf formatter "Unused variable %s@]@." s;
-      if !strict then raise Error
+      if !strict then Printexc.raise_with_backtrace Error bt
   | Term.Deprecated (s, pos) ->
       flush_all ();
       warning_header ~formatter 5 (Some pos);
@@ -96,28 +96,28 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf () =
   (* Errors *)
   | Failure s when s = "lexing: empty token" ->
       print_error ~formatter 1 "Empty token";
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Parser.Error | Parsing.Parse_error ->
       print_error ~formatter 2 "Parse error";
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term_base.Parse_error (pos, s) ->
       error_header ~formatter 3 (Some (Pos.of_lexing_pos pos));
       Format.fprintf formatter "%s@]@." s;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term.Unbound (pos, s) ->
       error_header ~formatter 4 pos;
       Format.fprintf formatter "Undefined variable %s@]@." s;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Repr.Type_error explain ->
       flush_all ();
       Repr.print_type_error ~formatter (error_header ~formatter 5) explain;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Typechecking.No_method (name, typ) ->
       error_header ~formatter 5 typ.Type.pos;
       Format.fprintf formatter
         "This value has type %s, it cannot have method %s.@]@."
         (Repr.string_of_type typ) name;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term.No_label (f, lbl, first, x) ->
       let pos_f = Pos.Option.to_string f.Term.t.Type.pos in
       flush_all ();
@@ -128,31 +128,32 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf () =
         (if first then "no" else "no more")
         (if lbl = "" then "unlabeled argument"
          else Format.sprintf "argument labeled %S" lbl);
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term.Duplicate_label (pos, lbl) ->
       error_header ~formatter 6 pos;
       Format.fprintf formatter
         "Function has multiple arguments with the same label: %s@]@." lbl;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Error.Invalid_value (v, msg) ->
       error_header ~formatter 7 (Value.pos v);
       Format.fprintf formatter "Invalid value:@ %s@]@." msg;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Lang_error.Encoder_error (pos, s) ->
       error_header ~formatter 8 pos;
       Format.fprintf formatter "%s@]@." (String.capitalize_ascii s);
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Failure s ->
-      let bt = Printexc.get_backtrace () in
-      print_error ~formatter 9 (Printf.sprintf "Failure: %s\n%s" s bt);
-      raise Error
+      print_error ~formatter 9
+        (Printf.sprintf "Failure: %s\n%s" s
+           (Printexc.raw_backtrace_to_string bt));
+      Printexc.raise_with_backtrace Error bt
   | Error.Clock_conflict (pos, a, b) ->
       (* TODO better printing of clock errors: we don't have position
        *   information, use the source's ID *)
       error_header ~formatter 10 pos;
       Format.fprintf formatter
         "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   (* Error 11 used to be Clock_loop. *)
   | Term.Unsupported_encoder (pos, fmt) ->
       error_header ~formatter 12 pos;
@@ -166,14 +167,14 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf () =
             %%vorbis and many other encoders are not available. Instead, you \
             should use the %%ffmpeg encoder.@]@.")
         fmt;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term.Internal_error (pos, e) ->
       (* Bad luck, error 13 should never have happened. *)
       error_header ~formatter 13
         (try Some (Pos.List.to_pos pos) with _ -> None);
       let pos = Pos.List.to_string ~newlines:true pos in
       Format.fprintf formatter "Internal error: %s,@ stack:\n%s\n@]@." e pos;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Runtime_error.(Runtime_error { kind; msg; pos }) ->
       error_header ~formatter 14
         (try Some (Pos.List.to_pos pos) with _ -> None);
@@ -183,7 +184,7 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf () =
         kind
         (Lang_string.quote_string msg)
         pos;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Sedlexing.MalFormed -> print_error ~formatter 15 "Malformed UTF8 content."
   | Term.Missing_arguments (pos, args) ->
       let args =
@@ -195,18 +196,18 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf () =
       error_header ~formatter 15 pos;
       Format.fprintf formatter
         "Missing arguments in function application: %s.@]@." args;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Type.Exists (pos, typ) ->
       error_header ~formatter 16 pos;
       Format.fprintf formatter "Type %s already exists.@]@." typ;
-      raise Error
-  | End_of_file -> raise End_of_file
+      Printexc.raise_with_backtrace Error bt
+  | End_of_file -> Printexc.raise_with_backtrace End_of_file bt
   | e ->
-      let bt = Printexc.get_backtrace () in
       error_header ~formatter (-1) None;
       Format.fprintf formatter "Exception raised: %s@.%s@]@."
-        (Printexc.to_string e) bt;
-      raise Error
+        (Printexc.to_string e)
+        (Printexc.raw_backtrace_to_string bt);
+      Printexc.raise_with_backtrace Error bt
 
 (* This is not great but it works for now. The problem being that we are relying on exception
    raising and catching to transmit language error, translate them into human readable errors and
@@ -217,7 +218,7 @@ let report :
     'a.
     ?default:(unit -> 'a) ->
     lexbuf:Sedlexing.lexbuf option ->
-    (throw:(exn -> unit) -> unit -> 'a) ->
+    (throw:(bt:Printexc.raw_backtrace -> exn -> unit) -> unit -> 'a) ->
     'a =
  fun ?(default = fun () -> raise Error) ~lexbuf f ->
   let throw = throw ~lexbuf () in
@@ -225,7 +226,8 @@ let report :
   else (
     try f ~throw ()
     with exn ->
-      throw exn;
+      let bt = Printexc.get_raw_backtrace () in
+      throw ~bt exn;
       default ())
 
 let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib

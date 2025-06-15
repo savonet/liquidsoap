@@ -518,7 +518,7 @@ let parse_encoder_params =
     let lexbuf = Sedlexing.Utf8.from_string ("(" ^ s ^ ")") in
     let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
     Liquidsoap_lang.Term_reducer.to_encoder_params
-      ~throw:(fun exn -> raise exn)
+      ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
       (processor tokenizer)
 
 let parse_input_args args =

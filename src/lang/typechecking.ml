@@ -301,7 +301,9 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           base_type >: b.t
       | `Seq (a, b) ->
           check ~env ~level a;
-          if not (can_ignore a.t) then throw (Ignored a);
+          if not (can_ignore a.t) then (
+            let bt = Printexc.get_callstack 1 in
+            throw ~bt (Ignored a));
           check ~print_toplevel ~level ~env b;
           base_type >: b.t
       | `App (a, l) -> (

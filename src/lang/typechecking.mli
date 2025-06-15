@@ -12,4 +12,8 @@ val type_of_pat :
   Term.pattern ->
   (string list * Type.t) list * Type.t
 
-val check : ?env:Typing.env -> throw:(exn -> unit) -> Term.t -> unit
+val check :
+  ?env:Typing.env ->
+  throw:(bt:Printexc.raw_backtrace -> exn -> unit) ->
+  Term.t ->
+  unit

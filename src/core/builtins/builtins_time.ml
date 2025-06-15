@@ -159,7 +159,7 @@ let _ =
         let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
         let predicate =
           Liquidsoap_lang.Term_reducer.to_term
-            ~throw:(fun exn -> raise exn)
+            ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
             (processor tokenizer)
         in
         Lang.val_fun [] (fun _ -> Liquidsoap_lang.Evaluation.eval predicate)
