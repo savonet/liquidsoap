@@ -24,8 +24,6 @@
 
 open Term
 
-exception Foo of string
-
 (** [remove_first f l] removes the first element [e] of [l] such that [f e], and
     returns [e,l'] where [l'] is the list without [e]. Asserts that there is
     such an element. *)
@@ -335,14 +333,9 @@ and eval_term ~eval_check env tm =
          tm.methods)
 
 and eval ~eval_check env tm =
-  try
-    let v = eval_term ~eval_check env tm in
-    eval_check ~env ~tm v;
-    v
-  with _ ->
-    let bt = Printexc.get_raw_backtrace () in
-    let f = Printf.sprintf "Error on term: %s\n" (Term.to_string tm) in
-    Printexc.raise_with_backtrace (Foo f) bt
+  let v = eval_term ~eval_check env tm in
+  eval_check ~env ~tm v;
+  v
 
 let apply ?pos t p =
   let eval_check = !Hooks.eval_check in
