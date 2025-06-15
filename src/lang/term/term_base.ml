@@ -365,7 +365,7 @@ let check_unused ~throw ~lib tm =
           Vars.iter
             (fun x ->
               if Vars.mem x v && x <> "_" then (
-                let bt = Printexc.get_callstack 1 in
+                let bt = Printexc.get_callstack 0 in
                 throw ~bt (Unused_variable (x, Option.get tm.t.Type.pos))))
             bound;
           (* Restore masked variables. The masking variables have been used but
@@ -392,7 +392,7 @@ let check_unused ~throw ~lib tm =
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && Type.is_fun def.t))
                   then (
-                    let bt = Printexc.get_callstack 1 in
+                    let bt = Printexc.get_callstack 0 in
                     throw ~bt (Unused_variable (s, Option.get tm.t.Type.pos))))
               bvpat;
           Vars.union v mask
