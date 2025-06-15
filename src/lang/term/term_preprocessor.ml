@@ -51,11 +51,7 @@ let mk_expr ?fname processor lexbuf =
   let parsed_term = processor tokenizer in
   Parser_helper.attach_comments parsed_term;
   match fname with
-    | None ->
-        let_script_path
-          ~filename:
-            (`App (Parser_helper.mk ~pos:parsed_term.pos (`Var "null"), []))
-          parsed_term
+    | None -> let_script_path ~filename:`Null parsed_term
     | Some fname ->
         let_script_path
           ~filename:(`String ('"', Lang_string.escape_utf8_string fname))
