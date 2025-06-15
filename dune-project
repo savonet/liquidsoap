@@ -19,8 +19,6 @@
   (name liquidsoap)
    (depends
     (ocaml (>= 4.14))
-    (dtools (>= 0.4.6))
-    (duppy (>= 0.9.4))
     (mm (>= 0.8.6))
     (re (>= 1.11.0))
     (ocurl (>= 0.9.2))
