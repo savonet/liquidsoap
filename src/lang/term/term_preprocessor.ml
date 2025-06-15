@@ -51,6 +51,8 @@ let mk_expr ?fname processor lexbuf =
   let parsed_term = processor tokenizer in
   Parser_helper.attach_comments parsed_term;
   match fname with
+    (* This happens with the interactive top-level. *)
+    | None when processor != program -> parsed_term
     | None -> let_script_path ~filename:`Null parsed_term
     | Some fname ->
         let_script_path
