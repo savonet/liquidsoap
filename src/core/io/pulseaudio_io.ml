@@ -61,7 +61,7 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
   let device =
     if device = Some "" then (
       log#important
-        "Empty device name \"\" is deprecated! Please use `null()` instead..";
+        "Empty device name \"\" is deprecated! Please use `null` instead..";
       None)
     else device
   in
@@ -150,7 +150,7 @@ class input p =
   let device =
     if device = Some "" then (
       log#important
-        "Empty device name \"\" is deprecated! Please use `null()` instead..";
+        "Empty device name \"\" is deprecated! Please use `null` instead..";
       None)
     else device
   in

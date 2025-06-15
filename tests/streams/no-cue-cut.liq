@@ -1,7 +1,7 @@
 s =
   playlist(
-    cue_in_metadata=null(),
-    cue_out_metadata=null(),
+    cue_in_metadata=null,
+    cue_out_metadata=null,
     prefix="annotate:liq_cue_in=1.,liq_cue_out=3.:",
     "playlist"
   )

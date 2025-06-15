@@ -63,9 +63,9 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
   let parsed_stdlib, stdlib =
     Runtime.report ~lexbuf:(Some lexbuf)
       ~default:(fun () -> raise Runtime.Error)
-      (fun ~throw:_ () ->
+      (fun ~throw () ->
         let parsed_stdlib = Term_reducer.mk_expr Term_reducer.program lexbuf in
-        (parsed_stdlib, Term_reducer.to_term parsed_stdlib))
+        (parsed_stdlib, Term_reducer.to_term ~throw parsed_stdlib))
   in
   let append () =
     let stdlib = append_ref stdlib in
@@ -79,7 +79,7 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
     let checked_term =
       Runtime.report ~lexbuf:None
         ~default:(fun () -> raise Runtime.Error)
-        (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
+        (fun ~throw () -> Term_reducer.to_term ~throw parsed_term)
     in
     let full_term = prepend_stdlib ~term:checked_term stdlib in
     { Runtime.checked_term; full_term; env }

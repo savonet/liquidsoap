@@ -4,6 +4,10 @@ New:
 
 - Added `liquidsoap.script.path` that contains the path to the current
   script's file, if available.
+- `null` can now be used directly without having to call `null()`.
+  `null(value)` calls are still valid and can be used to create
+  non-null values with nullable types. Calls to `null()` are marked
+  as deprecated (#4516)
 
 Changed:
 
@@ -490,7 +494,7 @@ Changed:
   into, respectively, `decoder.add`, `decoder.oblivious.add`, `decoder.metadata.add`
 - Deprecated `get_mime`, added `file.mime.libmagic` and `file.mime.cli`, made
   `file.mime` try `file.mime.libmagic` if present and `file.mime.cli` otherwise,
-  changed eturned value when no mime was found to `null()`.
+  changed returned value when no mime was found to `null`.
 - Return a nullable float in `request.duration`.
 - Removed `--list-plugins-json` and `--list-plugins-xml` options.
 - Added `--list-functions-json` option.

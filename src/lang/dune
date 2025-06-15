@@ -16,6 +16,8 @@
  (modules parser json_parser)
  (flags
   --unused-token
+  NULLDOT
+  --unused-token
   DOTVAR
   --unused-token
   PP_ELSE

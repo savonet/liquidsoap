@@ -52,6 +52,12 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "::endgroup::"
 
+echo "::group::Cleaning up cache"
+
+rm -rf /var/cache/liquidsoap/* "$HOME"/.cache/liquidsoap/*
+
+echo "::endgroup::"
+
 echo "::group::Compiling"
 
 cd /tmp/liquidsoap-full

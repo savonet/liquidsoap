@@ -598,5 +598,6 @@ let parse_string ?(formatter = Format.err_formatter) content =
     Parser_helper.attach_comments term;
     to_json term
   with exn ->
-    throw exn;
+    let bt = Printexc.get_raw_backtrace () in
+    throw ~bt exn;
     exit 1

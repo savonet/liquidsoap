@@ -308,6 +308,8 @@ exception Missing_arguments of Pos.Option.t * (string * Type.t) list
     well as the ability to distinguish toplevel and inner let-in terms. *)
 exception Unused_variable of (string * Pos.t)
 
+exception Deprecated of (string * Pos.t)
+
 let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =
     let v =
@@ -362,8 +364,9 @@ let check_unused ~throw ~lib tm =
           let v = check v body in
           Vars.iter
             (fun x ->
-              if Vars.mem x v && x <> "_" then
-                throw (Unused_variable (x, Option.get tm.t.Type.pos)))
+              if Vars.mem x v && x <> "_" then (
+                let bt = Printexc.get_callstack 1 in
+                throw ~bt (Unused_variable (x, Option.get tm.t.Type.pos))))
             bound;
           (* Restore masked variables. The masking variables have been used but
              it does not count for the ones they masked. Bound variables have
@@ -388,7 +391,9 @@ let check_unused ~throw ~lib tm =
                   if
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && Type.is_fun def.t))
-                  then throw (Unused_variable (s, Option.get tm.t.Type.pos)))
+                  then (
+                    let bt = Printexc.get_callstack 1 in
+                    throw ~bt (Unused_variable (s, Option.get tm.t.Type.pos))))
               bvpat;
           Vars.union v mask
   in

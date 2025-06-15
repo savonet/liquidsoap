@@ -1,8 +1,8 @@
 s =
   if
-    file.which(null.get(settings.protocol.gtts.path())) == null()
+    file.which(null.get(settings.protocol.gtts.path())) == null
   and
-    file.which(null.get(settings.protocol.text2wave.path())) == null()
+    file.which(null.get(settings.protocol.text2wave.path())) == null
   then
     print(
       "Could not test gtts"

@@ -53,7 +53,9 @@ let () =
                (`App (_if, [("", cond); ("then", _then); ("else", _else)]));
          })
   in
-  Typechecking.check ~throw:(fun exn -> raise exn) f;
+  Typechecking.check
+    ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
+    f;
   match (Type.deref f.Term.t).Type.descr with
     | Type.Arrow ([(false, "x", _)], t) -> (
         let meths, _ = Type.split_meths t in
@@ -85,7 +87,9 @@ let () =
     }
   in
   try
-    Typechecking.check ~throw:(fun exn -> raise exn) invoke;
+    Typechecking.check
+      ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
+      invoke;
     raise Failed
   with
     | Failed -> raise Failed
