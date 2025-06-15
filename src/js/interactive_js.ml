@@ -13,7 +13,9 @@ let execute ~throw expr =
        let v = Evaluation.eval expr in
        Format.fprintf Format.str_formatter "- : %a = %s@." Repr.print_type
          expr.t (Value.to_string v)
-     with exn -> throw exn
+     with exn ->
+       let bt = Printexc.get_raw_backtrace () in
+       throw ~bt exn
    with
     | Runtime.Error -> ()
     | exn ->
