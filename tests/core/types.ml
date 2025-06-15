@@ -321,7 +321,7 @@ let () =
 
   let app = Term.make (`App (fn, [("", x_var); ("", y_var)])) in
 
-  let throw exn = raise exn in
+  let throw ~bt exn = Printexc.raise_with_backtrace exn bt in
   let env = [("fn", ([], fn_t)); ("x", ([], x_t)); ("y", ([], y_t))] in
 
   try
