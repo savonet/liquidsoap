@@ -219,6 +219,9 @@ let options =
        ( ["-r"; "--request"],
          Arg.String process_request,
          "Process a file request and print the metadata." );
+       ( ["-Werror"],
+         Arg.Unit (fun () -> Runtime.raise_on_warnings := true),
+         "Turn all warnings into errors." );
        ( ["-h"],
          Arg.String lang_doc,
          "Get help about a scripting value: source, operator, builtin or \
