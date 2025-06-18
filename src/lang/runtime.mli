@@ -27,6 +27,9 @@ exception Error
 type stdlib = { full_term : Term.t; checked_term : Term.t; env : Typing.env }
 type append_stdlib = unit -> stdlib
 
+(** Set to [true] to raise errors on warnings. *)
+val raise_on_warnings : bool ref
+
 (** Typecheck a term and return it. Might return a cached value! *)
 val type_term :
   ?name:string ->
@@ -42,9 +45,6 @@ val type_term :
 
 (** Evaluate a term. *)
 val eval_term : ?name:string -> toplevel:bool -> Term.t -> Value.t
-
-(** Raise errors for warnings. *)
-val strict : bool ref
 
 (** Return the list of external libraries. *)
 val libs :
