@@ -33,7 +33,7 @@ type append_stdlib = unit -> stdlib
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
-let raise_on_warnings = ref false
+let strict = ref false
 
 let error_header ~formatter idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
@@ -79,7 +79,7 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
         "Trying to ignore a function,@ which is of type %s.@ Did you forget to \
          apply it to arguments?@]@."
         typ;
-      if !raise_on_warnings then
+      if !strict then
         Printexc.raise_with_backtrace
           (Warning
              (Printf.sprintf
@@ -93,7 +93,7 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
       Format.fprintf formatter
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
-      if !raise_on_warnings then
+      if !strict then
         Printexc.raise_with_backtrace
           (Warning
              "This source is unused, maybe it needs to be connected to an \
@@ -103,14 +103,14 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
       flush_all ();
       warning_header ~formatter 3 tm.Term.t.Type.pos;
       Format.fprintf formatter "This expression should have type unit.@]@.";
-      if !raise_on_warnings then
+      if !strict then
         Printexc.raise_with_backtrace
           (Warning "This expression should have type unit.") bt
   | Term.Unused_variable (s, pos) ->
       flush_all ();
       warning_header ~formatter 4 (Some pos);
       Format.fprintf formatter "Unused variable %s@]@." s;
-      if !raise_on_warnings then
+      if !strict then
         Printexc.raise_with_backtrace
           (Warning (Printf.sprintf "Unused variable %s" s))
           bt
@@ -118,7 +118,7 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
       flush_all ();
       warning_header ~formatter 5 (Some pos);
       Format.fprintf formatter "Deprecated: %s@]@." s;
-      if !raise_on_warnings then
+      if !strict then
         Printexc.raise_with_backtrace
           (Warning (Printf.sprintf "Deprecated: %s" s))
           bt
@@ -126,7 +126,7 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
       flush_all ();
       warning_header ~formatter 6 pos;
       Format.fprintf formatter "Top-level variable %s is overridden!@]@." s;
-      if !raise_on_warnings then
+      if !strict then
         Printexc.raise_with_backtrace
           (Warning (Printf.sprintf "Top-level variable %s is overridden!" s))
           bt
