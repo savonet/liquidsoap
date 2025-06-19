@@ -513,10 +513,6 @@ subfield_lpar:
   | VARLPAR               { [$1] }
   | VAR DOT subfield_lpar { $1::$3 }
 
-var_or_underscore:
-  | UNDERSCORE            { "_" }
-  | VAR                   { $1 }
-
 arglist:
   |                       { [] }
   | arg                   { [$1] }
@@ -530,11 +526,11 @@ arg:
                     `Term {label = $2; as_variable = Some "_"; typ = None; default = $5;
                            annotations = [`Deprecated (Printf.sprintf "Use `~%s:_`" $2)] }
                  }
-  | TILD VAR COLON var_or_underscore {
-                   `Term {label = $2; as_variable = Some $4; typ =  None; default = None; annotations = []}
+  | TILD VAR COLON optvar opt {
+                   `Term {label = $2; as_variable = Some $4; typ =  None; default = $5; annotations = []}
                  }
-  | TILD VAR COLON LPAR var_or_underscore COLON ty opt RPAR {
-                  `Term {label = $2; as_variable = Some $5; typ =  Some $7; default = $8; annotations = []}
+  | TILD VAR COLON LPAR optvar COLON ty RPAR opt {
+                  `Term {label = $2; as_variable = Some $5; typ =  Some $7; default = $9; annotations = []}
                  }
   | optvar opt   { `Term {label = ""; as_variable = Some $1; typ = None; default = $2; annotations = []} }
   | LPAR optvar COLON ty RPAR opt {
