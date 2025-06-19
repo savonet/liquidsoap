@@ -98,8 +98,12 @@ def f() =
   def f(~foo=123) = foo end
   # f : (?foo : int) -> int = <fun>
 
+  # Typed named argument with rename
+  def f(~foo:(bla:int)) = bla end
+  # f : (foo : int) -> int = <fun>
+
   # Typed named argument with default value
-   def f(~(foo:int)=123) = foo end
+  def f(~(foo:int)=123) = foo end
   # f : (?foo : int) -> int = <fun>
 
   # Typed named argument with rename and default value
