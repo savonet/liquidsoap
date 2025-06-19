@@ -122,7 +122,7 @@ end
 #               Use this setting to lower CPU peaks when computing replaygain tags.
 # @category Liquidsoap
 def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
-  def replaygain_metadata(~metadata=_, file_name) =
+  def replaygain_metadata(~metadata:_, file_name) =
     gain = file.replaygain(compute=compute, ratio=ratio, file_name)
     if
       gain != null

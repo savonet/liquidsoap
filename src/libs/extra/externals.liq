@@ -249,7 +249,7 @@ def enable_external_flac_decoder() =
       "Enabling EXTERNAL_FLAC metadata resolver."
     )
 
-    def flac_meta(~metadata=_, fname) =
+    def flac_meta(~metadata:_, fname) =
       ret =
         process.read.lines(
           "#{metaflac} --export-tags-to=- #{process.quote(fname)}"
@@ -399,7 +399,7 @@ def enable_external_faad_decoder() =
       faad_p
     )
 
-    def faad_meta(~metadata=_, file) =
+    def faad_meta(~metadata:_, file) =
       if
         faad_test(file)
       then

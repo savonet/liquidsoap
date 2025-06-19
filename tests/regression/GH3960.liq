@@ -1,6 +1,6 @@
 call_counts = ref([])
 
-def test_decoder(~metadata=_, filename) =
+def test_decoder(~metadata:_, filename) =
   call_count = list.assoc(default=ref(0), filename, call_counts())
 
   ref.incr(call_count)
