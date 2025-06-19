@@ -753,6 +753,10 @@ def f((_:int)) = 123 end
 def f((foo:int) = 123) = foo end
 # f : (?int) -> int = <fun>
 
+# Ignored anonymous argument with default value
+def f(_ = 123) = 456 end
+# f : (?int) -> int = fun (_=123) -> 456
+
 # Typed ignored anonymous argument with default value
 def f((_:int) = 123) = 456 end
 # f : (?int) -> int = fun (_=123) -> 456
