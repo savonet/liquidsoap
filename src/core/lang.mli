@@ -63,6 +63,7 @@ val add_protocol :
   syntax:string ->
   doc:string ->
   static:(string -> bool) ->
+  mode:[ `Uri | `File ] ->
   string ->
   Request.resolver ->
   unit

@@ -613,19 +613,41 @@ let get_decoder ~ctype r =
 (** Plugins registration. *)
 
 type resolver = string -> log:(string -> unit) -> float -> indicator option
-type protocol = { resolve : resolver; static : string -> bool }
+
+type protocol = {
+  mode : [ `Uri | `File ];
+  resolve : resolver;
+  static : string -> bool;
+}
 
 let protocols_doc =
   "Methods to get a file. They are the first part of URIs: 'protocol:args'."
 
 let protocols = Plug.create ~doc:protocols_doc "protocols"
 
+let get_uri_protocol proto =
+  Option.map snd
+    (Plug.find protocols (fun k v ->
+         match (k, v) with
+           | handler, { mode = `Uri } -> handler = proto
+           | _ -> false))
+
+let get_file_protocol uri =
+  try
+    let extname = Utils.get_ext uri in
+    Option.map snd
+      (Plug.find protocols (fun k v ->
+           match (k, v) with
+             | handler, { mode = `File } -> handler = extname
+             | _ -> false))
+  with Not_found -> None
+
 let is_static s =
   if file_exists (home_unrelate s) then true
   else (
     match parse_uri s with
       | Some (proto, uri) -> (
-          match Plug.get protocols proto with
+          match get_uri_protocol proto with
             | Some handler -> handler.static uri
             | None -> false)
       | None -> false)
@@ -654,45 +676,51 @@ let resolve_req t timeout =
       raise ExnTimeout);
 
     log#f 6 "Resolve step %s in %s." i.uri (string_of_indicators t);
-    (* If the file is local, this loop should always terminate. *)
-    if file_exists i.uri then (
-      if not (file_is_readable i.uri) then (
-        log#important "Read permission denied for %s!"
-          (Lang_string.quote_string i.uri);
-        add_log t "Read permission denied!";
-        raise No_indicator);
-      if t.resolve_metadata then read_metadata t;
-      raise Request_resolved);
-
-    match parse_uri i.uri with
-      | Some (proto, arg) -> (
-          match Plug.get protocols proto with
-            | Some handler -> (
-                add_log t
-                  (Printf.sprintf "Resolving %s (timeout %.0fs)..."
-                     (Lang_string.quote_string i.uri)
-                     timeout);
-                match handler.resolve ~log:(add_log t) arg maxtime with
-                  | None ->
-                      log#info
-                        "Failed to resolve %s! For more info, see server \
-                         command `request.trace %d`."
-                        (Lang_string.quote_string i.uri)
-                        t.id;
-                      raise No_indicator
-                  | Some i ->
-                      push_indicator t i;
-                      resolve i)
-            | None ->
-                log#important "Unknown protocol %S in URI %s!" proto
+    (* If the file is local and no file decoder is found, this loop should always terminate. *)
+    let protocol, arg =
+      if file_exists i.uri then (
+        match get_file_protocol i.uri with
+          | Some proto -> (Some proto, i.uri)
+          | None ->
+              if not (file_is_readable i.uri) then (
+                log#important "Read permission denied for %s!"
                   (Lang_string.quote_string i.uri);
-                add_log t "Unknown protocol!";
-                raise No_indicator)
+                add_log t "Read permission denied!";
+                raise No_indicator);
+              if t.resolve_metadata then read_metadata t;
+              raise Request_resolved)
+      else (
+        match parse_uri i.uri with
+          | Some (proto, arg) -> (get_uri_protocol proto, arg)
+          | None ->
+              let log_level = if i.uri = "" then 4 else 3 in
+              log#f log_level "Nonexistent file or ill-formed URI %s!"
+                (Lang_string.quote_string i.uri);
+              add_log t "Nonexistent file or ill-formed URI!";
+              raise No_indicator)
+    in
+
+    match protocol with
+      | Some handler -> (
+          add_log t
+            (Printf.sprintf "Resolving %s (timeout %.0fs)..."
+               (Lang_string.quote_string i.uri)
+               timeout);
+          match handler.resolve ~log:(add_log t) arg maxtime with
+            | None ->
+                log#info
+                  "Failed to resolve %s! For more info, see server command \
+                   `request.trace %d`."
+                  (Lang_string.quote_string i.uri)
+                  t.id;
+                raise No_indicator
+            | Some i ->
+                push_indicator t i;
+                resolve i)
       | None ->
-          let log_level = if i.uri = "" then 4 else 3 in
-          log#f log_level "Nonexistent file or ill-formed URI %s!"
+          log#important "Unknown protocol URI %s!"
             (Lang_string.quote_string i.uri);
-          add_log t "Nonexistent file or ill-formed URI!";
+          add_log t "Unknown protocol!";
           raise No_indicator
   in
   let result =

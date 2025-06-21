@@ -9,9 +9,9 @@ let () = Hooks_implementations.register ()
 
 (** Helpers for defining protocols. *)
 
-let add_protocol ~syntax ~doc ~static name resolver =
+let add_protocol ~syntax ~doc ~static ~mode name resolver =
   Doc.Protocol.add ~name ~doc ~syntax;
-  let spec = { Request.static; resolve = resolver } in
+  let spec = { Request.mode; static; resolve = resolver } in
   Plug.register Request.protocols ~doc name spec
 
 let frame_t base_type fields = Frame_type.make base_type fields

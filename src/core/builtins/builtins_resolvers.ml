@@ -251,7 +251,8 @@ let _ =
       let static s = Lang.to_bool (Lang.apply static [("", Lang.string s)]) in
       let doc = Lang.to_string (List.assoc "doc" p) in
       let syntax = Lang.to_string (List.assoc "syntax" p) in
-      Lang.add_protocol ~syntax ~doc ~static name (fun arg ~log timeout ->
+      Lang.add_protocol ~syntax ~doc ~static ~mode:`Uri name
+        (fun arg ~log timeout ->
           let log =
             Lang.val_fun log_p (fun p ->
                 let v = List.assoc "" p in
