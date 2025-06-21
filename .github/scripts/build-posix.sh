@@ -39,6 +39,11 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
+opam update
+opam upgrade -y odoc posix-socket
+
+cd /tmp/liquidsoap-full/liquidsoap
+
 ./.github/scripts/checkout-deps.sh
 
 cd /tmp/liquidsoap-full
