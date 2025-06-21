@@ -40,7 +40,7 @@ echo "::endgroup::"
 echo "::group::Setting up specific dependencies"
 
 opam update
-opam install -y odoc.3.0.0~beta1 posix-socket.3.0.0
+opam upgrade -y odoc posix-socket
 
 cd /tmp/liquidsoap-full/liquidsoap
 

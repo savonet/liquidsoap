@@ -1297,7 +1297,7 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
     | `App (t, args) ->
         (match (t, args) with
           | { term = `Var "_null"; pos }, [] ->
-              let bt = Printexc.get_callstack 1 in
+              let bt = Printexc.get_callstack 0 in
               throw ~bt (Term.Deprecated ("use `null`", Pos.of_lexing_pos pos))
           | _ -> ());
         let args = expand_appof ~pos ~env ~to_term args in

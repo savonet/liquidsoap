@@ -305,7 +305,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
       | `Seq (a, b) ->
           check ~env ~level a;
           if not (can_ignore a.t) then (
-            let bt = Printexc.get_callstack 1 in
+            let bt = Printexc.get_callstack 0 in
             throw ~bt (Ignored a));
           check ~print_toplevel ~level ~env b;
           base_type >: b.t
