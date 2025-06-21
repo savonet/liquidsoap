@@ -292,7 +292,7 @@ def f() =
   end
 
   # Response ended
-  read = ref(fun (~timeout=_) -> error.raise(error.assertion))
+  read = ref(fun (~timeout:_) -> error.raise(error.assertion))
 
   def handler(req, _) =
     read := req.data

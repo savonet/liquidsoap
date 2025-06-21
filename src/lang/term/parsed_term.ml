@@ -26,6 +26,7 @@ module Custom = Term_base.Custom
 
 type comment = [ `Before of string list | `After of string list ]
 type pos = Term_base.parsed_pos
+type term_annotation = [ `Deprecated of string ]
 
 type string_param =
   [ `Verbatim of string | `String of (pos[@hash.ignore]) * (char * string) ]
@@ -105,9 +106,15 @@ and invoke = { invoked : t; optional : bool; meth : invoke_meth }
 and invoke_meth = [ `String of string | `App of string * app_arg list ]
 and app_arg = [ `Term of string * t | `Argsof of _of ]
 
-and fun_arg =
-  [ `Term of (t, type_annotation option) func_argument | `Argsof of _of ]
+and parsed_func_argument = {
+  label : string;
+  as_variable : string option;
+  default : t option;
+  typ : type_annotation option;
+  annotations : term_annotation list; [@hash.ignore]
+}
 
+and fun_arg = [ `Term of parsed_func_argument | `Argsof of _of ]
 and list_el = [ `Term of t | `Ellipsis of t ]
 
 and if_def = {
@@ -220,6 +227,7 @@ and t = {
   term : parsed_ast;
   pos : pos; [@hash.ignore]
   mutable comments : (pos * comment) list; [@hash.ignore]
+  annotations : term_annotation list; [@hash.ignore]
 }
 [@@deriving hash]
 
@@ -235,7 +243,9 @@ and encoder_params =
 and encoder = string * encoder_params
 
 let unit = `Tuple []
-let make ?(comments = []) ~pos term = { pos; term; comments }
+
+let make ?(comments = []) ?(annotations = []) ~pos term =
+  { pos; term; comments; annotations }
 
 let rec iter_term fn ({ term } as tm) =
   if term <> `Eof then fn tm;

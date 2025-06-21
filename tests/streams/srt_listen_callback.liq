@@ -3,7 +3,7 @@ port = 8001
 settings.srt.prefer_address := "ipv4"
 
 def fn() =
-  def listen_callback(~hs_version=_, ~peeraddr=_, ~streamid, _) =
+  def listen_callback(~hs_version:_, ~peeraddr:_, ~streamid, _) =
     if streamid == null("foobar") then test.pass() end
     false
   end

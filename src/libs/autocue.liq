@@ -1070,7 +1070,7 @@ end
 
 # Define autocue protocol
 # @flag hidden
-def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
+def protocol.autocue(~rlog:_, ~maxtime:_, arg) =
   cue_metadata = file.autocue.metadata(request_metadata=[], arg)
 
   if

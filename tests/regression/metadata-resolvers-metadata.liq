@@ -1,6 +1,6 @@
 dir = file.temp_dir(cleanup=true, "metadata-resolver")
 
-def media_protocol(~rlog=_, ~maxtime=_, arg) =
+def media_protocol(~rlog:_, ~maxtime:_, arg) =
   "#{dir}/#{arg}"
 end
 

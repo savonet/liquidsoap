@@ -326,11 +326,11 @@ def video.add_text.ffmpeg.raw.filter(
     )
 
   def escape =
-    def special_char(~encoding=_, s) =
+    def special_char(~encoding:_, s) =
       string.contains(substring=s, "(',%,\\,:,{,})")
     end
 
-    def escape_char(~encoding=_, s) =
+    def escape_char(~encoding:_, s) =
       "\\#{s}"
     end
 
