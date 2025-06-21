@@ -325,7 +325,8 @@ let () =
   let env = [("fn", ([], fn_t)); ("x", ([], x_t)); ("y", ([], y_t))] in
 
   try
-    Liquidsoap_lang.Typechecking.check ~throw ~env app;
+    Liquidsoap_lang.Typechecking.check ~check_top_level_override:false ~throw
+      ~env app;
     raise Test_failed
   with
     | Test_failed -> raise Test_failed
