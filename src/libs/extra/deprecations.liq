@@ -494,13 +494,7 @@ end
 
 # Deprecated: use `input` instead.
 # @flag deprecated
-def in(
-  ~id=null,
-  ~start=true,
-  ~on_start={()},
-  ~on_stop={()},
-  ~fallible=false
-) =
+def in(~id=null, ~start=true, ~on_start={()}, ~on_stop={()}, ~fallible=false) =
   deprecated("in", "input")
   input(
     id=id, start=start, on_start=on_start, on_stop=on_stop, fallible=fallible
@@ -769,11 +763,11 @@ def add_protocol(%argsof(protocol.add), name, fn) =
   protocol.add(%argsof(protocol.add), name, fn)
 end
 
-# Deprecated: use `decoder.add`.
+# Deprecated: use `decoder.pipe.add`.
 # @flag deprecated
-def add_decoder(%argsof(decoder.add), process) =
-  deprecated("add_decoder", "decoder.add")
-  decoder.add(%argsof(decoder.add), process)
+def add_decoder(%argsof(decoder.pipe.add), process) =
+  deprecated("add_decoder", "decoder.pipe.add")
+  decoder.pipe.add(%argsof(decoder.pipe.add), process)
 end
 
 # Deprecated: use `decoder.metadata.add`.
@@ -783,11 +777,11 @@ def add_metadata_resolver(name, fn) =
   decoder.metadata.add(name, fn)
 end
 
-# Deprecated: use `decoder.oblivious.add`.
+# Deprecated: use `decoder.stdout.add`.
 # @flag deprecated
-def add_oblivious_decoder(%argsof(decoder.oblivious.add), process) =
-  deprecated("add_oblivious_decoder", "decoder.oblivious.add")
-  decoder.oblivious.add(%argsof(decoder.oblivious.add), process)
+def add_oblivious_decoder(%argsof(decoder.stdout.add), process) =
+  deprecated("add_oblivious_decoder", "decoder.stdout.add")
+  decoder.stdout.add(%argsof(decoder.stdout.add), process)
 end
 
 # Deprecated: use `source.mux.audio`.
@@ -903,4 +897,29 @@ def cue_cut(
      resolution! This operator can be safely removed from your script now."
   )
   s
+end
+
+# Deprecated: use decoder.pipe.add
+# @flag deprecated
+def decoder.add(%argsof(decoder.pipe.add), uri) =
+  log.severe(
+    label="lang.deprecated",
+    "WARNING: decoder.add has been renamed to decoder.pipe.add. Please consider \
+     renaming this or using the new decoder.file.add when relevant."
+  )
+  decoder.pipe.add(%argsof(decoder.pipe.add), uri)
+end
+
+let decoder.oblivious = ()
+
+# Deprecated: use decoder.stdout.add
+# @flag deprecated
+def decoder.oblivious.add(%argsof(decoder.stdout.add), uri) =
+  log.severe(
+    label="lang.deprecated",
+    "WARNING: decoder.oblivious.add has been renamed to decoder.stdout.add. \
+     Please consider renaming this or using the new decoder.file.add when \
+     relevant."
+  )
+  decoder.stdout.add(%argsof(decoder.stdout.add), uri)
 end

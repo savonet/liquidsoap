@@ -105,7 +105,7 @@ let test_ctype f filename =
             else audio_n ret)
          ())
 
-let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =
+let register_pipe ~name ~doc ~priority ~mimes ~file_extensions ~test process =
   Plug.register Decoder.decoders name ~doc
     {
       Decoder.priority = (fun () -> priority);
@@ -181,8 +181,8 @@ let external_input_oblivious process filename prebuf =
   in
   { Decoder.fread; remaining; fseek = decoder.Decoder.seek; fclose }
 
-let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
-    ~process prebuf =
+let register_stdout ~name ~doc ~priority ~mimes ~file_extensions ~test ~process
+    prebuf =
   Plug.register Decoder.decoders name ~doc
     {
       Decoder.priority = (fun () -> priority);

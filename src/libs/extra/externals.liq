@@ -69,7 +69,7 @@ def enable_external_ffmpeg_decoder() =
       label="external.decoder",
       "Enabling FFMPEG decoder"
     )
-    decoder.add(
+    decoder.pipe.add(
       name="FFMPEG",
       description=
         "Decode files using the ffmpeg decoder binary",
@@ -148,7 +148,7 @@ def enable_external_mpc_decoder() =
     mpcdec_p =
       fun (f) ->
         "#{mpcdec} #{process.quote(f)} -"
-    decoder.oblivious.add(
+    decoder.stdout.add(
       name="MPCDEC",
       description=
         "Decode files using the mpcdec musepack decoder binary",
@@ -225,7 +225,7 @@ def enable_external_flac_decoder() =
       end
     end
 
-    decoder.add(
+    decoder.pipe.add(
       name="EXTERNAL_FLAC",
       description=
         "Decode files using the flac decoder binary.",
@@ -391,7 +391,7 @@ def enable_external_faad_decoder() =
       end
     end
 
-    decoder.oblivious.add(
+    decoder.stdout.add(
       name="EXTERNAL_FAAD",
       description=
         "Decode files using the faad binary.",

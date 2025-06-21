@@ -72,7 +72,8 @@ let _ =
       try Lang.string (Encoder.extension f) with _ -> Lang.string "")
 
 let decoder = Modules.decoder
-let decoder_oblivious = Lang.add_module ~base:decoder "oblivious"
+let decoder_pipe = Lang.add_module ~base:decoder "pipe"
+let decoder_stdout = Lang.add_module ~base:decoder "stdout"
 
 let _ =
   (* The type of the test function for external decoders.
@@ -93,7 +94,7 @@ let _ =
   in
   let test_f f file = Lang.to_int (Lang.apply f [("", Lang.string file)]) in
   ignore
-    (Lang.add_builtin ~base:decoder "add" ~category:`Liquidsoap
+    (Lang.add_builtin ~base:decoder_pipe "add" ~category:`Liquidsoap
        ~descr:
          "Register an external decoder. The encoder should output in WAV \
           format to his standard output (stdout) and read data from its \
@@ -135,11 +136,11 @@ let _ =
          in
          let priority = Lang.to_int (List.assoc "priority" p) in
          let test = List.assoc "test" p in
-         External_decoder.register_stdin ~name ~doc ~priority ~mimes
+         External_decoder.register_pipe ~name ~doc ~priority ~mimes
            ~file_extensions ~test:(test_f test) process;
          Lang.unit));
   let process_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
-  Lang.add_builtin ~base:decoder_oblivious "add" ~category:`Liquidsoap
+  Lang.add_builtin ~base:decoder_stdout "add" ~category:`Liquidsoap
     ~descr:
       "Register an external file decoder. The encoder should output in WAV \
        format to his standard output (stdout) and read data from the file it \
@@ -192,7 +193,7 @@ let _ =
       let file_extensions =
         if file_extensions = [] then None else Some file_extensions
       in
-      External_decoder.register_oblivious ~name ~doc ~priority ~mimes
+      External_decoder.register_stdout ~name ~doc ~priority ~mimes
         ~file_extensions ~test:(test_f test) ~process prebuf;
       Lang.unit)
 
