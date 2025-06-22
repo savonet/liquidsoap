@@ -2,6 +2,8 @@
 
 New:
 
+- BREAKING: Added new file-to-file external `decoder.add` API. This
+  makes it much easier and safer to write external decoders. See: [#4531](https://github.com/savonet/liquidsoap/pull/4531)
 - Added `liquidsoap.script.path` that contains the path to the current
   script's file, if available.
 - `null` can now be used directly without having to call `null()`.
