@@ -615,10 +615,14 @@ let get_decoder ~ctype r =
 type resolver = string -> log:(string -> unit) -> float -> indicator option
 
 type protocol = {
-  mode : [ `Uri | `File ];
+  mode : protocol_mode;
   resolve : resolver;
   static : string -> bool;
 }
+
+and protocol_mode =
+  | Uri
+  | File of { file_extensions : string list; mime_types : string list }
 
 let protocols_doc =
   "Methods to get a file. They are the first part of URIs: 'protocol:args'."
@@ -629,16 +633,18 @@ let get_uri_protocol proto =
   Option.map snd
     (Plug.find protocols (fun k v ->
          match (k, v) with
-           | handler, { mode = `Uri } -> handler = proto
+           | handler, { mode = Uri } -> handler = proto
            | _ -> false))
 
 let get_file_protocol uri =
   try
     let extname = Utils.get_ext uri in
+    let mime = Magic_mime.lookup uri in
     Option.map snd
       (Plug.find protocols (fun k v ->
            match (k, v) with
-             | handler, { mode = `File } -> handler = extname
+             | _, { mode = File { file_extensions; mime_types } } ->
+                 List.mem extname file_extensions || List.mem mime mime_types
              | _ -> false))
   with Not_found -> None
 

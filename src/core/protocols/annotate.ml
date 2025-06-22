@@ -72,4 +72,4 @@ let () =
         let _, uri = parse uri in
         Request.is_static uri
       with _ -> false)
-    ~mode:`Uri "annotate" annotate
+    ~mode:Request.Uri "annotate" annotate

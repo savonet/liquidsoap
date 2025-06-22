@@ -100,10 +100,14 @@ type resolver = string -> log:(string -> unit) -> float -> indicator option
 
 (** A protocol, which can resolve associated URIs. *)
 type protocol = {
-  mode : [ `Uri | `File ];
+  mode : protocol_mode;
   resolve : resolver;
   static : string -> bool;
 }
+
+and protocol_mode =
+  | Uri
+  | File of { file_extensions : string list; mime_types : string list }
 
 (** A static request [r] is such that every resolving leads to the same file.
     Sometimes, it allows removing useless destroy/create/resolve. *)

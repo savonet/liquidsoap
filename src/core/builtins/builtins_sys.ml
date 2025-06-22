@@ -74,6 +74,7 @@ let _ =
 let decoder = Modules.decoder
 let decoder_pipe = Lang.add_module ~base:decoder "pipe"
 let decoder_stdout = Lang.add_module ~base:decoder "stdout"
+let decoder_file = Lang.add_module ~base:decoder "file"
 
 let _ =
   (* The type of the test function for external decoders.
@@ -471,4 +472,79 @@ let _ =
       let label = Lang.to_string (Lang.assoc "" 1 p) in
       let value = Lang.to_string (Lang.assoc "" 2 p) in
       Unix.putenv label value;
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:decoder_file "add" ~category:`Liquidsoap
+    ~descr:
+      "Register an external file decoder. The decoder receives a local file \
+       and produces another local file. Produced file can be any format \
+       decodable by liquidsoap and can also be a request uri. Recommended \
+       returned value is: `annotate:metadata=\"value\",..:/path/to/file.wav`. \
+       File decoders are applied during the request resolution process."
+    [
+      ("name", Lang.string_t, None, None);
+      ("description", Lang.string_t, None, Some "Description of the decoder.");
+      ( "mimes",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some
+          "List of mime types supported by this decoder. Empty means any mime \
+           type should be accepted." );
+      ( "file_extensions",
+        Lang.list_t Lang.string_t,
+        None,
+        Some "List of file extensions. Should not be empty." );
+      ( "",
+        Lang.fun_t
+          [
+            (false, "rlog", Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t);
+            (false, "maxtime", Lang.float_t);
+            (false, "", Lang.string_t);
+          ]
+          Lang.(nullable_t string_t),
+        None,
+        Some "Resolution function. Returns `null` if no file could be decoded."
+      );
+    ]
+    Lang.unit_t
+    (fun p ->
+      let name = Lang.to_string (List.assoc "name" p) in
+      let description = Lang.to_string (List.assoc "description" p) in
+      let mime_types =
+        List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
+      in
+      let _file_extensions = List.assoc "file_extensions" p in
+      let file_extensions =
+        List.map Lang.to_string (Lang.to_list _file_extensions)
+      in
+      if file_extensions = [] then
+        Runtime_error.raise ~pos:(Lang.pos p)
+          "file_extensions should not be empty!";
+      let fn = List.assoc "" p in
+      let fn fname ~log timeout =
+        let log =
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              let v = List.assoc "" p in
+              log (Lang.to_string v);
+              Lang.unit)
+        in
+        let ret =
+          Lang.apply fn
+            [
+              ("rlog", log);
+              ("maxtime", Lang.float timeout);
+              ("", Lang.string fname);
+            ]
+        in
+        Option.map
+          (fun s -> Request.indicator ~temporary:true (Lang.to_string s))
+          (Lang.to_option ret)
+      in
+      Lang.add_protocol ~doc:description ~syntax:"/path/to/file"
+        ~static:(fun _ -> true)
+        ~mode:Request.(File { file_extensions; mime_types })
+        name fn;
       Lang.unit)
