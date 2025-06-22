@@ -214,7 +214,7 @@ let _ =
         Some (Lang.bool false),
         Some "if true, file is removed when it is finished." );
       ( "static",
-        Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t,
+        Builtins_sys.static_t,
         Some default_static,
         Some
           "When given an uri for the protocol, if it returns `true`, then \

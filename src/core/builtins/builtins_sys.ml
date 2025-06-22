@@ -347,6 +347,11 @@ let _ =
       Unix.putenv label value;
       Lang.unit)
 
+let static_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t
+
+let default_static =
+  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled "fun (_) -> true"
+
 let _ =
   Lang.add_builtin ~base:Modules.decoder "add" ~category:`Liquidsoap
     ~descr:
@@ -358,6 +363,13 @@ let _ =
     [
       ("name", Lang.string_t, None, None);
       ("description", Lang.string_t, None, Some "Description of the decoder.");
+      ( "static",
+        static_t,
+        Some default_static,
+        Some
+          "Return `true`, then requests can be resolved once and for all. \
+           Typically, static decoders can be used to create infallible \
+           sources." );
       ( "mimes",
         Lang.list_t Lang.string_t,
         Some (Lang.list []),
@@ -375,7 +387,14 @@ let _ =
             (false, "maxtime", Lang.float_t);
             (false, "", Lang.string_t);
           ]
-          Lang.(nullable_t string_t),
+          Lang.(
+            nullable_t
+              (optional_method_t string_t
+                 [
+                   ( "temporary",
+                     ([], bool_t),
+                     "Delete the returned file when it is no longer needed" );
+                 ])),
         None,
         Some "Resolution function. Returns `null` if no file could be decoded."
       );
@@ -394,6 +413,8 @@ let _ =
       if file_extensions = [] then
         Runtime_error.raise ~pos:(Lang.pos p)
           "file_extensions should not be empty!";
+      let static = List.assoc "static" p in
+      let static s = Lang.to_bool (Lang.apply static [("", Lang.string s)]) in
       let fn = List.assoc "" p in
       let fn fname ~log timeout =
         let log =
@@ -412,12 +433,19 @@ let _ =
               ("", Lang.string fname);
             ]
         in
-        Option.map
-          (fun s -> Request.indicator ~temporary:true (Lang.to_string s))
-          (Lang.to_option ret)
+        match Lang.to_option ret with
+          | None -> None
+          | Some v ->
+              let meths, v = Lang.split_meths v in
+              let uri = Lang.to_string v in
+              let temporary =
+                match List.assoc_opt "temporary" meths with
+                  | None -> true
+                  | Some v -> Lang.to_bool v
+              in
+              Some (Request.indicator ~temporary uri)
       in
-      Lang.add_protocol ~doc:description ~syntax:"/path/to/file"
-        ~static:(fun _ -> true)
+      Lang.add_protocol ~doc:description ~syntax:"/path/to/file" ~static
         ~mode:Request.(File { file_extensions; mime_types })
         name fn;
       Lang.unit)
