@@ -763,25 +763,11 @@ def add_protocol(%argsof(protocol.add), name, fn) =
   protocol.add(%argsof(protocol.add), name, fn)
 end
 
-# Deprecated: use `decoder.pipe.add`.
-# @flag deprecated
-def add_decoder(%argsof(decoder.pipe.add), process) =
-  deprecated("add_decoder", "decoder.pipe.add")
-  decoder.pipe.add(%argsof(decoder.pipe.add), process)
-end
-
 # Deprecated: use `decoder.metadata.add`.
 # @flag deprecated
 def add_metadata_resolver(name, fn) =
   deprecated("add_metadata_resolver", "decoder.metadata.add")
   decoder.metadata.add(name, fn)
-end
-
-# Deprecated: use `decoder.stdout.add`.
-# @flag deprecated
-def add_oblivious_decoder(%argsof(decoder.stdout.add), process) =
-  deprecated("add_oblivious_decoder", "decoder.stdout.add")
-  decoder.stdout.add(%argsof(decoder.stdout.add), process)
 end
 
 # Deprecated: use `source.mux.audio`.
@@ -897,29 +883,4 @@ def cue_cut(
      resolution! This operator can be safely removed from your script now."
   )
   s
-end
-
-# Deprecated: use decoder.pipe.add
-# @flag deprecated
-def decoder.add(%argsof(decoder.pipe.add), uri) =
-  log.severe(
-    label="lang.deprecated",
-    "WARNING: decoder.add has been renamed to decoder.pipe.add. Please consider \
-     renaming this or using the new decoder.file.add when relevant."
-  )
-  decoder.pipe.add(%argsof(decoder.pipe.add), uri)
-end
-
-let decoder.oblivious = ()
-
-# Deprecated: use decoder.stdout.add
-# @flag deprecated
-def decoder.oblivious.add(%argsof(decoder.stdout.add), uri) =
-  log.severe(
-    label="lang.deprecated",
-    "WARNING: decoder.oblivious.add has been renamed to decoder.stdout.add. \
-     Please consider renaming this or using the new decoder.file.add when \
-     relevant."
-  )
-  decoder.stdout.add(%argsof(decoder.stdout.add), uri)
 end

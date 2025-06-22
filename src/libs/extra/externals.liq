@@ -4,7 +4,7 @@
 # @param ~mimes Mime types to decode. Empty list means any type.
 # @param ~binary Path to the `ffmpeg` binary.
 def enable_external_ffmpeg_decoder(~binary="ffmpeg", ~mimes, ~file_extensions) =
-  decoder.file.add(
+  decoder.add(
     name="FFMPEG",
     description=
       "Decode files using the ffmpeg decoder binary",
@@ -72,7 +72,7 @@ def enable_external_openmpt123_decoder(
   ],
   ~options=""
 ) =
-  decoder.file.add(
+  decoder.add(
     name="OPENMPT123",
     description=
       "Decode files using the openmpt123 decoder binary",
