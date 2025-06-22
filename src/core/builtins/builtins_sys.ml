@@ -96,6 +96,7 @@ let _ =
   let test_f f file = Lang.to_int (Lang.apply f [("", Lang.string file)]) in
   ignore
     (Lang.add_builtin ~base:decoder_pipe "add" ~category:`Liquidsoap
+       ~flags:[`Deprecated]
        ~descr:
          "Register an external decoder. The encoder should output in WAV \
           format to his standard output (stdout) and read data from its \
@@ -142,6 +143,7 @@ let _ =
          Lang.unit));
   let process_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
   Lang.add_builtin ~base:decoder_stdout "add" ~category:`Liquidsoap
+    ~flags:[`Deprecated]
     ~descr:
       "Register an external file decoder. The encoder should output in WAV \
        format to his standard output (stdout) and read data from the file it \
