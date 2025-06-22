@@ -2,8 +2,39 @@ decoder.add(
   name="OPENMPT123",
   description=
     "Decode files using the openmpt123 decoder binary",
-  mimes=mimes,
-  file_extensions=file_extensions,
+  mimes=
+    [
+      "audio/it",
+      "audio/xm",
+      "audio/s3m",
+      "audio/x-mod",
+      "audio/mod",
+      "audio/module-xm",
+      "audio/x-mod",
+      "application/playerpro",
+      "audio/x-s3m",
+      "application/soundapp",
+      "audio/med",
+      "audio/x-xm"
+    ],
+  file_extensions=
+    [
+      "xm",
+      "mtm",
+      "amf",
+      "stm",
+      "ult",
+      "wow",
+      "dmf",
+      "it",
+      "s3m",
+      "far",
+      "mod",
+      "mt2",
+      "okt",
+      "med",
+      "669"
+    ],
   fun (~rlog, ~maxtime=_, infile) ->
     begin
       ret =
