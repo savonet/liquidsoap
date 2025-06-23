@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-type 'a chunk = { data : 'a; offset : int; length : int option }
-type ('a, 'b) chunks = { params : 'a; mutable chunks : 'b chunk list }
-
 module Contents = struct
   type format_content
   type format = string * format_content Unifier.t
@@ -88,6 +85,82 @@ module type Content = sig
   val is_kind : Contents.kind -> bool
   val lift_kind : kind -> Contents.kind
   val get_kind : Contents.kind -> kind
+end
+
+type 'a chunk = { data : 'a; offset : int; length : int option }
+
+module type Chunks = sig
+  type params
+  type data
+
+  type chunks = private {
+    params : params;
+    chunks : data chunk list;
+    mutable consolidated : data option;
+  }
+
+  val make_chunks : params:params -> chunks:data chunk list -> unit -> chunks
+  val chunk_length : data chunk -> int
+  val length : chunks -> int
+  val consolidate_chunks : copy:bool -> chunks -> chunks
+end
+
+module MkChunks (C : ContentSpecs) :
+  Chunks with type params = C.params and type data = C.data = struct
+  type params = C.params
+  type data = C.data
+
+  type chunks = {
+    params : params;
+    chunks : data chunk list;
+    mutable consolidated : data option;
+  }
+
+  let make_chunks ~params ~chunks () = { params; chunks; consolidated = None }
+
+  let chunk_length { data; offset; length } =
+    match length with
+      | Some len -> len
+      | None ->
+          (* This is a hack ok. *)
+          let len = C.length data in
+          if len = max_int then max_int else len - offset
+
+  let length { chunks } =
+    List.fold_left
+      (fun cur chunk ->
+        let chunk_length = chunk_length chunk in
+        if cur = max_int || chunk_length = max_int then max_int
+        else cur + chunk_length)
+      0 chunks
+
+  let consolidate_chunks =
+    let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
+      let length = chunk_length chunk in
+      if length > 0 then C.blit data offset buf pos length;
+      pos + length
+    in
+    fun ~copy d ->
+      match (length d, d.chunks) with
+        | 0, _ ->
+            d.consolidated <- Some (C.make ~length:0 d.params);
+            { d with chunks = [] }
+        | _, [{ offset = 0; length = None }] when not copy -> d
+        | _, [{ offset = 0; length = Some l; data }]
+          when l = C.length data && not copy ->
+            d
+        | length, _ ->
+            let buf = C.make ~length d.params in
+            ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
+            if copy then
+              {
+                d with
+                chunks = [{ offset = 0; length = Some length; data = buf }];
+                consolidated = Some buf;
+              }
+            else (
+              d.consolidated <- Some buf;
+              d)
 end
 
 type data = Contents.data
@@ -228,39 +301,21 @@ module MkContentBase (C : ContentSpecs) :
      and type params = C.params
      and type data = C.data = struct
   include C
+  include MkChunks (C)
 
   let () =
     if List.mem C.name !content_names then
       failwith "content name already registered!";
     content_names := C.name :: !content_names
 
-  type chunked_data = (C.params, C.data) chunks
-
   let _type = Contents.register_type ()
 
-  let of_content : Contents.data -> chunked_data = function
+  let of_content : Contents.data -> chunks = function
     | t, d when t = _type -> Obj.magic d
     | _ -> raise Invalid
 
-  let to_content : chunked_data -> Contents.data = fun d -> (_type, Obj.magic d)
+  let to_content : chunks -> Contents.data = fun d -> (_type, Obj.magic d)
   let params { params } = params
-
-  let chunk_length { data; offset; length } =
-    match length with
-      | Some len -> len
-      | None ->
-          (* This is a hack ok. *)
-          let len = C.length data in
-          if len = max_int then max_int else len - offset
-
-  let length { chunks } =
-    List.fold_left
-      (fun cur chunk ->
-        let chunk_length = chunk_length chunk in
-        if cur = max_int || chunk_length = max_int then max_int
-        else cur + chunk_length)
-      0 chunks
-
   let is_empty d = length d = 0
 
   let sub data ofs len =
@@ -269,27 +324,26 @@ module MkContentBase (C : ContentSpecs) :
     let data_length = length data in
     if data_length < start || data_length < stop then
       raise (Invalid_argument "Content.sub");
-    {
-      data with
-      chunks =
-        List.rev
-          (snd
-             (List.fold_left
-                (fun (pos, cur) ({ data; offset } as chunk) ->
-                  let length = chunk_length chunk in
-                  let cur =
-                    (* This is essentially a segment overlap calculation. *)
-                    let start = max 0 (start - pos) in
-                    let stop = min length (stop - pos) in
-                    if start < stop then (
-                      let offset = offset + start in
-                      let length = Some (stop - start) in
-                      { data; offset; length } :: cur)
-                    else cur
-                  in
-                  (pos + length, cur))
-                (0, []) data.chunks));
-    }
+    make_chunks ~params:data.params
+      ~chunks:
+        (List.rev
+           (snd
+              (List.fold_left
+                 (fun (pos, cur) ({ data; offset } as chunk) ->
+                   let length = chunk_length chunk in
+                   let cur =
+                     (* This is essentially a segment overlap calculation. *)
+                     let start = max 0 (start - pos) in
+                     let stop = min length (stop - pos) in
+                     if start < stop then (
+                       let offset = offset + start in
+                       let length = Some (stop - start) in
+                       { data; offset; length } :: cur)
+                     else cur
+                   in
+                   (pos + length, cur))
+                 (0, []) data.chunks)))
+      ()
 
   let truncate data len =
     assert (len <= length data);
@@ -306,44 +360,19 @@ module MkContentBase (C : ContentSpecs) :
           :: chunks
       | [] -> raise Invalid
     in
-    { data with chunks = f len data.chunks }
+    make_chunks ~params:data.params ~chunks:(f len data.chunks) ()
 
   let append d d' =
     let d = of_content d in
     let d' = of_content d' in
-    to_content { d with chunks = d.chunks @ d'.chunks }
-
-  let consolidate_chunks =
-    let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
-      let length = chunk_length chunk in
-      if length > 0 then C.blit data offset buf pos length;
-      pos + length
-    in
-    fun ~copy d ->
-      match (length d, d.chunks) with
-        | 0, _ ->
-            d.chunks <- [];
-            { d with chunks = [] }
-        | _, [{ offset = 0; length = None }] when not copy -> d
-        | _, [{ offset = 0; length = Some l; data }]
-          when l = C.length data && not copy ->
-            d
-        | length, _ ->
-            let buf = C.make ~length d.params in
-            ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
-            if copy then
-              {
-                d with
-                chunks = [{ offset = 0; length = Some length; data = buf }];
-              }
-            else (
-              d.chunks <- [{ offset = 0; length = Some length; data = buf }];
-              d)
+    to_content (make_chunks ~params:d.params ~chunks:(d.chunks @ d'.chunks) ())
 
   let copy = consolidate_chunks ~copy:true
 
   let make ?length params =
-    { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
+    make_chunks ~params
+      ~chunks:[{ data = C.make ?length params; offset = 0; length }]
+      ()
 
   let deref : Contents.format_content Unifier.t -> params =
    fun p -> Obj.magic (Unifier.deref p)
@@ -432,14 +461,16 @@ module MkContentBase (C : ContentSpecs) :
     register_data_handler _type data_handler
 
   let lift_data ?(offset = 0) ?length d =
-    to_content { params = C.params d; chunks = [{ offset; length; data = d }] }
+    to_content
+      (make_chunks ~params:(C.params d)
+         ~chunks:[{ offset; length; data = d }]
+         ())
 
   let get_data d =
     let d = of_content d in
-    match (consolidate_chunks ~copy:false d).chunks with
-      | [] -> C.make ~length:0 d.params
-      | [{ data }] -> data
-      | _ -> raise Invalid
+    match (consolidate_chunks ~copy:false d).consolidated with
+      | Some d -> d
+      | None -> raise Invalid
 
   include C
 end
