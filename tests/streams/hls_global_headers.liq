@@ -5,7 +5,7 @@ s = video.testsrc.ffmpeg(duration=10.)
 
 s = mksafe(s)
 
-def main_playlist_writer(~extra_tags=_, ~prefix=_, ~version=_, streams) =
+def main_playlist_writer(~extra_tags:_, ~prefix:_, ~version:_, streams) =
   let [{codecs = c1, ..._}, {codecs = c2, ..._}] = streams
   if
     c1 == "avc1.64001f" and c2 == "avc1.64001f"

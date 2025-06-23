@@ -25,7 +25,7 @@ second_playlist =
 third_playlist =
   "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:6\r\n#EXT-X-DISCONTINUITY-SEQUENCE:1\r\n#EXTINF:2.000,\r\nstream_7.ts\r\n#EXTINF:1.980,\r\nstream_8.ts\r\n#EXTINF:1.980,\r\nstream_9.ts\r\n#EXTINF:1.960,\r\nstream_10.ts\r\n"
 
-def on_file_change(~state=_, fname) =
+def on_file_change(~state:_, fname) =
   if
     path.basename(fname) == "stream.m3u8"
   then

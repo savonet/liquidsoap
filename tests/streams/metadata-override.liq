@@ -33,7 +33,7 @@ def f() =
   decoder.metadata.add(
     priority=-1,
     "test-no-override",
-    fun (~metadata=_, _) ->
+    fun (~metadata:_, _) ->
       [
         (
           "title",
@@ -71,7 +71,7 @@ def f() =
   decoder.metadata.add(
     priority=4,
     "test-override",
-    fun (~metadata=_, _) ->
+    fun (~metadata:_, _) ->
       [
         (
           "title",
@@ -109,7 +109,7 @@ def f() =
   decoder.metadata.add(
     priority=10,
     "test-override-annotate",
-    fun (~metadata=_, _) ->
+    fun (~metadata:_, _) ->
       [
         (
           "title",

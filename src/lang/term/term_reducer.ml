@@ -25,6 +25,14 @@ type processor = Term_preprocessor.processor
 open Parsed_term
 include Runtime_term
 
+let report_annotations ~throw ~pos annotations =
+  List.iter
+    (function
+      | `Deprecated s ->
+          let bt = Printexc.get_callstack 0 in
+          throw ~bt (Term.Deprecated (s, Pos.of_lexing_pos pos)))
+    annotations
+
 let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
 let render_string ~pos ~sep s = Lexer.render_string ~pos ~sep s
 let mk ?pos = Term.make ?pos:(Option.map Pos.of_lexing_pos pos)
@@ -651,20 +659,22 @@ let args_of ~only ~except ~pos ~env name =
     | Some _ -> parse_error ~pos (Printf.sprintf "%s is not a function!" name)
     | None -> builtin_args_of ~only ~except ~pos name
 
-let expand_argsof ~pos ~env ~to_term args =
+let expand_argsof ~pos ~env ~to_term ~throw args =
   List.rev
     (List.fold_left
        (fun args -> function
          | `Argsof { only; except; source } ->
              List.rev (args_of ~pos ~env ~only ~except source) @ args
-         | `Term arg ->
+         | `Term { label; as_variable; default; typ; annotations } ->
+             report_annotations ~throw ~pos annotations;
              {
-               arg with
+               label;
+               as_variable;
                typ =
-                 (match arg.typ with
+                 (match typ with
                    | None -> mk_var ()
                    | Some typ -> mk_parsed_ty ~env ~to_term typ);
-               default = Option.map (to_term ~env) arg.default;
+               default = Option.map (to_term ~env) default;
              }
              :: args)
        [] args)
@@ -1118,7 +1128,7 @@ let string_of_let_decoration = function
   | `Xml_parse -> "xml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~env ~pos ~to_term ~comments
+let mk_let ~env ~pos ~to_term ~comments ~throw
     ({ decoration; pat; arglist; def; cast }, body) =
   let def = to_term ~env def in
   let mk_body def =
@@ -1140,7 +1150,7 @@ let mk_let ~env ~pos ~to_term ~comments
     to_term ~env body
   in
   let cast = Option.map (mk_parsed_ty ~pos ~env ~to_term) cast in
-  let arglist = Option.map (expand_argsof ~pos ~env ~to_term) arglist in
+  let arglist = Option.map (expand_argsof ~throw ~pos ~env ~to_term) arglist in
   let doc =
     match
       List.rev
@@ -1269,7 +1279,8 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
         in
         to_ast ~env ~pos ~comments
           (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
-    | `Def p | `Let p | `Binding p -> mk_let ~pos ~env ~to_term ~comments p
+    | `Def p | `Let p | `Binding p ->
+        mk_let ~throw ~pos ~env ~to_term ~comments p
     | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
     | `At (t, t') -> `App (to_term ~env t', [("", to_term ~env t)])
     | `Time t -> mk_time_pred ~pos (during ~pos t)
@@ -1302,20 +1313,21 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
           | _ -> ());
         let args = expand_appof ~pos ~env ~to_term args in
         `App (to_term ~env t, args)
-    | `Fun (args, body) -> `Fun (to_func ~pos ~env ~to_term args body)
+    | `Fun (args, body) -> `Fun (to_func ~throw ~pos ~env ~to_term args body)
     | `RFun (name, args, body) ->
-        `Fun (to_func ~pos ~env ~to_term ~name args body)
+        `Fun (to_func ~throw ~pos ~env ~to_term ~name args body)
 
-and to_func ~pos ~env ~to_term ?name arguments body =
+and to_func ~pos ~env ~to_term ~throw ?name arguments body =
   {
     name;
-    arguments = expand_argsof ~pos ~env ~to_term arguments;
+    arguments = expand_argsof ~throw ~pos ~env ~to_term arguments;
     body = to_term ~env body;
     free_vars = None;
   }
 
 and to_term ~throw ~env (tm : Parsed_term.t) : Term.t =
   let to_term = to_term ~throw in
+  report_annotations ~throw ~pos:tm.pos tm.annotations;
   match tm.term with
     | `Seq ({ pos; term = `If_def _ as ast }, t')
     | `Seq ({ pos; term = `If_encoder _ as ast }, t')

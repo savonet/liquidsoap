@@ -518,16 +518,23 @@ arglist:
   | arg                   { [$1] }
   | arg COMMA arglist     { $1::$3 }
 arg:
-  | TILD VAR opt { `Term {label = $2; as_variable = None; typ = None; default = $3} }
+  | TILD VAR opt { `Term {label = $2; as_variable = None; typ = None; default = $3; annotations = [] } }
   | TILD LPAR VAR COLON ty RPAR opt {
-                   `Term {label = $3; as_variable = None; typ =  Some $5; default = $7}
+                   `Term {label = $3; as_variable = None; typ =  Some $5; default = $7; annotations = []}
                  }
   | TILD VAR GETS UNDERSCORE opt {
-                   `Term {label = $2; as_variable = Some "_"; typ = None; default = $5}
+                    `Term {label = $2; as_variable = Some "_"; typ = None; default = $5;
+                           annotations = [`Deprecated (Printf.sprintf "Use `~%s:_`" $2)] }
                  }
-  | optvar opt   { `Term {label = ""; as_variable = Some $1; typ = None; default = $2} }
+  | TILD VAR COLON optvar opt {
+                   `Term {label = $2; as_variable = Some $4; typ =  None; default = $5; annotations = []}
+                 }
+  | TILD VAR COLON LPAR optvar COLON ty RPAR opt {
+                  `Term {label = $2; as_variable = Some $5; typ =  Some $7; default = $9; annotations = []}
+                 }
+  | optvar opt   { `Term {label = ""; as_variable = Some $1; typ = None; default = $2; annotations = []} }
   | LPAR optvar COLON ty RPAR opt {
-                   `Term {label = ""; as_variable =  Some $2; typ = Some $4; default =  $6}
+                   `Term {label = ""; as_variable =  Some $2; typ = Some $4; default =  $6; annotations = []}
                  }
   | ARGS_OF LPAR VAR RPAR {
                    `Argsof {only = []; except = []; source = $3 }
