@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 type 'a chunk = { data : 'a; offset : int; length : int option }
-type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
+type ('a, 'b) chunks = { params : 'a; mutable chunks : 'b chunk list }
 
 module Contents = struct
   type format_content

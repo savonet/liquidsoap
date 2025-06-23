@@ -31,7 +31,7 @@ type 'a chunk = 'a Content_base.chunk = {
 }
 
 type ('a, 'b) chunks = ('a, 'b) Content_base.chunks = {
-  mutable params : 'a;
+  params : 'a;
   mutable chunks : 'b chunk list;
 }
 
