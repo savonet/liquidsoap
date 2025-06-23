@@ -94,9 +94,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -222,9 +220,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -350,9 +346,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -478,9 +472,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -606,9 +598,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -734,9 +724,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -862,9 +850,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -990,9 +976,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -1118,9 +1102,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -1246,9 +1228,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -1374,9 +1354,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -1502,9 +1480,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -1630,9 +1606,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -1758,9 +1732,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -1886,9 +1858,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -2014,9 +1984,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -2142,9 +2110,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -2270,9 +2236,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -2398,9 +2362,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -2526,9 +2488,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -2654,9 +2614,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -2782,9 +2740,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -2910,9 +2866,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -3038,9 +2992,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -3166,9 +3118,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -3294,9 +3244,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -3422,9 +3370,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -3550,9 +3496,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -3678,9 +3622,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -3806,9 +3748,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -3934,9 +3874,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -4062,9 +4000,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -4190,9 +4126,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -4318,9 +4252,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -4446,9 +4378,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -4574,9 +4504,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -4702,9 +4630,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -4830,9 +4756,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -4958,9 +4882,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -5086,9 +5008,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -5214,9 +5134,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -5342,9 +5260,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -5470,9 +5386,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -5598,9 +5512,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -5726,9 +5638,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -5854,9 +5764,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -5982,9 +5890,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -6110,9 +6016,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -6238,9 +6142,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -6366,9 +6268,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -6494,9 +6394,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -6622,9 +6520,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -6750,9 +6646,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -6878,9 +6772,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -7006,9 +6898,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -7134,9 +7024,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -7262,9 +7150,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -7390,9 +7276,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -7518,9 +7402,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -7646,9 +7528,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -7774,9 +7654,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -7902,9 +7780,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -8030,9 +7906,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -8158,9 +8032,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -8286,9 +8158,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -8414,9 +8284,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -8542,9 +8410,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -8670,9 +8536,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -8798,9 +8662,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -8926,9 +8788,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -9054,9 +8914,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -9182,9 +9040,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -9310,9 +9166,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -9438,9 +9292,7 @@
     content/liq/complete-case.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
+    content/liq/decoder-openmpt.liq
     content/liq/dump-hourly.liq
     content/liq/dump-hourly2.liq
     content/liq/dynamic-source.liq
@@ -9662,29 +9514,9 @@
   (package liquidsoap)
   (deps
     (source_tree ../src/libs)
-    (:test_liq content/liq/decoder-faad.liq)
+    (:test_liq content/liq/decoder-openmpt.liq)
   )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/decoder-faad.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/decoder-flac.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/decoder-flac.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/decoder-metaflac.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/decoder-metaflac.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/decoder-openmpt.liq))
 )
 
 (rule

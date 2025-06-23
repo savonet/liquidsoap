@@ -97,3 +97,4 @@ let get plug name = List.assoc_opt name plug.items
 let list plug = plug.items
 
 let iter plug f = List.iter (fun (k, v) -> f k v) plug.items
+let find plug f = List.find_opt (fun (k, v) -> f k v) plug.items
