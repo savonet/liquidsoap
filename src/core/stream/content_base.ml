@@ -82,7 +82,6 @@ module type Content = sig
   val is_data : Contents.data -> bool
   val lift_data : ?offset:int -> ?length:int -> data -> Contents.data
   val get_data : Contents.data -> data
-  val get_chunked_data : Contents.data -> (params, data) chunks
   val is_format : Contents.format -> bool
   val lift_params : params -> Contents.format
   val get_params : Contents.format -> params
@@ -435,10 +434,8 @@ module MkContentBase (C : ContentSpecs) :
   let lift_data ?(offset = 0) ?length d =
     to_content { params = C.params d; chunks = [{ offset; length; data = d }] }
 
-  let get_chunked_data = of_content
-
   let get_data d =
-    let d = get_chunked_data d in
+    let d = of_content d in
     match (consolidate_chunks ~copy:false d).chunks with
       | [] -> C.make ~length:0 d.params
       | [{ data }] -> data
