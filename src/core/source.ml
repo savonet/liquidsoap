@@ -484,8 +484,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method reset_last_metadata_on_track =
       Atomic.get reset_last_metadata_on_track
 
-    method set_reset_last_metadata_on_track =
-      Atomic.set reset_last_metadata_on_track
+    method set_reset_last_metadata_on_track v =
+      Atomic.set reset_last_metadata_on_track v
 
     val mutable on_track : (Frame.metadata -> unit) List.t = []
     method on_track fn = on_track <- fn :: on_track
