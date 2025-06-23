@@ -114,7 +114,6 @@ type data = Contents.data
 (** Data *)
 
 val make : ?length:int -> format -> data
-val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val truncate : data -> int -> data
 val copy : data -> data

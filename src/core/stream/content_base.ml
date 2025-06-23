@@ -165,7 +165,6 @@ let parse_param kind label value =
   with Parsed_format p -> p
 
 type data_handler = {
-  fill : data -> int -> data -> int -> int -> unit;
   sub : data -> int -> int -> data;
   truncate : data -> int -> data;
   _length : data -> int;
@@ -177,7 +176,6 @@ type data_handler = {
 
 let dummy_handler =
   {
-    fill = (fun _ _ _ _ _ -> raise Invalid);
     sub = (fun _ _ _ -> raise Invalid);
     truncate = (fun _ _ -> raise Invalid);
     _length = (fun _ -> raise Invalid);
@@ -196,7 +194,6 @@ let register_data_handler t h =
 
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ?length k = (get_format_handler k).make length
-let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
 let truncate d = (get_data_handler d).truncate d
 let is_empty c = (get_data_handler c).is_empty c
@@ -317,16 +314,6 @@ module MkContentBase (C : ContentSpecs) :
     let d' = of_content d' in
     to_content { d with chunks = d.chunks @ d'.chunks }
 
-  let fill src src_pos dst dst_pos len =
-    let src = of_content src in
-    let dst = of_content dst in
-    dst.params <- src.params;
-    let dst_len = length dst in
-    dst.chunks <-
-      (sub dst 0 dst_pos).chunks @ (sub src src_pos len).chunks
-      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
-    assert (dst_len = length dst)
-
   let consolidate_chunks =
     let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
       let length = chunk_length chunk in
@@ -434,7 +421,6 @@ module MkContentBase (C : ContentSpecs) :
     Queue.push format_of_string format_parsers;
     let data_handler =
       {
-        fill;
         sub = (fun d ofs len -> to_content (sub (of_content d) ofs len));
         truncate = (fun d len -> to_content (truncate (of_content d) len));
         is_empty = (fun d -> is_empty (of_content d));
