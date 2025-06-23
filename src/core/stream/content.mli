@@ -24,17 +24,6 @@ open Mm
 
 (** Generic content registration API. *)
 
-type 'a chunk = 'a Content_base.chunk = {
-  data : 'a;
-  offset : int;
-  length : int option;
-}
-
-type ('a, 'b) chunks = ('a, 'b) Content_base.chunks = {
-  params : 'a;
-  mutable chunks : 'b chunk list;
-}
-
 module Contents = Content_base.Contents
 
 (* Raised during any invalid operation below. *)
