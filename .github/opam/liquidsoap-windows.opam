@@ -38,8 +38,7 @@ depends: [
   "xml-light-windows"
   "mem_usage-windows" {>= "0.1.1"}
   "metadata-windows" {>= "0.3.0"}
-  "dune-site-windows" {= "3.2.0"}
-  "dune-site" {= "3.2.0"}
+  "dune-site-windows"
   "dune-build-info-windows"
   "ppx_string" {build}
   "ppx_string-windows" {build}
