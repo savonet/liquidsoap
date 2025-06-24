@@ -119,7 +119,7 @@ def f() =
 
   test.equal(ret, "blo")
   on_error = ref(error.register("dummy"))
-  error.on_error(fun (e) -> on_error := e)
+  error.on_error(fun (e) -> on_error := error.methods(e))
   try
     error.raise(
       e,
