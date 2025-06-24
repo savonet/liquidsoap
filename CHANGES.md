@@ -2395,7 +2395,6 @@ New:
   - disk_manyfiles: on disk, a lot of small files
     See documentation for more details.
 - Added EXPERIMENTAL video support:
-
   - Support for ogg/theora file input.
   - Support for ogg/theora file and icecast output
   - Support for SDL output.
