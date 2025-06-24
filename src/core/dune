@@ -187,9 +187,7 @@
   ogg_metadata_plug
   on_end
   on_frame
-  on_metadata
   on_offset
-  on_track
   opus_format
   output
   pan

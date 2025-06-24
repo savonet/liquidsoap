@@ -904,3 +904,25 @@ def cue_cut(
   )
   s
 end
+
+# Deprecated: use the on_metadata source method
+# @flag deprecated
+def on_metadata(~id:_, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_metadata source method!"
+  )
+  s.on_metadata(fn)
+  s
+end
+
+# Deprecated: use the on_track source method
+# @flag deprecated
+def on_track(~id:_, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_track source method!"
+  )
+  s.on_track(fn)
+  s
+end

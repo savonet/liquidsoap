@@ -15,5 +15,5 @@ def ot(_) =
 end
 s = chop(every=1., sine())
 s = soundtouch(s)
-s = source.on_track(s, ot)
+s.on_track(fast=true, ot)
 output.dummy(fallible=true, s)

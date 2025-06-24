@@ -360,9 +360,10 @@ def fade.out(
     end
   end
 
-  s = source.on_track(s, reset_overrides)
-  s = source.on_metadata(s, update_fade)
-  s = if track_sensitive then source.on_track(s, stop_fade) else s end
+  s = source.methods(s)
+  s.on_track(fast=true, reset_overrides)
+  s.on_metadata(fast=true, update_fade)
+  if track_sensitive then s.on_track(fast=true, stop_fade) end
 
   s =
     if
@@ -534,9 +535,10 @@ def fade.skip(
     end
   end
 
-  s = source.on_track(s, reset_overrides)
-  s = source.on_metadata(s, update_fade)
-  s = source.on_track(s, stop_fade)
+  s = source.methods(s)
+  s.on_track(fast=true, reset_overrides)
+  s.on_metadata(fast=true, update_fade)
+  s.on_track(fast=true, stop_fade)
 
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
@@ -712,8 +714,9 @@ def fade.in(
     end
   end
 
-  s = source.on_track(s, reset_overrides)
-  s = source.on_metadata(s, update_fade)
+  s = source.methods(s)
+  s.on_track(fast=true, reset_overrides)
+  s.on_metadata(fast=true, update_fade)
   s = sequence(merge=true, [blank(duration=delay), s])
   s = fade.scale(apply, s)
 
@@ -721,7 +724,8 @@ def fade.in(
     if
       track_sensitive
     then
-      source.on_track(id=id, s, start_fade)
+      s.on_track(fast=true, start_fade)
+      s
     else
       source.on_frame(id=id, before=false, s, memoize({start_fade([])}))
     end

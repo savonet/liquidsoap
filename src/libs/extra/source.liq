@@ -113,7 +113,7 @@ def overlap_sources(
       set_ready(pos, false)
     end
 
-    source.on_track(disable)
+    source.on_track(fast=true, disable)
   end
 
   list.iteri(disable, sources)
@@ -126,7 +126,7 @@ def overlap_sources(
     fn(m)
   end
 
-  list.iter(fun (s) -> s.on_metadata(relay_metadata), sources)
+  list.iter(fun (s) -> s.on_metadata(fast=true, relay_metadata), sources)
 
   def drop_metadata(s) =
     let {metadata = _, ...tracks} = source.tracks(s)
@@ -291,7 +291,7 @@ def source.cue(
   ~file_type=null,
   ~comment=null,
   ~year=null,
-  ~map_metadata=fun (m) -> (m : [(string*string)]),
+  ~map_metadata=fun (m) -> (m : [(string * string)]),
   ~last_tracks=null,
   ~temp_dir=null,
   ~deduplicate_using=["title", "artist", "album", "isrc", "cue_year"],
@@ -447,5 +447,6 @@ def source.cue(
   end
 
   s = metadata.deduplicate(using=deduplicate_using, s)
-  source.on_metadata(s, handle_metadata)
+  s.on_metadata(handle_metadata)
+  s
 end

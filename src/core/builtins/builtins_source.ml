@@ -23,6 +23,14 @@
 let source = Muxer.source
 
 let _ =
+  let univ = Lang.univ_t () in
+  Lang.add_builtin ~base:source "methods" ~category:(`Source `Liquidsoap)
+    ~descr:"Returns the given source decorated with all its methods."
+    [("", Lang.source_t ~methods:false univ, None, None)]
+    (Lang.source_t ~methods:true univ)
+    (fun p -> List.assoc "" p)
+
+let _ =
   Lang.add_builtin ~base:source "set_id" ~category:(`Source `Liquidsoap)
     ~descr:"Set the id of an operator."
     [

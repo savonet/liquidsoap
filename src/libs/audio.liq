@@ -186,7 +186,7 @@ def replaces normalize(
     end
 
   s = source.on_frame(s, update)
-  s = if track_sensitive then source.on_track(s, fun (_) -> v := 1.) else s end
+  if track_sensitive then s.on_track(fast=true, fun (_) -> v := 1.) end
   amplify(id=id, {v()}, delay_line(lookahead, s)).{
     rms=rms,
     gain={v()},

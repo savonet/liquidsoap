@@ -62,6 +62,6 @@ s =
     }
   )
 
-s = source.on_metadata(s, f)
+s.on_metadata(fast=true, f)
 thread.run(delay=1., insert)
 output.dummy(s)

@@ -15,6 +15,29 @@ close to production. Streaming issues can build up over time. We do our best to
 release the most stable possible code but problems can arise from many reasons
 so, always best to first to a trial run before putting things to production!
 
+## From 2.3.x to 2.4.x
+
+### Stream-related callbacks
+
+All callbacks that can potentially happen during the streaming loop such as `on_metadata`, `on_track` and etc
+are executed in an asynchronous task by default. They can still be executed synchronously if needed.
+
+In order to unify the codebase, options and more, source-based operators such as
+`source.on_metadata` and `source.on_track` have been removed in favor of their respective
+source methods.
+
+Typically, instead of doing:
+
+```liquidsoap
+s = on_metadata(s, fn)
+```
+
+You should now do:
+
+```liquidsoap
+s.on_metadata(fn)
+```
+
 ## From 2.2.x to 2.3.x
 
 ### Script caching

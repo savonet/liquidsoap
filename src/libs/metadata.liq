@@ -34,7 +34,7 @@ def metadata.getter.source.base(init, map, metadata, s) =
     if v != "" then x := map(v) end
   end
 
-  s = source.on_metadata(s, f)
+  s.on_metadata(fast=true, f)
   (s, ref.getter(x))
 end
 

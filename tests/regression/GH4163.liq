@@ -46,7 +46,7 @@ def on_metadata(m) =
   end
 end
 
-s = source.on_metadata(id="on_meta", s, on_metadata)
+s.on_metadata(fast=true, on_metadata)
 
 clock.assign_new(sync='none', [s])
 

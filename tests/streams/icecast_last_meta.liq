@@ -32,16 +32,15 @@ thread.run(
 
 i = input.harbor(buffer=2., port=port, "metadata_test")
 
-i =
-  source.on_metadata(
-    i,
-    fun (m) ->
-      if
-        m["title"] ==
-          "some title"
-      then
-        test.pass()
-      end
-  )
+i.on_metadata(
+  fast=true,
+  fun (m) ->
+    if
+      m["title"] ==
+        "some title"
+    then
+      test.pass()
+    end
+)
 
 output.dummy(fallible=true, i)
