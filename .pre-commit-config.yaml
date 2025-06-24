@@ -26,7 +26,7 @@ repos:
         exclude: dune.inc
 
   - repo: https://github.com/savonet/pre-commit-liquidsoap
-    rev: 056cf2da9d985e1915a069679f126a461206504a
+    rev: f0c07c74b876d903f6e5e2de9fd85e56d48d3750
     hooks:
       - id: liquidsoap-prettier
 

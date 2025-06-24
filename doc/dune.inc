@@ -133,6 +133,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -261,6 +262,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -389,6 +391,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -517,6 +520,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -645,6 +649,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -773,6 +778,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -901,6 +907,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -1029,6 +1036,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -1157,6 +1165,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -1285,6 +1294,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -1413,6 +1423,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -1541,6 +1552,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -1669,6 +1681,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -1797,6 +1810,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -1925,6 +1939,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -2053,6 +2068,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -2181,6 +2197,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -2309,6 +2326,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -2437,6 +2455,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -2565,6 +2584,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -2693,6 +2713,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -2821,6 +2842,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -2949,6 +2971,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -3077,6 +3100,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -3205,6 +3229,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -3333,6 +3358,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -3461,6 +3487,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -3589,6 +3616,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -3717,6 +3745,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -3845,6 +3874,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -3973,6 +4003,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -4101,6 +4132,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -4229,6 +4261,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -4357,6 +4390,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -4485,6 +4519,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -4613,6 +4648,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -4741,6 +4777,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -4869,6 +4906,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -4997,6 +5035,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -5125,6 +5164,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -5253,6 +5293,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -5381,6 +5422,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -5509,6 +5551,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -5637,6 +5680,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -5765,6 +5809,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -5893,6 +5938,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -6021,6 +6067,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -6149,6 +6196,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -6277,6 +6325,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -6405,6 +6454,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -6533,6 +6583,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -6661,6 +6712,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -6789,6 +6841,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -6917,6 +6970,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -7045,6 +7099,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -7173,6 +7228,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -7301,6 +7357,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -7429,6 +7486,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -7557,6 +7615,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -7685,6 +7744,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -7813,6 +7873,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -7941,6 +8002,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -8069,6 +8131,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -8197,6 +8260,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -8325,6 +8389,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -8453,6 +8518,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -8581,6 +8647,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -8709,6 +8776,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -8837,6 +8905,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -8965,6 +9034,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -9093,6 +9163,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -9221,6 +9292,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -9349,6 +9421,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -9477,6 +9550,7 @@
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
+    content/liq/labeled_arguments.liq
     content/liq/live-switch.liq
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
@@ -10045,6 +10119,16 @@
     (:test_liq content/liq/json1.liq)
   )
   (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/json1.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/labeled_arguments.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/labeled_arguments.liq))
 )
 
 (rule
