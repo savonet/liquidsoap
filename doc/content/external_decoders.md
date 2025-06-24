@@ -24,7 +24,6 @@ is recommended because its estimation of the remaining time is better than the e
 by the decoders registered using `decoder.oblivious.add`. The important parameters are:
 
 - `test` is a function used to determine if the file should be decoded by the decoder. Returned values are:
-
   - `0`: no decodable audio,
   - `-1`: decodable audio but number of audio channels unknown,
   - `x`: fixed number of decodable audio channels.
@@ -50,7 +49,6 @@ is recommended because its estimation of the remaining time is better than the e
 by the decoders registered using `decoder.oblivious.add`. The important parameters are:
 
 - `test` is a function used to determine if the file should be decoded by the decoder. Returned values are:
-
   - `0`: no decodable audio,
   - `-1`: decodable audio but number of audio channels unknown,
   - `x`: fixed number of decodable audio channels.
@@ -64,7 +62,6 @@ following way: `decoder.metadata.add(format,resolver)`, where:
 
 - `format` is the name of the resolved format. It is only informative.
 - `resolver` is a function `f` that returns a list of metadata of the form: `(label, value)`. It is invoked the following way: `f(format=name,file)`, where:
-
   - `format` contains the name of the format, as returned by the decoder that accepted to decode the file. `f` may return immediately if this is not an expected value.
   - `file` is the name of the file to decode.
 
