@@ -62,6 +62,7 @@ module type ContentSpecs = sig
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
+  val free : data -> unit
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -87,18 +88,22 @@ module type Content = sig
   val get_kind : Contents.kind -> kind
 end
 
-type 'a chunk = { data : 'a; offset : int; length : int option }
-
 module type Chunks = sig
   type params
   type data
+  type chunk
   type chunks
 
-  val make_chunks : params:params -> chunks:data chunk list -> unit -> chunks
-  val chunk_length : data chunk -> int
+  val make_chunks : params:params -> chunks:chunk list -> unit -> chunks
+  val make_chunk : ?length:int -> offset:int -> chunk -> chunk
+  val deref_chunk : chunk -> unit
+  val lift_chunk_data : ?length:int -> offset:int -> data -> chunk
+  val chunk_length : chunk -> int
+  val chunk_raw_length : chunk -> int option
+  val chunk_offset : chunk -> int
   val length : chunks -> int
   val params : chunks -> params
-  val chunks : chunks -> data chunk list
+  val chunks : chunks -> chunk list
   val consolidate_chunks : copy:bool -> chunks -> chunks
   val consolidated : chunks -> data option
 end
@@ -108,13 +113,36 @@ module MkChunks (C : ContentSpecs) :
   type params = C.params
   type data = C.data
 
-  type chunks = {
-    params : params;
-    chunks : data chunk list;
-    mutable consolidated : data option;
+  type chunk = {
+    data : data;
+    offset : int;
+    length : int option;
+    refcount : int ref;
   }
 
-  let make_chunks ~params ~chunks () = { params; chunks; consolidated = None }
+  type chunks = {
+    params : params;
+    mutable chunks : chunk list;
+    mutable consolidated : chunk option;
+  }
+
+  let deref_chunk { data; refcount } =
+    decr refcount;
+    if !refcount = 0 then C.free data
+
+  let make_chunk ?length ~offset { data; refcount } =
+    { data; length; offset; refcount }
+
+  let lift_chunk_data ?length ~offset data =
+    { data; length; offset; refcount = ref 0 }
+
+  let finalise_chunks { chunks } = List.iter deref_chunk chunks
+
+  let make_chunks ~params ~chunks () =
+    List.iter (fun { refcount } -> incr refcount) chunks;
+    let chunks = { params; chunks; consolidated = None } in
+    Gc.finalise finalise_chunks chunks;
+    chunks
 
   let chunk_length { data; offset; length } =
     match length with
@@ -123,6 +151,9 @@ module MkChunks (C : ContentSpecs) :
           (* This is a hack ok. *)
           let len = C.length data in
           if len = max_int then max_int else len - offset
+
+  let chunk_raw_length { length } = length
+  let chunk_offset { offset } = offset
 
   let length { chunks } =
     List.fold_left
@@ -134,7 +165,16 @@ module MkChunks (C : ContentSpecs) :
 
   let params { params } = params
   let chunks { chunks } = chunks
-  let consolidated { consolidated } = consolidated
+
+  let consolidated = function
+    | { consolidated = Some { data } } -> Some data
+    | _ -> None
+
+  let consolidate ?length ~data d =
+    let chunk = { offset = 0; length; data; refcount = ref 0 } in
+    finalise_chunks d;
+    d.chunks <- [chunk];
+    d.consolidated <- Some chunk
 
   let consolidate_chunks =
     let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
@@ -145,8 +185,8 @@ module MkChunks (C : ContentSpecs) :
     fun ~copy d ->
       match (length d, d.chunks) with
         | 0, _ ->
-            d.consolidated <- Some (C.make ~length:0 d.params);
-            { d with chunks = [] }
+            consolidate ~length:0 ~data:(C.make ~length:0 d.params) d;
+            d
         | _, [{ offset = 0; length = None }] when not copy -> d
         | _, [{ offset = 0; length = Some l; data }]
           when l = C.length data && not copy ->
@@ -154,15 +194,12 @@ module MkChunks (C : ContentSpecs) :
         | length, _ ->
             let buf = C.make ~length d.params in
             ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
-            if copy then
-              {
-                d with
-                chunks = [{ offset = 0; length = Some length; data = buf }];
-                consolidated = Some buf;
-              }
-            else (
-              d.consolidated <- Some buf;
-              d)
+            let refcount = ref 1 in
+            consolidate ~length ~data:buf d;
+            if copy then (
+              incr refcount;
+              { d with consolidated = d.consolidated })
+            else d
 end
 
 type data = Contents.data
@@ -330,16 +367,18 @@ module MkContentBase (C : ContentSpecs) :
         (List.rev
            (snd
               (List.fold_left
-                 (fun (pos, cur) ({ data; offset } as chunk) ->
+                 (fun (pos, cur) chunk ->
                    let length = chunk_length chunk in
+                   let offset = chunk_offset chunk in
                    let cur =
                      (* This is essentially a segment overlap calculation. *)
                      let start = max 0 (start - pos) in
                      let stop = min length (stop - pos) in
                      if start < stop then (
                        let offset = offset + start in
-                       let length = Some (stop - start) in
-                       { data; offset; length } :: cur)
+                       let length = stop - start in
+                       let chunk = make_chunk ~offset ~length chunk in
+                       chunk :: cur)
                      else cur
                    in
                    (pos + length, cur))
@@ -352,12 +391,11 @@ module MkContentBase (C : ContentSpecs) :
       | chunks when len = 0 -> chunks
       | chunk :: chunks when chunk_length chunk < len ->
           f (len - chunk_length chunk) chunks
-      | { data; offset; length } :: chunks ->
-          {
-            data;
-            offset = offset + len;
-            length = Option.map (fun l -> l - len) length;
-          }
+      | chunk :: chunks ->
+          make_chunk
+            ~offset:(chunk_offset chunk + len)
+            ?length:(Option.map (fun l -> l - len) (chunk_raw_length chunk))
+            chunk
           :: chunks
       | [] -> raise Invalid
     in
@@ -373,7 +411,7 @@ module MkContentBase (C : ContentSpecs) :
 
   let make ?length params =
     make_chunks ~params
-      ~chunks:[{ data = C.make ?length params; offset = 0; length }]
+      ~chunks:[lift_chunk_data ~offset:0 ?length (C.make ?length params)]
       ()
 
   let deref : Contents.format_content Unifier.t -> params =
@@ -465,7 +503,7 @@ module MkContentBase (C : ContentSpecs) :
   let lift_data ?(offset = 0) ?length d =
     to_content
       (make_chunks ~params:(C.params d)
-         ~chunks:[{ offset; length; data = d }]
+         ~chunks:[lift_chunk_data ~offset ?length d]
          ())
 
   let get_data d =

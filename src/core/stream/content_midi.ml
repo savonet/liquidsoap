@@ -40,6 +40,7 @@ module Specs = struct
     p
 
   let compatible p p' = p.channels = p'.channels
+  let free _ = ()
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = midi_of_main in

@@ -39,6 +39,7 @@ module Specs = struct
     match length with Finite len -> len | Infinite -> max_int
 
   let clear d = d.data <- []
+  let free = clear
   let is_empty { data } = data = []
 
   let sort : 'a. (int * 'a) list -> (int * 'a) list =

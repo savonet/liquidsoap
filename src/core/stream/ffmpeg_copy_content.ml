@@ -65,6 +65,12 @@ module Specs = struct
   let string_of_kind = function `Copy -> "ffmpeg.copy"
   let kind_of_string = function "ffmpeg.copy" -> Some `Copy | _ -> None
 
+  let free_packet = function
+    | `Audio p -> Avcodec.Packet.free p
+    | `Video p -> Avcodec.Packet.free p
+
+  let free d = List.iter (fun (_, { packet }) -> free_packet packet) d.data
+
   let string_of_params params =
     String.concat ","
       (List.map

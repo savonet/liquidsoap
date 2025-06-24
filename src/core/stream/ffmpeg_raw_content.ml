@@ -37,6 +37,7 @@ module BaseSpecs = struct
 
   (* No frame copy for now. *)
   let blit = fill
+  let free d = List.iter (fun (_, { frame }) -> Avutil.Frame.free frame) d.data
 
   let copy : 'a. ('a, 'b) content -> ('a, 'b) content =
    fun src -> copy ~copy:(fun x -> x) src
