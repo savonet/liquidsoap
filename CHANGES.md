@@ -8,6 +8,7 @@ New:
   `null(value)` calls are still valid and can be used to create
   non-null values with nullable types. Calls to `null()` are marked
   as deprecated (#4516)
+- Enhanced labeled arguments syntax (#4526)
 
 Changed:
 
