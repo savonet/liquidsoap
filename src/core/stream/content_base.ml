@@ -187,9 +187,12 @@ module MkChunks (C : ContentSpecs) :
         | 0, _ ->
             consolidate ~length:0 ~data:(C.make ~length:0 d.params) d;
             d
-        | _, [{ offset = 0; length = None }] when not copy -> d
+        | _, [{ data; offset = 0; length = None }] when not copy ->
+            consolidate ~data d;
+            d
         | _, [{ offset = 0; length = Some l; data }]
           when l = C.length data && not copy ->
+            consolidate ~data ~length:l d;
             d
         | length, _ ->
             let buf = C.make ~length d.params in
