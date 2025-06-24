@@ -9,6 +9,7 @@ New:
   non-null values with nullable types. Calls to `null()` are marked
   as deprecated (#4516)
 - Enhanced labeled arguments syntax (#4526)
+- Add warning when erasing top-level variables (#4518)
 
 Changed:
 

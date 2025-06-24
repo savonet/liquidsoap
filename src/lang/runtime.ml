@@ -33,6 +33,7 @@ type append_stdlib = unit -> stdlib
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
+let strict = ref false
 
 let error_header ~formatter idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
@@ -48,7 +49,13 @@ let warning_header ~formatter idx pos =
     errors are re-raised, so that their content is not totally lost. *)
 exception Error
 
-let strict = ref false
+exception Warning of string
+
+let () =
+  Printexc.register_printer (function
+    | Error -> Some "Liquidsoap Error"
+    | Warning s -> Some (Printf.sprintf "Warning: %s" s)
+    | _ -> None)
 
 let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
   let print_error ~formatter idx error =
@@ -67,32 +74,62 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
   | Term.Ignored tm when Type.is_fun tm.Term.t ->
       flush_all ();
       warning_header ~formatter 1 tm.Term.t.Type.pos;
+      let typ = Type.to_string tm.Term.t in
       Format.fprintf formatter
         "Trying to ignore a function,@ which is of type %s.@ Did you forget to \
          apply it to arguments?@]@."
-        (Type.to_string tm.Term.t);
-      if !strict then Printexc.raise_with_backtrace Error bt
+        typ;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning
+             (Printf.sprintf
+                "Trying to ignore a function, which is of type %s. Did you \
+                 forget to apply it to arguments?"
+                typ))
+          bt
   | Term.Ignored tm when Type.is_source tm.Term.t ->
       flush_all ();
       warning_header ~formatter 2 tm.Term.t.Type.pos;
       Format.fprintf formatter
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
-      if !strict then Printexc.raise_with_backtrace Error bt
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning
+             "This source is unused, maybe it needs to be connected to an \
+              output.")
+          bt
   | Term.Ignored tm ->
       flush_all ();
       warning_header ~formatter 3 tm.Term.t.Type.pos;
       Format.fprintf formatter "This expression should have type unit.@]@.";
-      if !strict then Printexc.raise_with_backtrace Error bt
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning "This expression should have type unit.") bt
   | Term.Unused_variable (s, pos) ->
       flush_all ();
       warning_header ~formatter 4 (Some pos);
       Format.fprintf formatter "Unused variable %s@]@." s;
-      if !strict then Printexc.raise_with_backtrace Error bt
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Unused variable %s" s))
+          bt
   | Term.Deprecated (s, pos) ->
       flush_all ();
       warning_header ~formatter 5 (Some pos);
-      Format.fprintf formatter "Deprecated: %s@]@." s
+      Format.fprintf formatter "Deprecated: %s@]@." s;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Deprecated: %s" s))
+          bt
+  | Typechecking.Top_level_override (s, pos) ->
+      flush_all ();
+      warning_header ~formatter 6 pos;
+      Format.fprintf formatter "Top-level variable %s is overridden!@]@." s;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Top-level variable %s is overridden!" s))
+          bt
   (* Errors *)
   | Failure s when s = "lexing: empty token" ->
       print_error ~formatter 1 "Empty token";
@@ -276,7 +313,9 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
         time (fun () ->
             report ~lexbuf:None
               ~default:(fun () -> ())
-              (fun ~throw () -> Typechecking.check ?env ~throw checked_term));
+              (fun ~throw () ->
+                Typechecking.check ?env
+                  ~check_top_level_override:(stdlib <> None) ~throw checked_term));
 
         if Lazy.force Term.debug then
           Printf.eprintf "Checking for unused variables...\n%!";
@@ -371,7 +410,7 @@ let interactive () =
           ~default:(fun () -> ())
           (fun ~throw () ->
             let _, expr = mk_expr interactive lexbuf in
-            Typechecking.check ~throw expr;
+            Typechecking.check ~throw ~check_top_level_override:true expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore (Evaluation.eval_toplevel ~interactive:true expr));
         true

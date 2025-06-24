@@ -226,17 +226,17 @@ def test.check(f) =
 end
 
 # Add a metric
-def test.metric(~category, ~name, ~value, ~unit, ~min=null) =
-  min =
-    null.defined(min)
+def test.metric(~category, ~name, ~value, ~unit, ~min:min_value=null) =
+  min_value =
+    null.defined(min_value)
     ?
-      "\n  min: #{(null.get(min) : float)}"
+      "\n  min: #{(null.get(min_value) : float)}"
     : ""
   data =
     "- name: \"#{(name : string)}\"\n  category: \"#{(category : string)}\"\n  \
      value: #{(value : float)}\n  unit: \"#{(unit : string)}\"\n  time: #{
       (time() : float)
-    }#{min}\n\n"
+    }#{min_value}\n\n"
 
   file.write(append=true, data=data, "/tmp/metrics.yaml")
 end

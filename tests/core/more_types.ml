@@ -55,7 +55,7 @@ let () =
   in
   Typechecking.check
     ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
-    f;
+    ~check_top_level_override:false f;
   match (Type.deref f.Term.t).Type.descr with
     | Type.Arrow ([(false, "x", _)], t) -> (
         let meths, _ = Type.split_meths t in
@@ -89,7 +89,7 @@ let () =
   try
     Typechecking.check
       ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
-      invoke;
+      ~check_top_level_override:false invoke;
     raise Failed
   with
     | Failed -> raise Failed
