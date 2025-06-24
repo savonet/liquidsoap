@@ -241,9 +241,9 @@ def test.metric(~category, ~name, ~value, ~unit, ~min:min_value=null) =
   file.write(append=true, data=data, "/tmp/metrics.yaml")
 end
 
-def on_error(~backtrace, error) =
+def on_error(~backtrace, err) =
   print(
-    "Uncaught error while running test: #{error}\n#{backtrace}"
+    "Uncaught error while running test: #{err}\n#{backtrace}"
   )
   test.fail()
 end
