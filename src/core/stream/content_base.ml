@@ -92,17 +92,15 @@ type 'a chunk = { data : 'a; offset : int; length : int option }
 module type Chunks = sig
   type params
   type data
-
-  type chunks = private {
-    params : params;
-    chunks : data chunk list;
-    mutable consolidated : data option;
-  }
+  type chunks
 
   val make_chunks : params:params -> chunks:data chunk list -> unit -> chunks
   val chunk_length : data chunk -> int
   val length : chunks -> int
+  val params : chunks -> params
+  val chunks : chunks -> data chunk list
   val consolidate_chunks : copy:bool -> chunks -> chunks
+  val consolidated : chunks -> data option
 end
 
 module MkChunks (C : ContentSpecs) :
@@ -133,6 +131,10 @@ module MkChunks (C : ContentSpecs) :
         if cur = max_int || chunk_length = max_int then max_int
         else cur + chunk_length)
       0 chunks
+
+  let params { params } = params
+  let chunks { chunks } = chunks
+  let consolidated { consolidated } = consolidated
 
   let consolidate_chunks =
     let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
@@ -315,7 +317,6 @@ module MkContentBase (C : ContentSpecs) :
     | _ -> raise Invalid
 
   let to_content : chunks -> Contents.data = fun d -> (_type, Obj.magic d)
-  let params { params } = params
   let is_empty d = length d = 0
 
   let sub data ofs len =
@@ -324,7 +325,7 @@ module MkContentBase (C : ContentSpecs) :
     let data_length = length data in
     if data_length < start || data_length < stop then
       raise (Invalid_argument "Content.sub");
-    make_chunks ~params:data.params
+    make_chunks ~params:(params data)
       ~chunks:
         (List.rev
            (snd
@@ -342,7 +343,7 @@ module MkContentBase (C : ContentSpecs) :
                      else cur
                    in
                    (pos + length, cur))
-                 (0, []) data.chunks)))
+                 (0, []) (chunks data))))
       ()
 
   let truncate data len =
@@ -360,12 +361,13 @@ module MkContentBase (C : ContentSpecs) :
           :: chunks
       | [] -> raise Invalid
     in
-    make_chunks ~params:data.params ~chunks:(f len data.chunks) ()
+    make_chunks ~params:(params data) ~chunks:(f len (chunks data)) ()
 
   let append d d' =
     let d = of_content d in
     let d' = of_content d' in
-    to_content (make_chunks ~params:d.params ~chunks:(d.chunks @ d'.chunks) ())
+    to_content
+      (make_chunks ~params:(params d) ~chunks:(chunks d @ chunks d') ())
 
   let copy = consolidate_chunks ~copy:true
 
@@ -468,9 +470,8 @@ module MkContentBase (C : ContentSpecs) :
 
   let get_data d =
     let d = of_content d in
-    match (consolidate_chunks ~copy:false d).consolidated with
-      | Some d -> d
-      | None -> raise Invalid
+    let d = consolidate_chunks ~copy:false d in
+    match consolidated d with Some d -> d | None -> raise Invalid
 
   include C
 end
