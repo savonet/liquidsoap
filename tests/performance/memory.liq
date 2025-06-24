@@ -10,6 +10,6 @@ test.metric(
     "Process managed memory",
   value=float(m) / (1024. * 1024.),
   unit="Mio",
-  min_value=0.
+  min=0.
 )
 test.pass()
