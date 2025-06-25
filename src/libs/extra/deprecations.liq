@@ -76,7 +76,7 @@ end
 
 # Deprecated: this function has been replaced by `thread.run.recurrent`.
 # @flag deprecated
-def add_timeout(~synchronous=true, delay, f) =
+def add_timeout(~fast=true, delay, f) =
   deprecated("add_timeout", "thread.run.recurrent")
   thread.run.recurrent(fast=fast, delay=delay, f)
 end
@@ -494,13 +494,7 @@ end
 
 # Deprecated: use `input` instead.
 # @flag deprecated
-def in(
-  ~id=null,
-  ~start=true,
-  ~on_start={()},
-  ~on_stop={()},
-  ~fallible=false
-) =
+def in(~id=null, ~start=true, ~on_start={()}, ~on_stop={()}, ~fallible=false) =
   deprecated("in", "input")
   input(
     id=id, start=start, on_start=on_start, on_stop=on_stop, fallible=fallible
