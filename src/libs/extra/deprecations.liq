@@ -339,7 +339,7 @@ def register_flow(
     artist = m["artist"]
     title = m["title"]
     params = [("m_title", title), ("m_artist", artist)]
-    thread.run(fast=false, {request(cmd="metadata", params=params)})
+    request(cmd="metadata", params=params)
   end
 
   s.on_metadata(metadata)
@@ -912,7 +912,7 @@ def on_metadata(~id:_, s, fn) =
     label="lang.deprecated",
     "Use the on_metadata source method!"
   )
-  s.on_metadata(fn)
+  s.on_metadata(fast=true, fn)
   s
 end
 
@@ -923,6 +923,6 @@ def on_track(~id:_, s, fn) =
     label="lang.deprecated",
     "Use the on_track source method!"
   )
-  s.on_track(fn)
+  s.on_track(fast=true, fn)
   s
 end

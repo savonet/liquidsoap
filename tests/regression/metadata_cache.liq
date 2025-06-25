@@ -35,5 +35,5 @@ s =
     ]
   )
 
-s.on_metadata(fun (_) -> test.pass())
+s.on_metadata(fast=true, fun (_) -> test.pass())
 output.dummy(fallible=true, s)

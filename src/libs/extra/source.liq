@@ -447,6 +447,6 @@ def source.cue(
   end
 
   s = metadata.deduplicate(using=deduplicate_using, s)
-  s.on_metadata(handle_metadata)
+  s.on_metadata(fast=true, handle_metadata)
   s
 end

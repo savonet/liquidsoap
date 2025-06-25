@@ -11,6 +11,7 @@ s = append(music, next)
 meta_seen = ref([])
 
 s.on_metadata(
+  fast=true,
   fun (m) -> begin
     meta_seen := [...meta_seen(), m["title"]]
 
