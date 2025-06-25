@@ -60,7 +60,7 @@ def on_track(m) =
   end
 end
 
-fade_out.on_track(on_track)
+fade_out.on_track(synchronous=true, on_track)
 clock.assign_new(sync="none", [fade_out])
 
 def on_stop() =
