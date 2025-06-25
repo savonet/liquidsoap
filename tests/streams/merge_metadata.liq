@@ -62,6 +62,6 @@ s =
     }
   )
 
-s.on_metadata(fast=true, f)
+s.on_metadata(synchronous=true, f)
 thread.run(delay=1., insert)
 output.dummy(s)

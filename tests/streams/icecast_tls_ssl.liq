@@ -29,6 +29,6 @@ i = input.harbor(buffer=2., port=port, transport=ssl, "tls_test")
 
 i.on_wake_up(on_wake_up)
 
-i.source.on_track(fast=true, fun (_) -> test.pass())
+i.source.on_track(synchronous=true, fun (_) -> test.pass())
 
 output.dummy(fallible=true, i)

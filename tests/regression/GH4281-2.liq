@@ -15,7 +15,7 @@ s = fallback([delay(initial=true, 1., d), f])
 meta = ref([])
 
 s.on_metadata(
-  fast=true,
+  synchronous=true,
   fun (m) ->
     begin
       meta := [...meta(), m["title"]]

@@ -15,7 +15,7 @@ def metadata.getter.base(init, map, metadata, s) =
     if v != "" then x := map(v) end
   end
 
-  s.on_metadata(fast=true, f)
+  s.on_metadata(synchronous=true, f)
   ref.getter(x)
 end
 
@@ -34,7 +34,7 @@ def metadata.getter.source.base(init, map, metadata, s) =
     if v != "" then x := map(v) end
   end
 
-  s.on_metadata(fast=true, f)
+  s.on_metadata(synchronous=true, f)
   (s, ref.getter(x))
 end
 

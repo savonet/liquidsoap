@@ -13,7 +13,7 @@ count_s1 = ref(0)
 count_s2 = ref(0)
 
 s.on_metadata(
-  fast=true,
+  synchronous=true,
   fun (m) ->
     begin
       s = m["source"]

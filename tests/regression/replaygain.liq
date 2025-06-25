@@ -1,5 +1,5 @@
 enable_replaygain_metadata()
 s = single("../media/@wav[stereo].wav")
 s = replaygain(s)
-s.on_track(fast=true, fun (_) -> test.pass())
+s.on_track(synchronous=true, fun (_) -> test.pass())
 output.dummy(fallible=true, s)

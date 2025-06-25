@@ -40,7 +40,7 @@ def check_duplicate(m) =
   end
 end
 
-s.on_metadata(fast=true, check_duplicate)
+s.on_metadata(synchronous=true, check_duplicate)
 clock.assign_new(sync="none", [s])
 
 def on_stop() =

@@ -206,8 +206,8 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
     end
   end
 
-  if insert_missing then d.on_track(fast=true, f) end
-  d.on_metadata(fast=true, f)
+  if insert_missing then d.on_track(synchronous=true, f) end
+  d.on_metadata(synchronous=true, f)
 
   s = fallback(id=id, track_sensitive=false, [d, s])
   s.{
@@ -248,8 +248,8 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
     end
   end
 
-  s.on_track(fast=true, fun (m) -> m == [] ? last_meta := null : on_meta(m) )
-  s.on_metadata(fast=true, on_meta)
+  s.on_track(synchronous=true, fun (m) -> m == [] ? last_meta := null : on_meta(m) )
+  s.on_metadata(synchronous=true, on_meta)
 
   def next() =
     if

@@ -10,7 +10,7 @@ s =
       "application/ffmpeg;format=s16le,ch_layout=mono,sample_rate=48000"
   )
 
-s.on_track(fast=true, fun (_) -> test.pass())
+s.on_track(synchronous=true, fun (_) -> test.pass())
 
 output.dummy(fallible=true, s)
 

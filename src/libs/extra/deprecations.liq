@@ -76,7 +76,7 @@ end
 
 # Deprecated: this function has been replaced by `thread.run.recurrent`.
 # @flag deprecated
-def add_timeout(~fast=true, delay, f) =
+def add_timeout(~synchronous=true, delay, f) =
   deprecated("add_timeout", "thread.run.recurrent")
   thread.run.recurrent(fast=fast, delay=delay, f)
 end
@@ -912,7 +912,7 @@ def on_metadata(~id:_, s, fn) =
     label="lang.deprecated",
     "Use the on_metadata source method!"
   )
-  s.on_metadata(fast=true, fn)
+  s.on_metadata(synchronous=true, fn)
   s
 end
 
@@ -923,6 +923,6 @@ def on_track(~id:_, s, fn) =
     label="lang.deprecated",
     "Use the on_track source method!"
   )
-  s.on_track(fast=true, fn)
+  s.on_track(synchronous=true, fn)
   s
 end

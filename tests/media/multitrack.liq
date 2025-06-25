@@ -39,7 +39,7 @@ s =
 meta_seen = ref(false)
 track_seen = ref(false)
 
-s.on_metadata(fast=true, fun (m) -> if m["foo"] == "bla" then meta_seen := true end)
+s.on_metadata(synchronous=true, fun (m) -> if m["foo"] == "bla" then meta_seen := true end)
 
 s.on_track(fun (_) -> track_seen := true)
 
@@ -51,9 +51,9 @@ file_track_seen = ref(0)
 
 s = source(id="muxed_final", tracks)
 
-s.on_metadata(fast=true, fun (_) -> file_no_meta_seen := false)
+s.on_metadata(synchronous=true, fun (_) -> file_no_meta_seen := false)
 
-s.on_track(fast=true, fun (_) -> ref.incr(file_track_seen))
+s.on_track(synchronous=true, fun (_) -> ref.incr(file_track_seen))
 
 should_stop = ref(false)
 

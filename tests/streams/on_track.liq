@@ -8,5 +8,5 @@ def f(_) =
 end
 
 s = sequence([sine(duration=1.), sine()])
-s.on_track(fast=true, f)
+s.on_track(synchronous=true, f)
 output.dummy(s)

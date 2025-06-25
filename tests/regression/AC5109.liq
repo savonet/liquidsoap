@@ -21,6 +21,6 @@ def check(m) =
   if m["type"] == "s2" then test.pass() end
 end
 
-s.on_metadata(fast=true, check)
+s.on_metadata(synchronous=true, check)
 clock.assign_new(sync="none", [s])
 output.dummy(fallible=true, s)

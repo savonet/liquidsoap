@@ -162,7 +162,7 @@ let callback ~descr ~name ~arg_t ~apply ~register =
       ( [],
         fun_t
           [
-            (true, "fast", Lang.bool_t);
+            (true, "synchronous", Lang.bool_t);
             ( true,
               "on_error",
               Lang.nullable_t
@@ -171,19 +171,19 @@ let callback ~descr ~name ~arg_t ~apply ~register =
           ]
           unit_t ),
       Printf.sprintf
-        "Call a given handler %s. If `fast` is `true`, the function is \
+        "Call a given handler %s. If `synchronous` is `true`, the function is \
          executed immediately. Otherwise, it is sent to the slow task queue. \
          `on_error` can be used to catch errors raised during the execution."
         descr,
       fun s ->
         val_fun
           [
-            ("fast", "fast", Some (Lang.bool false));
+            ("synchronous", "synchronous", Some (Lang.bool false));
             ("on_error", "on_error", Some Lang.null);
             ("", "", None);
           ]
           (fun p ->
-            let fast = Lang.to_bool (List.assoc "fast" p) in
+            let synchronous = Lang.to_bool (List.assoc "synchronous" p) in
             let on_error = Lang.to_option (List.assoc "on_error" p) in
             let f = assoc "" 1 p in
             let f v = ignore (apply f v) in
@@ -201,7 +201,7 @@ let callback ~descr ~name ~arg_t ~apply ~register =
                         ignore (Lang.apply on_error [("", Lang.error error)]))
             in
             let f =
-              if fast then f
+              if synchronous then f
               else fun m ->
                 let task =
                   {

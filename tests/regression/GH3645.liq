@@ -9,7 +9,7 @@ thread.run(
 )
 
 radio.on_metadata(
-  fast=true, fun (m) -> if m["foo"] == "bla" then test.pass() end
+  synchronous=true, fun (m) -> if m["foo"] == "bla" then test.pass() end
 )
 
 output.dummy(fallible=true, radio)

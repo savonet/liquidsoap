@@ -24,7 +24,7 @@ def check_duplicate(m) =
   if m["title"] == "b" then dup_b := dup_b() + 1 end
 end
 
-s.on_metadata(fast=true, check_duplicate)
+s.on_metadata(synchronous=true, check_duplicate)
 clock.assign_new(sync="none", [s])
 
 def on_stop() =

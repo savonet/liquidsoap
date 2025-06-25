@@ -7,7 +7,7 @@ let native = ()
 def native.once(s) =
   # source.available(track_sensitive=true, s, predicate.first({true}))
   a = ref(true)
-  s.on_track(fast=true, fun (_) -> a := false)
+  s.on_track(synchronous=true, fun (_) -> a := false)
   source.available(s, a)
 end
 
@@ -65,7 +65,7 @@ def native.sequence(~id=null, sources) =
     if first() then first := false else ref.incr(n) end
   end
 
-  s.on_track(fast=true, ot)
+  s.on_track(synchronous=true, ot)
   s
 end
 

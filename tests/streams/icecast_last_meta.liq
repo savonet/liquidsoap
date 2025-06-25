@@ -33,7 +33,7 @@ thread.run(
 i = input.harbor(buffer=2., port=port, "metadata_test")
 
 i.on_metadata(
-  fast=true,
+  synchronous=true,
   fun (m) ->
     if
       m["title"] ==

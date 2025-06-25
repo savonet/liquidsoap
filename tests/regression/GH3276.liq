@@ -8,7 +8,7 @@ thread.run(
       s = input.http("http://localhost:#{port}/test")
       track_count = ref(0)
       s.on_track(
-        fast=true,
+        synchronous=true,
         fun (_) ->
           begin
             if track_count() > 1 then test.pass() end

@@ -207,7 +207,7 @@ def autocue.internal.ebur128(~duration, ~ratio=50., ~timeout=10., filename) =
       end
 
       s = ebur128(s)
-      s.on_metadata(fast=true, fun (m) -> frames := [...frames(), m])
+      s.on_metadata(synchronous=true, fun (m) -> frames := [...frames(), m])
       s
     end
 

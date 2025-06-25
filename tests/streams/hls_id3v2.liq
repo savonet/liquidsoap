@@ -60,7 +60,7 @@ def run_check() =
 
   ts_with_meta = input.hls("#{tmp_dir}/ts_with_meta.m3u8")
   ts_with_meta.on_metadata(
-    fast=true,
+    synchronous=true,
     fun (m) ->
       begin
         print(
@@ -74,7 +74,7 @@ def run_check() =
   output.dummy(fallible=true, ts_with_meta)
   ts = input.hls("#{tmp_dir}/ts.m3u8")
   ts.on_metadata(
-    fast=true,
+    synchronous=true,
     fun (m) ->
       begin
         if m["title"] != "" then to_check := to_check().{ts=m} end
@@ -85,7 +85,7 @@ def run_check() =
   output.dummy(fallible=true, ts)
   mp4 = input.hls("#{tmp_dir}/mp4.m3u8")
   mp4.on_metadata(
-    fast=true,
+    synchronous=true,
     fun (m) ->
       begin
         if m["title"] != "" then to_check := to_check().{mp4=m} end

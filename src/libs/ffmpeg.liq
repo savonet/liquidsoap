@@ -471,7 +471,7 @@ def replaces video.add_text.ffmpeg.raw(
   on_frame = ref(fun () -> ())
   on_metadata = ref(fun (_) -> ())
   s.on_metadata(
-    fast=true,
+    synchronous=true,
     fun (m) ->
       begin
         fn = on_metadata()

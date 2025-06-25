@@ -378,7 +378,7 @@ def add_text_builder(f) =
       end
     end
 
-    if null.defined(metadata) then s.on_metadata(fast=true, on_metadata) end
+    if null.defined(metadata) then s.on_metadata(synchronous=true, on_metadata) end
 
     # Our text source.
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)
@@ -634,7 +634,7 @@ def video.add_subtitle(
     if list.assoc.mem(override, m) then subtitle := list.assoc(override, m) end
   end
 
-  s.on_metadata(fast=true, meta)
+  s.on_metadata(synchronous=true, meta)
   let {video = v, ...tracks} = source.tracks(s)
   let {video = t} = source.tracks(t)
   let v = track.video.add([v, t])

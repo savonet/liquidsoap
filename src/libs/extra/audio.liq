@@ -366,12 +366,12 @@ def mix(~id=null, ~register_server_commands=true, sources) =
         begin
           s = amplify(input.volume, input.source)
           s.on_track(
-            fast=true,
+            synchronous=true,
             fun (_) -> if input.single() then input.selected := false end
           )
 
           s.on_metadata(
-            fast=true,
+            synchronous=true,
             fun (m) ->
               begin
                 fn = insert_metadata_fn()

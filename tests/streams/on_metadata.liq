@@ -17,6 +17,6 @@ def insert() =
   s.insert_metadata([("test", "bla")])
 end
 
-s.on_metadata(fast=true, f)
+s.on_metadata(synchronous=true, f)
 thread.run(delay=1., insert)
 output.dummy(s)
