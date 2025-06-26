@@ -45,15 +45,6 @@ let _ =
       Lang.unit)
 
 let _ =
-  Lang.add_builtin ~base:source "last_metadata" ~category:(`Source `Liquidsoap)
-    ~descr:"Return the last metadata from the source."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    (Lang.nullable_t Lang.metadata_t)
-    (fun p ->
-      let s = Lang.to_source (List.assoc "" p) in
-      match s#last_metadata with None -> Lang.null | Some m -> Lang.metadata m)
-
-let _ =
   Lang.add_builtin ~base:source "skip" ~category:(`Source `Liquidsoap)
     ~descr:"Skip to the next track."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]

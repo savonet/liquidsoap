@@ -198,7 +198,7 @@ def video.cover(s) =
   fail = (source.fail() : source)
 
   def next() =
-    m = source.last_metadata(s ?? fail) ?? []
+    m = source.methods((s ?? fail)).last_metadata() ?? []
 
     filename = m["filename"]
 
@@ -378,7 +378,11 @@ def add_text_builder(f) =
       end
     end
 
-    if null.defined(metadata) then s.on_metadata(synchronous=true, on_metadata) end
+    if
+      null.defined(metadata)
+    then
+      s.on_metadata(synchronous=true, on_metadata)
+    end
 
     # Our text source.
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)

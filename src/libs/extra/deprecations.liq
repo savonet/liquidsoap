@@ -906,7 +906,7 @@ def on_metadata(~id:_, s, fn) =
     label="lang.deprecated",
     "Use the on_metadata source method!"
   )
-  s.on_metadata(synchronous=true, fn)
+  source.methods(s).on_metadata(synchronous=true, fn)
   s
 end
 
@@ -917,6 +917,16 @@ def on_track(~id:_, s, fn) =
     label="lang.deprecated",
     "Use the on_track source method!"
   )
-  s.on_track(synchronous=true, fn)
+  source.methods(s).on_track(synchronous=true, fn)
   s
+end
+
+# Deprecated: use the last_metadata source method
+# @flag deprecated
+def source.last_metadata(~id:_, s) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the last_metadata source method!"
+  )
+  source.methods(s).last_metadata()
 end
