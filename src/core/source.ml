@@ -472,12 +472,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
-    val mutable on_metadata : (Frame.metadata -> unit) List.t = []
-    method on_metadata fn = on_metadata <- fn :: on_metadata
-    val mutable on_track_called = false
 
-    initializer
-      self#on_before_streaming_cycle (fun () -> on_track_called <- false)
+    val mutable on_track_or_metadata
+        : ([ `Track | `Metadata ] * (Frame.metadata -> unit)) List.t =
+      []
+
+    method on_metadata fn =
+      on_track_or_metadata <- on_track_or_metadata @ [(`Metadata, fn)]
+
+    method on_track fn =
+      on_track_or_metadata <- on_track_or_metadata @ [(`Track, fn)]
 
     val mutable reset_last_metadata_on_track = Atomic.make true
 
@@ -487,22 +491,28 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method set_reset_last_metadata_on_track v =
       Atomic.set reset_last_metadata_on_track v
 
-    val mutable on_track : (Frame.metadata -> unit) List.t = []
-    method on_track fn = on_track <- fn :: on_track
-
     method private set_last_metadata buf =
       match List.rev (Frame.get_all_metadata buf) with
-        | (_, m) :: _ -> last_metadata <- Some m
+        | v :: _ -> last_metadata <- Some v
         | _ -> ()
+
+    val mutable on_track_called = false
+
+    initializer
+      self#on_before_streaming_cycle (fun () -> on_track_called <- false)
 
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
         if self#reset_last_metadata_on_track then last_metadata <- None;
         self#set_last_metadata buf;
-        let m = Option.value ~default:Frame.Metadata.empty last_metadata in
+        let _, m =
+          Option.value ~default:(0, Frame.Metadata.empty) last_metadata
+        in
         self#log#debug "calling on_track handlers..";
-        List.iter (fun fn -> fn m) on_track)
+        List.iter
+          (function `Track, fn -> fn m | `Metadata, _ -> ())
+          on_track_or_metadata)
 
     val mutable last_images = Hashtbl.create 0
 
@@ -577,30 +587,45 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let buf = self#normalize_video_content self#generate_frame in
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
-      let track_marks = Frame.track_marks buf in
-      let buf =
-        match track_marks with
+      let track_mark_position, buf =
+        match Frame.track_marks buf with
           | p :: _ :: _ ->
               self#log#important
                 "Source created multiple tracks in a single frame! Sub-frame \
                  tracks are not supported and are merged into a single one..";
-              Frame.add_track_mark (Frame.drop_track_marks buf) p
-          | _ -> buf
+              (Some p, Frame.add_track_mark (Frame.drop_track_marks buf) p)
+          | p :: _ -> (Some p, buf)
+          | _ -> (None, buf)
       in
-      let has_track_mark = track_marks <> [] in
+      let has_track_mark = track_mark_position <> None in
       if has_track_mark then (
         elapsed <- 0;
-        self#execute_on_track buf)
-      else (
-        elapsed <- elapsed + length;
-        self#set_last_metadata buf);
+        if self#reset_last_metadata_on_track then last_metadata <- None;
+        self#set_last_metadata buf)
+      else elapsed <- elapsed + length;
       let metadata = Frame.get_all_metadata buf in
-      let on_metadata = self#mutexify (fun () -> on_metadata) () in
+      let on_track_or_metadata =
+        self#mutexify (fun () -> on_track_or_metadata) ()
+      in
       List.iter
-        (fun (i, m) ->
+        (fun (p, m) ->
           self#log#debug
-            "generate_frame: got metadata at position %d: calling handlers..." i;
-          List.iter (fun fn -> fn m) on_metadata)
+            "generate_frame: got metadata at position %d: calling handlers..." p;
+          let is_track_mark =
+            match last_metadata with
+              | Some (p', _) -> has_track_mark && p = p'
+              | _ -> false
+          in
+          List.iter
+            (fun cb ->
+              match cb with
+                | `Metadata, fn -> fn m
+                | `Track, fn ->
+                    if is_track_mark then (
+                      self#log#debug "calling on_track handlers..";
+                      fn m))
+            on_track_or_metadata;
+          if is_track_mark then on_track_called <- true)
         metadata;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark

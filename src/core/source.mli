@@ -212,7 +212,7 @@ object
   method seek : int -> int
 
   (** The source's last metadata. *)
-  method last_metadata : Frame.metadata option
+  method last_metadata : (int * Frame.metadata) option
 
   method reset_last_metadata_on_track : bool
   method set_reset_last_metadata_on_track : bool -> unit
