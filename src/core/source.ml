@@ -587,17 +587,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let buf = self#normalize_video_content self#generate_frame in
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
-      let track_mark_position, buf =
+      let has_track_mark, buf =
         match Frame.track_marks buf with
           | p :: _ :: _ ->
               self#log#important
                 "Source created multiple tracks in a single frame! Sub-frame \
                  tracks are not supported and are merged into a single one..";
-              (Some p, Frame.add_track_mark (Frame.drop_track_marks buf) p)
-          | p :: _ -> (Some p, buf)
-          | _ -> (None, buf)
+              (true, Frame.add_track_mark (Frame.drop_track_marks buf) p)
+          | _ :: _ -> (true, buf)
+          | _ -> (false, buf)
       in
-      let has_track_mark = track_mark_position <> None in
       if has_track_mark then (
         elapsed <- 0;
         if self#reset_last_metadata_on_track then last_metadata <- None;
