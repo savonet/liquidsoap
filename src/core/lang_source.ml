@@ -294,7 +294,11 @@ let source_methods =
             s#register_command ?usage ~descr command f;
             unit) );
   ]
-  @ callback ~descr:"to execute on each metadata" ~name:"on_metadata"
+  @ callback
+      ~descr:
+        "to execute on each metadata. In case of both track marks and \
+         metadata, this callback is executed after the `on_track` callback."
+      ~name:"on_metadata"
       ~arg_t:[(false, "", metadata_t)]
       ~apply:(fun f m -> apply f [("", metadata m)])
       ~register:(fun s f -> s#on_metadata f)
@@ -306,7 +310,11 @@ let source_methods =
       ~arg_t:[]
       ~apply:(fun f () -> apply f [])
       ~register:(fun s f -> s#on_sleep f)
-  @ callback ~descr:"on track marks" ~name:"on_track"
+  @ callback
+      ~descr:
+        "on track marks. In case of both track marks and metadata, this \
+         callback is executed after the `on_metadata` callback."
+      ~name:"on_track"
       ~arg_t:[(false, "", metadata_t)]
       ~apply:(fun f m -> apply f [("", metadata m)])
       ~register:(fun s f -> s#on_track f)

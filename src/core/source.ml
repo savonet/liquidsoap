@@ -588,7 +588,12 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           | _ -> buf
       in
       let has_track_mark = track_marks <> [] in
-      if has_track_mark then elapsed <- 0 else elapsed <- elapsed + length;
+      if has_track_mark then (
+        elapsed <- 0;
+        self#execute_on_track buf)
+      else (
+        elapsed <- elapsed + length;
+        self#set_last_metadata buf);
       let metadata = Frame.get_all_metadata buf in
       let on_metadata = self#mutexify (fun () -> on_metadata) () in
       List.iter
@@ -597,8 +602,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             "generate_frame: got metadata at position %d: calling handlers..." i;
           List.iter (fun fn -> fn m) on_metadata)
         metadata;
-      if has_track_mark then self#execute_on_track buf
-      else self#set_last_metadata buf;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);
