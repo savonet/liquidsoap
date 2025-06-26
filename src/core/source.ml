@@ -610,21 +610,22 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         (fun (p, m) ->
           self#log#debug
             "generate_frame: got metadata at position %d: calling handlers..." p;
-          let is_track_mark =
+          let is_on_track =
             match last_metadata with
-              | Some (p', _) -> has_track_mark && p = p'
+              | Some (p', _)
+                when (not on_track_called) && has_track_mark && p = p' ->
+                  self#log#debug "calling on_track handlers..";
+                  on_track_called <- true;
+                  true
               | _ -> false
           in
           List.iter
             (fun cb ->
               match cb with
                 | `Metadata, fn -> fn m
-                | `Track, fn ->
-                    if is_track_mark then (
-                      self#log#debug "calling on_track handlers..";
-                      fn m))
-            on_track_or_metadata;
-          if is_track_mark then on_track_called <- true)
+                | `Track, fn when is_on_track -> fn m
+                | _ -> ())
+            on_track_or_metadata)
         metadata;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
