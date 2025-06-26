@@ -28,6 +28,6 @@ s.on_metadata(
     end
 )
 
-s.on_track(fun (m) -> if m["source"] == "s2" then test.fail() end)
+s.on_track(synchronous=true, fun (m) -> if m["source"] == "s2" then test.fail() end)
 
 output.dummy(s)

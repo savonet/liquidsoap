@@ -24,7 +24,7 @@ end
 
 s = rotate(weights=[2, 1], [s1, s2])
 
-s.on_track(f)
+s.on_track(synchronous=true, f)
 
 def m_noise(_) =
   [("id", "noise")]
@@ -40,7 +40,7 @@ def f(_) =
   ready := true
 end
 
-s.on_track(f)
+s.on_track(synchronous=true,f)
 
 output.dummy(s)
 

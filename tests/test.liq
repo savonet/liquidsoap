@@ -92,7 +92,7 @@ def test.check_non_repeating(~nb_files, ~nb_rounds, s) =
     end
   end
 
-  s.on_track(check)
+  s.on_track(synchronous=true, check)
   s
 end
 
