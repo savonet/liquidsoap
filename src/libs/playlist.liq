@@ -1170,7 +1170,7 @@ def replaces playlist(
       if null.defined(w) then null.get(w).unwatch() end
     end
 
-    s.on_shutdown(watcher_shutdown)
+    s.on_shutdown(synchronous=true, watcher_shutdown)
   end
 
   if

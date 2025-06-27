@@ -178,7 +178,7 @@ let callback ~descr ~name ~arg_t ~apply ~register =
       fun s ->
         val_fun
           [
-            ("synchronous", "synchronous", Some (Lang.bool true));
+            ("synchronous", "synchronous", Some (Lang.bool false));
             ("on_error", "on_error", Some Lang.null);
             ("", "", None);
           ]

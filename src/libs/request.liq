@@ -134,6 +134,7 @@ def request.queue(
     }
 
   s.on_wake_up(
+    synchronous=true,
     fun () ->
       begin
         started := true
@@ -359,8 +360,8 @@ def request.single(
       mk_source(id)
     end
 
-  s.on_wake_up(fun () -> on_wake_up(s))
-  s.on_shutdown(on_shutdown)
+  s.on_wake_up(synchronous=true, fun () -> on_wake_up(s))
+  s.on_shutdown(synchronous=true, on_shutdown)
   (s : source_methods)
 end
 
