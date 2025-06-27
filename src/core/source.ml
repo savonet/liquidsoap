@@ -606,6 +606,12 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let on_track_or_metadata =
         self#mutexify (fun () -> on_track_or_metadata) ()
       in
+
+      (* Executing track mark and metadata callbacks is tricky.
+         - We want to preserve the order with which they are registered.
+         - We want to execute track marks even without metadata.
+
+      First: execute both kind of callback using the metadata from the frame: *)
       List.iter
         (fun (p, m) ->
           self#log#debug
@@ -627,6 +633,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                 | _ -> ())
             on_track_or_metadata)
         metadata;
+
+      (* Then, if we have a track mark but no metadata, executed the on_track callbacks. *)
+      if has_track_mark && not on_track_called then self#execute_on_track buf;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);
