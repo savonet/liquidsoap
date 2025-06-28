@@ -156,13 +156,21 @@ module Source_val = Liquidsoap_lang.Lang_core.MkCustom (struct
   let compare s1 s2 = Stdlib.compare s1#id s2#id
 end)
 
+let conf_source =
+  Dtools.Conf.void ~p:(Configure.conf#plug "source") "Source settings"
+
+let conf_default_synchronous_callback =
+  Dtools.Conf.bool
+    ~p:(conf_source#plug "synchronous_callbacks")
+    ~d:false "Default synchronous setting for callbacks."
+
 let callback ~descr ~name ~arg_t ~apply ~register =
   [
     ( name,
       ( [],
         fun_t
           [
-            (true, "synchronous", Lang.bool_t);
+            (true, "synchronous", Lang.(nullable_t bool_t));
             ( true,
               "on_error",
               Lang.nullable_t
@@ -173,17 +181,24 @@ let callback ~descr ~name ~arg_t ~apply ~register =
       Printf.sprintf
         "Call a given handler %s. If `synchronous` is `true`, the function is \
          executed immediately. Otherwise, it is sent to the slow task queue. \
+         Default is set via `settings.source.synchronous_callbacks`. \
          `on_error` can be used to catch errors raised during the execution."
         descr,
       fun s ->
         val_fun
           [
-            ("synchronous", "synchronous", Some (Lang.bool false));
+            ("synchronous", "synchronous", Some Lang.null);
             ("on_error", "on_error", Some Lang.null);
             ("", "", None);
           ]
           (fun p ->
-            let synchronous = Lang.to_bool (List.assoc "synchronous" p) in
+            let synchronous =
+              Lang.to_valued_option Lang.to_bool (List.assoc "synchronous" p)
+            in
+            let synchronous =
+              Option.value ~default:conf_default_synchronous_callback#get
+                synchronous
+            in
             let on_error = Lang.to_option (List.assoc "on_error" p) in
             let f = assoc "" 1 p in
             let f v = ignore (apply f v) in
