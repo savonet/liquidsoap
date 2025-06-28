@@ -526,13 +526,6 @@ def at(pred, s) =
   source.available(s, pred)
 end
 
-# Deprecated: use `source.on_end` instead.
-# @flag deprecated
-def on_end(%argsof(source.on_end), s, f) =
-  deprecated("on_end", "source.on_end")
-  source.on_end(%argsof(source.on_end), s, f)
-end
-
 https = ()
 
 # Deprecated: use `http.get` instead.
@@ -941,14 +934,36 @@ def source.on_frame(~id:_, ~before=true, s, fn) =
   source.methods(s).on_frame(synchronous=true, before=before, fn)
 end
 
-# Deprecated: use the on_offset source method
+# Deprecated: use the on_position source method
 # @flag deprecated
-def source.on_offset(~id:_, ~force=false, ~offset, fn, s) =
+def source.on_offset(
+  ~id:_,
+  ~force:allow_partial=false,
+  ~offset:position,
+  fn,
+  s
+) =
   log.severe(
     label="lang.deprecated",
-    "Use the on_offset source method!"
+    "Use the on_position source method!"
   )
-  source.methods(s).on_offset(
-    synchronous=true, allow_partial=false, offset=offset, fn
+  source.methods(s).on_position(
+    synchronous=true,
+    remaining=false,
+    allow_partial=allow_partial,
+    position=position,
+    fn
+  )
+end
+
+# Deprecated: use the on_position source method
+# @flag deprecated
+def source.on_end(~id:_, ~delay:position, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_position source method!"
+  )
+  source.methods(s).on_position(
+    synchronous=true, remaining=true, allow_partial=false, position=position, fn
   )
 end
