@@ -159,7 +159,8 @@ def source.run(s, ~delay=0., ~every=null, f) =
     end
   end
 
-  source.on_frame(s, check)
+  source.methods(s).on_frame(synchronous=true, check)
+  s
 end
 
 # Append an extra track to every track. Set the metadata ‘liq_append’ to
@@ -248,7 +249,9 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
     end
   end
 
-  s.on_track(synchronous=true, fun (m) -> m == [] ? last_meta := null : on_meta(m) )
+  s.on_track(
+    synchronous=true, fun (m) -> m == [] ? last_meta := null : on_meta(m)
+  )
   s.on_metadata(synchronous=true, on_meta)
 
   def next() =

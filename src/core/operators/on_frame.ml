@@ -20,47 +20,6 @@
 
  *****************************************************************************)
 
-class on_frame ~before f s =
-  object
-    inherit Source.operator ~name:"on_frame" [s]
-    method fallible = s#fallible
-    method private can_generate_frame = s#is_ready
-    method abort_track = s#abort_track
-    method remaining = s#remaining
-    method seek_source = s#seek_source
-    method self_sync = s#self_sync
-
-    method private generate_frame =
-      if before then ignore (Lang.apply f []);
-      let ret = s#get_frame in
-      if not before then ignore (Lang.apply f []);
-      ret
-  end
-
-let _ =
-  let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Muxer.source "on_frame"
-    [
-      ( "before",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Execute the callback before computing the next frame." );
-      ("", Lang.source_t frame_t, None, None);
-      ( "",
-        Lang.fun_t [] Lang.unit_t,
-        None,
-        Some
-          "Function called on every frame. It should be fast because it is \
-           executed in the main streaming thread." );
-    ]
-    ~category:`Track ~descr:"Call a given handler on every frame."
-    ~return_t:frame_t
-    (fun p ->
-      let before = List.assoc "before" p |> Lang.to_bool in
-      let s = Lang.assoc "" 1 p |> Lang.to_source in
-      let f = Lang.assoc "" 2 p in
-      new on_frame ~before f s)
-
 (** Operations on frames. *)
 class frame_op ~name f default s =
   object

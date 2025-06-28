@@ -371,9 +371,12 @@ def fade.out(
     then
       source.on_end(s, delay=duration, start_fade)
     else
-      source.on_frame(
-        before=false, s, memoize({start_fade(source.remaining(s), [])})
+      s.on_frame(
+        synchronous=true,
+        before=false,
+        memoize({start_fade(source.remaining(s), [])})
       )
+      s
     end
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
@@ -718,17 +721,15 @@ def fade.in(
   s.on_track(synchronous=true, reset_overrides)
   s.on_metadata(synchronous=true, update_fade)
   s = sequence(merge=true, [blank(duration=delay), s])
-  s = fade.scale(apply, s)
+  s = fade.scale(id=id, apply, s)
 
-  s =
-    if
-      track_sensitive
-    then
-      s.on_track(synchronous=true, start_fade)
-      s
-    else
-      source.on_frame(id=id, before=false, s, memoize({start_fade([])}))
-    end
+  if
+    track_sensitive
+  then
+    s.on_track(synchronous=true, start_fade)
+  else
+    s.on_frame(synchronous=true, before=false, memoize({start_fade([])}))
+  end
   s.{fade_duration={duration()}, fade_delay={delay()}, fade_type={type()}}
 end
 

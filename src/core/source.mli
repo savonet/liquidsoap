@@ -74,6 +74,23 @@ type watcher = {
   after_streaming_cycle : unit -> unit;
 }
 
+(** Callbacks executed when computing frames. *)
+
+type offset_callback = {
+  allow_partial : bool;
+  offset : unit -> int;
+  on_offset : float * Frame.metadata -> unit;
+  mutable executed : bool;
+}
+
+type frame_callback = { before : bool; on_frame : unit -> unit }
+
+type on_frame =
+  [ `Metadata of Frame.metadata -> unit
+  | `Track of Frame.metadata -> unit
+  | `Offset of offset_callback
+  | `Frame of frame_callback ]
+
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?stack:Pos.t list ->
@@ -222,12 +239,8 @@ object
   method register_command :
     ?usage:string -> descr:string -> string -> (string -> string) -> unit
 
-  (** Register a callback to be called on new metadata *)
-  method on_metadata : (Frame.metadata -> unit) -> unit
-
-  (** Register a callback to be called on new track. Callback is called with the
-      most recent metadata before a given track mark. *)
-  method on_track : (Frame.metadata -> unit) -> unit
+  (** Register a callback to be called when computing frames. *)
+  method on_frame : on_frame -> unit
 
   (** These two are used by [generate_from_multiple_sources] and should not be
       used otherwise. *)

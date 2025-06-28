@@ -930,3 +930,25 @@ def source.last_metadata(~id:_, s) =
   )
   source.methods(s).last_metadata()
 end
+
+# Deprecated: use the on_frame source method
+# @flag deprecated
+def source.on_frame(~id:_, ~before=true, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_frame source method!"
+  )
+  source.methods(s).on_frame(synchronous=true, before=before, fn)
+end
+
+# Deprecated: use the on_offset source method
+# @flag deprecated
+def source.on_offset(~id:_, ~force=false, ~offset, fn, s) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_offset source method!"
+  )
+  source.methods(s).on_offset(
+    synchronous=true, allow_partial=false, offset=offset, fn
+  )
+end

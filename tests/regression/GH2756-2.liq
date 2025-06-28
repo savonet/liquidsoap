@@ -17,7 +17,7 @@ def f() =
     )
   end
 
-  s = source.on_frame(s, on_frame)
+  s.on_frame(synchronous=true, on_frame)
   callstack = ref([])
 
   def reopen_on_metadata(_) =

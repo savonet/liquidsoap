@@ -295,7 +295,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
               self#set_start_main_duration
             with _ -> ())
 
-    initializer self#on_metadata self#process_override_metadata
+    initializer self#on_frame (`Metadata self#process_override_metadata)
 
     method private append mode buf_frame =
       let l = Frame.get_all_metadata buf_frame in

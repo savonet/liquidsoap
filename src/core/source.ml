@@ -65,6 +65,21 @@ type watcher = {
   after_streaming_cycle : unit -> unit;
 }
 
+type offset_callback = {
+  allow_partial : bool;
+  offset : unit -> int;
+  on_offset : float * Frame.metadata -> unit;
+  mutable executed : bool;
+}
+
+type frame_callback = { before : bool; on_frame : unit -> unit }
+
+type on_frame =
+  [ `Metadata of Frame.metadata -> unit
+  | `Track of Frame.metadata -> unit
+  | `Offset of offset_callback
+  | `Frame of frame_callback ]
+
 let source_log = Log.make ["source"]
 
 let finalise s =
@@ -472,17 +487,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
-
-    val mutable on_track_or_metadata
-        : ([ `Track | `Metadata ] * (Frame.metadata -> unit)) List.t =
-      []
-
-    method on_metadata fn =
-      on_track_or_metadata <- on_track_or_metadata @ [(`Metadata, fn)]
-
-    method on_track fn =
-      on_track_or_metadata <- on_track_or_metadata @ [(`Track, fn)]
-
+    val mutable on_frame : on_frame list = []
+    method on_frame fn = on_frame <- on_frame @ [fn]
     val mutable reset_last_metadata_on_track = Atomic.make true
 
     method reset_last_metadata_on_track =
@@ -510,9 +516,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           Option.value ~default:(0, Frame.Metadata.empty) last_metadata
         in
         self#log#debug "calling on_track handlers..";
-        List.iter
-          (function `Track, fn -> fn m | `Metadata, _ -> ())
-          on_track_or_metadata)
+        List.iter (function `Track fn -> fn m | _ -> ()) on_frame)
 
     val mutable last_images = Hashtbl.create 0
 
@@ -582,29 +586,59 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           then self#normalize_video ~field content
           else content)
 
+    method private on_offset ~end_of_track buf =
+      let length = Frame.position buf in
+      elapsed <- elapsed + length;
+      self#set_last_metadata buf;
+      let _, m =
+        Option.value ~default:(0, Frame.Metadata.empty) last_metadata
+      in
+      List.iter
+        (function
+          | `Offset
+              ({ executed = false; allow_partial; offset; on_offset } as p)
+            when offset () <= elapsed || (end_of_track && allow_partial) ->
+              p.executed <- true;
+              on_offset (Frame.seconds_of_main elapsed, m)
+          | _ -> ())
+        on_frame
+
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
+      let on_frame = self#mutexify (fun () -> on_frame) () in
+      List.iter
+        (function `Frame { before = true; on_frame } -> on_frame () | _ -> ())
+        on_frame;
       let buf = self#normalize_video_content self#generate_frame in
+      List.iter
+        (function
+          | `Frame { before = false; on_frame } -> on_frame () | _ -> ())
+        on_frame;
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
-      let has_track_mark, buf =
+      let buf =
         match Frame.track_marks buf with
           | p :: _ :: _ ->
               self#log#important
                 "Source created multiple tracks in a single frame! Sub-frame \
                  tracks are not supported and are merged into a single one..";
-              (true, Frame.add_track_mark (Frame.drop_track_marks buf) p)
-          | _ :: _ -> (true, buf)
-          | _ -> (false, buf)
+              Frame.add_track_mark (Frame.drop_track_marks buf) p
+          | _ -> buf
       in
-      if has_track_mark then (
-        elapsed <- 0;
-        if self#reset_last_metadata_on_track then last_metadata <- None;
-        self#set_last_metadata buf)
-      else elapsed <- elapsed + length;
-      let metadata = Frame.get_all_metadata buf in
-      let on_track_or_metadata =
-        self#mutexify (fun () -> on_track_or_metadata) ()
+      let has_track_mark =
+        match self#split_frame buf with
+          | buf, Some new_track ->
+              self#on_offset ~end_of_track:true buf;
+              elapsed <- 0;
+              if self#reset_last_metadata_on_track then last_metadata <- None;
+              List.iter
+                (function `Offset p -> p.executed <- false | _ -> ())
+                on_frame;
+              self#on_offset ~end_of_track:false new_track;
+              true
+          | buf, None ->
+              self#on_offset ~end_of_track:false buf;
+              false
       in
 
       (* Executing track mark and metadata callbacks is tricky.
@@ -612,6 +646,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
          - We want to execute track marks even without metadata.
 
       First: execute both kind of callback using the metadata from the frame: *)
+      let metadata = Frame.get_all_metadata buf in
       List.iter
         (fun (p, m) ->
           self#log#debug
@@ -628,10 +663,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           List.iter
             (fun cb ->
               match cb with
-                | `Metadata, fn -> fn m
-                | `Track, fn when is_on_track -> fn m
+                | `Metadata fn -> fn m
+                | `Track fn when is_on_track -> fn m
                 | _ -> ())
-            on_track_or_metadata)
+            on_frame)
         metadata;
 
       (* Then, if we have a track mark but no metadata, executed the on_track callbacks. *)

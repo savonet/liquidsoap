@@ -164,19 +164,20 @@ let conf_default_synchronous_callback =
     ~p:(conf_source#plug "synchronous_callbacks")
     ~d:false "Default synchronous setting for callbacks."
 
-let callback ~descr ~name ~arg_t ~apply ~register =
+let callback ?(params = []) ~descr ~arg_t ~apply ~register name =
   [
     ( name,
       ( [],
         fun_t
-          [
-            (true, "synchronous", Lang.(nullable_t bool_t));
-            ( true,
-              "on_error",
-              Lang.nullable_t
-                (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t) );
-            (false, "", fun_t arg_t unit_t);
-          ]
+          ([
+             (true, "synchronous", Lang.(nullable_t bool_t));
+             ( true,
+               "on_error",
+               Lang.nullable_t
+                 (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t) );
+             (false, "", fun_t arg_t unit_t);
+           ]
+          @ List.map (fun (name, typ, v) -> (v <> None, name, typ)) params)
           unit_t ),
       Printf.sprintf
         "Call a given handler %s. If `synchronous` is `true`, the function is \
@@ -186,11 +187,12 @@ let callback ~descr ~name ~arg_t ~apply ~register =
         descr,
       fun s ->
         val_fun
-          [
-            ("synchronous", "synchronous", Some Lang.null);
-            ("on_error", "on_error", Some Lang.null);
-            ("", "", None);
-          ]
+          ([
+             ("synchronous", "synchronous", Some Lang.null);
+             ("on_error", "on_error", Some Lang.null);
+             ("", "", None);
+           ]
+          @ List.map (fun (name, _, v) -> (name, name, v)) params)
           (fun p ->
             let synchronous =
               Lang.to_valued_option Lang.to_bool (List.assoc "synchronous" p)
@@ -230,7 +232,7 @@ let callback ~descr ~name ~arg_t ~apply ~register =
                 in
                 Duppy.Task.add Tutils.scheduler task
             in
-            register s f;
+            register ~params:p s f;
             unit) );
   ]
 
@@ -311,22 +313,50 @@ let source_methods =
             s#register_command ?usage ~descr command f;
             unit) );
   ]
-  @ callback ~descr:"to execute on each metadata" ~name:"on_metadata"
+  @ callback "on_metadata" ~descr:"to execute on each metadata"
       ~arg_t:[(false, "", metadata_t)]
       ~apply:(fun f m -> apply f [("", metadata m)])
-      ~register:(fun s f -> s#on_metadata f)
-  @ callback ~descr:"to be called after the source is asked to get ready"
-      ~name:"on_wake_up" ~arg_t:[]
+      ~register:(fun ~params:_ s f -> s#on_frame (`Metadata f))
+  @ callback "on_wake_up"
+      ~descr:"to be called after the source is asked to get ready" ~arg_t:[]
       ~apply:(fun f () -> apply f [])
-      ~register:(fun s f -> s#on_wake_up f)
-  @ callback ~descr:"to be called when source shuts down" ~name:"on_shutdown"
+      ~register:(fun ~params:_ s f -> s#on_wake_up f)
+  @ callback "on_shutdown" ~descr:"to be called when source shuts down"
       ~arg_t:[]
       ~apply:(fun f () -> apply f [])
-      ~register:(fun s f -> s#on_sleep f)
-  @ callback ~descr:"on track marks" ~name:"on_track"
+      ~register:(fun ~params:_ s f -> s#on_sleep f)
+  @ callback "on_track" ~descr:"on track marks"
       ~arg_t:[(false, "", metadata_t)]
       ~apply:(fun f m -> apply f [("", metadata m)])
-      ~register:(fun s f -> s#on_track f)
+      ~register:(fun ~params:_ s f -> s#on_frame (`Track f))
+  @ callback "on_frame"
+      ~params:[("before", Lang.bool_t, Some (Lang.bool false))]
+      ~descr:
+        "on frame. When `before` is `true`, callback is executed before \
+         computing the frame and after otherwise."
+      ~arg_t:[]
+      ~apply:(fun f () -> apply f [])
+      ~register:(fun ~params:p s on_frame ->
+        let before = Lang.to_bool (List.assoc "before" p) in
+        s#on_frame (`Frame { Source.before; on_frame }))
+  @ callback "on_offset"
+      ~params:
+        [
+          ("offset", Lang.(getter_t float_t), None);
+          ("allow_partial", Lang.bool_t, Some (Lang.bool false));
+        ]
+      ~descr:
+        "when position in track is equal or more than a given amount of time. \
+         When `allow_partial` is `true`, if the current track ends before the \
+         `offset` position is reached, callback is still executed."
+      ~arg_t:[(false, "", float_t); (false, "", metadata_t)]
+      ~apply:(fun f (pos, m) -> apply f [("", float pos); ("", metadata m)])
+      ~register:(fun ~params:p s on_offset ->
+        let allow_partial = Lang.to_bool (List.assoc "allow_partial" p) in
+        let offset = Lang.to_float_getter (List.assoc "offset" p) in
+        let offset () = Frame.main_of_seconds (offset ()) in
+        s#on_frame
+          (`Offset { Source.allow_partial; offset; executed = false; on_offset }))
   @ [
       ( "remaining",
         ([], fun_t [] float_t),

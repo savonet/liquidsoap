@@ -479,15 +479,14 @@ def replaces video.add_text.ffmpeg.raw(
       end
   )
 
-  s =
-    source.on_frame(
-      s,
-      fun () ->
-        begin
-          fn = on_frame()
-          fn()
-        end
-    )
+  s.on_frame(
+    synchronous=true,
+    fun () ->
+      begin
+        fn = on_frame()
+        fn()
+      end
+  )
 
   s = ffmpeg.filter.video.input(graph, source.tracks(s).video)
   v =
