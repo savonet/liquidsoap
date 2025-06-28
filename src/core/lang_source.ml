@@ -232,6 +232,8 @@ let callback ?(params = []) ~descr ~arg_t ~apply ~register name =
                 in
                 Duppy.Task.add Tutils.scheduler task
             in
+            (s#log : Log.t)#debug "Registering %s %s callback" name
+              (if synchronous then "synchronous" else "asynchronous");
             register ~params:p s f;
             unit) );
   ]
