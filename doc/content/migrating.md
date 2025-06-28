@@ -19,12 +19,23 @@ so, always best to first to a trial run before putting things to production!
 
 ### Stream-related callbacks
 
-All callbacks that can potentially happen during the streaming loop such as `on_metadata`, `on_track` and etc
-are executed in an asynchronous task by default. They can still be executed synchronously if needed.
+The following callbacks:
 
-In order to unify the codebase, options and more, source-based operators such as
-`source.on_metadata` and `source.on_track` have been removed in favor of their respective
-source methods.
+- `on_metadata`
+- `on_track`
+- `on_frame`
+- `on_offset`
+- `on_end`
+- `on_wake_up`
+- `on_shutdown`
+
+have been updated to be executed in an asynchronous task by default.
+
+This means that the function to be executed is placed in a `thread.run` task
+by default. This is done to make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
+a callback function takes too long, the streaming cycle gets late, causing issues with the runtime system typically resulting in catchup errors.
+
+They have also been moved to source methods in order to unify the codebase, options and more.
 
 Typically, instead of doing:
 
@@ -36,6 +47,28 @@ You should now do:
 
 ```liquidsoap
 s.on_metadata(fn)
+```
+
+By default, asynchronous callbacks may not be executed immediately and execution order can sometime be re-shuffled. If your callback is fast
+or if you need to have tighter control over this, you can set the `synchronous` parameter to `true`:
+
+```liquidsoap
+s.on_track(synchronous=true, fn)
+```
+
+Lastly, if you are concerned with advanced callback execution logic, callbacks are executed in the order
+they are registered so, when, before, you would do:
+
+```liquidsoap
+s = on_metadata(s, f1)
+s = on_track(s, f2)
+```
+
+Resulting in `f1` being executed before `f2` in case of new track with metadata, you can now do:
+
+```liquidsoap
+s.on_metadata(synchronous=true, f1)
+s.on_track(synchronous=true, f2)
 ```
 
 ## From 2.2.x to 2.3.x
