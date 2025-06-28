@@ -339,24 +339,39 @@ let source_methods =
       ~register:(fun ~params:p s on_frame ->
         let before = Lang.to_bool (List.assoc "before" p) in
         s#on_frame (`Frame { Source.before; on_frame }))
-  @ callback "on_offset"
+  @ callback "on_position"
       ~params:
         [
-          ("offset", Lang.(getter_t float_t), None);
+          ("position", Lang.(getter_t float_t), None);
+          ("remaining", Lang.bool_t, Some (Lang.bool false));
           ("allow_partial", Lang.bool_t, Some (Lang.bool false));
         ]
       ~descr:
-        "when position in track is equal or more than a given amount of time. \
-         When `allow_partial` is `true`, if the current track ends before the \
-         `offset` position is reached, callback is still executed."
+        "on track position. If `remaining` is `false`, callback is executed \
+         when position in track is more or equal to `position`. If `remaining` \
+         is `true`, callback is executed when remaining time in the current \
+         track is less or equal to `position`. Keep in mind that elapsed time \
+         is exact while remaining time is always estimated. Remaining time is \
+         usually more accurate for file-based sources. When `allow_partial` is \
+         `true`, if the current track ends before the `offset` position is \
+         reached, callback is still executed."
       ~arg_t:[(false, "", float_t); (false, "", metadata_t)]
       ~apply:(fun f (pos, m) -> apply f [("", float pos); ("", metadata m)])
-      ~register:(fun ~params:p s on_offset ->
+      ~register:(fun ~params:p s on_position ->
         let allow_partial = Lang.to_bool (List.assoc "allow_partial" p) in
-        let offset = Lang.to_float_getter (List.assoc "offset" p) in
-        let offset () = Frame.main_of_seconds (offset ()) in
+        let remaining = Lang.to_bool (List.assoc "remaining" p) in
+        let mode = if remaining then `Remaining else `Elapsed in
+        let position = Lang.to_float_getter (List.assoc "position" p) in
+        let position () = Frame.main_of_seconds (position ()) in
         s#on_frame
-          (`Offset { Source.allow_partial; offset; executed = false; on_offset }))
+          (`Position
+             {
+               Source.allow_partial;
+               position;
+               mode;
+               executed = false;
+               on_position;
+             }))
   @ [
       ( "remaining",
         ([], fun_t [] float_t),

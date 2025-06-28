@@ -65,10 +65,11 @@ type watcher = {
   after_streaming_cycle : unit -> unit;
 }
 
-type offset_callback = {
+type position_callback = {
+  mode : [ `Remaining | `Elapsed ];
   allow_partial : bool;
-  offset : unit -> int;
-  on_offset : float * Frame.metadata -> unit;
+  position : unit -> int;
+  on_position : float * Frame.metadata -> unit;
   mutable executed : bool;
 }
 
@@ -77,7 +78,7 @@ type frame_callback = { before : bool; on_frame : unit -> unit }
 type on_frame =
   [ `Metadata of Frame.metadata -> unit
   | `Track of Frame.metadata -> unit
-  | `Offset of offset_callback
+  | `Position of position_callback
   | `Frame of frame_callback ]
 
 let source_log = Log.make ["source"]
@@ -586,20 +587,29 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           then self#normalize_video ~field content
           else content)
 
-    method private on_offset ~end_of_track buf =
+    method private on_position ~end_of_track buf =
       let length = Frame.position buf in
       elapsed <- elapsed + length;
+      let rem = self#remaining in
       self#set_last_metadata buf;
       let _, m =
         Option.value ~default:(0, Frame.Metadata.empty) last_metadata
       in
+      let is_allowed = function
+        | { executed = true } -> false
+        | { allow_partial = true } when end_of_track -> true
+        | { mode = `Elapsed; position } -> position () <= elapsed
+        | { mode = `Remaining; position } -> rem <= position ()
+      in
+      let position = function
+        | { mode = `Elapsed } -> Frame.seconds_of_main elapsed
+        | { mode = `Remaining } -> Frame.seconds_of_main rem
+      in
       List.iter
         (function
-          | `Offset
-              ({ executed = false; allow_partial; offset; on_offset } as p)
-            when offset () <= elapsed || (end_of_track && allow_partial) ->
+          | `Position p when is_allowed p ->
               p.executed <- true;
-              on_offset (Frame.seconds_of_main elapsed, m)
+              p.on_position (position p, m)
           | _ -> ())
         on_frame
 
@@ -628,16 +638,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let has_track_mark =
         match self#split_frame buf with
           | buf, Some new_track ->
-              self#on_offset ~end_of_track:true buf;
+              self#on_position ~end_of_track:true buf;
               elapsed <- 0;
               if self#reset_last_metadata_on_track then last_metadata <- None;
               List.iter
-                (function `Offset p -> p.executed <- false | _ -> ())
+                (function `Position p -> p.executed <- false | _ -> ())
                 on_frame;
-              self#on_offset ~end_of_track:false new_track;
+              self#on_position ~end_of_track:false new_track;
               true
           | buf, None ->
-              self#on_offset ~end_of_track:false buf;
+              self#on_position ~end_of_track:false buf;
               false
       in
 

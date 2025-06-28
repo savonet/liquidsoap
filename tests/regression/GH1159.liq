@@ -8,6 +8,6 @@ def f(rem, _) =
   if rem > 0. then test.pass() else test.fail() end
 end
 
-s = source.on_end(s, delay=0.1, f)
+s.on_position(synchronous=true, remaining=true, position=0.1, f)
 clock.assign_new(sync="none", [s])
 output.dummy(s)

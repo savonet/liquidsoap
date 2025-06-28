@@ -76,10 +76,11 @@ type watcher = {
 
 (** Callbacks executed when computing frames. *)
 
-type offset_callback = {
+type position_callback = {
+  mode : [ `Remaining | `Elapsed ];
   allow_partial : bool;
-  offset : unit -> int;
-  on_offset : float * Frame.metadata -> unit;
+  position : unit -> int;
+  on_position : float * Frame.metadata -> unit;
   mutable executed : bool;
 }
 
@@ -88,7 +89,7 @@ type frame_callback = { before : bool; on_frame : unit -> unit }
 type on_frame =
   [ `Metadata of Frame.metadata -> unit
   | `Track of Frame.metadata -> unit
-  | `Offset of offset_callback
+  | `Position of position_callback
   | `Frame of frame_callback ]
 
 (** The [source] use is to send data frames through the [get] method. *)

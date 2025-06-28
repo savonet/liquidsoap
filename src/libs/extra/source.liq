@@ -102,8 +102,8 @@ def overlap_sources(
 
   def on_offset(s) =
     let (s, offset) = metadata.getter.source.float(-1., start_next, s)
-    s.on_offset(
-      synchronous=true, allow_partial=true, offset=offset, on_start_next
+    s.on_position(
+      synchronous=true, allow_partial=true, position=offset, on_start_next
     )
   end
 

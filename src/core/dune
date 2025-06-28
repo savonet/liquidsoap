@@ -152,7 +152,6 @@
   lang_theora
   lang_vorbis
   lang_wav
-  latest_metadata
   liqcurl
   lifecycle
   liq_http
@@ -185,7 +184,6 @@
   normalize
   ogg_format
   ogg_metadata_plug
-  on_end
   on_frame
   opus_format
   output

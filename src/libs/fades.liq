@@ -365,19 +365,20 @@ def fade.out(
   s.on_metadata(synchronous=true, update_fade)
   if track_sensitive then s.on_track(synchronous=true, stop_fade) end
 
-  s =
-    if
-      track_sensitive
-    then
-      source.on_end(s, delay=duration, start_fade)
-    else
-      s.on_frame(
-        synchronous=true,
-        before=false,
-        memoize({start_fade(source.remaining(s), [])})
-      )
-      s
-    end
+  if
+    track_sensitive
+  then
+    s.on_position(
+      synchronous=true, remaining=true, position=duration, start_fade
+    )
+  else
+    s.on_frame(
+      synchronous=true,
+      before=false,
+      memoize({start_fade(source.remaining(s), [])})
+    )
+  end
+
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
 

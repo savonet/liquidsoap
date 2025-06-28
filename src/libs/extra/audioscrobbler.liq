@@ -440,6 +440,7 @@ def audioscrobbler.submit(
 
   s = source.methods(s)
   s.on_metadata(now_playing)
+
   f =
     fun (rem, m) ->
       # Avoid skipped songs
@@ -474,5 +475,7 @@ def audioscrobbler.submit(
           "Remaining time null: will not submit song (song skipped ?)"
         )
       end
-  source.on_end(s, delay=delay, f)
+  s.on_position(synchronous=true, remaining=true, position=delay, f)
+
+  (s:source)
 end
