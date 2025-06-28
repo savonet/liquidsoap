@@ -7,7 +7,7 @@ ssl = http.transport.ssl(certificate="./ssl.cert", key="./ssl.key")
 
 port = 1444
 
-test.skip()
+#test.skip()
 
 def on_wake_up() =
   s = sine()
@@ -25,8 +25,7 @@ end
 
 i = input.harbor(buffer=2., port=port, transport=tls, "tls_test")
 
-i.on_wake_up(on_wake_up)
-
-i = source.on_track(i, fun (_) -> test.pass())
+i.on_wake_up(    synchronous=true,on_wake_up)
+i.on_track(synchronous=true, fun (_) -> test.pass())
 
 output.dummy(fallible=true, i)
