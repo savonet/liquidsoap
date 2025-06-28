@@ -24,6 +24,11 @@ module Lang = Liquidsoap_lang.Lang
 module Flags = Liquidsoap_lang.Flags
 open Lang
 
+let apply ?pos v env =
+  let ret = apply ?pos v env in
+  Clock.after_eval ();
+  ret
+
 module ClockValue = struct
   include Value.MkCustom (struct
     type content = Clock.t
