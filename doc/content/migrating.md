@@ -49,6 +49,28 @@ You should now do:
 s.on_metadata(fn)
 ```
 
+Additionally, `on_end` and `on_offset` have been merged into a single `on_position` source method. Here is the new syntax:
+
+```liquidsoap
+# Execute a callback after current track position:
+s.on_position(
+  # This is the default
+  remaining=false,
+  position=1.2,
+  # Allow execution even if current track does not reach position `1.2`:
+  allow_partial=true,
+  fn
+)
+
+# Execute a callback when remaining position is less
+# than the given position:
+s.on_position(
+  remaining=true,
+  position=1.2,
+  fn
+)
+```
+
 By default, asynchronous callbacks may not be executed immediately and execution order can sometime be re-shuffled. If your callback is fast
 or if you need to have tighter control over this, you can set the `synchronous` parameter to `true`:
 
