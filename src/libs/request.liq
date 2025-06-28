@@ -134,7 +134,6 @@ def request.queue(
     }
 
   s.on_wake_up(
-    synchronous=true,
     fun () ->
       begin
         started := true

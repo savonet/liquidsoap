@@ -2,7 +2,6 @@
 def replaces request.dynamic(%argsof(request.dynamic), fn) =
   s = request.dynamic(%argsof(request.dynamic), fn)
   s.on_wake_up(
-    synchronous=true,
     memoize(
       {
         server.register(
@@ -30,7 +29,6 @@ end
 def replaces blank.strip(%argsof(blank.strip), s) =
   s = blank.strip(%argsof(blank.strip), s)
   s.on_wake_up(
-    synchronous=true,
     memoize(
       {
         server.register(
@@ -51,7 +49,6 @@ end
 def replaces output.external(%argsof(output.external), f, p, s) =
   s = output.external(%argsof(output.external), f, p, s)
   s.on_wake_up(
-    synchronous=true,
     memoize(
       {
         server.register(
