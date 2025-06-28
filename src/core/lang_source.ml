@@ -330,7 +330,7 @@ let source_methods =
       ~apply:(fun f m -> apply f [("", metadata m)])
       ~register:(fun ~params:_ s f -> s#on_frame (`Track f))
   @ callback "on_frame"
-      ~params:[("before", Lang.bool_t, Some (Lang.bool false))]
+      ~params:[("before", Lang.bool_t, Some (Lang.bool true))]
       ~descr:
         "on frame. When `before` is `true`, callback is executed before \
          computing the frame and after otherwise."
