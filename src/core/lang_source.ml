@@ -264,10 +264,7 @@ let source_methods =
        given metadata if `new_track` is `true`.",
       fun s ->
         Lang.val_fun
-          [
-            ("new_metadata", "new_metadata", Some (Lang.bool false));
-            ("", "", None);
-          ]
+          [("new_track", "new_track", Some (Lang.bool false)); ("", "", None)]
           (fun p ->
             let new_track = to_bool (List.assoc "new_track" p) in
             let m = to_metadata (List.assoc "" p) in
