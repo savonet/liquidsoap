@@ -1,9 +1,7 @@
 s = sine()
 # BEGIN
-# s = some source
 
-# Create a source equipped with a `insert_metadata` method:
-s = insert_metadata(s)
+# s = some source
 
 # The handler
 def set_meta(request, response) =

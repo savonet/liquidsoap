@@ -22,7 +22,6 @@ def f(m) =
 end
 
 s = sine()
-s = insert_metadata(s)
 
 s' = sine()
 s' = insert_metadata(s')

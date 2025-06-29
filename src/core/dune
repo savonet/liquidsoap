@@ -132,7 +132,6 @@
   iir_filter
   image_decoder
   image_plug
-  insert_metadata
   json
   keyboard
   lang
@@ -200,6 +199,7 @@
   producer_consumer
   queues
   raw_audio_decoder
+  replay_metadata
   replaygain_op
   request
   request_dynamic

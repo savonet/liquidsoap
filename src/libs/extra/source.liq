@@ -150,10 +150,9 @@ def overlap_sources(
   set_ready(current_position(), true)
 
   # Create main source
-  source = add(id=id, normalize=normalize, weights=weights, sources)
+  s = add(id=id, normalize=normalize, weights=weights, sources)
 
   # Set send_to_main_source
-  s = insert_metadata(source)
   send_to_main_source := fun (m) -> s.insert_metadata(m)
   s
 end
@@ -197,11 +196,11 @@ end
 # @param ~every Duration of a track (in seconds).
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
-def chop(~id=null, ~every=getter(3.), ~metadata=getter([]), s) =
-  s = insert_metadata(id=id, s)
-
+def chop(~every=getter(3.), ~metadata=getter([]), s) =
   # Track time in the source's context:
   time = ref(0.)
+
+  s = source.methods(s)
 
   is_first = ref(true)
 

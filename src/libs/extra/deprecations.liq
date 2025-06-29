@@ -967,3 +967,13 @@ def source.on_end(~id:_, ~delay:position, s, fn) =
     synchronous=true, remaining=true, allow_partial=false, position=position, fn
   )
 end
+
+# Deprecated: use the insert_metadata source method
+# @flag deprecated
+def insert_metadata(~id:_=null, s) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the insert_metadata source method!"
+  )
+  source.methods(s)
+end

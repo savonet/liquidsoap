@@ -169,7 +169,7 @@ let conf_default_synchronous_callback =
     ~p:(conf_source#plug "synchronous_callbacks")
     ~d:false "Default synchronous setting for callbacks."
 
-let callback ?(params = []) ~descr ~arg_t ~apply ~register name =
+let callback ?(params = []) ~descr ~arg_t ~apply:apply_fn ~register name =
   [
     ( name,
       ( [],
@@ -208,7 +208,7 @@ let callback ?(params = []) ~descr ~arg_t ~apply ~register name =
             in
             let on_error = Lang.to_option (List.assoc "on_error" p) in
             let f = assoc "" 1 p in
-            let f v = ignore (apply f v) in
+            let f v = ignore (apply_fn f v) in
             let f =
               match on_error with
                 | None -> f
@@ -220,7 +220,7 @@ let callback ?(params = []) ~descr ~arg_t ~apply ~register name =
                         let error =
                           Lang.runtime_error_of_exception ~bt ~kind:"source" exn
                         in
-                        ignore (Lang.apply on_error [("", Lang.error error)]))
+                        ignore (apply on_error [("", Lang.error error)]))
             in
             let f =
               if synchronous then f
@@ -255,6 +255,21 @@ let source_methods =
        source is currently streaming, just that its resources are all properly \
        initialized.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+    ( "insert_metadata",
+      ( [],
+        Lang.fun_t
+          [(true, "new_track", Lang.bool_t); (false, "", metadata_t)]
+          Lang.unit_t ),
+      "Dynamically insert metadata in a stream. Inserts a new track with the \
+       given metadata if `new_track` is `true`.",
+      fun s ->
+        Lang.val_fun
+          [("new_track", "new_track", Some (Lang.bool false)); ("", "", None)]
+          (fun p ->
+            let new_track = to_bool (List.assoc "new_track" p) in
+            let m = to_metadata (List.assoc "" p) in
+            s#insert_metadata ~new_track m;
+            unit) );
     ( "reset_last_metadata_on_track",
       ([], ref_t bool_t),
       "If `true`, the source's `last_metadata` is reset on each new track. If \
@@ -316,7 +331,7 @@ let source_methods =
             let descr = Lang.to_string (List.assoc "description" p) in
             let command = Lang.to_string (Lang.assoc "" 1 p) in
             let f = Lang.assoc "" 2 p in
-            let f x = Lang.to_string (Lang.apply f [("", Lang.string x)]) in
+            let f x = Lang.to_string (apply f [("", Lang.string x)]) in
             s#register_command ?usage ~descr command f;
             unit) );
   ]

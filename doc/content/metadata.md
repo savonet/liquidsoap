@@ -75,9 +75,7 @@ ID.insert key1="val1",key2="val2",...
 ### In Liquidsoap
 
 Sometimes it is desirable to change the metadata dynamically when an event
-occurs. In this case, the function `insert_metadata` (not to be confused with
-`server.insert_metadata` above) can be used: when applied to a source it returns
-a source with an added `insert_metadata` method.
+occurs. In this case, the source method `insert_metadata` can be used.
 
 For instance, suppose that you want to insert metadata on the stream using the
 OSC protocol. When a pair of strings `title'' `The new title'' is received on
@@ -88,9 +86,6 @@ achieved as follows.
 # Our main music source
 s = playlist("...")
 s = mksafe(s)
-
-# Create a source with a `insert_metadata` method
-s = insert_metadata(s)
 
 # Handler for OSC events (gets pairs of strings)
 def on_meta(m) =

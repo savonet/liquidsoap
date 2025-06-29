@@ -1,5 +1,4 @@
 s = sine()
-s = insert_metadata(s)
 thread.run(
   every=1.,
   {
