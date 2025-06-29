@@ -126,7 +126,8 @@ let _ =
       Runtime_error.on_error fn;
       Lang_core.unit)
 
-let error_t = Error.t
+let error_t = Error.base_t
+let error_meths_t = Error.t
 let error = Error.to_value
 let to_error = Error.of_value
 
