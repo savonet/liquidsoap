@@ -261,7 +261,7 @@ let source_methods =
           [(true, "new_track", Lang.bool_t); (false, "", metadata_t)]
           Lang.unit_t ),
       "Dynamically insert metadata in a stream. Inserts a new track with the \
-       given metadata if `new_track is `true`.",
+       given metadata if `new_track` is `true`.",
       fun s ->
         Lang.val_fun
           [
