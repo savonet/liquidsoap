@@ -1,6 +1,6 @@
 #!./liquidsoap
 
-radio = insert_metadata(sine())
+radio = sine()
 f = radio.insert_metadata
 
 # BEGIN

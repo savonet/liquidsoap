@@ -17,6 +17,19 @@ so, always best to first to a trial run before putting things to production!
 
 ## From 2.3.x to 2.4.x
 
+### `insert_metadata`
+
+`insert_metadata` is now available as a source method. You do not need to use the
+`insert_metadata` operator anymore and the operator has been deprecated.
+
+You can now directly do:
+
+```liquidsoap
+s = some_source()
+
+s.insert_metadata([("title","bla")])
+```
+
 ### Stream-related callbacks
 
 The following callbacks:
