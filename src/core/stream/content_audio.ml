@@ -36,6 +36,7 @@ module Specs = struct
 
   let name = "pcm"
   let string_of_kind = function `Pcm -> "pcm"
+  let free _ = ()
 
   let string_of_params { channel_layout } =
     match !!channel_layout with
