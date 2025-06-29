@@ -207,7 +207,8 @@ def autocue.internal.ebur128(~duration, ~ratio=50., ~timeout=10., filename) =
       end
 
       s = ebur128(s)
-      source.on_metadata(s, fun (m) -> frames := [...frames(), m])
+      s.on_metadata(synchronous=true, fun (m) -> frames := [...frames(), m])
+      s
     end
 
     request.process(ratio=ratio, process=process, r)
@@ -775,7 +776,7 @@ def autocue.internal.implementation(
             fade_out_type?: string,
             fade_out_curve?: float,
             start_next?: float,
-            extra_metadata?: [(string*string)]
+            extra_metadata?: [(string * string)]
           }
         )
       end

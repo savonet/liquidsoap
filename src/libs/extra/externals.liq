@@ -469,7 +469,7 @@ def osd_metadata(
   def feedback(m) =
     ignore(
       process.run(
-        "echo #{process.quote(display(m))} | #{osd} &"
+        "echo #{process.quote(display(m))} | #{osd}"
       )
     )
   end

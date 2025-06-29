@@ -19,7 +19,7 @@ def f(m) =
 end
 
 s = rotate(weights=[2, 1], [s1, s2])
-s.on_track(f)
+s.on_track(synchronous=true, f)
 output.dummy(s)
 
 def on_done() =

@@ -339,7 +339,7 @@ def register_flow(
     artist = m["artist"]
     title = m["title"]
     params = [("m_title", title), ("m_artist", artist)]
-    thread.run(fast=false, {request(cmd="metadata", params=params)})
+    request(cmd="metadata", params=params)
   end
 
   s.on_metadata(metadata)
@@ -494,13 +494,7 @@ end
 
 # Deprecated: use `input` instead.
 # @flag deprecated
-def in(
-  ~id=null,
-  ~start=true,
-  ~on_start={()},
-  ~on_stop={()},
-  ~fallible=false
-) =
+def in(~id=null, ~start=true, ~on_start={()}, ~on_stop={()}, ~fallible=false) =
   deprecated("in", "input")
   input(
     id=id, start=start, on_start=on_start, on_stop=on_stop, fallible=fallible
@@ -530,13 +524,6 @@ end
 def at(pred, s) =
   deprecated("at", "source.available")
   source.available(s, pred)
-end
-
-# Deprecated: use `source.on_end` instead.
-# @flag deprecated
-def on_end(%argsof(source.on_end), s, f) =
-  deprecated("on_end", "source.on_end")
-  source.on_end(%argsof(source.on_end), s, f)
 end
 
 https = ()
@@ -903,4 +890,80 @@ def cue_cut(
      resolution! This operator can be safely removed from your script now."
   )
   s
+end
+
+# Deprecated: use the on_metadata source method
+# @flag deprecated
+def on_metadata(~id:_, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_metadata source method!"
+  )
+  source.methods(s).on_metadata(synchronous=true, fn)
+  s
+end
+
+# Deprecated: use the on_track source method
+# @flag deprecated
+def on_track(~id:_, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_track source method!"
+  )
+  source.methods(s).on_track(synchronous=true, fn)
+  s
+end
+
+# Deprecated: use the last_metadata source method
+# @flag deprecated
+def source.last_metadata(~id:_, s) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the last_metadata source method!"
+  )
+  source.methods(s).last_metadata()
+end
+
+# Deprecated: use the on_frame source method
+# @flag deprecated
+def source.on_frame(~id:_, ~before=true, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_frame source method!"
+  )
+  source.methods(s).on_frame(synchronous=true, before=before, fn)
+end
+
+# Deprecated: use the on_position source method
+# @flag deprecated
+def source.on_offset(
+  ~id:_,
+  ~force:allow_partial=false,
+  ~offset:position,
+  fn,
+  s
+) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_position source method!"
+  )
+  source.methods(s).on_position(
+    synchronous=true,
+    remaining=false,
+    allow_partial=allow_partial,
+    position=position,
+    fn
+  )
+end
+
+# Deprecated: use the on_position source method
+# @flag deprecated
+def source.on_end(~id:_, ~delay:position, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_position source method!"
+  )
+  source.methods(s).on_position(
+    synchronous=true, remaining=true, allow_partial=false, position=position, fn
+  )
 end

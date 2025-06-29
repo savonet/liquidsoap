@@ -139,7 +139,7 @@ def rotate(
     end
   end
 
-  s = source.on_track(s, f)
+  s.on_track(synchronous=true, f)
 
   def replaces s =
     fallback(id=id, track_sensitive=true, s::sources)
@@ -230,7 +230,7 @@ def replaces random(
     next_index := -1
   end
 
-  s = source.on_track(s, f)
+  s.on_track(synchronous=true, f)
 
   def replaces s =
     fallback(id=id, track_sensitive=true, s::sources)

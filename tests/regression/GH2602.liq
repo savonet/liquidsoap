@@ -11,7 +11,7 @@ def f() =
   s =
     ffmpeg.encode.audio(%ffmpeg(%audio(codec = "libmp3lame", channels = 1)), s)
 
-  s = source.on_track(s, fun (_) -> test.pass())
+  s.on_track(synchronous=true, fun (_) -> test.pass())
   output.dummy(fallible=true, s)
 end
 

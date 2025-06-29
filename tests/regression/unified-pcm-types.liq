@@ -3,7 +3,7 @@
 def f() =
   s = blank()
 
-  s = source.on_track(s, fun (_) -> test.pass())
+  s.on_track(synchronous=true, fun (_) -> test.pass())
 
   s = audio.decode.pcm_s16(s)
 

@@ -1,5 +1,5 @@
 s = blank(duration=1.)
-s.on_track(fun (_) -> test.pass())
+s.on_track(synchronous=true, fun (_) -> test.pass())
 r = ref(false)
 d = source.dynamic({if !r then s else null end})
 output.dummy(mksafe(d))

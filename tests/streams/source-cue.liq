@@ -95,39 +95,46 @@ def check() =
   test.pass()
 end
 
-s =
-  source.on_frame(
-    s,
-    fun () ->
-      begin
-        if
-          track_pos() == 1 and source.time(s) == 0.
-        then
-          f([("artist", "artist1"), ("album", "album1"), ("title", "title1"), ("cue_year", "2021"), ("isrc", "bla")])
-        elsif
-          track_pos() == 2 and source.time(s) == 2.
-        then
-          f([("artist", "artist2"), ("album", "album2"), ("title", "title2")])
-        elsif
-          track_pos() == 2 and source.time(s) == 2.1
-        then
-          # This one should be deduplicated.
-          f(
-            [
-              ("artist", "artist2"),
-              ("album", "album2"),
-              ("title", "title2"),
-              ("foo", "bar")
-            ]
-          )
-        elsif
-          track_pos() == 3 and source.time(s) == 3.
-        then
-          f([("artist", "artist3"), ("album", "album3"), ("title", "title3")])
-        elsif track_pos() == 4 then check()
-        end
+s.on_frame(
+  synchronous=true,
+  fun () ->
+    begin
+      if
+        track_pos() == 1 and source.time(s) == 0.
+      then
+        f(
+          [
+            ("artist", "artist1"),
+            ("album", "album1"),
+            ("title", "title1"),
+            ("cue_year", "2021"),
+            ("isrc", "bla")
+          ]
+        )
+      elsif
+        track_pos() == 2 and source.time(s) == 2.
+      then
+        f([("artist", "artist2"), ("album", "album2"), ("title", "title2")])
+      elsif
+        track_pos() == 2 and source.time(s) == 2.1
+      then
+        # This one should be deduplicated.
+        f(
+          [
+            ("artist", "artist2"),
+            ("album", "album2"),
+            ("title", "title2"),
+            ("foo", "bar")
+          ]
+        )
+      elsif
+        track_pos() == 3 and source.time(s) == 3.
+      then
+        f([("artist", "artist3"), ("album", "album3"), ("title", "title3")])
+      elsif track_pos() == 4 then check()
       end
-  )
+    end
+)
 
 clock.assign_new(sync="none", [s])
 

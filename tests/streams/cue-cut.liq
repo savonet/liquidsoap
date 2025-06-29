@@ -11,6 +11,6 @@ def on_frame() =
   is_first := false
 end
 
-s = source.on_frame(s, on_frame)
+s.on_frame(synchronous=true, on_frame)
 
 output.dummy(fallible=true, s)

@@ -198,7 +198,7 @@ def video.cover(s) =
   fail = (source.fail() : source)
 
   def next() =
-    m = source.last_metadata(s ?? fail) ?? []
+    m = source.methods((s ?? fail)).last_metadata() ?? []
 
     filename = m["filename"]
 
@@ -378,7 +378,11 @@ def add_text_builder(f) =
       end
     end
 
-    s = null.defined(metadata) ? source.on_metadata(s, on_metadata) : s
+    if
+      null.defined(metadata)
+    then
+      s.on_metadata(synchronous=true, on_metadata)
+    end
 
     # Our text source.
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)
@@ -634,7 +638,7 @@ def video.add_subtitle(
     if list.assoc.mem(override, m) then subtitle := list.assoc(override, m) end
   end
 
-  s = source.on_metadata(s, meta)
+  s.on_metadata(synchronous=true, meta)
   let {video = v, ...tracks} = source.tracks(s)
   let {video = t} = source.tracks(t)
   let v = track.video.add([v, t])
@@ -833,7 +837,8 @@ def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y) =
     end
   end
 
-  source.on_frame(s', update)
+  s'.on_frame(synchronous=true, update)
+  s'
 end
 
 let video.canvas = ()

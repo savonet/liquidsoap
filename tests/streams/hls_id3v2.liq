@@ -58,108 +58,40 @@ def run_check() =
     end
   end
 
-  #< Ffmpeg has limited capabilities with changing ID3 at the moment.
-  aac = input.hls("#{tmp_dir}/aac.m3u8")
-  aac =
-  source.on_metadata(
-  aac,
-  fun (m) ->
-  begin
-  print(
-  "aac: #{m}"
-  )
-  if m["title"] != "" then to_check := to_check().{aac=m} end
-  check_done()
-  end
-  )
-
-  output.dummy(fallible=true, aac)
-  >#
-
-  #< FFMPEG seems to be unable to parse id3v2 metadata
-  inside mp3 streams..
-  shine = input.hls("#{tmp_dir}/shine.m3u8")
-  shine =
-  source.on_metadata(
-  shine,
-  fun (m) ->
-  begin
-  if m["title"] != "" then to_check := to_check().{shine=m} end
-  check_done()
-  end
-  )
-
-  output.dummy(fallible=true, shine)
-
-  lame = input.hls("#{tmp_dir}/lame.m3u8")
-  lame =
-  source.on_metadata(
-  lame,
-  fun (m) ->
-  begin
-  if m["title"] != "" then to_check := to_check().{lame=m} end
-  check_done()
-  end
-  )
-
-  output.dummy(fallible=true, lame)
-  >#
-
-  #<
-  fdkaac = input.hls("#{tmp_dir}/fdkaac.m3u8")
-  fdkaac =
-  source.on_metadata(
-  fdkaac,
-  fun (m) ->
-  begin
-  print(
-  "fdkaac: #{m}"
-  )
-  if m["title"] != "" then to_check := to_check().{fdkaac=m} end
-  check_done()
-  end
-  )
-
-  output.dummy(fallible=true, fdkaac)
-  >#
-
   ts_with_meta = input.hls("#{tmp_dir}/ts_with_meta.m3u8")
-  ts_with_meta =
-    source.on_metadata(
-      ts_with_meta,
-      fun (m) ->
-        begin
-          print(
-            "ts_with_meta #{m}"
-          )
-          if m["title"] != "" then to_check := to_check().{ts_with_meta=m} end
-          check_done()
-        end
-    )
+  ts_with_meta.on_metadata(
+    synchronous=true,
+    fun (m) ->
+      begin
+        print(
+          "ts_with_meta #{m}"
+        )
+        if m["title"] != "" then to_check := to_check().{ts_with_meta=m} end
+        check_done()
+      end
+  )
 
   output.dummy(fallible=true, ts_with_meta)
   ts = input.hls("#{tmp_dir}/ts.m3u8")
-  ts =
-    source.on_metadata(
-      ts,
-      fun (m) ->
-        begin
-          if m["title"] != "" then to_check := to_check().{ts=m} end
-          check_done()
-        end
-    )
+  ts.on_metadata(
+    synchronous=true,
+    fun (m) ->
+      begin
+        if m["title"] != "" then to_check := to_check().{ts=m} end
+        check_done()
+      end
+  )
 
   output.dummy(fallible=true, ts)
   mp4 = input.hls("#{tmp_dir}/mp4.m3u8")
-  mp4 =
-    source.on_metadata(
-      mp4,
-      fun (m) ->
-        begin
-          if m["title"] != "" then to_check := to_check().{mp4=m} end
-          check_done()
-        end
-    )
+  mp4.on_metadata(
+    synchronous=true,
+    fun (m) ->
+      begin
+        if m["title"] != "" then to_check := to_check().{mp4=m} end
+        check_done()
+      end
+  )
 
   output.dummy(fallible=true, mp4)
 end

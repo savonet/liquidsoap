@@ -643,7 +643,7 @@ class output p =
         self#log#important "Connection setup was successful.";
 
         (match source#last_metadata with
-          | Some m when send_last_metadata_on_connect -> (
+          | Some (_, m) when send_last_metadata_on_connect -> (
               try
                 self#encode_metadata
                   (Frame.Metadata.Export.from_metadata ~cover:false m)

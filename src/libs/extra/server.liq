@@ -160,6 +160,7 @@ def add_skip_command(s) =
   end
 
   s.on_wake_up(
+    synchronous=true,
     {
       # Register the command:
       server.register(

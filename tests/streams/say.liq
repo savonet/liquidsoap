@@ -20,5 +20,5 @@ def f(_) =
   if n() < 1 then n := n() + 1 else test.pass() end
 end
 
-s.on_track(f)
+s.on_track(synchronous=true, f)
 output.dummy(s)

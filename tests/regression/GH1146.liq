@@ -10,6 +10,6 @@ def f(_) =
   if !track_count > 2 then test.pass() end
 end
 
-s.on_track(f)
+s.on_track(synchronous=true, f)
 clock.assign_new(sync="none", [s])
 output.dummy(s)

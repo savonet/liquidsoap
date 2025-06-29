@@ -86,7 +86,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
       if Queue.length metadata_queue > q_length then
         ignore (Queue.pop metadata_queue)
 
-    initializer self#on_metadata self#add_metadata
+    initializer self#on_frame (`Metadata self#add_metadata)
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)
