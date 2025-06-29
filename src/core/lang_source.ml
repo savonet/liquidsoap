@@ -220,7 +220,7 @@ let callback ?(params = []) ~descr ~arg_t ~apply ~register name =
                         let error =
                           Lang.runtime_error_of_exception ~bt ~kind:"source" exn
                         in
-                        ignore (Lang.apply on_error [("", Lang.error error)]))
+                        ignore (apply on_error [("", Lang.error error)]))
             in
             let f =
               if synchronous then f
@@ -334,7 +334,7 @@ let source_methods =
             let descr = Lang.to_string (List.assoc "description" p) in
             let command = Lang.to_string (Lang.assoc "" 1 p) in
             let f = Lang.assoc "" 2 p in
-            let f x = Lang.to_string (Lang.apply f [("", Lang.string x)]) in
+            let f x = Lang.to_string (apply f [("", Lang.string x)]) in
             s#register_command ?usage ~descr command f;
             unit) );
   ]
