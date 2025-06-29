@@ -233,7 +233,7 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible ~on_start
         ~infallible ~on_start ~on_stop ~output_kind ?clock ~name
           ~register_telnet source autostart
 
-    method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
+    method virtual private encode_metadata : Frame.Metadata.Export.t -> unit
     method virtual private encode : Frame.t -> 'a
     method virtual private send : 'a -> unit
 
@@ -245,7 +245,7 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible ~on_start
           match Frame.get_metadata frame start with
             | None -> ()
             | Some m ->
-                self#insert_metadata
+                self#encode_metadata
                   (Frame.Metadata.Export.from_metadata
                      ~cover:export_cover_metadata m)
         in

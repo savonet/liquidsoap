@@ -99,10 +99,10 @@ class virtual base ?clock ~source:source_val ~name p =
     method virtual write_pipe : string -> int -> int -> unit
     method send b = Strings.iter self#write_pipe b
 
-    method insert_metadata m =
+    method encode_metadata m =
       match encoder with
         | None -> ()
-        | Some encoder -> encoder.Encoder.insert_metadata m
+        | Some encoder -> encoder.Encoder.encode_metadata m
   end
 
 (** url output: discard encoded data, try to restart on encoding error (can be
@@ -382,10 +382,10 @@ class virtual piped_output ?clock ~name p =
         | _ -> ());
       base#encode frame
 
-    method! insert_metadata metadata =
+    method! encode_metadata metadata =
       if reopen_on_metadata (Frame.Metadata.Export.to_metadata metadata) then
         self#reopen;
-      base#insert_metadata metadata
+      base#encode_metadata metadata
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to

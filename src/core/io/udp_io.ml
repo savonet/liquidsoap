@@ -98,8 +98,8 @@ class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
 
     method private encode frame = (Option.get encoder).Encoder.encode frame
 
-    method private insert_metadata m =
-      (Option.get encoder).Encoder.insert_metadata m
+    method private encode_metadata m =
+      (Option.get encoder).Encoder.encode_metadata m
 
     method private send data =
       let socket_send = Option.get socket_send in

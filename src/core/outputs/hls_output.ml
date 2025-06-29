@@ -1160,7 +1160,7 @@ class hls_output p =
 
     method send b = List.iter2 self#write_pipe streams b
 
-    method insert_metadata m =
+    method encode_metadata m =
       List.iter
         (fun s ->
           match s.metadata with

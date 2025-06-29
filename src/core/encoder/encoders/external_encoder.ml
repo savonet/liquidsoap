@@ -105,7 +105,7 @@ let encoder id ext =
     Process_handler.run ~on_start ~on_stop ~on_stdout ~on_stderr ~log
       ext.process
   in
-  let insert_metadata =
+  let encode_metadata =
     Mutex_utils.mutexify mutex (fun _ ->
         if ext.restart = Metadata then (
           is_metadata_restart := true;
@@ -162,7 +162,7 @@ let encoder id ext =
         Strings.Mutable.flush buf)
   in
   {
-    Encoder.insert_metadata;
+    Encoder.encode_metadata;
     header = (fun () -> Strings.empty);
     hls = Encoder.dummy_hls encode;
     encode;

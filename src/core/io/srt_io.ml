@@ -1187,8 +1187,8 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
       if self#is_connected then self#get_encoder.Encoder.encode frame
       else Strings.empty
 
-    method private insert_metadata m =
-      if self#is_connected then self#get_encoder.Encoder.insert_metadata m
+    method private encode_metadata m =
+      if self#is_connected then self#get_encoder.Encoder.encode_metadata m
 
     method private send data =
       if self#is_connected then (

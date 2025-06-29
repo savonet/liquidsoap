@@ -159,7 +159,7 @@ module type T = sig
       socket ->
       unit
 
-    method virtual insert_metadata : Frame.metadata -> unit
+    method virtual encode_metadata : Frame.metadata -> unit
     method virtual login : string * (socket:socket -> string -> string -> bool)
     method virtual icy_charset : string option
     method virtual meta_charset : string option
@@ -219,7 +219,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             socket ->
             unit
 
-      method virtual insert_metadata : Frame.metadata -> unit
+      method virtual encode_metadata : Frame.metadata -> unit
 
       method virtual login
           : string * (socket:socket -> string -> string -> bool)
@@ -654,7 +654,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   let data = Option.get data in
                   let m = List.map (fun (l, v) -> (l, json_string_of v)) data in
                   let m = Frame.Metadata.from_list m in
-                  source#insert_metadata m;
+                  source#encode_metadata m;
                   raise Retry
               | _ -> raise Retry)
         | `Close _ -> raise Websocket_closed
@@ -757,7 +757,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             if add then Frame.Metadata.add (g x) (g y) m else m
           in
           let args = Hashtbl.fold f args Frame.Metadata.empty in
-          s#insert_metadata args;
+          s#encode_metadata args;
           simple_reply
             (Printf.sprintf
                "HTTP/1.0 200 OK\r\n\r\nUpdated metadatas for mount %s" mount)

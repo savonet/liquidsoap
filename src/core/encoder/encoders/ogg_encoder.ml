@@ -108,7 +108,7 @@ let encoder ~pos { Ogg_format.audio; video } =
     let ogg_enc = Ogg_muxer.create ~skeleton name in
     let rec enc =
       {
-        Encoder.insert_metadata;
+        Encoder.encode_metadata;
         hls = Encoder.dummy_hls (fun _ -> assert false);
         encode;
         header = (fun () -> Ogg_muxer.get_header ogg_enc);
@@ -136,7 +136,7 @@ let encoder ~pos { Ogg_format.audio; video } =
     and stop () =
       ogg_stop ();
       Ogg_muxer.get_data ogg_enc
-    and insert_metadata m =
+    and encode_metadata m =
       ogg_stop ();
       let f track = track.id <- Some (track.reset ogg_enc m) in
       List.iter f tracks
