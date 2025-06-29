@@ -269,7 +269,7 @@ let source_methods =
             ("", "", None);
           ]
           (fun p ->
-            let new_track = to_bool (List.assoc "new_metadata" p) in
+            let new_track = to_bool (List.assoc "new_track" p) in
             let m = to_metadata (List.assoc "" p) in
             s#insert_metadata ~new_track m;
             unit) );
