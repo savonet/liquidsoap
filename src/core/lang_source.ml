@@ -169,7 +169,7 @@ let conf_default_synchronous_callback =
     ~p:(conf_source#plug "synchronous_callbacks")
     ~d:false "Default synchronous setting for callbacks."
 
-let callback ?(params = []) ~descr ~arg_t ~apply ~register name =
+let callback ?(params = []) ~descr ~arg_t ~apply:apply_fn ~register name =
   [
     ( name,
       ( [],
@@ -208,7 +208,7 @@ let callback ?(params = []) ~descr ~arg_t ~apply ~register name =
             in
             let on_error = Lang.to_option (List.assoc "on_error" p) in
             let f = assoc "" 1 p in
-            let f v = ignore (apply f v) in
+            let f v = ignore (apply_fn f v) in
             let f =
               match on_error with
                 | None -> f
