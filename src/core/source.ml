@@ -485,6 +485,11 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             empty_frame <- Some f;
             f
 
+    val insert_metadata = Atomic.make None
+
+    method insert_metadata ~new_track m =
+      Atomic.set insert_metadata (Some (new_track, m))
+
     method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
@@ -627,8 +632,18 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
       let buf =
-        match Frame.track_marks buf with
-          | p :: _ :: _ ->
+        match (Atomic.exchange insert_metadata None, Frame.track_marks buf) with
+          | Some (new_track, m), _ ->
+              let m =
+                Frame.Metadata.append
+                  (Option.value ~default:Frame.Metadata.empty
+                     (Frame.get_metadata buf 0))
+                  m
+              in
+              let buf = Frame.add_metadata buf 0 m in
+              if new_track then Frame.(add_track_mark (drop_track_marks buf)) 0
+              else buf
+          | None, p :: _ :: _ ->
               self#log#important
                 "Source created multiple tracks in a single frame! Sub-frame \
                  tracks are not supported and are merged into a single one..";

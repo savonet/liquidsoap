@@ -255,6 +255,24 @@ let source_methods =
        source is currently streaming, just that its resources are all properly \
        initialized.",
       fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+    ( "insert_metadata",
+      ( [],
+        Lang.fun_t
+          [(true, "new_track", Lang.bool_t); (false, "", metadata_t)]
+          Lang.unit_t ),
+      "Dynamically insert metadata in a stream. Inserts a new track with the \
+       given metadata if `new_track is `true`.",
+      fun s ->
+        Lang.val_fun
+          [
+            ("new_metadata", "new_metadata", Some (Lang.bool false));
+            ("", "", None);
+          ]
+          (fun p ->
+            let new_track = to_bool (List.assoc "new_metadata" p) in
+            let m = to_metadata (List.assoc "" p) in
+            s#insert_metadata ~new_track m;
+            unit) );
     ( "reset_last_metadata_on_track",
       ([], ref_t bool_t),
       "If `true`, the source's `last_metadata` is reset on each new track. If \

@@ -1,7 +1,7 @@
 def f() =
   tmp = file.temp("foo", "bla")
   on_cleanup({file.remove(tmp)})
-  s = insert_metadata(sine())
+  s = sine()
   insert_metadata = s.insert_metadata
   err = ref(null)
 

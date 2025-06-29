@@ -387,7 +387,6 @@ def mix(~id=null, ~register_server_commands=true, sources) =
   s = add(sources)
   let {metadata = _, ...tracks} = source.tracks(s)
   s = source(tracks)
-  s = insert_metadata(s)
   insert_metadata_fn := s.insert_metadata
   let {track_marks = _, ...tracks} = source.tracks(s)
   s = source(id=id, tracks)

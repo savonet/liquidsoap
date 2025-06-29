@@ -10,7 +10,7 @@ on_cleanup(
   }
 )
 
-s = insert_metadata(sine())
+s = sine()
 
 track_pos = ref(1)
 

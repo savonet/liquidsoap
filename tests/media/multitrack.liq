@@ -15,7 +15,6 @@ s3 =
 video = source.tracks(s3).video
 
 s4 = blank()
-s4 = insert_metadata(s4)
 
 metadata = source.tracks(s4).metadata
 

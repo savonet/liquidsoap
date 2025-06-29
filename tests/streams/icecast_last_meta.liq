@@ -6,8 +6,6 @@ test.skip()
 
 s = sine()
 
-s = insert_metadata(s)
-
 insert_metadata = s.insert_metadata
 
 output.dummy(s)

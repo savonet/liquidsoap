@@ -27,16 +27,13 @@ end
 # @flag extra
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
-def server.insert_metadata(~id=null, s) =
-  s = insert_metadata(id=id, s)
-  insert = s.insert_metadata
-
+def server.insert_metadata(s) =
   def insert(s) =
     let (meta, _) = string.annotate.parse("#{s}:")
     if
       meta != []
     then
-      insert(meta)
+      s.insert_metadata(meta)
       "Done"
     else
       "Syntax error or no metadata given. Use key1=\"val1\",key2=\"val2\",.."

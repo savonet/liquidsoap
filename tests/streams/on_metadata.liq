@@ -8,7 +8,6 @@ def f(_) =
 end
 
 s = sine()
-s = insert_metadata(s)
 
 def insert() =
   print(
