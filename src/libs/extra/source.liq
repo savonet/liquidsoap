@@ -200,6 +200,8 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
   # Track time in the source's context:
   time = ref(0.)
 
+  s = source.methods(s)
+
   is_first = ref(true)
 
   def f() =
