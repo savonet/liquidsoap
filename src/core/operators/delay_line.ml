@@ -37,7 +37,8 @@ class delay (source : source) duration =
 
     method private buffer_data =
       Generator.append self#buffer source#get_frame;
-      deferred <- Generator.length self#buffer <= duration ()
+      if deferred && duration () <= Generator.length self#buffer then
+        deferred <- false
 
     method private queue_output =
       Clock.on_tick self#clock (fun () ->
