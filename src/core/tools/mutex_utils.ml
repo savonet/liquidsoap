@@ -30,4 +30,3 @@ let mutexify m f x =
     | v ->
         Mutex.unlock m;
         v
-[@@inline always]
