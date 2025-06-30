@@ -77,6 +77,7 @@ let getaddrinfo ~(log : Log.t) ~prefer_address address port =
   hints |-> Addrinfo.ai_flags <-@ ni_numerichost;
   hints |-> Addrinfo.ai_family <-@ af_unspec;
   hints |-> Addrinfo.ai_socktype <-@ sock_stream;
+  hints |-> Addrinfo.ai_protocol <-@ ipproto_tcp;
   match getaddrinfo ~hints ~port:(`Int port) address with
     | [] ->
         Runtime_error.raise ~pos:[]
