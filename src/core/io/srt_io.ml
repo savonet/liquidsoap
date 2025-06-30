@@ -116,7 +116,12 @@ let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
     | "caller" -> `Caller
-    | _ -> raise (Error.Invalid_value (v, "Invalid mode!"))
+    | _ ->
+        raise
+          (Error.Invalid_value
+             ( v,
+               "Invalid mode! Should be one of: `\"listener\"` or `\"caller\"`."
+             ))
 
 let string_of_mode = function `Listener -> "listener" | `Caller -> "caller"
 
