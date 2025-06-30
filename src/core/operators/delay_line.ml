@@ -20,62 +20,45 @@
 
  *****************************************************************************)
 
-open Mm
 open Source
 
 class delay (source : source) duration =
-  let length () = Frame.audio_of_seconds (duration ()) in
+  let duration () = Frame.main_of_seconds (duration ()) in
   object (self)
-    inherit operator ~name:"amplify" [source]
+    inherit operator ~name:"delay_line" [source]
     val mutable override = None
     method fallible = source#fallible
-    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
     method self_sync = source#self_sync
+    val mutable should_queue = false
+    val mutable deferred = true
 
-    (** Length of the buffer in samples. *)
-    val mutable buffer_length = 0
+    method private buffer_data =
+      Generator.append self#buffer source#get_frame;
+      deferred <- Generator.length self#buffer <= duration ()
 
-    (** Ringbuffer. *)
-    val mutable buffer = [||]
+    method private queue_output =
+      Clock.on_tick self#clock (fun () ->
+          if source#is_ready then self#buffer_data;
+          if should_queue then self#queue_output)
 
-    (** Position in the buffer. *)
-    val mutable pos = 0
+    initializer
+      self#on_wake_up (fun () ->
+          should_queue <- true;
+          self#queue_output);
+      self#on_sleep (fun () -> should_queue <- false)
 
-    (** Make sure that the buffer has required size. *)
-    method prepare n =
-      if buffer_length <> n then (
-        buffer <- Audio.create self#audio_channels n;
-        buffer_length <- n)
-
-    initializer self#on_wake_up (fun () -> self#prepare (length ()))
+    method private can_generate_frame =
+      (not deferred) && Generator.length self#buffer > 0
 
     method private generate_frame =
-      let buf =
-        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
-      in
-      let position = source#frame_audio_position in
-      let length = length () in
-      self#prepare length;
-      if length > 0 then
-        for i = 0 to position - 1 do
-          for c = 0 to self#audio_channels - 1 do
-            let x = buf.(c).(i) in
-            buf.(c).(i) <- buffer.(c).(pos);
-            buffer.(c).(pos) <- x
-          done;
-          pos <- (pos + 1) mod length
-        done;
-      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
+      Generator.slice self#buffer (Lazy.force Frame.size)
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
+  let frame_t = Lang.univ_t () in
   Lang.add_operator "delay_line"
     [
       ( "",
@@ -84,8 +67,8 @@ let _ =
         Some "Duration of the delay in seconds." );
       ("", Lang.source_t frame_t, None, None);
     ]
-    ~return_t:frame_t ~category:`Audio
-    ~descr:"Delay the audio signal by a given amount of time."
+    ~return_t:frame_t ~category:`Track
+    ~descr:"Delay the source by a given amount of time."
     (fun p ->
       let duration = Lang.assoc "" 1 p |> Lang.to_float_getter in
       let s = Lang.assoc "" 2 p |> Lang.to_source in
