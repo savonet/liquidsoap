@@ -122,7 +122,7 @@ end
 # Enable LUFS metadata resolver. This resolver will process any file
 # decoded by Liquidsoap and add a `lufs_track_gain` metadata when this
 # value could be computed. For a finer-grained replay gain processing, use the
-# `lufs:` protocol.
+# `lufs_track_gain:` protocol.
 # @param ~compute Compute lufs if metadata tag is empty.
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing lufs tags. Defaults to `settings.lufs.decoding_ratio` when `null`
 # @category Liquidsoap
