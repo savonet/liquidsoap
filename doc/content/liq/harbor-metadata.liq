@@ -1,4 +1,5 @@
-s=sine()
+s = sine()
+
 # BEGIN
 meta = ref([])
 

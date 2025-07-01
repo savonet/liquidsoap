@@ -30,6 +30,7 @@ Fixed:
 
 - Don't mark source as ready until their clock has started. (#4496)
 - Fixed mutex deadlock caused by aggressive inlining (#4540)
+- Fixed segfault when using SRT on windows (#4538)
 
 ---
 
