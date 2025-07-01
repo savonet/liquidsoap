@@ -59,7 +59,7 @@ If you are migrating from a previous version, you might want to checkout
 - [ICY metadata update](icy_metadata.html): manipulate and configure metadata update in Icecast.
 - [Interaction with the Harbor](harbor_http.html): interact with a running Liquidsoap using the Harbor server.
 - [Interaction with the server](server.html) interact with a running Liquidsoap instance using the telnet server.
-- [Normalization and replay gain](replay_gain.html): normalize audio data.
+- [Loudness Normalization](loudness_normalization.html): normalize audio data using LUFS or ReplayGain.
 - [Profiling](profiling.html): profiling your scripts.
 - [Prometheus reporting](prometheus.html): metrics reporting via prometheus.
 - [Requests-based sources](request_sources.html): create advanced sources using requests.

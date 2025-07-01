@@ -977,3 +977,10 @@ def insert_metadata(~id:_=null, s) =
   )
   source.methods(s)
 end
+
+
+# Deprecated: use `normalize_track_gain`
+# @flag deprecated
+def replaygain(~id=null, s) =
+  amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
+end

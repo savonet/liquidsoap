@@ -1,13 +1,3 @@
-# Amplify source tracks according to replaygain metadata. This operator does not
-# compute itself the replaygain: you can use either `enable_replaygain_metadata`
-# or the `replaygain:` protocol for this.
-# @category Source / Audio processing
-# @param ~id Force the value of the source ID.
-# @param s Source to be amplified.
-def replaygain(~id=null, s) =
-  amplify(id=id, override="replaygain_track_gain", 1., s)
-end
-
 let file.replaygain = ()
 
 # Compute the ReplayGain for a file (in dB).
@@ -128,7 +118,7 @@ def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
     then
       [
         (
-          "replaygain_track_gain",
+          settings.normalize_track_gain_metadata(),
           "#{null.get(gain)} dB"
         )
       ]
