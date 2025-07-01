@@ -118,8 +118,7 @@ end
 # value could be computed. For a finer-grained replay gain processing, use the
 # `replaygain:` protocol.
 # @param ~compute Compute replaygain if metadata tag is empty.
-# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible.
-#               Use this setting to lower CPU peaks when computing replaygain tags.
+# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing replaygain tags.
 # @category Liquidsoap
 def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
   def replaygain_metadata(~metadata:_, file_name) =
