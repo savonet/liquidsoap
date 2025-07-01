@@ -11,6 +11,7 @@ New:
   every source (#4541)
 - Added `liquidsoap.script.path` that contains the path to the current
   script's file, if available.
+- Added LUFS-based per-track loudness correction (#4545)
 - `null` can now be used directly without having to call `null()`.
   `null(value)` calls are still valid and can be used to create
   non-null values with nullable types. Calls to `null()` are marked
@@ -21,6 +22,9 @@ New:
 Changed:
 
 - Improved source and clock naming (#4497)
+- Deprecated `replaygain` operator, introduced unified
+  `normalize_track_gain` which works with both ReplayGain
+  and LUFS (#4545)
 
 Fixed:
 
