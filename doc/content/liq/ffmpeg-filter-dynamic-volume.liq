@@ -31,6 +31,7 @@ end
 s = playlist("my_playlist")
 
 let (s, set_volume) = dynamic_volume(s)
+
 # END
 output.dummy(fallible=true, s)
 ignore(set_volume)
