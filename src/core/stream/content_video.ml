@@ -64,6 +64,8 @@ module Base = struct
     dst.data <-
       List.stable_sort (fun (pos, _) (pos', _) -> compare pos pos') data
 
+  let free d = d.data <- []
+
   let fill :
       'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit =
    fun src src_pos dst dst_pos len ->

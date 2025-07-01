@@ -46,6 +46,7 @@ module type ContentSpecs = sig
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
+  val free : data -> unit
 
   (** Params *)
 

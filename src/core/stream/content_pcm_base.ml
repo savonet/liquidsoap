@@ -48,6 +48,7 @@ let copy ~fmt =
       Bigarray.Array1.blit c c';
       c)
 
+let free _ = ()
 let param_of_channels = Content_audio.Specs.param_of_channels
 let parse_param = Content_audio.Specs.parse_param
 let params d = param_of_channels (Array.length d)
