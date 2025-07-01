@@ -294,8 +294,9 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
         ~sample_format:target_sample_format ~frame_size
         (Av.write_frame ?on_keyframe stream)
     with e ->
+      let bt = Printexc.get_raw_backtrace () in
       log#severe "Error writing audio frame: %s." (Printexc.to_string e);
-      raise e
+      Printexc.raise_with_backtrace e bt
   in
 
   let encode frame = List.iter write_frame (converter frame) in
