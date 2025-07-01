@@ -42,6 +42,7 @@ open Parser_helper
 %token <Parsed_term.time_el> TIME
 %token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
 %token <string> ENCODER
+%token TYPEOF
 %token EOF
 %token <Parser_helper.lexer_let_decoration> LET
 %token <Parser_helper.lexer_let_decoration> LETLBRA
@@ -85,6 +86,7 @@ open Parser_helper
 %nonassoc YIELDS       (* fun x -> (x+x) *)
 %right SET             (* expr := (expr + expr), expr := (expr := expr) *)
 %nonassoc QUESTION     (* x ? y : z *)
+%nonassoc TYPEOF (* typeof v? *)
 %left AND             (* ((x+(y*z))==3) or ((not a)==b) *)
 %left OR
 %nonassoc NOT
@@ -298,6 +300,7 @@ ty:
   | ty QUESTION_DOT LCUR record_ty RCUR
                                  { `Method (`Nullable $1, $4) }
   | ty DOT LCUR record_ty RCUR   { `Method ($1, $4) }
+  | TYPEOF expr                  { `Typeof $2 }
   | ty_source                    { `Source $1 }
 
 record_ty:
