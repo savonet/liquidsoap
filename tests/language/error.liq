@@ -199,7 +199,7 @@ def f() =
     print(
       "caught error #{e} from thread and backtrace:\n#{backtrace}"
     )
-    if e.kind == "foo" then on_done() else test.fail() end
+    if error.methods(e).kind == "foo" then on_done() else test.fail() end
   end
 
   thread.on_error(e, on_error)
