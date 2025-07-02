@@ -897,7 +897,7 @@ end
 def on_metadata(~id:_, s, fn) =
   log.severe(
     label="lang.deprecated",
-    "Use the on_metadata source method!"
+    "WARNING: on_metadata has been remove! Use the on_metadata source method."
   )
   source.methods(s).on_metadata(synchronous=true, fn)
   s
@@ -908,7 +908,7 @@ end
 def on_track(~id:_, s, fn) =
   log.severe(
     label="lang.deprecated",
-    "Use the on_track source method!"
+    "WARNING: on_track has been remove! Use the on_track source method"
   )
   source.methods(s).on_track(synchronous=true, fn)
   s
@@ -919,7 +919,8 @@ end
 def source.last_metadata(~id:_, s) =
   log.severe(
     label="lang.deprecated",
-    "Use the last_metadata source method!"
+    "WARNING: source.last_metadata has been removed! Use the last_metadata \
+     source method."
   )
   source.methods(s).last_metadata()
 end
@@ -929,7 +930,7 @@ end
 def source.on_frame(~id:_, ~before=true, s, fn) =
   log.severe(
     label="lang.deprecated",
-    "Use the on_frame source method!"
+    "WARNING: on_frame has been removed! Use the on_frame source method."
   )
   source.methods(s).on_frame(synchronous=true, before=before, fn)
 end
@@ -945,7 +946,8 @@ def source.on_offset(
 ) =
   log.severe(
     label="lang.deprecated",
-    "Use the on_position source method!"
+    "WARNING: source.on_offset has been removed! Use the on_position source \
+     method."
   )
   source.methods(s).on_position(
     synchronous=true,
@@ -961,7 +963,8 @@ end
 def source.on_end(~id:_, ~delay:position, s, fn) =
   log.severe(
     label="lang.deprecated",
-    "Use the on_position source method!"
+    "WARNING: source.on_end has been removed! Use the on_position source \
+     method."
   )
   source.methods(s).on_position(
     synchronous=true, remaining=true, allow_partial=false, position=position, fn
@@ -973,7 +976,42 @@ end
 def insert_metadata(~id:_=null, s) =
   log.severe(
     label="lang.deprecated",
-    "Use the insert_metadata source method!"
+    "WARNING: insert_metadata has been removed! Use the insert_metadata source \
+     method."
   )
   source.methods(s)
+end
+
+# @docof input.harbor
+def input.harbor(
+  %argsof(input.harbor),
+  ~on_connect=null,
+  ~on_disconnect=null,
+  s
+) =
+  s = input.harbor(%argsof(input.harbor), s)
+
+  if
+    null.defined(on_connect)
+  then
+    log.severe(
+      label="lang.deprecated",
+      "WARNING: input.harbor's on_connect argument is deprecated! Use the \
+       on_connect source method instead."
+    )
+    s.on_connect(null.get(on_connect))
+  end
+
+  if
+    null.defined(on_disconnect)
+  then
+    log.severe(
+      label="lang.deprecated",
+      "WARNING: input.harbor's on_disconnect argument is deprecated! Use the \
+       on_disconnect source method instead."
+    )
+    s.on_disconnect(null.get(on_disconnect))
+  end
+
+  s
 end

@@ -49,9 +49,8 @@ def fn() =
       user="testtest",
       "test",
       port=port,
-      on_connect=on_connect
     )
-
+  s.on_connect(synchronous=true, on_connect)
   s.on_metadata(synchronous=true, on_metadata)
   output.dummy(fallible=true, s)
   output.icecast(

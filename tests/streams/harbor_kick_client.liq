@@ -38,14 +38,8 @@ def fn() =
     first_client_connected := true
   end
 
-  s =
-    input.harbor(
-      buffer=0.1,
-      auth=auth,
-      on_connect=on_connect,
-      port=9878,
-      "harbor_kick_client"
-    )
+  s = input.harbor(buffer=0.1, auth=auth, port=9878, "harbor_kick_client")
+  s.on_connect(synchronous=true, on_connect)
 
   kick_client := s.stop
   output.dummy(fallible=true, s)

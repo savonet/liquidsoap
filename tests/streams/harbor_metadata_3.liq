@@ -51,14 +51,10 @@ def fn() =
 
   s =
     input.harbor(
-      buffer=0.1,
-      password="testtest",
-      user="testtest",
-      "test",
-      port=port,
-      on_connect=on_connect
+      buffer=0.1, password="testtest", user="testtest", "test", port=port
     )
 
+  s.on_connect(synchronous=true, on_connect)
   s.on_metadata(synchronous=true, on_metadata)
   output.dummy(fallible=true, s)
   output.icecast(

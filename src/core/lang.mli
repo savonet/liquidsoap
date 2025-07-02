@@ -114,12 +114,27 @@ val module_name : module_name -> string
 
 type 'a operator_method = string * scheme * string * ('a -> value)
 
+type callback_param = Lang_source.callback_param = {
+  name : string;
+  typ : t;
+  default : value option;
+}
+
+type 'a callback_definition = 'a Lang_source.callback_definition = {
+  name : string;
+  params : callback_param list;
+  descr : string;
+  arg_t : (bool * string * t) list;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
+}
+
 (** Add an operator to the language and to the documentation. *)
 val add_operator :
   category:Doc.Value.source ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
   ?meth:(< Source.source ; .. > as 'a) operator_method list ->
+  ?callbacks:(< Source.source ; .. > as 'a) callback_definition list ->
   ?base:module_name ->
   string ->
   proto ->
