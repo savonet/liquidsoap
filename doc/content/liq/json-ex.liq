@@ -1,4 +1,5 @@
-data = '{
+data =
+  '{
   "foo": 34.24,
   "gni gno": true,
   "nested": {
@@ -15,15 +16,17 @@ data = '{
    "extra": "ignored"
 }'
 
-let json.parse ( x : {
-  foo: float,
-  "gni gno" as gni_gno: bool,
-  nested: {
-    tuple: (_ * float),
-    list: [float],
-    nullable_list: [int?],
-    object_as_list: [(string * float)] as json.object,
-    "arbitrary object key ✨" as arbitrary_object_key: bool,
-    not_present: bool?
+let json.parse (x :
+  {
+    foo: float,
+    "gni gno" as gni_gno: bool,
+    nested: {
+      tuple: (_ * float),
+      list: [float],
+      nullable_list: [int?],
+      object_as_list: [(string*float)] as json.object,
+      "arbitrary object key ✨" as arbitrary_object_key: bool,
+      not_present: bool?
+    }
   }
-}) = data
+) = data

@@ -20,18 +20,26 @@
 
  *****************************************************************************)
 
-(* Virtual class to keep track of a source's latest metadata *)
-class virtual source =
-  object (self)
-    val mutable latest_metadata = Frame.Metadata.empty
-    method virtual private on_new_metadata : unit
+open Source
 
-    method private save_latest_metadata frame =
-      let l = List.rev (Frame.get_all_metadata frame) in
-      if List.length l > 0 then (
-        latest_metadata <- snd (List.hd l);
-        self#on_new_metadata)
+(** Insert metadata at the beginning if none is set. Currently used by the
+    switch classes. *)
+class replay meta src =
+  object
+    inherit operator ~name:"replay_metadata" [src]
+    val mutable first = true
+    method fallible = src#fallible
+    method private can_generate_frame = src#is_ready
+    method abort_track = src#abort_track
+    method remaining = src#remaining
+    method self_sync = src#self_sync
+    method seek_source = src#seek_source
 
-    method private clear_latest_metadata =
-      latest_metadata <- Frame.Metadata.empty
+    method private generate_frame =
+      let buf = src#get_frame in
+      if first then (
+        first <- false;
+        if Frame.get_all_metadata buf = [] then Frame.add_metadata buf 0 meta
+        else buf)
+      else buf
   end

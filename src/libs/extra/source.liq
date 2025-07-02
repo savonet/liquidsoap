@@ -102,18 +102,20 @@ def overlap_sources(
 
   def on_offset(s) =
     let (s, offset) = metadata.getter.source.float(-1., start_next, s)
-    on_offset(force=true, offset=offset, on_start_next, s)
+    s.on_position(
+      synchronous=true, allow_partial=true, position=offset, on_start_next
+    )
   end
 
-  sources = list.map(on_offset, sources)
+  list.iter(on_offset, sources)
 
   # Disable after each track
-  def disable(pos, source) =
+  def disable(pos, s) =
     def disable(_) =
       set_ready(pos, false)
     end
 
-    source.on_track(disable)
+    s.on_track(synchronous=true, disable)
   end
 
   list.iteri(disable, sources)
@@ -126,7 +128,7 @@ def overlap_sources(
     fn(m)
   end
 
-  list.iter(fun (s) -> s.on_metadata(relay_metadata), sources)
+  list.iter(fun (s) -> s.on_metadata(synchronous=true, relay_metadata), sources)
 
   def drop_metadata(s) =
     let {metadata = _, ...tracks} = source.tracks(s)
@@ -148,10 +150,9 @@ def overlap_sources(
   set_ready(current_position(), true)
 
   # Create main source
-  source = add(id=id, normalize=normalize, weights=weights, sources)
+  s = add(id=id, normalize=normalize, weights=weights, sources)
 
   # Set send_to_main_source
-  s = insert_metadata(source)
   send_to_main_source := fun (m) -> s.insert_metadata(m)
   s
 end
@@ -195,11 +196,11 @@ end
 # @param ~every Duration of a track (in seconds).
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
-def chop(~id=null, ~every=getter(3.), ~metadata=getter([]), s) =
-  s = insert_metadata(s)
-
+def chop(~every=getter(3.), ~metadata=getter([]), s) =
   # Track time in the source's context:
   time = ref(0.)
+
+  s = source.methods(s)
 
   is_first = ref(true)
 
@@ -214,7 +215,8 @@ def chop(~id=null, ~every=getter(3.), ~metadata=getter([]), s) =
     end
   end
 
-  source.on_frame(id=id, s, f)
+  s.on_frame(synchronous=true, f)
+  s
 end
 
 # Regularly skip tracks from a source (useful for testing skipping).
@@ -235,7 +237,8 @@ def skipper(~every=getter(5.), s) =
     end
   end
 
-  source.on_frame(s, f)
+  s.on_frame(synchronous=true, f)
+  s
 end
 
 let stdlib_fallback = fallback
@@ -259,7 +262,8 @@ def fallback.skip(s, ~fallback=null) =
   s = stdlib_fallback(track_sensitive=false, [s, fallback])
 
   # TODO: could we have something more efficient that checking on every frame
-  source.on_frame(s, check)
+  s.on_frame(synchronous=true, check)
+  s
 end
 
 stdlib_file = file
@@ -291,7 +295,7 @@ def source.cue(
   ~file_type=null,
   ~comment=null,
   ~year=null,
-  ~map_metadata=fun (m) -> (m : [(string*string)]),
+  ~map_metadata=fun (m) -> (m : [(string * string)]),
   ~last_tracks=null,
   ~temp_dir=null,
   ~deduplicate_using=["title", "artist", "album", "isrc", "cue_year"],
@@ -447,5 +451,6 @@ def source.cue(
   end
 
   s = metadata.deduplicate(using=deduplicate_using, s)
-  source.on_metadata(s, handle_metadata)
+  s.on_metadata(synchronous=true, handle_metadata)
+  s
 end

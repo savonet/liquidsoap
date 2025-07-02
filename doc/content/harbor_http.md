@@ -143,7 +143,7 @@ Content-Type: application/json; charset=utf-8
 
 ## Set metadata
 
-Using `insert_metadata`, you can register a GET handler that
+Using source's `insert_metadata` method, you can register a GET handler that
 updates the metadata of a given source. For instance:
 
 ```{.liquidsoap include="harbor-insert-metadata.liq" from="BEGIN"}

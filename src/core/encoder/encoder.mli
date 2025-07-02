@@ -104,7 +104,7 @@ type hls = {
 val dummy_hls : (Frame.t -> Strings.t) -> hls
 
 type encoder = {
-  insert_metadata : Frame.Metadata.Export.t -> unit;
+  encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   hls : hls;
   encode : Frame.t -> Strings.t;

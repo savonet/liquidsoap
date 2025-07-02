@@ -1,7 +1,14 @@
-2.3.4 (unreleased)
+# 2.4.0 (unreleased)
 
 New:
 
+- BREAKING: `on_metadata`, `on_track`, `on_offset`, `on_end`, `on_wake_up`
+  an `on_shutdown` callbacks have been moved to source methods and are now
+  executed asynchronously by default. Also, `on_offset` and `on_end` have
+  been merged into a single `on_position` source methods. See migratons
+  notes and PR #4536 for details and discussions.
+- Deprecated `insert_metadata`, added default `insert_metadata` method on
+  every source (#4541)
 - Added `liquidsoap.script.path` that contains the path to the current
   script's file, if available.
 - `null` can now be used directly without having to call `null()`.
@@ -18,6 +25,8 @@ Changed:
 Fixed:
 
 - Don't mark source as ready until their clock has started. (#4496)
+- Fixed mutex deadlock caused by aggressive inlining (#4540)
+- Fixed segfault when using SRT on windows (#4538)
 
 ---
 

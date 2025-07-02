@@ -15,6 +15,97 @@ close to production. Streaming issues can build up over time. We do our best to
 release the most stable possible code but problems can arise from many reasons
 so, always best to first to a trial run before putting things to production!
 
+## From 2.3.x to 2.4.x
+
+### `insert_metadata`
+
+`insert_metadata` is now available as a source method. You do not need to use the
+`insert_metadata` operator anymore and the operator has been deprecated.
+
+You can now directly do:
+
+```liquidsoap
+s = some_source()
+
+s.insert_metadata([("title","bla")])
+```
+
+### Stream-related callbacks
+
+The following callbacks:
+
+- `on_metadata`
+- `on_track`
+- `on_frame`
+- `on_offset`
+- `on_end`
+- `on_wake_up`
+- `on_shutdown`
+
+have been updated to be executed in an asynchronous task by default.
+
+This means that the function to be executed is placed in a `thread.run` task
+by default. This is done to make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
+a callback function takes too long, the streaming cycle gets late, causing issues with the runtime system typically resulting in catchup errors.
+
+They have also been moved to source methods in order to unify the codebase, options and more.
+
+Typically, instead of doing:
+
+```liquidsoap
+s = on_metadata(s, fn)
+```
+
+You should now do:
+
+```liquidsoap
+s.on_metadata(fn)
+```
+
+Additionally, `on_end` and `on_offset` have been merged into a single `on_position` source method. Here is the new syntax:
+
+```liquidsoap
+# Execute a callback after current track position:
+s.on_position(
+  # This is the default
+  remaining=false,
+  position=1.2,
+  # Allow execution even if current track does not reach position `1.2`:
+  allow_partial=true,
+  fn
+)
+
+# Execute a callback when remaining position is less
+# than the given position:
+s.on_position(
+  remaining=true,
+  position=1.2,
+  fn
+)
+```
+
+By default, asynchronous callbacks may not be executed immediately and execution order can sometime be re-shuffled. If your callback is fast
+or if you need to have tighter control over this, you can set the `synchronous` parameter to `true`:
+
+```liquidsoap
+s.on_track(synchronous=true, fn)
+```
+
+Lastly, if you are concerned with advanced callback execution logic, callbacks are executed in the order
+they are registered so, when, before, you would do:
+
+```liquidsoap
+s = on_metadata(s, f1)
+s = on_track(s, f2)
+```
+
+Resulting in `f1` being executed before `f2` in case of new track with metadata, you can now do:
+
+```liquidsoap
+s.on_metadata(synchronous=true, f1)
+s.on_track(synchronous=true, f2)
+```
+
 ## From 2.2.x to 2.3.x
 
 ### Script caching

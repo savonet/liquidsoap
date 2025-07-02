@@ -8,14 +8,10 @@ emergency = single("/path/to/emergency/single.ogg")
 playlist = playlist("/path/to/playlist")
 
 # A live source
-live = input.harbor("live",port=8080,password="hackme")
+live = input.harbor("live", port=8080, password="hackme")
 
 # fallback
 radio = fallback(track_sensitive=false, [live, playlist, emergency])
 
 # output it
-output.icecast(
-  %vorbis,
-  mount="test",
-  host="host",
-  radio)
+output.icecast(%vorbis, mount="test", host="host", radio)

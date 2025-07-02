@@ -434,13 +434,13 @@ class output p =
     method encode frame = (Option.get encoder).Encoder.encode frame
     method self_sync = source#self_sync
 
-    method insert_metadata m =
+    method encode_metadata m =
       let m = Frame.Metadata.Export.to_metadata m in
       let m = recode m in
       Mutex_utils.mutexify metadata.metadata_m
         (fun () -> metadata.metadata <- Some m)
         ();
-      (Option.get encoder).Encoder.insert_metadata
+      (Option.get encoder).Encoder.encode_metadata
         (Frame.Metadata.Export.from_metadata ~cover:false m)
 
     method add_client ~protocol ~headers ~uri ~query s =

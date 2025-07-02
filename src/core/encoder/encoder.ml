@@ -317,7 +317,7 @@ let dummy_hls encode =
   }
 
 type encoder = {
-  insert_metadata : Frame.Metadata.Export.t -> unit;
+  encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   hls : hls;
   encode : Frame.t -> Strings.t;
@@ -344,12 +344,12 @@ let get_factory fmt =
     raise Not_found
   with Found factory ->
     fun ?hls ~pos name m ->
-      let { insert_metadata; hls; encode; stop; header } =
+      let { encode_metadata; hls; encode; stop; header } =
         factory ?hls ~pos name m
       in
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in
-      let insert_metadata = Mutex_utils.mutexify m insert_metadata in
+      let encode_metadata = Mutex_utils.mutexify m encode_metadata in
       let header = Mutex_utils.mutexify m header in
       let {
         init;
@@ -392,4 +392,4 @@ let get_factory fmt =
       in
       let encode frame = Mutex_utils.mutexify m (fun () -> encode frame) () in
       let stop = Mutex_utils.mutexify m stop in
-      { insert_metadata; hls; encode; stop; header }
+      { encode_metadata; hls; encode; stop; header }

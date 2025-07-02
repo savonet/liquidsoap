@@ -8,6 +8,7 @@ def f() =
     )
 
   s.on_track(
+    synchronous=true,
     fun (_) ->
       begin
         track_count := !track_count + 1

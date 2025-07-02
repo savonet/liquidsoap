@@ -30,7 +30,7 @@ let encoder ~pos _ =
       ~message:"The NDI encoder can only be used with `output.ndi`!" "invalid"
   in
   {
-    Encoder.insert_metadata = (fun _ -> error ());
+    Encoder.encode_metadata = (fun _ -> error ());
     header = error;
     hls = Encoder.dummy_hls (fun _ -> error ());
     encode = (fun _ -> error ());

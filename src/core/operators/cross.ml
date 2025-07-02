@@ -295,7 +295,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
               self#set_start_main_duration
             with _ -> ())
 
-    initializer self#on_metadata self#process_override_metadata
+    initializer self#on_frame (`Metadata self#process_override_metadata)
 
     method private append mode buf_frame =
       let l = Frame.get_all_metadata buf_frame in
@@ -491,7 +491,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
           else None
         in
         let before =
-          new Insert_metadata.replay
+          new Replay_metadata.replay
             before_metadata
             (new consumer ~clock:source#clock gen_before)
         in
@@ -511,7 +511,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
           else None
         in
         let after =
-          new Insert_metadata.replay
+          new Replay_metadata.replay
             after_metadata
             (new consumer ~clock:source#clock gen_after)
         in

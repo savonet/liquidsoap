@@ -74,7 +74,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     method meta_charset = meta_charset
 
     (* Insert metadata *)
-    method insert_metadata m =
+    method encode_metadata m =
       (* Metadata may contain only the "song" value
        * or "artist" and "title". Here, we use "song"
        * as the "title" field if "title" is not provided. *)

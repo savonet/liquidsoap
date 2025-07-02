@@ -62,7 +62,7 @@ let encoder flac meta =
     Strings.Mutable.flush buf
   in
   {
-    Encoder.insert_metadata = (fun _ -> ());
+    Encoder.encode_metadata = (fun _ -> ());
     (* Flac encoder do not support header
      * for now. It will probably never do.. *)
     header = (fun () -> Strings.empty);

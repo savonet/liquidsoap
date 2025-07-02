@@ -71,38 +71,25 @@ let string_of_address = function
       Printf.sprintf "%s:%d" (Unix.string_of_inet_addr addr) port
 
 let getaddrinfo ~(log : Log.t) ~prefer_address address port =
-  let open Ctypes in
-  let open Posix_socket in
-  let hints = allocate_n Addrinfo.t ~count:1 in
-  hints |-> Addrinfo.ai_flags <-@ ni_numerichost;
-  hints |-> Addrinfo.ai_family <-@ af_unspec;
-  hints |-> Addrinfo.ai_socktype <-@ sock_stream;
-  match getaddrinfo ~hints ~port:(`Int port) address with
+  let hints =
+    match prefer_address with
+      | `System_default -> []
+      | `Ipv4 -> [Unix.AI_FAMILY Unix.PF_INET]
+      | `Ipv6 -> [Unix.AI_FAMILY Unix.PF_INET6]
+  in
+  let hints = Unix.AI_SOCKTYPE Unix.SOCK_STREAM :: hints in
+  match Unix.getaddrinfo address (string_of_int port) hints with
+    | sockaddr :: _ ->
+        if log#active 5 then
+          log#f 5 "Address %s:%n resolved to: %s" address port
+            (string_of_address sockaddr.Unix.ai_addr);
+        sockaddr
     | [] ->
         Runtime_error.raise ~pos:[]
           ~message:
             (Printf.sprintf "getaddrinfo could not resolve address: %s:%i"
                address port)
           "srt"
-    | first_address :: _ as resolved_addresses ->
-        let rec filter_address inet_type = function
-          | [] -> first_address
-          | sockaddr :: _ when !@(sockaddr |-> Sockaddr.sa_family) = inet_type
-            ->
-              sockaddr
-          | _ :: resolved_addresses ->
-              filter_address inet_type resolved_addresses
-        in
-        let sockaddr =
-          match prefer_address with
-            | `System_default -> first_address
-            | `Ipv4 -> filter_address af_inet resolved_addresses
-            | `Ipv6 -> filter_address af_inet6 resolved_addresses
-        in
-        if log#active 5 then
-          log#f 5 "Address %s:%n resolved to: %s" address port
-            (string_of_address (to_unix_sockaddr sockaddr));
-        sockaddr
 
 module SyncSource = Clock.MkSyncSource (struct
   type t = unit
@@ -116,7 +103,12 @@ let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
     | "caller" -> `Caller
-    | _ -> raise (Error.Invalid_value (v, "Invalid mode!"))
+    | _ ->
+        raise
+          (Error.Invalid_value
+             ( v,
+               "Invalid mode! Should be one of: `\"listener\"` or `\"caller\"`."
+             ))
 
 let string_of_mode = function `Listener -> "listener" | `Caller -> "caller"
 
@@ -650,10 +642,10 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
           Utils.optional_apply
             (fun v -> Srt.(setsockflag s rcvtimeo v))
             read_timeout;
-          Srt.connect_posix_socket s sockaddr;
+          Srt.connect s sockaddr.Unix.ai_addr;
           self#log#important "Client connected!";
           !on_connect ();
-          Atomic.set socket (Some (Posix_socket.to_unix_sockaddr sockaddr, s));
+          Atomic.set socket (Some (sockaddr.Unix.ai_addr, s));
           -1.
         with exn ->
           let bt = Printexc.get_raw_backtrace () in
@@ -719,15 +711,12 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
                 getaddrinfo ~log:self#log ~prefer_address bind_address port
               in
               let () =
-                let open Ctypes in
-                let open Posix_socket in
-                match (ipv6only, !@(bind_address |-> Sockaddr.sa_family)) with
+                match (ipv6only, bind_address.Unix.ai_family) with
                   | Some v, _ -> Srt.(setsockflag s ipv6only v)
-                  | None, id when id = af_inet6 ->
-                      Srt.(setsockflag s ipv6only true)
+                  | None, PF_INET6 -> Srt.(setsockflag s ipv6only true)
                   | _ -> ()
               in
-              Srt.bind_posix_socket s bind_address;
+              Srt.bind s bind_address.Unix.ai_addr;
               let max_clients_callback =
                 Option.map
                   (fun n _ _ _ _ ->
@@ -762,7 +751,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
                 passphrase;
               Srt.listen s (Option.value ~default:1 max_clients);
               self#log#info "Setting up socket to listen at %s"
-                (string_of_address (Posix_socket.to_unix_sockaddr bind_address));
+                (string_of_address bind_address.Unix.ai_addr);
               Atomic.set listening_socket (Some s);
               s
             with exn ->
@@ -1187,8 +1176,8 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
       if self#is_connected then self#get_encoder.Encoder.encode frame
       else Strings.empty
 
-    method private insert_metadata m =
-      if self#is_connected then self#get_encoder.Encoder.insert_metadata m
+    method private encode_metadata m =
+      if self#is_connected then self#get_encoder.Encoder.encode_metadata m
 
     method private send data =
       if self#is_connected then (

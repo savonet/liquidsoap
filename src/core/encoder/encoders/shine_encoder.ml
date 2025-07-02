@@ -63,7 +63,7 @@ let encoder ~pos shine =
   in
   let stop () = Strings.of_string (Shine.flush enc) in
   {
-    Encoder.insert_metadata = (fun _ -> ());
+    Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);
     hls = Encoder_utils.mk_id3_hls ~pos encode;
     encode;

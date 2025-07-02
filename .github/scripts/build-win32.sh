@@ -12,7 +12,7 @@ IS_RELEASE="$5"
 GITHUB_SHA="$6"
 
 OPAM_PREFIX="$(opam var prefix)"
-VERSION="$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)"
+VERSION="$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)"
 PWD="$(dirname "$0")"
 BASE_DIR="$(cd "${PWD}/../.." && pwd)"
 COMMIT_SHORT="$(echo "${GITHUB_SHA}" | cut -c-7)"

@@ -365,20 +365,19 @@ def mix(~id=null, ~register_server_commands=true, sources) =
       fun (input) ->
         begin
           s = amplify(input.volume, input.source)
-          s =
-            source.on_track(
-              s, fun (_) -> if input.single() then input.selected := false end
-            )
+          s.on_track(
+            synchronous=true,
+            fun (_) -> if input.single() then input.selected := false end
+          )
 
-          s =
-            source.on_metadata(
-              s,
-              fun (m) ->
-                begin
-                  fn = insert_metadata_fn()
-                  fn(m)
-                end
-            )
+          s.on_metadata(
+            synchronous=true,
+            fun (m) ->
+              begin
+                fn = insert_metadata_fn()
+                fn(m)
+              end
+          )
 
           switch([(input.selected, s)])
         end,
@@ -388,7 +387,6 @@ def mix(~id=null, ~register_server_commands=true, sources) =
   s = add(sources)
   let {metadata = _, ...tracks} = source.tracks(s)
   s = source(tracks)
-  s = insert_metadata(s)
   insert_metadata_fn := s.insert_metadata
   let {track_marks = _, ...tracks} = source.tracks(s)
   s = source(id=id, tracks)

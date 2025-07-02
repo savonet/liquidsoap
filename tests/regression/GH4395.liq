@@ -12,7 +12,7 @@ end
 
 s = input.srt(mode="caller", content_type="application/ogg", port=port)
 
-s.on_track(on_track)
+s.on_track(synchronous=true, on_track)
 
 output.dummy(fallible=true, s)
 

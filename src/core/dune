@@ -132,7 +132,6 @@
   iir_filter
   image_decoder
   image_plug
-  insert_metadata
   json
   keyboard
   lang
@@ -152,7 +151,6 @@
   lang_theora
   lang_vorbis
   lang_wav
-  latest_metadata
   liqcurl
   lifecycle
   liq_http
@@ -185,11 +183,7 @@
   normalize
   ogg_format
   ogg_metadata_plug
-  on_end
   on_frame
-  on_metadata
-  on_offset
-  on_track
   opus_format
   output
   pan
@@ -205,6 +199,7 @@
   producer_consumer
   queues
   raw_audio_decoder
+  replay_metadata
   replaygain_op
   request
   request_dynamic

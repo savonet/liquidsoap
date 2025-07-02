@@ -8,7 +8,6 @@ def f(_) =
 end
 
 s = sine()
-s = insert_metadata(s)
 
 def insert() =
   print(
@@ -17,6 +16,6 @@ def insert() =
   s.insert_metadata([("test", "bla")])
 end
 
-s = source.on_metadata(s, f)
+s.on_metadata(synchronous=true, f)
 thread.run(delay=1., insert)
 output.dummy(s)

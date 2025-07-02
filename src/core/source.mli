@@ -74,6 +74,24 @@ type watcher = {
   after_streaming_cycle : unit -> unit;
 }
 
+(** Callbacks executed when computing frames. *)
+
+type position_callback = {
+  mode : [ `Remaining | `Elapsed ];
+  allow_partial : bool;
+  position : unit -> int;
+  on_position : float * Frame.metadata -> unit;
+  mutable executed : bool;
+}
+
+type frame_callback = { before : bool; on_frame : unit -> unit }
+
+type on_frame =
+  [ `Metadata of Frame.metadata -> unit
+  | `Track of Frame.metadata -> unit
+  | `Position of position_callback
+  | `Frame of frame_callback ]
+
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?stack:Pos.t list ->
@@ -212,7 +230,7 @@ object
   method seek : int -> int
 
   (** The source's last metadata. *)
-  method last_metadata : Frame.metadata option
+  method last_metadata : (int * Frame.metadata) option
 
   method reset_last_metadata_on_track : bool
   method set_reset_last_metadata_on_track : bool -> unit
@@ -222,18 +240,18 @@ object
   method register_command :
     ?usage:string -> descr:string -> string -> (string -> string) -> unit
 
-  (** Register a callback to be called on new metadata *)
-  method on_metadata : (Frame.metadata -> unit) -> unit
-
-  (** Register a callback to be called on new track. Callback is called with the
-      most recent metadata before a given track mark. *)
-  method on_track : (Frame.metadata -> unit) -> unit
+  (** Register a callback to be called when computing frames. *)
+  method on_frame : on_frame -> unit
 
   (** These two are used by [generate_from_multiple_sources] and should not be
       used otherwise. *)
   method private execute_on_track : Frame.t -> unit
 
   method private set_last_metadata : Frame.t -> unit
+
+  (** Insert a metadata at the beginning of the new frame. Also add a track mark
+      when [new_track] is [true] *)
+  method insert_metadata : new_track:bool -> Frame.metadata -> unit
 
   (** Sources must implement this method. It should return [true] when the
       source can produce data during the current streaming cycle. *)

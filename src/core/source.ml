@@ -65,6 +65,22 @@ type watcher = {
   after_streaming_cycle : unit -> unit;
 }
 
+type position_callback = {
+  mode : [ `Remaining | `Elapsed ];
+  allow_partial : bool;
+  position : unit -> int;
+  on_position : float * Frame.metadata -> unit;
+  mutable executed : bool;
+}
+
+type frame_callback = { before : bool; on_frame : unit -> unit }
+
+type on_frame =
+  [ `Metadata of Frame.metadata -> unit
+  | `Track of Frame.metadata -> unit
+  | `Position of position_callback
+  | `Frame of frame_callback ]
+
 let source_log = Log.make ["source"]
 
 let finalise s =
@@ -469,16 +485,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             empty_frame <- Some f;
             f
 
+    val insert_metadata = Atomic.make None
+
+    method insert_metadata ~new_track m =
+      Atomic.set insert_metadata (Some (new_track, m))
+
     method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
-    val mutable on_metadata : (Frame.metadata -> unit) List.t = []
-    method on_metadata fn = on_metadata <- fn :: on_metadata
-    val mutable on_track_called = false
-
-    initializer
-      self#on_before_streaming_cycle (fun () -> on_track_called <- false)
-
+    val mutable on_frame : on_frame list = []
+    method on_frame fn = on_frame <- on_frame @ [fn]
     val mutable reset_last_metadata_on_track = Atomic.make true
 
     method reset_last_metadata_on_track =
@@ -487,22 +503,26 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method set_reset_last_metadata_on_track v =
       Atomic.set reset_last_metadata_on_track v
 
-    val mutable on_track : (Frame.metadata -> unit) List.t = []
-    method on_track fn = on_track <- fn :: on_track
-
     method private set_last_metadata buf =
       match List.rev (Frame.get_all_metadata buf) with
-        | (_, m) :: _ -> last_metadata <- Some m
+        | v :: _ -> last_metadata <- Some v
         | _ -> ()
+
+    val mutable on_track_called = false
+
+    initializer
+      self#on_before_streaming_cycle (fun () -> on_track_called <- false)
 
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
         if self#reset_last_metadata_on_track then last_metadata <- None;
         self#set_last_metadata buf;
-        let m = Option.value ~default:Frame.Metadata.empty last_metadata in
+        let _, m =
+          Option.value ~default:(0, Frame.Metadata.empty) last_metadata
+        in
         self#log#debug "calling on_track handlers..";
-        List.iter (fun fn -> fn m) on_track)
+        List.iter (function `Track fn -> fn m | _ -> ()) on_frame)
 
     val mutable last_images = Hashtbl.create 0
 
@@ -572,33 +592,110 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           then self#normalize_video ~field content
           else content)
 
+    method private on_position ~end_of_track buf =
+      let length = Frame.position buf in
+      elapsed <- elapsed + length;
+      let rem = self#remaining in
+      self#set_last_metadata buf;
+      let _, m =
+        Option.value ~default:(0, Frame.Metadata.empty) last_metadata
+      in
+      let is_allowed = function
+        | { executed = true } -> false
+        | { allow_partial = true } when end_of_track -> true
+        | { mode = `Elapsed; position } -> position () <= elapsed
+        | { mode = `Remaining; position } -> rem <= position ()
+      in
+      let position = function
+        | { mode = `Elapsed } -> Frame.seconds_of_main elapsed
+        | { mode = `Remaining } -> Frame.seconds_of_main rem
+      in
+      List.iter
+        (function
+          | `Position p when is_allowed p ->
+              p.executed <- true;
+              p.on_position (position p, m)
+          | _ -> ())
+        on_frame
+
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
+      let on_frame = self#mutexify (fun () -> on_frame) () in
+      List.iter
+        (function `Frame { before = true; on_frame } -> on_frame () | _ -> ())
+        on_frame;
       let buf = self#normalize_video_content self#generate_frame in
+      List.iter
+        (function
+          | `Frame { before = false; on_frame } -> on_frame () | _ -> ())
+        on_frame;
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
-      let track_marks = Frame.track_marks buf in
       let buf =
-        match track_marks with
-          | p :: _ :: _ ->
+        match (Atomic.exchange insert_metadata None, Frame.track_marks buf) with
+          | Some (new_track, m), _ ->
+              let m =
+                Frame.Metadata.append
+                  (Option.value ~default:Frame.Metadata.empty
+                     (Frame.get_metadata buf 0))
+                  m
+              in
+              let buf = Frame.add_metadata buf 0 m in
+              if new_track then Frame.(add_track_mark (drop_track_marks buf)) 0
+              else buf
+          | None, p :: _ :: _ ->
               self#log#important
                 "Source created multiple tracks in a single frame! Sub-frame \
                  tracks are not supported and are merged into a single one..";
               Frame.add_track_mark (Frame.drop_track_marks buf) p
           | _ -> buf
       in
-      let has_track_mark = track_marks <> [] in
-      if has_track_mark then elapsed <- 0 else elapsed <- elapsed + length;
+      let has_track_mark =
+        match self#split_frame buf with
+          | buf, Some new_track ->
+              self#on_position ~end_of_track:true buf;
+              elapsed <- 0;
+              if self#reset_last_metadata_on_track then last_metadata <- None;
+              List.iter
+                (function `Position p -> p.executed <- false | _ -> ())
+                on_frame;
+              self#on_position ~end_of_track:false new_track;
+              true
+          | buf, None ->
+              self#on_position ~end_of_track:false buf;
+              false
+      in
+
+      (* Executing track mark and metadata callbacks is tricky.
+         - We want to preserve the order with which they are registered.
+         - We want to execute track marks even without metadata.
+
+      First: execute both kind of callback using the metadata from the frame: *)
       let metadata = Frame.get_all_metadata buf in
-      let on_metadata = self#mutexify (fun () -> on_metadata) () in
       List.iter
-        (fun (i, m) ->
+        (fun (p, m) ->
           self#log#debug
-            "generate_frame: got metadata at position %d: calling handlers..." i;
-          List.iter (fun fn -> fn m) on_metadata)
+            "generate_frame: got metadata at position %d: calling handlers..." p;
+          let is_on_track =
+            match last_metadata with
+              | Some (p', _)
+                when (not on_track_called) && has_track_mark && p = p' ->
+                  self#log#debug "calling on_track handlers..";
+                  on_track_called <- true;
+                  true
+              | _ -> false
+          in
+          List.iter
+            (fun cb ->
+              match cb with
+                | `Metadata fn -> fn m
+                | `Track fn when is_on_track -> fn m
+                | _ -> ())
+            on_frame)
         metadata;
-      if has_track_mark then self#execute_on_track buf
-      else self#set_last_metadata buf;
+
+      (* Then, if we have a track mark but no metadata, executed the on_track callbacks. *)
+      if has_track_mark && not on_track_called then self#execute_on_track buf;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);
