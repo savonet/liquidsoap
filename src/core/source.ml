@@ -69,7 +69,7 @@ type position_callback = {
   mode : [ `Remaining | `Elapsed ];
   allow_partial : bool;
   position : unit -> int;
-  on_position : float * Frame.metadata -> unit;
+  on_position : pos:float -> Frame.metadata -> unit;
   mutable executed : bool;
 }
 
@@ -614,7 +614,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         (function
           | `Position p when is_allowed p ->
               p.executed <- true;
-              p.on_position (position p, m)
+              p.on_position ~pos:(position p) m
           | _ -> ())
         on_frame
 
