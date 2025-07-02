@@ -570,9 +570,9 @@ jobs:
         run: |
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           cat doc/content/release-assets.md >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
           cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Delete old release assets
         uses: mknejp/delete-release-assets@v1
