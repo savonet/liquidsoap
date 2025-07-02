@@ -106,6 +106,21 @@ s.on_metadata(synchronous=true, f1)
 s.on_track(synchronous=true, f2)
 ```
 
+### Error methods
+
+Because of the multiplication of callbacks with `on_error` arguments, error methods have
+been removed by default from the error types to avoid cluttering the documentation.
+
+If you need to access error methods, you can use `error.methods`:
+
+```liquidsoap
+# Add back error methods
+err = error.methods(err)
+
+# Access them
+print("Error kind: #{err.kind}")
+```
+
 ## From 2.2.x to 2.3.x
 
 ### Script caching

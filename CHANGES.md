@@ -21,6 +21,8 @@ New:
 Changed:
 
 - Improved source and clock naming (#4497)
+- BREAKING: Error methods have been removed by default.
+  Use `error.methods` to get them! (#4537)
 
 Fixed:
 
