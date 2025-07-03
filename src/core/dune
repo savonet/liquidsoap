@@ -165,6 +165,7 @@
   mean
   merge_metadata
   metadata_base
+  methods
   midi_decoder
   midi_routing
   midimeter

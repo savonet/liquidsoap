@@ -171,13 +171,12 @@ let conf_default_synchronous_callback =
 
 type callback_param = { name : string; typ : t; default : value option }
 
-type callback = {
+type 'a callback_definition = {
   name : string;
   params : callback_param list;
   descr : string;
   arg_t : (bool * string * t) list;
-  register :
-    params:(string * value) list -> Source.source -> (env -> unit) -> unit;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
 }
 
 let callback { name; params; descr; arg_t; register } =
@@ -779,7 +778,9 @@ let check_arguments ~env ~return_t arguments =
   (return_t, env)
 
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
-    ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
+    ?(meth = ([] : 'a operator_method list))
+    ?(callbacks = ([] : 'a callback_definition list)) ?base name arguments
+    ~return_t f =
   let compare (x, _, _, _) (y, _, _, _) =
     match (x, y) with
       | "", "" -> 0
@@ -787,6 +788,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       | "", _ -> 1
       | x, y -> Stdlib.compare x y
   in
+  let meth = meth @ List.map callback callbacks in
   let arguments =
     ( "id",
       nullable_t string_t,

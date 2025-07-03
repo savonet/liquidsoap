@@ -1,0 +1,1 @@
+include Liquidsoap_lang.Methods
