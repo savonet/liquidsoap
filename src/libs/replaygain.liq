@@ -1,13 +1,3 @@
-# Amplify source tracks according to replaygain metadata. This operator does not
-# compute itself the replaygain: you can use either `enable_replaygain_metadata`
-# or the `replaygain:` protocol for this.
-# @category Source / Audio processing
-# @param ~id Force the value of the source ID.
-# @param s Source to be amplified.
-def replaygain(~id=null, s) =
-  amplify(id=id, override="replaygain_track_gain", 1., s)
-end
-
 let file.replaygain = ()
 
 # Compute the ReplayGain for a file (in dB).
@@ -118,8 +108,7 @@ end
 # value could be computed. For a finer-grained replay gain processing, use the
 # `replaygain:` protocol.
 # @param ~compute Compute replaygain if metadata tag is empty.
-# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible.
-#               Use this setting to lower CPU peaks when computing replaygain tags.
+# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing replaygain tags.
 # @category Liquidsoap
 def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
   def replaygain_metadata(~metadata:_, file_name) =
@@ -129,7 +118,7 @@ def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
     then
       [
         (
-          "replaygain_track_gain",
+          settings.normalize_track_gain_metadata(),
           "#{null.get(gain)} dB"
         )
       ]

@@ -9,19 +9,35 @@ let settings.protocol =
   settings.make.void(
     "Settings for registered protocols"
   )
-let settings.protocol.replaygain = settings.make.protocol("ReplayGain")
-let settings.protocol.replaygain.tag =
-  settings.make(
-    description=
-      "Tag used to annotate ReplayGain",
-    "replaygain_track_gain"
-  )
+
+# Register the lufs_track_gain protocol.
+# @flag hidden
+def protocol.lufs_track_gain(~rlog:_, ~maxtime:_, arg) =
+  gain = file.lufs(arg)
+  if
+    null.defined(gain)
+  then
+    "annotate:#{settings.normalize_track_gain_metadata()}=\"#{
+      settings.lufs.track_gain_target() - null.get(gain)
+    } dB\":#{arg}"
+  else
+    arg
+  end
+end
+
+protocol.add(
+  "lufs_track_gain",
+  protocol.lufs_track_gain,
+  syntax="lufs_track_gain:uri",
+  doc=
+    "Compute LUFS track gain correction and add it as metadata"
+)
 
 # Register the replaygain protocol.
 # @flag hidden
 def protocol.replaygain(~rlog:_, ~maxtime:_, arg) =
   gain = file.replaygain(arg)
-  tag = settings.protocol.replaygain.tag()
+  tag = settings.normalize_track_gain_metadata()
   if
     null.defined(gain)
   then

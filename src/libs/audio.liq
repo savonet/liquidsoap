@@ -403,3 +403,19 @@ def defer.pcm_s16(
     {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
   )
 end
+
+let settings.normalize_track_gain_metadata =
+  settings.make(
+    description=
+      "Metadata used to store track gain normalization metadata",
+    "liq_normalize_track_gain"
+  )
+
+# Amplify source tracks according to track gain normalization metadata. This operator does not
+# compute that value. You can use integrated LUFS track gain or ReplayGain to compute it.
+# @category Source / Audio processing
+# @param ~id Force the value of the source ID.
+# @param s Source to be amplified.
+def normalize_track_gain(~id=null, s) =
+  amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
+end
