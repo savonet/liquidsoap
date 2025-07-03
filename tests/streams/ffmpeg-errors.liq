@@ -1,5 +1,6 @@
 def f() =
   def on_error(e) =
+    e = error.methods(e)
     test.equal(e.kind, "ffmpeg")
     test.equal(
       e.message,

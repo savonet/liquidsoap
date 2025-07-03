@@ -560,8 +560,9 @@ jobs:
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           if [ ${{ needs.build_details.outputs.is_rolling_release }} = "true" ]; then
             cat doc/content/rolling-release.md >> $GITHUB_OUTPUT
-            echo "\n\n" >> $GITHUB_OUTPUT
           fi
+          echo "" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
           cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Generate release assets notes
@@ -569,7 +570,8 @@ jobs:
         run: |
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           cat doc/content/release-assets.md >> $GITHUB_OUTPUT
-          echo "\n\n" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
           cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Delete old release assets

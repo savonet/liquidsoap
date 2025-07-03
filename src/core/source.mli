@@ -80,7 +80,7 @@ type position_callback = {
   mode : [ `Remaining | `Elapsed ];
   allow_partial : bool;
   position : unit -> int;
-  on_position : float * Frame.metadata -> unit;
+  on_position : pos:float -> Frame.metadata -> unit;
   mutable executed : bool;
 }
 

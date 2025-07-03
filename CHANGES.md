@@ -1,4 +1,4 @@
-2.4.0 (unreleased)
+# 2.4.0 (unreleased)
 
 New:
 
@@ -25,6 +25,8 @@ Changed:
 - Deprecated `replaygain` operator, introduced unified
   `normalize_track_gain` which works with both ReplayGain
   and LUFS (#4545)
+- BREAKING: Error methods have been removed by default.
+  Use `error.methods` to get them! (#4537)
 
 Fixed:
 
