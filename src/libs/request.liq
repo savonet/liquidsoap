@@ -341,8 +341,10 @@ def request.single(
     static_request() ?? getter.get(r)
   end
 
+  concurrency = infallible ? "synchronous" : "sequential_async"
+
   def mk_source(id) =
-    request.dynamic(id=id, prefetch=prefetch, synchronous=infallible, next)
+    request.dynamic(id=id, prefetch=prefetch, concurrency=concurrency, next)
   end
 
   # We want to mark infallible source as such. `source.dynamic` is a nice
