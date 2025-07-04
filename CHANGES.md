@@ -27,6 +27,11 @@ Changed:
   and LUFS (#4545)
 - BREAKING: Error methods have been removed by default.
   Use `error.methods` to get them! (#4537)
+- Force `request.dynamic` (and derived sources such as `playlist`)
+  to resolve their requests in the order they are provided.
+  Old `synchronous` option is thus merged into a new `concurrency`
+  option that allows to set the source concurrency to synchronous,
+  sequential async or concurrent async.
 
 Fixed:
 

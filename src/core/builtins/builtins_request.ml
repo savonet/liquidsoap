@@ -325,7 +325,7 @@ class process ~name r =
         ~name
         ~retry_delay:(fun _ -> 0.1)
         ~available:(fun _ -> true)
-        ~prefetch:1 ~timeout:None ~synchronous:true
+        ~prefetch:1 ~timeout:None ~concurrency:`Synchronous
         (Lang.val_fun [] (fun _ -> Lang.null))
 
     initializer

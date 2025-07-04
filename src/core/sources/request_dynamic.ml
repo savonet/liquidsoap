@@ -59,7 +59,7 @@ let () =
       Atomic.set should_fail true)
 
 class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
-  ~synchronous ~timeout f =
+  ~concurrency ~timeout f =
   let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
     inherit source ~name ()
@@ -218,7 +218,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
     initializer
       self#on_wake_up (fun () ->
           let task =
-            if synchronous then
+            if concurrency = `Synchronous then
               {
                 notify = (fun () -> self#synchronous_feed_queue);
                 stop = (fun () -> ());
@@ -264,17 +264,41 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
         | `Started (d, { notify }) when d <= Unix.gettimeofday () -> notify ()
         | _ -> ()
 
+    val queue_processing = Atomic.make false
+
+    method private try_lock_queue_processing =
+      if concurrency = `Sequential_async then
+        Atomic.compare_and_set queue_processing false true
+      else true
+
+    method private release_queue_processing =
+      if concurrency = `Sequential_async then Atomic.set queue_processing false
+
     (** The body of the feeding task *)
     method private feed_queue () =
-      match (self#queue_size < prefetch, Atomic.get state) with
-        | true, `Started (d, t) when d <= Unix.gettimeofday () -> (
-            match self#fetch with
-              | `Finished -> if self#queue_size < prefetch then 0. else -1.
-              | `Retry ->
-                  let d = retry_delay () in
-                  Atomic.set state (`Started (Unix.gettimeofday () +. d, t));
-                  d)
-        | _ -> -1.
+      match self#try_lock_queue_processing with
+        | false -> -1.
+        | true -> (
+            try
+              let ret =
+                match (self#queue_size < prefetch, Atomic.get state) with
+                  | true, `Started (d, t) when d <= Unix.gettimeofday () -> (
+                      match self#fetch with
+                        | `Finished ->
+                            if self#queue_size < prefetch then 0. else -1.
+                        | `Retry ->
+                            let d = retry_delay () in
+                            Atomic.set state
+                              (`Started (Unix.gettimeofday () +. d, t));
+                            d)
+                  | _ -> -1.
+              in
+              self#release_queue_processing;
+              ret
+            with exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              self#release_queue_processing;
+              Printexc.raise_with_backtrace exn bt)
 
     method private synchronous_feed_queue =
       match self#feed_queue () with
@@ -361,12 +385,22 @@ let _ =
         Some
           "Whether some new requests are available (when set to false, it \
            stops after current playing request)." );
-      ( "synchronous",
-        Lang.bool_t,
-        Some (Lang.bool false),
+      ( "concurrency",
+        Lang.string_t,
+        Some (Lang.string "sequential_async"),
         Some
-          "If `true`, new requests are prepared as needed instead of using an \
-           asynchronous queue." );
+          "Set concurrency. One if: `\"synchronous\"`, `\"sequential_async\"` \
+           or `\"concurrent_async\"`. Set to `\"synchronous\"` to resolve \
+           requests immediately inside the streaming thread. This can be \
+           useful if your requests are e.g. local files and you want them to \
+           be ready immediately. Set to `\"sequential_async\"` to resolve \
+           requests in an asynchronous task but preserve request order. This \
+           is the most typical for e.g. playlists with requests that can take \
+           time to resolve but whose sequential order should preserved. Set to \
+           `\"concurrent_async\"` to allow requests to be concurrently \
+           resolved. This is useful if your requests can take time to resolve \
+           and you want to have the first resolved request available \
+           immediately." );
       ( "prefetch",
         Lang.nullable_t Lang.int_t,
         Some Lang.null,
@@ -450,8 +484,20 @@ let _ =
         Lang.to_valued_option Lang.to_int (List.assoc "prefetch" p)
       in
       let prefetch = Option.value ~default:conf_prefetch#get prefetch in
-      let synchronous = Lang.to_bool (List.assoc "synchronous" p) in
+      let concurrency = List.assoc "concurrency" p in
+      let concurrency =
+        match Lang.to_string concurrency with
+          | "synchronous" -> `Synchronous
+          | "sequential_async" -> `Sequential_async
+          | "concurrent_async" -> `Concurrent_async
+          | _ ->
+              raise
+                (Error.Invalid_value
+                   ( concurrency,
+                     "`concurrency` should be one of: '\"synchronous\"`, \
+                      `\"sequential_async\"` or `\"concurrent_async\"`." ))
+      in
       let timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
       in
-      new dynamic ~available ~retry_delay ~prefetch ~timeout ~synchronous f)
+      new dynamic ~available ~retry_delay ~prefetch ~timeout ~concurrency f)
