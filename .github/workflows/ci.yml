@@ -130,7 +130,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: latest
+          node-version: 22.x
       - name: Parse using tree-sitter
         run: |
           git clone https://github.com/savonet/tree-sitter-liquidsoap.git
