@@ -49,7 +49,16 @@ let op name descr f_t f default =
        [("", Lang.source_t frame_t, None, None)]
        ~category:`Track ~descr
        ~return_t:(Lang.method_t frame_t [("frame_" ^ name, ([], f_t), descr)])
-       ~meth:[("frame_" ^ name, ([], f_t), descr, fun s -> s#value)]
+       ~meth:
+         Lang.
+           [
+             {
+               name = "frame_" ^ name;
+               scheme = ([], f_t);
+               descr;
+               value = (fun s -> s#value);
+             };
+           ]
        (fun p ->
          let s = List.assoc "" p |> Lang.to_source in
          new frame_op ~name f default s))

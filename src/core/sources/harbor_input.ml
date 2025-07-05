@@ -255,41 +255,60 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 let _ =
   Lang.add_operator ~base:Modules.input "harbor" ~return_t:(Lang.univ_t ())
     ~meth:
-      [
-        ( "shutdown",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Shutdown the output or source.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                Clock.detach s#clock (s :> Clock.source);
-                s#sleep;
-                Lang.unit) );
-        ( "stop",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Disconnect the client currently connected to the harbor. Does \
-           nothing if no client is connected.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                s#disconnect ~lock:true;
-                Lang.unit) );
-        ( "connected_client",
-          ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t)),
-          "Returns the address of the client currently connected, if there is \
-           one.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match s#connected_client with
-                  | Some c -> Lang.string c
-                  | None -> Lang.null) );
-        ( "status",
-          ([], Lang.fun_t [] Lang.string_t),
-          "Current status of the input.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.string s#status_cmd) );
-        ( "buffer_length",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Length of the buffer (in seconds).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd) );
-      ]
+      Lang.
+        [
+          {
+            name = "shutdown";
+            scheme = ([], Lang.fun_t [] Lang.unit_t);
+            descr = "Shutdown the output or source.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    Clock.detach s#clock (s :> Clock.source);
+                    s#sleep;
+                    Lang.unit));
+          };
+          {
+            name = "stop";
+            scheme = ([], Lang.fun_t [] Lang.unit_t);
+            descr =
+              "Disconnect the client currently connected to the harbor. Does \
+               nothing if no client is connected.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    s#disconnect ~lock:true;
+                    Lang.unit));
+          };
+          {
+            name = "connected_client";
+            scheme = ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t));
+            descr =
+              "Returns the address of the client currently connected, if there \
+               is one.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    match s#connected_client with
+                      | Some c -> Lang.string c
+                      | None -> Lang.null));
+          };
+          {
+            name = "status";
+            scheme = ([], Lang.fun_t [] Lang.string_t);
+            descr = "Current status of the input.";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.string s#status_cmd));
+          };
+          {
+            name = "buffer_length";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Length of the buffer (in seconds).";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd));
+          };
+        ]
     ~category:`Input
     ~descr:
       "Create a source that receives a http/icecast stream and forwards it as \

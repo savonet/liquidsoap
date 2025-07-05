@@ -674,14 +674,20 @@ let _ =
     ~return_t:frame_t ~category:`Fade
     ~meth:
       [
-        ( "start_duration",
-          Lang.([], fun_t [] float_t),
-          "Get the current crossfade start duration.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#start_duration) );
-        ( "end_duration",
-          Lang.([], fun_t [] float_t),
-          "Get the current crossfade end duration.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#end_duration) );
+        {
+          name = "start_duration";
+          scheme = Lang.([], fun_t [] float_t);
+          descr = "Get the current crossfade start duration.";
+          value =
+            (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#start_duration));
+        };
+        {
+          name = "end_duration";
+          scheme = Lang.([], fun_t [] float_t);
+          descr = "Get the current crossfade end duration.";
+          value =
+            (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#end_duration));
+        };
       ]
     ~descr:
       "Cross operator, allowing the composition of the _n_ last seconds of a \

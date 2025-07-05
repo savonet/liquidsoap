@@ -243,22 +243,27 @@ let extract p =
 
 let meth () =
   [
-    ( "dB_levels",
-      ([], Lang.fun_t [] (Lang.nullable_t (Lang.list_t Lang.float_t))),
-      "Return the detected dB level for each channel.",
-      fun s ->
-        Lang.val_fun [] (fun _ ->
-            match s#dB_levels with
-              | None -> Lang.null
-              | Some lvl ->
-                  Lang.list
-                    Array.(
-                      to_list
-                        (map (fun v -> Lang.float (Audio.dB_of_lin v)) lvl))) );
-    ( "is_blank",
-      ([], Lang.fun_t [] Lang.bool_t),
-      "Indicate whether blank was detected.",
-      fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
+    {
+      Lang.name = "dB_levels";
+      scheme = ([], Lang.fun_t [] (Lang.nullable_t (Lang.list_t Lang.float_t)));
+      descr = "Return the detected dB level for each channel.";
+      value =
+        (fun s ->
+          Lang.val_fun [] (fun _ ->
+              match s#dB_levels with
+                | None -> Lang.null
+                | Some lvl ->
+                    Lang.list
+                      Array.(
+                        to_list
+                          (map (fun v -> Lang.float (Audio.dB_of_lin v)) lvl))));
+    };
+    {
+      Lang.name = "is_blank";
+      scheme = ([], Lang.fun_t [] Lang.bool_t);
+      descr = "Indicate whether blank was detected.";
+      value = (fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank));
+    };
   ]
 
 let _ =

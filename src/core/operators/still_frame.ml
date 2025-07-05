@@ -79,17 +79,21 @@ let _ =
       "Take still frames from a video source by calling the `save` method. For \
        now only bitmap output is supported."
     ~meth:
-      [
-        ( "save",
-          ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t),
-          "Save current image, argument is the file name to save to.",
-          fun s ->
-            Lang.val_fun
-              [("", "", None)]
-              (fun p ->
-                s#save (List.assoc "" p |> Lang.to_string);
-                Lang.unit) );
-      ]
+      Lang.
+        [
+          {
+            name = "save";
+            scheme = ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t);
+            descr = "Save current image, argument is the file name to save to.";
+            value =
+              (fun s ->
+                Lang.val_fun
+                  [("", "", None)]
+                  (fun p ->
+                    s#save (List.assoc "" p |> Lang.to_string);
+                    Lang.unit));
+          };
+        ]
     (fun p ->
       let s = List.assoc "" p |> Lang.to_source in
       new still_frame ~name:"video.still_frame" s)

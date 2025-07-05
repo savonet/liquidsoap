@@ -156,10 +156,12 @@ let buffer =
     ~return_t:frame_t ~category:`Liquidsoap
     ~meth:
       [
-        ( "buffer_length",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Buffer length, in main ticks",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.int s#buffer_length) );
+        {
+          Lang.name = "buffer_length";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Buffer length, in main ticks";
+          value = (fun s -> Lang.val_fun [] (fun _ -> Lang.int s#buffer_length));
+        };
       ]
     ~descr:"Create a buffer between two different clocks."
     (fun p ->
@@ -459,21 +461,31 @@ let _ =
         ("", Lang.source_t frame_t, None, None);
       ])
     ~meth:
-      [
-        ( "duration",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current buffer duration, in seconds.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_duration) );
-        ( "estimated",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current smoothed buffer duration, in seconds.",
-          fun s ->
-            Lang.val_fun [] (fun _ -> Lang.float s#buffer_estimated_duration) );
-        ( "ratio",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Get the current scaling ratio.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#ratio) );
-      ]
+      Lang.
+        [
+          {
+            name = "duration";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Current buffer duration, in seconds.";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_duration));
+          };
+          {
+            name = "estimated";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Current smoothed buffer duration, in seconds.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    Lang.float s#buffer_estimated_duration));
+          };
+          {
+            name = "ratio";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Get the current scaling ratio.";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#ratio));
+          };
+        ]
     ~return_t:frame_t ~category:`Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \

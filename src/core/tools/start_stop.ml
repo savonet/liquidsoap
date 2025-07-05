@@ -114,39 +114,52 @@ let active_source_proto ~fallible_opt =
                `true` and `stop` method raises an error." );
         ]
 
-type 'a meth = string * Lang.scheme * string * ('a -> Lang.value)
-
 let meth :
-    unit -> < state : state ; transition_to : state -> unit ; .. > meth list =
+    unit ->
+    (< state : state ; transition_to : state -> unit ; .. > -> Lang.value)
+    Lang.meth
+    list =
  fun () ->
   Lang.
     [
-      ( "is_started",
-        ([], fun_t [] bool_t),
-        "`true` if the output or source is started.",
-        fun s -> val_fun [] (fun _ -> bool (s#state = `Started)) );
-      ( "start",
-        ([], fun_t [] unit_t),
-        "Ask the source or output to start.",
-        fun s ->
-          val_fun [] (fun _ ->
-              s#transition_to `Started;
-              unit) );
-      ( "stop",
-        ([], fun_t [] unit_t),
-        "Ask the source or output to stop.",
-        fun s ->
-          val_fun [] (fun p ->
-              if not s#fallible then
-                Lang.raise_error ~pos:(Lang.pos p)
-                  ~message:"Source is infallible and cannot be stopped" "input";
-              s#transition_to `Stopped;
-              unit) );
-      ( "shutdown",
-        ([], fun_t [] unit_t),
-        "Shutdown the output or source.",
-        fun s ->
-          val_fun [] (fun _ ->
-              Clock.detach s#clock (s :> Clock.source);
-              unit) );
+      {
+        name = "is_started";
+        scheme = ([], fun_t [] bool_t);
+        descr = "`true` if the output or source is started.";
+        value = (fun s -> val_fun [] (fun _ -> bool (s#state = `Started)));
+      };
+      {
+        name = "start";
+        scheme = ([], fun_t [] unit_t);
+        descr = "Ask the source or output to start.";
+        value =
+          (fun s ->
+            val_fun [] (fun _ ->
+                s#transition_to `Started;
+                unit));
+      };
+      {
+        name = "stop";
+        scheme = ([], fun_t [] unit_t);
+        descr = "Ask the source or output to stop.";
+        value =
+          (fun s ->
+            val_fun [] (fun p ->
+                if not s#fallible then
+                  Lang.raise_error ~pos:(Lang.pos p)
+                    ~message:"Source is infallible and cannot be stopped"
+                    "input";
+                s#transition_to `Stopped;
+                unit));
+      };
+      {
+        name = "shutdown";
+        scheme = ([], fun_t [] unit_t);
+        descr = "Shutdown the output or source.";
+        value =
+          (fun s ->
+            val_fun [] (fun _ ->
+                Clock.detach s#clock (s :> Clock.source);
+                unit));
+      };
     ]

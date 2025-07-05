@@ -99,10 +99,12 @@ let declare ?base mode name frame_t fun_ret_t f_ans =
   Lang.add_operator ?base name ~category:`Audio
     ~meth:
       [
-        ( meth,
-          ([], Lang.fun_t [] fun_ret_t),
-          "Current value for the " ^ doc ^ ".",
-          fun s -> Lang.val_fun [] (fun _ -> f_ans s#value) );
+        {
+          Lang.name = meth;
+          scheme = ([], Lang.fun_t [] fun_ret_t);
+          descr = "Current value for the " ^ doc ^ ".";
+          value = (fun s -> Lang.val_fun [] (fun _ -> f_ans s#value));
+        };
       ]
     ~return_t
     ~descr:
