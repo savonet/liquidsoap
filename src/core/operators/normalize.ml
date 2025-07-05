@@ -166,16 +166,21 @@ let _ =
        implementation provided in Liquidsoap < 2.0. A new, better and more \
        customizable one is now given in `normalize`."
     ~meth:
-      [
-        ( "gain",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current amplification coefficient.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain) );
-        ( "rms",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current RMS.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#rms) );
-      ]
+      Lang.
+        [
+          {
+            name = "gain";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Current amplification coefficient.";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain));
+          };
+          {
+            name = "rms";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Current RMS.";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#rms));
+          };
+        ]
     (fun p ->
       let f v = List.assoc v p in
       let target, window, kup, kdown, threshold, gmin, gmax, src =

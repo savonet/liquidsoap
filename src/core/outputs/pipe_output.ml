@@ -276,17 +276,25 @@ let pipe_proto frame_t arg_doc =
 let pipe_meth =
   let meth =
     List.map
-      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
+      (fun meth ->
+        {
+          meth with
+          Lang.value = (fun s -> meth.Lang.value (s :> Output.output));
+        })
       Output.meth
   in
-  ( "reopen",
-    ([], Lang.fun_t [] Lang.unit_t),
-    "Reopen the output pipe. The actual reopening happens the next time the \
-     output has some data to output.",
-    fun s ->
-      Lang.val_fun [] (fun _ ->
-          s#need_reopen;
-          Lang.unit) )
+  {
+    Lang.name = "reopen";
+    scheme = ([], Lang.fun_t [] Lang.unit_t);
+    descr =
+      "Reopen the output pipe. The actual reopening happens the next time the \
+       output has some data to output.";
+    value =
+      (fun s ->
+        Lang.val_fun [] (fun _ ->
+            s#need_reopen;
+            Lang.unit));
+  }
   :: meth
 
 class virtual piped_output ?clock ~name p =

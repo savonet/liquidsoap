@@ -1244,22 +1244,29 @@ let _ =
   Lang.add_operator ~base:Pipe_output.output_file "hls" (hls_proto return_t)
     ~return_t ~category:`Output
     ~meth:
-      ([
-         ( "insert_tag",
-           ([], insert_tag_t),
-           "Insert the same tag into all the streams",
-           fun s ->
-             insert_tag
-               (List.map
-                  (fun { pending_extra_tags } -> pending_extra_tags)
-                  s#streams) );
-         ( "streams",
-           ([], Lang.fun_t [] (Lang.list_t (stream_t return_t))),
-           "Output streams",
-           fun s ->
-             Lang.val_fun [] (fun _ ->
-                 Lang.list (List.map value_of_stream s#streams)) );
-       ]
+      (Lang.
+         [
+           {
+             name = "insert_tag";
+             scheme = ([], insert_tag_t);
+             descr = "Insert the same tag into all the streams";
+             value =
+               (fun s ->
+                 insert_tag
+                   (List.map
+                      (fun { pending_extra_tags } -> pending_extra_tags)
+                      s#streams));
+           };
+           {
+             name = "streams";
+             scheme = ([], Lang.fun_t [] (Lang.list_t (stream_t return_t)));
+             descr = "Output streams";
+             value =
+               (fun s ->
+                 Lang.val_fun [] (fun _ ->
+                     Lang.list (List.map value_of_stream s#streams)));
+           };
+         ]
       @ Start_stop.meth ())
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \

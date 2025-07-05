@@ -158,23 +158,30 @@ let _ =
     ~category:`Track
     ~meth:
       [
-        ( "current_source",
-          ([], Lang.fun_t [] (Lang.nullable_t (Lang.source_t frame_t))),
-          "Return the source currently selected.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match s#current_source with
-                  | None -> Lang.null
-                  | Some s -> Lang.source s) );
-        ( "prepare",
-          ([], Lang.fun_t [(false, "", Lang.source_t frame_t)] Lang.unit_t),
-          "Prepare a source that will be returned later.",
-          fun s ->
-            Lang.val_fun
-              [("", "x", None)]
-              (fun p ->
-                s#prepare (List.assoc "x" p |> Lang.to_source);
-                Lang.unit) );
+        {
+          name = "current_source";
+          scheme = ([], Lang.fun_t [] (Lang.nullable_t (Lang.source_t frame_t)));
+          descr = "Return the source currently selected.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  match s#current_source with
+                    | None -> Lang.null
+                    | Some s -> Lang.source s));
+        };
+        {
+          name = "prepare";
+          scheme =
+            ([], Lang.fun_t [(false, "", Lang.source_t frame_t)] Lang.unit_t);
+          descr = "Prepare a source that will be returned later.";
+          value =
+            (fun s ->
+              Lang.val_fun
+                [("", "x", None)]
+                (fun p ->
+                  s#prepare (List.assoc "x" p |> Lang.to_source);
+                  Lang.unit));
+        };
       ]
     (fun p ->
       let init =

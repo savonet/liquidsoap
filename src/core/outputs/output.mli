@@ -56,7 +56,7 @@ object
 end
 
 (** Default methods on output values. *)
-val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
+val meth : (output -> Lang.value) Lang.meth list
 
 class virtual ['a] encoded :
   output_kind:string ->

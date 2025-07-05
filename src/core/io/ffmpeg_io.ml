@@ -473,41 +473,53 @@ let register_input is_http =
          Lang.(
            Start_stop.meth ()
            @ [
-               ( "url",
-                 ([], fun_t [] string_t),
-                 "Return the source's current url.",
-                 fun s -> val_fun [] (fun _ -> string s#url) );
-               ( "set_url",
-                 ([], fun_t [(false, "", getter_t string_t)] unit_t),
-                 "Set the source's url.",
-                 fun s ->
-                   val_fun
-                     [("", "", None)]
-                     (fun p ->
-                       s#set_url (to_string_getter (List.assoc "" p));
-                       unit) );
-               ( "status",
-                 ([], fun_t [] string_t),
-                 "Return the current status of the source, either \"stopped\" \
-                  (the source isn't trying to relay the HTTP stream), \
-                  \"starting\" (polling task is about to begin) \"polling\" \
-                  (attempting to connect to the HTTP stream), \"connected \
-                  <url>\" (connected to <url>, buffering or playing back the \
-                  stream) or \"stopping\" (source is stopping).",
-                 fun s ->
-                   val_fun [] (fun _ ->
-                       string
-                         (match s#source_status with
-                           | `Stopped -> "stopped"
-                           | `Starting -> "starting"
-                           | `Stopping -> "stopping"
-                           | `Polling -> "polling"
-                           | `Connected (url, _) ->
-                               Printf.sprintf "connected %s" url)) );
-               ( "buffer_length",
-                 ([], fun_t [] float_t),
-                 "Get the buffer's length in seconds.",
-                 fun s -> val_fun [] (fun _ -> float s#buffer_length) );
+               {
+                 name = "url";
+                 scheme = ([], fun_t [] string_t);
+                 descr = "Return the source's current url.";
+                 value = (fun s -> val_fun [] (fun _ -> string s#url));
+               };
+               {
+                 name = "set_url";
+                 scheme = ([], fun_t [(false, "", getter_t string_t)] unit_t);
+                 descr = "Set the source's url.";
+                 value =
+                   (fun s ->
+                     val_fun
+                       [("", "", None)]
+                       (fun p ->
+                         s#set_url (to_string_getter (List.assoc "" p));
+                         unit));
+               };
+               {
+                 name = "status";
+                 scheme = ([], fun_t [] string_t);
+                 descr =
+                   "Return the current status of the source, either \
+                    \"stopped\" (the source isn't trying to relay the HTTP \
+                    stream), \"starting\" (polling task is about to begin) \
+                    \"polling\" (attempting to connect to the HTTP stream), \
+                    \"connected <url>\" (connected to <url>, buffering or \
+                    playing back the stream) or \"stopping\" (source is \
+                    stopping).";
+                 value =
+                   (fun s ->
+                     val_fun [] (fun _ ->
+                         string
+                           (match s#source_status with
+                             | `Stopped -> "stopped"
+                             | `Starting -> "starting"
+                             | `Stopping -> "stopping"
+                             | `Polling -> "polling"
+                             | `Connected (url, _) ->
+                                 Printf.sprintf "connected %s" url)));
+               };
+               {
+                 name = "buffer_length";
+                 scheme = ([], fun_t [] float_t);
+                 descr = "Get the buffer's length in seconds.";
+                 value = (fun s -> val_fun [] (fun _ -> float s#buffer_length));
+               };
              ])
        (fun p ->
          let format = Lang.to_option (List.assoc "format" p) in

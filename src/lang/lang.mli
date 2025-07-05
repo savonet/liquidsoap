@@ -51,13 +51,14 @@ val apply : ?pos:Pos.t list -> value -> env -> value
 (** {3 Helpers for source builtins} *)
 
 type proto = (string * t * value option * string option) list
+type 'a meth = { name : string; scheme : scheme; descr : string; value : 'a }
 
 (** Add a builtin to the language, high-level version for functions. *)
 val add_builtin :
   category:Doc.Value.category ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
-  ?meth:(string * Type.scheme * string * value) list ->
+  ?meth:value meth list ->
   ?examples:string list ->
   ?base:module_name ->
   string ->

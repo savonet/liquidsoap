@@ -263,14 +263,17 @@ let _ =
        true."
     ~meth:
       [
-        ( "selected",
-          ([], Lang.fun_t [] (Lang.nullable_t Lang.(source_t return_t))),
-          "Currently selected source.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match s#selected with
-                  | Some s -> Lang.source s
-                  | None -> Lang.null) );
+        {
+          name = "selected";
+          scheme = ([], Lang.fun_t [] (Lang.nullable_t Lang.(source_t return_t)));
+          descr = "Currently selected source.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  match s#selected with
+                    | Some s -> Lang.source s
+                    | None -> Lang.null));
+        };
       ]
     [
       ( "track_sensitive",

@@ -243,40 +243,53 @@ let common_options ~mode =
   ]
 
 let meth () =
-  [
-    ( "sockets",
-      ( [],
-        Lang.fun_t []
-          (Lang.list_t
-             (Lang.product_t Lang.string_t Builtins_srt.Socket_value.base_t)) ),
-      "List of `(connected_address, connected_socket)`",
-      fun s ->
-        Lang.val_fun [] (fun _ ->
-            Lang.list
-              (List.map
-                 (fun (origin, s) ->
-                   Lang.product
-                     (Lang.string (Utils.name_of_sockaddr origin))
-                     (Builtins_srt.Socket_value.to_base_value s))
-                 s#get_sockets)) );
-    ( "connect",
-      ([], Lang.fun_t [] Lang.unit_t),
-      "In sender mode, connect to remote server. In listener mode, setup \
-       listening socket.",
-      fun s ->
-        Lang.val_fun [] (fun _ ->
-            s#set_should_stop false;
-            s#connect;
-            Lang.unit) );
-    ( "disconnect",
-      ([], Lang.fun_t [] Lang.unit_t),
-      "Disconnect all connected socket.",
-      fun s ->
-        Lang.val_fun [] (fun _ ->
-            s#set_should_stop true;
-            s#disconnect;
-            Lang.unit) );
-  ]
+  Lang.
+    [
+      {
+        name = "sockets";
+        scheme =
+          ( [],
+            Lang.fun_t []
+              (Lang.list_t
+                 (Lang.product_t Lang.string_t Builtins_srt.Socket_value.base_t))
+          );
+        descr = "List of `(connected_address, connected_socket)`";
+        value =
+          (fun s ->
+            Lang.val_fun [] (fun _ ->
+                Lang.list
+                  (List.map
+                     (fun (origin, s) ->
+                       Lang.product
+                         (Lang.string (Utils.name_of_sockaddr origin))
+                         (Builtins_srt.Socket_value.to_base_value s))
+                     s#get_sockets)));
+      };
+      {
+        name = "connect";
+        scheme = ([], Lang.fun_t [] Lang.unit_t);
+        descr =
+          "In sender mode, connect to remote server. In listener mode, setup \
+           listening socket.";
+        value =
+          (fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#set_should_stop false;
+                s#connect;
+                Lang.unit));
+      };
+      {
+        name = "disconnect";
+        scheme = ([], Lang.fun_t [] Lang.unit_t);
+        descr = "Disconnect all connected socket.";
+        value =
+          (fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#set_should_stop true;
+                s#disconnect;
+                Lang.unit));
+      };
+    ]
 
 type common_options = {
   mode : [ `Listener | `Caller ];
@@ -1256,7 +1269,8 @@ let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let output_meth =
     List.map
-      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
+      (fun m ->
+        { m with Lang.value = (fun s -> m.Lang.value (s :> Output.output)) })
       Output.meth
   in
   Lang.add_operator ~base:Modules.output "srt" ~return_t ~category:`Output

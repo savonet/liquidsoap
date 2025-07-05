@@ -234,21 +234,31 @@ let _ =
   in
   Lang.add_operator "lufs" ~category:`Visualization
     ~meth:
-      [
-        ( "lufs",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current value for the LUFS (short-term value computed over the \
-           duration specified by the `window` parameter).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs) );
-        ( "lufs_integrated",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Average LUFS value over the current track.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_integrated) );
-        ( "lufs_momentary",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Momentary LUFS (over a 400ms window).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_momentary) );
-      ]
+      Lang.
+        [
+          {
+            name = "lufs";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr =
+              "Current value for the LUFS (short-term value computed over the \
+               duration specified by the `window` parameter).";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs));
+          };
+          {
+            name = "lufs_integrated";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Average LUFS value over the current track.";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_integrated));
+          };
+          {
+            name = "lufs_momentary";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Momentary LUFS (over a 400ms window).";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_momentary));
+          };
+        ]
     ~return_t
     ~descr:
       "Compute current LUFS of the source according to the EBU R128 standard. \

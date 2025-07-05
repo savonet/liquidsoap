@@ -142,17 +142,21 @@ let mk_module_name ?base name =
     failwith ("module name " ^ name ^ " has a dot in it!");
   match base with None -> name | Some b -> b ^ "." ^ name
 
+type 'a meth = { name : string; scheme : scheme; descr : string; value : 'a }
+
 let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     ?base name proto return_t f =
   let name = mk_module_name ?base name in
   let return_t =
-    let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
+    let meth =
+      List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth
+    in
     method_t return_t meth
   in
   let f =
     if meth = [] then f
     else (
-      let meth = List.map (fun (l, _, _, f) -> (l, f)) meth in
+      let meth = List.map (fun { name; value } -> (name, value)) meth in
       fun p -> meth_fun (f p) meth)
   in
   let t = builtin_type proto return_t in
