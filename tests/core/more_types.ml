@@ -46,6 +46,7 @@ let () =
                  as_variable = None;
                  typ = Type.var ();
                  default = None;
+                 pos = None;
                };
              ];
            body =
