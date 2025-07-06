@@ -521,6 +521,7 @@ let rec get_env_args ~pos t args =
         as_variable;
         typ = t;
         default = Option.map (term_of_value ~pos ~name:n t) v;
+        pos = t.pos;
       })
     args
 
@@ -665,7 +666,7 @@ let expand_argsof ~pos ~env ~to_term ~throw args =
        (fun args -> function
          | `Argsof { only; except; source } ->
              List.rev (args_of ~pos ~env ~only ~except source) @ args
-         | `Term { label; as_variable; default; typ; annotations } ->
+         | `Term { label; as_variable; default; typ; annotations; pos } ->
              report_annotations ~throw ~pos annotations;
              {
                label;
@@ -675,6 +676,7 @@ let expand_argsof ~pos ~env ~to_term ~throw args =
                    | None -> mk_var ()
                    | Some typ -> mk_parsed_ty ~env ~to_term typ);
                default = Option.map (to_term ~env) default;
+               pos = Some (Pos.of_lexing_pos pos);
              }
              :: args)
        [] args)
@@ -703,7 +705,13 @@ let mk_app_invoke_default ~pos ~args body =
   let app_args =
     List.map
       (fun (label, _) ->
-        { Term_base.label; as_variable = None; typ = mk_var (); default = None })
+        {
+          Term_base.label;
+          as_variable = None;
+          typ = mk_var ();
+          default = None;
+          pos = None;
+        })
       args
   in
   mk_fun ~pos app_args body
@@ -873,6 +881,7 @@ let base_for_reducer ~pos for_variable for_iterator for_loop =
           as_variable = Some for_variable;
           typ = mk_var ();
           default = None;
+          pos = None;
         };
       ]
       for_loop
@@ -985,6 +994,7 @@ let try_reducer ~pos ~env ~to_term = function
             as_variable = Some try_variable;
             typ = mk_var ();
             default = None;
+            pos = None;
           };
         ]
       in
@@ -1083,6 +1093,7 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
                  as_variable = Some "query";
                  default = None;
                  typ = mk_var ~pos ();
+                 pos = None;
                };
              ];
            body = mapper;

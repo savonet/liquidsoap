@@ -526,12 +526,13 @@ let rec fresh ~handler { t; term; methods; flags } =
               name;
               arguments =
                 List.map
-                  (fun { label; as_variable; default; typ } ->
+                  (fun { label; as_variable; default; typ; pos } ->
                     {
                       label;
                       as_variable;
                       default = Option.map (fresh ~handler) default;
                       typ = Type.Fresh.make handler typ;
+                      pos;
                     })
                   arguments;
               body = fresh ~handler body;

@@ -111,6 +111,7 @@ and parsed_func_argument = {
   as_variable : string option;
   default : t option;
   typ : type_annotation option;
+  pos : pos; [@hash.ignore]
   annotations : term_annotation list; [@hash.ignore]
 }
 

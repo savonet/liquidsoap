@@ -145,12 +145,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
     let proto_t, env =
       List.fold_left
         (fun (p, env) -> function
-          | { label; as_variable; typ; default = None } ->
+          | { label; as_variable; typ; default = None; pos } ->
               update_level level typ;
               ( (false, label, typ) :: p,
                 env#add ~pos (Option.value ~default:label as_variable) ([], typ)
               )
-          | { label; as_variable; typ; default = Some v } ->
+          | { label; as_variable; typ; default = Some v; pos } ->
               update_level level typ;
               base_check v;
               v.t <: typ;
