@@ -186,17 +186,17 @@ let callback { name; params; descr; arg_t; register } =
     scheme =
       ( [],
         fun_t
-          ([
-             (true, "synchronous", Lang.(nullable_t bool_t));
-             ( true,
-               "on_error",
-               Lang.nullable_t
-                 (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t) );
-             (false, "", fun_t arg_t unit_t);
-           ]
-          @ List.map
-              (fun { name; typ; default } -> (default <> None, name, typ))
-              params)
+          (List.map
+             (fun { name; typ; default } -> (default <> None, name, typ))
+             params
+          @ [
+              (true, "synchronous", Lang.(nullable_t bool_t));
+              ( true,
+                "on_error",
+                Lang.nullable_t
+                  (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t) );
+              (false, "", fun_t arg_t unit_t);
+            ])
           unit_t );
     descr = Printf.sprintf "Call a given handler %s." descr;
     value =
