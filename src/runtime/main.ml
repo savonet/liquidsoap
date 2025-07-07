@@ -23,6 +23,7 @@
 module Runtime = Liquidsoap_lang.Runtime
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
+module Lang_string = Liquidsoap_lang.Lang_string
 module Queue = Queues.Queue
 
 let usage =
@@ -128,7 +129,8 @@ let eval () =
            | `Stdin -> "%include \"-\""
            | `Expr_or_file expr when not (Sys.file_exists expr) ->
                Printf.sprintf "%s" expr
-           | `Expr_or_file f -> Printf.sprintf "%%include %S" f)
+           | `Expr_or_file f ->
+               Printf.sprintf "%%include %s" (Lang_string.quote_string f))
          scripts)
   in
   let t = Sys.time () in
