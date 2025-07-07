@@ -186,25 +186,19 @@ let callback { name; params; descr; arg_t; register } =
     scheme =
       ( [],
         fun_t
-          ([
-             (true, "synchronous", Lang.(nullable_t bool_t));
-             ( true,
-               "on_error",
-               Lang.nullable_t
-                 (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t) );
-             (false, "", fun_t arg_t unit_t);
-           ]
-          @ List.map
-              (fun { name; typ; default } -> (default <> None, name, typ))
-              params)
+          (List.map
+             (fun { name; typ; default } -> (default <> None, name, typ))
+             params
+          @ [
+              (true, "synchronous", Lang.(nullable_t bool_t));
+              ( true,
+                "on_error",
+                Lang.nullable_t
+                  (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t) );
+              (false, "", fun_t arg_t unit_t);
+            ])
           unit_t );
-    descr =
-      Printf.sprintf
-        "Call a given handler %s. If `synchronous` is `true`, the function is \
-         executed immediately. Otherwise, it is sent to the slow task queue. \
-         Default is set via `settings.source.synchronous_callbacks`. \
-         `on_error` can be used to catch errors raised during the execution."
-        descr;
+    descr = Printf.sprintf "Call a given handler %s." descr;
     value =
       (fun s ->
         val_fun
@@ -881,7 +875,9 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       (List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth)
   in
   let category = `Source category in
-  add_builtin ~category ~descr ~flags ?base name arguments return_t f
+  add_builtin ~category ~descr ~flags
+    ~callbacks:(List.map (fun { name } -> name) source_callbacks)
+    ?base name arguments return_t f
 
 let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : ('a -> value) meth list)) ?base name arguments ~return_t f =
