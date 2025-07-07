@@ -472,7 +472,7 @@ module Value = struct
                         | Some s -> ": " ^ s
                     in
                     Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
-                  (List.sort compare d.methods);
+                  (List.sort compare d.callbacks);
                 print "\n");
               if List.mem `Experimental d.flags then
                 print "This function is experimental.\n\n"))
