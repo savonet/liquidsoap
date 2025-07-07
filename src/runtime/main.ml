@@ -283,6 +283,11 @@ let options =
          "Execute script code in strict mode, issuing fatal errors instead of \
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
+       ( ["--raw-errors"],
+         Arg.Set Runtime.raw_errors,
+         "In normal executions, exceptions raised during the script are \
+          translated into user-friendly errors. Use this option to let the \
+          original error surface. This is useful when debugging." );
      ]
     @ Dtools.Init.args @ Extra_args.args ()
     @ [

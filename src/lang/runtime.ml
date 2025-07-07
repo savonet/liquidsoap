@@ -34,6 +34,7 @@ let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
 let strict = ref false
+let raw_errors = ref false
 
 let error_header ~formatter idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
@@ -70,6 +71,7 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
     Format.fprintf formatter "%s\n@]@." error
   in
   function
+  | exn when !raw_errors -> Printexc.raise_with_backtrace exn bt
   (* Warnings *)
   | Term.Ignored tm when Type.is_fun tm.Term.t ->
       flush_all ();
