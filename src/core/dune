@@ -50,6 +50,7 @@
   add
   amplify
   annotate
+  annotate_parser
   audio_converter
   audio_gen
   available

@@ -21,37 +21,6 @@ def server.rms(~id=null, s) =
   s
 end
 
-# Register a server/telnet command to update a source's metadata. Returns a new
-# source, which will receive the updated metadata. The command has the following
-# format: insert key1="val1",key2="val2",...
-# @flag extra
-# @category Source / Track processing
-# @param ~id Force the value of the source ID.
-def server.insert_metadata(s) =
-  def insert(s) =
-    let (meta, _) = string.annotate.parse("#{s}:")
-    if
-      meta != []
-    then
-      s.insert_metadata(meta)
-      "Done"
-    else
-      "Syntax error or no metadata given. Use key1=\"val1\",key2=\"val2\",.."
-    end
-  end
-
-  s.register_command(
-    description=
-      "Insert a metadata chunk.",
-    usage=
-      "insert key1=\"val1\",key2=\"val2\",..",
-    "insert",
-    insert
-  )
-
-  s
-end
-
 # Start an interface for the "telnet" server over http.
 # @category Internet
 # @flag extra
