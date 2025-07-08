@@ -104,7 +104,10 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
   | Term.Ignored tm ->
       flush_all ();
       warning_header ~formatter 3 tm.Term.t.Type.pos;
-      Format.fprintf formatter "This expression should have type unit.@]@.";
+      Format.fprintf formatter
+        "This expression is returning a value that is ignored. Do you need to \
+         use its return value? If not, you can use the `ignore()` \
+         operator.@]@.";
       if !strict then
         Printexc.raise_with_backtrace
           (Warning "This expression should have type unit.") bt
