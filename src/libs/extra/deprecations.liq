@@ -978,9 +978,19 @@ def insert_metadata(~id:_=null, s) =
   source.methods(s)
 end
 
-
 # Deprecated: use `normalize_track_gain`
 # @flag deprecated
 def replaygain(~id=null, s) =
   amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
+end
+
+# Deprecated: all sources now have a `insert_metadata` command
+# by default
+# @flag deprecated
+def server.insert_metadata(s) =
+  log.severe(
+    label="lang.deprecated",
+    "All sources now have a `insert_metadata` command by default!"
+  )
+  s
 end

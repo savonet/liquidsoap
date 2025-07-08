@@ -30,6 +30,9 @@ s = some_source()
 s.insert_metadata([("title","bla")])
 ```
 
+Correspondingly, the `server.insert_metadata` command registration has been deprecated.
+Now, all sources have a `insert_metadata` server command by default!
+
 ### Stream-related callbacks
 
 The following callbacks:
