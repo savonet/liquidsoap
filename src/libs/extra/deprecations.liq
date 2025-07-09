@@ -471,18 +471,9 @@ def gettimeofday() =
 end
 
 # @flag deprecated
-def output.preferred(
-  ~id=null,
-  ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
-  ~start=true,
-  s
-) =
+def output.preferred(~id=null, ~fallible=false, ~start=true, s) =
   deprecated("output.preferred", "output")
-  output(
-    id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s
-  )
+  output(id=id, fallible=fallible, start=start, s)
 end
 
 # Deprecated: use `output` instead.
@@ -494,11 +485,9 @@ end
 
 # Deprecated: use `input` instead.
 # @flag deprecated
-def in(~id=null, ~start=true, ~on_start={()}, ~on_stop={()}, ~fallible=false) =
+def in(~id=null, ~start=true, ~fallible=false) =
   deprecated("in", "input")
-  input(
-    id=id, start=start, on_start=on_start, on_stop=on_stop, fallible=fallible
-  )
+  input(id=id, start=start, fallible=fallible)
 end
 
 # Deprecated: use `source.available` instead.
