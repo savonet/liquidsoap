@@ -171,13 +171,12 @@ let conf_default_synchronous_callback =
 
 type callback_param = { name : string; typ : t; default : value option }
 
-type callback = {
+type 'a callback = {
   name : string;
   params : callback_param list;
   descr : string;
   arg_t : (bool * string * t) list;
-  register :
-    params:(string * value) list -> Source.source -> (env -> unit) -> unit;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
 }
 
 let callback { name; params; descr; arg_t; register } =
@@ -836,7 +835,8 @@ let check_arguments ~env ~return_t arguments =
   (return_t, env)
 
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
-    ?(meth = ([] : ('a -> value) meth list)) ?base name arguments ~return_t f =
+    ?(meth = ([] : ('a -> value) meth list))
+    ?(callbacks = ([] : 'a callback list)) ?base name arguments ~return_t f =
   let compare (x, _, _, _) (y, _, _, _) =
     match (x, y) with
       | "", "" -> 0
@@ -851,6 +851,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       Some "Force the value of the source ID." )
     :: List.stable_sort compare arguments
   in
+  let meth = meth @ List.map callback callbacks in
   let f env =
     let return_t, env = check_arguments ~return_t ~env arguments in
     let src : < Source.source ; .. > = f env in
@@ -875,9 +876,9 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       (List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth)
   in
   let category = `Source category in
-  add_builtin ~category ~descr ~flags
-    ~callbacks:(List.map (fun { name } -> name) source_callbacks)
-    ?base name arguments return_t f
+  let callback_names l = List.map (fun { name } -> name) l in
+  let callbacks = callback_names source_callbacks @ callback_names callbacks in
+  add_builtin ~category ~descr ~flags ~callbacks ?base name arguments return_t f
 
 let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : ('a -> value) meth list)) ?base name arguments ~return_t f =

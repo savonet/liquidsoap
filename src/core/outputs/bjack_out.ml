@@ -107,7 +107,7 @@ let _ =
         ("", Lang.source_t frame_t, None, None);
       ])
     ~return_t:frame_t ~category:`Output ~meth:Output.meth
-    ~descr:"Output stream to jack."
+    ~callbacks:Output.callbacks ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in

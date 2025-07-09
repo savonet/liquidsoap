@@ -124,8 +124,9 @@ let _ =
           Some (Lang.string ""),
           Some "Jack server to connect to." );
       ])
-    ~meth:(Start_stop.meth ()) ~return_t ~category:`Input
-    ~descr:"Get stream from jack."
+    ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"source")
+    ~return_t ~category:`Input ~descr:"Get stream from jack."
     (fun p ->
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
