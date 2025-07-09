@@ -9,10 +9,7 @@ class encoded_test =
     inherit
       [unit] Output.encoded
         ~output_kind:"foo" ~name:"encoded_test" ~infallible:false
-          ~register_telnet:false
-        ~on_start:(fun _ -> ())
-        ~on_stop:(fun _ -> ())
-        ~autostart:false ~export_cover_metadata:false
+          ~register_telnet:false ~autostart:false ~export_cover_metadata:false
         (Lang.source (new Noise.noise None))
 
     method self_sync = (`Static, None)

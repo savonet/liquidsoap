@@ -11,9 +11,8 @@ def f() =
     "bla"
   end
 
-  output.file(
+  o = output.file(
     fallible=true,
-    on_stop=test.pass,
     %ffmpeg(
       format = "mp3",
       %audio(codec = "libmp3lame", samplerate = 48000, b = "320k")
@@ -21,6 +20,7 @@ def f() =
     filename,
     once(sine(duration=1., 480.))
   )
+  o.on_stop(test.pass)
 end
 
 test.check(f)

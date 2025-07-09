@@ -1,9 +1,8 @@
-class dummy ~clock ~autostart ~on_start source =
+class dummy ~clock ~autostart source =
   object (self)
     inherit
       Output.dummy
-        ~clock ~autostart ~infallible:false ~register_telnet:false ~on_start
-        ~on_stop:(fun () -> ())
+        ~clock ~autostart ~infallible:false ~register_telnet:false
         (Lang.source (source :> Source.source))
 
     method test_wake_up = self#wake_up
@@ -25,11 +24,11 @@ class test_source =
 let () =
   Frame_settings.lazy_config_eval := true;
   let started = ref false in
-  let on_start () = started := true in
   let test_source = new test_source in
   let clock = Clock.create ~sync:`Passive () in
   Clock.start ~force:true clock;
-  let o = new dummy ~clock ~on_start ~autostart:true test_source in
+  let o = new dummy ~clock ~autostart:true test_source in
+  o#on_start (fun () -> started := true);
   o#content_type_computation_allowed;
   assert (not o#can_generate_frame);
   o#test_wake_up;
