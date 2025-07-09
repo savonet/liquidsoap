@@ -3,4 +3,5 @@ enable_autocue_metadata()
 
 audio = once(single("../media/@shine[channels=2].mp3"))
 
-output.dummy(fallible=true, on_start=test.pass, audio)
+o = output.dummy(fallible=true, audio)
+o.on_start(test.pass)

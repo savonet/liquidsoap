@@ -13,5 +13,8 @@ end
 
 s = sequence([a, b])
 s = cross(fn, s)
+
 clock.assign_new(sync='none', [s])
-output.file(fallible=true, on_stop=test.pass, %mp3(mono), tmp, s)
+
+o = output.file(fallible=true, %mp3(mono), tmp, s)
+o.on_stop(test.pass)

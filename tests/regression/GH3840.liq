@@ -33,4 +33,5 @@ def on_stop() =
   test.pass()
 end
 
-output.file(fallible=true, on_stop=on_stop, enc, out_file, stream)
+o = output.file(fallible=true, enc, out_file, stream)
+o.on_stop(on_stop)

@@ -4,14 +4,14 @@ on_cleanup({file.rmdir(tmp_dir)})
 def f() =
   enc = %ffmpeg(format = "mpegts", %audio(codec = "aac"))
   streams = [("enc", enc)]
-  output.file.hls(
+  o = output.file.hls(
     fallible=true,
-    on_stop=test.pass,
     persist_at="./config",
     path.concat(tmp_dir, "hls"),
     streams,
     once(sine(duration=1.))
   )
+  o.on_stop(test.pass)
 end
 
 test.check(f)

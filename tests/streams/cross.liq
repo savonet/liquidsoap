@@ -47,4 +47,5 @@ def on_stop() =
   if seen_a() and seen_b() then test.pass() else test.fail() end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(on_stop)

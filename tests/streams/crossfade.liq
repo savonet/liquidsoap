@@ -31,4 +31,5 @@ def on_stop() =
   if dup_a() == 1 and dup_b() == 1 then test.pass() else () end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(on_stop)

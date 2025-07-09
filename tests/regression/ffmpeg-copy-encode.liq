@@ -19,13 +19,13 @@ def f() =
     test.pass()
   end
 
-  output.file(
+  o = output.file(
     fallible=true,
-    on_stop=on_stop,
     %ffmpeg(%audio.copy, %audio_2(channels = 1, codec = "aac"), %video.copy),
     "ffmpeg-copy-encode.mkv",
     s
   )
+  o.on_stop(on_stop)
 end
 
 test.check(f)

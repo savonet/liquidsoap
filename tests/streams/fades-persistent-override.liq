@@ -68,4 +68,5 @@ def on_stop() =
   if !success then test.pass() else test.fail() end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, fade_out)
+o = output.dummy(fallible=true, fade_out)
+o.on_stop(on_stop)
