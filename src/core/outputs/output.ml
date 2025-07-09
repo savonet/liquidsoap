@@ -209,7 +209,7 @@ let _ =
     (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:`Output
     ~descr:"Dummy output: computes the stream, without actually using it." ~meth
-    ~return_t
+    ~callbacks ~return_t
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
