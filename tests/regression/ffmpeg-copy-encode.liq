@@ -25,7 +25,7 @@ def f() =
     "ffmpeg-copy-encode.mkv",
     s
   )
-  o.on_stop(on_stop)
+  o.on_stop(synchronous=true, on_stop)
 end
 
 test.check(f)

@@ -52,7 +52,7 @@ def f() =
     ),
     s
   )
-  o.on_start(on_start)
+  o.on_start(synchronous=true, on_start)
 end
 
 test.check(f)

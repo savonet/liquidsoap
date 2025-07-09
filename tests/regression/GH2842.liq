@@ -20,7 +20,7 @@ def f() =
     filename,
     once(sine(duration=1., 480.))
   )
-  o.on_stop(test.pass)
+  o.on_stop(synchronous=true, test.pass)
 end
 
 test.check(f)

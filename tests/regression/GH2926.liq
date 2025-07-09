@@ -11,7 +11,7 @@ def f() =
     streams,
     once(sine(duration=1.))
   )
-  o.on_stop(test.pass)
+  o.on_stop(synchronous=true, test.pass)
 end
 
 test.check(f)
