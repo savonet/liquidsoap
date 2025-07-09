@@ -51,8 +51,7 @@ module Queue = Queues.Queue
     last ten metadata and setups standard Server commands, including start/stop.
 *)
 class virtual output ~output_kind ?clock ?(name = "") ~infallible
-  ~register_telnet ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
-  val_source autostart =
+  ~register_telnet val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
     initializer
@@ -63,7 +62,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
 
     initializer Typing.(source#frame_type <: self#frame_type)
     inherit active_operator ?clock ~name:output_kind [source]
-    inherit Start_stop.base ~on_start ~on_stop as start_stop
+    inherit Start_stop.base as start_stop
     method virtual private start : unit
     method virtual private stop : unit
     method virtual private send_frame : Frame.t -> unit
@@ -189,14 +188,13 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           self#abort_track))
   end
 
-class dummy ?clock ~infallible ~on_start ~on_stop ~autostart ~register_telnet
-  source =
+class dummy ?clock ~infallible ~autostart ~register_telnet source =
   let s = Lang.to_source source in
   object
     inherit
       output
         source autostart ?clock ~name:"dummy" ~output_kind:"output.dummy"
-          ~infallible ~on_start ~on_stop ~register_telnet
+          ~infallible ~register_telnet
 
     method! private reset = ()
     method private start = ()
@@ -215,24 +213,17 @@ let _ =
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let on_start = List.assoc "on_start" p in
-      let on_stop = List.assoc "on_stop" p in
-      let on_start () = ignore (Lang.apply on_start []) in
-      let on_stop () = ignore (Lang.apply on_stop []) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-      new dummy
-        ~on_start ~on_stop ~infallible ~autostart ~register_telnet
-        (List.assoc "" p))
+      new dummy ~infallible ~autostart ~register_telnet (List.assoc "" p))
 
 (** More concrete abstract-class, which takes care of the #send_frame method for
     outputs based on encoders. *)
-class virtual ['a] encoded ~output_kind ?clock ~name ~infallible ~on_start
-  ~on_stop ~register_telnet ~autostart ~export_cover_metadata source =
+class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
+  ~register_telnet ~autostart ~export_cover_metadata source =
   object (self)
     inherit
       output
-        ~infallible ~on_start ~on_stop ~output_kind ?clock ~name
-          ~register_telnet source autostart
+        ~infallible ~output_kind ?clock ~name ~register_telnet source autostart
 
     method virtual private encode_metadata : Frame.Metadata.Export.t -> unit
     method virtual private encode : Frame.t -> 'a

@@ -55,7 +55,7 @@ class virtual base ~self_sync ~client ~device =
 
 let log = Log.make ["pulseaudio"]
 
-class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
+class output ~infallible ~register_telnet ~start p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_valued_option Lang.to_string (List.assoc "device" p) in
   let device =
@@ -80,8 +80,8 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
 
     inherit
       Output.output
-        ~infallible ~register_telnet ~on_stop ~on_start ~name
-          ~output_kind:"output.pulseaudio" val_source start
+        ~infallible ~register_telnet ~name ~output_kind:"output.pulseaudio"
+          val_source start
 
     val mutable last_try = 0.
 
@@ -160,20 +160,11 @@ class input p =
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let start = Lang.to_bool (List.assoc "start" p) in
   let fallible = Lang.to_bool (List.assoc "fallible" p) in
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply f [])
-  in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
-        ~name:"input.pulseaudio" ~on_start ~on_stop ~autostart:start ~fallible
-          () as active_source
+        ~name:"input.pulseaudio" ~autostart:start ~fallible () as active_source
 
     inherit base ~self_sync ~client ~device
     method private start = self#open_device
@@ -288,16 +279,7 @@ let _ =
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      (new output ~infallible ~register_telnet ~on_start ~on_stop ~start p
-        :> Output.output))
+      (new output ~infallible ~register_telnet ~start p :> Output.output))
 
 let _ =
   let return_t =

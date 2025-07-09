@@ -21,14 +21,13 @@
 
 open Mm
 
-class output ~infallible ~register_telnet ~autostart ~on_start ~on_stop
-  source_val =
+class output ~infallible ~register_telnet ~autostart source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit
       Output.output
         ~name:"graphics" ~output_kind:"output.graphics" ~infallible
-          ~register_telnet ~on_start ~on_stop source_val autostart
+          ~register_telnet source_val autostart
 
     val mutable sleep = false
     method stop = sleep <- true
@@ -72,15 +71,6 @@ let _ =
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let source = List.assoc "" p in
-      (new output
-         ~infallible ~register_telnet ~autostart ~on_start ~on_stop source
+      (new output ~infallible ~register_telnet ~autostart source
         :> Output.output))

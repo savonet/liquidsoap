@@ -33,8 +33,6 @@ class virtual output :
   ?name:string ->
   infallible:bool ->
   register_telnet:bool ->
-  on_start:(unit -> unit) ->
-  on_stop:(unit -> unit) ->
   Lang.value ->
   bool ->
 object
@@ -67,8 +65,6 @@ class virtual ['a] encoded :
   ?clock:Clock.t ->
   name:string ->
   infallible:bool ->
-  on_start:(unit -> unit) ->
-  on_stop:(unit -> unit) ->
   register_telnet:bool ->
   autostart:bool ->
   export_cover_metadata:bool ->
@@ -87,8 +83,6 @@ end
 class dummy :
   ?clock:Clock.t ->
   infallible:bool ->
-  on_start:(unit -> unit) ->
-  on_stop:(unit -> unit) ->
   autostart:bool ->
   register_telnet:bool ->
   Lang.value ->

@@ -40,15 +40,14 @@ let force f fd x =
   let x' = f fd x in
   if x <> x' then failwith "cannot obtain desired OSS settings"
 
-class output ~self_sync ~on_start ~on_stop ~infallible ~register_telnet ~start
-  dev val_source =
+class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~register_telnet ~on_stop ~on_start ~name
-          ~output_kind:"output.oss" val_source start
+        ~infallible ~register_telnet ~name ~output_kind:"output.oss" val_source
+          start
 
     val mutable fd = None
 
@@ -84,13 +83,13 @@ class output ~self_sync ~on_start ~on_stop ~infallible ~register_telnet ~start
       assert (w = r)
   end
 
-class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
+class input ~self_sync ~start ~fallible dev =
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
         ~name:(Printf.sprintf "oss_in(%s)" dev)
-        ~on_start ~on_stop ~fallible ~autostart:start () as active_source
+        ~fallible ~autostart:start () as active_source
 
     val mutable fd = None
 
@@ -158,20 +157,11 @@ let _ =
          let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
          let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
          let start = Lang.to_bool (List.assoc "start" p) in
-         let on_start =
-           let f = List.assoc "on_start" p in
-           fun () -> ignore (Lang.apply f [])
-         in
-         let on_stop =
-           let f = List.assoc "on_stop" p in
-           fun () -> ignore (Lang.apply f [])
-         in
          let self_sync = e Lang.to_bool "self_sync" in
          let device = e Lang.to_string "device" in
          let source = List.assoc "" p in
          (new output
-            ~start ~on_start ~on_stop ~infallible ~register_telnet ~self_sync
-            device source
+            ~start ~infallible ~register_telnet ~self_sync device source
            :> Output.output)));
 
   let return_t =
@@ -199,12 +189,4 @@ let _ =
       let device = e Lang.to_string "device" in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      new input ~start ~on_start ~on_stop ~fallible ~self_sync device)
+      new input ~start ~fallible ~self_sync device)

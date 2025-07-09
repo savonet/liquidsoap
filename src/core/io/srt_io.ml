@@ -829,15 +829,14 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
   end
 
 class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
-  ~payload_size ~dump ~on_start ~on_stop ~autostart format =
+  ~payload_size ~dump ~autostart format =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit input_networking_agent
     inherit base ()
 
     inherit
-      Start_stop.active_source
-        ~name:"input.srt" ~on_start ~on_stop ~autostart ~fallible:true () as super
+      Start_stop.active_source ~name:"input.srt" ~autostart ~fallible:true () as super
 
     val mutable decoder_data = None
     val mutable dump_chan = None
@@ -948,12 +947,12 @@ class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   ~bind_address ~port ~prefer_address ~on_socket ~max ~payload_size ~self_sync
   ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~messageapi ~dump
-  ~on_start ~on_stop ~ipv6only ~autostart format =
+  ~ipv6only ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump ~on_start
-          ~on_stop ~autostart format
+        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump
+          ~autostart format
 
     inherit
       listener
@@ -972,12 +971,12 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~hostname ~port ~prefer_address ~max ~payload_size ~self_sync
   ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
-  ~messageapi ~dump ~on_socket ~on_start ~on_stop ~autostart format =
+  ~messageapi ~dump ~on_socket ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump ~on_start
-          ~on_stop ~autostart format
+        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump
+          ~autostart format
 
     inherit
       caller
@@ -994,6 +993,7 @@ let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~base:Modules.input "srt" ~return_t ~category:`Input
     ~meth:(meth () @ Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"source")
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
     @ Start_stop.active_source_proto ~fallible_opt:`Nope
@@ -1054,14 +1054,6 @@ let _ =
       in
       let max = Lang.to_float (List.assoc "max" p) in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let format = Lang.to_string (List.assoc "content_type" p) in
       match mode with
@@ -1070,8 +1062,7 @@ let _ =
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~port ~prefer_address ~on_socket ~read_timeout
                ~write_timeout ~payload_size ~self_sync ~on_connect
-               ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
-               ~autostart ~ipv6only format
+               ~on_disconnect ~messageapi ~max ~dump ~autostart ~ipv6only format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit
@@ -1083,16 +1074,15 @@ let _ =
                ~polling_delay ~hostname ~port ~prefer_address ~payload_size
                ~self_sync ~on_connect ~read_timeout ~write_timeout
                ~connection_timeout ~on_disconnect ~messageapi ~max ~dump
-               ~on_start ~on_socket ~on_stop ~autostart format
+               ~on_socket ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit
                  ; connect : unit
                  ; disconnect : unit >))
 
-class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~register_telnet ~autostart ~on_disconnect ~encoder_factory source
-  =
+class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
+  ~autostart ~on_disconnect ~encoder_factory source =
   let buffer = Strings.Mutable.empty () in
   let tmp = Bytes.create payload_size in
   object (self)
@@ -1101,7 +1091,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
 
     inherit
       [Strings.t] Output.encoded
-        ~output_kind:"srt" ~on_start ~on_stop ~infallible ~register_telnet
+        ~output_kind:"srt" ~infallible ~register_telnet
           ~export_cover_metadata:false ~autostart ~name:"output.srt" source
 
     val mutable encoder = Atomic.make None
@@ -1199,16 +1189,16 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
   end
 
 class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-  ~register_telnet ~autostart ~on_socket ~on_connect ~on_disconnect
-  ~prefer_address ~port ~hostname ~read_timeout ~write_timeout
-  ~connection_timeout ~encoder_factory source_val =
+  ~polling_delay ~payload_size ~messageapi ~infallible ~register_telnet
+  ~autostart ~on_socket ~on_connect ~on_disconnect ~prefer_address ~port
+  ~hostname ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory
+  source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit
       output_base
-        ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source_val
+        ~payload_size ~messageapi ~infallible ~register_telnet ~autostart
+          ~on_disconnect ~encoder_factory source_val
 
     inherit
       caller
@@ -1232,16 +1222,16 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   end
 
 class output_listener ~enforced_encryption ~pbkeylen ~passphrase
-  ~listen_callback ~max_clients ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~register_telnet ~autostart ~on_connect ~on_disconnect
-  ~bind_address ~port ~prefer_address ~on_socket ~read_timeout ~write_timeout
-  ~encoder_factory ~ipv6only source_val =
+  ~listen_callback ~max_clients ~payload_size ~messageapi ~infallible
+  ~register_telnet ~autostart ~on_connect ~on_disconnect ~bind_address ~port
+  ~prefer_address ~on_socket ~read_timeout ~write_timeout ~encoder_factory
+  ~ipv6only source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit
       output_base
-        ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source_val
+        ~payload_size ~messageapi ~infallible ~register_telnet ~autostart
+          ~on_disconnect ~encoder_factory source_val
 
     inherit
       listener
@@ -1273,9 +1263,20 @@ let _ =
         { m with Lang.value = (fun s -> m.Lang.value (s :> Output.output)) })
       Output.meth
   in
+  let callbacks =
+    List.map
+      (fun m ->
+        {
+          m with
+          Lang.register =
+            (fun ~params s fn ->
+              m.Lang.register ~params (s :> Output.output) fn);
+        })
+      Output.callbacks
+  in
   Lang.add_operator ~base:Modules.output "srt" ~return_t ~category:`Output
     ~meth:(meth () @ output_meth)
-    ~descr:"Send a SRT stream to a distant agent."
+    ~callbacks ~descr:"Send a SRT stream to a distant agent."
     (Output.proto
     @ common_options ~mode:`Caller
     @ [
@@ -1318,14 +1319,6 @@ let _ =
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let format_val = Lang.assoc "" 1 p in
       let format = Lang.to_format format_val in
       let encoder_factory =
@@ -1340,9 +1333,9 @@ let _ =
             (new output_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~prefer_address ~payload_size
-               ~autostart ~on_start ~on_stop ~read_timeout ~write_timeout
-               ~connection_timeout ~infallible ~register_telnet ~messageapi
-               ~encoder_factory ~on_socket ~on_connect ~on_disconnect source
+               ~autostart ~read_timeout ~write_timeout ~connection_timeout
+               ~infallible ~register_telnet ~messageapi ~encoder_factory
+               ~on_socket ~on_connect ~on_disconnect source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit
@@ -1352,9 +1345,9 @@ let _ =
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~bind_address ~port
                ~prefer_address ~on_socket ~read_timeout ~write_timeout
-               ~payload_size ~autostart ~on_start ~on_stop ~infallible
-               ~register_telnet ~messageapi ~encoder_factory ~on_connect
-               ~on_disconnect ~listen_callback ~max_clients ~ipv6only source
+               ~payload_size ~autostart ~infallible ~register_telnet ~messageapi
+               ~encoder_factory ~on_connect ~on_disconnect ~listen_callback
+               ~max_clients ~ipv6only source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit

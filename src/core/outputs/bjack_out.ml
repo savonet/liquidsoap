@@ -24,15 +24,14 @@
 
 let bytes_per_sample = 2
 
-class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start ~server
-  source =
+class output ~self_sync ~infallible ~register_telnet ~server source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Output.output
-        ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.jack"
+        ~infallible ~register_telnet ~name:"output.jack"
           ~output_kind:"output.jack" source true
 
     val mutable device = None
@@ -114,15 +113,5 @@ let _ =
       let server = Lang.to_string (List.assoc "server" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      (new output
-         ~self_sync ~infallible ~register_telnet ~on_start ~on_stop ~server
-         source
+      (new output ~self_sync ~infallible ~register_telnet ~server source
         :> Output.output))
