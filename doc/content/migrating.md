@@ -35,23 +35,14 @@ Now, all sources have a `insert_metadata` server command by default!
 
 ### Stream-related callbacks
 
-The following callbacks:
+Stream-related callbacks is the biggest change with this release. They are now fully documented, with their own dedicated section
+in the doc and have been updated to be executed in an asynchronous task by default.
 
-- `on_metadata`
-- `on_track`
-- `on_frame`
-- `on_offset`
-- `on_end`
-- `on_wake_up`
-- `on_shutdown`
-
-have been updated to be executed in an asynchronous task by default.
-
-This means that the function to be executed is placed in a `thread.run` task
+This means that the function to be executed by the callback is placed in a `thread.run` task
 by default. This is done to make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
 a callback function takes too long, the streaming cycle gets late, causing issues with the runtime system typically resulting in catchup errors.
 
-They have also been moved to source methods in order to unify the codebase, options and more.
+Callbacks have also been moved to source methods in order to unify the codebase, options and more.
 
 Typically, instead of doing:
 
@@ -107,6 +98,22 @@ Resulting in `f1` being executed before `f2` in case of new track with metadata,
 ```liquidsoap
 s.on_metadata(synchronous=true, f1)
 s.on_track(synchronous=true, f2)
+```
+
+In some cases, callbacks that were originally passed as argument when creating a source or output are now registered after
+the source or output has been created.
+
+Typically, where you would do:
+
+```liquidsoap
+output.file(on_stop=shutdown, ...)
+```
+
+You should now do;
+
+```liquidsoap
+o = output.file(...)
+o.on_stop(shutdown)
 ```
 
 ### Error methods
