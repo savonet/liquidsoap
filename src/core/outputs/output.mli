@@ -48,6 +48,8 @@ object
   method transition_to : Start_stop.state -> unit
   method seek_source : Source.source
   method output : unit
+  method on_start : (unit -> unit) -> unit
+  method on_stop : (unit -> unit) -> unit
   method private video_dimensions : int * int
   method private reset : unit
   method virtual private send_frame : Frame.t -> unit
@@ -57,6 +59,8 @@ end
 
 (** Default methods on output values. *)
 val meth : (output -> Lang.value) Lang.meth list
+
+val callbacks : output Lang_source.callback list
 
 class virtual ['a] encoded :
   output_kind:string ->

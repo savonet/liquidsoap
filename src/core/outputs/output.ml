@@ -42,6 +42,7 @@ let proto =
     ]
 
 let meth = Start_stop.meth ()
+let callbacks = Start_stop.callbacks ~label:"output"
 
 module Queue = Queues.Queue
 

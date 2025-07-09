@@ -215,7 +215,7 @@ class url_output p =
 let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "url" (url_proto return_t) ~return_t
-    ~category:`Output ~meth:Output.meth
+    ~category:`Output ~meth:Output.meth ~callbacks:Output.callbacks
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \

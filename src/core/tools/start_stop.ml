@@ -38,6 +38,10 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
     method state = state
     method virtual private start : unit
     method virtual private stop : unit
+    val mutable on_start = [on_start]
+    val mutable on_stop = [on_stop]
+    method on_start fn = on_start <- fn :: on_start
+    method on_stop fn = on_stop <- fn :: on_stop
 
     (* Default [reset] method. Can be overridden if necessary. *)
     method reset =
@@ -51,18 +55,18 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
       match (s, self#state) with
         | `Started, `Stopped | `Started, `Idle ->
             self#start;
-            on_start ();
+            List.iter (fun fn -> fn ()) on_start;
             state <- `Started
         | `Started, `Started -> ()
         | `Stopped, `Started ->
             self#stop;
-            on_stop ();
+            List.iter (fun fn -> fn ()) on_stop;
             state <- `Stopped
         | `Stopped, `Idle -> state <- `Stopped
         | `Stopped, `Stopped -> ()
         | `Idle, `Started ->
             self#stop;
-            on_stop ();
+            List.iter (fun fn -> fn ()) on_stop;
             state <- `Idle
         | `Idle, `Stopped | `Idle, `Idle -> ()
   end
@@ -113,6 +117,25 @@ let active_source_proto ~fallible_opt =
               "Allow the source to fail. If set to `false`, `start` must be \
                `true` and `stop` method raises an error." );
         ]
+
+let callbacks ~label =
+  Lang_source.
+    [
+      {
+        name = "on_start";
+        params = [];
+        descr = "when " ^ label ^ " starts";
+        arg_t = [];
+        register = (fun ~params:_ s f -> s#on_start (fun () -> f []));
+      };
+      {
+        name = "on_stop";
+        params = [];
+        descr = "when " ^ label ^ " stops";
+        arg_t = [];
+        register = (fun ~params:_ s f -> s#on_stop (fun () -> f []));
+      };
+    ]
 
 let meth :
     unit ->

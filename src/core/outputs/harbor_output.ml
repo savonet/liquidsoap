@@ -641,5 +641,5 @@ let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~category:`Output
     ~descr:"Encode and output the stream using the harbor server."
-    ~meth:Output.meth ~base:Modules.output "harbor" (proto return_t) ~return_t
-    (fun p -> (new output p :> Output.output))
+    ~meth:Output.meth ~callbacks:Output.callbacks ~base:Modules.output "harbor"
+    (proto return_t) ~return_t (fun p -> (new output p :> Output.output))

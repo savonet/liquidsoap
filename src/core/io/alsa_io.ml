@@ -318,6 +318,7 @@ let _ =
         ("", Lang.source_t frame_t, None, None);
       ])
     ~return_t:frame_t ~category:`Output ~meth:Output.meth
+    ~callbacks:Output.callbacks
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -370,8 +371,9 @@ let _ =
           Some (Lang.string "default"),
           Some "Alsa device to use" );
       ])
-    ~meth:(Start_stop.meth ()) ~return_t ~category:`Input
-    ~descr:"Stream from an ALSA input device."
+    ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"source")
+    ~return_t ~category:`Input ~descr:"Stream from an ALSA input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let self_sync = e Lang.to_bool "self_sync" in

@@ -187,7 +187,8 @@ let _ =
           Some "Encoding format. Only the `%ndi` encoder is allowed here!" );
         ("", Lang.source_t return_t, None, None);
       ])
-    ~category:`Output ~meth:Output.meth ~descr:"Output stream to NDI" ~return_t
+    ~category:`Output ~meth:Output.meth ~callbacks:Output.callbacks
+    ~descr:"Output stream to NDI" ~return_t
     (fun p ->
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let lib = Lang.to_string (List.assoc "library_file" p) in
