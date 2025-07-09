@@ -315,7 +315,7 @@ def f() =
 
   # Register output on the same port
   o = output.harbor(port=4455, mount="bla.wav", %wav, sine())
-  o.on_start(test.pass)
+  o.on_start(synchronous=true, test.pass)
 end
 
 test.check(f)

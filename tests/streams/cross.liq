@@ -48,4 +48,4 @@ def on_stop() =
 end
 
 o = output.dummy(fallible=true, s)
-o.on_stop(on_stop)
+o.on_stop(synchronous=true, on_stop)

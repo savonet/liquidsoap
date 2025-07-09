@@ -17,4 +17,4 @@ s = cross(fn, s)
 clock.assign_new(sync='none', [s])
 
 o = output.file(fallible=true, %mp3(mono), tmp, s)
-o.on_stop(test.pass)
+o.on_stop(synchronous=true, test.pass)

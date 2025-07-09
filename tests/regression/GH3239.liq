@@ -16,4 +16,4 @@ s = fallback(transitions=[transition, transition], [a, b])
 clock.assign_new(sync='none', [s])
 
 o = output.file(fallible=true, %mp3(mono), tmp, s)
-o.on_stop(test.pass)
+o.on_stop(synchronous=true, test.pass)
