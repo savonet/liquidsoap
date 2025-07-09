@@ -12,12 +12,11 @@ end
 s = blank()
 clock.assign_new(sync="none", [s])
 
-o = output.dummy(id="no_autostart", start=false, s
+o = output.dummy(id="no_autostart", start=false, s)
 o.on_start(synchronous=true, on_unwanted_autostart)
 
 o = output.dummy(id="autostart", start=true, s)
 o.on_start(synchronous=true, on_wanted_autostart)
-
 
 def on_done() =
   if
