@@ -311,7 +311,10 @@ let compare a b =
     | Null _, Null _ -> 0
     | Null _, _ -> -1
     | _, Null _ -> 1
-    | _ -> assert false
+    | v, v' ->
+        failwith
+          (Printf.sprintf "Cannot compare %s and %s" (to_string v)
+             (to_string v'))
   and compare a b =
     (* For records, we compare the list ["label", field; ..] of common fields. *)
     if is_unit a && is_unit b then (
