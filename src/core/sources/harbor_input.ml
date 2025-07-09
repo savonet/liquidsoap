@@ -153,12 +153,15 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
               if Atomic.get should_shutdown then failwith "shutdown called";
               decoder.Decoder.decode buffer
             done)
-      with e ->
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
         (* Feeding has stopped: adding a break here. *)
         Generator.add_track_mark self#buffer;
-        self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
+        Utils.log_exception ~log:self#log
+          ~bt:(Printexc.raw_backtrace_to_string bt)
+          (Printf.sprintf "Feeding stopped: %s" (Printexc.to_string exn));
         self#disconnect ~lock:true;
-        if debug then raise e
+        if debug then Printexc.raise_with_backtrace exn bt
 
     val mutable is_registered = false
 

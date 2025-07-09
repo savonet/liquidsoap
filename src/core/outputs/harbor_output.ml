@@ -494,15 +494,19 @@ class output p =
           on_error =
             (fun e ->
               let bt = Printexc.get_backtrace () in
-              let msg =
+              let msg, bt =
                 match e with
-                  | Duppy.Io.Timeout -> Printf.sprintf "Timeout error for %s" ip
-                  | Duppy.Io.Io_error -> Printf.sprintf "I/O error for %s" ip
-                  | Duppy.Io.Unix (c, p, m) ->
-                      Printf.sprintf "Unix error for %s: %s" ip
-                        (Printexc.to_string (Unix.Unix_error (c, p, m)))
-                  | Duppy.Io.Unknown e ->
-                      Printf.sprintf "%s" (Printexc.to_string e)
+                  | Duppy.Io.Timeout ->
+                      (Printf.sprintf "Timeout error for %s" ip, bt)
+                  | Duppy.Io.Io_error ->
+                      (Printf.sprintf "I/O error for %s" ip, bt)
+                  | Duppy.Io.Unix (c, p, m, bt) ->
+                      ( Printf.sprintf "Unix error for %s: %s" ip
+                          (Printexc.to_string (Unix.Unix_error (c, p, m))),
+                        Printexc.raw_backtrace_to_string bt )
+                  | Duppy.Io.Unknown (e, bt) ->
+                      ( Printf.sprintf "%s" (Printexc.to_string e),
+                        Printexc.raw_backtrace_to_string bt )
               in
               Utils.log_exception ~log:self#log ~bt msg;
               self#log#info "Client %s disconnected" ip;

@@ -1029,9 +1029,15 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             | Duppy.Io.Io_error -> log#info "Client %s disconnected" ip
             | Duppy.Io.Timeout ->
                 log#info "Timeout while communicating with client %s." ip
-            | Duppy.Io.Unix (c, p, m) ->
-                log#info "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-            | Duppy.Io.Unknown e -> log#info "%s" (Printexc.to_string e));
+            | Duppy.Io.Unix (c, p, m, bt) ->
+                Utils.log_exception ~log
+                  ~bt:(Printexc.raw_backtrace_to_string bt)
+                  (Printf.sprintf "Unix error: %s"
+                     (Printexc.to_string (Unix.Unix_error (c, p, m))))
+            | Duppy.Io.Unknown (exn, bt) ->
+                Utils.log_exception ~log
+                  ~bt:(Printexc.raw_backtrace_to_string bt)
+                  (Printf.sprintf "Unknown error: %s" (Printexc.to_string exn)));
 
           (* Sending an HTTP response in case of timeout
            * even though ICY connections are not HTTP.. *)
