@@ -81,16 +81,16 @@ module Buffer = struct
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
 
-  class consumer ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
-    ~max_buffer source_val c =
+  class consumer ~id ~autostart ~infallible ~pre_buffer ~max_buffer source_val c
+    =
     let prebuf = Frame.main_of_seconds pre_buffer in
     let maxbuf = Frame.main_of_seconds max_buffer in
     let source = Lang.to_source source_val in
     object
       inherit
         Output.output
-          ~output_kind:id ~infallible ~register_telnet:false ~on_start ~on_stop
-            source_val autostart
+          ~output_kind:id ~infallible ~register_telnet:false source_val
+            autostart
 
       method! reset = ()
       method start = ()
@@ -111,8 +111,7 @@ module Buffer = struct
                   (Generator.length (Lazy.force c.generator) - maxbuf)))
     end
 
-  let create ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
-      ~max_buffer source_val =
+  let create ~id ~autostart ~infallible ~pre_buffer ~max_buffer source_val =
     let control =
       {
         generator =
@@ -126,8 +125,7 @@ module Buffer = struct
     let _ =
       new consumer
         ~id:(Printf.sprintf "%s.consumer" id)
-        ~autostart ~infallible ~on_start ~on_stop source_val ~pre_buffer
-        ~max_buffer control
+        ~autostart ~infallible source_val ~pre_buffer ~max_buffer control
     in
     new producer ~id:(Printf.sprintf "%s.producer" id) control
 end
@@ -171,16 +169,11 @@ let buffer =
       in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let on_start = List.assoc "on_start" p in
-      let on_stop = List.assoc "on_stop" p in
-      let on_start () = ignore (Lang.apply on_start []) in
-      let on_stop () = ignore (Lang.apply on_stop []) in
       let s = List.assoc "" p in
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      Buffer.create ~id ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
-        ~max_buffer s)
+      Buffer.create ~id ~infallible ~autostart ~pre_buffer ~max_buffer s)
 
 module AdaptativeBuffer = struct
   (** Ringbuffers where number of channels is fixed on first write. *)
@@ -362,16 +355,14 @@ module AdaptativeBuffer = struct
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
 
-  class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
-    source_val c =
+  class consumer ~autostart ~infallible ~pre_buffer ~reset source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
     let source = Lang.to_source source_val in
     object (self)
       inherit
         Output.output
           ~output_kind:"buffer" ~register_telnet:false
-            ~name:"buffer.adaptative.consumer" ~infallible ~on_start ~on_stop
-            source_val autostart
+            ~name:"buffer.adaptative.consumer" ~infallible source_val autostart
 
       method! reset = ()
       method start = ()
@@ -399,8 +390,8 @@ module AdaptativeBuffer = struct
               c.buffering <- false))
     end
 
-  let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
-      ~averaging ~limit ~reset ~resample source_val =
+  let create ~autostart ~infallible ~pre_buffer ~max_buffer ~averaging ~limit
+      ~reset ~resample source_val =
     let control =
       {
         lock = Mutex.create ();
@@ -412,9 +403,7 @@ module AdaptativeBuffer = struct
       }
     in
     let _ =
-      new consumer
-        ~autostart ~infallible ~on_start ~on_stop source_val ~pre_buffer ~reset
-        control
+      new consumer ~autostart ~infallible source_val ~pre_buffer ~reset control
     in
     new producer ~pre_buffer ~averaging ~limit ~resample control
 end
@@ -495,10 +484,6 @@ let _ =
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let on_start = List.assoc "on_start" p in
-      let on_stop = List.assoc "on_stop" p in
-      let on_start () = ignore (Lang.apply on_start []) in
-      let on_stop () = ignore (Lang.apply on_stop []) in
       let s = List.assoc "" p in
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
@@ -508,5 +493,5 @@ let _ =
       let reset = Lang.to_bool (List.assoc "reset" p) in
       let resample = List.assoc "resample" p |> Lang.to_bool in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      AdaptativeBuffer.create ~infallible ~autostart ~on_start ~on_stop
-        ~pre_buffer ~max_buffer ~averaging ~limit ~reset ~resample s)
+      AdaptativeBuffer.create ~infallible ~autostart ~pre_buffer ~max_buffer
+        ~averaging ~limit ~reset ~resample s)

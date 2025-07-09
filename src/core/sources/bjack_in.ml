@@ -32,15 +32,14 @@ end)
 
 let sync_source = SyncSource.make ()
 
-class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~server =
+class jack_in ~self_sync ~fallible ~autostart ~server =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
 
   object (self)
     inherit
-      Start_stop.active_source
-        ~name:"input.jack" ~on_start ~on_stop ~fallible ~autostart () as active_source
+      Start_stop.active_source ~name:"input.jack" ~fallible ~autostart () as active_source
 
     method seek_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
@@ -131,14 +130,6 @@ let _ =
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let server = Lang.to_string (List.assoc "server" p) in
-      (new jack_in ~self_sync ~server ~fallible ~on_start ~on_stop ~autostart
+      (new jack_in ~self_sync ~server ~fallible ~autostart
         :> Start_stop.active_source))

@@ -32,14 +32,14 @@ type state = [ `Started | `Stopped | `Idle ]
 (** Base class for sources with start/stop methods. Class ineheriting it should
     declare their own [start]/[stop] method and users should call [#set_start]
 *)
-class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
+class virtual base =
   object (self)
     val mutable state : state = `Idle
     method state = state
     method virtual private start : unit
     method virtual private stop : unit
-    val mutable on_start = [on_start]
-    val mutable on_stop = [on_stop]
+    val mutable on_start = []
+    val mutable on_stop = []
     method on_start fn = on_start <- fn :: on_start
     method on_stop fn = on_stop <- fn :: on_stop
 
@@ -71,11 +71,10 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
         | `Idle, `Stopped | `Idle, `Idle -> ()
   end
 
-class virtual active_source ~name ~(on_start : unit -> unit)
-  ~(on_stop : unit -> unit) ~fallible ~autostart () =
+class virtual active_source ~name ~fallible ~autostart () =
   object (self)
     inherit Source.active_source ~name ()
-    inherit base ~on_start ~on_stop as base
+    inherit base as base
 
     initializer
       self#on_wake_up (fun () -> if autostart then base#transition_to `Started)
@@ -87,14 +86,6 @@ class virtual active_source ~name ~(on_start : unit -> unit)
 
 let base_proto ~label =
   [
-    ( "on_start",
-      Lang.fun_t [] Lang.unit_t,
-      Some (Lang.val_cst_fun [] Lang.unit),
-      Some ("Callback executed when " ^ label ^ " starts.") );
-    ( "on_stop",
-      Lang.fun_t [] Lang.unit_t,
-      Some (Lang.val_cst_fun [] Lang.unit),
-      Some ("Callback executed when " ^ label ^ " stops.") );
     ( "start",
       Lang.bool_t,
       Some (Lang.bool true),

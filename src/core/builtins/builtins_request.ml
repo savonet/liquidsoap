@@ -362,13 +362,13 @@ let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
             (fun () ->
               let started = ref false in
               let stopped = ref false in
-              let _ =
+              let o =
                 new Output.dummy
                   ~clock ~infallible:false ~register_telnet:false
-                  ~on_start:(fun () -> started := true)
-                  ~on_stop:(fun () -> stopped := true)
                   ~autostart:true (Lang.source s)
               in
+              o#on_start (fun () -> started := true);
+              o#on_stop (fun () -> stopped := true);
               Clock.start ~force:true clock;
               log#info "Start streaming loop (ratio: %.02fx)" ratio;
               let sleep_latency = Time.of_float sleep_latency in

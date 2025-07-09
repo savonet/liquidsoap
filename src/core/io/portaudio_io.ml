@@ -150,14 +150,14 @@ let open_device ~mode ~latency ~channels ~buflen device_id =
         Portaudio.open_stream inparams outparams (float samples_per_second)
           buflen []
 
-class output ~self_sync ~start ~on_start ~on_stop ~infallible ~register_telnet
-  ~device_id ~latency buflen val_source =
+class output ~self_sync ~start ~infallible ~register_telnet ~device_id ~latency
+  buflen val_source =
   object (self)
     inherit base
 
     inherit
       Output.output
-        ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.portaudio"
+        ~infallible ~register_telnet ~name:"output.portaudio"
           ~output_kind:"output.portaudio" val_source start
 
     val mutable stream = None
@@ -198,14 +198,13 @@ class output ~self_sync ~start ~on_start ~on_stop ~infallible ~register_telnet
           Portaudio.write_stream stream buf 0 len)
   end
 
-class input ~self_sync ~start ~on_start ~on_stop ~fallible ~device_id ~latency
-  buflen =
+class input ~self_sync ~start ~fallible ~device_id ~latency buflen =
   object (self)
     inherit base
 
     inherit
       Start_stop.active_source
-        ~name:"input.portaudio" ~on_start ~on_stop ~fallible ~autostart:start () as active_source
+        ~name:"input.portaudio" ~fallible ~autostart:start () as active_source
 
     method private start = self#open_device
     method private stop = self#close_device
@@ -286,19 +285,11 @@ let _ =
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let source = List.assoc "" p in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       (new output
-         ~start ~on_start ~on_stop ~infallible ~register_telnet ~self_sync
-         ~device_id ~latency buflen source
+         ~start ~infallible ~register_telnet ~self_sync ~device_id ~latency
+         buflen source
         :> Output.output))
 
 let _ =
@@ -342,14 +333,4 @@ let _ =
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      new input
-        ~self_sync ~start ~on_start ~on_stop ~fallible ~device_id ~latency
-        buflen)
+      new input ~self_sync ~start ~fallible ~device_id ~latency buflen)

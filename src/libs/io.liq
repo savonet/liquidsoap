@@ -24,21 +24,10 @@ let replaces output = output.pulseaudio
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def replaces output(
-  ~id=null,
-  ~fallible=true,
-  ~on_start={()},
-  ~on_stop={()},
-  ~start=true,
-  s
-) =
-  output(
-    id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s
-  )
+def replaces output(~id=null, ~fallible=true, ~start=true, s) =
+  output(id=id, fallible=fallible, start=start, s)
 end
 
 let output.video = output.dummy
@@ -64,21 +53,10 @@ let output.video = output.graphics
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def output.video(
-  ~id=null,
-  ~fallible=true,
-  ~on_start={()},
-  ~on_stop={()},
-  ~start=true,
-  s
-) =
-  output.video(
-    id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s
-  )
+def output.video(~id=null, ~fallible=true, ~start=true, s) =
+  output.video(id=id, fallible=fallible, start=start, s)
 end
 
 # Output a stream with audio and video using the default operator. The input
@@ -87,48 +65,17 @@ end
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param s Source to play.
-def output.audio_video(
-  ~id=null,
-  ~fallible=true,
-  ~on_start={()},
-  ~on_stop={()},
-  ~start=true,
-  s
-) =
+def output.audio_video(~id=null, ~fallible=true, ~start=true, s) =
   let {audio, video} = source.tracks(s)
-  output(
-    id=id,
-    fallible=fallible,
-    start=start,
-    on_start=on_start,
-    on_stop=on_stop,
-    source({audio=audio})
-  )
+  output(id=id, fallible=fallible, start=start, source({audio=audio}))
 
-  output.video(
-    id=id,
-    fallible=fallible,
-    start=start,
-    on_start=on_start,
-    on_stop=on_stop,
-    source({video=video})
-  )
+  output.video(id=id, fallible=fallible, start=start, source({video=video}))
 end
 
-def replaces input(
-  ~id=null,
-  ~start=true,
-  ~on_start={()},
-  ~on_stop={()},
-  ~fallible=false
-) =
+def replaces input(~id=null, ~start=true, ~fallible=false) =
   ignore(start)
-  ignore(on_start)
-  ignore(on_stop)
   ignore(fallible)
   blank(id=id)
 end
@@ -153,17 +100,7 @@ let replaces input = input.pulseaudio
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-def replaces input(
-  ~id=null,
-  ~start=true,
-  ~on_start={()},
-  ~on_stop={()},
-  ~fallible=false
-) =
-  input(
-    id=id, start=start, on_start=on_start, on_stop=on_stop, fallible=fallible
-  )
+def replaces input(~id=null, ~start=true, ~fallible=false) =
+  input(id=id, start=start, fallible=fallible)
 end

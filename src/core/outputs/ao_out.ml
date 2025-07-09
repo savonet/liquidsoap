@@ -32,15 +32,15 @@ end)
 
 let sync_source = SyncSource.make ()
 
-class output ~self_sync ~driver ~register_telnet ~infallible ~on_start ~on_stop
-  ~options ?channels_matrix source start =
+class output ~self_sync ~driver ~register_telnet ~infallible ~options
+  ?channels_matrix source start =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
   object (self)
     inherit
       Output.output
-        ~register_telnet ~infallible ~on_start ~on_stop ~name:"ao"
-          ~output_kind:"output.ao" source start
+        ~register_telnet ~infallible ~name:"ao" ~output_kind:"output.ao" source
+          start
 
     val mutable device = None
 
@@ -128,16 +128,8 @@ let _ =
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let source = List.assoc "" p in
       (new output
-         ~self_sync ~driver ~infallible ~register_telnet ~on_start ~on_stop
-         ?channels_matrix ~options source start
+         ~self_sync ~driver ~infallible ~register_telnet ?channels_matrix
+         ~options source start
         :> Output.output))

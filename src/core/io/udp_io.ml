@@ -53,14 +53,14 @@ module Tutils = struct
     (kill, wait)
 end
 
-class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
-  ~hostname ~port ~encoder_factory source_val =
+class output ~register_telnet ~infallible ~autostart ~hostname ~port
+  ~encoder_factory source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit
       [Strings.t] Output.encoded
-        ~output_kind:"udp" ~on_start ~on_stop ~register_telnet ~infallible
-          ~autostart ~export_cover_metadata:false
+        ~output_kind:"udp" ~register_telnet ~infallible ~autostart
+          ~export_cover_metadata:false
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         source_val
 
@@ -113,8 +113,7 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
 
     inherit!
       Start_stop.active_source
-        ~name:"input.udp" ~fallible:true ~on_start:ignore ~on_stop:ignore
-          ~autostart:true () as super
+        ~name:"input.udp" ~fallible:true ~autostart:true () as super
 
     val mutable kill_feeding = None
     val mutable wait_feeding = None
@@ -215,14 +214,6 @@ let _ =
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in
       let hostname = Lang.to_string (List.assoc "host" p) in
@@ -236,8 +227,8 @@ let _ =
       in
       let source = Lang.assoc "" 2 p in
       (new output
-         ~on_start ~on_stop ~register_telnet ~infallible ~autostart ~hostname
-         ~port ~encoder_factory:fmt source
+         ~register_telnet ~infallible ~autostart ~hostname ~port
+         ~encoder_factory:fmt source
         :> Source.source))
 
 let _ =
