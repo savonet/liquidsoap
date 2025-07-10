@@ -434,14 +434,6 @@ class output p =
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply f [])
-  in
   let host = s "host" in
   let port = e Lang.to_int "port" in
   let transport = e Lang.to_http_transport "transport" in
@@ -505,7 +497,7 @@ class output p =
     inherit
       [Strings.t] Output.encoded
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
-          ~export_cover_metadata:false ~on_start ~on_stop ~name source_val
+          ~export_cover_metadata:false ~name source_val
 
     (** In this operator, we don't exactly follow the start/stop mechanism of
         Output.encoded because we want to control in a more subtle way the
@@ -694,5 +686,5 @@ let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:Modules.output "icecast" ~category:`Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    ~meth:Output.meth (proto return_t) ~return_t (fun p ->
-      (new output p :> Output.output))
+    ~meth:Output.meth ~callbacks:Output.callbacks (proto return_t) ~return_t
+    (fun p -> (new output p :> Output.output))

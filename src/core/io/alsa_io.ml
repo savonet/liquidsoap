@@ -173,15 +173,15 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
       self#open_device
   end
 
-class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet
-  ~on_stop ~on_start dev val_source =
+class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
+  val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~register_telnet ~on_stop ~on_start ~name
-          ~output_kind:"output.alsa" val_source start
+        ~infallible ~register_telnet ~name ~output_kind:"output.alsa" val_source
+          start
 
     inherit! base ~buffer_size ~self_sync dev [Pcm.Playback]
     val mutable samplerate_converter = None
@@ -244,14 +244,14 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet
         else raise e
   end
 
-class input ~buffer_size ~self_sync ~start ~on_stop ~on_start ~fallible dev =
+class input ~buffer_size ~self_sync ~start ~fallible dev =
   object (self)
     inherit base ~buffer_size ~self_sync dev [Pcm.Capture]
 
     inherit!
       Start_stop.active_source
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
-        ~on_start ~on_stop ~fallible ~autostart:start () as active_source
+        ~fallible ~autostart:start () as active_source
 
     method private start = self#open_device
     method private stop = self#close_device
@@ -318,6 +318,7 @@ let _ =
         ("", Lang.source_t frame_t, None, None);
       ])
     ~return_t:frame_t ~category:`Output ~meth:Output.meth
+    ~callbacks:Output.callbacks
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -334,17 +335,9 @@ let _ =
           | Some v -> v
       in
       let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       (new output
-         ~buffer_size ~self_sync ~infallible ~register_telnet ~start ~on_start
-         ~on_stop device source
+         ~buffer_size ~self_sync ~infallible ~register_telnet ~start device
+         source
         :> Output.output))
 
 let _ =
@@ -370,8 +363,9 @@ let _ =
           Some (Lang.string "default"),
           Some "Alsa device to use" );
       ])
-    ~meth:(Start_stop.meth ()) ~return_t ~category:`Input
-    ~descr:"Stream from an ALSA input device."
+    ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"source")
+    ~return_t ~category:`Input ~descr:"Stream from an ALSA input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let self_sync = e Lang.to_bool "self_sync" in
@@ -385,14 +379,5 @@ let _ =
       in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      (new input
-         ~buffer_size ~self_sync ~on_start ~on_stop ~fallible ~start device
+      (new input ~buffer_size ~self_sync ~fallible ~start device
         :> Start_stop.active_source))

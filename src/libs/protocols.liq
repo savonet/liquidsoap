@@ -1084,9 +1084,8 @@ def synth_protocol(~rlog:_, ~maxtime:_, text) =
       clock.assign_new(sync="passive", [s])
 
       stopped = ref(false)
-      output.file(
-        fallible=true, on_stop={stopped.set(true)}, %wav, file, once(s)
-      )
+      o = output.file(fallible=true, %wav, file, once(s))
+      o.on_stop({stopped.set(true)})
 
       c = clock(s.clock)
       c.start()

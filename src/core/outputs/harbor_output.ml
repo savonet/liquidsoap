@@ -360,14 +360,6 @@ class output p =
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply f [])
-  in
   let url = List.assoc "url" p |> Lang.to_option |> Option.map Lang.to_string in
   let port = e Lang.to_int "port" in
   let transport = e Lang.to_http_transport "transport" in
@@ -420,7 +412,7 @@ class output p =
     inherit
       [Strings.t] Output.encoded
         ~output_kind:"output.harbor" ~infallible ~register_telnet ~autostart
-          ~export_cover_metadata:false ~on_start ~on_stop ~name:mount source_val
+          ~export_cover_metadata:false ~name:mount source_val
 
     val mutable dump = None
     val mutable encoder = None
@@ -641,5 +633,5 @@ let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~category:`Output
     ~descr:"Encode and output the stream using the harbor server."
-    ~meth:Output.meth ~base:Modules.output "harbor" (proto return_t) ~return_t
-    (fun p -> (new output p :> Output.output))
+    ~meth:Output.meth ~callbacks:Output.callbacks ~base:Modules.output "harbor"
+    (proto return_t) ~return_t (fun p -> (new output p :> Output.output))
