@@ -29,7 +29,11 @@ type write_frame = write_payload -> unit
    - We want to opt-out of the generic child_process
      clock animation framework.
    Thus, we manually mark this operator as ready only
-   before we're about to pull from it. *)
+   before we're about to pull from it.
+
+   There is one exception: when we're expeciting the operator
+   to mostly follow real-time. In this case, we set [always_enabled]
+   to [true] and [check_self_sync] to [false] on the producer. *)
 class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   let s = Lang.to_source source in
   let infallible = not s#fallible in
