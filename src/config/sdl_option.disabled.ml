@@ -1,2 +1,2 @@
-let detected = "no (requires tsdl-image & tsdl-ttf)"
+let detected = "no (requires sdl-liquidsoap)"
 let enabled = false
