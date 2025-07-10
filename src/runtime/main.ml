@@ -73,6 +73,8 @@ let root_error () =
 let eval_mode : [ `Parse_only | `Parse_and_type | `Eval | `Eval_toplevel ] ref =
   ref `Eval
 
+let print_json_term = ref false
+
 (* Should we error if stdlib is not found? *)
 let is_relative = Filename.is_relative Sys.argv.(0)
 
@@ -97,7 +99,12 @@ let to_load = Queue.create ()
 let eval_script expr =
   let open Liquidsoap_lang in
   match !eval_mode with
-    | `Parse_only -> ignore (Runtime.parse expr)
+    | `Parse_only ->
+        let tm, _ = Runtime.parse expr in
+        if !print_json_term then
+          Printf.printf "%s\n"
+            (Liquidsoap_lang.Json.to_string ~compact:false
+               (Liquidsoap_tooling.Parsed_json.to_json tm))
     | `Parse_and_type ->
         let parsed_term, term = Runtime.parse expr in
         ignore
@@ -367,6 +374,14 @@ let options =
           Arg.Unit (fun () -> stdlib := `Disabled),
           Printf.sprintf "Do not load stdlib script libraries (i.e., %s/*.liq)."
             (Configure.liq_libs_dir ()) );
+        ( ["--print-json-term"],
+          Arg.Unit
+            (fun () ->
+              run_streams := false;
+              eval_mode := `Parse_only;
+              print_json_term := true),
+          "Parse and output the script as normalized JSON. The JSON format is \
+           used internally to format code." );
         ( ["--stdlib"],
           Arg.String (fun s -> stdlib := `Override s),
           "Override the location of the standard library." );
