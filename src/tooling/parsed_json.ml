@@ -271,7 +271,7 @@ let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> (string * Json.t) list =
                    ( "as_variable",
                      match as_variable with
                        | None -> `Null
-                       | Some v -> `String v );
+                       | Some pat -> json_of_pat pat );
                    ( "typ",
                      match typ with
                        | None -> `Null
