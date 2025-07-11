@@ -523,7 +523,7 @@ arg:
                    `Term {label = $3; as_variable = None; typ =  Some $5; default = $7; annotations = []; pos = $loc($3) }
                  }
   | TILD VAR GETS UNDERSCORE opt {
-                   `Term {label = $2; as_variable = Some { pat_pos = $loc($4); pat_entry = `PVar ["_"] }; typ = None; default = $5;
+                    `Term {label = $2; as_variable = Some { pat_pos = $loc($4); pat_entry = `PVar ["_"] }; typ = None; default = $5;
                            annotations = [`Deprecated (Printf.sprintf "Use `~%s:_`" $2)];
                            pos = $loc($2) }
                  }
