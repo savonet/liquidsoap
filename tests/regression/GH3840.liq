@@ -19,7 +19,7 @@ def on_stop() =
       "ffprobe -v quiet -print_format json -show_streams #{out_file}"
     )
 
-  let json.parse ({streams = [s1, s2]} : {streams: [{codec_name: string}]}) = j
+  let json.parse ({streams} : {streams: [{codec_name: string}]}) = j
   if
     not list.exists(fun (s) -> s.codec_name == "mp3", streams)
   then
