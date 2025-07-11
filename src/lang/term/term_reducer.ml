@@ -412,10 +412,6 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                       mk (mk_term ~body (invoke (Some (mk `Null))))
                   | `Pattern pat ->
                       let mk_term = pattern_reducer pat in
-                      let body = mk (mk_term ~body (mk (`Var name))) in
-                      let mk_term =
-                        pattern_reducer { pat with pat_entry = `PVar [name] }
-                      in
                       mk (mk_term ~body (invoke None)))
               body (List.rev meths)
           in

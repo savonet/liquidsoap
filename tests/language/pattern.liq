@@ -41,29 +41,30 @@ def f() =
   c(z, [3])
 
   # Record
-  record = {foo=123, gni="gno", bla=3.24}
-  let {foo, gni, bla} = record
+  r = {foo=123, gni="gno", bla=3.24}
+  let {foo, gni, bla} = r
   c(foo, 123)
   c(gni, "gno")
   c(bla, 3.24)
 
   # Values with methods
-  record = 123.{foo=123, gni="gno", bla=3.24}
-  let {foo, gni, bla, ...v} = record
+  r = 123.{foo=123, gni="gno", bla=3.24}
+  let {foo, gni, bla, ...v} = r
   c(v, 123)
   c(foo, 123)
   c(gni, "gno")
   c(bla, 3.24)
-  record = 123.{foo=321, gni="gnu", bla=4.12}
-  let {foo, gni, bla, ..._} = record
+  r = 123.{foo=321, gni="gnu", bla=4.12}
+  let {foo, gni, bla, ..._} = r
   c(foo, 321)
   c(gni, "gnu")
   c(bla, 4.12)
 
   # Combined patterns
   # Patterns inside records
-  record' = {foo=tuple, gni=l, r=record}
-  let {foo = (x, y, z, t), gni = [a, b, ...s, d], r = {gni, ...v}} = record'
+  r' = {foo=tuple, gni=l, r=r}
+  old_r = r
+  let {foo, foo = (x, y, z, t), gni = [a, b, ...s, d], r, r = {gni, ...v}} = r'
   c(foo, tuple)
   c(x, 123)
   c(y, "aabbcc")
@@ -73,7 +74,7 @@ def f() =
   c(b, 2)
   c(s, [3, 4, 5, 6, 7, 8])
   c(d, 9)
-  c(r, record)
+  c(r, old_r)
   c(v, 123)
   c(gni, "gnu")
   x = {foo=123, gni="gno", bla=3.24}

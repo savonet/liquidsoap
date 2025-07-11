@@ -339,6 +339,33 @@ def f() =
   x = ({} : {bla?: int})
   test.equal(x?.bla == x?.bla, true)
 
+  # Test destructuring of record
+  x = {foo={gni="aabb"}}
+  foo = 123
+
+  let {foo = {gni}} = x
+  test.equal(foo, 123)
+  test.equal(gni, "aabb")
+
+  gni = 123
+  let {foo = {gni = gno}, foo, foo = gna} = x
+  test.equal(foo, {gni="aabb"})
+  test.equal(gni, 123)
+  test.equal(gno, "aabb")
+  test.equal(gna, {gni="aabb"})
+
+  x = {gni=123, bla=true}
+  let {gni = _, ...rest} = x
+  test.equal(rest, {bla=true})
+
+  x = {gni={foo="aabb"}, bla="blo"}
+  gni = 345
+  let {gni = {foo}, gni = gno, ...rest} = x
+  test.equal(gni, 345)
+  test.equal(foo, "aabb")
+  test.equal(gno, {foo="aabb"})
+  test.equal(rest, {bla="blo"})
+
   test.pass()
 end
 
