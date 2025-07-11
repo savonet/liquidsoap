@@ -27,6 +27,8 @@ Changed:
   and LUFS (#4545)
 - BREAKING: Error methods have been removed by default.
   Use `error.methods` to get them! (#4537)
+- Make sure that `let { foo = gni } = v` assigns a value to
+  `gni` but not to `foo` (#4561)
 
 Fixed:
 
