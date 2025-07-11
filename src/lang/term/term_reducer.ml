@@ -661,6 +661,7 @@ let args_of ~only ~except ~pos ~env name =
     | None -> builtin_args_of ~only ~except ~pos name
 
 let expand_argsof ~pos ~env ~to_term ~throw args =
+  let anonymous_var_id = ref 0 in
   let mk_def, args =
     List.fold_left
       (fun (mk_def, args) -> function
@@ -673,10 +674,12 @@ let expand_argsof ~pos ~env ~to_term ~throw args =
                 | None -> (mk_def, None)
                 | Some { pat_entry = `PVar [v] } -> (mk_def, Some v)
                 | Some pat ->
+                    incr anonymous_var_id;
+                    let v = Printf.sprintf "_ann_%d" !anonymous_var_id in
                     let mk_def def =
-                      mk (pattern_reducer ~body:def ~pat (mk (`Var label)))
+                      mk_def (mk (pattern_reducer ~body:def ~pat (mk (`Var v))))
                     in
-                    (mk_def, None)
+                    (mk_def, Some v)
             in
             ( mk_def,
               {
