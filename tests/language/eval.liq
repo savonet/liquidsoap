@@ -59,7 +59,7 @@ def f() =
   t("20", {x.id() == "bla"})
 
   # Eval with patterns
-  let eval {foo, gni = [x, y]} =
+  let eval {foo, gni, gni = [x, y]} =
     "{foo = 123, gni = [1,2]}"
   t("21", {foo == 123})
   t("22", {gni == [1, 2]})
