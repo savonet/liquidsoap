@@ -162,7 +162,7 @@ def f() =
     test.equal(x, 123)
     test.equal(gni, 3.14)
   end
-  f({foo = 123}, ["aaa", "bbb"], x = { gni = 3.14 })
+  f({foo=123}, ["aaa", "bbb"], x={gni=3.14})
 
   test.pass()
 end
