@@ -2,6 +2,8 @@
 
 New:
 
+- Allow deststructing function arguments using the same patterns as for
+  variable assignment (#4562)
 - BREAKING: `on_metadata`, `on_track`, `on_offset`, `on_end`, `on_wake_up`
   an `on_shutdown` callbacks have been moved to source methods and are now
   executed asynchronously by default. Also, `on_offset` and `on_end` have
