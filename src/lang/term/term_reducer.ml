@@ -657,25 +657,42 @@ let args_of ~only ~except ~pos ~env name =
     | None -> builtin_args_of ~only ~except ~pos name
 
 let expand_argsof ~pos ~env ~to_term ~throw args =
-  List.rev
-    (List.fold_left
-       (fun args -> function
-         | `Argsof { only; except; source } ->
-             List.rev (args_of ~pos ~env ~only ~except source) @ args
-         | `Term { label; as_variable; default; typ; annotations; pos } ->
-             report_annotations ~throw ~pos annotations;
-             {
-               label;
-               as_variable;
-               typ =
-                 (match typ with
-                   | None -> mk_var ()
-                   | Some typ -> mk_parsed_ty ~env ~to_term typ);
-               default = Option.map (to_term ~env) default;
-               pos = Some (Pos.of_lexing_pos pos);
-             }
-             :: args)
-       [] args)
+  let anonymous_var_id = ref 0 in
+  let mk_def, args =
+    List.fold_left
+      (fun (mk_def, args) -> function
+        | `Argsof { only; except; source } ->
+            (mk_def, List.rev (args_of ~pos ~env ~only ~except source) @ args)
+        | `Term { label; as_variable; default; typ; annotations; pos } ->
+            report_annotations ~throw ~pos annotations;
+            let mk_def, as_variable =
+              match as_variable with
+                | None -> (mk_def, None)
+                | Some { pat_entry = `PVar [v] } -> (mk_def, Some v)
+                | Some pat ->
+                    incr anonymous_var_id;
+                    let v = Printf.sprintf "_ann_%d" !anonymous_var_id in
+                    let mk_def def =
+                      mk_def (mk (pattern_reducer ~body:def ~pat (mk (`Var v))))
+                    in
+                    (mk_def, Some v)
+            in
+            ( mk_def,
+              {
+                label;
+                as_variable;
+                typ =
+                  (match typ with
+                    | None -> mk_var ()
+                    | Some typ -> mk_parsed_ty ~env ~to_term typ);
+                default = Option.map (to_term ~env) default;
+                pos = Some (Pos.of_lexing_pos pos);
+              }
+              :: args ))
+      ((fun b -> b), [])
+      args
+  in
+  (mk_def, List.rev args)
 
 let app_of ~pos ~only ~except ~env source =
   let args = args_of ~pos ~only ~except ~env source in
@@ -1170,8 +1187,9 @@ let mk_let ~env ~pos ~to_term ~comments ~throw
       | _ -> None
   in
   match (arglist, decoration) with
-    | Some arglist, `None | Some arglist, `Replaces ->
+    | Some (mk_def, arglist), `None | Some (mk_def, arglist), `Replaces ->
         let replace = decoration = `Replaces in
+        let def = mk_def def in
         let def = mk_fun ~pos arglist def in
         let def =
           match cast with
@@ -1180,7 +1198,8 @@ let mk_let ~env ~pos ~to_term ~comments ~throw
         in
         let body = mk_body def in
         pattern_reducer ?doc ~body ~pat ~replace def
-    | Some arglist, `Recursive ->
+    | Some (mk_def, arglist), `Recursive ->
+        let def = mk_def def in
         let def = mk_rec_fun ~pos pat.pat_entry arglist def in
         let def =
           match cast with
@@ -1325,12 +1344,8 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
         `Fun (to_func ~throw ~pos ~env ~to_term ~name args body)
 
 and to_func ~pos ~env ~to_term ~throw ?name arguments body =
-  {
-    name;
-    arguments = expand_argsof ~throw ~pos ~env ~to_term arguments;
-    body = to_term ~env body;
-    free_vars = None;
-  }
+  let mk_def, arguments = expand_argsof ~throw ~pos ~env ~to_term arguments in
+  { name; arguments; body = mk_def (to_term ~env body); free_vars = None }
 
 and to_term ~throw ~env (tm : Parsed_term.t) : Term.t =
   let to_term = to_term ~throw in

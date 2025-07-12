@@ -108,7 +108,7 @@ and app_arg = [ `Term of string * t | `Argsof of _of ]
 
 and parsed_func_argument = {
   label : string;
-  as_variable : string option;
+  as_variable : pattern option;
   default : t option;
   typ : type_annotation option;
   pos : pos; [@hash.ignore]

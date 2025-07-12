@@ -154,6 +154,16 @@ def f() =
   end
   # f : (?foo : int) -> int = fun (~foo=123) -> 456
 
+  x = 123
+  def f({foo}, [a, b], ~x:{gni}) =
+    test.equal(foo, 123)
+    test.equal(a, "aaa")
+    test.equal(b, "bbb")
+    test.equal(x, 123)
+    test.equal(gni, 3.14)
+  end
+  f({foo=123}, ["aaa", "bbb"], x={gni=3.14})
+
   test.pass()
 end
 
