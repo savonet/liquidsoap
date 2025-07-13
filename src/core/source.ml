@@ -615,7 +615,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | { executed = true } -> false
         | { allow_partial = true } when end_of_track -> true
         | { mode = `Elapsed; position } -> position () <= elapsed
-        | { mode = `Remaining; position } -> rem <= position ()
+        | { mode = `Remaining; position } -> 0 <= rem && rem <= position ()
       in
       let position = function
         | { mode = `Elapsed } -> Frame.seconds_of_main elapsed
@@ -664,7 +664,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let has_track_mark =
         match self#split_frame buf with
           | buf, Some new_track ->
-              self#on_position ~end_of_track:true buf;
+              if 0 < elapsed then self#on_position ~end_of_track:true buf;
               elapsed <- 0;
               if self#reset_last_metadata_on_track then last_metadata <- None;
               List.iter
