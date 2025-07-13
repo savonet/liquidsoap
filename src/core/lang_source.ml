@@ -318,7 +318,7 @@ let source_callbacks =
           {
             name = "allow_partial";
             typ = Lang.bool_t;
-            default = Some (Lang.bool false);
+            default = Some (Lang.bool true);
           };
         ];
       descr =
