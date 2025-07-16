@@ -981,6 +981,25 @@ end
 # Deprecated: use `normalize_track_gain`
 # @flag deprecated
 def replaygain(~id=null, s) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the normalize_track_gain operator!"
+  )
+
+  def add_legacy_meta(m) =
+    if
+      m["replaygain_track_gain"] != ""
+    and
+      m[settings.normalize_track_gain_metadata()] == ""
+    then
+      [(settings.normalize_track_gain_metadata(), m["replaygain_track_gain"])]
+    else
+      []
+    end
+  end
+
+  s = metadata.map(add_legacy_meta, s)
+
   amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
 end
 
