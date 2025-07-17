@@ -607,20 +607,6 @@ def of_json(%argsof(json.parse), v) =
   json.parse(%argsof(json.parse), v)
 end
 
-# Deprecated: use error method instead
-# @flag deprecated
-def error.kind(err) =
-  deprecated("error.kind", "")
-  err.kind
-end
-
-# Deprecated: use error method instead
-# @flag deprecated
-def error.message(err) =
-  deprecated("error.message", "")
-  err.message
-end
-
 # Deprecated: use `playlist` instead
 # @flag deprecated
 def playlist.reloadable(
