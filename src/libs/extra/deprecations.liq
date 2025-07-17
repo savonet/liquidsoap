@@ -959,7 +959,8 @@ end
 def insert_metadata(~id:_=null, s) =
   log.severe(
     label="lang.deprecated",
-    "Use the insert_metadata source method!"
+    "WARNING: `insert_metadata` operator is deprecated. Please use the \
+     `insert_metadata` source method!"
   )
   source.methods(s)
 end
