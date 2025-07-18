@@ -159,7 +159,7 @@ def source.run(s, ~delay=0., ~every=null, f) =
     end
   end
 
-  source.methods(s).on_frame(synchronous=true, check)
+  source.methods(s).on_frame(check)
   s
 end
 
