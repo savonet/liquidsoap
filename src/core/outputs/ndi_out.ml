@@ -35,8 +35,8 @@ let sync_source = SyncSource.make ()
 
 type sender = { handler : Ndi.Send.sender; mutable position : int64 }
 
-class output ~self_sync ~register_telnet ~name ~groups ~infallible ~on_start
-  ~on_stop ~handler ~format source start =
+class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
+  ~format source start =
   let sample_rate = Lazy.force Frame.audio_rate in
   let frame_rate = Lazy.force Frame.video_rate in
   let video_height = Lazy.force Frame.video_height in
@@ -55,8 +55,8 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~on_start
   object (self)
     inherit
       Output.output
-        ~register_telnet ~infallible ~on_start ~on_stop ~name:"ndi"
-          ~output_kind:"output.ndi" source start
+        ~register_telnet ~infallible ~name:"ndi" ~output_kind:"output.ndi"
+          source start
 
     val mutable sender = None
 
@@ -187,7 +187,8 @@ let _ =
           Some "Encoding format. Only the `%ndi` encoder is allowed here!" );
         ("", Lang.source_t return_t, None, None);
       ])
-    ~category:`Output ~meth:Output.meth ~descr:"Output stream to NDI" ~return_t
+    ~category:`Output ~meth:Output.meth ~callbacks:Output.callbacks
+    ~descr:"Output stream to NDI" ~return_t
     (fun p ->
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let lib = Lang.to_string (List.assoc "library_file" p) in
@@ -212,14 +213,6 @@ let _ =
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let format =
         match Lang.to_format (Lang.assoc "" 1 p) with
           | NDI n -> n
@@ -230,6 +223,6 @@ let _ =
       in
       let source = Lang.assoc "" 2 p in
       (new output
-         ~self_sync ~name ~groups ~infallible ~register_telnet ~on_start
-         ~on_stop ~handler ~format source start
+         ~self_sync ~name ~groups ~infallible ~register_telnet ~handler ~format
+         source start
         :> Output.output))

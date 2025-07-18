@@ -34,6 +34,7 @@ let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
 let strict = ref false
+let deprecated = ref true
 let raw_errors = ref false
 
 let error_header ~formatter idx pos =

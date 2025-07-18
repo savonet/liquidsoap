@@ -57,4 +57,5 @@ def on_stop() =
   if !success then test.pass() else test.fail() end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, on_stop)

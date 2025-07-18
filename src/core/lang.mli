@@ -121,11 +121,29 @@ val add_module : ?base:module_name -> string -> module_name
 val module_name : module_name -> string
 
 (** Add an operator to the language and to the documentation. *)
+
+type callback_param = Lang_source.callback_param = {
+  name : string;
+  typ : t;
+  default : value option;
+}
+
+type 'a callback = 'a Lang_source.callback = {
+  name : string;
+  params : callback_param list;
+  descr : string;
+  default_synchronous : bool;
+  register_deprecated_argument : bool;
+  arg_t : (bool * string * t) list;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
+}
+
 val add_operator :
   category:Doc.Value.source ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
   ?meth:((< Source.source ; .. > as 'a) -> value) meth list ->
+  ?callbacks:'a callback list ->
   ?base:module_name ->
   string ->
   proto ->

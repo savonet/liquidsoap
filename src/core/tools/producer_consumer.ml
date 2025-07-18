@@ -37,12 +37,10 @@ type write_frame = write_payload -> unit
 class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   let s = Lang.to_source source in
   let infallible = not s#fallible in
-  let noop () = () in
   object
     inherit
       Output.output
-        ~output_kind:name ~register_telnet:false ~infallible ~on_start:noop
-          ~on_stop:noop source true as super
+        ~output_kind:name ~register_telnet:false ~infallible source true as super
 
     val mutable output_enabled = false
     val mutable producer_buffer = Generator.create Frame.Fields.empty

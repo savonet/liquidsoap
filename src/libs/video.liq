@@ -242,8 +242,6 @@ let output.youtube.live = ()
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~url RTMP URL to stream to
 # @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
@@ -251,8 +249,6 @@ let output.youtube.live = ()
 def output.youtube.live.rtmp(
   ~id=null,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   ~start=true,
   ~url="rtmp://a.rtmp.youtube.com/live2",
   ~(key:string),
@@ -260,14 +256,7 @@ def output.youtube.live.rtmp(
   s
 ) =
   output.url(
-    id=id,
-    fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
-    start=start,
-    url="#{url}/#{key}",
-    encoder,
-    s
+    id=id, fallible=fallible, start=start, url="#{url}/#{key}", encoder, s
   )
 end
 
@@ -275,8 +264,6 @@ end
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~segment_duration Segment duration (in seconds).
 # @param ~segments Number of segments per playlist.
@@ -287,8 +274,6 @@ end
 def output.youtube.live.hls(
   ~id=null,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   ~segment_duration=2.0,
   ~segments=4,
   ~segments_overhead=4,
@@ -333,8 +318,6 @@ def output.youtube.live.hls(
     id=id,
     start=start,
     fallible=fallible,
-    on_stop=on_stop,
-    on_start=on_start,
     playlist="main.m3u8",
     segment_duration=segment_duration,
     segments=segments,

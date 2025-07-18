@@ -354,14 +354,6 @@ let string_of_file_state = function
   | `Deleted -> "deleted"
 
 class hls_output p =
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply f [])
-  in
   let on_file_change =
     let f = List.assoc "on_file_change" p in
     fun ~state filename ->
@@ -640,9 +632,8 @@ class hls_output p =
   object (self)
     inherit
       [(int * Strings.t option * Strings.t) list] Output.encoded
-        ~infallible ~register_telnet ~on_start ~on_stop ~autostart
-          ~export_cover_metadata:false ~output_kind:"output.file"
-          ~name:main_playlist_filename source_val
+        ~infallible ~register_telnet ~autostart ~export_cover_metadata:false
+          ~output_kind:"output.file" ~name:main_playlist_filename source_val
 
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
@@ -1268,6 +1259,7 @@ let _ =
            };
          ]
       @ Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"output")
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \
        directory."
