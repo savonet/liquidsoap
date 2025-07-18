@@ -9,7 +9,7 @@
   (action
     (with-stdout-to protocols.md
       (setenv PAGER none
-        (run %{bin:liquidsoap} --disable-deprecated --list-protocols-md)))))
+        (run %{bin:liquidsoap} --list-protocols-md --disable-deprecated)))))
 
 (rule
   (alias doc)
@@ -22,7 +22,7 @@
     (with-stdout-to reference.md
       (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
-        (run %{bin:liquidsoap} --disable-deprecated --list-functions-md)))))
+        (run %{bin:liquidsoap} --list-functions-md --disable-deprecated)))))
       )
 
 (rule
@@ -36,7 +36,7 @@
     (with-stdout-to reference-extras.md
       (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
-        (run %{bin:liquidsoap} --disable-deprecated --no-external-plugins --list-extra-functions-md)))))
+        (run %{bin:liquidsoap} --no-external-plugins --list-extra-functions-md --disable-deprecated)))))
       )
 
 (rule
@@ -50,7 +50,7 @@
     (with-stdout-to reference-deprecated.md
       (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
-        (run %{bin:liquidsoap} --disable-deprecated --list-deprecated-functions-md)))))
+        (run %{bin:liquidsoap} --list-deprecated-functions-md --enable-deprecated)))))
       )
 
 (rule
@@ -63,7 +63,7 @@
   (action
     (with-stdout-to settings.md
       (setenv PAGER none
-        (run %{bin:liquidsoap} --disable-deprecated --list-settings)))))
+        (run %{bin:liquidsoap} --list-settings --disable-deprecated)))))
 
 (rule
   (alias doc)
