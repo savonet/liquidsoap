@@ -385,9 +385,20 @@ let options =
         ( ["--stdlib"],
           Arg.String (fun s -> stdlib := `Override s),
           "Override the location of the standard library." );
-        ( ["--no-deprecated"],
+        ( ["--disable-deprecated"],
           Arg.Clear deprecated,
           "Do not load wrappers for deprecated operators." );
+        ( ["--no-deprecated"],
+          Arg.Unit
+            (fun _ ->
+              Printf.eprintf
+                "`--no-deprecated` is, ahem.. deprecated! Please use \
+                 `--disable-deprecated`!";
+              deprecated := false),
+          "Deprecated: use `--disable-deprecated`" );
+        ( ["--enable-deprecated"],
+          Arg.Set deprecated,
+          "Load wrappers for deprecated operators." );
         ( ["-i"],
           Arg.Set Liquidsoap_lang.Typechecking.display_types,
           "Display inferred types." );

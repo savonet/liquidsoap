@@ -51,14 +51,14 @@ val raw_errors : bool ref
 
 (** Return the list of external libraries. *)
 val libs :
-  ?stdlib:string ->
   ?error_on_no_stdlib:bool ->
   ?deprecated:bool ->
+  stdlib:string ->
   unit ->
   string list
 
 (** Load the external libraries. *)
-val load_libs : ?stdlib:string -> unit -> unit
+val load_libs : stdlib:string -> unit -> unit
 
 (* Wrapper for format language errors. Re-raises [Error]
    after printing language errors. *)
