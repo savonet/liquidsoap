@@ -87,9 +87,7 @@ let cache = ref true
 
 (* Display cache key. *)
 let show_cache_key = ref false
-
-(* Should we load the deprecated wrapper? *)
-let deprecated = ref true
+let deprecated = Liquidsoap_lang.Runtime.deprecated
 
 (* Shall we start an interactive interpreter (REPL) *)
 let interactive = ref false

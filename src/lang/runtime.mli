@@ -46,6 +46,9 @@ val eval_term : ?name:string -> toplevel:bool -> Term.t -> Value.t
 (** Raise errors for warnings. *)
 val strict : bool ref
 
+(** Register deprecated arguments and functions. *)
+val deprecated : bool ref
+
 (** Raise raw errors. *)
 val raw_errors : bool ref
 
