@@ -116,6 +116,7 @@ let callbacks ~label =
         name = "on_start";
         params = [];
         descr = "when " ^ label ^ " starts";
+        default_synchronous = false;
         arg_t = [];
         register = (fun ~params:_ s f -> s#on_start (fun () -> f []));
       };
@@ -123,6 +124,7 @@ let callbacks ~label =
         name = "on_stop";
         params = [];
         descr = "when " ^ label ^ " stops";
+        default_synchronous = false;
         arg_t = [];
         register = (fun ~params:_ s f -> s#on_stop (fun () -> f []));
       };

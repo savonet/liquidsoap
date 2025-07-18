@@ -132,6 +132,7 @@ type 'a callback = 'a Lang_source.callback = {
   name : string;
   params : callback_param list;
   descr : string;
+  default_synchronous : bool;
   arg_t : (bool * string * t) list;
   register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
 }
