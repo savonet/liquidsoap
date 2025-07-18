@@ -837,7 +837,7 @@ def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y) =
     end
   end
 
-  s'.on_frame(synchronous=true, update)
+  s'.on_frame(update)
   s'
 end
 

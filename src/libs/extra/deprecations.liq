@@ -917,7 +917,7 @@ def source.on_frame(~id:_, ~before=true, s, fn) =
     label="lang.deprecated",
     "Use the on_frame source method!"
   )
-  source.methods(s).on_frame(synchronous=true, before=before, fn)
+  source.methods(s).on_frame(before=before, fn)
 end
 
 # Deprecated: use the on_position source method
@@ -988,15 +988,4 @@ def replaygain(~id=null, s) =
   s = metadata.map(add_legacy_meta, s)
 
   amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
-end
-
-# Deprecated: all sources now have a `insert_metadata` command
-# by default
-# @flag deprecated
-def server.insert_metadata(s) =
-  log.severe(
-    label="lang.deprecated",
-    "All sources now have a `insert_metadata` command by default!"
-  )
-  s
 end
