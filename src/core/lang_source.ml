@@ -167,7 +167,7 @@ let conf_source =
 let conf_default_synchronous_callback =
   Dtools.Conf.bool
     ~p:(conf_source#plug "synchronous_callbacks")
-    ~d:false "Default synchronous setting for callbacks."
+    ~d:false "Set all callbacks as synchronous by default."
 
 type callback_param = { name : string; typ : t; default : value option }
 
@@ -175,12 +175,23 @@ type callback = {
   name : string;
   params : callback_param list;
   descr : string;
+  default_synchronous : bool;
   arg_t : (bool * string * t) list;
   register :
     params:(string * value) list -> Source.source -> (env -> unit) -> unit;
 }
 
-let callback { name; params; descr; arg_t; register } =
+let callback { name; params; descr; arg_t; default_synchronous; register } =
+  let synchronous_t, synchronous_arg, to_synchronous =
+    match default_synchronous with
+      | false ->
+          ( Lang.(nullable_t bool_t),
+            Lang.null,
+            fun v ->
+              Option.value ~default:conf_default_synchronous_callback#get
+                (Lang.to_valued_option Lang.to_bool v) )
+      | true -> (Lang.bool_t, Lang.bool true, Lang.to_bool)
+  in
   {
     name;
     scheme =
@@ -190,7 +201,7 @@ let callback { name; params; descr; arg_t; register } =
              (fun { name; typ; default } -> (default <> None, name, typ))
              params
           @ [
-              (true, "synchronous", Lang.(nullable_t bool_t));
+              (true, "synchronous", synchronous_t);
               ( true,
                 "on_error",
                 Lang.nullable_t
@@ -198,24 +209,22 @@ let callback { name; params; descr; arg_t; register } =
               (false, "", fun_t arg_t unit_t);
             ])
           unit_t );
-    descr = Printf.sprintf "Call a given handler %s." descr;
+    descr =
+      Printf.sprintf "Call a given handler %s.%s" descr
+        (if default_synchronous then
+           " Callback for these events are executed synchronously by default!"
+         else "");
     value =
       (fun s ->
         val_fun
           ([
-             ("synchronous", "synchronous", Some Lang.null);
+             ("synchronous", "synchronous", Some synchronous_arg);
              ("on_error", "on_error", Some Lang.null);
              ("", "", None);
            ]
           @ List.map (fun { name; default } -> (name, name, default)) params)
           (fun p ->
-            let synchronous =
-              Lang.to_valued_option Lang.to_bool (List.assoc "synchronous" p)
-            in
-            let synchronous =
-              Option.value ~default:conf_default_synchronous_callback#get
-                synchronous
-            in
+            let synchronous = to_synchronous (List.assoc "synchronous" p) in
             let on_error = Lang.to_option (List.assoc "on_error" p) in
             let fn = assoc "" 1 p in
             let fn args = ignore (apply fn args) in
@@ -259,6 +268,7 @@ let source_callbacks =
       name = "on_metadata";
       params = [];
       descr = "to execute on each metadata";
+      default_synchronous = false;
       arg_t = [(false, "", metadata_t)];
       register =
         (fun ~params:_ s f ->
@@ -269,6 +279,7 @@ let source_callbacks =
       name = "on_wake_up";
       descr = "to be called after the source is asked to get ready";
       params = [];
+      default_synchronous = false;
       arg_t = [];
       register = (fun ~params:_ s f -> s#on_wake_up (fun () -> f []));
     };
@@ -276,6 +287,7 @@ let source_callbacks =
       name = "on_shutdown";
       params = [];
       descr = "to be called when source shuts down";
+      default_synchronous = false;
       arg_t = [];
       register = (fun ~params:_ s f -> s#on_sleep (fun () -> f []));
     };
@@ -283,6 +295,7 @@ let source_callbacks =
       name = "on_track";
       params = [];
       descr = "on track marks";
+      default_synchronous = false;
       arg_t = [(false, "", metadata_t)];
       register =
         (fun ~params:_ s f ->
@@ -298,6 +311,7 @@ let source_callbacks =
       descr =
         "on frame. When `before` is `true`, callback is executed before \
          computing the frame and after otherwise.";
+      default_synchronous = true;
       arg_t = [];
       register =
         (fun ~params:p s on_frame ->
@@ -330,6 +344,7 @@ let source_callbacks =
          usually more accurate for file-based sources. When `allow_partial` is \
          `true`, if the current track ends before the `offset` position is \
          reached, callback is still executed.";
+      default_synchronous = false;
       arg_t = [(false, "", float_t); (false, "", metadata_t)];
       register =
         (fun ~params:p s on_position ->

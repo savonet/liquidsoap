@@ -729,7 +729,7 @@ def fade.in(
   then
     s.on_track(synchronous=true, start_fade)
   else
-    s.on_frame(synchronous=true, before=false, memoize({start_fade([])}))
+    s.on_frame(before=false, memoize({start_fade([])}))
   end
   s.{fade_duration={duration()}, fade_delay={delay()}, fade_type={type()}}
 end
