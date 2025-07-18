@@ -106,7 +106,7 @@ let mk_generated_rule (file, option, header) =
   (action
     (with-stdout-to %s%s
       (setenv PAGER none
-        (run %%{bin:liquidsoap} %s)))))%s
+        (run %%{bin:liquidsoap} --disable-deprecated %s)))))%s
 |}
     header_deps file file header_action option header_close
 
