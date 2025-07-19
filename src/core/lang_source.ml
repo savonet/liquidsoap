@@ -176,7 +176,7 @@ type 'a callback = {
   params : callback_param list;
   descr : string;
   default_synchronous : bool;
-  register_deprecated_argument : [ `Same | `Named of string | `None ];
+  register_deprecated_argument : bool;
   arg_t : (bool * string * t) list;
   register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
 }
@@ -268,7 +268,7 @@ let source_callbacks =
       name = "on_metadata";
       params = [];
       descr = "to execute on each metadata";
-      register_deprecated_argument = `None;
+      register_deprecated_argument = false;
       default_synchronous = false;
       arg_t = [(false, "", metadata_t)];
       register =
@@ -280,7 +280,7 @@ let source_callbacks =
       name = "on_wake_up";
       descr = "to be called after the source is asked to get ready";
       params = [];
-      register_deprecated_argument = `None;
+      register_deprecated_argument = false;
       default_synchronous = false;
       arg_t = [];
       register = (fun ~params:_ s f -> s#on_wake_up (fun () -> f []));
@@ -289,7 +289,7 @@ let source_callbacks =
       name = "on_shutdown";
       params = [];
       descr = "to be called when source shuts down";
-      register_deprecated_argument = `None;
+      register_deprecated_argument = false;
       default_synchronous = false;
       arg_t = [];
       register = (fun ~params:_ s f -> s#on_sleep (fun () -> f []));
@@ -298,7 +298,7 @@ let source_callbacks =
       name = "on_track";
       params = [];
       descr = "on track marks";
-      register_deprecated_argument = `None;
+      register_deprecated_argument = false;
       default_synchronous = false;
       arg_t = [(false, "", metadata_t)];
       register =
@@ -315,7 +315,7 @@ let source_callbacks =
       descr =
         "on frame. When `before` is `true`, callback is executed before \
          computing the frame and after otherwise.";
-      register_deprecated_argument = `None;
+      register_deprecated_argument = false;
       default_synchronous = true;
       arg_t = [];
       register =
@@ -349,7 +349,7 @@ let source_callbacks =
          usually more accurate for file-based sources. When `allow_partial` is \
          `true`, if the current track ends before the `offset` position is \
          reached, callback is still executed.";
-      register_deprecated_argument = `None;
+      register_deprecated_argument = false;
       default_synchronous = false;
       arg_t = [(false, "", float_t); (false, "", metadata_t)];
       register =
@@ -862,18 +862,9 @@ let deprecated_callback_registration_arguments callbacks =
     | true ->
         List.fold_left
           (fun (arguments, register_deprecated_callbacks) -> function
-            | ({ register_deprecated_argument = `Same; arg_t } as cb)
-            | ({ register_deprecated_argument = `Named _; arg_t } as cb) ->
-                let name, arg_name =
-                  match cb with
-                    | { name; register_deprecated_argument = `Same } ->
-                        (name, name)
-                    | { name; register_deprecated_argument = `Named s } ->
-                        (name, s)
-                    | _ -> assert false
-                in
+            | { name; register_deprecated_argument = true; arg_t } as cb ->
                 let arg =
-                  ( arg_name,
+                  ( name,
                     nullable_t (fun_t arg_t unit_t),
                     Some Lang.null,
                     Some
@@ -924,7 +915,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       nullable_t string_t,
       Some null,
       Some "Force the value of the source ID." )
-    :: List.stable_sort compare (callback_arguments @ arguments)
+    :: List.stable_sort compare (arguments @ callback_arguments)
   in
   let meth = meth @ List.map callback callbacks in
   let f env =

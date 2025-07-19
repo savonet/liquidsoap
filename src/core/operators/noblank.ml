@@ -285,7 +285,7 @@ let _ =
           params = [];
           descr = "when detecting a blank.";
           default_synchronous = false;
-          register_deprecated_argument = `Named "";
+          register_deprecated_argument = false;
           arg_t = [];
           register = (fun ~params:_ s f -> s#on_blank (fun () -> f []));
         };
@@ -294,7 +294,7 @@ let _ =
           params = [];
           descr = "when noise is detected.";
           default_synchronous = false;
-          register_deprecated_argument = `Same;
+          register_deprecated_argument = false;
           arg_t = [];
           register = (fun ~params:_ s f -> s#on_noise (fun () -> f []));
         };

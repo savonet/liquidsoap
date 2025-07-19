@@ -425,7 +425,9 @@ end
 # @flag deprecated
 def on_blank(%argsof(blank.detect), f, s) =
   deprecated("on_blank", "blank.detect")
-  blank.detect(%argsof(blank.detect), f, s)
+  s = blank.detect(%argsof(blank.detect), s)
+  s.on_blank(f)
+  s
 end
 
 # Deprecated: use `blank.skip` instead

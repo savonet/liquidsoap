@@ -35,6 +35,15 @@ let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
 let strict = ref false
 let deprecated = ref true
+
+let () =
+  Array.iter
+    (function
+      | "--disable-deprecated" -> deprecated := false
+      | "--enable-deprecated" -> deprecated := true
+      | _ -> ())
+    Sys.argv
+
 let raw_errors = ref false
 
 let error_header ~formatter idx pos =
