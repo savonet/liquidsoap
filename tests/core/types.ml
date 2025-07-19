@@ -36,7 +36,7 @@ let () =
           meth;
           optional = false;
           scheme = ([], make ty);
-          doc = "";
+          doc = { meth_descr = ""; category = `Method };
           json_name = None;
         },
         make t )
