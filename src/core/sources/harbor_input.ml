@@ -267,8 +267,8 @@ let _ =
           name = "on_connect";
           params = [];
           descr =
-            "a source is connected. Its receives the list of headers, of the \
-             form: (<label>,<value>). All labels are lowercase.";
+            "when a source is connected. Its receives the list of headers, of \
+             the form: (<label>,<value>). All labels are lowercase.";
           default_synchronous = false;
           register_deprecated_argument = true;
           arg_t = [(false, "", Lang.metadata_t)];

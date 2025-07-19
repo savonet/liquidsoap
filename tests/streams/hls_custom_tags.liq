@@ -7,7 +7,7 @@ aac_flags = ref(false)
 mp4_flags = ref(false)
 aac_insert_flags = ref(false)
 
-def on_file_change(~state, p) =
+def on_file_change({state, path = p}) =
   fname = path.basename(p)
   if
     state == "created" or state == "updated"
@@ -63,7 +63,6 @@ o =
       [
         "X-CUSTOM \n"
       ],
-    on_file_change=on_file_change,
     tmp_dir,
     [
       (
@@ -84,6 +83,8 @@ o =
     ],
     s
   )
+
+o.on_file_change(on_file_change)
 
 thread.run(delay=2., {list.hd(o.streams()).insert_tag("X-CUSTOM-AAC-INSERT")})
 clock.assign_new(sync="none", [s])

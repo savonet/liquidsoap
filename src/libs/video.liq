@@ -302,7 +302,7 @@ def output.youtube.live.hls(
       end
   end
 
-  def on_file_change(~state, fname) =
+  def on_file_change({state, path = fname}) =
     if
       (state == "created" or state == "updated")
     and
@@ -314,19 +314,21 @@ def output.youtube.live.hls(
 
   tmpdir = file.temp_dir("hls", "")
   on_shutdown({file.rmdir(tmpdir)})
-  output.file.hls(
-    id=id,
-    start=start,
-    fallible=fallible,
-    playlist="main.m3u8",
-    segment_duration=segment_duration,
-    segments=segments,
-    segments_overhead=segments_overhead,
-    on_file_change=on_file_change,
-    tmpdir,
-    [("live", encoder)],
-    s
-  )
+  o =
+    output.file.hls(
+      id=id,
+      start=start,
+      fallible=fallible,
+      playlist="main.m3u8",
+      segment_duration=segment_duration,
+      segments=segments,
+      segments_overhead=segments_overhead,
+      tmpdir,
+      [("live", encoder)],
+      s
+    )
+  o.on_file_change(on_file_change)
+  o
 end
 
 # @flag hidden

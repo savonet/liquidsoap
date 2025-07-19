@@ -42,6 +42,7 @@ tl;dr:
 - Most callback arguments should be accepted as deprecated arguments.
 - `on_frame` callbacks are still registered as synchronous by default.
 - `blank.detect` could not be updated in a backward-compatible manner.
+- `on_file_change` in `output.*.hls` has been updated to pass a single record.
 - `on_connect` callback on `output.harbor` has been updated to pass a single record.
 
 Stream-related callbacks is the biggest change with this release. They are now fully documented, with their own dedicated section

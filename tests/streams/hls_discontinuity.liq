@@ -25,7 +25,7 @@ second_playlist =
 third_playlist =
   "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:6\r\n#EXT-X-DISCONTINUITY-SEQUENCE:1\r\n#EXTINF:2.000,\r\nstream_7.ts\r\n#EXTINF:1.980,\r\nstream_8.ts\r\n#EXTINF:1.980,\r\nstream_9.ts\r\n#EXTINF:1.960,\r\nstream_10.ts\r\n"
 
-def on_file_change(~state:_, fname) =
+def on_file_change({path = fname}) =
   if
     path.basename(fname) == "stream.m3u8"
   then
@@ -56,13 +56,14 @@ def on_file_change(~state:_, fname) =
   end
 end
 
-output.file.hls(
+o = output.file.hls(
   fallible=true,
   persist_at="./hls_discontinuity.json",
-  on_file_change=on_file_change,
   segments=4,
   segment_duration=2.,
   tmp_dir,
   streams,
   s
 )
+
+o.on_file_change(on_file_change)
