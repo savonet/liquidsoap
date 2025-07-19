@@ -35,6 +35,15 @@ Now, all sources have a `insert_metadata` server command by default!
 
 ### Stream-related callbacks
 
+tl;dr:
+
+- Callbacks are now executed using `thread.run` by default.
+- You can use `settings.source.synchronous_callbacks` to change the default.
+- Most callback arguments should be accepted as deprecated arguments.
+- `on_frame` callbacks are still registered as synchronous by default.
+- `blank.detect` could not be updated in a backward-compatible manner.
+- `on_connect` callback on `output.harbor` has been updated to pass a single record.
+
 Stream-related callbacks is the biggest change with this release. They are now fully documented, with their own dedicated section
 in the doc and have been updated to be executed in an asynchronous task by default.
 
@@ -42,12 +51,8 @@ This means that the function to be executed by the callback is placed in a `thre
 by default. This is done to make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
 a callback function takes too long, the streaming cycle gets late, causing issues with the runtime system typically resulting in catchup errors.
 
-NB: `on_frame` has been kept as synchronous by default since it does not make sense to queue a task on every frame!
-
-Callbacks have also been moved to source methods in order to unify the codebase, options and more.
-
-In most cases, callback previously passed as arguments are still accepted, triggering a deprecation warning. The only case where this was not possible was
-with `blank.detect`.
+Callbacks have also been moved to source methods in order to unify the codebase, options and more. In most cases, callback previously passed as
+arguments are still accepted, triggering a deprecation warning.
 
 With the new source-related callbacks, instead of doing:
 
