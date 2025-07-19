@@ -34,8 +34,8 @@ let () =
       Atomic.set should_shutdown true)
 
 class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
-  ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
-  ~on_disconnect ~login ~debug ~timeout () =
+  ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~login ~debug
+  ~timeout () =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit Source.active_source ~name:"input.harbor" ()
@@ -51,6 +51,10 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     val mutable mime_type = None
     val mutable dump = None
     val mutable logf = None
+    val mutable on_connect = []
+    method on_connect fn = on_connect <- fn :: on_connect
+    val mutable on_disconnect = []
+    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
 
     method connected_client =
       Mutex_utils.mutexify relay_m
@@ -205,7 +209,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
           relay_socket <- Some socket;
           relay_read <- read)
         ();
-      on_connect headers;
+      List.iter (fun fn -> fn headers) on_connect;
       begin
         match dumpfile with
           | Some f -> (
@@ -248,7 +252,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
               logf <- None
           | None -> ()
       end;
-      on_disconnect ()
+      List.iter (fun fn -> fn ()) on_disconnect
 
     method disconnect ~lock : unit =
       if lock then self#disconnect_with_lock else self#disconnect_no_lock;
@@ -257,6 +261,32 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
 let _ =
   Lang.add_operator ~base:Modules.input "harbor" ~return_t:(Lang.univ_t ())
+    ~callbacks:
+      [
+        {
+          name = "on_connect";
+          params = [];
+          descr =
+            "a source is connected. Its receives the list of headers, of the \
+             form: (<label>,<value>). All labels are lowercase.";
+          default_synchronous = false;
+          register_deprecated_argument = true;
+          arg_t = [(false, "", Lang.metadata_t)];
+          register =
+            (fun ~params:_ s on_connect ->
+              let on_connect m = on_connect [("", Lang.metadata_list m)] in
+              s#on_connect on_connect);
+        };
+        {
+          name = "on_disconnect";
+          params = [];
+          descr = "when a source is disconnected.";
+          default_synchronous = false;
+          register_deprecated_argument = true;
+          arg_t = [];
+          register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+        };
+      ]
     ~meth:
       Lang.
         [
@@ -334,17 +364,6 @@ let _ =
         Lang.float_t,
         Some (Lang.float 30.),
         Some "Timeout for source connectionn." );
-      ( "on_connect",
-        Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
-        Some (Lang.val_cst_fun [("", None)] Lang.unit),
-        Some
-          "Function to execute when a source is connected. Its receives the \
-           list of headers, of the form: (<label>,<value>). All labels are \
-           lowercase." );
-      ( "on_disconnect",
-        Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Functions to execute when a source is disconnected" );
       ("user", Lang.string_t, Some (Lang.string "source"), Some "Source user.");
       ( "password",
         Lang.string_t,
@@ -493,20 +512,7 @@ let _ =
           (Error.Invalid_value
              ( List.assoc "max" p,
                "Maximum buffering inferior to pre-buffered data" ));
-      let on_connect l =
-        let l =
-          List.map
-            (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
-            l
-        in
-        let arg = Lang.list l in
-        ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
-      in
-      let on_disconnect () =
-        ignore (Lang.apply (List.assoc "on_disconnect" p) [])
-      in
       let pos = Lang.pos p in
       new http_input_server
         ~pos ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
-        ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
-        ~on_disconnect ~debug ())
+        ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~debug ())
