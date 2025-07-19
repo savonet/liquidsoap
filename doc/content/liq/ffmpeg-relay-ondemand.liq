@@ -2,7 +2,7 @@ stream = input.http(start=false, "https://wwoz-sc.streamguys1.com/wwoz-hi.mp3")
 
 listeners_count = ref(0)
 
-def on_connect(~headers:_, ~uri:_, ~protocol:_, _) =
+def on_connect(_) =
   listeners_count := listeners_count() + 1
   if
     listeners_count() > 0 and not stream.is_started()
