@@ -30,11 +30,13 @@ blank = single("/tmp/blank.mp3")
 
 stream = fallback(track_sensitive=false, [stream, blank])
 
-output.harbor(
-  %ffmpeg(format = "mp3", %audio.copy),
-  format="audio/mpeg",
-  mount="relay",
-  on_connect=on_connect,
-  on_disconnect=on_disconnect,
-  stream
-)
+o =
+  output.harbor(
+    %ffmpeg(format = "mp3", %audio.copy),
+    format="audio/mpeg",
+    mount="relay",
+    stream
+  )
+
+o.on_connect(on_connect)
+o.on_disconnect(on_disconnect)
