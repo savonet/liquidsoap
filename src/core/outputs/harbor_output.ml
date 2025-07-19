@@ -136,28 +136,6 @@ let proto frame_t =
         Lang.int_t,
         Some (Lang.int Utils.pagesize),
         Some "Send data to clients using chunks of at least this length." );
-      ( "on_connect",
-        Lang.fun_t
-          [
-            (false, "headers", Lang.metadata_t);
-            (false, "uri", Lang.string_t);
-            (false, "protocol", Lang.string_t);
-            (false, "", Lang.string_t);
-          ]
-          Lang.unit_t,
-        Some
-          (Lang.val_cst_fun
-             [("headers", None); ("uri", None); ("protocol", None); ("", None)]
-             Lang.unit),
-        Some
-          "Callback executed when connection is established (takes headers, \
-           connection uri, protocol and client's IP as arguments)." );
-      ( "on_disconnect",
-        Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t,
-        Some (Lang.val_cst_fun [("", None)] Lang.unit),
-        Some
-          "Callback executed when connection stops (takes client's IP as \
-           argument)." );
       ( "headers",
         Lang.metadata_t,
         Some (Lang.list []),
@@ -303,21 +281,6 @@ class output p =
   let pos = Lang.pos p in
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
-  let on_connect = List.assoc "on_connect" p in
-  let on_disconnect = List.assoc "on_disconnect" p in
-  let on_connect ~headers ~protocol ~uri s =
-    ignore
-      (Lang.apply on_connect
-         [
-           ("headers", Lang.metadata headers);
-           ("uri", Lang.string uri);
-           ("protocol", Lang.string protocol);
-           ("", Lang.string s);
-         ])
-  in
-  let on_disconnect s =
-    ignore (Lang.apply on_disconnect [("", Lang.string s)])
-  in
   let metaint = Lang.to_int (List.assoc "metaint" p) in
   let data = encoder_data p in
   let encoding = Lang.to_string (List.assoc "encoding" p) in
@@ -425,6 +388,10 @@ class output p =
     val metadata = { metadata = None; metadata_m = Mutex.create () }
     method encode frame = (Option.get encoder).Encoder.encode frame
     method self_sync = source#self_sync
+    val mutable on_connect = []
+    method on_connect fn = on_connect <- fn :: on_connect
+    val mutable on_disconnect = []
+    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
 
     method encode_metadata m =
       let m = Frame.Metadata.Export.to_metadata m in
@@ -507,7 +474,7 @@ class output p =
                   client.state <- Done;
                   ignore (Strings.Mutable.flush client.buffer))
                 ();
-              on_disconnect ip;
+              List.iter (fun fn -> fn ip) on_disconnect;
               Harbor.Close (Harbor.mk_simple ""));
         }
       in
@@ -536,9 +503,7 @@ class output p =
              Mutex_utils.mutexify clients_m
                (fun () -> Queue.push client clients)
                ();
-             on_connect ~protocol ~uri
-               ~headers:(Frame.Metadata.from_list headers)
-               ip))
+             List.iter (fun fn -> fn ~headers ~uri ~protocol ip) on_connect))
 
     method send b =
       let slen = Strings.length b in
@@ -631,7 +596,76 @@ class output p =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let output_meth =
+    List.map
+      (fun m ->
+        { m with Lang.value = (fun s -> m.Lang.value (s :> Output.output)) })
+      Output.meth
+  in
+  let output_callbacks =
+    List.map
+      (fun m ->
+        {
+          m with
+          Lang.register =
+            (fun ~params s fn ->
+              m.Lang.register ~params (s :> Output.output) fn);
+        })
+      Output.callbacks
+  in
   Lang.add_operator ~category:`Output
     ~descr:"Encode and output the stream using the harbor server."
-    ~meth:Output.meth ~callbacks:Output.callbacks ~base:Modules.output "harbor"
-    (proto return_t) ~return_t (fun p -> (new output p :> Output.output))
+    ~callbacks:
+      ([
+         {
+           Lang_source.name = "on_connect";
+           params = [];
+           descr =
+             "when connection is established (takes headers, connection uri, \
+              protocol and client's IP as arguments).";
+           default_synchronous = false;
+           register_deprecated_argument = true;
+           arg_t =
+             [
+               ( false,
+                 "",
+                 Lang.record_t
+                   [
+                     ("headers", Lang.metadata_t);
+                     ("uri", Lang.string_t);
+                     ("protocol", Lang.string_t);
+                     ("ip", Lang.string_t);
+                   ] );
+             ];
+           register =
+             (fun ~params:_ s on_connect ->
+               let on_connect ~headers ~uri ~protocol ip =
+                 on_connect
+                   [
+                     ( "",
+                       Lang.record
+                         [
+                           ("headers", Lang.metadata_list headers);
+                           ("uri", Lang.string uri);
+                           ("protocol", Lang.string protocol);
+                           ("ip", Lang.string ip);
+                         ] );
+                   ]
+               in
+               s#on_connect on_connect);
+         };
+         {
+           name = "on_disconnect";
+           params = [];
+           descr = "when a source is disconnected.";
+           default_synchronous = false;
+           register_deprecated_argument = true;
+           arg_t = [(false, "", Lang.string_t)];
+           register =
+             (fun ~params:_ s f ->
+               s#on_disconnect (fun ip -> f [("", Lang.string ip)]));
+         };
+       ]
+      @ output_callbacks)
+    ~meth:output_meth ~base:Modules.output "harbor" (proto return_t) ~return_t
+    (fun p -> new output p)
