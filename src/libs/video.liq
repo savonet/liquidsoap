@@ -323,7 +323,6 @@ def output.youtube.live.hls(
       segment_duration=segment_duration,
       segments=segments,
       segments_overhead=segments_overhead,
-      on_file_change=on_file_change,
       tmpdir,
       [("live", encoder)],
       s
