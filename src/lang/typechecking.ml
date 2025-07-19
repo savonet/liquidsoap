@@ -233,7 +233,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                           meth = name;
                           optional = true;
                           scheme = ([], Type.make ?pos Type.Never);
-                          doc = "";
+                          doc = { meth_descr = ""; category = `Method };
                           json_name = None;
                         },
                         ty )))
@@ -263,7 +263,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                                meth = l;
                                optional = invoke_default <> None;
                                scheme = ([], x);
-                               doc = "";
+                               doc = { meth_descr = ""; category = `Method };
                                json_name = None;
                              },
                              y ));
@@ -431,7 +431,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                   Type.meth;
                   optional = false;
                   scheme = Typing.generalize ~level meth_term.t;
-                  doc = "";
+                  doc = { meth_descr = ""; category = `Method };
                   json_name = None;
                 },
                 t )))

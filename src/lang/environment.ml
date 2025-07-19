@@ -73,7 +73,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                           meth = l;
                           optional = false;
                           scheme = (g, t);
-                          doc = "";
+                          doc = { meth_descr = ""; category = `Method };
                           json_name = None;
                         },
                         t0 ))
@@ -89,7 +89,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                           meth = l;
                           optional = false;
                           scheme = (vg, vt);
-                          doc = "";
+                          doc = { meth_descr = ""; category = `Method };
                           json_name = None;
                         },
                         t0 ))

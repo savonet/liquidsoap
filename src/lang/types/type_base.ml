@@ -79,6 +79,11 @@ end
 
 type custom
 
+type meth_doc = {
+  meth_descr : string;
+  mutable category : [ `Method | `Callback ];
+}
+
 type t = { pos : Pos.Option.t; descr : descr }
 
 and constr = {
@@ -109,7 +114,7 @@ and meth = {
   meth : string;  (** name of the method *)
   optional : bool;  (** is the method optional? *)
   scheme : scheme;  (** type scheme *)
-  doc : string;  (** documentation *)
+  doc : meth_doc;  (** documentation *)
   json_name : string option;  (** name when represented as JSON *)
 }
 
@@ -234,8 +239,18 @@ let rec invokes t = function
   | [] -> ([], t)
 
 (** Add a method to a type. *)
-let meth ?pos ?json_name ?(optional = false) meth scheme ?(doc = "") t =
-  make ?pos (Meth ({ meth; optional; scheme; doc; json_name }, t))
+let meth ?pos ?json_name ?(category = `Method) ?(optional = false) meth scheme
+    ?(doc = "") t =
+  make ?pos
+    (Meth
+       ( {
+           meth;
+           optional;
+           scheme;
+           doc = { meth_descr = doc; category };
+           json_name;
+         },
+         t ))
 
 (** Add a submethod to a type. *)
 let rec meths ?pos l v t =

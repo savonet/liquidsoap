@@ -171,7 +171,11 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(callbacks = [])
   let doc () =
     let meth, return_t = Type.split_meths return_t in
     let callbacks, meth =
-      List.partition (fun (m : Type.meth) -> List.mem m.meth callbacks) meth
+      List.partition
+        (fun (m : Type.meth) ->
+          if List.mem m.meth callbacks then m.doc.category <- `Callback;
+          m.doc.category = `Callback)
+        meth
     in
     let t = builtin_type proto return_t in
     let generalized = Typing.filter_vars (fun _ -> true) t in
@@ -205,7 +209,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(callbacks = [])
     let methods =
       List.map
         (fun (m : Type.meth) ->
-          let d = m.doc in
+          let d = m.doc.meth_descr in
           let d = if d = "" then None else Some d in
           ( m.meth,
             Doc.Value.
@@ -218,7 +222,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(callbacks = [])
     let callbacks =
       List.map
         (fun (m : Type.meth) ->
-          let d = m.doc in
+          let d = m.doc.meth_descr in
           let d = if d = "" then None else Some d in
           ( m.meth,
             Doc.Value.

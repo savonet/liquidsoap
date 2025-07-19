@@ -129,7 +129,7 @@ and mk_meth_ty ?pos ~env ~to_term base
              meth = name;
              optional;
              scheme = ([], mk_parsed_ty ?pos ~env ~to_term typ);
-             doc = "";
+             doc = { meth_descr = ""; category = `Method };
              json_name;
            },
            base )))
