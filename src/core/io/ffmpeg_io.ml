@@ -455,14 +455,13 @@ let register_input is_http =
               [
                 {
                   Lang_source.name = "on_connect";
-                  params =
-                    [{ name = ""; typ = Lang.metadata_t; default = None }];
+                  params = [];
                   descr =
                     "when a source is connected. Its receives the list of \
                      ICY-specific headers, if available.";
                   default_synchronous = false;
                   register_deprecated_argument = true;
-                  arg_t = [];
+                  arg_t = [(false, "", Lang.metadata_t)];
                   register =
                     (fun ~params:_ s on_connect ->
                       let on_connect m =
