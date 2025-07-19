@@ -121,7 +121,7 @@ def segment_name(metadata) =
   "segment-#{stream_name}_#{position}.#{extname}"
 end
 
-def on_file_change(~state, fname) =
+def on_file_change({state, path = fname}) =
   if
     state == "created"
   and
@@ -140,10 +140,9 @@ def on_file_change(~state, fname) =
   end
 end
 
-output.file.hls(
+o = output.file.hls(
   segment_duration=2.,
   segment_name=segment_name,
-  on_file_change=on_file_change,
   tmp_dir,
   [
     ("aac", %ffmpeg(format = "adts", %audio(codec = "aac")).{id3_version=3}),
@@ -167,3 +166,5 @@ output.file.hls(
   ],
   s
 )
+
+o.on_file_change(on_file_change)
