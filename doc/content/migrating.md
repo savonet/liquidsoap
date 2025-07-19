@@ -42,9 +42,14 @@ This means that the function to be executed by the callback is placed in a `thre
 by default. This is done to make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
 a callback function takes too long, the streaming cycle gets late, causing issues with the runtime system typically resulting in catchup errors.
 
+NB: `on_frame` has been kept as synchronous by default since it does not make sense to queue a task on every frame!
+
 Callbacks have also been moved to source methods in order to unify the codebase, options and more.
 
-Typically, instead of doing:
+In most cases, callback previously passed as arguments are still accepted, triggering a deprecation warning. The only case where this was not possible was
+with `blank.detect`.
+
+With the new source-related callbacks, instead of doing:
 
 ```liquidsoap
 s = on_metadata(s, fn)
@@ -78,8 +83,21 @@ s.on_position(
 )
 ```
 
-By default, asynchronous callbacks may not be executed immediately and execution order can sometime be re-shuffled. If your callback is fast
-or if you need to have tighter control over this, you can set the `synchronous` parameter to `true`:
+With the other callbacks, e.g. `on_start`, instead of doing:
+
+```liquidsoap
+output.ao(on_start=fn, ...)
+```
+
+You should now do:
+
+```liquidsoap
+o = output.ao(...)
+o.on_start(fn)
+```
+
+Most callbacks are now registered as asynchronous callbacks. This means that they may not be executed immediately and execution order can sometime be re-shuffled.
+If your callback is fast or if you need to have tighter control over this, you can set the `synchronous` parameter to `true`:
 
 ```liquidsoap
 s.on_track(synchronous=true, fn)
