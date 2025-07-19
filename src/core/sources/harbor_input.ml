@@ -270,7 +270,7 @@ let _ =
             "a source is connected. Its receives the list of headers, of the \
              form: (<label>,<value>). All labels are lowercase.";
           default_synchronous = false;
-          register_deprecated_argument = true;
+          register_deprecated_argument = `Same;
           arg_t = [(false, "", Lang.metadata_t)];
           register =
             (fun ~params:_ s on_connect ->
@@ -282,7 +282,7 @@ let _ =
           params = [];
           descr = "when a source is disconnected.";
           default_synchronous = false;
-          register_deprecated_argument = true;
+          register_deprecated_argument = `Same;
           arg_t = [];
           register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
         };

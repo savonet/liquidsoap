@@ -461,7 +461,7 @@ let register_input is_http =
                     "when a source is connected. Its receives the list of \
                      ICY-specific headers, if available.";
                   default_synchronous = false;
-                  register_deprecated_argument = true;
+                  register_deprecated_argument = `Same;
                   arg_t = [];
                   register =
                     (fun ~params:_ s on_connect ->
@@ -478,7 +478,7 @@ let register_input is_http =
                   params = [];
                   descr = "Function to execute when a source is connected.";
                   default_synchronous = false;
-                  register_deprecated_argument = true;
+                  register_deprecated_argument = `Same;
                   arg_t = [];
                   register =
                     (fun ~params:_ s on_connect ->
@@ -492,7 +492,7 @@ let register_input is_http =
                params = [];
                descr = "when a source is disconnected.";
                default_synchronous = false;
-               register_deprecated_argument = true;
+               register_deprecated_argument = `Same;
                arg_t = [];
                register =
                  (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
@@ -502,7 +502,7 @@ let register_input is_http =
                params = [];
                descr = "when an error occurs.";
                default_synchronous = false;
-               register_deprecated_argument = true;
+               register_deprecated_argument = `Same;
                arg_t = [(false, "", Lang.error_t)];
                register =
                  (fun ~params:_ s f ->
