@@ -11,7 +11,9 @@ def f() =
     test.pass()
   end
 
-  output.dummy(input.ffmpeg(on_error=on_error, "invalid"), fallible=true)
+  s = input.ffmpeg("invalid")
+  s.on_error(on_error)
+  output.dummy(s, fallible=true)
 end
 
 test.check(f)
