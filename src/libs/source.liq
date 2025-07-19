@@ -126,15 +126,16 @@ def blank.skip(
   ~track_sensitive=true,
   s
 ) =
-  blank.detect(
+  s' = blank.detect(
     id=id,
-    {s.skip()},
     threshold=threshold,
     max_blank=max_blank,
     min_noise=min_noise,
     track_sensitive=track_sensitive,
     s
   )
+  s'.on_blank(source.methods(s).skip)
+  s'
 end
 
 # Run a function regularly. This is similar to `thread.run` but based on a
