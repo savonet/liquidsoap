@@ -499,11 +499,11 @@ let register_input is_http =
              };
              {
                name = "on_error";
-               params = [{ name = ""; typ = Lang.error_t; default = None }];
+               params = [];
                descr = "when an error occurs.";
                default_synchronous = false;
                register_deprecated_argument = true;
-               arg_t = [];
+               arg_t = [(false, "", Lang.error_t)];
                register =
                  (fun ~params:_ s f ->
                    s#on_error (fun err -> f [("", Lang.error err)]));
