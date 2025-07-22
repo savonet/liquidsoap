@@ -39,7 +39,13 @@ let parse =
   in
   fun s ->
     let lexbuf = Sedlexing.Utf8.from_string s in
-    processor (fun () ->
-        let token = Cron_lexer.token lexbuf in
-        let p, p' = Sedlexing.lexing_bytes_positions lexbuf in
-        (token, p, p'))
+    try
+      processor (fun () ->
+          let token = Cron_lexer.token lexbuf in
+          let p, p' = Sedlexing.lexing_bytes_positions lexbuf in
+          (token, p, p'))
+    with _ ->
+      raise
+        (Cron_base.Parse_error
+           ( Sedlexing.lexing_bytes_positions lexbuf,
+             Printf.sprintf "Invalid CRON expression!" ))
