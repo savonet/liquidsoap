@@ -11,5 +11,5 @@ type t = {
 exception Parse_error
 
 val parse : string -> t
-val test : t -> bool
+val test : ?time:float -> t -> bool
 val string_of_entry : entry -> string

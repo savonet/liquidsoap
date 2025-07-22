@@ -245,7 +245,9 @@ let _ =
           ("month_day", Lang.string_t);
           ("hour", Lang.string_t);
           ("minute", Lang.string_t);
-          ("test", Lang.fun_t [] Lang.bool_t);
+          ( "test",
+            Lang.fun_t [(true, "time", Lang.(nullable_t float_t))] Lang.bool_t
+          );
         ])
     (fun p ->
       let entry_val = List.assoc "" p in
@@ -255,7 +257,15 @@ let _ =
         with _ ->
           raise (Error.Invalid_value (entry_val, "Invalid CRON entry!"))
       in
-      let test = Lang.val_fun [] (fun _ -> Lang.bool (Cron.test entry)) in
+      let test =
+        Lang.val_fun
+          [("time", "time", Some Lang.null)]
+          (fun p ->
+            let time =
+              Lang.to_valued_option Lang.to_float (List.assoc "time" p)
+            in
+            Lang.bool (Cron.test ?time entry))
+      in
       Lang.record
         [
           ("week_day", Lang.string (Cron.string_of_entry week_day));

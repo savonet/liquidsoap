@@ -1,6 +1,7 @@
 include Cron_base
 
-let test entry =
+let test ?time entry =
+  let time = match time with None -> Unix.time () | Some t -> t in
   let {
     Unix.tm_min = sys_minute;
     tm_hour = sys_hour;
@@ -8,7 +9,7 @@ let test entry =
     tm_mon = sys_month;
     tm_wday = sys_week_day;
   } =
-    Unix.(localtime (time ()))
+    Unix.localtime time
   in
   match entry with
     | { minute = `Int v } when sys_minute <> v -> false
