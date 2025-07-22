@@ -56,7 +56,7 @@ thread.when(
               label="cron",
               "Executing cron.tab entry #{label} (cron entry: #{cron})"
             )
-            handler()
+            thread.run(fast=false, handler)
           end
         end,
       cron.tab()
