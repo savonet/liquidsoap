@@ -1,38 +1,41 @@
 let cron.tab = ref([])
 
 # Add an entry to the cron tab
+# @param ~label Entry label
+# @param ~cron Cron entry
 # @category Programming
-def cron.tab.append(entry, handler) =
+def cron.tab.append(~label, ~cron:c, handler) =
   if
-    list.exists(fun ({entry = e}) -> e == entry, cron.tab())
+    label
+    list.exists(fun ({label = l}) -> l == label, cron.tab())
   then
     error.raise(
       error.invalid,
-      "Cron tab entry for #{entry} already exists!"
+      "Cron tab entry for #{label} already exists!"
     )
   end
 
-  let {test} = cron.parse(entry)
+  let {test} = cron.parse(c)
   log.info(
     label="cron",
-    "Adding cron.tab entry #{entry}"
+    "Adding cron.tab entry #{label} (cron entry: #{c})"
   )
-  cron.tab := [...cron.tab(), {entry=entry, test=test, handler=handler}]
+  cron.tab := [...cron.tab(), {label=label, cron=c, test=test, handler=handler}]
 end
 
-def cron.tab.remove(entry) =
+def cron.tab.remove(label) =
   if
-    list.exists(fun ({entry = e}) -> e == entry, cron.tab())
+    list.exists(fun ({label = l}) -> l == label, cron.tab())
   then
     log.info(
       label="cron",
-      "Removing cron.tab entry #{entry}"
+      "Removing cron.tab entry #{label}"
     )
-    cron.tab := list.filter(fun ({entry = e}) -> e != entry, cron.tab())
+    cron.tab := list.filter(fun ({label = l}) -> l != label, cron.tab())
   else
     log.important(
       label="cron",
-      "Cannot remove cron.tab entry #{entry}: entry does not exist!"
+      "Cannot remove cron.tab entry #{label}: entry does not exist!"
     )
   end
 end
@@ -44,14 +47,14 @@ thread.when(
   {0s-30s},
   {
     list.iter(
-      fun ({entry, test, handler}) ->
+      fun ({label, cron, test, handler}) ->
         begin
           if
             test()
           then
             log.info(
               label="cron",
-              "Executing cron.tab entry #{entry}"
+              "Executing cron.tab entry #{label} (cron entry: #{cron})"
             )
             handler()
           end
