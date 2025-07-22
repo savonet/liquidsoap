@@ -4,9 +4,8 @@ let cron.tab = ref([])
 # @param ~label Entry label
 # @param ~cron Cron entry
 # @category Programming
-def cron.tab.append(~label, ~cron:c, handler) =
+def cron.tab.append(~(label:string), ~cron:c, handler) =
   if
-    label
     list.exists(fun ({label = l}) -> l == label, cron.tab())
   then
     error.raise(
