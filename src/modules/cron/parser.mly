@@ -21,7 +21,7 @@
 week_day_entry:
   | INT      {
       if $1 < 0 || 7 < $1 then raise (Base.Parse_error "Week day should be in the 0-7 range!");
-      $1 mod 6
+      $1 mod 7
   }
   | WEEK_DAY { $1 }
 

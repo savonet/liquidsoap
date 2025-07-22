@@ -7,6 +7,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
@@ -19,6 +20,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
@@ -31,6 +33,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} comments.liq liquidsoap %{test_liq} comments.liq)))
@@ -43,9 +46,23 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} conversions.liq liquidsoap %{test_liq} conversions.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  cron.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} cron.liq liquidsoap %{test_liq} cron.liq)))
   
 (rule
  (alias citest)
@@ -55,6 +72,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cue_test.liq liquidsoap %{test_liq} cue_test.liq)))
@@ -67,6 +85,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
@@ -79,6 +98,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
@@ -91,6 +111,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} error.liq liquidsoap %{test_liq} error.liq)))
@@ -103,6 +124,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
@@ -115,6 +137,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} file.liq liquidsoap %{test_liq} file.liq)))
@@ -127,6 +150,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
@@ -139,6 +163,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
@@ -151,6 +176,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} file_protocol.liq liquidsoap %{test_liq} file_protocol.liq)))
@@ -163,6 +189,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
@@ -175,6 +202,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
@@ -187,6 +215,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
@@ -199,6 +228,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
@@ -211,6 +241,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
@@ -223,6 +254,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
@@ -235,6 +267,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
@@ -247,6 +280,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} mem_usage.liq liquidsoap %{test_liq} mem_usage.liq)))
@@ -259,6 +293,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} metadata.liq liquidsoap %{test_liq} metadata.liq)))
@@ -271,6 +306,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
@@ -283,6 +319,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
@@ -295,6 +332,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} number.liq liquidsoap %{test_liq} number.liq)))
@@ -307,6 +345,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} osc.liq liquidsoap %{test_liq} osc.liq)))
@@ -319,6 +358,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
@@ -331,6 +371,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
@@ -343,6 +384,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
@@ -355,6 +397,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
@@ -367,6 +410,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
@@ -379,6 +423,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
@@ -391,6 +436,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
@@ -403,6 +449,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
@@ -415,6 +462,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
@@ -427,6 +475,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
@@ -439,6 +488,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} sqlite.liq liquidsoap %{test_liq} sqlite.liq)))
@@ -451,6 +501,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
@@ -463,6 +514,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
@@ -475,6 +527,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} thread.liq liquidsoap %{test_liq} thread.liq)))
@@ -487,6 +540,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} time.liq liquidsoap %{test_liq} time.liq)))
@@ -499,6 +553,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq)))
@@ -511,6 +566,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
@@ -523,6 +579,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} url.liq liquidsoap %{test_liq} url.liq)))
@@ -535,6 +592,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} various.liq liquidsoap %{test_liq} various.liq)))
@@ -547,6 +605,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} xml_test.liq liquidsoap %{test_liq} xml_test.liq)))
@@ -559,6 +618,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
+  crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} yaml.liq liquidsoap %{test_liq} yaml.liq)))
