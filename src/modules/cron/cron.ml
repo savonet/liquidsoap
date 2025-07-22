@@ -44,8 +44,4 @@ let parse =
           let token = Cron_lexer.token lexbuf in
           let p, p' = Sedlexing.lexing_bytes_positions lexbuf in
           (token, p, p'))
-    with _ ->
-      raise
-        (Cron_base.Parse_error
-           ( Sedlexing.lexing_bytes_positions lexbuf,
-             Printf.sprintf "Invalid CRON expression!" ))
+    with _ -> raise Parse_error

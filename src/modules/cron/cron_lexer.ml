@@ -98,8 +98,4 @@ let rec token lexbuf =
     | "@daily" -> DAILY
     | "@hourly" -> HOURLY
     | eof -> EOF
-    | _ ->
-        raise
-          (Cron_base.Parse_error
-             ( Sedlexing.lexing_bytes_positions lexbuf,
-               Printf.sprintf "Invalid CRON expression!" ))
+    | _ -> raise Cron_base.Parse_error

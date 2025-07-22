@@ -248,11 +248,12 @@ let _ =
           ("test", Lang.fun_t [] Lang.bool_t);
         ])
     (fun p ->
-      let entry = Lang.to_string (List.assoc "" p) in
+      let entry_val = List.assoc "" p in
+      let entry = Lang.to_string entry_val in
       let ({ Cron.week_day; month; month_day; hour; minute } as entry) =
         try Cron.parse entry
-        with Cron.Parse_error (pos, err) ->
-          Runtime_error.raise ~message:err ~pos:[Pos.of_lexing_pos pos] "cron"
+        with _ ->
+          raise (Error.Invalid_value (entry_val, "Invalid CRON entry!"))
       in
       let test = Lang.val_fun [] (fun _ -> Lang.bool (Cron.test entry)) in
       Lang.record

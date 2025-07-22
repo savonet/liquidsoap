@@ -14,6 +14,4 @@ type t = {
   minute : entry;
 }
 
-type pos = Lexing.position * Lexing.position
-
-exception Parse_error of (pos * string)
+exception Parse_error
