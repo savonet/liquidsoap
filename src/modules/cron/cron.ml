@@ -1,5 +1,13 @@
 include Cron_base
 
+let valid_entry (v, v') =
+  match v' with
+    | `Int v' -> v = v'
+    | `List l -> List.mem v l
+    | `Step s -> v mod s == 0
+    | `Range (min, max) -> min <= v && v <= max
+    | `Any -> true
+
 let test ?time entry =
   let time = match time with None -> Unix.time () | Some t -> t in
   let {
@@ -11,28 +19,15 @@ let test ?time entry =
   } =
     Unix.localtime time
   in
-  match entry with
-    | { minute = `Int v } when sys_minute <> v -> false
-    | { minute = `Range (v, v') } when sys_minute < v || v' < sys_minute ->
-        false
-    | { minute = `Step v } when sys_minute mod v <> 0 -> false
-    | { hour = `Int v } when sys_hour <> v -> false
-    | { hour = `Range (v, v') } when sys_hour < v || v' < sys_hour -> false
-    | { hour = `Step v } when sys_hour mod v <> 0 -> false
-    | { month_day = `Int v } when sys_month_day <> v -> false
-    | { month_day = `Range (v, v') }
-      when sys_month_day < v || v' < sys_month_day ->
-        false
-    | { month_day = `Step v } when sys_month_day mod v <> 0 -> false
-    | { month = `Int v } when sys_month <> v -> false
-    | { month = `Range (v, v') } when sys_month < v || v' < sys_month -> false
-    | { month = `Step v } when sys_month mod v <> 0 -> false
-    | { week_day = `Int v } when sys_week_day <> v -> false
-    | { week_day = `Range (v, v') } when sys_week_day < v || v' < sys_week_day
-      ->
-        false
-    | { week_day = `Step v } when sys_week_day mod v <> 0 -> false
-    | _ -> true
+  let { minute; hour; month_day; month; week_day } = entry in
+  List.for_all valid_entry
+    [
+      (sys_minute, minute);
+      (sys_hour, hour);
+      (sys_month_day, month_day);
+      (sys_month, month);
+      (sys_week_day, week_day);
+    ]
 
 let parse =
   let processor =
@@ -45,4 +40,8 @@ let parse =
           let token = Cron_lexer.token lexbuf in
           let p, p' = Sedlexing.lexing_bytes_positions lexbuf in
           (token, p, p'))
-    with _ -> raise Parse_error
+    with
+      | Parse_error _ as exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace exn bt
+      | _ -> raise (Parse_error "Invalid CRON string")

@@ -1,4 +1,5 @@
-type entry = [ `Int of int | `Range of int * int | `Step of int | `Any ]
+type entry =
+  [ `Int of int | `List of int list | `Range of int * int | `Step of int | `Any ]
 
 type t = {
   week_day : entry;
@@ -8,7 +9,7 @@ type t = {
   minute : entry;
 }
 
-exception Parse_error
+exception Parse_error of string
 
 val parse : string -> t
 val test : ?time:float -> t -> bool
