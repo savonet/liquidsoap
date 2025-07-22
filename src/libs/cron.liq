@@ -39,7 +39,9 @@ end
 
 # Main cron thread.
 thread.when(
-  {0m},
+  fast=false,
+  every=20.,
+  {0s-30s},
   {
     list.iter(
       fun ({entry, test, handler}) ->
