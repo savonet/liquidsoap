@@ -26,7 +26,7 @@ let to_string ?compact ?json5 v =
     | Infinite ->
         Runtime_error.raise ~pos:[]
           ~message:
-            "Infinite numbesr cannot be represented in JSON. You might want to \
+            "Infinite numbers cannot be represented in JSON. You might want to \
              consider using the `json5` representation."
           "json"
     | NaN ->
