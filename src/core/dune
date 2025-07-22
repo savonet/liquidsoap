@@ -19,6 +19,7 @@
   (pps ppx_string))
  (libraries
   mm
+  cron
   dtools
   dune-build-info
   duppy

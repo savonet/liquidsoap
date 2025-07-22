@@ -1,0 +1,20 @@
+(env
+ (release
+  (ocamlopt_flags
+   (:standard -O2)))
+ (dev
+  (flags
+   (:standard -w -9))))
+
+(menhir
+ (modules cron_parser))
+
+(library
+ (name cron)
+ (modules cron cron_base cron_parser cron_lexer)
+ (private_modules cron_base cron_parser cron_lexer)
+ (wrapped false)
+ (libraries menhirLib unix)
+ (preprocess
+  (pps sedlex.ppx))
+ (synopsis "Cron utilities"))
