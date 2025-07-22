@@ -1,4 +1,4 @@
-include Cron_base
+include Base
 
 let valid_entry (v, v') =
   match v' with
@@ -31,13 +31,13 @@ let test ?time entry =
 
 let parse =
   let processor =
-    MenhirLib.Convert.Simplified.traditional2revised Cron_parser.cron
+    MenhirLib.Convert.Simplified.traditional2revised Parser.cron
   in
   fun s ->
     let lexbuf = Sedlexing.Utf8.from_string s in
     try
       processor (fun () ->
-          let token = Cron_lexer.token lexbuf in
+          let token = Lexer.token lexbuf in
           let p, p' = Sedlexing.lexing_bytes_positions lexbuf in
           (token, p, p'))
     with

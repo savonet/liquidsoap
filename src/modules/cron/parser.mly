@@ -1,6 +1,6 @@
 
 %start cron
-%type <Cron_base.t> cron
+%type <Base.t> cron
 
 %token STAR
 %token DASH
@@ -20,7 +20,7 @@
 
 week_day_entry:
   | INT      {
-      if $1 < 0 || 7 < $1 then raise (Cron_base.Parse_error "Week day should be in the 0-7 range!");
+      if $1 < 0 || 7 < $1 then raise (Base.Parse_error "Week day should be in the 0-7 range!");
       $1 mod 6
   }
   | WEEK_DAY { $1 }
@@ -38,7 +38,7 @@ week_day:
 
 month_entry:
   | INT      {
-      if $1 < 1 || 12 < $1 then raise (Cron_base.Parse_error "Month should be in the 1-12 range!");
+      if $1 < 1 || 12 < $1 then raise (Base.Parse_error "Month should be in the 1-12 range!");
       $1
   }
   | MONTH { $1 }
@@ -56,7 +56,7 @@ month:
 
 month_day_entry:
   | INT      {
-      if $1 < 1 || 31 < $1 then raise (Cron_base.Parse_error "Month day should be in the 1-31 range!");
+      if $1 < 1 || 31 < $1 then raise (Base.Parse_error "Month day should be in the 1-31 range!");
       $1
   }
 
@@ -73,7 +73,7 @@ month_day:
 
 hour_entry:
   | INT      {
-      if $1 < 0 || 23 < $1 then raise (Cron_base.Parse_error "Hour should be in the 0-23 range!");
+      if $1 < 0 || 23 < $1 then raise (Base.Parse_error "Hour should be in the 0-23 range!");
       $1
   }
 
@@ -90,7 +90,7 @@ hour:
 
 minute_entry:
   | INT      {
-      if $1 < 0 || 59 < $1 then raise (Cron_base.Parse_error "Minute should be in the 0-59 range!");
+      if $1 < 0 || 59 < $1 then raise (Base.Parse_error "Minute should be in the 0-59 range!");
       $1
   }
 
@@ -106,11 +106,11 @@ minute:
   | STAR SLASH minute_entry        { `Step $3 }
 
 cron:
-  | YEARLY { { Cron_base.minute = `Int 0; hour = `Int 0; month_day = `Int 1; month = `Int 1; week_day = `Any } }
-  | MONTHLY { { Cron_base.minute = `Int 0; hour = `Int 0; month_day = `Int 1; month = `Any; week_day = `Any } }
-  | WEEKLY { { Cron_base.minute = `Int 0; hour = `Int 0; month_day = `Any; month = `Any; week_day = `Int 0 } }
-  | DAILY { { Cron_base.minute = `Int 0; hour = `Int 0; month_day = `Any; month = `Any; week_day = `Any } }
-  | HOURLY { { Cron_base.minute = `Int 0; hour = `Any; month_day = `Any; month = `Any; week_day = `Any } }
+  | YEARLY { { Base.minute = `Int 0; hour = `Int 0; month_day = `Int 1; month = `Int 1; week_day = `Any } }
+  | MONTHLY { { Base.minute = `Int 0; hour = `Int 0; month_day = `Int 1; month = `Any; week_day = `Any } }
+  | WEEKLY { { Base.minute = `Int 0; hour = `Int 0; month_day = `Any; month = `Any; week_day = `Int 0 } }
+  | DAILY { { Base.minute = `Int 0; hour = `Int 0; month_day = `Any; month = `Any; week_day = `Any } }
+  | HOURLY { { Base.minute = `Int 0; hour = `Any; month_day = `Any; month = `Any; week_day = `Any } }
   | minute hour month_day month week_day EOF {
-    { Cron_base.minute = $1; hour = $2; month_day = $3; month = $4; week_day = $5 }
+    { Base.minute = $1; hour = $2; month_day = $3; month = $4; week_day = $5 }
   }

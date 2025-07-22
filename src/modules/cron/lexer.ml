@@ -1,4 +1,4 @@
-open Cron_parser
+open Parser
 
 let decimal_digit = [%sedlex.regexp? '0' .. '9']
 let one_nine = [%sedlex.regexp? '1' .. '9']
@@ -40,4 +40,4 @@ let rec token lexbuf =
     | "@hourly" -> HOURLY
     | eof -> EOF
     | integer -> INT (int_of_string (Sedlexing.Utf8.lexeme lexbuf))
-    | _ -> raise (Cron_base.Parse_error "Syntax error")
+    | _ -> raise (Base.Parse_error "Syntax error")
