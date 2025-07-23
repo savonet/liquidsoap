@@ -631,10 +631,6 @@ class hls_output p =
 
     method on_file_change fn = on_file_change <- fn :: on_file_change
 
-    method call_on_file_change ?fd ~state path =
-      List.iter (fun fn -> fn ?fd ~state path) on_file_change;
-      match fd with None -> () | Some fd -> Unix.close fd
-
     method private toggle_state event =
       match (event, state) with
         | `Restart, _ | `Resumed, _ | `Start, `Stopped -> state <- `Restarted
@@ -709,12 +705,13 @@ class hls_output p =
                       Unix.close fd;
                       Printexc.raise_with_backtrace exn bt
               in
-              self#call_on_file_change ?fd ~state fname)
+              List.iter (fun fn -> fn ?fd ~state fname) on_file_change;
+              match fd with None -> () | Some fd -> Unix.close fd)
       end
 
     method private unlink filename =
       self#log#debug "Cleaning up %s.." filename;
-      self#call_on_file_change ~state:`Deleted filename;
+      List.iter (fun fn -> fn ~state:`Deleted filename) on_file_change;
       try Unix.unlink filename
       with Unix.Unix_error (e, _, _) ->
         self#log#important "Could not remove file %s: %s" filename
