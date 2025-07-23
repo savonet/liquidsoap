@@ -151,17 +151,24 @@ def file.touch(~perms=0o644, path) =
   file.write(data="", perms=perms, append=true, path)
 end
 
-# Read the whole contents of a file.
-# @category File
-def file.contents(fname) =
-  fn = file.read(fname)
+let file.contents = ()
 
+# Read the contents of an file
+# opened with `file.read`
+# @category File
+def file.contents.read(fn) =
   def rec f(cur) =
     s = fn()
     if s == "" then cur else f("#{cur}#{s}") end
   end
 
   f("")
+end
+
+# Read the whole contents of a file.
+# @category File
+def replaces file.contents(fname) =
+  file.contents.read(file.read(fname))
 end
 
 # Get the list of lines of a file.
