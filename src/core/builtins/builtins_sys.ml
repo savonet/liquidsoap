@@ -423,9 +423,13 @@ let playlist_parse =
           match mime with
             | None -> Playlist_parser.search_valid ~pwd content
             | Some mime -> (
-                match Plug.get Playlist_parser.parsers mime with
-                  | Some plugin ->
-                      (mime, plugin.Playlist_parser.parser ~pwd content)
+                match
+                  List.find_opt
+                    (fun (_, { Playlist_parser.mimes }) -> List.mem mime mimes)
+                    (Plug.list Playlist_parser.parsers)
+                with
+                  | Some (_, { Playlist_parser.parser }) ->
+                      (mime, parser ~pwd content)
                   | None ->
                       log#important "Unknown mime type, trying autodetection.";
                       Playlist_parser.search_valid ~pwd content)
