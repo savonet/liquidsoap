@@ -691,18 +691,23 @@ class hls_output p =
                 try
                   Unix.rename tmp_file fname;
                   Some fd
-                with Unix.Unix_error (Unix.EXDEV, _, _) ->
-                  Unix.close fd;
-                  self#log#important
-                    "Rename failed! Directory for temporary files appears to \
-                     be on a different file system. Please set it to the same \
-                     one using `temp_dir` argument to guarantee atomic file \
-                     operations!";
-                  Utils.copy
-                    ~mode:[Open_creat; Open_trunc; Open_binary]
-                    ~perms tmp_file fname;
-                  Sys.remove tmp_file;
-                  None
+                with
+                  | Unix.Unix_error (Unix.EXDEV, _, _) ->
+                      Unix.close fd;
+                      self#log#important
+                        "Rename failed! Directory for temporary files appears \
+                         to be on a different file system. Please set it to \
+                         the same one using `temp_dir` argument to guarantee \
+                         atomic file operations!";
+                      Utils.copy
+                        ~mode:[Open_creat; Open_trunc; Open_binary]
+                        ~perms tmp_file fname;
+                      Sys.remove tmp_file;
+                      None
+                  | exn ->
+                      let bt = Printexc.get_raw_backtrace () in
+                      Unix.close fd;
+                      Printexc.raise_with_backtrace exn bt
               in
               self#call_on_file_change ?fd ~state fname)
       end
