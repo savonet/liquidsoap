@@ -90,6 +90,7 @@
   (pps sedlex.ppx ppx_string ppx_hash))
  (libraries
   liquidsoap-lang.console
+  liquidsoap-lang.stdlib
   dune-site
   fileutils
   re
