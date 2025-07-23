@@ -1086,9 +1086,6 @@ def replaces playlist(
     list.map.right(fun (file) -> prefix ^ file, files)
   end
 
-  # Create the source
-  files := load_playlist()
-
   # Reload when the playlist is done
   def on_loop() =
     reloader = reloader_ref()
@@ -1146,6 +1143,8 @@ def replaces playlist(
       on_reload(playlist_uri())
     end
   end
+
+  s.on_wake_up(s.reload)
 
   reloader_ref := s.reload
 
