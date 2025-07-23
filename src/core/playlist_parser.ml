@@ -64,6 +64,7 @@ type parser = ?pwd:string -> string -> playlist
 
 (** A plugin is a boolean and a parsing function *)
 type plugin = {
+  mimes : string list;
   (* true if the format can be automatically detected *)
   strict : bool;
   (* The parser is expected to respect the order
