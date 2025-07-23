@@ -1,0 +1,4 @@
+(library
+ (name stdlib)
+ (public_name liquidsoap-lang.stdlib)
+ (wrapped false))
