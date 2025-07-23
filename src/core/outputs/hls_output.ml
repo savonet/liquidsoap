@@ -626,7 +626,8 @@ class hls_output p =
     method self_sync = source#self_sync
 
     val mutable on_file_change
-        : (?fd:Unix.file_descr -> state:file_state -> string -> unit) list =
+        : (fd:Unix.file_descr option -> state:file_state -> string -> unit) list
+        =
       []
 
     method on_file_change fn = on_file_change <- fn :: on_file_change
@@ -705,13 +706,13 @@ class hls_output p =
                       Unix.close fd;
                       Printexc.raise_with_backtrace exn bt
               in
-              List.iter (fun fn -> fn ?fd ~state fname) on_file_change;
+              List.iter (fun fn -> fn ~fd ~state fname) on_file_change;
               match fd with None -> () | Some fd -> Unix.close fd)
       end
 
     method private unlink filename =
       self#log#debug "Cleaning up %s.." filename;
-      List.iter (fun fn -> fn ~state:`Deleted filename) on_file_change;
+      List.iter (fun fn -> fn ~fd:None ~state:`Deleted filename) on_file_change;
       try Unix.unlink filename
       with Unix.Unix_error (e, _, _) ->
         self#log#important "Could not remove file %s: %s" filename
@@ -1287,7 +1288,7 @@ let _ =
              ];
            register =
              (fun ~params:_ s on_file_change ->
-               let on_file_change ?fd ~state path =
+               let on_file_change ~fd ~state path =
                  let read =
                    match fd with
                      | None -> Lang.null
