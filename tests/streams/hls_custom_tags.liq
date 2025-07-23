@@ -7,15 +7,14 @@ aac_flags = ref(false)
 mp4_flags = ref(false)
 aac_insert_flags = ref(false)
 
-def on_file_change({state, path = p}) =
+def on_file_change({state, read = r, path = p}) =
   fname = path.basename(p)
+  contents = fun () -> file.contents.read(r ?? file.read(p))
   if
     state == "created" or state == "updated"
   then
     if
-      fname == "main.m3u8"
-    and
-      string.contains(substring="X-CUSTOM", file.contents(p))
+      fname == "main.m3u8" and string.contains(substring="X-CUSTOM", contents())
     then
       main_tags := true
     end
@@ -23,15 +22,14 @@ def on_file_change({state, path = p}) =
     if
       fname == "aac.m3u8"
     then
-      contents = file.contents(p)
       if
-        string.contains(substring="X-CUSTOM", contents)
+        string.contains(substring="X-CUSTOM", contents())
       then
         aac_flags := true
       end
 
       if
-        string.contains(substring="X-CUSTOM-AAC-INSERT", contents)
+        string.contains(substring="X-CUSTOM-AAC-INSERT", contents())
       then
         aac_insert_flags := true
       end
@@ -40,9 +38,8 @@ def on_file_change({state, path = p}) =
     if
       fname == "mp4.m3u8"
     then
-      contents = file.contents(p)
       if
-        string.contains(substring="X-CUSTOM", contents)
+        string.contains(substring="X-CUSTOM", contents())
       then
         mp4_flags := true
       end

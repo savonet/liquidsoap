@@ -25,7 +25,8 @@ second_playlist =
 third_playlist =
   "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:6\r\n#EXT-X-DISCONTINUITY-SEQUENCE:1\r\n#EXTINF:2.000,\r\nstream_7.ts\r\n#EXTINF:1.980,\r\nstream_8.ts\r\n#EXTINF:1.980,\r\nstream_9.ts\r\n#EXTINF:1.960,\r\nstream_10.ts\r\n"
 
-def on_file_change({path = fname}) =
+def on_file_change({path = fname, read = r}) =
+  contents = fun () -> file.contents.read(r ?? file.read(fname))
   if
     path.basename(fname) == "stream.m3u8"
   then
@@ -33,7 +34,7 @@ def on_file_change({path = fname}) =
     if
       not has_restarted() and segments_count() == 4
     then
-      test.equal(file.contents(fname), first_playlist)
+      test.equal(contents(), first_playlist)
       is_on := false
       thread.run(
         delay=0.1,
@@ -46,11 +47,11 @@ def on_file_change({path = fname}) =
     elsif
       has_restarted() and segments_count() == 1
     then
-      test.equal(file.contents(fname), second_playlist)
+      test.equal(contents(), second_playlist)
     elsif
       has_restarted() and segments_count() == 4
     then
-      test.equal(file.contents(fname), third_playlist)
+      test.equal(contents(), third_playlist)
       test.pass()
     end
   end
