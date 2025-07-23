@@ -1251,7 +1251,7 @@ let _ =
              "when a file changes. `state` is one of: `\"created\"`, \
               `\"updated\"` or `\"deleted\"`, `path` is the full file path. \
               Typical use: sync file with a CDN";
-           default_synchronous = false;
+           default_synchronous = true;
            register_deprecated_argument = false;
            arg_t =
              [
