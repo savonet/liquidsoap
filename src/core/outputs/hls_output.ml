@@ -624,8 +624,16 @@ class hls_output p =
     val mutable current_position = (0, 0)
     val mutable state : hls_state = `Idle
     method self_sync = source#self_sync
-    val mutable on_file_change : (state:file_state -> string -> unit) list = []
+
+    val mutable on_file_change
+        : (?fd:Unix.file_descr -> state:file_state -> string -> unit) list =
+      []
+
     method on_file_change fn = on_file_change <- fn :: on_file_change
+
+    method call_on_file_change ?fd ~state path =
+      List.iter (fun fn -> fn ?fd ~state path) on_file_change;
+      match fd with None -> () | Some fd -> Unix.close fd
 
     method private toggle_state event =
       match (event, state) with
@@ -678,23 +686,30 @@ class hls_output p =
               let state =
                 if Sys.file_exists fname then `Updated else `Created
               in
-              (try Unix.rename tmp_file fname
-               with Unix.Unix_error (Unix.EXDEV, _, _) ->
-                 self#log#important
-                   "Rename failed! Directory for temporary files appears to be \
-                    on a different file system. Please set it to the same one \
-                    using `temp_dir` argument to guarantee atomic file \
-                    operations!";
-                 Utils.copy
-                   ~mode:[Open_creat; Open_trunc; Open_binary]
-                   ~perms tmp_file fname;
-                 Sys.remove tmp_file);
-              List.iter (fun fn -> fn ~state fname) on_file_change)
+              let fd = Unix.openfile tmp_file Unix.[O_RDONLY; O_EXCL] 0 in
+              let fd =
+                try
+                  Unix.rename tmp_file fname;
+                  Some fd
+                with Unix.Unix_error (Unix.EXDEV, _, _) ->
+                  Unix.close fd;
+                  self#log#important
+                    "Rename failed! Directory for temporary files appears to \
+                     be on a different file system. Please set it to the same \
+                     one using `temp_dir` argument to guarantee atomic file \
+                     operations!";
+                  Utils.copy
+                    ~mode:[Open_creat; Open_trunc; Open_binary]
+                    ~perms tmp_file fname;
+                  Sys.remove tmp_file;
+                  None
+              in
+              self#call_on_file_change ?fd ~state fname)
       end
 
     method private unlink filename =
       self#log#debug "Cleaning up %s.." filename;
-      List.iter (fun fn -> fn ~state:`Deleted filename) on_file_change;
+      self#call_on_file_change ~state:`Deleted filename;
       try Unix.unlink filename
       with Unix.Unix_error (e, _, _) ->
         self#log#important "Could not remove file %s: %s" filename
@@ -1249,8 +1264,12 @@ let _ =
            params = [];
            descr =
              "when a file changes. `state` is one of: `\"created\"`, \
-              `\"updated\"` or `\"deleted\"`, `path` is the full file path. \
-              Typical use: sync file with a CDN";
+              `\"updated\"` or `\"deleted\"`. Typical use: sync file with a \
+              CDN. `read` is an optional callback to read the file's content \
+              with the same semantics as `file.read`. `read` callback is \
+              present when the state is not `\"deleted\"` and file creation \
+              was atomic (see `tmp_dir` argument). Use `read` if the file's \
+              content is subject to concurrent changes, e.g. m3u8 playlist.";
            default_synchronous = false;
            register_deprecated_argument = false;
            arg_t =
@@ -1258,17 +1277,43 @@ let _ =
                ( false,
                  "",
                  Lang.record_t
-                   [("state", Lang.string_t); ("path", Lang.string_t)] );
+                   [
+                     ("state", Lang.string_t);
+                     ("read", Lang.(nullable_t (fun_t [] Lang.string_t)));
+                     ("path", Lang.string_t);
+                   ] );
              ];
            register =
              (fun ~params:_ s on_file_change ->
-               let on_file_change ~state path =
+               let on_file_change ?fd ~state path =
+                 let read =
+                   match fd with
+                     | None -> Lang.null
+                     | Some fd ->
+                         let fd = Unix.dup fd in
+                         let is_done = ref false in
+                         let finalise () = if not !is_done then Unix.close fd in
+                         let read =
+                           Lang.val_fun [] (fun _ ->
+                               if !is_done then Lang.string ""
+                               else (
+                                 let b = Bytes.create 1024 in
+                                 let n = Unix.read fd b 0 1024 in
+                                 if n = 0 then (
+                                   is_done := true;
+                                   Unix.close fd);
+                                 Lang.string (Bytes.sub_string b 0 n)))
+                         in
+                         Gc.finalise_last finalise read;
+                         read
+                 in
                  on_file_change
                    [
                      ( "",
                        Lang.record
                          [
                            ("state", Lang.string (string_of_file_state state));
+                           ("read", read);
                            ("path", Lang.string path);
                          ] );
                    ]
