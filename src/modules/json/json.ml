@@ -1,17 +1,20 @@
-include Json_base
+include Base
 
 exception Infinite
 exception NaN
+
+module Json_string = String
+module String = Stdlib.String
 
 let string_of_float f =
   let s = string_of_float f in
   if s.[String.length s - 1] = '.' then s ^ "0" else s
 
 let json5_processor =
-  MenhirLib.Convert.Simplified.traditional2revised Json_parser.json5
+  MenhirLib.Convert.Simplified.traditional2revised Parser.json5
 
 let json_processor =
-  MenhirLib.Convert.Simplified.traditional2revised Json_parser.json
+  MenhirLib.Convert.Simplified.traditional2revised Parser.json
 
 let from_string ?(json5 = false) s =
   let processor = if json5 then json5_processor else json_processor in
@@ -27,8 +30,7 @@ let from_string ?(json5 = false) s =
   in
   let tokenizer () =
     let token =
-      if json5 then Json_lexer.json5_token lexbuf
-      else Json_lexer.json_token lexbuf
+      if json5 then Lexer.json5_token lexbuf else Lexer.json_token lexbuf
     in
     let startp, endp = Sedlexing.lexing_bytes_positions lexbuf in
     (token, startp, endp)

@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-open Json_parser
-open Json_base
-open Json_string
+open Base
+open Parser
+open String
 
 (* Json specs *)
 

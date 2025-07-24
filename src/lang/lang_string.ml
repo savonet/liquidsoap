@@ -1,4 +1,4 @@
-include Liquidsoap_json.Json_string
+include Liquidsoap_json.String
 
 let getpwnam = ref (fun _ -> raise Not_found)
 

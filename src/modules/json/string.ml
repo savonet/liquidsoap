@@ -1,3 +1,5 @@
+module String = Stdlib.String
+
 (* Generic escaping function. Returns a list of escaping substitutions. *)
 let escape ~special_char ~next ~escape_char s =
   let orig_len = String.length s in
