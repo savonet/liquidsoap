@@ -72,12 +72,7 @@ def audioscrobbler.check_response(resp) =
   end
 end
 
-def audioscrobbler.auth(
-  ~username,
-  ~password,
-  ~api_key=null,
-  ~api_secret=null
-) =
+def audioscrobbler.auth(~username, ~password, ~api_key=null, ~api_secret=null) =
   resp =
     audioscrobbler.request(
       api_key=api_key,
@@ -427,28 +422,25 @@ def audioscrobbler.submit(
     )
 
   def now_playing(m) =
-    thread.run(
-      delay=0.,
-      {
-        try
-          audioscrobbler.api.track.updateNowPlaying.metadata(
-            username=username,
-            password=password,
-            api_key=api_key,
-            api_secret=api_secret,
-            session_key=session_key,
-            metadata_preprocessor(m)
-          )
-        catch err do
-          log.important(
-            "Error while submitting nowplaying info for #{source.id(s)}: #{err}"
-          )
-        end
-      }
-    )
+    try
+      audioscrobbler.api.track.updateNowPlaying.metadata(
+        username=username,
+        password=password,
+        api_key=api_key,
+        api_secret=api_secret,
+        session_key=session_key,
+        metadata_preprocessor(m)
+      )
+    catch err do
+      log.important(
+        "Error while submitting nowplaying info for #{source.id(s)}: #{err}"
+      )
+    end
   end
 
-  s = source.on_metadata(s, now_playing)
+  s = source.methods(s)
+  s.on_metadata(now_playing)
+
   f =
     fun (rem, m) ->
       # Avoid skipped songs
@@ -483,5 +475,7 @@ def audioscrobbler.submit(
           "Remaining time null: will not submit song (song skipped ?)"
         )
       end
-  source.on_end(s, delay=delay, f)
+  s.on_position(synchronous=true, remaining=true, position=delay, f)
+
+  (s:source)
 end

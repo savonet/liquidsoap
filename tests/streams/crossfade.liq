@@ -24,11 +24,12 @@ def check_duplicate(m) =
   if m["title"] == "b" then dup_b := dup_b() + 1 end
 end
 
-s.on_metadata(check_duplicate)
+s.on_metadata(synchronous=true, check_duplicate)
 clock.assign_new(sync="none", [s])
 
 def on_stop() =
   if dup_a() == 1 and dup_b() == 1 then test.pass() else () end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, on_stop)

@@ -15,6 +15,146 @@ close to production. Streaming issues can build up over time. We do our best to
 release the most stable possible code but problems can arise from many reasons
 so, always best to first to a trial run before putting things to production!
 
+## From 2.3.x to 2.4.x
+
+### `insert_metadata`
+
+`insert_metadata` is now available as a source method. You do not need to use the
+`insert_metadata` operator anymore and the operator has been deprecated.
+
+You can now directly do:
+
+```liquidsoap
+s = some_source()
+
+s.insert_metadata([("title","bla")])
+```
+
+Correspondingly, the `server.insert_metadata` command registration has been deprecated.
+Now, all sources have a `insert_metadata` server command by default!
+
+### Stream-related callbacks
+
+tl;dr:
+
+- Callbacks are now executed using `thread.run` by default.
+- You can use `settings.source.synchronous_callbacks` to change the default.
+- Most callback arguments should be accepted as deprecated arguments.
+- `on_frame` callbacks are still registered as synchronous by default.
+- `blank.detect` could not be updated in a backward-compatible manner.
+- `on_file_change` in `output.*.hls` has been updated to pass a single record.
+- `on_connect` callback on `output.harbor` has been updated to pass a single record.
+
+Stream-related callbacks is the biggest change with this release. They are now fully documented, with their own dedicated section
+in the doc and have been updated to be executed in an asynchronous task by default.
+
+This means that the function to be executed by the callback is placed in a `thread.run` task
+by default. This is done to make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
+a callback function takes too long, the streaming cycle gets late, causing issues with the runtime system typically resulting in catchup errors.
+
+Callbacks have also been moved to source methods in order to unify the codebase, options and more. In most cases, callback previously passed as
+arguments are still accepted, triggering a deprecation warning.
+
+With the new source-related callbacks, instead of doing:
+
+```liquidsoap
+s = on_metadata(s, fn)
+```
+
+You should now do:
+
+```liquidsoap
+s.on_metadata(fn)
+```
+
+Additionally, `on_end` and `on_offset` have been merged into a single `on_position` source method. Here is the new syntax:
+
+```liquidsoap
+# Execute a callback after current track position:
+s.on_position(
+  # This is the default
+  remaining=false,
+  position=1.2,
+  # Allow execution even if current track does not reach position `1.2`:
+  allow_partial=true,
+  fn
+)
+
+# Execute a callback when remaining position is less
+# than the given position:
+s.on_position(
+  remaining=true,
+  position=1.2,
+  fn
+)
+```
+
+With the other callbacks, e.g. `on_start`, instead of doing:
+
+```liquidsoap
+output.ao(on_start=fn, ...)
+```
+
+You should now do:
+
+```liquidsoap
+o = output.ao(...)
+o.on_start(fn)
+```
+
+Most callbacks are now registered as asynchronous callbacks. This means that they may not be executed immediately and execution order can sometime be re-shuffled.
+If your callback is fast or if you need to have tighter control over this, you can set the `synchronous` parameter to `true`:
+
+```liquidsoap
+s.on_track(synchronous=true, fn)
+```
+
+Lastly, if you are concerned with advanced callback execution logic, callbacks are executed in the order
+they are registered so, when, before, you would do:
+
+```liquidsoap
+s = on_metadata(s, f1)
+s = on_track(s, f2)
+```
+
+Resulting in `f1` being executed before `f2` in case of new track with metadata, you can now do:
+
+```liquidsoap
+s.on_metadata(synchronous=true, f1)
+s.on_track(synchronous=true, f2)
+```
+
+In some cases, callbacks that were originally passed as argument when creating a source or output are now registered after
+the source or output has been created.
+
+Typically, where you would do:
+
+```liquidsoap
+output.file(on_stop=shutdown, ...)
+```
+
+You should now do;
+
+```liquidsoap
+o = output.file(...)
+o.on_stop(shutdown)
+```
+
+### Error methods
+
+Because of the multiplication of callbacks with `on_error` arguments, error methods have
+been removed by default from the error types to avoid cluttering the documentation.
+
+If you need to access error methods, you can use `error.methods`:
+
+```liquidsoap
+# Add back error methods
+err = error.methods(err)
+
+# Access them
+print("Error kind: #{err.kind}")
+```
+
 ## From 2.2.x to 2.3.x
 
 ### Script caching

@@ -119,7 +119,7 @@ def f() =
 
   test.equal(ret, "blo")
   on_error = ref(error.register("dummy"))
-  error.on_error(fun (e) -> on_error := e)
+  error.on_error(fun (e) -> on_error := error.methods(e))
   try
     error.raise(
       e,
@@ -199,7 +199,7 @@ def f() =
     print(
       "caught error #{e} from thread and backtrace:\n#{backtrace}"
     )
-    if e.kind == "foo" then on_done() else test.fail() end
+    if error.methods(e).kind == "foo" then on_done() else test.fail() end
   end
 
   thread.on_error(e, on_error)

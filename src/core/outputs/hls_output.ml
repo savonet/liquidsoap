@@ -155,15 +155,6 @@ let hls_proto frame_t =
            same partition or device as the final directory to guarantee atomic \
            file operations. Use the same directory as the HLS files if `null`."
       );
-      ( "on_file_change",
-        Lang.fun_t
-          [(false, "state", Lang.string_t); (false, "", Lang.string_t)]
-          Lang.unit_t,
-        Some (Lang.val_cst_fun [("state", None); ("", None)] Lang.unit),
-        Some
-          "Callback executed when a file changes. `state` is one of: \
-           `\"created\"`, `\"updated\"` or `\"deleted\"`, second argument is \
-           file path. Typical use: sync file with a CDN" );
       ( "persist_at",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
@@ -354,24 +345,6 @@ let string_of_file_state = function
   | `Deleted -> "deleted"
 
 class hls_output p =
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_file_change =
-    let f = List.assoc "on_file_change" p in
-    fun ~state filename ->
-      ignore
-        (Lang.apply f
-           [
-             ("state", Lang.string (string_of_file_state state));
-             ("", Lang.string filename);
-           ])
-  in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
@@ -640,9 +613,8 @@ class hls_output p =
   object (self)
     inherit
       [(int * Strings.t option * Strings.t) list] Output.encoded
-        ~infallible ~register_telnet ~on_start ~on_stop ~autostart
-          ~export_cover_metadata:false ~output_kind:"output.file"
-          ~name:main_playlist_filename source_val
+        ~infallible ~register_telnet ~autostart ~export_cover_metadata:false
+          ~output_kind:"output.file" ~name:main_playlist_filename source_val
 
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
@@ -652,6 +624,8 @@ class hls_output p =
     val mutable current_position = (0, 0)
     val mutable state : hls_state = `Idle
     method self_sync = source#self_sync
+    val mutable on_file_change : (state:file_state -> string -> unit) list = []
+    method on_file_change fn = on_file_change <- fn :: on_file_change
 
     method private toggle_state event =
       match (event, state) with
@@ -715,12 +689,12 @@ class hls_output p =
                    ~mode:[Open_creat; Open_trunc; Open_binary]
                    ~perms tmp_file fname;
                  Sys.remove tmp_file);
-              on_file_change ~state fname)
+              List.iter (fun fn -> fn ~state fname) on_file_change)
       end
 
     method private unlink filename =
       self#log#debug "Cleaning up %s.." filename;
-      on_file_change ~state:`Deleted filename;
+      List.iter (fun fn -> fn ~state:`Deleted filename) on_file_change;
       try Unix.unlink filename
       with Unix.Unix_error (e, _, _) ->
         self#log#important "Could not remove file %s: %s" filename
@@ -1160,7 +1134,7 @@ class hls_output p =
 
     method send b = List.iter2 self#write_pipe streams b
 
-    method insert_metadata m =
+    method encode_metadata m =
       List.iter
         (fun s ->
           match s.metadata with
@@ -1244,23 +1218,65 @@ let _ =
   Lang.add_operator ~base:Pipe_output.output_file "hls" (hls_proto return_t)
     ~return_t ~category:`Output
     ~meth:
-      ([
-         ( "insert_tag",
-           ([], insert_tag_t),
-           "Insert the same tag into all the streams",
-           fun s ->
-             insert_tag
-               (List.map
-                  (fun { pending_extra_tags } -> pending_extra_tags)
-                  s#streams) );
-         ( "streams",
-           ([], Lang.fun_t [] (Lang.list_t (stream_t return_t))),
-           "Output streams",
-           fun s ->
-             Lang.val_fun [] (fun _ ->
-                 Lang.list (List.map value_of_stream s#streams)) );
-       ]
+      (Lang.
+         [
+           {
+             name = "insert_tag";
+             scheme = ([], insert_tag_t);
+             descr = "Insert the same tag into all the streams";
+             value =
+               (fun s ->
+                 insert_tag
+                   (List.map
+                      (fun { pending_extra_tags } -> pending_extra_tags)
+                      s#streams));
+           };
+           {
+             name = "streams";
+             scheme = ([], Lang.fun_t [] (Lang.list_t (stream_t return_t)));
+             descr = "Output streams";
+             value =
+               (fun s ->
+                 Lang.val_fun [] (fun _ ->
+                     Lang.list (List.map value_of_stream s#streams)));
+           };
+         ]
       @ Start_stop.meth ())
+    ~callbacks:
+      ([
+         {
+           Lang_source.name = "on_file_change";
+           params = [];
+           descr =
+             "when a file changes. `state` is one of: `\"created\"`, \
+              `\"updated\"` or `\"deleted\"`, `path` is the full file path. \
+              Typical use: sync file with a CDN";
+           default_synchronous = true;
+           register_deprecated_argument = false;
+           arg_t =
+             [
+               ( false,
+                 "",
+                 Lang.record_t
+                   [("state", Lang.string_t); ("path", Lang.string_t)] );
+             ];
+           register =
+             (fun ~params:_ s on_file_change ->
+               let on_file_change ~state path =
+                 on_file_change
+                   [
+                     ( "",
+                       Lang.record
+                         [
+                           ("state", Lang.string (string_of_file_state state));
+                           ("path", Lang.string path);
+                         ] );
+                   ]
+               in
+               s#on_file_change on_file_change);
+         };
+       ]
+      @ Start_stop.callbacks ~label:"output")
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \
        directory."

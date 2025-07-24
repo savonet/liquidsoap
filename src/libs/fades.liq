@@ -360,20 +360,25 @@ def fade.out(
     end
   end
 
-  s = source.on_track(s, reset_overrides)
-  s = source.on_metadata(s, update_fade)
-  s = if track_sensitive then source.on_track(s, stop_fade) else s end
+  s = source.methods(s)
+  s.on_track(synchronous=true, reset_overrides)
+  s.on_metadata(synchronous=true, update_fade)
+  if track_sensitive then s.on_track(synchronous=true, stop_fade) end
 
-  s =
-    if
-      track_sensitive
-    then
-      source.on_end(s, delay=duration, start_fade)
-    else
-      source.on_frame(
-        before=false, s, memoize({start_fade(source.remaining(s), [])})
-      )
-    end
+  if
+    track_sensitive
+  then
+    s.on_position(
+      synchronous=true, remaining=true, position=duration, start_fade
+    )
+  else
+    s.on_frame(
+      synchronous=true,
+      before=false,
+      memoize({start_fade(source.remaining(s), [])})
+    )
+  end
+
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
 
@@ -534,9 +539,10 @@ def fade.skip(
     end
   end
 
-  s = source.on_track(s, reset_overrides)
-  s = source.on_metadata(s, update_fade)
-  s = source.on_track(s, stop_fade)
+  s = source.methods(s)
+  s.on_track(synchronous=true, reset_overrides)
+  s.on_metadata(synchronous=true, update_fade)
+  s.on_track(synchronous=true, stop_fade)
 
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
@@ -712,19 +718,19 @@ def fade.in(
     end
   end
 
-  s = source.on_track(s, reset_overrides)
-  s = source.on_metadata(s, update_fade)
+  s = source.methods(s)
+  s.on_track(synchronous=true, reset_overrides)
+  s.on_metadata(synchronous=true, update_fade)
   s = sequence(merge=true, [blank(duration=delay), s])
-  s = fade.scale(apply, s)
+  s = fade.scale(id=id, apply, s)
 
-  s =
-    if
-      track_sensitive
-    then
-      source.on_track(id=id, s, start_fade)
-    else
-      source.on_frame(id=id, before=false, s, memoize({start_fade([])}))
-    end
+  if
+    track_sensitive
+  then
+    s.on_track(synchronous=true, start_fade)
+  else
+    s.on_frame(before=false, memoize({start_fade([])}))
+  end
   s.{fade_duration={duration()}, fade_delay={delay()}, fade_type={type()}}
 end
 

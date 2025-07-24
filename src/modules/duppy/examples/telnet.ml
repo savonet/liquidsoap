@@ -57,9 +57,9 @@ let handle_client socket =
   let on_error e =
     match e with
       | Duppy.Io.Io_error -> Printf.printf "Client disconnected"
-      | Duppy.Io.Unix (c, p, m) ->
+      | Duppy.Io.Unix (c, p, m, _) ->
           Printf.printf "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-      | Duppy.Io.Unknown e -> Printf.printf "%s" (Printexc.to_string e)
+      | Duppy.Io.Unknown (e, _) -> Printf.printf "%s" (Printexc.to_string e)
       | Duppy.Io.Timeout -> Printf.printf "Timeout"
   in
   let h = { Duppy.Monad.Io.scheduler; socket; data = ""; on_error } in

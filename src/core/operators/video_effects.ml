@@ -665,22 +665,34 @@ let _ =
     [("", Lang.source_t return_t, None, None)]
     ~meth:
       [
-        ( "width",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Width of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.width) );
-        ( "height",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Height of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.height) );
-        ( "planes",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Number of planes in a video frame.",
-          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.planes) );
-        ( "size",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Size of a video frame (in bytes).",
-          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.size) );
+        {
+          name = "width";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Width of video.";
+          value =
+            (fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.width));
+        };
+        {
+          name = "height";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Height of video.";
+          value =
+            (fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.height));
+        };
+        {
+          name = "planes";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Number of planes in a video frame.";
+          value =
+            (fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.planes));
+        };
+        {
+          name = "size";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Size of a video frame (in bytes).";
+          value =
+            (fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.size));
+        };
       ]
     ~return_t ~category:`Video
     ~descr:
@@ -715,22 +727,30 @@ let _ =
     [("", Lang.source_t return_t, None, None)]
     ~meth:
       [
-        ( "x",
-          ([], Lang.fun_t [] Lang.int_t),
-          "x offset of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !x) );
-        ( "y",
-          ([], Lang.fun_t [] Lang.int_t),
-          "y offset of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !y) );
-        ( "width",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Width of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !width) );
-        ( "height",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Height of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> Lang.int !height) );
+        {
+          Lang.name = "x";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "x offset of video.";
+          value = (fun _ -> Lang.val_fun [] (fun _ -> Lang.int !x));
+        };
+        {
+          name = "y";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "y offset of video.";
+          value = (fun _ -> Lang.val_fun [] (fun _ -> Lang.int !y));
+        };
+        {
+          name = "width";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Width of video.";
+          value = (fun _ -> Lang.val_fun [] (fun _ -> Lang.int !width));
+        };
+        {
+          name = "height";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Height of video.";
+          value = (fun _ -> Lang.val_fun [] (fun _ -> Lang.int !height));
+        };
       ]
     ~return_t ~category:`Video
     ~descr:

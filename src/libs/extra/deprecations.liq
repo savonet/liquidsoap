@@ -339,7 +339,7 @@ def register_flow(
     artist = m["artist"]
     title = m["title"]
     params = [("m_title", title), ("m_artist", artist)]
-    thread.run(fast=false, {request(cmd="metadata", params=params)})
+    request(cmd="metadata", params=params)
   end
 
   s.on_metadata(metadata)
@@ -425,7 +425,9 @@ end
 # @flag deprecated
 def on_blank(%argsof(blank.detect), f, s) =
   deprecated("on_blank", "blank.detect")
-  blank.detect(%argsof(blank.detect), f, s)
+  s = blank.detect(%argsof(blank.detect), s)
+  s.on_blank(f)
+  s
 end
 
 # Deprecated: use `blank.skip` instead
@@ -471,18 +473,9 @@ def gettimeofday() =
 end
 
 # @flag deprecated
-def output.preferred(
-  ~id=null,
-  ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
-  ~start=true,
-  s
-) =
+def output.preferred(~id=null, ~fallible=false, ~start=true, s) =
   deprecated("output.preferred", "output")
-  output(
-    id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s
-  )
+  output(id=id, fallible=fallible, start=start, s)
 end
 
 # Deprecated: use `output` instead.
@@ -494,11 +487,9 @@ end
 
 # Deprecated: use `input` instead.
 # @flag deprecated
-def in(~id=null, ~start=true, ~on_start={()}, ~on_stop={()}, ~fallible=false) =
+def in(~id=null, ~start=true, ~fallible=false) =
   deprecated("in", "input")
-  input(
-    id=id, start=start, on_start=on_start, on_stop=on_stop, fallible=fallible
-  )
+  input(id=id, start=start, fallible=fallible)
 end
 
 # Deprecated: use `source.available` instead.
@@ -524,13 +515,6 @@ end
 def at(pred, s) =
   deprecated("at", "source.available")
   source.available(s, pred)
-end
-
-# Deprecated: use `source.on_end` instead.
-# @flag deprecated
-def on_end(%argsof(source.on_end), s, f) =
-  deprecated("on_end", "source.on_end")
-  source.on_end(%argsof(source.on_end), s, f)
 end
 
 https = ()
@@ -612,20 +596,6 @@ end
 def of_json(%argsof(json.parse), v) =
   deprecated("of_json", "json.parse")
   json.parse(%argsof(json.parse), v)
-end
-
-# Deprecated: use error method instead
-# @flag deprecated
-def error.kind(err) =
-  deprecated("error.kind", "")
-  err.kind
-end
-
-# Deprecated: use error method instead
-# @flag deprecated
-def error.message(err) =
-  deprecated("error.message", "")
-  err.message
 end
 
 # Deprecated: use `playlist` instead
@@ -883,4 +853,116 @@ def cue_cut(
      resolution! This operator can be safely removed from your script now."
   )
   s
+end
+
+# Deprecated: use the on_metadata source method
+# @flag deprecated
+def on_metadata(~id:_, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_metadata source method!"
+  )
+  source.methods(s).on_metadata(synchronous=true, fn)
+  s
+end
+
+# Deprecated: use the on_track source method
+# @flag deprecated
+def on_track(~id:_, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_track source method!"
+  )
+  source.methods(s).on_track(synchronous=true, fn)
+  s
+end
+
+# Deprecated: use the last_metadata source method
+# @flag deprecated
+def source.last_metadata(~id:_, s) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the last_metadata source method!"
+  )
+  source.methods(s).last_metadata()
+end
+
+# Deprecated: use the on_frame source method
+# @flag deprecated
+def source.on_frame(~id:_, ~before=true, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_frame source method!"
+  )
+  source.methods(s).on_frame(before=before, fn)
+end
+
+# Deprecated: use the on_position source method
+# @flag deprecated
+def source.on_offset(
+  ~id:_,
+  ~force:allow_partial=false,
+  ~offset:position,
+  fn,
+  s
+) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_position source method!"
+  )
+  source.methods(s).on_position(
+    synchronous=true,
+    remaining=false,
+    allow_partial=allow_partial,
+    position=position,
+    fn
+  )
+end
+
+# Deprecated: use the on_position source method
+# @flag deprecated
+def source.on_end(~id:_, ~delay:position, s, fn) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the on_position source method!"
+  )
+  source.methods(s).on_position(
+    synchronous=true, remaining=true, allow_partial=false, position=position, fn
+  )
+end
+
+# Deprecated: use the insert_metadata source method
+# @flag deprecated
+def insert_metadata(~id:_=null, s) =
+  log.severe(
+    label="lang.deprecated",
+    "WARNING: `insert_metadata` operator is deprecated. Please use the \
+     `insert_metadata` source method!"
+  )
+  source.methods(s)
+end
+
+# Deprecated: use `normalize_track_gain`
+# @flag deprecated
+def replaygain(~id=null, s) =
+  log.severe(
+    label="lang.deprecated",
+    "Use the normalize_track_gain operator!"
+  )
+
+  def add_legacy_meta(m) =
+    if
+      m["replaygain_track_gain"] != ""
+    and
+      m[settings.normalize_track_gain_metadata()] == ""
+    then
+      [(settings.normalize_track_gain_metadata(), m["replaygain_track_gain"])]
+    else
+      []
+    end
+  end
+
+  s = metadata.map(add_legacy_meta, s)
+
+  amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
 end

@@ -6,7 +6,8 @@ def handler() =
     "/path/to/your/script to do whatever you want"
   )
 end
-s = blank.detect(handler, s)
+s = blank.detect(s)
+s.on_blank(handler)
 
 # END
 output.dummy(fallible=true, s)

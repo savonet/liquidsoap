@@ -3,7 +3,8 @@ def f() =
 
   def process(s) =
     s = lufs(s)
-    source.on_frame(s, {lufs_integrated := s.lufs_integrated()})
+    s.on_frame({lufs_integrated := s.lufs_integrated()})
+    s
   end
 
   r = request.create("@wav[stereo].wav")

@@ -486,8 +486,8 @@ module type Io_t = sig
 
   type failure =
     | Io_error
-    | Unix of Unix.error * string * string
-    | Unknown of exn
+    | Unix of (Unix.error * string * string * Printexc.raw_backtrace)
+    | Unknown of exn * Printexc.raw_backtrace
     | Timeout
 
   val read :
@@ -523,8 +523,8 @@ struct
 
   type failure =
     | Io_error
-    | Unix of Unix.error * string * string
-    | Unknown of exn
+    | Unix of (Unix.error * string * string * Printexc.raw_backtrace)
+    | Unknown of exn * Printexc.raw_backtrace
     | Timeout
 
   exception Io
@@ -601,10 +601,12 @@ struct
               on_error (Buffer.contents b, Timeout);
               []
           | Unix.Unix_error (x, y, z) ->
-              on_error (Buffer.contents b, Unix (x, y, z));
+              let bt = Printexc.get_raw_backtrace () in
+              on_error (Buffer.contents b, Unix (x, y, z, bt));
               []
           | e ->
-              on_error (Buffer.contents b, Unknown e);
+              let bt = Printexc.get_raw_backtrace () in
+              on_error (Buffer.contents b, Unknown (e, bt));
               []
       in
       match ret with
@@ -628,10 +630,12 @@ struct
             on_error (Buffer.contents b, Timeout);
             []
         | Unix.Unix_error (x, y, z) ->
-            on_error (Buffer.contents b, Unix (x, y, z));
+            let bt = Printexc.get_raw_backtrace () in
+            on_error (Buffer.contents b, Unix (x, y, z, bt));
             []
         | e ->
-            on_error (Buffer.contents b, Unknown e);
+            let bt = Printexc.get_raw_backtrace () in
+            on_error (Buffer.contents b, Unknown (e, bt));
             []
     in
     (* First one is without read,
@@ -693,10 +697,12 @@ struct
             on_error Timeout;
             []
         | Unix.Unix_error (x, y, z) ->
-            on_error (Unix (x, y, z));
+            let bt = Printexc.get_raw_backtrace () in
+            on_error (Unix (x, y, z, bt));
             []
         | e ->
-            on_error (Unknown e);
+            let bt = Printexc.get_raw_backtrace () in
+            on_error (Unknown (e, bt));
             []
     in
     let task = { priority; events; handler = f offset } in
@@ -1029,7 +1035,10 @@ module Monad = struct
     let exec ?(delay = 0.) ~priority h f h' =
       let handler _ =
         begin
-          try f h' with e -> h'.raise (h.on_error (Io.Unknown e))
+          try f h'
+          with e ->
+            let bt = Printexc.get_raw_backtrace () in
+            h'.raise (h.on_error (Io.Unknown (e, bt)))
         end;
         []
       in

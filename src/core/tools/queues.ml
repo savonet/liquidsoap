@@ -24,7 +24,7 @@ module Queue = struct
   type 'a t = { m : Mutex.t; mutable l : 'a List.t }
 
   let create () = { m = Mutex.create (); l = [] }
-  let apply q fn = Mutex_utils.mutexify q.m fn q [@@inline always]
+  let apply q fn = Mutex_utils.mutexify q.m fn q
   let is_empty q = apply q (function { l = [] } -> true | _ -> false)
   let push q v = apply q (fun q -> q.l <- q.l @ [v])
   let append q v = apply q (fun q -> q.l <- v :: q.l)

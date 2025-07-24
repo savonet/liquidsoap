@@ -9,19 +9,35 @@ let settings.protocol =
   settings.make.void(
     "Settings for registered protocols"
   )
-let settings.protocol.replaygain = settings.make.protocol("ReplayGain")
-let settings.protocol.replaygain.tag =
-  settings.make(
-    description=
-      "Tag used to annotate ReplayGain",
-    "replaygain_track_gain"
-  )
+
+# Register the lufs_track_gain protocol.
+# @flag hidden
+def protocol.lufs_track_gain(~rlog:_, ~maxtime:_, arg) =
+  gain = file.lufs(arg)
+  if
+    null.defined(gain)
+  then
+    "annotate:#{settings.normalize_track_gain_metadata()}=\"#{
+      settings.lufs.track_gain_target() - null.get(gain)
+    } dB\":#{arg}"
+  else
+    arg
+  end
+end
+
+protocol.add(
+  "lufs_track_gain",
+  protocol.lufs_track_gain,
+  syntax="lufs_track_gain:uri",
+  doc=
+    "Compute LUFS track gain correction and add it as metadata"
+)
 
 # Register the replaygain protocol.
 # @flag hidden
-def protocol.replaygain(~rlog=_, ~maxtime=_, arg) =
+def protocol.replaygain(~rlog:_, ~maxtime:_, arg) =
   gain = file.replaygain(arg)
-  tag = settings.protocol.replaygain.tag()
+  tag = settings.normalize_track_gain_metadata()
   if
     null.defined(gain)
   then
@@ -86,7 +102,7 @@ end
 # [("input",<input file>),("output",<output file>),("colon",":")]
 # See say: protocol for an example.
 # @flag hidden
-def replaces protocol.process(~rlog=_, ~maxtime, arg) =
+def replaces protocol.process(~rlog:_, ~maxtime, arg) =
   log.info(
     "Processing #{arg}"
   )
@@ -346,7 +362,7 @@ protocol.add(
 # Register the youtube-pl protocol.
 # Syntax: youtube-pl:<ID>
 # @flag hidden
-def protocol.youtube_pl(~rlog=_, ~maxtime, arg) =
+def protocol.youtube_pl(~rlog:_, ~maxtime, arg) =
   binary = settings.protocol.youtube_dl.path()
   delay = maxtime - time()
   cmd =
@@ -375,7 +391,7 @@ protocol.add(
 
 # Register tmp
 # @flag hidden
-def protocol.tmp(~rlog=_, ~maxtime=_, arg) =
+def protocol.tmp(~rlog:_, ~maxtime:_, arg) =
   arg
 end
 
@@ -390,7 +406,7 @@ protocol.add(
 
 # Register fallible
 # @flag hidden
-def protocol.fallible(~rlog=_, ~maxtime=_, arg) =
+def protocol.fallible(~rlog:_, ~maxtime:_, arg) =
   arg
 end
 
@@ -649,7 +665,7 @@ protocol.add(
 # Register stereo protocol which converts a file to stereo (currently decodes as
 # wav).
 # @flag hidden
-def protocol.stereo(~rlog=_, ~maxtime=_, arg) =
+def protocol.stereo(~rlog:_, ~maxtime:_, arg) =
   file = file.temp("liq-stereo", ".wav")
   r = request.create(arg)
   if
@@ -678,7 +694,7 @@ protocol.add(
 # Copy
 
 # @flag hidden
-def protocol.copy(~rlog=_, ~maxtime=_, arg) =
+def protocol.copy(~rlog:_, ~maxtime:_, arg) =
   extname = file.extension(arg)
   tmpfile = file.temp("tmp", extname)
   file.copy(force=true, arg, tmpfile)
@@ -705,7 +721,7 @@ let settings.protocol.text2wave.path =
 
 # Register the text2wave: protocol using text2wave
 # @flag hidden
-def protocol.text2wave(~rlog=_, ~maxtime=_, arg) =
+def protocol.text2wave(~rlog:_, ~maxtime:_, arg) =
   binary = settings.protocol.text2wave.path()
   process.uri(
     extname="wav",
@@ -741,7 +757,7 @@ let settings.protocol.pico2wave.lang =
   )
 
 # @flag hidden
-def protocol.pico2wave(~rlog=_, ~maxtime=_, arg) =
+def protocol.pico2wave(~rlog:_, ~maxtime:_, arg) =
   binary = settings.protocol.pico2wave.path()
   lang = settings.protocol.pico2wave.lang()
   process.uri(
@@ -785,7 +801,7 @@ let settings.protocol.gtts.options =
 
 # Register the gtts: protocol using gtts
 # @flag hidden
-def protocol.gtts(~rlog=_, ~maxtime=_, arg) =
+def protocol.gtts(~rlog:_, ~maxtime:_, arg) =
   binary = settings.protocol.gtts.path()
   lang = settings.protocol.gtts.lang()
   options = settings.protocol.gtts.options()
@@ -824,7 +840,7 @@ let settings.protocol.macos_say.options =
 
 # Register the macos_say: protocol using the say command available on macos
 # @flag hidden
-def protocol.macos_say(~rlog=_, ~maxtime=_, arg) =
+def protocol.macos_say(~rlog:_, ~maxtime:_, arg) =
   binary = settings.protocol.macos_say.path()
   options = settings.protocol.macos_say.options()
   process.uri(
@@ -856,7 +872,7 @@ let settings.protocol.say.implementation =
 
 # Register the legacy say: protocol
 # @flag hidden
-def protocol.say(~rlog=_, ~maxtime=_, arg) =
+def protocol.say(~rlog:_, ~maxtime:_, arg) =
   "#{settings.protocol.say.implementation()}:#{arg}"
 end
 
@@ -957,7 +973,7 @@ end
 
 # Register the s3:// protocol
 # @flag hidden
-def s3_protocol(~rlog=_, ~maxtime=_, arg) =
+def s3_protocol(~rlog:_, ~maxtime:_, arg) =
   extname = file.extension(leading_dot=false, dir_sep="/", arg)
   arg = process.quote("s3:#{arg}")
   process.uri(
@@ -977,7 +993,7 @@ protocol.add(
 # Register the polly: protocol using AWS Polly
 # speech synthesis services. Syntax: polly:<text>
 # @flag hidden
-def polly_protocol(~rlog=_, ~maxtime=_, text) =
+def polly_protocol(~rlog:_, ~maxtime:_, text) =
   aws = aws_base()
   format = settings.protocol.aws.polly.format()
   extname =
@@ -1020,7 +1036,7 @@ protocol.add(
 
 # Protocol to synthesize audio.
 # @flag hidden
-def synth_protocol(~rlog=_, ~maxtime=_, text) =
+def synth_protocol(~rlog:_, ~maxtime:_, text) =
   log.debug(
     label="synth",
     "Synthesizing request: #{text}"
@@ -1068,9 +1084,8 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
       clock.assign_new(sync="passive", [s])
 
       stopped = ref(false)
-      output.file(
-        fallible=true, on_stop={stopped.set(true)}, %wav, file, once(s)
-      )
+      o = output.file(fallible=true, %wav, file, once(s))
+      o.on_stop({stopped.set(true)})
 
       c = clock(s.clock)
       c.start()
@@ -1108,7 +1123,7 @@ protocol.add(
 
 # File protocol
 # @flag hidden
-def file_protocol(~rlog=_, ~maxtime=_, arg) =
+def file_protocol(~rlog:_, ~maxtime:_, arg) =
   path = list.nth(default="", r/:/.split(arg), 1)
   segments = r/\//.split(path)
   segments =

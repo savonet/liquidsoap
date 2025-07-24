@@ -34,8 +34,8 @@ let () =
       Atomic.set should_shutdown true)
 
 class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
-  ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
-  ~on_disconnect ~login ~debug ~timeout () =
+  ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~login ~debug
+  ~timeout () =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit Source.active_source ~name:"input.harbor" ()
@@ -51,6 +51,10 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     val mutable mime_type = None
     val mutable dump = None
     val mutable logf = None
+    val mutable on_connect = []
+    method on_connect fn = on_connect <- fn :: on_connect
+    val mutable on_disconnect = []
+    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
 
     method connected_client =
       Mutex_utils.mutexify relay_m
@@ -74,7 +78,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     method meta_charset = meta_charset
 
     (* Insert metadata *)
-    method insert_metadata m =
+    method encode_metadata m =
       (* Metadata may contain only the "song" value
        * or "artist" and "title". Here, we use "song"
        * as the "title" field if "title" is not provided. *)
@@ -153,12 +157,15 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
               if Atomic.get should_shutdown then failwith "shutdown called";
               decoder.Decoder.decode buffer
             done)
-      with e ->
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
         (* Feeding has stopped: adding a break here. *)
         Generator.add_track_mark self#buffer;
-        self#log#severe "Feeding stopped: %s." (Printexc.to_string e);
+        Utils.log_exception ~log:self#log
+          ~bt:(Printexc.raw_backtrace_to_string bt)
+          (Printf.sprintf "Feeding stopped: %s" (Printexc.to_string exn));
         self#disconnect ~lock:true;
-        if debug then raise e
+        if debug then Printexc.raise_with_backtrace exn bt
 
     val mutable is_registered = false
 
@@ -202,7 +209,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
           relay_socket <- Some socket;
           relay_read <- read)
         ();
-      on_connect headers;
+      List.iter (fun fn -> fn headers) on_connect;
       begin
         match dumpfile with
           | Some f -> (
@@ -245,7 +252,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
               logf <- None
           | None -> ()
       end;
-      on_disconnect ()
+      List.iter (fun fn -> fn ()) on_disconnect
 
     method disconnect ~lock : unit =
       if lock then self#disconnect_with_lock else self#disconnect_no_lock;
@@ -254,42 +261,87 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
 let _ =
   Lang.add_operator ~base:Modules.input "harbor" ~return_t:(Lang.univ_t ())
-    ~meth:
+    ~callbacks:
       [
-        ( "shutdown",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Shutdown the output or source.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                Clock.detach s#clock (s :> Clock.source);
-                s#sleep;
-                Lang.unit) );
-        ( "stop",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Disconnect the client currently connected to the harbor. Does \
-           nothing if no client is connected.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                s#disconnect ~lock:true;
-                Lang.unit) );
-        ( "connected_client",
-          ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t)),
-          "Returns the address of the client currently connected, if there is \
-           one.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match s#connected_client with
-                  | Some c -> Lang.string c
-                  | None -> Lang.null) );
-        ( "status",
-          ([], Lang.fun_t [] Lang.string_t),
-          "Current status of the input.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.string s#status_cmd) );
-        ( "buffer_length",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Length of the buffer (in seconds).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd) );
+        {
+          name = "on_connect";
+          params = [];
+          descr =
+            "when a source is connected. Its receives the list of headers, of \
+             the form: (<label>,<value>). All labels are lowercase.";
+          default_synchronous = false;
+          register_deprecated_argument = true;
+          arg_t = [(false, "", Lang.metadata_t)];
+          register =
+            (fun ~params:_ s on_connect ->
+              let on_connect m = on_connect [("", Lang.metadata_list m)] in
+              s#on_connect on_connect);
+        };
+        {
+          name = "on_disconnect";
+          params = [];
+          descr = "when a source is disconnected.";
+          default_synchronous = false;
+          register_deprecated_argument = true;
+          arg_t = [];
+          register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+        };
       ]
+    ~meth:
+      Lang.
+        [
+          {
+            name = "shutdown";
+            scheme = ([], Lang.fun_t [] Lang.unit_t);
+            descr = "Shutdown the output or source.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    Clock.detach s#clock (s :> Clock.source);
+                    s#sleep;
+                    Lang.unit));
+          };
+          {
+            name = "stop";
+            scheme = ([], Lang.fun_t [] Lang.unit_t);
+            descr =
+              "Disconnect the client currently connected to the harbor. Does \
+               nothing if no client is connected.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    s#disconnect ~lock:true;
+                    Lang.unit));
+          };
+          {
+            name = "connected_client";
+            scheme = ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t));
+            descr =
+              "Returns the address of the client currently connected, if there \
+               is one.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    match s#connected_client with
+                      | Some c -> Lang.string c
+                      | None -> Lang.null));
+          };
+          {
+            name = "status";
+            scheme = ([], Lang.fun_t [] Lang.string_t);
+            descr = "Current status of the input.";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.string s#status_cmd));
+          };
+          {
+            name = "buffer_length";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Length of the buffer (in seconds).";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd));
+          };
+        ]
     ~category:`Input
     ~descr:
       "Create a source that receives a http/icecast stream and forwards it as \
@@ -312,17 +364,6 @@ let _ =
         Lang.float_t,
         Some (Lang.float 30.),
         Some "Timeout for source connectionn." );
-      ( "on_connect",
-        Lang.fun_t [(false, "", Lang.metadata_t)] Lang.unit_t,
-        Some (Lang.val_cst_fun [("", None)] Lang.unit),
-        Some
-          "Function to execute when a source is connected. Its receives the \
-           list of headers, of the form: (<label>,<value>). All labels are \
-           lowercase." );
-      ( "on_disconnect",
-        Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Functions to execute when a source is disconnected" );
       ("user", Lang.string_t, Some (Lang.string "source"), Some "Source user.");
       ( "password",
         Lang.string_t,
@@ -471,20 +512,7 @@ let _ =
           (Error.Invalid_value
              ( List.assoc "max" p,
                "Maximum buffering inferior to pre-buffered data" ));
-      let on_connect l =
-        let l =
-          List.map
-            (fun (x, y) -> Lang.product (Lang.string x) (Lang.string y))
-            l
-        in
-        let arg = Lang.list l in
-        ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
-      in
-      let on_disconnect () =
-        ignore (Lang.apply (List.assoc "on_disconnect" p) [])
-      in
       let pos = Lang.pos p in
       new http_input_server
         ~pos ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
-        ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~on_connect
-        ~on_disconnect ~debug ())
+        ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~debug ())

@@ -3,6 +3,7 @@ s = single("annotate:duration=0.2:test-image.png")
 track_count = ref(0)
 
 s.on_track(
+  synchronous=true,
   fun (_) ->
     begin
       ref.incr(track_count)

@@ -422,7 +422,7 @@ let toplevel_add ?doc pat ~t v =
           *)
               List.rev !arguments
             in
-            let methods, t =
+            let methods, callbacks, t =
               let methods, t =
                 let methods, t = Type.split_meths t in
                 match (Type.deref t).Type.descr with
@@ -436,24 +436,29 @@ let toplevel_add ?doc pat ~t v =
                       (methods, Type.make ?pos:t.Type.pos (Type.Arrow (p, a)))
                   | _ -> (methods, t)
               in
-              let methods =
-                List.map
-                  (fun m ->
+              let methods, callbacks =
+                List.fold_left
+                  (fun (methods, callbacks) m ->
                     let l = m.Type.meth in
                     (* Override description by the one given in comment if it exists. *)
                     let d =
                       match List.assoc_opt l doc.Doc.Value.methods with
                         | Some m -> m.meth_description
-                        | None -> Some m.doc
+                        | None -> Some m.doc.meth_descr
                     in
                     let t = Repr.string_of_scheme m.scheme in
-                    (l, Doc.Value.{ meth_type = t; meth_description = d }))
-                  methods
+                    let entry =
+                      (l, Doc.Value.{ meth_type = t; meth_description = d })
+                    in
+                    match m.doc.category with
+                      | `Method -> (entry :: methods, callbacks)
+                      | `Callback -> (methods, entry :: callbacks))
+                  ([], []) methods
               in
-              (methods, t)
+              (methods, callbacks, t)
             in
             let typ = Repr.string_of_type ~generalized t in
-            { doc with typ; arguments; methods }
+            { doc with typ; arguments; methods; callbacks }
           in
           Some (Lazy.from_fun doc)
   in

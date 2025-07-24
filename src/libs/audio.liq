@@ -185,8 +185,9 @@ def replaces normalize(
       s
     end
 
-  s = source.on_frame(s, update)
-  s = if track_sensitive then source.on_track(s, fun (_) -> v := 1.) else s end
+  s = source.methods(s)
+  s.on_frame(update)
+  if track_sensitive then s.on_track(synchronous=true, fun (_) -> v := 1.) end
   amplify(id=id, {v()}, delay_line(lookahead, s)).{
     rms=rms,
     gain={v()},
@@ -401,4 +402,20 @@ def defer.pcm_s16(
     id=id,
     {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
   )
+end
+
+let settings.normalize_track_gain_metadata =
+  settings.make(
+    description=
+      "Metadata used to store track gain normalization metadata",
+    "liq_normalize_track_gain"
+  )
+
+# Amplify source tracks according to track gain normalization metadata. This operator does not
+# compute that value. You can use integrated LUFS track gain or ReplayGain to compute it.
+# @category Source / Audio processing
+# @param ~id Force the value of the source ID.
+# @param s Source to be amplified.
+def normalize_track_gain(~id=null, s) =
+  amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
 end

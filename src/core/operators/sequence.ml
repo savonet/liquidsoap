@@ -151,12 +151,15 @@ let _ =
     ~return_t:frame_t
     ~meth:
       [
-        ( "queue",
-          ([], Lang.fun_t [] (Lang.list_t (Lang.source_t frame_t))),
-          "Return the current sequence of source",
-          fun s ->
-            Lang.val_fun [] (fun _ -> Lang.list (List.map Lang.source s#queue))
-        );
+        {
+          name = "queue";
+          scheme = ([], Lang.fun_t [] (Lang.list_t (Lang.source_t frame_t)));
+          descr = "Return the current sequence of source";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  Lang.list (List.map Lang.source s#queue)));
+        };
       ]
     (fun p ->
       new sequence

@@ -22,7 +22,6 @@ def f(m) =
 end
 
 s = sine()
-s = insert_metadata(s)
 
 s' = sine()
 s' = insert_metadata(s')
@@ -62,6 +61,6 @@ s =
     }
   )
 
-s = source.on_metadata(s, f)
+s.on_metadata(synchronous=true, f)
 thread.run(delay=1., insert)
 output.dummy(s)

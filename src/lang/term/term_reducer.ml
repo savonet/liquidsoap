@@ -25,6 +25,14 @@ type processor = Term_preprocessor.processor
 open Parsed_term
 include Runtime_term
 
+let report_annotations ~throw ~pos annotations =
+  List.iter
+    (function
+      | `Deprecated s ->
+          let bt = Printexc.get_callstack 0 in
+          throw ~bt (Term.Deprecated (s, Pos.of_lexing_pos pos)))
+    annotations
+
 let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
 let render_string ~pos ~sep s = Lexer.render_string ~pos ~sep s
 let mk ?pos = Term.make ?pos:(Option.map Pos.of_lexing_pos pos)
@@ -121,7 +129,7 @@ and mk_meth_ty ?pos ~env ~to_term base
              meth = name;
              optional;
              scheme = ([], mk_parsed_ty ?pos ~env ~to_term typ);
-             doc = "";
+             doc = { meth_descr = ""; category = `Method };
              json_name;
            },
            base )))
@@ -404,10 +412,6 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                       mk (mk_term ~body (invoke (Some (mk `Null))))
                   | `Pattern pat ->
                       let mk_term = pattern_reducer pat in
-                      let body = mk (mk_term ~body (mk (`Var name))) in
-                      let mk_term =
-                        pattern_reducer { pat with pat_entry = `PVar [name] }
-                      in
                       mk (mk_term ~body (invoke None)))
               body (List.rev meths)
           in
@@ -513,6 +517,7 @@ let rec get_env_args ~pos t args =
         as_variable;
         typ = t;
         default = Option.map (term_of_value ~pos ~name:n t) v;
+        pos = t.pos;
       })
     args
 
@@ -651,23 +656,43 @@ let args_of ~only ~except ~pos ~env name =
     | Some _ -> parse_error ~pos (Printf.sprintf "%s is not a function!" name)
     | None -> builtin_args_of ~only ~except ~pos name
 
-let expand_argsof ~pos ~env ~to_term args =
-  List.rev
-    (List.fold_left
-       (fun args -> function
-         | `Argsof { only; except; source } ->
-             List.rev (args_of ~pos ~env ~only ~except source) @ args
-         | `Term arg ->
-             {
-               arg with
-               typ =
-                 (match arg.typ with
-                   | None -> mk_var ()
-                   | Some typ -> mk_parsed_ty ~env ~to_term typ);
-               default = Option.map (to_term ~env) arg.default;
-             }
-             :: args)
-       [] args)
+let expand_argsof ~pos ~env ~to_term ~throw args =
+  let anonymous_var_id = ref 0 in
+  let mk_def, args =
+    List.fold_left
+      (fun (mk_def, args) -> function
+        | `Argsof { only; except; source } ->
+            (mk_def, List.rev (args_of ~pos ~env ~only ~except source) @ args)
+        | `Term { label; as_variable; default; typ; annotations; pos } ->
+            report_annotations ~throw ~pos annotations;
+            let mk_def, as_variable =
+              match as_variable with
+                | None -> (mk_def, None)
+                | Some { pat_entry = `PVar [v] } -> (mk_def, Some v)
+                | Some pat ->
+                    incr anonymous_var_id;
+                    let v = Printf.sprintf "_ann_%d" !anonymous_var_id in
+                    let mk_def def =
+                      mk_def (mk (pattern_reducer ~body:def ~pat (mk (`Var v))))
+                    in
+                    (mk_def, Some v)
+            in
+            ( mk_def,
+              {
+                label;
+                as_variable;
+                typ =
+                  (match typ with
+                    | None -> mk_var ()
+                    | Some typ -> mk_parsed_ty ~env ~to_term typ);
+                default = Option.map (to_term ~env) default;
+                pos = Some (Pos.of_lexing_pos pos);
+              }
+              :: args ))
+      ((fun b -> b), [])
+      args
+  in
+  (mk_def, List.rev args)
 
 let app_of ~pos ~only ~except ~env source =
   let args = args_of ~pos ~only ~except ~env source in
@@ -693,7 +718,13 @@ let mk_app_invoke_default ~pos ~args body =
   let app_args =
     List.map
       (fun (label, _) ->
-        { Term_base.label; as_variable = None; typ = mk_var (); default = None })
+        {
+          Term_base.label;
+          as_variable = None;
+          typ = mk_var ();
+          default = None;
+          pos = None;
+        })
       args
   in
   mk_fun ~pos app_args body
@@ -863,6 +894,7 @@ let base_for_reducer ~pos for_variable for_iterator for_loop =
           as_variable = Some for_variable;
           typ = mk_var ();
           default = None;
+          pos = None;
         };
       ]
       for_loop
@@ -975,6 +1007,7 @@ let try_reducer ~pos ~env ~to_term = function
             as_variable = Some try_variable;
             typ = mk_var ();
             default = None;
+            pos = None;
           };
         ]
       in
@@ -1073,6 +1106,7 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
                  as_variable = Some "query";
                  default = None;
                  typ = mk_var ~pos ();
+                 pos = None;
                };
              ];
            body = mapper;
@@ -1118,7 +1152,7 @@ let string_of_let_decoration = function
   | `Xml_parse -> "xml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~env ~pos ~to_term ~comments
+let mk_let ~env ~pos ~to_term ~comments ~throw
     ({ decoration; pat; arglist; def; cast }, body) =
   let def = to_term ~env def in
   let mk_body def =
@@ -1140,7 +1174,7 @@ let mk_let ~env ~pos ~to_term ~comments
     to_term ~env body
   in
   let cast = Option.map (mk_parsed_ty ~pos ~env ~to_term) cast in
-  let arglist = Option.map (expand_argsof ~pos ~env ~to_term) arglist in
+  let arglist = Option.map (expand_argsof ~throw ~pos ~env ~to_term) arglist in
   let doc =
     match
       List.rev
@@ -1153,8 +1187,9 @@ let mk_let ~env ~pos ~to_term ~comments
       | _ -> None
   in
   match (arglist, decoration) with
-    | Some arglist, `None | Some arglist, `Replaces ->
+    | Some (mk_def, arglist), `None | Some (mk_def, arglist), `Replaces ->
         let replace = decoration = `Replaces in
+        let def = mk_def def in
         let def = mk_fun ~pos arglist def in
         let def =
           match cast with
@@ -1163,7 +1198,8 @@ let mk_let ~env ~pos ~to_term ~comments
         in
         let body = mk_body def in
         pattern_reducer ?doc ~body ~pat ~replace def
-    | Some arglist, `Recursive ->
+    | Some (mk_def, arglist), `Recursive ->
+        let def = mk_def def in
         let def = mk_rec_fun ~pos pat.pat_entry arglist def in
         let def =
           match cast with
@@ -1269,7 +1305,8 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
         in
         to_ast ~env ~pos ~comments
           (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
-    | `Def p | `Let p | `Binding p -> mk_let ~pos ~env ~to_term ~comments p
+    | `Def p | `Let p | `Binding p ->
+        mk_let ~throw ~pos ~env ~to_term ~comments p
     | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
     | `At (t, t') -> `App (to_term ~env t', [("", to_term ~env t)])
     | `Time t -> mk_time_pred ~pos (during ~pos t)
@@ -1302,20 +1339,17 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
           | _ -> ());
         let args = expand_appof ~pos ~env ~to_term args in
         `App (to_term ~env t, args)
-    | `Fun (args, body) -> `Fun (to_func ~pos ~env ~to_term args body)
+    | `Fun (args, body) -> `Fun (to_func ~throw ~pos ~env ~to_term args body)
     | `RFun (name, args, body) ->
-        `Fun (to_func ~pos ~env ~to_term ~name args body)
+        `Fun (to_func ~throw ~pos ~env ~to_term ~name args body)
 
-and to_func ~pos ~env ~to_term ?name arguments body =
-  {
-    name;
-    arguments = expand_argsof ~pos ~env ~to_term arguments;
-    body = to_term ~env body;
-    free_vars = None;
-  }
+and to_func ~pos ~env ~to_term ~throw ?name arguments body =
+  let mk_def, arguments = expand_argsof ~throw ~pos ~env ~to_term arguments in
+  { name; arguments; body = mk_def (to_term ~env body); free_vars = None }
 
 and to_term ~throw ~env (tm : Parsed_term.t) : Term.t =
   let to_term = to_term ~throw in
+  report_annotations ~throw ~pos:tm.pos tm.annotations;
   match tm.term with
     | `Seq ({ pos; term = `If_def _ as ast }, t')
     | `Seq ({ pos; term = `If_encoder _ as ast }, t')

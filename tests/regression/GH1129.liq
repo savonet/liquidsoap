@@ -32,7 +32,7 @@ def f(m) =
 end
 
 s = rotate([s1, s2, s3])
-s.on_track(f)
+s.on_track(synchronous=true, f)
 output.dummy(s)
 
 def on_done() =

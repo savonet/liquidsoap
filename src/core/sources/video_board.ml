@@ -131,46 +131,70 @@ let _ =
     ~return_t:(Lang.internal_tracks_t ())
     ~category:`Video ~descr:"A plane where one can draw."
     ~meth:
-      [
-        ("clear", ([], Lang.fun_t [] Lang.unit_t), "Clear the board.", clear);
-        ( "clear_and_copy",
-          ( [],
-            Lang.fun_t
-              [(true, "x", Lang.int_t); (true, "y", Lang.int_t)]
-              Lang.unit_t ),
-          "Clear the board and copy the old board to the new one, translated.",
-          clear_and_copy );
-        ( "fill",
-          ([], Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t),
-          "Fill with given color (0xRRGGBB).",
-          fill );
-        ( "height",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Current height of the board.",
-          fun b -> Lang.val_fun [] (fun _ -> Lang.int b#height) );
-        ( "line_to",
-          ( [],
-            Lang.fun_t
-              [
-                (true, "color", Lang.int_t);
-                (false, "", Lang.int_t);
-                (false, "", Lang.int_t);
-              ]
-              Lang.unit_t ),
-          "Draw a line from the last point.",
-          line_to );
-        ( "width",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Current width of the board.",
-          fun b -> Lang.val_fun [] (fun _ -> Lang.int b#width) );
-        ( "pixel",
-          ( [],
-            Lang.fun_t
-              [(false, "", Lang.int_t); (false, "", Lang.int_t)]
-              (Lang.ref_t Lang.int_t) ),
-          "Retrieve a pixel whose contents is a color (in 0xRRGGBB format).",
-          pixel );
-      ]
+      Lang.
+        [
+          {
+            name = "clear";
+            scheme = ([], Lang.fun_t [] Lang.unit_t);
+            descr = "Clear the board.";
+            value = clear;
+          };
+          {
+            name = "clear_and_copy";
+            scheme =
+              ( [],
+                Lang.fun_t
+                  [(true, "x", Lang.int_t); (true, "y", Lang.int_t)]
+                  Lang.unit_t );
+            descr =
+              "Clear the board and copy the old board to the new one, \
+               translated.";
+            value = clear_and_copy;
+          };
+          {
+            name = "fill";
+            scheme = ([], Lang.fun_t [(false, "", Lang.int_t)] Lang.unit_t);
+            descr = "Fill with given color (0xRRGGBB).";
+            value = fill;
+          };
+          {
+            name = "height";
+            scheme = ([], Lang.fun_t [] Lang.int_t);
+            descr = "Current height of the board.";
+            value = (fun b -> Lang.val_fun [] (fun _ -> Lang.int b#height));
+          };
+          {
+            name = "line_to";
+            scheme =
+              ( [],
+                Lang.fun_t
+                  [
+                    (true, "color", Lang.int_t);
+                    (false, "", Lang.int_t);
+                    (false, "", Lang.int_t);
+                  ]
+                  Lang.unit_t );
+            descr = "Draw a line from the last point.";
+            value = line_to;
+          };
+          {
+            name = "width";
+            scheme = ([], Lang.fun_t [] Lang.int_t);
+            descr = "Current width of the board.";
+            value = (fun b -> Lang.val_fun [] (fun _ -> Lang.int b#width));
+          };
+          {
+            name = "pixel";
+            scheme =
+              ( [],
+                Lang.fun_t
+                  [(false, "", Lang.int_t); (false, "", Lang.int_t)]
+                  (Lang.ref_t Lang.int_t) );
+            descr =
+              "Retrieve a pixel whose contents is a color (in 0xRRGGBB format).";
+            value = pixel;
+          };
+        ]
     (fun p ->
       let width =
         List.assoc "width" p |> Lang.to_option |> Option.map Lang.to_int

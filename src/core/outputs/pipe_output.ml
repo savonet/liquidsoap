@@ -45,22 +45,14 @@ class virtual base ?clock ~source:source_val ~name p =
   let autostart = e Lang.to_bool "start" in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply f [])
-  in
   let export_cover_metadata =
     Lang.to_bool (List.assoc "export_cover_metadata" p)
   in
   object (self)
     inherit
       [Strings.t] Output.encoded
-        ?clock ~infallible ~register_telnet ~on_start ~on_stop ~autostart
-          ~export_cover_metadata ~output_kind:"output.file" ~name source_val
+        ?clock ~infallible ~register_telnet ~autostart ~export_cover_metadata
+          ~output_kind:"output.file" ~name source_val
 
     val mutable encoder = None
     val mutable current_metadata = None
@@ -99,10 +91,10 @@ class virtual base ?clock ~source:source_val ~name p =
     method virtual write_pipe : string -> int -> int -> unit
     method send b = Strings.iter self#write_pipe b
 
-    method insert_metadata m =
+    method encode_metadata m =
       match encoder with
         | None -> ()
-        | Some encoder -> encoder.Encoder.insert_metadata m
+        | Some encoder -> encoder.Encoder.encode_metadata m
   end
 
 (** url output: discard encoded data, try to restart on encoding error (can be
@@ -149,18 +141,6 @@ class url_output p =
     let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
     ignore (Lang.apply on_error [("", Lang.error error)])
   in
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let p =
-    List.map
-      (fun ((lbl, _) as v) ->
-        match lbl with
-          | "on_start" -> ("on_start", Lang.val_fun [] (fun _ -> Lang.unit))
-          | _ -> v)
-      p
-  in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let name = "output.url" in
   object (self)
@@ -181,12 +161,15 @@ class url_output p =
             restart_time <- Unix.gettimeofday () +. delay;
             self#log#important "Will try again in %.02f seconds." delay
 
+    val mutable on_start = []
+    method! on_start fn = on_start <- fn :: on_start
+
     method connect =
       match encoder with
         | None when self#can_connect -> (
             try
               self#create_encoder;
-              on_start ()
+              List.iter (fun fn -> fn ()) on_start
             with exn ->
               let bt = Printexc.get_raw_backtrace () in
               self#on_error ~bt exn)
@@ -215,7 +198,7 @@ class url_output p =
 let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "url" (url_proto return_t) ~return_t
-    ~category:`Output ~meth:Output.meth
+    ~category:`Output ~meth:Output.meth ~callbacks:Output.callbacks
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \
@@ -276,18 +259,36 @@ let pipe_proto frame_t arg_doc =
 let pipe_meth =
   let meth =
     List.map
-      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
+      (fun meth ->
+        {
+          meth with
+          Lang.value = (fun s -> meth.Lang.value (s :> Output.output));
+        })
       Output.meth
   in
-  ( "reopen",
-    ([], Lang.fun_t [] Lang.unit_t),
-    "Reopen the output pipe. The actual reopening happens the next time the \
-     output has some data to output.",
-    fun s ->
-      Lang.val_fun [] (fun _ ->
-          s#need_reopen;
-          Lang.unit) )
+  {
+    Lang.name = "reopen";
+    scheme = ([], Lang.fun_t [] Lang.unit_t);
+    descr =
+      "Reopen the output pipe. The actual reopening happens the next time the \
+       output has some data to output.";
+    value =
+      (fun s ->
+        Lang.val_fun [] (fun _ ->
+            s#need_reopen;
+            Lang.unit));
+  }
   :: meth
+
+let pipe_callbacks =
+  List.map
+    (fun m ->
+      {
+        m with
+        Lang.register =
+          (fun ~params s fn -> m.Lang.register ~params (s :> Output.output) fn);
+      })
+    Output.callbacks
 
 class virtual piped_output ?clock ~name p =
   let source = Lang.assoc "" 3 p in
@@ -382,10 +383,10 @@ class virtual piped_output ?clock ~name p =
         | _ -> ());
       base#encode frame
 
-    method! insert_metadata metadata =
+    method! encode_metadata metadata =
       if reopen_on_metadata (Frame.Metadata.Export.to_metadata metadata) then
         self#reopen;
-      base#insert_metadata metadata
+      base#encode_metadata metadata
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to
@@ -586,7 +587,7 @@ let new_file_output ?clock p =
 let output_file =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "file" (file_proto return_t) ~return_t
-    ~category:`Output ~meth:pipe_meth
+    ~category:`Output ~meth:pipe_meth ~callbacks:pipe_callbacks
     ~descr:"Output the source stream to a file." (fun p -> new_file_output p)
 
 (** External output *)
@@ -628,6 +629,6 @@ let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "external"
     (pipe_proto return_t "Process to pipe data to.")
-    ~return_t ~category:`Output ~meth:pipe_meth
+    ~return_t ~category:`Output ~meth:pipe_meth ~callbacks:pipe_callbacks
     ~descr:"Send the stream to a process' standard input." (fun p ->
       (new external_output p :> piped_output))

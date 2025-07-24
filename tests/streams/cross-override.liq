@@ -50,11 +50,12 @@ def on_metadata(m) =
   end
 end
 
-s.on_metadata(on_metadata)
+s.on_metadata(synchronous=true, on_metadata)
 clock.assign_new(sync="none", [s])
 
 def on_stop() =
   if success() then test.pass() else test.fail() end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, on_stop)

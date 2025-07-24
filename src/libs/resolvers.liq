@@ -26,5 +26,5 @@ def youtube_playlist_parser(~pwd="", url) =
 end
 
 playlist.parse.register(
-  format="youtube-dl", strict=true, youtube_playlist_parser
+  name="youtube-dl", mimes=[], strict=true, youtube_playlist_parser
 )

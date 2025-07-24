@@ -260,7 +260,7 @@ let json_of_of { only; except; source } =
 let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> (string * Json.t) list =
   function
   | `Argsof _of -> ast_node ~typ:"argsof" (json_of_of _of)
-  | `Term { Term_base.label; as_variable; typ; default } ->
+  | `Term { Parsed_term.label; as_variable; typ; default } ->
       ast_node ~typ:"term"
         [
           ( "value",
@@ -271,7 +271,7 @@ let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> (string * Json.t) list =
                    ( "as_variable",
                      match as_variable with
                        | None -> `Null
-                       | Some v -> `String v );
+                       | Some pat -> json_of_pat pat );
                    ( "typ",
                      match typ with
                        | None -> `Null

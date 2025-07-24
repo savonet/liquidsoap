@@ -1,4 +1,11 @@
 let _ =
+  Lang.add_builtin ~base:Lang.error_module "methods"
+    ~descr:"Decorate an error with all its methods" ~category:`Liquidsoap
+    [("", Lang.error_t, None, None)]
+    Lang.error_meths_t
+    (fun p -> List.assoc "" p)
+
+let _ =
   Lang.add_builtin "ignore"
     ~descr:"Convert anything to unit, preventing warnings."
     ~category:`Programming

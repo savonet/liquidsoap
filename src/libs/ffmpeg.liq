@@ -326,11 +326,11 @@ def video.add_text.ffmpeg.raw.filter(
     )
 
   def escape =
-    def special_char(~encoding=_, s) =
+    def special_char(~encoding:_, s) =
       string.contains(substring=s, "(',%,\\,:,{,})")
     end
 
-    def escape_char(~encoding=_, s) =
+    def escape_char(~encoding:_, s) =
       "\\#{s}"
     end
 
@@ -470,25 +470,23 @@ def replaces video.add_text.ffmpeg.raw(
 ) =
   on_frame = ref(fun () -> ())
   on_metadata = ref(fun (_) -> ())
-  s =
-    source.on_metadata(
-      s,
-      fun (m) ->
-        begin
-          fn = on_metadata()
-          fn(m)
-        end
-    )
+  s.on_metadata(
+    synchronous=true,
+    fun (m) ->
+      begin
+        fn = on_metadata()
+        fn(m)
+      end
+  )
 
-  s =
-    source.on_frame(
-      s,
-      fun () ->
-        begin
-          fn = on_frame()
-          fn()
-        end
-    )
+  s.on_frame(
+    synchronous=true,
+    fun () ->
+      begin
+        fn = on_frame()
+        fn()
+      end
+  )
 
   s = ffmpeg.filter.video.input(graph, source.tracks(s).video)
   v =

@@ -198,7 +198,7 @@ def video.cover(s) =
   fail = (source.fail() : source)
 
   def next() =
-    m = source.last_metadata(s ?? fail) ?? []
+    m = source.methods((s ?? fail)).last_metadata() ?? []
 
     filename = m["filename"]
 
@@ -242,8 +242,6 @@ let output.youtube.live = ()
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~url RTMP URL to stream to
 # @param ~encoder Encoder to use (most likely a `%ffmpeg` encoder)
@@ -251,8 +249,6 @@ let output.youtube.live = ()
 def output.youtube.live.rtmp(
   ~id=null,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   ~start=true,
   ~url="rtmp://a.rtmp.youtube.com/live2",
   ~(key:string),
@@ -260,14 +256,7 @@ def output.youtube.live.rtmp(
   s
 ) =
   output.url(
-    id=id,
-    fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
-    start=start,
-    url="#{url}/#{key}",
-    encoder,
-    s
+    id=id, fallible=fallible, start=start, url="#{url}/#{key}", encoder, s
   )
 end
 
@@ -275,8 +264,6 @@ end
 # @category Source / Output
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~segment_duration Segment duration (in seconds).
 # @param ~segments Number of segments per playlist.
@@ -287,8 +274,6 @@ end
 def output.youtube.live.hls(
   ~id=null,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   ~segment_duration=2.0,
   ~segments=4,
   ~segments_overhead=4,
@@ -317,7 +302,7 @@ def output.youtube.live.hls(
       end
   end
 
-  def on_file_change(~state, fname) =
+  def on_file_change({state, path = fname}) =
     if
       (state == "created" or state == "updated")
     and
@@ -329,21 +314,21 @@ def output.youtube.live.hls(
 
   tmpdir = file.temp_dir("hls", "")
   on_shutdown({file.rmdir(tmpdir)})
-  output.file.hls(
-    id=id,
-    start=start,
-    fallible=fallible,
-    on_stop=on_stop,
-    on_start=on_start,
-    playlist="main.m3u8",
-    segment_duration=segment_duration,
-    segments=segments,
-    segments_overhead=segments_overhead,
-    on_file_change=on_file_change,
-    tmpdir,
-    [("live", encoder)],
-    s
-  )
+  o =
+    output.file.hls(
+      id=id,
+      start=start,
+      fallible=fallible,
+      playlist="main.m3u8",
+      segment_duration=segment_duration,
+      segments=segments,
+      segments_overhead=segments_overhead,
+      tmpdir,
+      [("live", encoder)],
+      s
+    )
+  o.on_file_change(on_file_change)
+  o
 end
 
 # @flag hidden
@@ -378,7 +363,11 @@ def add_text_builder(f) =
       end
     end
 
-    s = null.defined(metadata) ? source.on_metadata(s, on_metadata) : s
+    if
+      null.defined(metadata)
+    then
+      s.on_metadata(synchronous=true, on_metadata)
+    end
 
     # Our text source.
     t = f(id=id, duration=duration, color=color, font=font, size=size, text)
@@ -634,7 +623,7 @@ def video.add_subtitle(
     if list.assoc.mem(override, m) then subtitle := list.assoc(override, m) end
   end
 
-  s = source.on_metadata(s, meta)
+  s.on_metadata(synchronous=true, meta)
   let {video = v, ...tracks} = source.tracks(s)
   let {video = t} = source.tracks(t)
   let v = track.video.add([v, t])
@@ -833,7 +822,8 @@ def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y) =
     end
   end
 
-  source.on_frame(s', update)
+  s'.on_frame(update)
+  s'
 end
 
 let video.canvas = ()

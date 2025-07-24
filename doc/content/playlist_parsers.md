@@ -12,7 +12,6 @@ however, may cause _false positive_ detections.
 All formats are identified by their _mime-type_ or _content-type_. Supported formats are the following:
 
 - Text formats:
-
   - `audio/x-scpls`: [PLS format](http://en.wikipedia.org/wiki/PLS_%28file_format%29), **strict**
   - `application/x-cue`: [CUE format](http://en.wikipedia.org/wiki/.cue), **strict**. This format's usage is described below.
   - `audio/x-mpegurl`, `audio/mpegurl`: [M3U](http://en.wikipedia.org/wiki/M3u), **non strict**

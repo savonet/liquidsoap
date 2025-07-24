@@ -116,7 +116,7 @@ let () =
     in
     let stop () = Strings.of_string (Lame.encode_flush enc) in
     {
-      insert_metadata = (fun _ -> ());
+      encode_metadata = (fun _ -> ());
       hls = Encoder_utils.mk_id3_hls ~pos encode;
       encode;
       header = (fun () -> Strings.empty);

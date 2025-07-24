@@ -23,6 +23,7 @@
 module Runtime = Liquidsoap_lang.Runtime
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
+module Lang_string = Liquidsoap_lang.Lang_string
 module Queue = Queues.Queue
 
 let usage =
@@ -72,6 +73,8 @@ let root_error () =
 let eval_mode : [ `Parse_only | `Parse_and_type | `Eval | `Eval_toplevel ] ref =
   ref `Eval
 
+let print_json_term = ref false
+
 (* Should we error if stdlib is not found? *)
 let is_relative = Filename.is_relative Sys.argv.(0)
 
@@ -84,9 +87,7 @@ let cache = ref true
 
 (* Display cache key. *)
 let show_cache_key = ref false
-
-(* Should we load the deprecated wrapper? *)
-let deprecated = ref true
+let deprecated = Liquidsoap_lang.Runtime.deprecated
 
 (* Shall we start an interactive interpreter (REPL) *)
 let interactive = ref false
@@ -96,7 +97,12 @@ let to_load = Queue.create ()
 let eval_script expr =
   let open Liquidsoap_lang in
   match !eval_mode with
-    | `Parse_only -> ignore (Runtime.parse expr)
+    | `Parse_only ->
+        let tm, _ = Runtime.parse expr in
+        if !print_json_term then
+          Printf.printf "%s\n"
+            (Liquidsoap_lang.Json.to_string ~compact:false
+               (Liquidsoap_tooling.Parsed_json.to_json tm))
     | `Parse_and_type ->
         let parsed_term, term = Runtime.parse expr in
         ignore
@@ -128,7 +134,8 @@ let eval () =
            | `Stdin -> "%include \"-\""
            | `Expr_or_file expr when not (Sys.file_exists expr) ->
                Printf.sprintf "%s" expr
-           | `Expr_or_file f -> Printf.sprintf "%%include %S" f)
+           | `Expr_or_file f ->
+               Printf.sprintf "%%include %s" (Lang_string.quote_string f))
          scripts)
   in
   let t = Sys.time () in
@@ -283,6 +290,11 @@ let options =
          "Execute script code in strict mode, issuing fatal errors instead of \
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
+       ( ["--raw-errors"],
+         Arg.Set Runtime.raw_errors,
+         "In normal executions, exceptions raised during the script are \
+          translated into user-friendly errors. Use this option to let the \
+          original error surface. This is useful when debugging." );
      ]
     @ Dtools.Init.args @ Extra_args.args ()
     @ [
@@ -360,12 +372,31 @@ let options =
           Arg.Unit (fun () -> stdlib := `Disabled),
           Printf.sprintf "Do not load stdlib script libraries (i.e., %s/*.liq)."
             (Configure.liq_libs_dir ()) );
+        ( ["--print-json-term"],
+          Arg.Unit
+            (fun () ->
+              run_streams := false;
+              eval_mode := `Parse_only;
+              print_json_term := true),
+          "Parse and output the script as normalized JSON. The JSON format is \
+           used internally to format code." );
         ( ["--stdlib"],
           Arg.String (fun s -> stdlib := `Override s),
           "Override the location of the standard library." );
-        ( ["--no-deprecated"],
+        ( ["--disable-deprecated"],
           Arg.Clear deprecated,
           "Do not load wrappers for deprecated operators." );
+        ( ["--no-deprecated"],
+          Arg.Unit
+            (fun _ ->
+              Printf.eprintf
+                "`--no-deprecated` is, ahem.. deprecated! Please use \
+                 `--disable-deprecated`!";
+              deprecated := false),
+          "Deprecated: use `--disable-deprecated`" );
+        ( ["--enable-deprecated"],
+          Arg.Set deprecated,
+          "Load wrappers for deprecated operators." );
         ( ["-i"],
           Arg.Set Liquidsoap_lang.Typechecking.display_types,
           "Display inferred types." );

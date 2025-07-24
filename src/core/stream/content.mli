@@ -24,17 +24,6 @@ open Mm
 
 (** Generic content registration API. *)
 
-type 'a chunk = 'a Content_base.chunk = {
-  data : 'a;
-  offset : int;
-  length : int option;
-}
-
-type ('a, 'b) chunks = ('a, 'b) Content_base.chunks = {
-  mutable params : 'a;
-  mutable chunks : 'b chunk list;
-}
-
 module Contents = Content_base.Contents
 
 (* Raised during any invalid operation below. *)
@@ -86,7 +75,6 @@ module type Content = sig
   val is_data : Contents.data -> bool
   val lift_data : ?offset:int -> ?length:int -> data -> Contents.data
   val get_data : Contents.data -> data
-  val get_chunked_data : Contents.data -> (params, data) chunks
 
   (** Format *)
 
@@ -114,7 +102,6 @@ type data = Contents.data
 (** Data *)
 
 val make : ?length:int -> format -> data
-val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val truncate : data -> int -> data
 val copy : data -> data

@@ -8,13 +8,13 @@ let type_term ?name ?(cache = true) ?(trim = true) ?(deprecated = false) ?ty
       | `Disabled -> (parsed_term, None)
       | #check_stdlib as stdlib ->
           let parsed_term, env =
-            let libs, error_on_no_stdlib =
+            let stdlib, error_on_no_stdlib =
               match stdlib with
-                | `Override s -> (Some [s], true)
+                | `Override s -> (Some s, true)
                 | `If_present -> (None, false)
                 | `Force -> (None, true)
             in
-            Term_stdlib.prepare ?libs ~cache ~error_on_no_stdlib ~deprecated
+            Term_stdlib.prepare ~stdlib ~cache ~error_on_no_stdlib ~deprecated
               parsed_term
           in
           (parsed_term, Some env)

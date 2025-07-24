@@ -52,12 +52,15 @@ let rec prepend_parsed_stdlib =
     the full env using it. Next, we append the user script to the resulting term
     and typecheck the user script only using the standard library environment.
 *)
-let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
-  let libs =
-    match libs with
-      | Some libs -> libs
-      | None -> Runtime.libs ~error_on_no_stdlib ~deprecated ()
+let prepare ~stdlib ~cache ~error_on_no_stdlib ~deprecated parsed_term =
+  let stdlib =
+    match stdlib with
+      | Some stdlib -> stdlib
+      | None ->
+          let dir = !Hooks.liq_libs_dir () in
+          Filename.concat dir "stdlib.liq"
   in
+  let libs = Runtime.libs ~stdlib ~error_on_no_stdlib ~deprecated () in
   let script = List.fold_left (Printf.sprintf "%s\n%%include %S") "" libs in
   let lexbuf = Sedlexing.Utf8.from_string script in
   let parsed_stdlib, stdlib =

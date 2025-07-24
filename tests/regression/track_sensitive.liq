@@ -5,7 +5,8 @@ is_done = ref(false)
 
 s = switch([(is_ready, s)])
 
-output.dummy(fallible=true, on_stop={if not is_done() then test.fail() end}, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, {if not is_done() then test.fail() end})
 
 thread.run(delay=0.1, {is_ready := false})
 thread.run(

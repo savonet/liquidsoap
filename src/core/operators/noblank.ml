@@ -88,7 +88,7 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
   end
 
 class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
-  ~on_blank ~on_noise source =
+  source =
   object (self)
     inherit operator ~name:"blank.detect" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
@@ -98,6 +98,10 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
+    val mutable on_blank = []
+    method on_blank fn = on_blank <- fn :: on_blank
+    val mutable on_noise = []
+    method on_noise fn = on_noise <- fn :: on_noise
 
     method private generate_frame =
       let buf = source#get_frame in
@@ -107,8 +111,8 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
         self#is_blank
       in
       (match (was_blank, is_blank) with
-        | true, false -> ignore (Lang.apply on_noise [])
-        | false, true -> ignore (Lang.apply on_blank [])
+        | true, false -> List.iter (fun fn -> fn ()) on_blank
+        | false, true -> List.iter (fun fn -> fn ()) on_noise
         | _ -> ());
       buf
   end
@@ -243,22 +247,27 @@ let extract p =
 
 let meth () =
   [
-    ( "dB_levels",
-      ([], Lang.fun_t [] (Lang.nullable_t (Lang.list_t Lang.float_t))),
-      "Return the detected dB level for each channel.",
-      fun s ->
-        Lang.val_fun [] (fun _ ->
-            match s#dB_levels with
-              | None -> Lang.null
-              | Some lvl ->
-                  Lang.list
-                    Array.(
-                      to_list
-                        (map (fun v -> Lang.float (Audio.dB_of_lin v)) lvl))) );
-    ( "is_blank",
-      ([], Lang.fun_t [] Lang.bool_t),
-      "Indicate whether blank was detected.",
-      fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
+    {
+      Lang.name = "dB_levels";
+      scheme = ([], Lang.fun_t [] (Lang.nullable_t (Lang.list_t Lang.float_t)));
+      descr = "Return the detected dB level for each channel.";
+      value =
+        (fun s ->
+          Lang.val_fun [] (fun _ ->
+              match s#dB_levels with
+                | None -> Lang.null
+                | Some lvl ->
+                    Lang.list
+                      Array.(
+                        to_list
+                          (map (fun v -> Lang.float (Audio.dB_of_lin v)) lvl))));
+    };
+    {
+      Lang.name = "is_blank";
+      scheme = ([], Lang.fun_t [] Lang.bool_t);
+      descr = "Indicate whether blank was detected.";
+      value = (fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank));
+    };
   ]
 
 let _ =
@@ -269,25 +278,36 @@ let _ =
   Lang.add_operator ~base:Blank.blank "detect" ~return_t:frame_t
     ~category:`Track ~meth:(meth ())
     ~descr:"Calls a given handler when detecting a blank."
-    (( "",
-       Lang.fun_t [] Lang.unit_t,
-       None,
-       Some "Handler called when blank is detected." )
-    :: ( "on_noise",
-         Lang.fun_t [] Lang.unit_t,
-         Some (Lang.val_cst_fun [] Lang.unit),
-         Some "Handler called when noise is detected." )
-    :: proto frame_t)
+    ~callbacks:
+      [
+        {
+          name = "on_blank";
+          params = [];
+          descr = "when detecting a blank.";
+          default_synchronous = false;
+          register_deprecated_argument = false;
+          arg_t = [];
+          register = (fun ~params:_ s f -> s#on_blank (fun () -> f []));
+        };
+        {
+          name = "on_noise";
+          params = [];
+          descr = "when noise is detected.";
+          default_synchronous = false;
+          register_deprecated_argument = false;
+          arg_t = [];
+          register = (fun ~params:_ s f -> s#on_noise (fun () -> f []));
+        };
+      ]
+    (proto frame_t)
     (fun p ->
-      let on_blank = Lang.assoc "" 1 p in
-      let on_noise = Lang.assoc "on_noise" 1 p in
       let p = List.remove_assoc "" p in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
       new detect
-        ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive ~on_blank
-        ~on_noise (Lang.to_source s))
+        ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
+        (Lang.to_source s))
 
 let _ =
   let frame_t =

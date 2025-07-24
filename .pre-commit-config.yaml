@@ -26,15 +26,10 @@ repos:
         exclude: dune.inc
 
   - repo: https://github.com/savonet/pre-commit-liquidsoap
-    rev: 056cf2da9d985e1915a069679f126a461206504a
+    rev: 05c751f670ddd1269c6be39ade0a3a368b18eaa2
     hooks:
       - id: liquidsoap-prettier
-
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
       - id: prettier
-        files: \.(md|yml|yaml|json)$
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0

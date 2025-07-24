@@ -554,7 +554,7 @@ and ( <: ) a b =
                             meth = l;
                             optional;
                             scheme = (g2, t2);
-                            doc = "";
+                            doc = { meth_descr = ""; category = `Method };
                             json_name = None;
                           },
                           var () ));

@@ -69,7 +69,7 @@ let encoder ~pos wav =
     else Strings.of_string s
   in
   {
-    Encoder.insert_metadata = (fun _ -> ());
+    Encoder.encode_metadata = (fun _ -> ());
     hls = Encoder.dummy_hls encode;
     encode;
     header = (fun () -> Strings.of_string header);

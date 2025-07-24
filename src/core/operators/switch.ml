@@ -157,8 +157,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                        * A quicker hack might have been doable if there wasn't a
                        * transition in between. *)
                         match c.source#last_metadata with
-                        | Some m when replay_meta ->
-                            new Insert_metadata.replay m c.source
+                        | Some (_, m) when replay_meta ->
+                            new Replay_metadata.replay m c.source
                         | _ -> c.source
                     in
                     Typing.(new_source#frame_type <: self#frame_type);
@@ -188,8 +188,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                        * A quicker hack might have been doable if there wasn't a
                        * transition in between. *)
                         match c.source#last_metadata with
-                        | Some m when replay_meta ->
-                            new Insert_metadata.replay m c.source
+                        | Some (_, m) when replay_meta ->
+                            new Replay_metadata.replay m c.source
                         | _ -> c.source
                     in
                     Typing.(old_source#frame_type <: self#frame_type);
@@ -263,14 +263,17 @@ let _ =
        true."
     ~meth:
       [
-        ( "selected",
-          ([], Lang.fun_t [] (Lang.nullable_t Lang.(source_t return_t))),
-          "Currently selected source.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match s#selected with
-                  | Some s -> Lang.source s
-                  | None -> Lang.null) );
+        {
+          name = "selected";
+          scheme = ([], Lang.fun_t [] (Lang.nullable_t Lang.(source_t return_t)));
+          descr = "Currently selected source.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  match s#selected with
+                    | Some s -> Lang.source s
+                    | None -> Lang.null));
+        };
       ]
     [
       ( "track_sensitive",

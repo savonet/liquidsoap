@@ -40,6 +40,7 @@ type value = Value.t
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
+val error_module : module_name
 
 (** {2 Computation} *)
 
@@ -50,13 +51,15 @@ val apply : ?pos:Pos.t list -> value -> env -> value
 (** {3 Helpers for source builtins} *)
 
 type proto = (string * t * value option * string option) list
+type 'a meth = { name : string; scheme : scheme; descr : string; value : 'a }
 
 (** Add a builtin to the language, high-level version for functions. *)
 val add_builtin :
   category:Doc.Value.category ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
-  ?meth:(string * Type.scheme * string * value) list ->
+  ?meth:value meth list ->
+  ?callbacks:string list ->
   ?examples:string list ->
   ?base:module_name ->
   string ->
@@ -145,6 +148,7 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
+val error_meths_t : t
 
 (** [fun_t args r] is the type of a function taking [args] as parameters and
     returning values of type [r]. The elements of [r] are of the form [(b,l,t)]

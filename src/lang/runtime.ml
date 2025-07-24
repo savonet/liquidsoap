@@ -33,6 +33,18 @@ type append_stdlib = unit -> stdlib
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
+let strict = ref false
+let deprecated = ref true
+
+let () =
+  Array.iter
+    (function
+      | "--disable-deprecated" -> deprecated := false
+      | "--enable-deprecated" -> deprecated := true
+      | _ -> ())
+    Sys.argv
+
+let raw_errors = ref false
 
 let error_header ~formatter idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
@@ -48,7 +60,13 @@ let warning_header ~formatter idx pos =
     errors are re-raised, so that their content is not totally lost. *)
 exception Error
 
-let strict = ref false
+exception Warning of string
+
+let () =
+  Printexc.register_printer (function
+    | Error -> Some "Liquidsoap Error"
+    | Warning s -> Some (Printf.sprintf "Warning: %s" s)
+    | _ -> None)
 
 let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
   let print_error ~formatter idx error =
@@ -63,36 +81,70 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
     Format.fprintf formatter "%s\n@]@." error
   in
   function
+  | exn when !raw_errors -> Printexc.raise_with_backtrace exn bt
   (* Warnings *)
   | Term.Ignored tm when Type.is_fun tm.Term.t ->
       flush_all ();
       warning_header ~formatter 1 tm.Term.t.Type.pos;
+      let typ = Type.to_string tm.Term.t in
       Format.fprintf formatter
         "Trying to ignore a function,@ which is of type %s.@ Did you forget to \
          apply it to arguments?@]@."
-        (Type.to_string tm.Term.t);
-      if !strict then Printexc.raise_with_backtrace Error bt
+        typ;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning
+             (Printf.sprintf
+                "Trying to ignore a function, which is of type %s. Did you \
+                 forget to apply it to arguments?"
+                typ))
+          bt
   | Term.Ignored tm when Type.is_source tm.Term.t ->
       flush_all ();
       warning_header ~formatter 2 tm.Term.t.Type.pos;
       Format.fprintf formatter
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
-      if !strict then Printexc.raise_with_backtrace Error bt
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning
+             "This source is unused, maybe it needs to be connected to an \
+              output.")
+          bt
   | Term.Ignored tm ->
       flush_all ();
       warning_header ~formatter 3 tm.Term.t.Type.pos;
-      Format.fprintf formatter "This expression should have type unit.@]@.";
-      if !strict then Printexc.raise_with_backtrace Error bt
+      Format.fprintf formatter
+        "This expression is returning a value that is ignored. Do you need to \
+         use its return value? If not, you can use the `ignore()` \
+         operator.@]@.";
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning "This expression should have type unit.") bt
   | Term.Unused_variable (s, pos) ->
       flush_all ();
       warning_header ~formatter 4 (Some pos);
       Format.fprintf formatter "Unused variable %s@]@." s;
-      if !strict then Printexc.raise_with_backtrace Error bt
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Unused variable %s" s))
+          bt
   | Term.Deprecated (s, pos) ->
       flush_all ();
       warning_header ~formatter 5 (Some pos);
-      Format.fprintf formatter "Deprecated: %s@]@." s
+      Format.fprintf formatter "Deprecated: %s@]@." s;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Deprecated: %s" s))
+          bt
+  | Typechecking.Top_level_override (s, pos) ->
+      flush_all ();
+      warning_header ~formatter 6 pos;
+      Format.fprintf formatter "Top-level variable %s is overridden!@]@." s;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Top-level variable %s is overridden!" s))
+          bt
   (* Errors *)
   | Failure s when s = "lexing: empty token" ->
       print_error ~formatter 1 "Empty token";
@@ -276,7 +328,9 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
         time (fun () ->
             report ~lexbuf:None
               ~default:(fun () -> ())
-              (fun ~throw () -> Typechecking.check ?env ~throw checked_term));
+              (fun ~throw () ->
+                Typechecking.check ?env
+                  ~check_top_level_override:(stdlib <> None) ~throw checked_term));
 
         if Lazy.force Term.debug then
           Printf.eprintf "Checking for unused variables...\n%!";
@@ -371,7 +425,7 @@ let interactive () =
           ~default:(fun () -> ())
           (fun ~throw () ->
             let _, expr = mk_expr interactive lexbuf in
-            Typechecking.check ~throw expr;
+            Typechecking.check ~throw ~check_top_level_override:true expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore (Evaluation.eval_toplevel ~interactive:true expr));
         true
@@ -388,21 +442,19 @@ let interactive () =
   in
   loop ()
 
-let libs ?(stdlib = "stdlib.liq") ?(error_on_no_stdlib = true)
-    ?(deprecated = true) () =
-  let dir = !Hooks.liq_libs_dir () in
-  let file = Filename.concat dir stdlib in
+let libs ?(error_on_no_stdlib = true) ?(deprecated = true) ~stdlib () =
   let libs =
-    if not (Sys.file_exists file) then
+    if not (Sys.file_exists stdlib) then
       if error_on_no_stdlib then
         failwith (Printf.sprintf "Could not find default %s library!" stdlib)
       else []
-    else [file]
+    else [stdlib]
   in
+  let dir = Filename.dirname stdlib in
   let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
   if deprecated && Sys.file_exists file then libs @ [file] else libs
 
-let load_libs ?stdlib () =
+let load_libs ~stdlib () =
   List.iter
     (fun fname ->
       let filename = Lang_string.home_unrelate fname in
@@ -422,4 +474,4 @@ let load_libs ?stdlib () =
               parsed_term
           in
           ignore (eval_term ~name:"stdlib" ~toplevel:true term)))
-    (libs ?stdlib ())
+    (libs ~stdlib ())

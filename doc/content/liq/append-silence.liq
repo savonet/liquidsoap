@@ -9,19 +9,23 @@ playlist_source = playlist("/path/to/playlist")
 should_append = ref(false)
 
 # Append 5. of silence when needed.
-fallback_source = append(
-  playlist_source, fun (_) ->
-    if should_append() then
-      should_append := false
-      blank(duration=5.)
-    else
-      source.fail()
-    end
-)
+fallback_source =
+  append(
+    playlist_source,
+    fun (_) ->
+      if
+        should_append()
+      then
+        should_append := false
+        blank(duration=5.)
+      else
+        source.fail()
+      end
+  )
 
 # Transition to live
 def to_live(playlist, live) =
-  sequence([playlist,live])
+  sequence([playlist, live])
 end
 
 # Transition back to playlist
@@ -37,10 +41,12 @@ def to_playlist(live, playlist) =
   sequence([live, playlist])
 end
 
-radio = fallback(
-  track_sensitive=false,
-  transitions=[to_live, to_playlist],
-  [live_source, fallback_source]
-)
+radio =
+  fallback(
+    track_sensitive=false,
+    transitions=[to_live, to_playlist],
+    [live_source, fallback_source]
+  )
+
 # END
 output.dummy(fallible=true, radio)

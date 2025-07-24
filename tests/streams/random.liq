@@ -49,7 +49,7 @@ def f(m) =
 end
 
 s = random(weights=[s1_weight, s2_weight], [s1, s2])
-s.on_track(f)
+s.on_track(synchronous=true, f)
 output.dummy(fallible=true, s)
 
 def on_done() =

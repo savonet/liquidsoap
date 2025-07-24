@@ -226,14 +226,18 @@ let audio_compress =
     ~return_t ~category:`Audio ~descr:"Compress the signal."
     ~meth:
       [
-        ( "gain",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Gain (dB).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain) );
-        ( "rms",
-          ([], Lang.fun_t [] Lang.float_t),
-          "RMS or peak power (linear).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#rms) );
+        {
+          name = "gain";
+          scheme = ([], Lang.fun_t [] Lang.float_t);
+          descr = "Gain (dB).";
+          value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain));
+        };
+        {
+          name = "rms";
+          scheme = ([], Lang.fun_t [] Lang.float_t);
+          descr = "RMS or peak power (linear).";
+          value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#rms));
+        };
       ]
     (fun p ->
       let attack = List.assoc "attack" p |> Lang.to_float_getter in

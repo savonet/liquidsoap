@@ -142,17 +142,21 @@ let mk_module_name ?base name =
     failwith ("module name " ^ name ^ " has a dot in it!");
   match base with None -> name | Some b -> b ^ "." ^ name
 
-let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
-    ?base name proto return_t f =
+type 'a meth = { name : string; scheme : scheme; descr : string; value : 'a }
+
+let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(callbacks = [])
+    ?(examples = []) ?base name proto return_t f =
   let name = mk_module_name ?base name in
   let return_t =
-    let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
+    let meth =
+      List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth
+    in
     method_t return_t meth
   in
   let f =
     if meth = [] then f
     else (
-      let meth = List.map (fun (l, _, _, f) -> (l, f)) meth in
+      let meth = List.map (fun { name; value } -> (name, value)) meth in
       fun p -> meth_fun (f p) meth)
   in
   let t = builtin_type proto return_t in
@@ -166,6 +170,13 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
   in
   let doc () =
     let meth, return_t = Type.split_meths return_t in
+    let callbacks, meth =
+      List.partition
+        (fun (m : Type.meth) ->
+          if List.mem m.meth callbacks then m.doc.category <- `Callback;
+          m.doc.category = `Callback)
+        meth
+    in
     let t = builtin_type proto return_t in
     let generalized = Typing.filter_vars (fun _ -> true) t in
     let examples =
@@ -198,7 +209,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     let methods =
       List.map
         (fun (m : Type.meth) ->
-          let d = m.doc in
+          let d = m.doc.meth_descr in
           let d = if d = "" then None else Some d in
           ( m.meth,
             Doc.Value.
@@ -207,6 +218,19 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
                 meth_description = d;
               } ))
         meth
+    in
+    let callbacks =
+      List.map
+        (fun (m : Type.meth) ->
+          let d = m.doc.meth_descr in
+          let d = if d = "" then None else Some d in
+          ( m.meth,
+            Doc.Value.
+              {
+                meth_type = Repr.string_of_scheme m.scheme;
+                meth_description = d;
+              } ))
+        callbacks
     in
     Doc.Value.
       {
@@ -217,6 +241,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
         examples;
         arguments;
         methods;
+        callbacks;
       }
     (* to_plugin_doc category flags examples descr proto return_t *)
   in
@@ -240,6 +265,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
         examples = [];
         arguments = [];
         methods = [];
+        callbacks = [];
       }
   in
   Environment.add_builtin ~doc:(Lazy.from_fun doc)

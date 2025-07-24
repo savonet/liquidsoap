@@ -537,11 +537,27 @@ let settings.playlist.mime_types.basic =
     description=
       "Mime-types used for guessing text-based playlists.",
     [
-      {mime="audio/x-scpls", strict=true, parser=playlist.parse.scpls},
-      {mime="application/x-cue", strict=true, parser=playlist.parse.cue},
-      {mime="audio/x-mpegurl", strict=false, parser=playlist.parse.m3u},
-      {mime="audio/mpegurl", strict=false, parser=playlist.parse.m3u},
-      {mime="application/x-mpegURL", strict=false, parser=playlist.parse.m3u}
+      {
+        name=
+          "scpls format",
+        mimes=["audio/x-scpls"],
+        strict=true,
+        parser=playlist.parse.scpls
+      },
+      {
+        name=
+          "cue sheet",
+        mimes=["application/x-cue"],
+        strict=true,
+        parser=playlist.parse.cue
+      },
+      {
+        name=
+          "m3u Format",
+        mimes=["audio/x-mpegurl", "audio/mpegurl", "application/x-mpegURL"],
+        strict=false,
+        parser=playlist.parse.m3u
+      }
     ]
   )
 
@@ -550,19 +566,25 @@ let settings.playlist.mime_types.xml =
   settings.make(
     description=
       "Mime-types used for guessing xml-based playlists.",
-    list.map(
-      (fun (mime) -> {mime=mime, strict=true, parser=playlist.parse.xml}),
-      [
-        "video/x-ms-asf",
-        "audio/x-ms-asx",
-        "text/xml",
-        "application/xml",
-        "application/smil",
-        "application/smil+xml",
-        "application/xspf+xml",
-        "application/rss+xml"
-      ]
-    )
+    [
+      {
+        name=
+          "xmlplaylist format",
+        mimes=
+          [
+            "video/x-ms-asf",
+            "audio/x-ms-asx",
+            "text/xml",
+            "application/xml",
+            "application/smil",
+            "application/smil+xml",
+            "application/xspf+xml",
+            "application/rss+xml"
+          ],
+        strict=true,
+        parser=playlist.parse.xml
+      }
+    ]
   )
 %endif
 
@@ -580,9 +602,9 @@ let register_playlist_parsers =
           parsers = [...parsers, ...settings.playlist.mime_types.xml()]
 %endif
           list.iter(
-            fun (entry) ->
+            fun ({name, mimes, strict, parser}) ->
               playlist.parse.register(
-                format=entry.mime, strict=entry.strict, entry.parser
+                name=name, mimes=mimes, strict=strict, parser
               ),
             parsers
           )
@@ -1064,9 +1086,6 @@ def replaces playlist(
     list.map.right(fun (file) -> prefix ^ file, files)
   end
 
-  # Create the source
-  files := load_playlist()
-
   # Reload when the playlist is done
   def on_loop() =
     reloader = reloader_ref()
@@ -1109,6 +1128,18 @@ def replaces playlist(
       files()
     )
 
+  s.on_wake_up(
+    synchronous=true,
+    {
+      log(
+        label=s.id(),
+        "Initial load with URI #{playlist_uri()}."
+      )
+      files := load_playlist()
+      s.reload(empty_queue=true, files())
+    }
+  )
+
   # The reload function
   def s.reload(~empty_queue=true, ~uri=null) =
     if
@@ -1116,7 +1147,7 @@ def replaces playlist(
     then
       if null.defined(uri) then playlist_uri := null.get(uri) end
       log(
-        label=id,
+        label=s.id(),
         "Reloading playlist with URI #{playlist_uri()}."
       )
       files := load_playlist()
@@ -1170,7 +1201,7 @@ def replaces playlist(
       if null.defined(w) then null.get(w).unwatch() end
     end
 
-    s.on_shutdown(watcher_shutdown)
+    s.on_shutdown(synchronous=true, watcher_shutdown)
   end
 
   if

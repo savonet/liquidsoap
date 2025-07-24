@@ -23,8 +23,6 @@ Decoded URI can be any url to pass down to the protocol resolution pipeline. Mos
 a decoded file but it could also be a `annotate` uri if you wish to also pass down decoded metadata along with
 the decoded file.
 
-Here's an example from the standard library using `openmpt123` to decoded old video game files:
-
 ```{.liquidsoap include="decoder-openmpt.liq"}
 
 ```

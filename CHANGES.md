@@ -1,23 +1,47 @@
-2.3.4 (unreleased)
+# 2.4.0 (unreleased)
 
 New:
 
 - BREAKING: Added new file-to-file external `decoder.add` API. This
   makes it much easier and safer to write external decoders. See: [#4531](https://github.com/savonet/liquidsoap/pull/4531)
+- Allow deststructing function arguments using the same patterns as for
+  variable assignment (#4562)
+- BREAKING: `on_metadata`, `on_track`, `on_offset`, `on_end`, `on_wake_up`
+  an `on_shutdown` callbacks have been moved to source methods and are now
+  executed asynchronously by default. Also, `on_offset` and `on_end` have
+  been merged into a single `on_position` source methods. See migratons
+  notes and PR #4536 for details and discussions.
+- Deprecated `insert_metadata`, added default `insert_metadata` method on
+  every source (#4541)
 - Added `liquidsoap.script.path` that contains the path to the current
   script's file, if available.
+- Added LUFS-based per-track loudness correction (#4545)
 - `null` can now be used directly without having to call `null()`.
   `null(value)` calls are still valid and can be used to create
   non-null values with nullable types. Calls to `null()` are marked
   as deprecated (#4516)
+- Enhanced labeled arguments syntax (#4526)
+- Add warning when erasing top-level variables (#4518)
 
 Changed:
 
 - Improved source and clock naming (#4497)
+- Deprecated `replaygain` operator, introduced unified
+  `normalize_track_gain` which works with both ReplayGain
+  and LUFS (#4545)
+- BREAKING: Error methods have been removed by default.
+  Use `error.methods` to get them! (#4537)
+- Make sure that `let { foo = gni } = v` assigns a value to
+  `gni` but not to `foo` (#4561)
 
 Fixed:
 
+- Fix error when loading script path having non-ascii characters in them
+  (#4343)
 - Don't mark source as ready until their clock has started. (#4496)
+- Fixed mutex deadlock caused by aggressive inlining (#4540)
+- Fixed segfault when using SRT on windows (#4538)
+- Fixed memleak in ffmpeg inline encoder (#4501)
 
 ---
 
@@ -2395,7 +2419,6 @@ New:
   - disk_manyfiles: on disk, a lot of small files
     See documentation for more details.
 - Added EXPERIMENTAL video support:
-
   - Support for ogg/theora file input.
   - Support for ogg/theora file and icecast output
   - Support for SDL output.

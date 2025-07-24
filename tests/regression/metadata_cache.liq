@@ -1,5 +1,4 @@
 s = sine()
-s = insert_metadata(s)
 thread.run(
   every=1.,
   {
@@ -35,5 +34,5 @@ s =
     ]
   )
 
-s.on_metadata(fun (_) -> test.pass())
+s.on_metadata(synchronous=true, fun (_) -> test.pass())
 output.dummy(fallible=true, s)

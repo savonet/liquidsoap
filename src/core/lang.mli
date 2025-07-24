@@ -72,12 +72,20 @@ val add_protocol :
 
 type proto = (string * t * value option * string option) list
 
+type 'a meth = 'a Liquidsoap_lang.Lang.meth = {
+  name : string;
+  scheme : scheme;
+  descr : string;
+  value : 'a;
+}
+
 (** Add a builtin to the language, high-level version for functions. *)
 val add_builtin :
   category:Doc.Value.category ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
-  ?meth:(string * Type.scheme * string * value) list ->
+  ?meth:value meth list ->
+  ?callbacks:string list ->
   ?examples:string list ->
   ?base:module_name ->
   string ->
@@ -113,14 +121,30 @@ val add_module : ?base:module_name -> string -> module_name
 
 val module_name : module_name -> string
 
-type 'a operator_method = string * scheme * string * ('a -> value)
-
 (** Add an operator to the language and to the documentation. *)
+
+type callback_param = Lang_source.callback_param = {
+  name : string;
+  typ : t;
+  default : value option;
+}
+
+type 'a callback = 'a Lang_source.callback = {
+  name : string;
+  params : callback_param list;
+  descr : string;
+  default_synchronous : bool;
+  register_deprecated_argument : bool;
+  arg_t : (bool * string * t) list;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
+}
+
 val add_operator :
   category:Doc.Value.source ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
-  ?meth:(< Source.source ; .. > as 'a) operator_method list ->
+  ?meth:((< Source.source ; .. > as 'a) -> value) meth list ->
+  ?callbacks:'a callback list ->
   ?base:module_name ->
   string ->
   proto ->
@@ -133,7 +157,7 @@ val add_track_operator :
   category:Doc.Value.source ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
-  ?meth:(< Source.source ; .. > as 'a) operator_method list ->
+  ?meth:((< Source.source ; .. > as 'a) -> value) meth list ->
   ?base:module_name ->
   string ->
   proto ->

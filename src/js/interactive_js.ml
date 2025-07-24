@@ -8,7 +8,7 @@ let () =
 let execute ~throw expr =
   (try
      try
-       Typechecking.check ~throw expr;
+       Typechecking.check ~throw ~check_top_level_override:false expr;
        Term.check_unused ~throw ~lib:true expr;
        let v = Evaluation.eval expr in
        Format.fprintf Format.str_formatter "- : %a = %s@." Repr.print_type

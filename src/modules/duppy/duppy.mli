@@ -184,8 +184,8 @@ module type Io_t = sig
       writing * returned 0. This usually means that the socket * was closed. *)
   type failure =
     | Io_error
-    | Unix of Unix.error * string * string
-    | Unknown of exn
+    | Unix of (Unix.error * string * string * Printexc.raw_backtrace)
+    | Unknown of exn * Printexc.raw_backtrace
     | Timeout
 
   (** Wrapper to perform a read on a socket and trigger a function when

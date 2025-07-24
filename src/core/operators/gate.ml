@@ -137,12 +137,15 @@ let _ =
       "Reduce the volume when the stream is silent (typically in order to \
        avoid low intensity noise)."
     ~meth:
-      [
-        ( "gate",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Position of the gate (0. means closed, 1. means open).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gate) );
-      ]
+      Lang.
+        [
+          {
+            name = "gate";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Position of the gate (0. means closed, 1. means open).";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gate));
+          };
+        ]
     (fun p ->
       let threshold = List.assoc "threshold" p |> Lang.to_float_getter in
       let attack = List.assoc "attack" p |> Lang.to_float_getter in

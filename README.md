@@ -39,9 +39,9 @@ See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.ht
 Current release status by version:
 | Branch | Latest release | Supported | Rolling Release |
 | --------|----------------|-----------|-----------------|
+| `2.4.x` | | 🚧 | [2.4.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.4.x) (docker: `savonet/liquidsoap:rolling-release-v2.4.x` |
 | `2.3.x` |[2.3.3](https://github.com/savonet/liquidsoap/releases/tag/v2.3.3) (docker: `savonet/liquidsoap:v2.3.3`) | ✅ | [2.3.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.3.x) (docker: `savonet/liquidsoap:rolling-release-v2.3.x` |
 | `2.2.x` | [2.2.5](https://github.com/savonet/liquidsoap/releases/tag/v2.2.5) (docker: `savonet/liquidsoap:v2.2.5`) | ❌ | [2.2.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.2.x) (docker: `savonet/liquidsoap:rolling-release-v2.2.x` |
-| `2.1.x` | [2.1.4](https://github.com/savonet/liquidsoap/releases/tag/v2.1.4) (docker: `savonet/liquidsoap:v2.1.4`) | ❌ | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) (docker: `savonet/liquidsoap:rolling-release-v2.1.x` |
 
 ### Versions
 

@@ -10,7 +10,7 @@ def enable_external_ffmpeg_decoder(~binary="ffmpeg", ~mimes, ~file_extensions) =
       "Decode files using the ffmpeg decoder binary",
     mimes=mimes,
     file_extensions=file_extensions,
-    fun (~rlog, ~maxtime=_, fname) ->
+    fun (~rlog, ~maxtime:_, fname) ->
       begin
         # File is cleaned up as part of the request workflow.
         outfile = file.temp(cleanup=false, "ffmpeg", ".wav")
@@ -78,7 +78,7 @@ def enable_external_openmpt123_decoder(
       "Decode files using the openmpt123 decoder binary",
     mimes=mimes,
     file_extensions=file_extensions,
-    fun (~rlog, ~maxtime=_, infile) ->
+    fun (~rlog, ~maxtime:_, infile) ->
       begin
         ret =
           process.read.lines(

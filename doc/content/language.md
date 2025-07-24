@@ -725,6 +725,17 @@ corresponding label with "`?`", so that the type of the above function is
 (samples : float, ?duration : float) -> float
 ```
 
+### Advanced argument syntax
+
+Arguments can be ignored, typed, named (and renamed) and given default values
+and all these possibilities can be combined.
+
+Here is the syntax to do it:
+
+```{.liquidsoap include="labeled_arguments.liq"}
+
+```
+
 ### Getters
 
 We often want to be able to dynamically modify some parameters in a script. For
@@ -1110,9 +1121,22 @@ let v.{foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
 let _.{foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
 # foo = 123, bar = "baz"
 
+# Same as:
+let {foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
+# foo = 123, bar = "baz"
+
 # Record capture with sub-patterns. Same works for module!
 let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
-# foo = [1, 2, 3], x = 1, y = 2, z = 3, gni = "baz"
+# x = 1, y = 2, z = 3, gni = "baz"
+
+# If you want to capture foo and destructure it, you need
+# to specify it twice:
+let {foo, foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
+# foo = [x, y, z], x = 1, y = 2, z = 3, gni = "baz"
+
+# Record entry can be renamed and ignored on capture:
+let {foo=_, gni=gno, gni={gna}, gni={gna=gnu}...rest} = { foo = 123, gni = {gna="bla"} }
+# gno = {gnna="bla"}, gna="bla", gnu="bla", rest = {foo=123}
 
 # Record capture with optional methods:
 let { foo? } = ()
@@ -1131,6 +1155,43 @@ are all valid patterns:
 let [{foo}, {gni}, ..., {baz}] = l
 
 let (_.{ bla = [..., z] }, t, _, u) = x
+```
+
+## Destructuring function arguments
+
+Patterns are also valid in function arguments and can be used to desctructure function arguments before passing
+them to the function's code.
+
+Here are some example:
+
+```liquidsoap
+# Take a labelled argument x and grab its `gno` method:
+def f(~x:{gno}) =
+  gno + 1
+end
+# Function type: f : (x : 'a.{gno : int}) -> int
+
+# Call it:
+f({gno = 1}) # Returns 2
+
+# Take an anonymous array and adds the first two elements:
+def f([a, b]) =
+  a + b
+end
+# Function type: f : (['a]) -> 'a where 'a is a number type
+
+# Call it:
+f([1, 2]) # Returns 3
+
+# And:
+f([1]);;
+
+# Error:
+# At line 8, char 0-6:
+#
+# Error 14: Uncaught runtime error:
+# type: not_found,
+# message: "List value does not have enough elements to fit the extraction pattern!",
 ```
 
 ## Advanced values

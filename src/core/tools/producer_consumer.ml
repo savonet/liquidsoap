@@ -29,16 +29,18 @@ type write_frame = write_payload -> unit
    - We want to opt-out of the generic child_process
      clock animation framework.
    Thus, we manually mark this operator as ready only
-   before we're about to pull from it. *)
+   before we're about to pull from it.
+
+   There is one exception: when we're expeciting the operator
+   to mostly follow real-time. In this case, we set [always_enabled]
+   to [true] and [check_self_sync] to [false] on the producer. *)
 class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   let s = Lang.to_source source in
   let infallible = not s#fallible in
-  let noop () = () in
   object
     inherit
       Output.output
-        ~output_kind:name ~register_telnet:false ~infallible ~on_start:noop
-          ~on_stop:noop source true as super
+        ~output_kind:name ~register_telnet:false ~infallible source true as super
 
     val mutable output_enabled = false
     val mutable producer_buffer = Generator.create Frame.Fields.empty

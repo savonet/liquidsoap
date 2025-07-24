@@ -13,6 +13,7 @@ on:
       - ".github/**"
       - "**/*.ml*"
       - "**/*.liq"
+      - "**/src/js/*"
       - "**/dune"
       - "**/dune.inc"
       - "doc/**"
@@ -130,7 +131,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: latest
+          node-version: 22.x
       - name: Parse using tree-sitter
         run: |
           git clone https://github.com/savonet/tree-sitter-liquidsoap.git
@@ -329,7 +330,7 @@ jobs:
         run: |
           sudo apt-get update
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@97fc27c732766352a0b8ae8a1a5a00755b0a5e75 # v3.3.4
+        uses: ocaml/setup-ocaml@2f57267f071bc8547dfcb9433ff21d44fffef190 # v3.4.0
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-pin: false
@@ -560,8 +561,9 @@ jobs:
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           if [ ${{ needs.build_details.outputs.is_rolling_release }} = "true" ]; then
             cat doc/content/rolling-release.md >> $GITHUB_OUTPUT
-            echo "\n\n" >> $GITHUB_OUTPUT
           fi
+          echo "" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
           cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Generate release assets notes
@@ -569,7 +571,8 @@ jobs:
         run: |
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           cat doc/content/release-assets.md >> $GITHUB_OUTPUT
-          echo "\n\n" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
           cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Delete old release assets

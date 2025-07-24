@@ -1,5 +1,5 @@
 val prepare :
-  ?libs:string list ->
+  stdlib:string option ->
   cache:bool ->
   error_on_no_stdlib:bool ->
   deprecated:bool ->

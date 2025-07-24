@@ -71,38 +71,25 @@ let string_of_address = function
       Printf.sprintf "%s:%d" (Unix.string_of_inet_addr addr) port
 
 let getaddrinfo ~(log : Log.t) ~prefer_address address port =
-  let open Ctypes in
-  let open Posix_socket in
-  let hints = allocate_n Addrinfo.t ~count:1 in
-  hints |-> Addrinfo.ai_flags <-@ ni_numerichost;
-  hints |-> Addrinfo.ai_family <-@ af_unspec;
-  hints |-> Addrinfo.ai_socktype <-@ sock_stream;
-  match getaddrinfo ~hints ~port:(`Int port) address with
+  let hints =
+    match prefer_address with
+      | `System_default -> []
+      | `Ipv4 -> [Unix.AI_FAMILY Unix.PF_INET]
+      | `Ipv6 -> [Unix.AI_FAMILY Unix.PF_INET6]
+  in
+  let hints = Unix.AI_SOCKTYPE Unix.SOCK_STREAM :: hints in
+  match Unix.getaddrinfo address (string_of_int port) hints with
+    | sockaddr :: _ ->
+        if log#active 5 then
+          log#f 5 "Address %s:%n resolved to: %s" address port
+            (string_of_address sockaddr.Unix.ai_addr);
+        sockaddr
     | [] ->
         Runtime_error.raise ~pos:[]
           ~message:
             (Printf.sprintf "getaddrinfo could not resolve address: %s:%i"
                address port)
           "srt"
-    | first_address :: _ as resolved_addresses ->
-        let rec filter_address inet_type = function
-          | [] -> first_address
-          | sockaddr :: _ when !@(sockaddr |-> Sockaddr.sa_family) = inet_type
-            ->
-              sockaddr
-          | _ :: resolved_addresses ->
-              filter_address inet_type resolved_addresses
-        in
-        let sockaddr =
-          match prefer_address with
-            | `System_default -> first_address
-            | `Ipv4 -> filter_address af_inet resolved_addresses
-            | `Ipv6 -> filter_address af_inet6 resolved_addresses
-        in
-        if log#active 5 then
-          log#f 5 "Address %s:%n resolved to: %s" address port
-            (string_of_address (to_unix_sockaddr sockaddr));
-        sockaddr
 
 module SyncSource = Clock.MkSyncSource (struct
   type t = unit
@@ -116,7 +103,12 @@ let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
     | "caller" -> `Caller
-    | _ -> raise (Error.Invalid_value (v, "Invalid mode!"))
+    | _ ->
+        raise
+          (Error.Invalid_value
+             ( v,
+               "Invalid mode! Should be one of: `\"listener\"` or `\"caller\"`."
+             ))
 
 let string_of_mode = function `Listener -> "listener" | `Caller -> "caller"
 
@@ -251,40 +243,53 @@ let common_options ~mode =
   ]
 
 let meth () =
-  [
-    ( "sockets",
-      ( [],
-        Lang.fun_t []
-          (Lang.list_t
-             (Lang.product_t Lang.string_t Builtins_srt.Socket_value.base_t)) ),
-      "List of `(connected_address, connected_socket)`",
-      fun s ->
-        Lang.val_fun [] (fun _ ->
-            Lang.list
-              (List.map
-                 (fun (origin, s) ->
-                   Lang.product
-                     (Lang.string (Utils.name_of_sockaddr origin))
-                     (Builtins_srt.Socket_value.to_base_value s))
-                 s#get_sockets)) );
-    ( "connect",
-      ([], Lang.fun_t [] Lang.unit_t),
-      "In sender mode, connect to remote server. In listener mode, setup \
-       listening socket.",
-      fun s ->
-        Lang.val_fun [] (fun _ ->
-            s#set_should_stop false;
-            s#connect;
-            Lang.unit) );
-    ( "disconnect",
-      ([], Lang.fun_t [] Lang.unit_t),
-      "Disconnect all connected socket.",
-      fun s ->
-        Lang.val_fun [] (fun _ ->
-            s#set_should_stop true;
-            s#disconnect;
-            Lang.unit) );
-  ]
+  Lang.
+    [
+      {
+        name = "sockets";
+        scheme =
+          ( [],
+            Lang.fun_t []
+              (Lang.list_t
+                 (Lang.product_t Lang.string_t Builtins_srt.Socket_value.base_t))
+          );
+        descr = "List of `(connected_address, connected_socket)`";
+        value =
+          (fun s ->
+            Lang.val_fun [] (fun _ ->
+                Lang.list
+                  (List.map
+                     (fun (origin, s) ->
+                       Lang.product
+                         (Lang.string (Utils.name_of_sockaddr origin))
+                         (Builtins_srt.Socket_value.to_base_value s))
+                     s#get_sockets)));
+      };
+      {
+        name = "connect";
+        scheme = ([], Lang.fun_t [] Lang.unit_t);
+        descr =
+          "In sender mode, connect to remote server. In listener mode, setup \
+           listening socket.";
+        value =
+          (fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#set_should_stop false;
+                s#connect;
+                Lang.unit));
+      };
+      {
+        name = "disconnect";
+        scheme = ([], Lang.fun_t [] Lang.unit_t);
+        descr = "Disconnect all connected socket.";
+        value =
+          (fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#set_should_stop true;
+                s#disconnect;
+                Lang.unit));
+      };
+    ]
 
 type common_options = {
   mode : [ `Listener | `Caller ];
@@ -650,10 +655,10 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
           Utils.optional_apply
             (fun v -> Srt.(setsockflag s rcvtimeo v))
             read_timeout;
-          Srt.connect_posix_socket s sockaddr;
+          Srt.connect s sockaddr.Unix.ai_addr;
           self#log#important "Client connected!";
           !on_connect ();
-          Atomic.set socket (Some (Posix_socket.to_unix_sockaddr sockaddr, s));
+          Atomic.set socket (Some (sockaddr.Unix.ai_addr, s));
           -1.
         with exn ->
           let bt = Printexc.get_raw_backtrace () in
@@ -719,15 +724,12 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
                 getaddrinfo ~log:self#log ~prefer_address bind_address port
               in
               let () =
-                let open Ctypes in
-                let open Posix_socket in
-                match (ipv6only, !@(bind_address |-> Sockaddr.sa_family)) with
+                match (ipv6only, bind_address.Unix.ai_family) with
                   | Some v, _ -> Srt.(setsockflag s ipv6only v)
-                  | None, id when id = af_inet6 ->
-                      Srt.(setsockflag s ipv6only true)
+                  | None, PF_INET6 -> Srt.(setsockflag s ipv6only true)
                   | _ -> ()
               in
-              Srt.bind_posix_socket s bind_address;
+              Srt.bind s bind_address.Unix.ai_addr;
               let max_clients_callback =
                 Option.map
                   (fun n _ _ _ _ ->
@@ -762,7 +764,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
                 passphrase;
               Srt.listen s (Option.value ~default:1 max_clients);
               self#log#info "Setting up socket to listen at %s"
-                (string_of_address (Posix_socket.to_unix_sockaddr bind_address));
+                (string_of_address bind_address.Unix.ai_addr);
               Atomic.set listening_socket (Some s);
               s
             with exn ->
@@ -827,15 +829,14 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
   end
 
 class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
-  ~payload_size ~dump ~on_start ~on_stop ~autostart format =
+  ~payload_size ~dump ~autostart format =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit input_networking_agent
     inherit base ()
 
     inherit
-      Start_stop.active_source
-        ~name:"input.srt" ~on_start ~on_stop ~autostart ~fallible:true () as super
+      Start_stop.active_source ~name:"input.srt" ~autostart ~fallible:true () as super
 
     val mutable decoder_data = None
     val mutable dump_chan = None
@@ -946,12 +947,12 @@ class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   ~bind_address ~port ~prefer_address ~on_socket ~max ~payload_size ~self_sync
   ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~messageapi ~dump
-  ~on_start ~on_stop ~ipv6only ~autostart format =
+  ~ipv6only ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump ~on_start
-          ~on_stop ~autostart format
+        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump
+          ~autostart format
 
     inherit
       listener
@@ -970,12 +971,12 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~hostname ~port ~prefer_address ~max ~payload_size ~self_sync
   ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
-  ~messageapi ~dump ~on_socket ~on_start ~on_stop ~autostart format =
+  ~messageapi ~dump ~on_socket ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump ~on_start
-          ~on_stop ~autostart format
+        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump
+          ~autostart format
 
     inherit
       caller
@@ -992,6 +993,7 @@ let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~base:Modules.input "srt" ~return_t ~category:`Input
     ~meth:(meth () @ Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"source")
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
     @ Start_stop.active_source_proto ~fallible_opt:`Nope
@@ -1052,14 +1054,6 @@ let _ =
       in
       let max = Lang.to_float (List.assoc "max" p) in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let format = Lang.to_string (List.assoc "content_type" p) in
       match mode with
@@ -1068,8 +1062,7 @@ let _ =
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~port ~prefer_address ~on_socket ~read_timeout
                ~write_timeout ~payload_size ~self_sync ~on_connect
-               ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
-               ~autostart ~ipv6only format
+               ~on_disconnect ~messageapi ~max ~dump ~autostart ~ipv6only format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit
@@ -1081,16 +1074,15 @@ let _ =
                ~polling_delay ~hostname ~port ~prefer_address ~payload_size
                ~self_sync ~on_connect ~read_timeout ~write_timeout
                ~connection_timeout ~on_disconnect ~messageapi ~max ~dump
-               ~on_start ~on_socket ~on_stop ~autostart format
+               ~on_socket ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit
                  ; connect : unit
                  ; disconnect : unit >))
 
-class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~register_telnet ~autostart ~on_disconnect ~encoder_factory source
-  =
+class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
+  ~autostart ~on_disconnect ~encoder_factory source =
   let buffer = Strings.Mutable.empty () in
   let tmp = Bytes.create payload_size in
   object (self)
@@ -1099,7 +1091,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
 
     inherit
       [Strings.t] Output.encoded
-        ~output_kind:"srt" ~on_start ~on_stop ~infallible ~register_telnet
+        ~output_kind:"srt" ~infallible ~register_telnet
           ~export_cover_metadata:false ~autostart ~name:"output.srt" source
 
     val mutable encoder = Atomic.make None
@@ -1187,8 +1179,8 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
       if self#is_connected then self#get_encoder.Encoder.encode frame
       else Strings.empty
 
-    method private insert_metadata m =
-      if self#is_connected then self#get_encoder.Encoder.insert_metadata m
+    method private encode_metadata m =
+      if self#is_connected then self#get_encoder.Encoder.encode_metadata m
 
     method private send data =
       if self#is_connected then (
@@ -1197,16 +1189,16 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
   end
 
 class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-  ~register_telnet ~autostart ~on_socket ~on_connect ~on_disconnect
-  ~prefer_address ~port ~hostname ~read_timeout ~write_timeout
-  ~connection_timeout ~encoder_factory source_val =
+  ~polling_delay ~payload_size ~messageapi ~infallible ~register_telnet
+  ~autostart ~on_socket ~on_connect ~on_disconnect ~prefer_address ~port
+  ~hostname ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory
+  source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit
       output_base
-        ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source_val
+        ~payload_size ~messageapi ~infallible ~register_telnet ~autostart
+          ~on_disconnect ~encoder_factory source_val
 
     inherit
       caller
@@ -1230,16 +1222,16 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   end
 
 class output_listener ~enforced_encryption ~pbkeylen ~passphrase
-  ~listen_callback ~max_clients ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~register_telnet ~autostart ~on_connect ~on_disconnect
-  ~bind_address ~port ~prefer_address ~on_socket ~read_timeout ~write_timeout
-  ~encoder_factory ~ipv6only source_val =
+  ~listen_callback ~max_clients ~payload_size ~messageapi ~infallible
+  ~register_telnet ~autostart ~on_connect ~on_disconnect ~bind_address ~port
+  ~prefer_address ~on_socket ~read_timeout ~write_timeout ~encoder_factory
+  ~ipv6only source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit
       output_base
-        ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source_val
+        ~payload_size ~messageapi ~infallible ~register_telnet ~autostart
+          ~on_disconnect ~encoder_factory source_val
 
     inherit
       listener
@@ -1267,12 +1259,24 @@ let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let output_meth =
     List.map
-      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
+      (fun m ->
+        { m with Lang.value = (fun s -> m.Lang.value (s :> Output.output)) })
       Output.meth
+  in
+  let callbacks =
+    List.map
+      (fun m ->
+        {
+          m with
+          Lang.register =
+            (fun ~params s fn ->
+              m.Lang.register ~params (s :> Output.output) fn);
+        })
+      Output.callbacks
   in
   Lang.add_operator ~base:Modules.output "srt" ~return_t ~category:`Output
     ~meth:(meth () @ output_meth)
-    ~descr:"Send a SRT stream to a distant agent."
+    ~callbacks ~descr:"Send a SRT stream to a distant agent."
     (Output.proto
     @ common_options ~mode:`Caller
     @ [
@@ -1315,14 +1319,6 @@ let _ =
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       let format_val = Lang.assoc "" 1 p in
       let format = Lang.to_format format_val in
       let encoder_factory =
@@ -1337,9 +1333,9 @@ let _ =
             (new output_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~prefer_address ~payload_size
-               ~autostart ~on_start ~on_stop ~read_timeout ~write_timeout
-               ~connection_timeout ~infallible ~register_telnet ~messageapi
-               ~encoder_factory ~on_socket ~on_connect ~on_disconnect source
+               ~autostart ~read_timeout ~write_timeout ~connection_timeout
+               ~infallible ~register_telnet ~messageapi ~encoder_factory
+               ~on_socket ~on_connect ~on_disconnect source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit
@@ -1349,9 +1345,9 @@ let _ =
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~bind_address ~port
                ~prefer_address ~on_socket ~read_timeout ~write_timeout
-               ~payload_size ~autostart ~on_start ~on_stop ~infallible
-               ~register_telnet ~messageapi ~encoder_factory ~on_connect
-               ~on_disconnect ~listen_callback ~max_clients ~ipv6only source
+               ~payload_size ~autostart ~infallible ~register_telnet ~messageapi
+               ~encoder_factory ~on_connect ~on_disconnect ~listen_callback
+               ~max_clients ~ipv6only source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit

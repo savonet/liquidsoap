@@ -39,7 +39,7 @@ track_count = ref(0)
 def on_track(m) =
   ref.incr(track_count)
   if
-    !track_count == 2
+    track_count() == 2
   then
     if m["source"] != "b" then test.fail() end
     if fade_in.fade_duration() != 1. then test.fail() end
@@ -49,7 +49,7 @@ def on_track(m) =
   end
 
   if
-    !track_count == 3
+    track_count() == 3
   then
     if m["source"] != "c" then test.fail() end
     if fade_in.fade_duration() != 5. then test.fail() end
@@ -60,11 +60,12 @@ def on_track(m) =
   end
 end
 
-fade_out.on_track(on_track)
+fade_out.on_track(synchronous=true, on_track)
 clock.assign_new(sync="none", [fade_out])
 
 def on_stop() =
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, fade_out)
+o = output.dummy(fallible=true, fade_out)
+o.on_stop(synchronous=true, on_stop)
