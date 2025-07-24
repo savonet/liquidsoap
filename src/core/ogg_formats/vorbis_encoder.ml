@@ -70,8 +70,7 @@ let create_gen enc freq m =
     end_of_stream;
   }
 
-(** Rates are given in bits per seconds,
-  * i.e. 128000 instead of 128.. *)
+(** Rates are given in bits per seconds, i.e. 128000 instead of 128.. *)
 let create_abr ~channels ~samplerate ~min_rate ~max_rate ~average_rate ~metadata
     () =
   let min_rate, max_rate, average_rate =

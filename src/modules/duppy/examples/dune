@@ -1,0 +1,9 @@
+(executable
+ (name http)
+ (modules http)
+ (libraries duppy))
+
+(executable
+ (name telnet)
+ (modules telnet)
+ (libraries duppy))

@@ -1,0 +1,7 @@
+(library
+ (name duppy)
+ (libraries unix threads re)
+ (foreign_stubs
+  (language c)
+  (names duppy_stubs))
+ (synopsis "OCaml advanced scheduler"))

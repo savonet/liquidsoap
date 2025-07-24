@@ -178,18 +178,19 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
   in
 
   let encode frame =
-    let content = Frame.get frame field in
-    let data = (Ffmpeg_copy_content.get_data content).Content.Video.data in
+    if 0 < Frame.position frame then (
+      let content = Frame.get frame field in
+      let data = (Ffmpeg_copy_content.get_data content).Content.Video.data in
 
-    List.iter
-      (fun (_, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
-        match (packet, !stream) with
-          | `Audio packet, Some (`Audio stream) ->
-              process ~packet ~stream_idx ~time_base stream
-          | `Video packet, Some (`Video stream) ->
-              process ~packet ~stream_idx ~time_base stream
-          | _ -> assert false)
-      data
+      List.iter
+        (fun (_, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
+          match (packet, !stream) with
+            | `Audio packet, Some (`Audio stream) ->
+                process ~packet ~stream_idx ~time_base stream
+            | `Video packet, Some (`Video stream) ->
+                process ~packet ~stream_idx ~time_base stream
+            | _ -> assert false)
+        data)
   in
 
   {

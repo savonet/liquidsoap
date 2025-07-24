@@ -39,20 +39,19 @@ type env = (string * scheme) list
 (** {1 Type generalization and instantiation}
 
     We don't have type schemes per se, but we compute generalizable variables
-    and keep track of them in the AST.  This is simple and useful because in any
-    case we need to distinguish two 'a variables bound at different
-    places. Indeed, we might instantiate one in a term where the second is
-    bound, and we don't want to merge the two when going under the binder.
+    and keep track of them in the AST. This is simple and useful because in any
+    case we need to distinguish two 'a variables bound at different places.
+    Indeed, we might instantiate one in a term where the second is bound, and we
+    don't want to merge the two when going under the binder.
 
     When generalizing we need to know what can be generalized in the outermost
     type but also in the inner types of the term forming a let-definition.
     Indeed those variables will have to be instantiated by fresh ones for every
     instance.
 
-    If the value restriction applies, then we have some (fun (...) -> ...)  and
+    If the value restriction applies, then we have some (fun (...) -> ...) and
     any type variable of higher level can be generalized, whether it's in the
-    outermost type or not.
-*)
+    outermost type or not. *)
 
 (** Find all the free variables satisfying a predicate. *)
 let filter_vars f t =
@@ -84,8 +83,8 @@ let generalizable ~level t = filter_vars (fun v -> v.level > level) t
 let generalize ~level t : scheme = (generalizable ~level t, t)
 
 (** Instantiate a type scheme, given as a type together with a list of
-    generalized variables. This erases position
-    information, since they usually become irrelevant. *)
+    generalized variables. This erases position information, since they usually
+    become irrelevant. *)
 let instantiate ~level ((generalized, t) : scheme) =
   if generalized = [] then t
   else (
@@ -251,7 +250,8 @@ let () =
              (Repr.to_string b))
     | _ -> None)
 
-(** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
+(** Ensure that a type satisfies a given constraint, i.e. morally that b <: c.
+*)
 let rec satisfies_constraint b c =
   match (deref b).descr with
     | Var { contents = Free v } ->
@@ -280,7 +280,8 @@ and bind ?(variance = `Invariant) a b =
   let b = if b.pos = None then Type.make ?pos:a0.pos b.Type.descr else b in
   v.contents <- Link (variance, b)
 
-(** Ensure that the type for the method [l] in [a] is a subtype of the one for the same method in [b]. *)
+(** Ensure that the type for the method [l] in [a] is a subtype of the one for
+    the same method in [b]. *)
 and unify_meth a b l =
   let {
     optional = optional1;
@@ -458,7 +459,7 @@ and ( <: ) a b =
             List.fold_left
               (* Start with [l2:=l12], [l1:=[]] and move each param [o,lbl]
                  required by [l] from [l2] to [l1]. *)
-                (fun (l1, l2) (o, lbl, t) ->
+              (fun (l1, l2) (o, lbl, t) ->
                 (* Search for a param with label lbl. Returns the first
                    matching parameter and the list without it. *)
                 let rec get_param acc = function
@@ -553,7 +554,7 @@ and ( <: ) a b =
                             meth = l;
                             optional;
                             scheme = (g2, t2);
-                            doc = "";
+                            doc = { meth_descr = ""; category = `Method };
                             json_name = None;
                           },
                           var () ));

@@ -1,4 +1,5 @@
 exception No_method of string * Type.t
+exception Top_level_override of string * Pos.t option
 
 val debug : bool ref
 val display_types : bool ref
@@ -12,4 +13,9 @@ val type_of_pat :
   Term.pattern ->
   (string list * Type.t) list * Type.t
 
-val check : ?env:Typing.env -> throw:(exn -> unit) -> Term.t -> unit
+val check :
+  ?env:Typing.env ->
+  check_top_level_override:bool ->
+  throw:(bt:Printexc.raw_backtrace -> exn -> unit) ->
+  Term.t ->
+  unit

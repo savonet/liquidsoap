@@ -66,11 +66,18 @@ let channels args =
                  name (Term.to_string tm))
     with Not_found -> 2)
 
+let parse_int str =
+  try
+    let f = Avutil.expr_parse_and_eval str in
+    if not (Float.is_integer f) then raise Not_found;
+    int_of_float f
+  with _ -> int_of_string str
+
 let to_int t =
   match t with
     | Value.Int { value = i } -> i
-    | Value.String { value = s } -> int_of_string s
-    | Value.Float { value = f } -> int_of_float f
+    | Value.String { value = s } -> parse_int s
+    | Value.Float { value = f } when Float.is_integer f -> int_of_float f
     | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "integer expected"
 
 let to_string t =
@@ -83,7 +90,7 @@ let to_string t =
 let to_float t =
   match t with
     | Value.Int { value = i } -> float i
-    | Value.String { value = s } -> float_of_string s
+    | Value.String { value = s } -> Avutil.expr_parse_and_eval s
     | Value.Float { value = f } -> f
     | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "float expected"
 
@@ -212,50 +219,50 @@ let type_of_encoder =
                     Type.make
                       (Format_type.descr
                          (`Format
-                           (Content.default_format Ffmpeg_copy_content.kind)))
+                            (Content.default_format Ffmpeg_copy_content.kind)))
                 | `Raw ->
                     Type.make
                       (Format_type.descr
                          (`Format
-                           (match
-                              stream_media_type ~to_pos:term_pos
-                                ~to_static_string:to_static_string_term name
-                                args
-                            with
-                             | `Audio ->
-                                 Content.default_format
-                                   Ffmpeg_raw_content.Audio.kind
-                             | `Video ->
-                                 Content.default_format
-                                   Ffmpeg_raw_content.Video.kind)))
+                            (match
+                               stream_media_type ~to_pos:term_pos
+                                 ~to_static_string:to_static_string_term name
+                                 args
+                             with
+                              | `Audio ->
+                                  Content.default_format
+                                    Ffmpeg_raw_content.Audio.kind
+                              | `Video ->
+                                  Content.default_format
+                                    Ffmpeg_raw_content.Video.kind)))
                 | `Internal ->
                     Type.make
                       (Format_type.descr
                          (`Format
-                           (match
-                              stream_media_type ~to_pos:term_pos
-                                ~to_static_string:to_static_string_term name
-                                args
-                            with
-                             | `Audio ->
-                                 let channels = channels args in
-                                 let pcm_kind =
-                                   List.fold_left
-                                     (fun pcm_kind -> function
-                                       | "", { Term.term = `String "pcm" } ->
-                                           Content.Audio.kind
-                                       | "", { Term.term = `String "pcm_s16" }
-                                         ->
-                                           Content_pcm_s16.kind
-                                       | "", { Term.term = `String "pcm_f32" }
-                                         ->
-                                           Content_pcm_f32.kind
-                                       | _ -> pcm_kind)
-                                     Content.Audio.kind args
-                                 in
-                                 Frame_base.format_of_channels ~pcm_kind
-                                   channels
-                             | `Video -> Content.(default_format Video.kind))))
+                            (match
+                               stream_media_type ~to_pos:term_pos
+                                 ~to_static_string:to_static_string_term name
+                                 args
+                             with
+                              | `Audio ->
+                                  let channels = channels args in
+                                  let pcm_kind =
+                                    List.fold_left
+                                      (fun pcm_kind -> function
+                                        | "", { Term.term = `String "pcm" } ->
+                                            Content.Audio.kind
+                                        | "", { Term.term = `String "pcm_s16" }
+                                          ->
+                                            Content_pcm_s16.kind
+                                        | "", { Term.term = `String "pcm_f32" }
+                                          ->
+                                            Content_pcm_f32.kind
+                                        | _ -> pcm_kind)
+                                      Content.Audio.kind args
+                                  in
+                                  Frame_base.format_of_channels ~pcm_kind
+                                    channels
+                              | `Video -> Content.(default_format Video.kind))))
             in
             let field = Frame.Fields.register field in
             Frame.Fields.add field format content_type

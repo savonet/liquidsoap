@@ -24,7 +24,7 @@ open Mm
 
 exception Unavailable
 
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
@@ -65,6 +65,22 @@ type watcher = {
   after_streaming_cycle : unit -> unit;
 }
 
+type position_callback = {
+  mode : [ `Remaining | `Elapsed ];
+  allow_partial : bool;
+  position : unit -> int;
+  on_position : pos:float -> Frame.metadata -> unit;
+  mutable executed : bool;
+}
+
+type frame_callback = { before : bool; on_frame : unit -> unit }
+
+type on_frame =
+  [ `Metadata of Frame.metadata -> unit
+  | `Track of Frame.metadata -> unit
+  | `Position of position_callback
+  | `Frame of frame_callback ]
+
 let source_log = Log.make ["source"]
 
 let finalise s =
@@ -76,7 +92,7 @@ let finalise s =
       (Printf.sprintf "Error when leaving output %s: %s!" s#id
          (Printexc.to_string e))
 
-class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
+class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
   object (self)
@@ -106,29 +122,24 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     val mutable log = source_log
     method private create_log = log <- Log.make [self#id]
     method log = log
-    val mutable id = ""
-    val mutable definitive_id = false
-    val mutable name = name
-    method set_name n = name <- n
-    initializer id <- Lang_string.generate_id name
+    val mutable id = Lang_string.generate_id ~category:"source" name
     method id = id
 
-    method set_id ?(definitive = true) s =
+    method set_id ?(force = true) s =
       let s =
         Re.Pcre.substitute
           ~rex:(Re.Pcre.regexp "[ \t\n.]")
           ~subst:(fun _ -> "_")
           s
       in
-      if not definitive_id then (
-        id <- Lang_string.generate_id s;
-        definitive_id <- definitive);
+      if force && s <> self#id then (
+        id <- Lang_string.generate_id ~category:"source" s;
 
-      (* Sometimes the ID is changed during initialization, in order to make it
+        (* Sometimes the ID is changed during initialization, in order to make it
          equal to the server name, which is only registered at initialization
          time in order to avoid bloating from unused sources. If the ID
          changes, and [log] has already been initialized, reset it. *)
-      if log != source_log then self#create_log
+        if log != source_log then self#create_log)
 
     val mutex = Mutex.create ()
 
@@ -146,6 +157,17 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
           Queue.push registered_commands (ns, name))
 
     initializer
+      self#register_command ~descr:"Insert a metadata chunk."
+        ~usage:"insert_metadata [label=\"value\",..]" "insert_metadata"
+        (fun s ->
+          try
+            let meta, _ = Annotate_parser.parse s in
+            if meta <> [] then
+              self#insert_metadata ~new_track:false
+                (Frame.Metadata.from_list meta);
+            "Done"
+          with Annotate_parser.Error err ->
+            Liquidsoap_lang.Lang.raise_error ~message:err ~pos:[] "string");
       self#on_sleep (fun () ->
           Queue.flush_iter registered_commands (fun (ns, name) ->
               Server.remove ~ns name))
@@ -159,10 +181,18 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     val mutable sources : operator list = sources
 
     method virtual self_sync : Clock.self_sync
+    val mutable self_sync_source = None
+
+    method private self_sync_source =
+      match self_sync_source with
+        | None ->
+            let s = SourceSync.make (self :> < id : string >) in
+            self_sync_source <- Some s;
+            s
+        | Some s -> s
 
     method source_sync self_sync =
-      if self_sync then Some (SourceSync.make (self :> < id : string >))
-      else None
+      if self_sync then Some self#self_sync_source else None
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
@@ -197,20 +227,50 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
             ctype <- Some ct;
             ct
 
+    val mutable audio_channels = -1
+
     method private audio_channels =
-      match Frame.Fields.find_opt Frame.Fields.audio self#content_type with
-        | Some c when Content.Audio.is_format c ->
-            Content.Audio.channels_of_format c
-        | Some c when Content_pcm_s16.is_format c ->
-            Content_pcm_s16.channels_of_format c
-        | Some c when Content_pcm_f32.is_format c ->
-            Content_pcm_f32.channels_of_format c
-        | _ -> raise Content.Invalid
+      match audio_channels with
+        | -1 ->
+            let c =
+              match
+                Frame.Fields.find_opt Frame.Fields.audio self#content_type
+              with
+                | Some c when Content.Audio.is_format c ->
+                    Content.Audio.channels_of_format c
+                | Some c when Content_pcm_s16.is_format c ->
+                    Content_pcm_s16.channels_of_format c
+                | Some c when Content_pcm_f32.is_format c ->
+                    Content_pcm_f32.channels_of_format c
+                | _ -> raise Content.Invalid
+            in
+            audio_channels <- c;
+            c
+        | c -> c
+
+    val mutable samplerate = -1.
+
+    method private samplerate =
+      match samplerate with
+        | -1. ->
+            let s = float_of_int (Lazy.force Frame.audio_rate) in
+            samplerate <- s;
+            s
+        | s -> s
+
+    val mutable video_dimensions = None
 
     method private video_dimensions =
-      Content.Video.dimensions_of_format
-        (Option.get
-           (Frame.Fields.find_opt Frame.Fields.video self#content_type))
+      match video_dimensions with
+        | None ->
+            let dim =
+              Content.Video.dimensions_of_format
+                (Option.get
+                   (Frame.Fields.find_opt Frame.Fields.video self#content_type))
+            in
+            video_dimensions <- Some dim;
+            dim
+        | Some dim -> dim
 
     val mutable on_wake_up = []
     method on_wake_up fn = on_wake_up <- fn :: on_wake_up
@@ -233,7 +293,8 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
           self#content_type_computation_allowed;
           if log == source_log then self#create_log;
           source_log#info
-            "Source %s gets up with content type: %s and frame type: %s." id
+            "Source %s gets up with content type: %s and frame type: %s."
+            self#id
             (Frame.string_of_content_type self#content_type)
             (Type.to_string self#frame_type);
           self#log#debug "Clock is %s." (Clock.id self#clock);
@@ -254,7 +315,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
 
     method force_sleep =
       if Atomic.compare_and_set is_up `True `False then (
-        source_log#info "Source %s gets down." id;
+        source_log#info "Source %s gets down." self#id;
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep =
@@ -291,7 +352,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     method virtual private generate_frame : Frame.t
 
     method is_ready =
-      if self#is_up then (
+      if self#is_up && Clock.started self#clock then (
         self#before_streaming_cycle;
         match Atomic.get streaming_state with
           | `Ready _ | `Done _ -> true
@@ -331,22 +392,22 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
             if cache_pos > 0 || can_generate_frame then
               Atomic.set streaming_state
                 (`Ready
-                  (fun () ->
-                    let buf =
-                      if can_generate_frame && cache_pos < size then
-                        Frame.append cache self#instrumented_generate_frame
-                      else cache
-                    in
-                    let buf_pos = Frame.position buf in
-                    let buf =
-                      if size < buf_pos then (
-                        _cache <- Some (Frame.after buf size);
-                        Frame.slice buf size)
-                      else (
-                        _cache <- None;
-                        buf)
-                    in
-                    Atomic.set streaming_state (`Done buf)))
+                   (fun () ->
+                     let buf =
+                       if can_generate_frame && cache_pos < size then
+                         Frame.append cache self#instrumented_generate_frame
+                       else cache
+                     in
+                     let buf_pos = Frame.position buf in
+                     let buf =
+                       if size < buf_pos then (
+                         _cache <- Some (Frame.after buf size);
+                         Frame.slice buf size)
+                       else (
+                         _cache <- None;
+                         buf)
+                     in
+                     Atomic.set streaming_state (`Done buf)))
             else Atomic.set streaming_state `Unavailable;
             Clock.after_tick self#clock (fun () -> self#after_streaming_cycle)
         | _ -> ()
@@ -386,12 +447,12 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     method get_mutable_frame field =
       Frame.set self#get_frame field (self#get_mutable_content field)
 
-    method set_frame_data
-        : 'a.
-          Frame.field ->
-          (?offset:int -> ?length:int -> 'a -> Content.data) ->
-          'a ->
-          Frame.t =
+    method set_frame_data :
+        'a.
+        Frame.field ->
+        (?offset:int -> ?length:int -> 'a -> Content.data) ->
+        'a ->
+        Frame.t =
       fun field lift data -> Frame.set_data self#get_frame field lift data
 
     method private split_frame frame =
@@ -435,40 +496,44 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
             empty_frame <- Some f;
             f
 
+    val insert_metadata = Atomic.make None
+
+    method insert_metadata ~new_track m =
+      Atomic.set insert_metadata (Some (new_track, m))
+
     method end_of_track = Frame.set_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
-    val mutable on_metadata : (Frame.metadata -> unit) List.t = []
-    method on_metadata fn = on_metadata <- fn :: on_metadata
-    val mutable on_track_called = false
-
-    initializer
-      self#on_before_streaming_cycle (fun () -> on_track_called <- false)
-
+    val mutable on_frame : on_frame list = []
+    method on_frame fn = on_frame <- on_frame @ [fn]
     val mutable reset_last_metadata_on_track = Atomic.make true
 
     method reset_last_metadata_on_track =
       Atomic.get reset_last_metadata_on_track
 
-    method set_reset_last_metadata_on_track =
-      Atomic.set reset_last_metadata_on_track
-
-    val mutable on_track : (Frame.metadata -> unit) List.t = []
-    method on_track fn = on_track <- fn :: on_track
+    method set_reset_last_metadata_on_track v =
+      Atomic.set reset_last_metadata_on_track v
 
     method private set_last_metadata buf =
       match List.rev (Frame.get_all_metadata buf) with
-        | (_, m) :: _ -> last_metadata <- Some m
+        | v :: _ -> last_metadata <- Some v
         | _ -> ()
+
+    val mutable on_track_called = false
+
+    initializer
+      self#on_before_streaming_cycle (fun () -> on_track_called <- false)
 
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
         if self#reset_last_metadata_on_track then last_metadata <- None;
         self#set_last_metadata buf;
-        let m = Option.value ~default:Frame.Metadata.empty last_metadata in
+        let _, m =
+          Option.value ~default:(0, Frame.Metadata.empty) last_metadata
+        in
         self#log#debug "calling on_track handlers..";
-        List.iter (fun fn -> fn m) on_track)
+        List.iter (function `Track fn -> fn m | _ -> ()) on_frame)
 
     val mutable last_images = Hashtbl.create 0
 
@@ -538,33 +603,110 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
           then self#normalize_video ~field content
           else content)
 
+    method private on_position ~end_of_track buf =
+      let length = Frame.position buf in
+      elapsed <- elapsed + length;
+      let rem = self#remaining in
+      self#set_last_metadata buf;
+      let _, m =
+        Option.value ~default:(0, Frame.Metadata.empty) last_metadata
+      in
+      let is_allowed = function
+        | { executed = true } -> false
+        | { allow_partial = true } when end_of_track -> true
+        | { mode = `Elapsed; position } -> position () <= elapsed
+        | { mode = `Remaining; position } -> 0 <= rem && rem <= position ()
+      in
+      let position = function
+        | { mode = `Elapsed } -> Frame.seconds_of_main elapsed
+        | { mode = `Remaining } -> Frame.seconds_of_main rem
+      in
+      List.iter
+        (function
+          | `Position p when is_allowed p ->
+              p.executed <- true;
+              p.on_position ~pos:(position p) m
+          | _ -> ())
+        on_frame
+
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
+      let on_frame = self#mutexify (fun () -> on_frame) () in
+      List.iter
+        (function `Frame { before = true; on_frame } -> on_frame () | _ -> ())
+        on_frame;
       let buf = self#normalize_video_content self#generate_frame in
+      List.iter
+        (function
+          | `Frame { before = false; on_frame } -> on_frame () | _ -> ())
+        on_frame;
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
-      let track_marks = Frame.track_marks buf in
       let buf =
-        match track_marks with
-          | p :: _ :: _ ->
+        match (Atomic.exchange insert_metadata None, Frame.track_marks buf) with
+          | Some (new_track, m), _ ->
+              let m =
+                Frame.Metadata.append
+                  (Option.value ~default:Frame.Metadata.empty
+                     (Frame.get_metadata buf 0))
+                  m
+              in
+              let buf = Frame.add_metadata buf 0 m in
+              if new_track then Frame.(set_track_mark (drop_track_marks buf)) 0
+              else buf
+          | None, p :: _ :: _ ->
               self#log#important
                 "Source created multiple tracks in a single frame! Sub-frame \
                  tracks are not supported and are merged into a single one..";
               Frame.set_track_mark (Frame.drop_track_marks buf) p
           | _ -> buf
       in
-      let has_track_mark = track_marks <> [] in
-      if has_track_mark then elapsed <- 0 else elapsed <- elapsed + length;
+      let has_track_mark =
+        match self#split_frame buf with
+          | buf, Some new_track ->
+              if 0 < elapsed then self#on_position ~end_of_track:true buf;
+              elapsed <- 0;
+              if self#reset_last_metadata_on_track then last_metadata <- None;
+              List.iter
+                (function `Position p -> p.executed <- false | _ -> ())
+                on_frame;
+              self#on_position ~end_of_track:false new_track;
+              true
+          | buf, None ->
+              self#on_position ~end_of_track:false buf;
+              false
+      in
+
+      (* Executing track mark and metadata callbacks is tricky.
+         - We want to preserve the order with which they are registered.
+         - We want to execute track marks even without metadata.
+
+      First: execute both kind of callback using the metadata from the frame: *)
       let metadata = Frame.get_all_metadata buf in
-      let on_metadata = self#mutexify (fun () -> on_metadata) () in
       List.iter
-        (fun (i, m) ->
+        (fun (p, m) ->
           self#log#debug
-            "generate_frame: got metadata at position %d: calling handlers..." i;
-          List.iter (fun fn -> fn m) on_metadata)
+            "generate_frame: got metadata at position %d: calling handlers..." p;
+          let is_on_track =
+            match last_metadata with
+              | Some (p', _)
+                when (not on_track_called) && has_track_mark && p = p' ->
+                  self#log#debug "calling on_track handlers..";
+                  on_track_called <- true;
+                  true
+              | _ -> false
+          in
+          List.iter
+            (fun cb ->
+              match cb with
+                | `Metadata fn -> fn m
+                | `Track fn when is_on_track -> fn m
+                | _ -> ())
+            on_frame)
         metadata;
-      if has_track_mark then self#execute_on_track buf
-      else self#set_last_metadata buf;
+
+      (* Then, if we have a track mark but no metadata, executed the on_track callbacks. *)
+      if has_track_mark && not on_track_called then self#execute_on_track buf;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);
@@ -572,9 +714,9 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
-and virtual active_operator ?stack ?clock ?name sources =
+and virtual active_operator ?stack ?clock ~name sources =
   object (self)
-    inherit operator ?stack ?clock ?name sources
+    inherit operator ?stack ?clock ~name sources
     method! source_type : source_type = `Active (self :> active)
 
     (** Do whatever needed when the latency gets too big and is reset. *)
@@ -583,14 +725,14 @@ and virtual active_operator ?stack ?clock ?name sources =
 
 (** Shortcuts for defining sources with no children *)
 
-and virtual source ?stack ?clock ?name () =
+and virtual source ?stack ?clock ~name () =
   object
-    inherit operator ?stack ?clock ?name []
+    inherit operator ?stack ?clock ~name []
   end
 
-class virtual active_source ?stack ?clock ?name () =
+class virtual active_source ?stack ?clock ~name () =
   object
-    inherit active_operator ?stack ?clock ?name []
+    inherit active_operator ?stack ?clock ~name []
   end
 
 (* Reselect type. This drives the choice of next source.
@@ -609,6 +751,8 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual private execute_on_track : Frame.t -> unit
     method virtual private set_last_metadata : Frame.t -> unit
     method virtual log : Log.t
+    method virtual id : string
+    val mutable ready_source = None
 
     method private can_generate_frame =
       match
@@ -616,8 +760,12 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
           ~reselect:(if track_sensitive () then `Ok else `Force)
           ()
       with
-        | Some s -> s#is_ready
-        | None -> false
+        | Some s when s#is_ready ->
+            ready_source <- Some s;
+            true
+        | _ ->
+            ready_source <- None;
+            false
 
     val mutable current_source = None
 
@@ -645,7 +793,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
             | buf, _ -> buf)
 
     method private generate_frame =
-      let s = Option.get (self#get_source ~reselect:`Ok ()) in
+      let s = Option.get ready_source in
       assert s#is_ready;
       let buf = self#continue_frame s in
       let size = Lazy.force Frame.size in

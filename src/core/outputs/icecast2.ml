@@ -24,6 +24,16 @@
 
 module Http = Liq_http
 
+let conf_icecast =
+  Dtools.Conf.void ~p:(Configure.conf#plug "icecast") "Icecast configuration"
+
+let conf_prefer_address =
+  Dtools.Conf.string
+    ~p:(conf_icecast#plug "prefer_address")
+    ~d:"system"
+    "Set preference for resolving addresses. One of: `\"system\"`, `\"ipv4\"` \
+     or `\"ipv6\"`."
+
 let error_translator = function
   | Cry.Error _ as e -> Some (Cry.string_of_error e)
   | _ -> None
@@ -135,12 +145,12 @@ module Icecast = struct
           match audio with
             | Some
                 (Ogg_format.Vorbis
-                  {
-                    Vorbis_format.channels = n;
-                    mode = Vorbis_format.VBR q;
-                    samplerate = s;
-                    _;
-                  }) ->
+                   {
+                     Vorbis_format.channels = n;
+                     mode = Vorbis_format.VBR q;
+                     samplerate = s;
+                     _;
+                   }) ->
                 {
                   quality = Some (string_of_float q);
                   bitrate = None;
@@ -149,12 +159,12 @@ module Icecast = struct
                 }
             | Some
                 (Ogg_format.Vorbis
-                  {
-                    Vorbis_format.channels = n;
-                    mode = Vorbis_format.ABR (_, b, _);
-                    samplerate = s;
-                    _;
-                  }) ->
+                   {
+                     Vorbis_format.channels = n;
+                     mode = Vorbis_format.ABR (_, b, _);
+                     samplerate = s;
+                     _;
+                   }) ->
                 {
                   quality = None;
                   bitrate = b;
@@ -163,12 +173,12 @@ module Icecast = struct
                 }
             | Some
                 (Ogg_format.Vorbis
-                  {
-                    Vorbis_format.channels = n;
-                    mode = Vorbis_format.CBR b;
-                    samplerate = s;
-                    _;
-                  }) ->
+                   {
+                     Vorbis_format.channels = n;
+                     mode = Vorbis_format.CBR b;
+                     samplerate = s;
+                     _;
+                   }) ->
                 {
                   quality = None;
                   bitrate = Some b;
@@ -202,7 +212,7 @@ let default_icy_song =
   elsif title != "" then
     title
   else
-    null()
+    null
   end
 end|}
 
@@ -219,8 +229,9 @@ let proto frame_t =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some
-          "Preferred address type when resolving hostnames. One of: `\"ipv4\"` \
-           or `\"ipv6\"`. Defaults to system default when `null`." );
+          "Preferred address type when resolving hostnames. One of: \
+           `\"system\"`, `\"ipv4\"` or `\"ipv6\"`. Defaults to \
+           `settings.icecast.prefer_address` when `null`." );
       ( "transport",
         Lang.http_transport_base_t,
         Some (Lang.base_http_transport Http.unix_transport),
@@ -332,8 +343,8 @@ let proto frame_t =
       ("", Lang.source_t frame_t, None, None);
     ]
 
-(** Sending encoded data to a shout-compatible server.
-  * It directly takes the Lang param list and extracts stuff from it. *)
+(** Sending encoded data to a shout-compatible server. It directly takes the
+    Lang param list and extracts stuff from it. *)
 class output p =
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
@@ -405,7 +416,8 @@ class output p =
       | None | Some "" -> Charset.utf8
       | Some s -> Charset.of_string s
   in
-  let source = Lang.assoc "" 2 p in
+  let source_val = Lang.assoc "" 2 p in
+  let source = Lang.to_source source_val in
   let icy_id = Lang.to_int (List.assoc "icy_id" p) in
   let mount = s "mount" in
   let name =
@@ -422,25 +434,22 @@ class output p =
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply f [])
-  in
   let host = s "host" in
   let port = e Lang.to_int "port" in
   let transport = e Lang.to_http_transport "transport" in
   let prefer_address =
     let v = List.assoc "prefer_address" p in
-    match Lang.to_valued_option Lang.to_string v with
-      | None -> `System_default
-      | Some "ipv4" -> `Ipv4
-      | Some "ipv6" -> `Ipv6
-      | Some _ ->
-          raise (Error.Invalid_value (v, "Valid values are: 'ipv4' or 'ipv6'."))
+    match
+      Option.value ~default:conf_prefer_address#get
+        (Lang.to_valued_option Lang.to_string v)
+    with
+      | "system" -> `System_default
+      | "ipv4" -> `Ipv4
+      | "ipv6" -> `Ipv6
+      | _ ->
+          raise
+            (Error.Invalid_value
+               (v, "Valid values are: `\"system\"`, `\"ipv4\"` or `\"ipv6\"`."))
   in
   let transport = (transport :> Cry.transport) in
   let transport =
@@ -488,18 +497,16 @@ class output p =
     inherit
       [Strings.t] Output.encoded
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
-          ~export_cover_metadata:false ~on_start ~on_stop ~name source
+          ~export_cover_metadata:false ~name source_val
 
-    (** In this operator, we don't exactly follow the start/stop
-    * mechanism of Output.encoded because we want to control
-    * in a more subtle way the connection/disconnection with
-    * icecast.
-    * So we have specific icecast_start/stop procedures that
-    * only deal with the shout connection.
-    * And the global output_start/stop also deal with the encoder.
-    * As a result, if shout gets disconnected, encoding will keep
-    * going, and the sending will keep being attempted, which
-    * will at some point trigger a restart. *)
+    (** In this operator, we don't exactly follow the start/stop mechanism of
+        Output.encoded because we want to control in a more subtle way the
+        connection/disconnection with icecast. So we have specific
+        icecast_start/stop procedures that only deal with the shout connection.
+        And the global output_start/stop also deal with the encoder. As a
+        result, if shout gets disconnected, encoding will keep going, and the
+        sending will keep being attempted, which will at some point trigger a
+        restart. *)
 
     (** Time after which we should attempt to connect. *)
     val mutable restart_time = 0.
@@ -508,16 +515,17 @@ class output p =
     val mutable dump = None
 
     val mutable encoder = None
+    method self_sync = source#self_sync
 
     method encode frame =
       (* We assume here that there always is
-       * an encoder available when the source
-       * is connected. *)
-      match (Cry.get_status connection, encoder) with
+         an encoder available when the source
+         is connected. *)
+        match (Cry.get_status connection, encoder) with
         | Cry.Connected _, Some enc -> enc.Encoder.encode frame
         | _ -> Strings.empty
 
-    method insert_metadata m =
+    method encode_metadata m =
       (* Update metadata using ICY if told to.. *)
       if send_icy_metadata then (
         let f = Charset.convert ~target:out_enc in
@@ -532,7 +540,7 @@ class output p =
             | None -> ()
             | Some v -> Hashtbl.replace icy_meta "song" (f v));
         (* Do nothing if shout connection isn't available *)
-        match Cry.get_status connection with
+          match Cry.get_status connection with
           | Cry.Connected _ -> (
               try
                 Cry.update_metadata
@@ -547,8 +555,8 @@ class output p =
           | Cry.Disconnected -> ())
       else (
         (* Encoder is not always present.. *)
-        match encoder with
-          | Some encoder -> encoder.Encoder.insert_metadata m
+          match encoder with
+          | Some encoder -> encoder.Encoder.encode_metadata m
           | None -> ())
 
     method icecast_send b =
@@ -626,10 +634,10 @@ class output p =
         Cry.connect connection handler;
         self#log#important "Connection setup was successful.";
 
-        (match (Lang.to_source source)#last_metadata with
-          | Some m when send_last_metadata_on_connect -> (
+        (match source#last_metadata with
+          | Some (_, m) when send_last_metadata_on_connect -> (
               try
-                self#insert_metadata
+                self#encode_metadata
                   (Frame.Metadata.Export.from_metadata ~cover:false m)
               with _ -> ())
           | _ -> ());
@@ -638,7 +646,7 @@ class output p =
         on_connect ()
       with
       (* In restart mode, no_connect and no_login are not fatal.
-       * The output will just try to reconnect later. *)
+         The output will just try to reconnect later. *)
       | e ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log
@@ -653,7 +661,7 @@ class output p =
 
     method icecast_stop =
       (* In some cases it might be possible to output the remaining data,
-       * but it's not worth the trouble. *)
+         but it's not worth the trouble. *)
       begin
         try ignore ((Option.get encoder).Encoder.stop ()) with _ -> ()
       end;
@@ -678,5 +686,5 @@ let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:Modules.output "icecast" ~category:`Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    ~meth:Output.meth (proto return_t) ~return_t (fun p ->
-      (new output p :> Output.output))
+    ~meth:Output.meth ~callbacks:Output.callbacks (proto return_t) ~return_t
+    (fun p -> (new output p :> Output.output))

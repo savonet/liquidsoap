@@ -27,7 +27,7 @@ exception No_indicator
 exception Request_resolved
 exception Duration of float
 
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
@@ -202,9 +202,8 @@ let duration ?resolvers ~metadata file =
           Some duration
   with _ -> None
 
-(** [get_filename request] returns
-  * [Some f] if the request successfully lead to a local file [f],
-  * [None] otherwise. *)
+(** [get_filename request] returns [Some f] if the request successfully lead to
+    a local file [f], [None] otherwise. *)
 let get_filename t = if resolved t then Some (last_indicator t).uri else None
 
 (** Manage requests' metadata *)
@@ -245,7 +244,7 @@ let add_root_metadata t m =
   in
 
   (* STATUS *)
-  match (timestamp, Atomic.get t.status) with
+    match (timestamp, Atomic.get t.status) with
     | Some d, _ ->
         let m =
           Frame.Metadata.add "on_air" (pretty_date (Unix.localtime d)) m
@@ -345,7 +344,7 @@ let conf_recode =
 
 let conf_recode_excluded =
   Dtools.Conf.list
-    ~d:["apic"; "metadata_block_picture"; "coverart"]
+    ~d:["pic"; "apic"; "metadata_block_picture"; "coverart"]
     ~p:(conf_recode#plug "exclude")
     "Exclude these metadata from automatic recording."
 
@@ -363,7 +362,10 @@ let resolve_metadata ~initial_metadata ~excluded name =
   let convert =
     if conf_recode#get then (
       let excluded = conf_recode_excluded#get in
-      fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
+      fun k v ->
+        if not (List.mem (String.lowercase_ascii k) excluded) then
+          Charset.convert v
+        else v)
     else fun _ x -> x
   in
   let extension = try Some (Utils.get_ext name) with _ -> None in
@@ -400,8 +402,8 @@ let resolve_metadata ~initial_metadata ~excluded name =
 
 (** Sys.file_exists doesn't make a difference between existing files and files
     without enough permissions to list their attributes, for example when they
-    are in a directory without x permission.  The two following functions allow a
-    more precise diagnostic.  We do not use them everywhere in this file, but
+    are in a directory without x permission. The two following functions allow a
+    more precise diagnostic. We do not use them everywhere in this file, but
     only when splitting existence and readability checks yields better logs. *)
 
 let file_exists name =

@@ -11,8 +11,12 @@ end
 
 s = blank()
 clock.assign_new(sync="none", [s])
-output.dummy(id="no_autostart", start=false, on_start=on_unwanted_autostart, s)
-output.dummy(id="autostart", start=true, on_start=on_wanted_autostart, s)
+
+o = output.dummy(id="no_autostart", start=false, s)
+o.on_start(synchronous=true, on_unwanted_autostart)
+
+o = output.dummy(id="autostart", start=true, s)
+o.on_start(synchronous=true, on_wanted_autostart)
 
 def on_done() =
   if

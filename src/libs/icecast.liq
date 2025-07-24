@@ -31,7 +31,7 @@ def output.shoutcast(
     if dj != "" then ("dj", dj)::m else m end
   end
 
-  s = metadata.map(map, s)
+  s = metadata.map(insert_missing=false, map, s)
   output.icecast(
     %argsof(output.icecast[!method,!mount,!headers,!description,!protocol]),
     mount="",

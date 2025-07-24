@@ -23,8 +23,16 @@
 let source = Muxer.source
 
 let _ =
-  Lang.add_builtin ~base:source "set_name" ~category:(`Source `Liquidsoap)
-    ~descr:"Set the name of an operator."
+  let univ = Lang.univ_t () in
+  Lang.add_builtin ~base:source "methods" ~category:(`Source `Liquidsoap)
+    ~descr:"Returns the given source decorated with all its methods."
+    [("", Lang.source_t ~methods:false univ, None, None)]
+    (Lang.source_t ~methods:true univ)
+    (fun p -> List.assoc "" p)
+
+let _ =
+  Lang.add_builtin ~base:source "set_id" ~category:(`Source `Liquidsoap)
+    ~descr:"Set the id of an operator."
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);
       ("", Lang.string_t, None, None);
@@ -33,17 +41,8 @@ let _ =
     (fun p ->
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let n = Lang.assoc "" 2 p |> Lang.to_string in
-      s#set_name n;
+      s#set_id n;
       Lang.unit)
-
-let _ =
-  Lang.add_builtin ~base:source "last_metadata" ~category:(`Source `Liquidsoap)
-    ~descr:"Return the last metadata from the source."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    (Lang.nullable_t Lang.metadata_t)
-    (fun p ->
-      let s = Lang.to_source (List.assoc "" p) in
-      match s#last_metadata with None -> Lang.null | Some m -> Lang.metadata m)
 
 let _ =
   Lang.add_builtin ~base:source "skip" ~category:(`Source `Liquidsoap)

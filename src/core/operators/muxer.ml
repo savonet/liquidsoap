@@ -174,7 +174,8 @@ let muxer_operator p =
       (fun target_fields { source; fields } ->
         let source_fields, target_fields =
           List.fold_left
-            (fun (source_fields, target_fields) { source_field; target_field } ->
+            (fun (source_fields, target_fields) { source_field; target_field }
+               ->
               match source_field with
                 | f when f = Frame.Fields.metadata ->
                     (source_fields, target_fields)

@@ -507,8 +507,8 @@ let _ =
 
 let () =
   (* Register as [name] the function which composes [in_value],[func] and
-   * [out_value], and returns [default] in exceptional cases -- which MUST not
-   * occur when default is not supplied. *)
+     [out_value], and returns [default] in exceptional cases -- which MUST not
+     occur when default is not supplied. *)
   let register_tt doc name category func ~needs_default in_type in_value
       out_value out_type =
     let raise_doc =
@@ -602,15 +602,6 @@ let _ =
             ~message:"Invalid character code!" "invalid"
       in
       Lang.string (String.make n c))
-
-let _ =
-  Lang.add_builtin ~base:string "id" ~category:`String
-    ~descr:"Generate an identifier with given operator name."
-    [("", Lang.string_t, None, Some "Operator name.")]
-    Lang.string_t
-    (fun p ->
-      let name = List.assoc "" p |> Lang.to_string in
-      Lang.string (Lang_string.generate_id name))
 
 let string_base64 = Lang.add_module ~base:string "base64"
 

@@ -228,9 +228,9 @@ let info w =
      bytes_per_second = %d \n\
      bytes_per_sample = %d \n\
      bits_per_sample = %d \n\
-     length_of_data_to_follow = %d" w.channels_number w.sample_rate
-    w.bytes_per_second w.bytes_per_sample w.bits_per_sample
-    w.length_of_data_to_follow
+     length_of_data_to_follow = %d"
+    w.channels_number w.sample_rate w.bytes_per_second w.bytes_per_sample
+    w.bits_per_sample w.length_of_data_to_follow
 
 let channels w = w.channels_number
 let sample_rate w = w.sample_rate

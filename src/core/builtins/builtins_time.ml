@@ -41,8 +41,8 @@ let _ =
 let time =
   Lang.add_builtin ~category:`Time "time"
     ~descr:
-      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds." []
-    Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
+      "Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds."
+    [] Lang.float_t (fun _ -> Lang.float (Unix.gettimeofday ()))
 
 let _ =
   Lang.add_builtin ~category:`Time ~base:time "up"
@@ -158,7 +158,9 @@ let _ =
       try
         let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
         let predicate =
-          Liquidsoap_lang.Term_reducer.to_term (processor tokenizer)
+          Liquidsoap_lang.Term_reducer.to_term
+            ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
+            (processor tokenizer)
         in
         Lang.val_fun [] (fun _ -> Liquidsoap_lang.Evaluation.eval predicate)
       with _ ->

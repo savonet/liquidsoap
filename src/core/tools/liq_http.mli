@@ -53,7 +53,7 @@ val set_socket_default :
 (** Unix transport and socket. *)
 val unix_transport : transport
 
-val unix_socket : Unix.file_descr -> socket
+val unix_socket : pos:Pos.t list -> Unix.file_descr -> socket
 
 (** User-agent for liquidsoap *)
 val user_agent : string

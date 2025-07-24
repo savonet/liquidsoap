@@ -1,4 +1,5 @@
 log.level := 4
+settings.srt.prefer_address := "ipv4"
 
 port = 8004
 
@@ -9,7 +10,7 @@ s =
       "application/ffmpeg;format=s16le,ch_layout=mono,sample_rate=48000"
   )
 
-s = source.on_track(s, fun (_) -> test.pass())
+s.on_track(synchronous=true, fun (_) -> test.pass())
 
 output.dummy(fallible=true, s)
 

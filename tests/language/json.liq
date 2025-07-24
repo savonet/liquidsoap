@@ -100,12 +100,12 @@ def f() =
       gni_gno=true,
       nested=
         {
-          tuple=(null(), 3.14),
+          tuple=(null, 3.14),
           list=[44., 55., 66.12],
-          nullable_list=[null(), 23, null()],
+          nullable_list=[null, 23, null],
           object_as_list=[("foo", 123.), ("gni", 456.0), ("gno", 3.14)],
           arbitrary_object_key=true,
-          not_present=null()
+          not_present=null
         }
     }
   )
@@ -120,8 +120,8 @@ def f() =
   test.equal(t1, 123)
   test.equal(t2, 3.14)
   test.equal(t3, false)
-  test.equal(l1, null())
-  test.equal(tl, [23, null()])
+  test.equal(l1, null)
+  test.equal(tl, [23, null])
   let json.parse x = data
   ignore(x.foo + 1.0)
   let (x, y, _) = x.nested.tuple
@@ -234,13 +234,13 @@ def f() =
   data =
     '{ "foo": 123 }'
   let json.parse (x : {foo: string}?) = data
-  test.equal(x, null())
+  test.equal(x, null)
   data =
     '[ "gni", 123 ]'
   let json.parse (x : [int]?) = data
-  test.equal(x, null())
+  test.equal(x, null)
   let json.parse (x : (string*int*bool)?) = data
-  test.equal(x, null())
+  test.equal(x, null)
   data =
     '[ "gni", 123, "gno" ]'
   let json.parse (x : (string*int)) = data
@@ -258,10 +258,10 @@ def f() =
     "foo": {}
   }'
   let json.parse x = data
-  test.equal(x?.foo.gni?.bla, null())
+  test.equal(x?.foo.gni?.bla, null)
   data = '{}'
   let json.parse x = data
-  test.equal(x?.foo?.gni?.bla, null())
+  test.equal(x?.foo?.gni?.bla, null)
 
   # Test escaping of invalid utf8 strings.
   s =
@@ -292,7 +292,7 @@ def f() =
 }'
   )
 
-  e = ref(null())
+  e = ref(null)
 
   def f(data) =
     try

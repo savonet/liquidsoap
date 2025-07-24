@@ -37,6 +37,10 @@ Lastly, compiling from source should be reserved to developers.
 We generate debian and ubuntu packages automatically as part of our [release process](https://github.com/savonet/liquidsoap/releases). Otherwise, you
 can check out the official [debian](https://packages.debian.org/liquidsoap) and [ubuntu](https://packages.ubuntu.com/liquidsoap) packages.
 
+For debian packages, we recommend using debian `trixie` as the current debian stable carries rather old upstream libraries. When installing our own
+packages on debian, you will also need to use the [deb-multimedia.org](https://www.deb-multimedia.org/) packages. These packages provide up-to date
+libraries and also support for `fdk-aac` encoding in `ffmpeg`!
+
 ## Alpine
 
 Alpine packages are also provided as part of our [release process](https://github.com/savonet/liquidsoap/releases).
@@ -44,8 +48,15 @@ Alpine packages are also provided as part of our [release process](https://githu
 ## Docker
 
 We provide production-ready docker images via [Docker hub](https://hub.docker.com/r/savonet/liquidsoap).
-Docker images are tagged with a release tag (e.g. `v2.1.4`) and with the sha of their git commit (e.g. `a24bf49`). Please note
-that images tagged with a release tag may change while images tagged with a commit sha will not.
+Docker images are tagged with a release tag (e.g. `v2.1.4`) and with the sha of their git commit (e.g. `a24bf49`).
+
+For instance, to fetch release `2.3.1`, you would do:
+
+```shell
+docker pull savonet/liquidsoap:v2.3.1
+```
+
+Please note that images tagged with a release tag may change while images tagged with a commit sha will not.
 
 ## Windows
 

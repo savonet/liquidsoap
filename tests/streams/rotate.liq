@@ -1,5 +1,10 @@
 def mksource(id="", url) =
-  metadata.map(id=id, fun (_) -> [("source", id)], mksafe(playlist(url)))
+  metadata.map(
+    insert_missing=true,
+    id=id,
+    fun (_) -> [("source", id)],
+    mksafe(playlist(url))
+  )
 end
 
 jingles = mksource("jingles", "jingles")
@@ -60,7 +65,7 @@ end
 radio = rotate(id="rotate", weights=[3, 1], [music, jingles])
 radio = rotate(id="rotate2", weights=[1, 1], [radio, music2])
 
-radio.on_track(ot)
+radio.on_track(synchronous=true, ot)
 
 clock.assign_new(sync="none", [radio])
 

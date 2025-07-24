@@ -6,13 +6,7 @@
 # @param ~on_error Error callback executed when an error occurred while running the given function. When passed, \
 #                  all raised errors are silenced unless re-raised by the callback.
 # @param f Function to execute.
-def replaces thread.run(
-  ~fast=true,
-  ~delay=0.,
-  ~on_error=null(),
-  ~every=null(),
-  f
-) =
+def replaces thread.run(~fast=true, ~delay=0., ~on_error=null, ~every=null, f) =
   every = every ?? getter(-1.)
 
   def f() =
@@ -54,7 +48,7 @@ def thread.when(
   ~every=getter(0.5),
   ~once=false,
   ~changed=true,
-  ~on_error=null(),
+  ~on_error=null,
   p,
   f
 ) =
@@ -83,4 +77,4 @@ def default_error_handler(~backtrace, err) =
   )
 end
 
-thread.on_error(null(), default_error_handler)
+thread.on_error(null, default_error_handler)

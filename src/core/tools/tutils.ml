@@ -120,8 +120,8 @@ let seems_locked =
 
 let log = Log.make ["threads"]
 
-(** Manage a set of threads and make sure they terminate correctly,
-  * i.e. not by raising an exception. *)
+(** Manage a set of threads and make sure they terminate correctly, i.e. not by
+    raising an exception. *)
 
 let lock = Mutex.create ()
 
@@ -281,15 +281,15 @@ let join_all () = join_all ~set:all ()
 let start () =
   if Atomic.compare_and_set state `Idle `Starting then (
     for i = 1 to generic_queues#get do
-      let name = Printf.sprintf "generic queue #%d" i in
+      let name = Printf.sprintf "Generic Queue #%d" i in
       new_queue ~name ()
     done;
     for i = 1 to fast_queues#get do
-      let name = Printf.sprintf "fast queue #%d" i in
+      let name = Printf.sprintf "Fast Queue #%d" i in
       new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
     done;
     for i = 1 to non_blocking_queues#get do
-      let name = Printf.sprintf "non-blocking queue #%d" i in
+      let name = Printf.sprintf "Non-Blocking Queue #%d" i in
       new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
     done)
 
@@ -317,8 +317,8 @@ type event =
   | `Both of Unix.file_descr ]
 
 (* Wait for [`Read socket], [`Write socket] or [`Both socket] for at most
- * [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
- * if timeout is reached. *)
+   [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
+   if timeout is reached. *)
 let wait_for =
   let end_r, end_w = Unix.pipe ~cloexec:true () in
   Lifecycle.before_core_shutdown ~name:"wait_for shutdown" (fun () ->

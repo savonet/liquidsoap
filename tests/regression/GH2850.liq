@@ -41,9 +41,8 @@ def f() =
   end
 
   s = sine()
-  output.url(
+  o = output.url(
     on_error=on_error,
-    on_start=on_start,
     restart_delay=0.5,
     url="icecast://source:hackme@localhost:8005/test",
     %ffmpeg(
@@ -53,6 +52,7 @@ def f() =
     ),
     s
   )
+  o.on_start(synchronous=true, on_start)
 end
 
 test.check(f)

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let mutexify m f x =
+let[@inline never] mutexify m f x =
   Mutex.lock m;
   match f x with
     | exception exn ->
@@ -30,4 +30,3 @@ let mutexify m f x =
     | v ->
         Mutex.unlock m;
         v
-  [@@inline always]

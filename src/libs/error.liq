@@ -34,3 +34,15 @@ let error.failure = error.register("failure")
 def failwith(msg) =
   error.raise(error.failure, msg)
 end
+
+# Return error kind
+# @category Programming
+def error.kind(err) =
+  error.methods(err).kind
+end
+
+# Return error message
+# @category Programming
+def error.message(err) =
+  error.methods(err).message
+end

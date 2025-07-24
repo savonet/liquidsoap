@@ -25,25 +25,35 @@ include Charset_base
 let log = Log.make ["charset"]
 
 let recode_string ~fail ~in_enc ~out_enc s =
-  try
-    try C.recode_string ~in_enc ~out_enc s
-    with e ->
-      let in_enc =
-        if in_enc == automatic_encoding () then
-          Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
-        else C.name_of in_enc
-      in
-      log#important "Failed to convert %S from %s to %s (%s)!" s in_enc
-        (C.name_of out_enc) (Printexc.to_string e);
-      s
-  with
-    | Unknown_encoding e when not fail ->
-        log#important "Failed to convert %S: unknown encoding %s" s e;
+  let max_string_length = conf_max_string_length#get in
+  match String.length s with
+    | l when max_string_length < l ->
+        log#important
+          "Trying to convert string over max length of %d bytes! Either \
+           increase `settings.charset.max_string_length` or check how to \
+           ignore this conversion."
+          max_string_length;
         s
-    | e when not fail ->
-        log#important "Failed to convert %S: unknown error %s" s
-          (Printexc.to_string e);
-        s
+    | _ -> (
+        try
+          try C.recode_string ~in_enc ~out_enc s
+          with e ->
+            let in_enc =
+              if in_enc == automatic_encoding () then
+                Printf.sprintf "auto(%s)" (String.concat "," conf_encoding#get)
+              else C.name_of in_enc
+            in
+            log#important "Failed to convert %S from %s to %s (%s)!" s in_enc
+              (C.name_of out_enc) (Printexc.to_string e);
+            s
+        with
+          | Unknown_encoding e when not fail ->
+              log#important "Failed to convert %S: unknown encoding %s" s e;
+              s
+          | e when not fail ->
+              log#important "Failed to convert %S: unknown error %s" s
+                (Printexc.to_string e);
+              s)
 
 let convert ?(fail = false) ?source ?(target = C.utf8) =
   let in_enc =

@@ -44,7 +44,7 @@ type t =
   ; important : 'a. ('a, unit, string, unit) format4 -> 'a
   ; info : 'a. ('a, unit, string, unit) format4 -> 'a
   ; debug : 'a. ('a, unit, string, unit) format4 -> 'a
-  ; level : int option
+  ; level : int
   ; set_level : int -> unit >
 
 let make path : t =
@@ -92,13 +92,8 @@ let make path : t =
     method debug : 'a. ('a, unit, string, unit) format4 -> 'a =
       log#g ~colorize:(colorize [`cyan]) 5
 
-    method level =
-      try Some (Dtools.Conf.as_int (Dtools.Log.conf_level#ut#path log#path))#get
-      with _ -> None
-
-    (** Set the level, from 1 to 5. *)
-    method set_level lvl =
-      (Dtools.Conf.as_int (Dtools.Log.conf_level#ut#path log#path))#set lvl
+    method level = log#level
+    method set_level lvl = log#set_level lvl
   end
 
 let () =

@@ -35,7 +35,7 @@ radio =
 radio = random(weights=[1, 5], [jingles, radio])
 
 # And the clock jingle
-radio = add([radio, switch([({true}, clock)])])
+radio = add([radio, switch([({0m0s}, clock)])])
 
 radio = mksafe(radio)
 

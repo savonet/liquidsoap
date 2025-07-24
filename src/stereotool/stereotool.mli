@@ -1,6 +1,6 @@
-(** Binding to the proprietary StereoTool processing library.
-    Please refer to the library's documentation for details
-    regarding this binding's functions. *)
+(** Binding to the proprietary StereoTool processing library. Please refer to
+    the library's documentation for details regarding this binding's functions.
+*)
 
 type t
 

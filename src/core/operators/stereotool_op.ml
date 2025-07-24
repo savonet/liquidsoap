@@ -111,32 +111,47 @@ let _ =
     ]
     ~meth:
       [
-        ( "api_version",
-          ([], Lang.fun_t [] Lang.int_t),
-          "API version.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.int s#config.api_version) );
-        ( "software_version",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Software version.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.int s#config.software_version)
-        );
-        ( "latency",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Get the operator's latency.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#config.latency) );
-        ( "valid_license",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Check if the license is valid for the current settings.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#config.valid_license)
-        );
-        ( "unlincensed_used_features",
-          ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t)),
-          "Check if the license is valid for the current settings.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match s#config.unlincensed_used_features with
-                  | None -> Lang.null
-                  | Some s -> Lang.string s) );
+        {
+          name = "api_version";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "API version.";
+          value =
+            (fun s -> Lang.val_fun [] (fun _ -> Lang.int s#config.api_version));
+        };
+        {
+          name = "software_version";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Software version.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ -> Lang.int s#config.software_version));
+        };
+        {
+          name = "latency";
+          scheme = ([], Lang.fun_t [] Lang.float_t);
+          descr = "Get the operator's latency.";
+          value =
+            (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#config.latency));
+        };
+        {
+          name = "valid_license";
+          scheme = ([], Lang.fun_t [] Lang.bool_t);
+          descr = "Check if the license is valid for the current settings.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ -> Lang.bool s#config.valid_license));
+        };
+        {
+          name = "unlincensed_used_features";
+          scheme = ([], Lang.fun_t [] (Lang.nullable_t Lang.string_t));
+          descr = "Check if the license is valid for the current settings.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  match s#config.unlincensed_used_features with
+                    | None -> Lang.null
+                    | Some s -> Lang.string s));
+        };
       ]
     ~return_t:frame_t ~category:`Audio
     ~descr:"Process the given audio track with StereoTool."

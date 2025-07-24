@@ -32,7 +32,7 @@ end
 # @category Metadata
 def track.metadata.deduplicate(
   ~id=null("track.metadata.deduplicate"),
-  ~using=null(),
+  ~using=null,
   t
 ) =
   last_meta = ref([])
@@ -69,7 +69,7 @@ end
 #               when `null`.
 # @param ~id Source id
 # @param s source
-def metadata.deduplicate(~id=null("metadata.deduplicate"), ~using=null(), s) =
+def metadata.deduplicate(~id=null("metadata.deduplicate"), ~using=null, s) =
   tracks = source.tracks(s)
   source(
     id=id,
@@ -126,15 +126,16 @@ def blank.skip(
   ~track_sensitive=true,
   s
 ) =
-  blank.detect(
+  s' = blank.detect(
     id=id,
-    {s.skip()},
     threshold=threshold,
     max_blank=max_blank,
     min_noise=min_noise,
     track_sensitive=track_sensitive,
     s
   )
+  s'.on_blank(source.methods(s).skip)
+  s'
 end
 
 # Run a function regularly. This is similar to `thread.run` but based on a
@@ -144,7 +145,7 @@ end
 # @param ~delay Time to wait before the first run (in seconds).
 # @param ~every How often to run the function (in seconds). The function is run once if `null`.
 # @param f Function to run.
-def source.run(s, ~delay=0., ~every=null(), f) =
+def source.run(s, ~delay=0., ~every=null, f) =
   next = ref(delay)
 
   def check() =
@@ -159,7 +160,8 @@ def source.run(s, ~delay=0., ~every=null(), f) =
     end
   end
 
-  source.on_frame(s, check)
+  source.methods(s).on_frame(check)
+  s
 end
 
 # Append an extra track to every track. Set the metadata ‘liq_append’ to
@@ -170,13 +172,13 @@ end
 # @param ~merge Merge the track with its appended track.
 # @flag extra
 def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
-  last_meta = ref(null())
-  pending = ref(null())
+  last_meta = ref(null)
+  pending = ref(null)
 
   def next() =
     p = pending()
-    pending := null()
-    last_meta := null()
+    pending := null
+    last_meta := null
 
     if null.defined(p) then null.get(p) else (s : source) end
   end
@@ -193,8 +195,8 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
       if
         m["liq_append"] == "false"
       then
-        last_meta := null()
-        pending := null()
+        last_meta := null
+        pending := null
       elsif
         last_meta() != m
       then
@@ -206,8 +208,8 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
     end
   end
 
-  d = if insert_missing then source.on_track(d, f) else d end
-  d = source.on_metadata(d, f)
+  if insert_missing then d.on_track(synchronous=true, f) end
+  d.on_metadata(synchronous=true, f)
 
   s = fallback(id=id, track_sensitive=false, [d, s])
   s.{
@@ -219,12 +221,12 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
       fun (s) -> pending.set(s),
     cancel_pending=
       # Cancel any pending appended source.
-      fun () -> pending.set(null()),
+      fun () -> pending.set(null),
     skip=
       # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
       fun (~cancel_pending=true) ->
         begin
-          if cancel_pending then pending.set(null()) end
+          if cancel_pending then pending.set(null) end
           s.skip()
         end
   }
@@ -237,26 +239,28 @@ end
 # @param ~merge Merge the track with its appended track.
 # @flag extra
 def prepend(~id=null("prepend"), ~merge=false, s, f) =
-  last_meta = ref(null())
+  last_meta = ref(null)
 
   def on_meta(m) =
     if
       m["liq_prepend"] == "false"
     then
-      last_meta := null()
+      last_meta := null
     elsif last_meta() != m then last_meta := m
     end
   end
 
-  s = source.on_track(s, fun (m) -> m == [] ? last_meta := null() : on_meta(m) )
-  s = source.on_metadata(s, on_meta)
+  s.on_track(
+    synchronous=true, fun (m) -> m == [] ? last_meta := null : on_meta(m)
+  )
+  s.on_metadata(synchronous=true, on_meta)
 
   def next() =
     if
       null.defined(last_meta)
     then
       m = last_meta()
-      last_meta := null()
+      last_meta := null
       if
         null.defined(m)
       then

@@ -92,7 +92,7 @@ then
     faad_p
   )
 
-  def faad_meta(~metadata=_, file) =
+  def faad_meta(~metadata:_, file) =
     if
       faad_test(file)
     then

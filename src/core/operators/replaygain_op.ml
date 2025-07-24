@@ -64,23 +64,31 @@ let _ =
   in
   Lang.add_operator ~base:source_replaygain "compute"
     ~meth:
-      [
-        ( "reset",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Reset ReplayGain computation.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                s#reset;
-                Lang.unit) );
-        ( "peak",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Peak sample.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#peak) );
-        ( "gain",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Suggested gain (in dB).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain) );
-      ]
+      Lang.
+        [
+          {
+            name = "reset";
+            scheme = ([], Lang.fun_t [] Lang.unit_t);
+            descr = "Reset ReplayGain computation.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    s#reset;
+                    Lang.unit));
+          };
+          {
+            name = "peak";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Peak sample.";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#peak));
+          };
+          {
+            name = "gain";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Suggested gain (in dB).";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#gain));
+          };
+        ]
     [("", Lang.source_t frame_t, None, None)]
     ~return_t:frame_t ~category:`Audio
     ~descr:

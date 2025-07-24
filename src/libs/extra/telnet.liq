@@ -2,6 +2,7 @@
 def replaces request.dynamic(%argsof(request.dynamic), fn) =
   s = request.dynamic(%argsof(request.dynamic), fn)
   s.on_wake_up(
+    synchronous=true,
     memoize(
       {
         server.register(
@@ -29,6 +30,7 @@ end
 def replaces blank.strip(%argsof(blank.strip), s) =
   s = blank.strip(%argsof(blank.strip), s)
   s.on_wake_up(
+    synchronous=true,
     memoize(
       {
         server.register(
@@ -49,6 +51,7 @@ end
 def replaces output.external(%argsof(output.external), f, p, s) =
   s = output.external(%argsof(output.external), f, p, s)
   s.on_wake_up(
+    synchronous=true,
     memoize(
       {
         server.register(
@@ -73,6 +76,7 @@ end
 def replaces input.external.avi(%argsof(input.external.avi), s) =
   s = input.external.avi(%argsof(input.external.avi), s)
   s.on_wake_up(
+    synchronous=true,
     memoize(
       {
         server.register(
@@ -102,6 +106,7 @@ end
 def replaces input.harbor(%argsof(input.harbor), s) =
   s = input.harbor(%argsof(input.harbor), s)
   s.on_wake_up(
+    synchronous=true,
     memoize(
       {
         begin
@@ -145,6 +150,7 @@ end
 def replaces input.http(%argsof(input.http), s) =
   s = input.http(%argsof(input.http), s)
   s.on_wake_up(
+    synchronous=true,
     memoize(
       {
         begin
@@ -221,3 +227,55 @@ def replaces input.http(%argsof(input.http), s) =
   s
 end
 %endif
+
+# @docof lufs
+def replaces lufs(%argsof(lufs), s) =
+  s = lufs(%argsof(lufs), s)
+  s.on_wake_up(
+    synchronous=true,
+    memoize(
+      {
+        server.register(
+          namespace=source.id(s),
+          description=
+            "Current value for the LUFS (short-term value computed over the \
+             duration specified by the `window` parameter).",
+          "lufs",
+          fun (_) ->
+            "#{s.lufs()} LUFS"
+        )
+
+        server.register(
+          namespace=source.id(s),
+          description=
+            "Average LUFS value over the current track.",
+          "lufs_integrated",
+          fun (_) ->
+            "#{s.lufs_integrated()} LUFS"
+        )
+
+        server.register(
+          namespace=source.id(s),
+          description=
+            "Momentary LUFS (over a 400ms window).",
+          "lufs_momentary",
+          fun (_) ->
+            "#{s.lufs_momentary()} LUFS"
+        )
+      }
+    )
+  )
+
+  s
+end
+
+server.register(
+  description=
+    "Shutdown the running liquidsoap instance",
+  "shutdown",
+  fun (_) ->
+    begin
+      shutdown()
+      "OK"
+    end
+)

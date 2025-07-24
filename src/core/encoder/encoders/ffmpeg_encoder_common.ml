@@ -131,7 +131,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
     let format = mk_format ffmpeg in
     let interleaved =
       match ffmpeg.interleaved with
-        | `Default -> 0 < List.length ffmpeg.streams
+        | `Default -> 1 < List.length ffmpeg.streams
         | `True -> true
         | `False -> false
     in
@@ -312,7 +312,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
   let flush () =
     Frame.Fields.iter (fun _ { flush } -> flush ()) (Atomic.get encoder).streams
   in
-  let insert_metadata m =
+  let encode_metadata m =
     let m = Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m) in
     match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
       | _ when not (Atomic.get (Atomic.get encoder).started) ->
@@ -324,7 +324,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
           Av.set_output_metadata (Atomic.get encoder).output m
       | _ -> ()
   in
-  insert_metadata meta;
+  encode_metadata meta;
   let stop () =
     flush ();
     (try Av.close (Atomic.get encoder).output with _ -> ());
@@ -342,7 +342,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
     }
   in
   {
-    Encoder.insert_metadata;
+    Encoder.encode_metadata;
     header = (fun () -> Strings.empty);
     hls;
     encode;

@@ -36,7 +36,7 @@ let () =
           meth;
           optional = false;
           scheme = ([], make ty);
-          doc = "";
+          doc = { meth_descr = ""; category = `Method };
           json_name = None;
         },
         make t )
@@ -321,11 +321,12 @@ let () =
 
   let app = Term.make (`App (fn, [("", x_var); ("", y_var)])) in
 
-  let throw exn = raise exn in
+  let throw ~bt exn = Printexc.raise_with_backtrace exn bt in
   let env = [("fn", ([], fn_t)); ("x", ([], x_t)); ("y", ([], y_t))] in
 
   try
-    Liquidsoap_lang.Typechecking.check ~throw ~env app;
+    Liquidsoap_lang.Typechecking.check ~check_top_level_override:false ~throw
+      ~env app;
     raise Test_failed
   with
     | Test_failed -> raise Test_failed

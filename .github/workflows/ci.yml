@@ -5,13 +5,15 @@ on:
   push:
     branches:
       - main
+    tags:
       - rolling-release-*
       - v[0-9]+.[0-9]+.[0-9]+
       - v[0-9]+.[0-9]+.[0-9]+-*
     paths:
       - ".github/**"
-      - "**/*.ml"
+      - "**/*.ml*"
       - "**/*.liq"
+      - "**/src/js/*"
       - "**/dune"
       - "**/dune.inc"
       - "doc/**"
@@ -24,7 +26,7 @@ concurrency:
 
 jobs:
   build_details:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     outputs:
       branch: ${{ steps.build_details.outputs.branch }}
       sha: ${{ steps.build_details.outputs.sha }}
@@ -40,9 +42,11 @@ jobs:
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
+      ocaml_version: ${{ steps.build_details.outputs.ocaml_version }}
+      ocaml_docker_release_version: ${{ steps.build_details.outputs.ocaml_docker_release_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Get build details
         env:
           IS_FORK: ${{ github.event.pull_request.head.repo.fork == true }}
@@ -50,16 +54,16 @@ jobs:
         id: build_details
 
   build_no_depopts:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:0b50b648dc365da7aabc9730938055036305cfefe2a5a2b35eb3e057ec210756
       options: --user opam
     env:
       HOME: /home/opam
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
@@ -67,11 +71,6 @@ jobs:
           git remote set-url origin https://github.com/savonet/liquidsoap.git
           git fetch origin ${{ github.sha }}
           git checkout ${{ github.sha }}
-      - name: Install pandoc
-        run: |
-          cd /tmp
-          git clone https://github.com/smimram/ocaml-pandoc.git
-          opam pin -y add ocaml-pandoc
       - name: Build
         run: |
           echo "::group::Preparing build"
@@ -86,10 +85,9 @@ jobs:
           cp PACKAGES.minimal PACKAGES
           opam update
           opam pin -yn .
-          opam install -y saturn_lockfree.0.5.0 ppx_hash
-          opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove -y inotify ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
-          opam install -y mem_usage
+          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove -y inotify ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
+          opam install -y mem_usage
           cd liquidsoap
           ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
         env:
@@ -100,9 +98,9 @@ jobs:
           ./.github/scripts/build-doc.sh
 
   build_js:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:0b50b648dc365da7aabc9730938055036305cfefe2a5a2b35eb3e057ec210756
       options: --user opam
     env:
       HOME: /home/opam
@@ -122,19 +120,18 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           eval "$(opam config env)"
           opam update
-          opam install -y xml-light saturn_lockfree.0.5.0
           dune build --profile release ./src/js/interactive_js.bc.js
 
   tree_sitter_parse:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: latest
+          node-version: 22.x
       - name: Parse using tree-sitter
         run: |
           git clone https://github.com/savonet/tree-sitter-liquidsoap.git
@@ -143,13 +140,13 @@ jobs:
           npm exec tree-sitter -- parse -q -s ../../**/*.liq
 
   lezer_parse:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: latest
       - name: Parse using liquidsoap-lezer-print-tree
@@ -162,17 +159,17 @@ jobs:
           npm exec liquidsoap-lezer-print-tree -- -q ../../**/*.liq
 
   update_doc:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:0b50b648dc365da7aabc9730938055036305cfefe2a5a2b35eb3e057ec210756
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
@@ -185,11 +182,6 @@ jobs:
         run: |
           apt-get update
           apt-get install -y npm
-      - name: Install pandoc
-        run: |
-          cd /tmp
-          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
-          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build doc
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -199,15 +191,17 @@ jobs:
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cd /tmp/liquidsoap-full/liquidsoap/
+          mkdir -p /tmp/${{ github.run_number }}/odoc
+          cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
           eval $(opam config env)
           dune build src/js
           cd /tmp/liquidsoap-full/website
           make dist
           mkdir -p /tmp/${{ github.run_number }}/html
           cp -rf html/* /tmp/${{ github.run_number }}/html
-      - name: Push content
+      - name: Push doc content
         if: success() && github.repository_owner == 'savonet'
-        uses: crazy-max/ghaction-github-pages@v4
+        uses: crazy-max/ghaction-github-pages@df5cc2bfa78282ded844b354faee141f06b41865 # v4.2.0
         with:
           repo: savonet/savonet.github.io
           target_branch: master
@@ -215,12 +209,21 @@ jobs:
           fqdn: www.liquidsoap.info
         env:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
+      - name: Push odoc content
+        if: success() && github.repository_owner == 'savonet'
+        uses: crazy-max/ghaction-github-pages@df5cc2bfa78282ded844b354faee141f06b41865 # v4.2.0
+        with:
+          repo: savonet/liquidsoap
+          target_branch: gh_pages
+          build_dir: ${{ github.run_number }}/odoc
+        env:
+          GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm
+      image: savonet/liquidsoap-ci:debian_bookworm@sha256:0b50b648dc365da7aabc9730938055036305cfefe2a5a2b35eb3e057ec210756
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
@@ -230,7 +233,7 @@ jobs:
       HOME: /home/opam
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Enable core dump
         run: |
@@ -245,20 +248,6 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
-      - name: Install sqlite
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install libsqlite3-dev
-          sudo -u opam -E opam install -y sqlite3
-      - name: Install pandoc
-        run: |
-          cd /tmp
-          if [ ! -d ocaml-pandoc ]; then
-            mkdir -p ocaml-pandoc;
-            chown -R opam ocaml-pandoc;
-            sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
-          fi
-          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -277,7 +266,6 @@ jobs:
         run: |
           apt-get -y update
           apt-get -y install frei0r-plugins
-          sudo -u opam -E opam install -y prometheus-liquidsoap
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -291,14 +279,14 @@ jobs:
           chown -R opam "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "${{ needs.build_details.outputs.branch }}" "/tmp/${{ github.run_number }}/metrics"
       - name: Upload metrics artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
         with:
           name: metrics
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Upload metrics
         if: needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: metrics
@@ -312,12 +300,12 @@ jobs:
           find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
       - name: Upload traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: traces-${{ matrix.target }}
           path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
       - name: Export potential core dumps
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}-${{ matrix.target }}
@@ -328,21 +316,21 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/core
 
   build_opam:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     strategy:
       fail-fast: false
       matrix:
         ocaml-compiler:
           - 4.14.x
-          - 5.2.x
+          - 5.3.x
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Update packages
         run: |
           sudo apt-get update
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@v3
+        uses: ocaml/setup-ocaml@2f57267f071bc8547dfcb9433ff21d44fffef190 # v3.4.0
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-pin: false
@@ -354,20 +342,20 @@ jobs:
         run: |
           opam install --cli=2.1 --confirm-level=unsafe-yes .
       - name: Install ocamlformat
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '5.3.x'
         run: |
-          opam install ocamlformat=0.25.1
+          opam install ocamlformat=0.27.0
       - name: Set PY env variable.
-        if: matrix.ocaml-compiler == '4.14.x'
+        if: matrix.ocaml-compiler == '5.3.x'
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
       - name: Restore pre-commit cache
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Run pre-commit
-        if: matrix.ocaml-compiler == '4.14.x'
-        uses: pre-commit/action@v3.0.1
+        if: matrix.ocaml-compiler == '5.3.x'
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
@@ -376,17 +364,18 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.build_details.outputs.build_os) }}
+        ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     container:
-      image: savonet/liquidsoap-ci:${{ matrix.os }}
+      image: savonet/liquidsoap-ci:${{ matrix.os }}-${{ matrix.ocaml_version }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
       IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
@@ -395,27 +384,6 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
-      - name: Update debian packages
-        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
-        run: |
-          echo "opam hold" | sudo dpkg --set-selections
-          sudo apt-get update
-          sudo apt-get -y dist-upgrade
-          sudo apt-get -y autoremove
-          sudo apt-get -y install libsqlite3-dev
-      - name: Update alpine packages
-        if: matrix.os == 'alpine'
-        run: |
-          apk -U --force-overwrite upgrade
-          apk add -i sqlite-dev
-      - name: Install additional libraries
-        run: |
-          sudo -u opam -E opam install -y sqlite3
-      - name: Install pandoc
-        run: |
-          cd /tmp
-          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
-          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -431,15 +399,25 @@ jobs:
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          BRANCH: ${{ needs.build_details.outputs.branch }}
+          DOCKER_TAG: ${{ matrix.os }}-ocaml${{ matrix.ocaml_version }}
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
+          PLATFORM: ${{ matrix.platform }}
+          IS_ROLLING_RELEASE: ${{ needs.build_details.outputs.is_rolling_release }}
+          IS_RELEASE: ${{ needs.build_details.outputs.is_release }}
+          MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          DEB_RELEASE: 1
         run: |
-          mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
-          chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
+          mkdir -p "${LIQ_TMP_DIR}"
+          chown -R opam "${LIQ_TMP_DIR}"
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
+          sudo -u opam -E ./.github/scripts/build-deb.sh
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
@@ -447,14 +425,24 @@ jobs:
       - name: Build alpine package
         if: matrix.os == 'alpine'
         id: build_apk
+        env:
+          BRANCH: ${{ needs.build_details.outputs.branch }}
+          ALPINE_TAG: ocaml${{ matrix.ocaml_version }}
+          ARCH: ${{ matrix.platform }}
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
+          ALPINE_ARCH: ${{ matrix.alpine-arch }}
+          IS_ROLLING_RELEASE: ${{ needs.build_details.outputs.is_rolling_release }}
+          IS_RELEASE: ${{ needs.build_details.outputs.is_release }}
+          MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          APK_RELEASE: 0
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           apk add alpine-sdk
           adduser opam abuild
-          mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
-          chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
+          mkdir -p "${LIQ_TMP_DIR}"
+          chown -R opam "${LIQ_TMP_DIR}"
           chown -R opam "${GITHUB_OUTPUT}"
-          sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
+          sudo -u opam -E ./.github/scripts/build-apk.sh
       - name: Upload alpine packages artifacts
         if: needs.build_details.outputs.is_fork != 'true' && matrix.os == 'alpine'
         uses: savonet/aws-s3-docker-action@master
@@ -469,7 +457,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}
 
   fetch_s3_artifacts:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs: [build_details, build_posix]
     steps:
       - name: Prepare directory
@@ -485,14 +473,14 @@ jobs:
           SOURCE: ${{ needs.build_details.outputs.s3-artifact-basepath }}
           TARGET: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
       - name: Upload S3 artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: needs.build_details.outputs.is_fork != 'true'
         with:
           name: alpine-packages
           path: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
 
   build_win32:
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: depot-ubuntu-24.04-4
     needs: build_details
     strategy:
       fail-fast: false
@@ -502,12 +490,12 @@ jobs:
       image: savonet/liquidsoap-win32-${{ matrix.system }}
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
-      OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,re-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,winsvc-windows,mem_usage-windows
+      OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,re-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,winsvc-windows,mem_usage-windows,prometheus-app-windows,cohttp-lwt-unix-windows
       IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
       TOOLPREF64: /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
@@ -531,7 +519,7 @@ jobs:
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} "${{ steps.cpu_cores.outputs.count }}" "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
         id: build
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ steps.build.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/win32/dist
@@ -542,7 +530,7 @@ jobs:
           rm -rf /tmp/${{ github.run_number }}/win32
 
   update_release:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs:
       [
         build_details,
@@ -556,35 +544,37 @@ jobs:
     if: needs.build_details.outputs.is_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Tag commit
-        uses: savonet/latest-tag@any-context
-        with:
-          description: Liquidsoap ${{ needs.build_details.outputs.branch }}
-          tag-name: ${{ needs.build_details.outputs.branch }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: List assets to upload
+        id: release_assets
         run: |
-          echo "RELEASE_ASSETS<<EOF" >> $GITHUB_ENV
-          find artifacts/${{ needs.build_details.outputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config|\.zip$' | sort -u >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "release_assets<<EOF" >> $GITHUB_OUTPUT
+          find artifacts/${{ needs.build_details.outputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config|\.zip$' | sort -u >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Generate release notes
+        id: release_notes
         run: |
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           if [ ${{ needs.build_details.outputs.is_rolling_release }} = "true" ]; then
-            cat doc/content/rolling-release.md >> $GITHUB_ENV
+            cat doc/content/rolling-release.md >> $GITHUB_OUTPUT
           fi
-          echo "EOF" >> $GITHUB_ENV
-      - name: Generate changelog
+          echo "" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Generate release assets notes
+        id: release_assets_notes
         run: |
-          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-          cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          cat doc/content/release-assets.md >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Delete old release assets
         uses: mknejp/delete-release-assets@v1
         with:
@@ -594,24 +584,24 @@ jobs:
           fail-if-no-release: false
           fail-if-no-assets: false
       - name: Upload assets to main repo release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
-          files: ${{ env.RELEASE_ASSETS }}
+          files: ${{ steps.release_assets.outputs.release_assets }}
           prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
-          body: "${{ env.RELEASE_NOTES}}\n\n${{ env.CHANGELOG }}"
-          draft: true
+          body: ${{ steps.release_notes.outputs.release_notes }}
+          draft: ${{ !needs.build_details.outputs.is_rolling_release }}
       - name: Upload assets to release repo
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
-          files: ${{ env.RELEASE_ASSETS }}
+          files: ${{ steps.release_assets.outputs.release_assets }}
           repository: savonet/liquidsoap-release-assets
           prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
-          body_path: doc/content/release-assets.md
-          draft: true
+          body: ${{ steps.release_assets_notes.outputs.release_notes }}
+          draft: ${{ !needs.build_details.outputs.is_rolling_release }}
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
@@ -620,39 +610,42 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
       - name: Get debian debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Login to GitHub Container Registry
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           build-args: |
             "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
@@ -660,9 +653,11 @@ jobs:
           context: .
           file: .github/docker/debian.dockerfile
           tags: |
-            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}"
-            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}"
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
+          provenance: false
+          sbom: false
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
@@ -672,44 +667,49 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - name: Get alpine package
         run: |
-          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
+          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Login to GitHub Container Registry
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           build-args: |
             "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
           context: .
           file: .github/docker/alpine.dockerfile
           tags: |
-            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}"
-            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}"
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
+          provenance: false
+          sbom: false
 
   build_docker_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -718,39 +718,42 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
       - name: Get debian debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Login to GitHub Container Registry
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           build-args: |
             "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
@@ -758,9 +761,11 @@ jobs:
           context: .
           file: .github/docker/debian.dockerfile
           tags: |
-            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}"
-            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}"
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
+          provenance: false
+          sbom: false
 
   build_docker_alpine_minimal:
     runs-on: ${{ matrix.runs-on }}
@@ -770,61 +775,88 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Download all artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - name: Get alpine package
         run: |
-          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
+          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep ${{ matrix.ocaml_version }} | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
       - name: Login to Docker Hub
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       - name: Login to GitHub Container Registry
         if: needs.build_details.outputs.publish_docker_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           build-args: |
             "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
           context: .
           file: .github/docker/alpine.dockerfile
           tags: |
-            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}"
-            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}"
+            "savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ needs.build_details.outputs.branch }}-minimal_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ needs.build_details.outputs.publish_docker_image }}
+          provenance: false
+          sbom: false
 
   build_docker_release:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     needs: [build_details, run_tests, build_docker, build_docker_alpine]
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Push consolidated manifest
-        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
+        env:
+          TAG: ${{ needs.build_details.outputs.branch }}
+          USER: ${{ secrets.DOCKERHUB_USER }}
+          PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          OCAML_DOCKER_RELEASE_VERSION: ocaml${{ needs.build_details.outputs.ocaml_docker_release_version }}
+        run: .github/scripts/push-docker.sh
 
   build_docker_release-minimal:
-    runs-on: ubuntu-latest
-    needs: [build_details, build_docker_minimal, build_docker_alpine_minimal]
+    runs-on: depot-ubuntu-24.04-4
+    needs:
+      [
+        build_details,
+        run_tests,
+        build_docker_minimal,
+        build_docker_alpine_minimal,
+      ]
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Push consolidated manifest
+        env:
+          TAG: ${{ needs.build_details.outputs.branch }}-minimal
+          USER: ${{ secrets.DOCKERHUB_USER }}
+          PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          OCAML_DOCKER_RELEASE_VERSION: ocaml${{ needs.build_details.outputs.ocaml_docker_release_version }}
         run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}-minimal

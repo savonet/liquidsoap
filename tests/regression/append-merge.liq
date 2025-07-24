@@ -11,6 +11,7 @@ count_s1 = ref(0)
 count_s2 = ref(0)
 
 s.on_metadata(
+  synchronous=true,
   fun (m) ->
     begin
       s = m["source"]
@@ -25,6 +26,8 @@ s.on_metadata(
     end
 )
 
-s.on_track(fun (m) -> if m["source"] == "s2" then test.fail() end)
+s.on_track(
+  synchronous=true, fun (m) -> if m["source"] == "s2" then test.fail() end
+)
 
 output.dummy(s)

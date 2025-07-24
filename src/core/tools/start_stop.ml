@@ -30,13 +30,18 @@
 type state = [ `Started | `Stopped | `Idle ]
 
 (** Base class for sources with start/stop methods. Class ineheriting it should
-    declare their own [start]/[stop] method and users should call [#set_start]  *)
-class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
+    declare their own [start]/[stop] method and users should call [#set_start]
+*)
+class virtual base =
   object (self)
     val mutable state : state = `Idle
     method state = state
     method virtual private start : unit
     method virtual private stop : unit
+    val mutable on_start = []
+    val mutable on_stop = []
+    method on_start fn = on_start <- fn :: on_start
+    method on_stop fn = on_stop <- fn :: on_stop
 
     (* Default [reset] method. Can be overridden if necessary. *)
     method reset =
@@ -50,27 +55,26 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
       match (s, self#state) with
         | `Started, `Stopped | `Started, `Idle ->
             self#start;
-            on_start ();
+            List.iter (fun fn -> fn ()) on_start;
             state <- `Started
         | `Started, `Started -> ()
         | `Stopped, `Started ->
             self#stop;
-            on_stop ();
+            List.iter (fun fn -> fn ()) on_stop;
             state <- `Stopped
         | `Stopped, `Idle -> state <- `Stopped
         | `Stopped, `Stopped -> ()
         | `Idle, `Started ->
             self#stop;
-            on_stop ();
+            List.iter (fun fn -> fn ()) on_stop;
             state <- `Idle
         | `Idle, `Stopped | `Idle, `Idle -> ()
   end
 
-class virtual active_source ~name ~(on_start : unit -> unit)
-  ~(on_stop : unit -> unit) ~fallible ~autostart () =
+class virtual active_source ~name ~fallible ~autostart () =
   object (self)
     inherit Source.active_source ~name ()
-    inherit base ~on_start ~on_stop as base
+    inherit base as base
 
     initializer
       self#on_wake_up (fun () -> if autostart then base#transition_to `Started)
@@ -82,14 +86,6 @@ class virtual active_source ~name ~(on_start : unit -> unit)
 
 let base_proto ~label =
   [
-    ( "on_start",
-      Lang.fun_t [] Lang.unit_t,
-      Some (Lang.val_cst_fun [] Lang.unit),
-      Some ("Callback executed when " ^ label ^ " starts.") );
-    ( "on_stop",
-      Lang.fun_t [] Lang.unit_t,
-      Some (Lang.val_cst_fun [] Lang.unit),
-      Some ("Callback executed when " ^ label ^ " stops.") );
     ( "start",
       Lang.bool_t,
       Some (Lang.bool true),
@@ -113,39 +109,75 @@ let active_source_proto ~fallible_opt =
                `true` and `stop` method raises an error." );
         ]
 
-type 'a meth = string * Lang.scheme * string * ('a -> Lang.value)
+let callbacks ~label =
+  Lang_source.
+    [
+      {
+        name = "on_start";
+        params = [];
+        descr = "when " ^ label ^ " starts";
+        default_synchronous = false;
+        register_deprecated_argument = true;
+        arg_t = [];
+        register = (fun ~params:_ s f -> s#on_start (fun () -> f []));
+      };
+      {
+        name = "on_stop";
+        params = [];
+        descr = "when " ^ label ^ " stops";
+        default_synchronous = false;
+        register_deprecated_argument = true;
+        arg_t = [];
+        register = (fun ~params:_ s f -> s#on_stop (fun () -> f []));
+      };
+    ]
 
 let meth :
-    unit -> < state : state ; transition_to : state -> unit ; .. > meth list =
+    unit ->
+    (< state : state ; transition_to : state -> unit ; .. > -> Lang.value)
+    Lang.meth
+    list =
  fun () ->
   Lang.
     [
-      ( "is_started",
-        ([], fun_t [] bool_t),
-        "`true` if the output or source is started.",
-        fun s -> val_fun [] (fun _ -> bool (s#state = `Started)) );
-      ( "start",
-        ([], fun_t [] unit_t),
-        "Ask the source or output to start.",
-        fun s ->
-          val_fun [] (fun _ ->
-              s#transition_to `Started;
-              unit) );
-      ( "stop",
-        ([], fun_t [] unit_t),
-        "Ask the source or output to stop.",
-        fun s ->
-          val_fun [] (fun p ->
-              if not s#fallible then
-                Lang.raise_error ~pos:(Lang.pos p)
-                  ~message:"Source is infallible and cannot be stopped" "input";
-              s#transition_to `Stopped;
-              unit) );
-      ( "shutdown",
-        ([], fun_t [] unit_t),
-        "Shutdown the output or source.",
-        fun s ->
-          val_fun [] (fun _ ->
-              Clock.detach s#clock (s :> Clock.source);
-              unit) );
+      {
+        name = "is_started";
+        scheme = ([], fun_t [] bool_t);
+        descr = "`true` if the output or source is started.";
+        value = (fun s -> val_fun [] (fun _ -> bool (s#state = `Started)));
+      };
+      {
+        name = "start";
+        scheme = ([], fun_t [] unit_t);
+        descr = "Ask the source or output to start.";
+        value =
+          (fun s ->
+            val_fun [] (fun _ ->
+                s#transition_to `Started;
+                unit));
+      };
+      {
+        name = "stop";
+        scheme = ([], fun_t [] unit_t);
+        descr = "Ask the source or output to stop.";
+        value =
+          (fun s ->
+            val_fun [] (fun p ->
+                if not s#fallible then
+                  Lang.raise_error ~pos:(Lang.pos p)
+                    ~message:"Source is infallible and cannot be stopped"
+                    "input";
+                s#transition_to `Stopped;
+                unit));
+      };
+      {
+        name = "shutdown";
+        scheme = ([], fun_t [] unit_t);
+        descr = "Shutdown the output or source.";
+        value =
+          (fun s ->
+            val_fun [] (fun _ ->
+                Clock.detach s#clock (s :> Clock.source);
+                unit));
+      };
     ]

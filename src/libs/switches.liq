@@ -7,7 +7,7 @@
 # @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 def fallback(
-  ~id=null(),
+  ~id=null,
   ~override="liq_transition_length",
   ~replay_metadata=true,
   ~track_sensitive=true,
@@ -39,7 +39,7 @@ end
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 def rotate(
-  ~id=null(),
+  ~id=null,
   ~override="liq_transition_length",
   ~replay_metadata=true,
   ~transition_length=5.,
@@ -139,7 +139,7 @@ def rotate(
     end
   end
 
-  s = source.on_track(s, f)
+  s.on_track(synchronous=true, f)
 
   def replaces s =
     fallback(id=id, track_sensitive=true, s::sources)
@@ -157,7 +157,7 @@ end
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child the probability that it is selected.
 def replaces random(
-  ~id=null(),
+  ~id=null,
   ~override="liq_transition_length",
   ~replay_metadata=true,
   ~transition_length=5.,
@@ -230,7 +230,7 @@ def replaces random(
     next_index := -1
   end
 
-  s = source.on_track(s, f)
+  s.on_track(synchronous=true, f)
 
   def replaces s =
     fallback(id=id, track_sensitive=true, s::sources)

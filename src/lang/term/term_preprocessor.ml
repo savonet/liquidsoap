@@ -29,12 +29,35 @@ type processor =
 
 let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
 
+let let_script_path ~filename tm =
+  Parser_helper.mk ~pos:tm.Parsed_term.pos
+    (`Let
+       ( {
+           Parsed_term.decoration = `None;
+           pat =
+             {
+               pat_pos = tm.pos;
+               pat_entry = `PVar ["liquidsoap"; "script"; "path"];
+             };
+           arglist = None;
+           cast = None;
+           def = Parser_helper.mk ~pos:tm.pos filename;
+         },
+         tm ))
+
 let mk_expr ?fname processor lexbuf =
   let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
   Parser_helper.clear_comments ();
   let parsed_term = processor tokenizer in
   Parser_helper.attach_comments parsed_term;
-  parsed_term
+  match fname with
+    (* This happens with the interactive top-level. *)
+    | None when processor != program -> parsed_term
+    | None -> let_script_path ~filename:`Null parsed_term
+    | Some fname ->
+        let_script_path
+          ~filename:(`String ('"', Lang_string.escape_utf8_string fname))
+          parsed_term
 
 exception No_extra
 
@@ -66,6 +89,9 @@ let includer_reducer ~pos = function
                     ~pos:[Pos.of_lexing_pos inc_pos]
                     inc_name
                 with _ when v = `Extra -> raise No_extra)
+        in
+        let fname =
+          match fname with "-" -> fname | _ -> FilePath.reduce fname
         in
         let ic = if fname = "-" then stdin else open_in fname in
         Fun.protect

@@ -40,9 +40,9 @@ let type_of_encoder p =
 let make params =
   let defaults =
     {
-      External_encoder_format.channels
       (* We use a hardcoded value in order not to force the evaluation of the
-           number of channels too early, see #933. *) = 2;
+         number of channels too early, see #933. *)
+      External_encoder_format.channels = 2;
       samplerate = Frame.audio_rate;
       video = None;
       header = true;

@@ -1,4 +1,5 @@
 port = 8002
+settings.srt.prefer_address := "ipv4"
 
 def fn() =
   connected = ref(0)

@@ -273,11 +273,17 @@ let handle_client socket ip =
       | Duppy.Io.Timeout ->
           log#f (conf_log_level#get + 1)
             "Timeout reached while communicating to client %s." ip
-      | Duppy.Io.Unix (c, p, m) ->
-          log#f (conf_log_level#get + 1) "%s"
+      | Duppy.Io.Unix (c, p, m, bt) ->
+          log#f (conf_log_level#get + 1) "%s%s"
             (Printexc.to_string (Unix.Unix_error (c, p, m)))
-      | Duppy.Io.Unknown e ->
-          log#f conf_log_level#get "%s" (Printexc.to_string e));
+            (if conf_log_level#get > 4 then
+               "\n" ^ Printexc.raw_backtrace_to_string bt
+             else "")
+      | Duppy.Io.Unknown (e, bt) ->
+          log#f (conf_log_level#get + 1) "%s%s" (Printexc.to_string e)
+            (if conf_log_level#get > 4 then
+               "\n" ^ Printexc.raw_backtrace_to_string bt
+             else ""));
     Duppy e
   in
   let h =

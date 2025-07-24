@@ -1,7 +1,7 @@
 # Plot the first crossfade transition. Used for visualizing and testing
 # crossfade transitions.
 # @flag extra
-def cross.plot(~png=null(), ~dir=null(), s) =
+def cross.plot(~png=null, ~dir=null, s) =
   dir =
     if
       null.defined(dir)
@@ -24,11 +24,11 @@ def cross.plot(~png=null(), ~dir=null(), s) =
 
   def store_rms(~id, s) =
     s = rms(duration=settings.frame.duration(), s)
-    t0 = ref(null())
+    t0 = ref(null)
 
-    source.on_frame(
+    s.on_frame(
+      synchronous=true,
       before=false,
-      s,
       {
         let t0 =
           if
@@ -45,6 +45,8 @@ def cross.plot(~png=null(), ~dir=null(), s) =
         file.write(append=true, data="#{p}\t#{v}\n", fname)
       }
     )
+
+    s
   end
 
   plotted = ref(false)
@@ -54,22 +56,21 @@ def cross.plot(~png=null(), ~dir=null(), s) =
     new = store_rms(id="new", fade.in(new.source))
 
     s = blank(duration=0.1)
-    s =
-      source.on_frame(
-        s,
-        {
-          if
-            null.defined(png) and not plotted()
-          then
-            ignore(
-              process.run(
-                "gnuplot -e #{process.quote(gnuplot_cmd(null.get(png)))}"
-              )
+    s.on_frame(
+      synchronous=true,
+      {
+        if
+          null.defined(png) and not plotted()
+        then
+          ignore(
+            process.run(
+              "gnuplot -e #{process.quote(gnuplot_cmd(null.get(png)))}"
             )
-          end
-          plotted := true
-        }
-      )
+          )
+        end
+        plotted := true
+      }
+    )
 
     sequence(single_track=false, [add(normalize=false, [new, old]), once(s)])
   end

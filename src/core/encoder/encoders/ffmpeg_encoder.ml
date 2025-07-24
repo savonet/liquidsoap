@@ -24,6 +24,9 @@
 
 open Ffmpeg_encoder_common
 
+let replace_default opts name default =
+  Hashtbl.replace opts name (Option.value ~default (Hashtbl.find_opt opts name))
+
 let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"" (function
     | Encoder.Ffmpeg ffmpeg ->
@@ -32,28 +35,14 @@ let () =
             (* Inject hls params. *)
             let ffmpeg =
               if hls then (
-                let opts =
-                  match ffmpeg.Ffmpeg_format.format with
-                    | Some "mp4" ->
-                        let opts = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
-                        let movflags =
-                          Option.value
-                            ~default:
-                              (`String
-                                "+dash+skip_sidx+skip_trailer+frag_custom")
-                            (Hashtbl.find_opt ffmpeg.Ffmpeg_format.opts
-                               "movflags")
-                        in
-                        Hashtbl.replace opts "movflags" movflags;
-                        let frag_duration =
-                          Option.value ~default:(`Int 10)
-                            (Hashtbl.find_opt ffmpeg.Ffmpeg_format.opts
-                               "frag_duration")
-                        in
-                        Hashtbl.replace opts "frag_duration" frag_duration;
-                        opts
-                    | _ -> ffmpeg.Ffmpeg_format.opts
-                in
+                let opts = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
+                replace_default opts "flush_packets" (`Int 1);
+                (match ffmpeg.Ffmpeg_format.format with
+                  | Some "mp4" ->
+                      replace_default opts "movflags"
+                        (`String "+dash+skip_sidx+skip_trailer+frag_custom");
+                      replace_default opts "frag_duration" (`Int 10)
+                  | _ -> ());
                 let streams =
                   List.map
                     (function
@@ -62,11 +51,8 @@ let () =
                             ({ Ffmpeg_format.opts } as stream :
                               Ffmpeg_format.encoded_stream) ) ->
                           let opts = Hashtbl.copy opts in
-                          let flags =
-                            Option.value ~default:(`String "+global_header")
-                              (Hashtbl.find_opt opts "flags")
-                          in
-                          Hashtbl.replace opts "flags" flags;
+                          replace_default opts "flags"
+                            (`String "+global_header");
                           (lbl, `Encode { stream with Ffmpeg_format.opts })
                       | s -> s)
                     ffmpeg.Ffmpeg_format.streams

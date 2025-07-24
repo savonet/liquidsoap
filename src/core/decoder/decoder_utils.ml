@@ -91,24 +91,23 @@ let video_scale ~width ~height () =
 
 type fps = { num : int; den : int }
 
-(** Stupid nearest neighbour resampling.
-  * For meaningful results, one should first partially apply the freq params,
-  * and reuse the resulting functions on consecutive chunks of a single
-  * input stream. *)
+(** Stupid nearest neighbour resampling. For meaningful results, one should
+    first partially apply the freq params, and reuse the resulting functions on
+    consecutive chunks of a single input stream. *)
 let video_resample ~in_freq ~out_freq =
   (* We have something like this:
    *
-   * i i i i i i i i i i i i i i i i i i i ...
-   * o     o       o     o       o     o   ...
+     i i i i i i i i i i i i i i i i i i i ...
+     o     o       o     o       o     o   ...
    *
-   * (1) We ensure that out_len/out_freq = in_len/in_freq asymptotically.
-   *     For doing so, we must keep track of the full input length,
-   *     modulo in_freq.
-   * (2) We do the simplest possible thing to choose which i becomes
-   *     which o: nearest neighbour in the currently available buffer.
-   *     This is not as good as nearest neighbour in the real stream.
+     (1) We ensure that out_len/out_freq = in_len/in_freq asymptotically.
+         For doing so, we must keep track of the full input length,
+         modulo in_freq.
+     (2) We do the simplest possible thing to choose which i becomes
+         which o: nearest neighbour in the currently available buffer.
+         This is not as good as nearest neighbour in the real stream.
    *
-   * Turns out the same code codes for when out_freq>in_freq works too. *)
+     Turns out the same code codes for when out_freq>in_freq works too. *)
   let in_pos = ref 0 in
   let in_freq = in_freq.num * out_freq.den
   and out_freq = out_freq.num * in_freq.num in

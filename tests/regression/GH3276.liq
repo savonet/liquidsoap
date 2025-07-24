@@ -7,15 +7,14 @@ thread.run(
     begin
       s = input.http("http://localhost:#{port}/test")
       track_count = ref(0)
-      s =
-        source.on_track(
-          s,
-          fun (_) ->
-            begin
-              if track_count() > 1 then test.pass() end
-              track_count := track_count() + 1
-            end
-        )
+      s.on_track(
+        synchronous=true,
+        fun (_) ->
+          begin
+            if track_count() > 1 then test.pass() end
+            track_count := track_count() + 1
+          end
+      )
 
       output.dummy(fallible=true, s)
     end

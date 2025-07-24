@@ -84,11 +84,16 @@ type var = Type_base.var = {
 
 type scheme = var list * t
 
+type meth_doc = Type_base.meth_doc = {
+  meth_descr : string;
+  mutable category : [ `Method | `Callback ];
+}
+
 type meth = Type_base.meth = {
   meth : string;
   optional : bool;
   scheme : scheme;
-  doc : string;
+  doc : meth_doc;
   json_name : string option;
 }
 
@@ -148,6 +153,7 @@ val invokes : t -> string list -> var list * t
 val meth :
   ?pos:Pos.t ->
   ?json_name:string ->
+  ?category:[ `Method | `Callback ] ->
   ?optional:bool ->
   string ->
   scheme ->

@@ -31,28 +31,22 @@ end
 
 (** Second order IIR filter. *)
 module IIR = struct
-  type sample = float array
+  type stage
+  type t = int * stage * stage
 
-  type t = {
-    channels : int;
-    mutable x : sample * sample;
-    (* (x', x'') *)
-    mutable y : sample * sample;
-    (* (y', y'') *)
-    a1 : float;
-    a2 : float;
-    b0 : float;
-    b1 : float;
-    b2 : float;
-  }
+  external create :
+    channels:int ->
+    a1:float ->
+    a2:float ->
+    b0:float ->
+    b1:float ->
+    b2:float ->
+    stage = "liquidsoap_lufs_create_bytecode" "liquidsoap_lufs_create_native"
 
   (** Create and IIR filter. The coefficients are given for a samplerate of 48
       kHz and are adjusted for required target samplerate. *)
   let create ~channels ~samplerate ~a1 ~a2 ~b0 ~b1 ~b2 =
-    let blank = Array.make channels 0. in
-    let x = (blank, blank) in
-    let y = (blank, blank) in
-    if samplerate = 48000. then { channels; x; y; a1; a2; b0; b1; b2 }
+    if samplerate = 48000. then create ~channels ~a1 ~a2 ~b0 ~b1 ~b2
     else (
       (* The coefficients of the specification are given for a 48 kHz samplerate,
          this computes the values for other samplerates. This is "strongly
@@ -71,37 +65,87 @@ module IIR = struct
       let b2 = (vh -. (vb *. k /. q) +. (vl *. k *. k)) *. a in
       let a1 = 2. *. ((k *. k) -. 1.) *. a in
       let a2 = (1. -. (k /. q) +. (k *. k)) *. a in
-      { channels; x; y; a1; a2; b0; b1; b2 })
+      create ~channels ~a1 ~a2 ~b0 ~b1 ~b2)
 
-  let stage1 =
-    create ~a1:(-1.69065929318241) ~a2:0.73248077421585 ~b0:1.53512485958697
-      ~b1:(-2.69169618940638) ~b2:1.19839281085285
+  let create ~channels ~samplerate =
+    let stage1 =
+      create ~a1:(-1.69065929318241) ~a2:0.73248077421585 ~b0:1.53512485958697
+        ~b1:(-2.69169618940638) ~b2:1.19839281085285 ~channels ~samplerate
+    in
+    let stage2 =
+      create ~a1:(-1.99004745483398) ~a2:0.99007225036621 ~b0:1. ~b1:(-2.)
+        ~b2:1. ~channels ~samplerate
+    in
+    (channels, stage1, stage2)
 
-  let stage2 =
-    create ~a1:(-1.99004745483398) ~a2:0.99007225036621 ~b0:1. ~b1:(-2.) ~b2:1.
+  external process : stage1:stage -> stage2:stage -> float array array -> float
+    = "liquidsoap_lufs_process"
 
-  (** Process a sample. *)
-  let process iir x =
-    let channels = iir.channels in
-    assert (Array.length x = channels);
-    let x', x'' = iir.x in
-    let y', y'' = iir.y in
-    let y = Array.make channels 0. in
-    for i = 0 to channels - 1 do
-      y.(i) <-
-        (iir.b0 *. x.(i))
-        +. (iir.b1 *. x'.(i))
-        +. (iir.b2 *. x''.(i))
-        -. (iir.a1 *. y'.(i))
-        -. (iir.a2 *. y''.(i))
-    done;
-    iir.x <- (x, x');
-    iir.y <- (y, y');
-    y
+  let process (channels, stage1, stage2) samples =
+    assert (Array.length samples = channels);
+    process ~stage1 ~stage2 samples
 end
 
 (** Compute the loudness from the mean of squares. *)
 let loudness z = -0.691 +. (10. *. log10 z)
+
+let energy z = Float.pow 10. ((z +. 0.691) /. 10.)
+let min_lufs = -70.
+
+module LufsIntegratedHistogram = struct
+  let granularity = 100.
+
+  type histogram_entry = {
+    mutable count : int;
+    loudness : float;
+    energy : float;
+  }
+
+  type histogram = {
+    mutable pending : float list;
+    mutable entries : (int * histogram_entry) list;
+    mutable threshold : float;
+    mutable threshold_count : int;
+  }
+
+  let pos loudness = int_of_float ((loudness -. min_lufs) *. granularity)
+
+  let create () =
+    { pending = []; entries = []; threshold = 0.; threshold_count = 0 }
+
+  let get_entry h pos =
+    try List.assoc pos h.entries
+    with Not_found ->
+      let loudness = (float pos /. granularity) +. min_lufs in
+      let entry = { count = 0; loudness; energy = energy loudness } in
+      h.entries <- (pos, entry) :: h.entries;
+      entry
+
+  let append h v =
+    let blocks = v :: h.pending in
+    if List.length blocks = 4 then (
+      h.pending <- [];
+      let power = List.mean blocks in
+      let loudness = loudness power in
+      if min_lufs <= loudness then (
+        let entry = get_entry h (pos loudness) in
+        entry.count <- entry.count + 1;
+        h.threshold <- h.threshold +. power;
+        h.threshold_count <- h.threshold_count + 1))
+    else h.pending <- blocks
+
+  let compute { entries; threshold; threshold_count } =
+    let threshold = loudness (threshold /. float threshold_count) -. 10. in
+    let power, total =
+      List.fold_left
+        (fun (power, total) (_, { count; loudness; energy }) ->
+          if threshold <= loudness then
+            (power +. (energy *. float count), total + count)
+          else (power, total))
+        (0., 0) entries
+    in
+    loudness (power /. float total)
+end
 
 class lufs window source =
   object (self)
@@ -112,29 +156,38 @@ class lufs window source =
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    method channels = self#audio_channels
-    method samplerate = float_of_int (Lazy.force Frame.audio_rate)
-    val mutable stage1 = id
-    val mutable stage2 = id
-
-    (** Current mean square (weighted sum over channels). *)
-    val mutable ms = 0.
-
-    (** Length of current mean square in samples *)
-    val mutable ms_len = 0
 
     (** Last 100ms blocks. *)
     val mutable ms_blocks = []
 
+    val mutable len_100ms = 0
+    val mutable iir = None
+
+    method private iir =
+      match iir with
+        | None ->
+            let channels = self#audio_channels in
+            let samplerate = self#samplerate in
+            let h = IIR.create ~channels ~samplerate in
+            iir <- Some h;
+            h
+        | Some v -> v
+
     initializer
-      self#on_wake_up (fun () ->
-          let channels = self#channels in
-          let samplerate = self#samplerate in
-          stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
-          stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate))
+      self#on_wake_up (fun () -> len_100ms <- Frame.main_of_seconds 0.1)
+
+    val mutable lufs_integrated = LufsIntegratedHistogram.create ()
+    method lufs_integrated = LufsIntegratedHistogram.compute lufs_integrated
+
+    method private add_integrated_block v =
+      LufsIntegratedHistogram.append lufs_integrated v
+
+    method private reset_lufs_integrated =
+      iir <- None;
+      lufs_integrated <- LufsIntegratedHistogram.create ()
 
     (** Compute LUFS. *)
-    method compute =
+    method lufs =
       (* Compute ms of overlapping 400ms blocks. *)
       let blocks =
         let rec aux b' b'' b''' = function
@@ -145,42 +198,32 @@ class lufs window source =
         aux ms_blocks
       in
       (* Blocks over absolute threshold. *)
-      let absolute = List.filter (fun z -> loudness z > -70.) blocks in
+      let absolute = List.filter (fun z -> loudness z > min_lufs) blocks in
       (* Relative threshold. *)
       let threshold = loudness (List.mean absolute) -. 10. in
       (* Blocks over relative threshold. *)
       let relative = List.filter (fun z -> loudness z > threshold) blocks in
-      (* Compute LUFS. *)
       loudness (List.mean relative)
 
     (** Momentary LUFS. *)
-    method momentary = loudness (List.mean (List.prefix 4 ms_blocks))
+    method lufs_momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
-    method private generate_frame =
-      let channels = self#channels in
-      let len_100ms = Frame.audio_of_seconds 0.1 in
-      let frame = source#get_frame in
-      let position = AFrame.position frame in
-      let buf = AFrame.pcm frame in
-      for i = 0 to position - 1 do
-        let x = Array.init channels (fun c -> buf.(c).(i)) in
-        (* Prefilter. *)
-        let x = stage1 x in
-        let x = stage2 x in
-        (* Add squares. *)
-        for c = 0 to channels - 1 do
-          let xc = x.(c) in
-          ms <- ms +. (xc *. xc)
-        done;
-        ms_len <- ms_len + 1;
-        (* When we have 100ms of squares we push the block. *)
-        if ms_len >= len_100ms then (
-          ms_blocks <- (ms /. float_of_int len_100ms) :: ms_blocks;
-          ms <- 0.;
-          ms_len <- 0)
+    method private process_frame frame =
+      Generator.append self#buffer frame;
+      while len_100ms < Generator.length self#buffer do
+        let frame = Generator.slice self#buffer len_100ms in
+        if Frame.has_track_marks frame then self#reset_lufs_integrated;
+        let buf = AFrame.pcm frame in
+        let power = IIR.process self#iir buf in
+        self#add_integrated_block power;
+        ms_blocks <- power :: ms_blocks
       done;
       (* Keep only a limited (by the window) number of blocks. *)
-      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks;
+      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
+
+    method private generate_frame =
+      let frame = source#get_frame in
+      self#process_frame frame;
       frame
   end
 
@@ -191,17 +234,31 @@ let _ =
   in
   Lang.add_operator "lufs" ~category:`Visualization
     ~meth:
-      [
-        ( "lufs",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current value for the LUFS (short-term value computed over the \
-           duration specified by the `window` parameter).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#compute) );
-        ( "lufs_momentary",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Momentary LUFS (over a 400ms window).",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#momentary) );
-      ]
+      Lang.
+        [
+          {
+            name = "lufs";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr =
+              "Current value for the LUFS (short-term value computed over the \
+               duration specified by the `window` parameter).";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs));
+          };
+          {
+            name = "lufs_integrated";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Average LUFS value over the current track.";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_integrated));
+          };
+          {
+            name = "lufs_momentary";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Momentary LUFS (over a 400ms window).";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_momentary));
+          };
+        ]
     ~return_t
     ~descr:
       "Compute current LUFS of the source according to the EBU R128 standard. \

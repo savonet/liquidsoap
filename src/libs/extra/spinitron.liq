@@ -9,15 +9,15 @@ def spinitron.submit.raw(
   ~host="https://spinitron.com/api",
   ~api_key,
   ~live=false,
-  ~start=null(),
-  ~duration=null(),
+  ~start=null,
+  ~duration=null,
   ~artist,
-  ~release=null(),
-  ~label=null(),
-  ~genre=null(),
+  ~release=null,
+  ~label=null,
+  ~genre=null,
   ~song,
-  ~composer=null(),
-  ~isrc=null()
+  ~composer=null,
+  ~isrc=null
 ) =
   params = [("song", song), ("artist", artist)]
 
@@ -186,8 +186,8 @@ def spinitron.submit.metadata(
         )
       ]
   ),
-  ~artist=null(),
-  ~song=null(),
+  ~artist=null,
+  ~song=null,
   m
 ) =
   m = [...m, ...mapper(m)]
@@ -211,7 +211,7 @@ def spinitron.submit.metadata(
   isrc = opt_arg("isrc", isrc)
 
   if
-    artist == null() or song == null()
+    artist == null or song == null
   then
     error.raise(
       error.invalid,
@@ -229,18 +229,14 @@ def spinitron.submit.metadata(
   res
 end
 
-# Specialized version of `source.on_metadata` that submits spins using
+# Specialized version of `s.on_metadata` that submits spins using
 # the source's metadata to the spinitron track system. `artist` and `song`
 # (or `title`) must be present either as metadata or as optional argument.
 # @category Interaction
 # @flag extra
 # @param m Metadata to submit. Overrides optional arguments when present.
 # @param ~api_key API key
-def spinitron.submit.on_metadata(
-  ~id=null(),
-  %argsof(spinitron.submit.metadata),
-  s
-) =
+def spinitron.submit.on_metadata(%argsof(spinitron.submit.metadata), s) =
   def on_metadata(m) =
     if
       m["title"] == "" and m["song"] == ""
@@ -273,5 +269,5 @@ def spinitron.submit.on_metadata(
     end
   end
 
-  source.on_metadata(id=id, s, on_metadata)
+  source.methods(s).on_metadata(on_metadata)
 end

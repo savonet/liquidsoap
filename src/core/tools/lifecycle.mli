@@ -20,11 +20,11 @@
 
  *****************************************************************************)
 
-(** Module to expose and hook up actions that need to happen
-    over the lifecycle of the application. *)
+(** Module to expose and hook up actions that need to happen over the lifecycle
+    of the application. *)
 
-(** Initial load. Used for registering stuff that needs
-	  all OCaml modules to have been registered. *)
+(** Initial load. Used for registering stuff that needs all OCaml modules to
+    have been registered. *)
 val on_load : name:string -> (unit -> unit) -> unit
 
 val load : unit -> unit

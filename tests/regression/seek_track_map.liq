@@ -8,7 +8,7 @@ def set_cues(s) =
     [("liq_cue_in", "#{in}"), ("liq_cue_out", "#{out}")]
   end
 
-  metadata.map(f, s)
+  metadata.map(insert_missing=true, f, s)
 end
 
 s = set_cues(s)

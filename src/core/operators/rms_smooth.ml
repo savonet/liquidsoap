@@ -60,12 +60,15 @@ let _ =
   in
   Lang.add_operator ~base:Window_op.rms "smooth" ~category:`Visualization
     ~meth:
-      [
-        ( "rms",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current value for the RMS.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#rms) );
-      ]
+      Lang.
+        [
+          {
+            name = "rms";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Current value for the RMS.";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#rms));
+          };
+        ]
     ~return_t
     ~descr:
       "Compute the current RMS for the source, this varies more smoothly that \

@@ -46,7 +46,6 @@ class virtual base ~self_sync ~client ~device =
     val client_name = client
     val dev = device
     val mutable stream = None
-    method virtual log : Log.t
 
     method self_sync : Clock.self_sync =
       if self_sync then
@@ -56,13 +55,13 @@ class virtual base ~self_sync ~client ~device =
 
 let log = Log.make ["pulseaudio"]
 
-class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
+class output ~infallible ~register_telnet ~start p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_valued_option Lang.to_string (List.assoc "device" p) in
   let device =
     if device = Some "" then (
       log#important
-        "Empty device name \"\" is deprecated! Please use `null()` instead..";
+        "Empty device name \"\" is deprecated! Please use `null` instead..";
       None)
     else device
   in
@@ -79,10 +78,10 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
   object (self)
     inherit base ~self_sync ~client ~device
 
-    inherit!
+    inherit
       Output.output
-        ~infallible ~register_telnet ~on_stop ~on_start ~name
-          ~output_kind:"output.pulseaudio" val_source start
+        ~infallible ~register_telnet ~name ~output_kind:"output.pulseaudio"
+          val_source start
 
     val mutable last_try = 0.
 
@@ -151,7 +150,7 @@ class input p =
   let device =
     if device = Some "" then (
       log#important
-        "Empty device name \"\" is deprecated! Please use `null()` instead..";
+        "Empty device name \"\" is deprecated! Please use `null` instead..";
       None)
     else device
   in
@@ -161,20 +160,11 @@ class input p =
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let start = Lang.to_bool (List.assoc "start" p) in
   let fallible = Lang.to_bool (List.assoc "fallible" p) in
-  let on_start =
-    let f = List.assoc "on_start" p in
-    fun () -> ignore (Lang.apply f [])
-  in
-  let on_stop =
-    let f = List.assoc "on_stop" p in
-    fun () -> ignore (Lang.apply f [])
-  in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
-        ~name:"input.pulseaudio" ~on_start ~on_stop ~autostart:start ~fallible
-          () as active_source
+        ~name:"input.pulseaudio" ~autostart:start ~fallible () as active_source
 
     inherit base ~self_sync ~client ~device
     method private start = self#open_device
@@ -283,21 +273,13 @@ let _ =
   Lang.add_operator ~base:Modules.output "pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t frame_t, None, None)])
     ~return_t:frame_t ~category:`Output ~meth:Output.meth
+    ~callbacks:Output.callbacks
     ~descr:"Output the source's stream to a pulseaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      (new output ~infallible ~register_telnet ~on_start ~on_stop ~start p
-        :> Output.output))
+      (new output ~infallible ~register_telnet ~start p :> Output.output))
 
 let _ =
   let return_t =
@@ -307,5 +289,6 @@ let _ =
   Lang.add_operator ~base:Modules.input "pulseaudio"
     (Start_stop.active_source_proto ~fallible_opt:(`Yep true) @ proto)
     ~return_t ~category:`Input ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"source")
     ~descr:"Stream from a pulseaudio input device."
     (fun p -> new input p)

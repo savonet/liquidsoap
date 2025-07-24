@@ -3,11 +3,14 @@
 set -e
 
 if [ -n "${GITHUB_HEAD_REF}" ]; then
-  BRANCH="${GITHUB_HEAD_REF}"
+  BRANCH="${GITHUB_HEAD_REF#refs_heads_}"
 else
-  BRANCH="${GITHUB_REF#refs/heads/}"
+  BRANCH="${GITHUB_REF}"
 fi
 
+BRANCH="${BRANCH#refs_heads_}"
+BRANCH="${BRANCH#refs/heads/}"
+BRANCH="${BRANCH#refs/tags/}"
 BRANCH="${BRANCH//\//_}"
 
 echo "Detected branch: ${BRANCH}"
@@ -33,7 +36,7 @@ fi
 
 BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
 BUILD_PLATFORM='["amd64", "arm64"]'
-BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": "ubuntu-24.04-arm", "alpine-arch": "aarch64", "docker-debian-os": "bookworm"}]'
+BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "depot-ubuntu-24.04-4", "alpine-arch": "x86_64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": "depot-ubuntu-24.04-arm-4", "alpine-arch": "aarch64", "docker-debian-os": "bookworm"}]'
 
 SHA=$(git rev-parse --short HEAD)
 
@@ -59,7 +62,13 @@ else
   IS_SNAPSHOT=
 fi
 
-MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd graphics gstreamer imagelib irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt tls theora tsdl sqlite3 vorbis"
+MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd graphics gstreamer imagelib irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt tls theora tsdl sqlite3 vorbis sdl-liquidsoap"
+
+echo "Ocaml version to build: 4.14.2, 5.3.0"
+OCAML_VERSION='["4.14.2", "5.3.0"]'
+
+echo "OCaml docker release version: 4.14.2"
+OCAML_DOCKER_RELEASE_VERSION="4.14.2"
 
 {
   echo "branch=${BRANCH}"
@@ -75,4 +84,6 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
   echo "minimal_exclude_deps=${MINIMAL_EXCLUDE_DEPS}"
   echo "save_traces=${SAVE_TRACES}"
   echo "is_snapshot=${IS_SNAPSHOT}"
+  echo "ocaml_version=${OCAML_VERSION}"
+  echo "ocaml_docker_release_version=${OCAML_DOCKER_RELEASE_VERSION}"
 } >> "${GITHUB_OUTPUT}"

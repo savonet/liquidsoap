@@ -63,7 +63,7 @@ def enable_external_ffmpeg_decoder() =
   end
 
   if
-    file.which(ffmpeg) != null() and file.which(ffprobe) != null()
+    file.which(ffmpeg) != null and file.which(ffprobe) != null
   then
     log(
       label="external.decoder",
@@ -139,7 +139,7 @@ def enable_external_mpc_decoder() =
   end
 
   if
-    file.which(mpcdec) != null()
+    file.which(mpcdec) != null
   then
     log(
       label="external.decoder",
@@ -188,7 +188,7 @@ def enable_external_flac_decoder() =
   flac = settings.decoder.external.flac.path()
   metaflac = settings.decoder.external.metaflac.path()
   if
-    file.which(flac) != null()
+    file.which(flac) != null
   then
     log(
       label="external.decoder",
@@ -199,7 +199,7 @@ def enable_external_flac_decoder() =
 
     def test_flac(fname) =
       if
-        file.which(metaflac) != null()
+        file.which(metaflac) != null
       then
         channels =
           list.hd(
@@ -242,14 +242,14 @@ def enable_external_flac_decoder() =
   end
 
   if
-    file.which(metaflac) != null()
+    file.which(metaflac) != null
   then
     log(
       label="decoder.external",
       "Enabling EXTERNAL_FLAC metadata resolver."
     )
 
-    def flac_meta(~metadata=_, fname) =
+    def flac_meta(~metadata:_, fname) =
       ret =
         process.read.lines(
           "#{metaflac} --export-tags-to=- #{process.quote(fname)}"
@@ -348,7 +348,7 @@ def enable_external_faad_decoder() =
   end
 
   if
-    file.which(faad) != null()
+    file.which(faad) != null
   then
     log(
       label="decoder.external",
@@ -399,7 +399,7 @@ def enable_external_faad_decoder() =
       faad_p
     )
 
-    def faad_meta(~metadata=_, file) =
+    def faad_meta(~metadata:_, file) =
       if
         faad_test(file)
       then
@@ -469,7 +469,7 @@ def osd_metadata(
   def feedback(m) =
     ignore(
       process.run(
-        "echo #{process.quote(display(m))} | #{osd} &"
+        "echo #{process.quote(display(m))} | #{osd}"
       )
     )
   end
@@ -624,17 +624,13 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.external.ffmpeg(
-  ~id=null(),
+  ~id=null,
   ~show_command=false,
   ~flush=false,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   %argsof(output.external[
     reopen_on_metadata,
     reopen_on_error,
@@ -664,8 +660,6 @@ def output.external.ffmpeg(
     id=id,
     flush=flush,
     fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
     %argsof(output.external[
       reopen_on_metadata,
       reopen_on_error,
@@ -686,18 +680,14 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
 # @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.file.hls.ffmpeg(
-  ~id=null(),
+  ~id=null,
   ~flush=false,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   %argsof(output.external[
     reopen_on_metadata,
     reopen_on_error,
@@ -723,8 +713,6 @@ def output.file.hls.ffmpeg(
     id=id,
     flush=flush,
     fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
     %argsof(output.external[
       reopen_on_metadata,
       reopen_on_error,
@@ -746,18 +734,14 @@ let output.file.dash = ()
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
 # @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.file.dash.ffmpeg(
-  ~id=null(),
+  ~id=null,
   ~flush=false,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   %argsof(output.external[
     reopen_on_metadata,
     reopen_on_error,
@@ -785,8 +769,6 @@ def output.file.dash.ffmpeg(
     id=id,
     flush=flush,
     fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
     %argsof(output.external[
       reopen_on_metadata,
       reopen_on_error,

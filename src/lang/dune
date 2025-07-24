@@ -16,6 +16,8 @@
  (modules parser json_parser)
  (flags
   --unused-token
+  NULLDOT
+  --unused-token
   DOTVAR
   --unused-token
   PP_ELSE
@@ -88,9 +90,10 @@
   (pps sedlex.ppx ppx_string ppx_hash))
  (libraries
   liquidsoap-lang.console
+  liquidsoap-lang.stdlib
   dune-site
+  fileutils
   re
-  saturn_lockfree
   str
   unix
   menhirLib
@@ -145,7 +148,6 @@
   plug
   preprocessor
   profiler
-  queues
   repr
   ref_type
   runtime

@@ -1,9 +1,14 @@
+# For some reason, ffmpeg uses weird frame rates when creating the samples below.
+settings.ffmpeg.content.copy.relaxed_compatibility_check := true
+
 out = {"concat-#{random.int()}.mp4"}
 
 s1 = single("first-concat.mp4")
 s2 = single("second-concat.mp4")
 s3 = single("third-concat.mp4")
 s = sequence([s1, s2, s3, switch([])])
+
+clock.assign_new(sync='none', [s])
 
 done = ref(false)
 
@@ -13,8 +18,6 @@ def on_close(filename) =
     not done()
   then
     done := true
-
-    process.run("sync")
 
     ojson =
       process.read(

@@ -90,6 +90,7 @@ val pending_activations : t -> source list
 val sources : t -> source list
 val clocks : unit -> t list
 val id : t -> string
+val set_id : t -> string -> unit
 val descr : t -> string
 val sync : t -> sync_mode
 val start : ?force:bool -> t -> unit

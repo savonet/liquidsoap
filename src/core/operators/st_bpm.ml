@@ -70,10 +70,12 @@ let _ =
        method `bpm`, which can be called to compute it."
     ~meth:
       [
-        ( "bpm",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Compute the current BPM.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#bpm) );
+        {
+          name = "bpm";
+          scheme = ([], Lang.fun_t [] Lang.float_t);
+          descr = "Compute the current BPM.";
+          value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#bpm));
+        };
       ]
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in

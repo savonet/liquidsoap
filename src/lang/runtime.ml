@@ -33,6 +33,18 @@ type append_stdlib = unit -> stdlib
 let error = Console.colorize [`red; `bold] "Error"
 let warning = Console.colorize [`magenta; `bold] "Warning"
 let position pos = Console.colorize [`bold] (String.capitalize_ascii pos)
+let strict = ref false
+let deprecated = ref true
+
+let () =
+  Array.iter
+    (function
+      | "--disable-deprecated" -> deprecated := false
+      | "--enable-deprecated" -> deprecated := true
+      | _ -> ())
+    Sys.argv
+
+let raw_errors = ref false
 
 let error_header ~formatter idx pos =
   let e = Option.value (Repr.excerpt_opt pos) ~default:"" in
@@ -44,13 +56,19 @@ let warning_header ~formatter idx pos =
   let pos = Pos.Option.to_string pos in
   Format.fprintf formatter "@[%s:\n%s\n%s %i: " (position pos) e warning idx
 
-(** Exception raised by report_error after an error has been displayed.
-  * Unknown errors are re-raised, so that their content is not totally lost. *)
+(** Exception raised by report_error after an error has been displayed. Unknown
+    errors are re-raised, so that their content is not totally lost. *)
 exception Error
 
-let strict = ref false
+exception Warning of string
 
-let throw ?(formatter = Format.std_formatter) ?lexbuf () =
+let () =
+  Printexc.register_printer (function
+    | Error -> Some "Liquidsoap Error"
+    | Warning s -> Some (Printf.sprintf "Warning: %s" s)
+    | _ -> None)
+
+let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
   let print_error ~formatter idx error =
     flush_all ();
     let pos =
@@ -63,57 +81,95 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
     Format.fprintf formatter "%s\n@]@." error
   in
   function
+  | exn when !raw_errors -> Printexc.raise_with_backtrace exn bt
   (* Warnings *)
   | Term.Ignored tm when Type.is_fun tm.Term.t ->
       flush_all ();
       warning_header ~formatter 1 tm.Term.t.Type.pos;
+      let typ = Type.to_string tm.Term.t in
       Format.fprintf formatter
         "Trying to ignore a function,@ which is of type %s.@ Did you forget to \
          apply it to arguments?@]@."
-        (Type.to_string tm.Term.t);
-      if !strict then raise Error
+        typ;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning
+             (Printf.sprintf
+                "Trying to ignore a function, which is of type %s. Did you \
+                 forget to apply it to arguments?"
+                typ))
+          bt
   | Term.Ignored tm when Type.is_source tm.Term.t ->
       flush_all ();
       warning_header ~formatter 2 tm.Term.t.Type.pos;
       Format.fprintf formatter
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
-      if !strict then raise Error
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning
+             "This source is unused, maybe it needs to be connected to an \
+              output.")
+          bt
   | Term.Ignored tm ->
       flush_all ();
       warning_header ~formatter 3 tm.Term.t.Type.pos;
-      Format.fprintf formatter "This expression should have type unit.@]@.";
-      if !strict then raise Error
+      Format.fprintf formatter
+        "This expression is returning a value that is ignored. Do you need to \
+         use its return value? If not, you can use the `ignore()` \
+         operator.@]@.";
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning "This expression should have type unit.") bt
   | Term.Unused_variable (s, pos) ->
       flush_all ();
       warning_header ~formatter 4 (Some pos);
       Format.fprintf formatter "Unused variable %s@]@." s;
-      if !strict then raise Error
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Unused variable %s" s))
+          bt
+  | Term.Deprecated (s, pos) ->
+      flush_all ();
+      warning_header ~formatter 5 (Some pos);
+      Format.fprintf formatter "Deprecated: %s@]@." s;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Deprecated: %s" s))
+          bt
+  | Typechecking.Top_level_override (s, pos) ->
+      flush_all ();
+      warning_header ~formatter 6 pos;
+      Format.fprintf formatter "Top-level variable %s is overridden!@]@." s;
+      if !strict then
+        Printexc.raise_with_backtrace
+          (Warning (Printf.sprintf "Top-level variable %s is overridden!" s))
+          bt
   (* Errors *)
   | Failure s when s = "lexing: empty token" ->
       print_error ~formatter 1 "Empty token";
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Parser.Error | Parsing.Parse_error ->
       print_error ~formatter 2 "Parse error";
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term_base.Parse_error (pos, s) ->
       error_header ~formatter 3 (Some (Pos.of_lexing_pos pos));
       Format.fprintf formatter "%s@]@." s;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term.Unbound (pos, s) ->
       error_header ~formatter 4 pos;
       Format.fprintf formatter "Undefined variable %s@]@." s;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Repr.Type_error explain ->
       flush_all ();
       Repr.print_type_error ~formatter (error_header ~formatter 5) explain;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Typechecking.No_method (name, typ) ->
       error_header ~formatter 5 typ.Type.pos;
       Format.fprintf formatter
         "This value has type %s, it cannot have method %s.@]@."
         (Repr.string_of_type typ) name;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term.No_label (f, lbl, first, x) ->
       let pos_f = Pos.Option.to_string f.Term.t.Type.pos in
       flush_all ();
@@ -124,31 +180,32 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
         (if first then "no" else "no more")
         (if lbl = "" then "unlabeled argument"
          else Format.sprintf "argument labeled %S" lbl);
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term.Duplicate_label (pos, lbl) ->
       error_header ~formatter 6 pos;
       Format.fprintf formatter
         "Function has multiple arguments with the same label: %s@]@." lbl;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Error.Invalid_value (v, msg) ->
       error_header ~formatter 7 (Value.pos v);
       Format.fprintf formatter "Invalid value:@ %s@]@." msg;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Lang_error.Encoder_error (pos, s) ->
       error_header ~formatter 8 pos;
       Format.fprintf formatter "%s@]@." (String.capitalize_ascii s);
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Failure s ->
-      let bt = Printexc.get_backtrace () in
-      print_error ~formatter 9 (Printf.sprintf "Failure: %s\n%s" s bt);
-      raise Error
+      print_error ~formatter 9
+        (Printf.sprintf "Failure: %s\n%s" s
+           (Printexc.raw_backtrace_to_string bt));
+      Printexc.raise_with_backtrace Error bt
   | Error.Clock_conflict (pos, a, b) ->
       (* TODO better printing of clock errors: we don't have position
        *   information, use the source's ID *)
       error_header ~formatter 10 pos;
       Format.fprintf formatter
         "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   (* Error 11 used to be Clock_loop. *)
   | Term.Unsupported_encoder (pos, fmt) ->
       error_header ~formatter 12 pos;
@@ -162,14 +219,14 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
             %%vorbis and many other encoders are not available. Instead, you \
             should use the %%ffmpeg encoder.@]@.")
         fmt;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Term.Internal_error (pos, e) ->
       (* Bad luck, error 13 should never have happened. *)
       error_header ~formatter 13
         (try Some (Pos.List.to_pos pos) with _ -> None);
       let pos = Pos.List.to_string ~newlines:true pos in
       Format.fprintf formatter "Internal error: %s,@ stack:\n%s\n@]@." e pos;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Runtime_error.(Runtime_error { kind; msg; pos }) ->
       error_header ~formatter 14
         (try Some (Pos.List.to_pos pos) with _ -> None);
@@ -179,7 +236,7 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
         kind
         (Lang_string.quote_string msg)
         pos;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Sedlexing.MalFormed -> print_error ~formatter 15 "Malformed UTF8 content."
   | Term.Missing_arguments (pos, args) ->
       let args =
@@ -191,18 +248,18 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
       error_header ~formatter 15 pos;
       Format.fprintf formatter
         "Missing arguments in function application: %s.@]@." args;
-      raise Error
+      Printexc.raise_with_backtrace Error bt
   | Type.Exists (pos, typ) ->
       error_header ~formatter 16 pos;
       Format.fprintf formatter "Type %s already exists.@]@." typ;
-      raise Error
-  | End_of_file -> raise End_of_file
+      Printexc.raise_with_backtrace Error bt
+  | End_of_file -> Printexc.raise_with_backtrace End_of_file bt
   | e ->
-      let bt = Printexc.get_backtrace () in
       error_header ~formatter (-1) None;
       Format.fprintf formatter "Exception raised: %s@.%s@]@."
-        (Printexc.to_string e) bt;
-      raise Error
+        (Printexc.to_string e)
+        (Printexc.raw_backtrace_to_string bt);
+      Printexc.raise_with_backtrace Error bt
 
 (* This is not great but it works for now. The problem being that we are relying on exception
    raising and catching to transmit language error, translate them into human readable errors and
@@ -210,18 +267,19 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
    so the return value has to be something else than [unit] in those cases. Essentially, this means
    that [default] becomes [fun () -> raise Error] to keep typechecking consistent.. *)
 let report :
-      'a.
-      ?lexbuf:Sedlexing.lexbuf ->
-      ?default:(unit -> 'a) ->
-      (throw:(exn -> unit) -> unit -> 'a) ->
-      'a =
- fun ?lexbuf ?(default = fun () -> raise Error) f ->
-  let throw = throw ?lexbuf () in
+    'a.
+    ?default:(unit -> 'a) ->
+    lexbuf:Sedlexing.lexbuf option ->
+    (throw:(bt:Printexc.raw_backtrace -> exn -> unit) -> unit -> 'a) ->
+    'a =
+ fun ?(default = fun () -> raise Error) ~lexbuf f ->
+  let throw = throw ~lexbuf () in
   if !Term.conf_debug_errors then f ~throw ()
   else (
     try f ~throw ()
     with exn ->
-      throw exn;
+      let bt = Printexc.get_raw_backtrace () in
+      throw ~bt exn;
       default ())
 
 let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
@@ -251,9 +309,10 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
                 let term =
                   match term with
                     | None ->
-                        report
+                        report ~lexbuf:None
                           ~default:(fun () -> raise Error)
-                          (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
+                          (fun ~throw () ->
+                            Term_reducer.to_term ~throw parsed_term)
                     | Some tm -> tm
                 in
                 (term, term, None)
@@ -267,14 +326,16 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
                   (`Cast { cast = checked_term; typ })
         in
         time (fun () ->
-            report
+            report ~lexbuf:None
               ~default:(fun () -> ())
-              (fun ~throw () -> Typechecking.check ?env ~throw checked_term));
+              (fun ~throw () ->
+                Typechecking.check ?env
+                  ~check_top_level_override:(stdlib <> None) ~throw checked_term));
 
         if Lazy.force Term.debug then
           Printf.eprintf "Checking for unused variables...\n%!";
         (* Check for unused variables, relies on types *)
-        report
+        report ~lexbuf:None
           ~default:(fun () -> ())
           (fun ~throw () -> Term.check_unused ~throw ~lib full_term);
         let full_term =
@@ -286,7 +347,7 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
 
 let eval_term ?name ~toplevel ast =
   let eval () =
-    report
+    report ~lexbuf:None
       ~default:(fun () -> assert false)
       (fun ~throw:_ () ->
         if toplevel then Evaluation.eval_toplevel ast else Evaluation.eval ast)
@@ -308,11 +369,11 @@ let interactive =
   MenhirLib.Convert.Simplified.traditional2revised Parser.interactive
 
 let mk_expr ?fname processor lexbuf =
-  report
+  report ~lexbuf:(Some lexbuf)
     ~default:(fun () -> raise Error)
-    (fun ~throw:_ () ->
+    (fun ~throw () ->
       let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
-      (parsed_term, Term_reducer.to_term parsed_term))
+      (parsed_term, Term_reducer.to_term ~throw parsed_term))
 
 let parse s =
   let lexbuf = Sedlexing.Utf8.from_string s in
@@ -360,11 +421,11 @@ let interactive () =
     Format.printf "# %!";
     if
       try
-        report ~lexbuf
+        report ~lexbuf:(Some lexbuf)
           ~default:(fun () -> ())
           (fun ~throw () ->
             let _, expr = mk_expr interactive lexbuf in
-            Typechecking.check ~throw expr;
+            Typechecking.check ~throw ~check_top_level_override:true expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore (Evaluation.eval_toplevel ~interactive:true expr));
         true
@@ -381,21 +442,19 @@ let interactive () =
   in
   loop ()
 
-let libs ?(stdlib = "stdlib.liq") ?(error_on_no_stdlib = true)
-    ?(deprecated = true) () =
-  let dir = !Hooks.liq_libs_dir () in
-  let file = Filename.concat dir stdlib in
+let libs ?(error_on_no_stdlib = true) ?(deprecated = true) ~stdlib () =
   let libs =
-    if not (Sys.file_exists file) then
+    if not (Sys.file_exists stdlib) then
       if error_on_no_stdlib then
         failwith (Printf.sprintf "Could not find default %s library!" stdlib)
       else []
-    else [file]
+    else [stdlib]
   in
+  let dir = Filename.dirname stdlib in
   let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
   if deprecated && Sys.file_exists file then libs @ [file] else libs
 
-let load_libs ?stdlib () =
+let load_libs ~stdlib () =
   List.iter
     (fun fname ->
       let filename = Lang_string.home_unrelate fname in
@@ -406,7 +465,7 @@ let load_libs ?stdlib () =
           let lexbuf = Sedlexing.Utf8.from_channel ic in
           Sedlexing.set_filename lexbuf fname;
           let parsed_term =
-            report
+            report ~lexbuf:(Some lexbuf)
               ~default:(fun () -> raise Error)
               (fun ~throw:_ () -> Term_reducer.mk_expr ~fname program lexbuf)
           in
@@ -415,4 +474,4 @@ let load_libs ?stdlib () =
               parsed_term
           in
           ignore (eval_term ~name:"stdlib" ~toplevel:true term)))
-    (libs ?stdlib ())
+    (libs ~stdlib ())

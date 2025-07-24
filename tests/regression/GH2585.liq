@@ -1,7 +1,5 @@
 settings.log.level.set(4)
 
-test.skip()
-
 output.dummy(fallible=true, sine())
 
 count = ref(0)

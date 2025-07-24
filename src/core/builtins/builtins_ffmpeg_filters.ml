@@ -21,41 +21,38 @@
  *****************************************************************************)
 
 open Builtins_ffmpeg_base
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 (** FFmpeg filter graphs initialization is pretty tricky. Things to consider:
-  * - FFmpeg filters are using a push paradigm, pushing from the sources down
-  *   to the outputs
-  * - Liquidsoap uses a pull paradigm, pulling data from the outputs.
-  * - FFmpeg filters inputs need to know the exact content of the data sent to
-  *   them before being initialized, which is only known in the worst case
-  *   when receiving the first frame.
-  *
-  * Therefore, the intended implementation is to:
-  * -> Consider ffmpeg filter graphs as a single operator with N inputs
-  *    and M outputs (audio/video) with inputs being any source converted to
-  *    a ffmpeg graph input, even if not used, for simplification.
-  * -> The outputs are placed in their clock which controls a child clock
-  *    containing the inputs.
-  * -> The graph initialization is suspended until its initialization conditions
-  *    are met.
-  * -> When all the inputs have been initialized and are ready (call to `#is_ready`),
-  *    the graph is considered ready and its output can start requesting
-  *    content. This is captured by the call to `is_ready` below.
-  * -> When requesting content, the outputs can tick the input clock as many time
-  *    as needed to generate output data. We expect more or less real time with
-  *    perhaps an accordion pattern between input and output so we do not
-  *    look at latency control like we do for crossfades.
-  * -> When receiving its first frame, the liquidsoap input will then initialize the
-  *    corresponding ffmpeg graph input with full format info.
-  * -> When all inputs have been initialized, which is know by checking if all of
-  *    the graph's lazy values for input pads have been forced (executed),
-  *    the whole graph is initialized, outputs connected and data can start to flow!
-  *    This is captured by the call to `initialized` below.
-  *
-  * This is contingent to the inputs being checked for `#is_ready` and the
-  * outputs only pulling when _all_ inputs are available, to avoid running
-  * into endless pulling loops. *)
+    - FFmpeg filters are using a push paradigm, pushing from the sources down to
+      the outputs
+    - Liquidsoap uses a pull paradigm, pulling data from the outputs.
+    - FFmpeg filters inputs need to know the exact content of the data sent to
+      them before being initialized, which is only known in the worst case when
+      receiving the first frame.
+
+    Therefore, the intended implementation is to: -> Consider ffmpeg filter
+    graphs as a single operator with N inputs and M outputs (audio/video) with
+    inputs being any source converted to a ffmpeg graph input, even if not used,
+    for simplification. -> The outputs are placed in their clock which controls
+    a child clock containing the inputs. -> The graph initialization is
+    suspended until its initialization conditions are met. -> When all the
+    inputs have been initialized and are ready (call to `#is_ready`), the graph
+    is considered ready and its output can start requesting content. This is
+    captured by the call to `is_ready` below. -> When requesting content, the
+    outputs can tick the input clock as many time as needed to generate output
+    data. We expect more or less real time with perhaps an accordion pattern
+    between input and output so we do not look at latency control like we do for
+    crossfades. -> When receiving its first frame, the liquidsoap input will
+    then initialize the corresponding ffmpeg graph input with full format info.
+    -> When all inputs have been initialized, which is know by checking if all
+    of the graph's lazy values for input pads have been forced (executed), the
+    whole graph is initialized, outputs connected and data can start to flow!
+    This is captured by the call to `initialized` below.
+
+    This is contingent to the inputs being checked for `#is_ready` and the
+    outputs only pulling when _all_ inputs are available, to avoid running into
+    endless pulling loops. *)
 
 let ffmpeg_filter_audio = Lang.add_module ~base:ffmpeg_filter "audio"
 let ffmpeg_filter_video = Lang.add_module ~base:ffmpeg_filter "video"
@@ -565,7 +562,7 @@ let abuffer_args frame =
   let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
   let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
   let channel_layout_params =
-    match Avutil.Channel_layout.get_native_id channel_layout with
+    match Avutil.Channel_layout.get_mask channel_layout with
       | Some id -> ("channel_layout", `Int64 id)
       | None ->
           let channel_layout =
@@ -573,8 +570,7 @@ let abuffer_args frame =
               (Avutil.Channel_layout.get_nb_channels channel_layout)
           in
           ( "channel_layout",
-            `Int64
-              (Option.get (Avutil.Channel_layout.get_native_id channel_layout))
+            `Int64 (Option.get (Avutil.Channel_layout.get_mask channel_layout))
           )
   in
   let sample_format = Avutil.Audio.frame_get_sample_format frame in
@@ -637,8 +633,8 @@ let _ =
                   (Type.make
                      (Format_type.descr
                         (`Format
-                          Ffmpeg_raw_content.Audio.(
-                            lift_params (default_params `Raw)))))
+                           Ffmpeg_raw_content.Audio.(
+                             lift_params (default_params `Raw)))))
                 ())
          in
          let name = uniq_name "abuffer" in
@@ -765,8 +761,8 @@ let _ =
                   (Type.make
                      (Format_type.descr
                         (`Format
-                          Ffmpeg_raw_content.Video.(
-                            lift_params (default_params `Raw)))))
+                           Ffmpeg_raw_content.Video.(
+                             lift_params (default_params `Raw)))))
                 ())
          in
          let name = uniq_name "buffer" in
@@ -885,7 +881,7 @@ let _ =
           }
       in
       let ret = Lang.apply ~pos:(Lang.pos p) fn [("", Graph.to_value graph)] in
-      let id = Lang_string.generate_id "ffmpeg.filter" in
+      let id = "ffmpeg.filter" in
       let output_clock = Clock.create ~id () in
       let input_clock =
         Clock.create_sub_clock ~id:(id ^ ".input") output_clock

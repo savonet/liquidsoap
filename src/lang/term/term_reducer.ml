@@ -25,6 +25,14 @@ type processor = Term_preprocessor.processor
 open Parsed_term
 include Runtime_term
 
+let report_annotations ~throw ~pos annotations =
+  List.iter
+    (function
+      | `Deprecated s ->
+          let bt = Printexc.get_callstack 0 in
+          throw ~bt (Term.Deprecated (s, Pos.of_lexing_pos pos)))
+    annotations
+
 let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
 let render_string ~pos ~sep s = Lexer.render_string ~pos ~sep s
 let mk ?pos = Term.make ?pos:(Option.map Pos.of_lexing_pos pos)
@@ -121,7 +129,7 @@ and mk_meth_ty ?pos ~env ~to_term base
              meth = name;
              optional;
              scheme = ([], mk_parsed_ty ?pos ~env ~to_term typ);
-             doc = "";
+             doc = { meth_descr = ""; category = `Method };
              json_name;
            },
            base )))
@@ -235,7 +243,7 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
           let len_op =
             mk
               (`Invoke
-                { invoked = list; meth = "length"; invoke_default = None })
+                 { invoked = list; meth = "length"; invoke_default = None })
           in
           let len_app = mk (`App (len_op, [("", list_var)])) in
           let len_var_name = pat_var_name () in
@@ -257,8 +265,8 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                             (mk_term ~body
                                (mk
                                   (`App
-                                    ( nth_op,
-                                      [("", list_var); ("", len_minus idx)] ))))
+                                     ( nth_op,
+                                       [("", list_var); ("", len_minus idx)] ))))
                         in
                         (idx + 1, body))
                       (1, body) (List.rev suffix)
@@ -278,8 +286,8 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                             (mk_term ~body
                                (Term.make
                                   (`App
-                                    ( nth_op,
-                                      [("", list_var); ("", mk (`Int idx))] ))))
+                                     ( nth_op,
+                                       [("", list_var); ("", mk (`Int idx))] ))))
                         in
                         (idx + 1, body))
                       (0, body) prefix
@@ -293,21 +301,21 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                   let op =
                     mk
                       (`Invoke
-                        {
-                          invoked = list;
-                          meth = "slice";
-                          invoke_default = None;
-                        })
+                         {
+                           invoked = list;
+                           meth = "slice";
+                           invoke_default = None;
+                         })
                   in
                   let def =
                     mk
                       (`App
-                        ( op,
-                          [
-                            ("offset", mk (`Int prefix_len));
-                            ("length", len_minus (prefix_len + suffix_len));
-                            ("", list_var);
-                          ] ))
+                         ( op,
+                           [
+                             ("offset", mk (`Int prefix_len));
+                             ("length", len_minus (prefix_len + suffix_len));
+                             ("", list_var);
+                           ] ))
                   in
                   let mk_term =
                     pattern_reducer { pat_pos = pos; pat_entry = `PVar [var] }
@@ -320,20 +328,20 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
             let condition =
               mk
                 (`App
-                  ( lt_op,
-                    [("", len_var); ("", mk (`Int (prefix_len + suffix_len)))]
-                  ))
+                   ( lt_op,
+                     [("", len_var); ("", mk (`Int (prefix_len + suffix_len)))]
+                   ))
             in
             let error = mk (`Var "error") in
             let raise =
               mk
                 (`Invoke
-                  { invoked = error; meth = "raise"; invoke_default = None })
+                   { invoked = error; meth = "raise"; invoke_default = None })
             in
             let register =
               mk
                 (`Invoke
-                  { invoked = error; meth = "register"; invoke_default = None })
+                   { invoked = error; meth = "register"; invoke_default = None })
             in
             let not_found =
               mk (`App (register, [("", mk (`String "not_found"))]))
@@ -342,25 +350,25 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
               mk_fun ~pos:pat.pat_pos []
                 (mk
                    (`App
-                     ( raise,
-                       [
-                         ("", not_found);
-                         ( "",
-                           mk
-                             (`String
-                               "List value does not have enough elements to \
-                                fit the extraction pattern!") );
-                       ] )))
+                      ( raise,
+                        [
+                          ("", not_found);
+                          ( "",
+                            mk
+                              (`String
+                                 "List value does not have enough elements to \
+                                  fit the extraction pattern!") );
+                        ] )))
             in
             let check_len =
               mk
                 (`App
-                  ( if_op,
-                    [
-                      ("", condition);
-                      ("then", _then);
-                      ("else", mk_fun ~pos:pat.pat_pos [] (mk (`Tuple [])));
-                    ] ))
+                   ( if_op,
+                     [
+                       ("", condition);
+                       ("then", _then);
+                       ("else", mk_fun ~pos:pat.pat_pos [] (mk (`Tuple [])));
+                     ] ))
             in
             mk (`Seq (check_len, body))
           in
@@ -389,8 +397,7 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
               (fun body (name, default) ->
                 let invoke invoke_default =
                   mk
-                    (`Invoke
-                      { invoked = base_var; meth = name; invoke_default })
+                    (`Invoke { invoked = base_var; meth = name; invoke_default })
                 in
                 match default with
                   | `None ->
@@ -405,10 +412,6 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                       mk (mk_term ~body (invoke (Some (mk `Null))))
                   | `Pattern pat ->
                       let mk_term = pattern_reducer pat in
-                      let body = mk (mk_term ~body (mk (`Var name))) in
-                      let mk_term =
-                        pattern_reducer { pat with pat_entry = `PVar [name] }
-                      in
                       mk (mk_term ~body (invoke None)))
               body (List.rev meths)
           in
@@ -422,7 +425,7 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                     (mk_term ~body
                        (mk
                           (`Hide
-                            (body_var, List.map (fun (name, _) -> name) meths))))
+                             (body_var, List.map (fun (name, _) -> name) meths))))
           in
           let mk_term =
             pattern_reducer { pat with pat_entry = `PVar [base_var_name] }
@@ -464,12 +467,12 @@ let last_index l =
   in
   last_index 0 l
 
-(** Give the precision of a date-as-list.
-    For example, the precision of Xs is 1, XmYs is 60, XhYmZs 3600, etc. *)
+(** Give the precision of a date-as-list. For example, the precision of Xs is 1,
+    XmYs is 60, XhYmZs 3600, etc. *)
 let precision d = time_units.(last_index d)
 
-(** Give the duration of a data-as-list.
-    For example, the duration of Xs is 1, Xm 60, XhYm 60, etc. *)
+(** Give the duration of a data-as-list. For example, the duration of Xs is 1,
+    Xm 60, XhYm 60, etc. *)
 let duration d =
   time_units.(Array.length time_units - 1 - last_index (List.rev d))
 
@@ -514,6 +517,7 @@ let rec get_env_args ~pos t args =
         as_variable;
         typ = t;
         default = Option.map (term_of_value ~pos ~name:n t) v;
+        pos = t.pos;
       })
     args
 
@@ -544,9 +548,9 @@ and term_of_value_base ~pos t v =
       | Value.Tuple { value = l } ->
           mk_tm
             (`Tuple
-              (List.mapi
-                 (fun idx v -> term_of_value_base ~pos (get_tuple_type idx) v)
-                 l))
+               (List.mapi
+                  (fun idx v -> term_of_value_base ~pos (get_tuple_type idx) v)
+                  l))
       | Value.Null _ -> mk_tm `Null
       (* Ignoring env is not correct here but this is an internal operator
          so we have to trust that devs using it via %argsof now that they are doing. *)
@@ -558,12 +562,12 @@ and term_of_value_base ~pos t v =
           in
           mk_tm
             (`Fun
-              {
-                Term_base.name = None;
-                arguments = get_env_args ~pos t args;
-                body;
-                free_vars = None;
-              })
+               {
+                 Term_base.name = None;
+                 arguments = get_env_args ~pos t args;
+                 body;
+                 free_vars = None;
+               })
       | _ -> assert false
   in
   let meths, _ = Type.split_meths t in
@@ -652,23 +656,43 @@ let args_of ~only ~except ~pos ~env name =
     | Some _ -> parse_error ~pos (Printf.sprintf "%s is not a function!" name)
     | None -> builtin_args_of ~only ~except ~pos name
 
-let expand_argsof ~pos ~env ~to_term args =
-  List.rev
-    (List.fold_left
-       (fun args -> function
-         | `Argsof { only; except; source } ->
-             List.rev (args_of ~pos ~env ~only ~except source) @ args
-         | `Term arg ->
-             {
-               arg with
-               typ =
-                 (match arg.typ with
-                   | None -> mk_var ()
-                   | Some typ -> mk_parsed_ty ~env ~to_term typ);
-               default = Option.map (to_term ~env) arg.default;
-             }
-             :: args)
-       [] args)
+let expand_argsof ~pos ~env ~to_term ~throw args =
+  let anonymous_var_id = ref 0 in
+  let mk_def, args =
+    List.fold_left
+      (fun (mk_def, args) -> function
+        | `Argsof { only; except; source } ->
+            (mk_def, List.rev (args_of ~pos ~env ~only ~except source) @ args)
+        | `Term { label; as_variable; default; typ; annotations; pos } ->
+            report_annotations ~throw ~pos annotations;
+            let mk_def, as_variable =
+              match as_variable with
+                | None -> (mk_def, None)
+                | Some { pat_entry = `PVar [v] } -> (mk_def, Some v)
+                | Some pat ->
+                    incr anonymous_var_id;
+                    let v = Printf.sprintf "_ann_%d" !anonymous_var_id in
+                    let mk_def def =
+                      mk_def (mk (pattern_reducer ~body:def ~pat (mk (`Var v))))
+                    in
+                    (mk_def, Some v)
+            in
+            ( mk_def,
+              {
+                label;
+                as_variable;
+                typ =
+                  (match typ with
+                    | None -> mk_var ()
+                    | Some typ -> mk_parsed_ty ~env ~to_term typ);
+                default = Option.map (to_term ~env) default;
+                pos = Some (Pos.of_lexing_pos pos);
+              }
+              :: args ))
+      ((fun b -> b), [])
+      args
+  in
+  (mk_def, List.rev args)
 
 let app_of ~pos ~only ~except ~env source =
   let args = args_of ~pos ~only ~except ~env source in
@@ -687,14 +711,20 @@ let expand_appof ~pos ~env ~to_term args =
     in:
       `x?.foo.gni.bla(123)?.gno.gni`,
     the default for `x.foo` becomes:
-      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null() }}}}`
+      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null }}}}`
     we also need to keep track of which methods are optional in the default value's type
     to make sure it doesn't force optional methods to be mandatory during type checking. *)
 let mk_app_invoke_default ~pos ~args body =
   let app_args =
     List.map
       (fun (label, _) ->
-        { Term_base.label; as_variable = None; typ = mk_var (); default = None })
+        {
+          Term_base.label;
+          as_variable = None;
+          typ = mk_var ();
+          default = None;
+          pos = None;
+        })
       args
   in
   mk_fun ~pos app_args body
@@ -726,11 +756,11 @@ and update_invoke_default ~pos ~optional expr name value =
         in
         mk ~t:expr.Term.t ~methods:expr.Term.methods
           (`Invoke
-            {
-              invoked;
-              meth;
-              invoke_default = Option.map (fun _ -> value) invoke_default;
-            })
+             {
+               invoked;
+               meth;
+               invoke_default = Option.map (fun _ -> value) invoke_default;
+             })
     | `App ({ term = `Invoke ({ meth; invoke_default } as invoked) }, args) ->
         let value, invoked =
           let invoke_default =
@@ -744,17 +774,17 @@ and update_invoke_default ~pos ~optional expr name value =
         in
         mk ~t:expr.Term.t ~methods:expr.Term.methods
           (`App
-            ( mk ~pos
-                (`Invoke
-                  {
-                    invoked;
-                    meth;
-                    invoke_default =
-                      Option.map
-                        (fun _ -> mk_app_invoke_default ~pos ~args value)
-                        invoke_default;
-                  }),
-              args ))
+             ( mk ~pos
+                 (`Invoke
+                    {
+                      invoked;
+                      meth;
+                      invoke_default =
+                        Option.map
+                          (fun _ -> mk_app_invoke_default ~pos ~args value)
+                          invoke_default;
+                    }),
+               args ))
     | _ -> expr
 
 let mk_invoke ?(default : Parsed_term.t option) ~pos ~env ~to_term expr v =
@@ -779,11 +809,11 @@ let mk_invoke ?(default : Parsed_term.t option) ~pos ~env ~to_term expr v =
         `App
           ( mk ~pos
               (`Invoke
-                {
-                  invoked = expr;
-                  invoke_default = Option.map (fun _ -> value) default;
-                  meth;
-                }),
+                 {
+                   invoked = expr;
+                   invoke_default = Option.map (fun _ -> value) default;
+                   meth;
+                 }),
             args )
 
 let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
@@ -792,11 +822,10 @@ let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
     | `Invoke { invoked; meth = `String m } ->
         mk_invoke ~pos ~env ~default ~to_term invoked (`String m)
     | _ ->
-        let null = mk ~pos (`Var "null") in
+        let null = mk ~pos (`Var "_null") in
         let op =
           mk ~pos
-            (`Invoke
-              { invoked = null; invoke_default = None; meth = "default" })
+            (`Invoke { invoked = null; invoke_default = None; meth = "default" })
         in
         let handler = mk_fun ~pos [] (to_term ~env default) in
         `App (op, [("", to_term ~env computed); ("", handler)])
@@ -815,7 +844,7 @@ let set_reducer ~pos ~env ~to_term = function
       let op =
         mk ~pos
           (`Invoke
-            { invoked = to_term ~env tm; invoke_default = None; meth = "set" })
+             { invoked = to_term ~env tm; invoke_default = None; meth = "set" })
       in
       `Cast
         {
@@ -837,12 +866,12 @@ let if_reducer ~pos ~env ~to_term = function
             let op = mk ~pos (`Var "if") in
             mk ~pos
               (`App
-                ( op,
-                  [
-                    ("", to_term ~env condition);
-                    ("then", mk_fun ~pos [] (to_term ~env _then));
-                    ("else", mk_fun ~pos [] if_else);
-                  ] )))
+                 ( op,
+                   [
+                     ("", to_term ~env condition);
+                     ("then", mk_fun ~pos [] (to_term ~env _then));
+                     ("else", mk_fun ~pos [] if_else);
+                   ] )))
           if_else
           (List.rev ((if_condition, if_then) :: if_elsif))
       in
@@ -865,6 +894,7 @@ let base_for_reducer ~pos for_variable for_iterator for_loop =
           as_variable = Some for_variable;
           typ = mk_var ();
           default = None;
+          pos = None;
         };
       ]
       for_loop
@@ -887,8 +917,7 @@ let for_reducer ~pos ~env ~to_term = function
       in
       let for_condition =
         mk ~pos
-          (`App
-            (to_op, [("", to_term ~env for_from); ("", to_term ~env for_to)]))
+          (`App (to_op, [("", to_term ~env for_from); ("", to_term ~env for_to)]))
       in
       base_for_reducer ~pos for_variable for_condition (to_term ~env for_loop)
 
@@ -978,6 +1007,7 @@ let try_reducer ~pos ~env ~to_term = function
             as_variable = Some try_variable;
             typ = mk_var ();
             default = None;
+            pos = None;
           };
         ]
       in
@@ -1002,7 +1032,7 @@ let try_reducer ~pos ~env ~to_term = function
       let op =
         mk ~pos
           (`Invoke
-            { invoked = error_module; invoke_default = None; meth = "catch" })
+             { invoked = error_module; invoke_default = None; meth = "catch" })
       in
       `App
         ( op,
@@ -1066,20 +1096,21 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
   let mapper =
     mk ~pos
       (`Fun
-        {
-          free_vars = None;
-          name = None;
-          arguments =
-            [
-              {
-                label = "";
-                as_variable = Some "query";
-                default = None;
-                typ = mk_var ~pos ();
-              };
-            ];
-          body = mapper;
-        })
+         {
+           free_vars = None;
+           name = None;
+           arguments =
+             [
+               {
+                 label = "";
+                 as_variable = Some "query";
+                 default = None;
+                 typ = mk_var ~pos ();
+                 pos = None;
+               };
+             ];
+           body = mapper;
+         })
   in
   let list = mk ~pos (`Var "list") in
   let map =
@@ -1121,7 +1152,7 @@ let string_of_let_decoration = function
   | `Xml_parse -> "xml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~env ~pos ~to_term ~comments
+let mk_let ~env ~pos ~to_term ~comments ~throw
     ({ decoration; pat; arglist; def; cast }, body) =
   let def = to_term ~env def in
   let mk_body def =
@@ -1143,7 +1174,7 @@ let mk_let ~env ~pos ~to_term ~comments
     to_term ~env body
   in
   let cast = Option.map (mk_parsed_ty ~pos ~env ~to_term) cast in
-  let arglist = Option.map (expand_argsof ~pos ~env ~to_term) arglist in
+  let arglist = Option.map (expand_argsof ~throw ~pos ~env ~to_term) arglist in
   let doc =
     match
       List.rev
@@ -1156,8 +1187,9 @@ let mk_let ~env ~pos ~to_term ~comments
       | _ -> None
   in
   match (arglist, decoration) with
-    | Some arglist, `None | Some arglist, `Replaces ->
+    | Some (mk_def, arglist), `None | Some (mk_def, arglist), `Replaces ->
         let replace = decoration = `Replaces in
+        let def = mk_def def in
         let def = mk_fun ~pos arglist def in
         let def =
           match cast with
@@ -1166,7 +1198,8 @@ let mk_let ~env ~pos ~to_term ~comments
         in
         let body = mk_body def in
         pattern_reducer ?doc ~body ~pat ~replace def
-    | Some arglist, `Recursive ->
+    | Some (mk_def, arglist), `Recursive ->
+        let def = mk_def def in
         let def = mk_rec_fun ~pos pat.pat_entry arglist def in
         let def =
           match cast with
@@ -1226,7 +1259,9 @@ let rec to_encoder_params ~env ~to_term l =
 and to_encoder ~env ~to_term (lbl, params) =
   (lbl, to_encoder_params ~env ~to_term params)
 
-let rec to_ast ~env ~pos ~comments ast =
+let rec to_ast ~throw ~env ~pos ~comments ast =
+  let to_ast = to_ast ~throw in
+  let to_term = to_term ~throw in
   match ast with
     | `Methods _ | `Block _ | `Parenthesis _ | `Eof | `Include _ -> assert false
     | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
@@ -1262,15 +1297,16 @@ let rec to_ast ~env ~pos ~comments ast =
         let op =
           mk_parsed ~pos
             (`Invoke
-              {
-                invoked = mk_parsed ~pos (`Var "string");
-                meth = `String "concat";
-                optional = false;
-              })
+               {
+                 invoked = mk_parsed ~pos (`Var "string");
+                 meth = `String "concat";
+                 optional = false;
+               })
         in
         to_ast ~env ~pos ~comments
           (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
-    | `Def p | `Let p | `Binding p -> mk_let ~pos ~env ~to_term ~comments p
+    | `Def p | `Let p | `Binding p ->
+        mk_let ~throw ~pos ~env ~to_term ~comments p
     | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
     | `At (t, t') -> `App (to_term ~env t', [("", to_term ~env t)])
     | `Time t -> mk_time_pred ~pos (during ~pos t)
@@ -1296,21 +1332,24 @@ let rec to_ast ~env ~pos ~comments ast =
     | `Var s -> `Var s
     | `Seq (t, t') -> `Seq (to_term ~env t, to_term ~env t')
     | `App (t, args) ->
+        (match (t, args) with
+          | { term = `Var "_null"; pos }, [] ->
+              let bt = Printexc.get_callstack 0 in
+              throw ~bt (Term.Deprecated ("use `null`", Pos.of_lexing_pos pos))
+          | _ -> ());
         let args = expand_appof ~pos ~env ~to_term args in
         `App (to_term ~env t, args)
-    | `Fun (args, body) -> `Fun (to_func ~pos ~env ~to_term args body)
+    | `Fun (args, body) -> `Fun (to_func ~throw ~pos ~env ~to_term args body)
     | `RFun (name, args, body) ->
-        `Fun (to_func ~pos ~env ~to_term ~name args body)
+        `Fun (to_func ~throw ~pos ~env ~to_term ~name args body)
 
-and to_func ~pos ~env ~to_term ?name arguments body =
-  {
-    name;
-    arguments = expand_argsof ~pos ~env ~to_term arguments;
-    body = to_term ~env body;
-    free_vars = None;
-  }
+and to_func ~pos ~env ~to_term ~throw ?name arguments body =
+  let mk_def, arguments = expand_argsof ~throw ~pos ~env ~to_term arguments in
+  { name; arguments; body = mk_def (to_term ~env body); free_vars = None }
 
-and to_term ~env (tm : Parsed_term.t) : Term.t =
+and to_term ~throw ~env (tm : Parsed_term.t) : Term.t =
+  let to_term = to_term ~throw in
+  report_annotations ~throw ~pos:tm.pos tm.annotations;
   match tm.term with
     | `Seq ({ pos; term = `If_def _ as ast }, t')
     | `Seq ({ pos; term = `If_encoder _ as ast }, t')
@@ -1327,24 +1366,24 @@ and to_term ~env (tm : Parsed_term.t) : Term.t =
         let replace_methods ~src dst =
           mk ~pos:tm.pos
             (`Let
-              {
-                doc = None;
-                replace = false;
-                pat = `PVar ["_"];
-                gen = [];
-                def = src;
-                body =
-                  mk ~pos:tm.pos
-                    (`Let
-                      {
-                        doc = None;
-                        replace = true;
-                        pat = `PVar ["_"];
-                        gen = [];
-                        def = dst;
-                        body = mk ~pos:tm.pos (`Var "_");
-                      });
-              })
+               {
+                 doc = None;
+                 replace = false;
+                 pat = `PVar ["_"];
+                 gen = [];
+                 def = src;
+                 body =
+                   mk ~pos:tm.pos
+                     (`Let
+                        {
+                          doc = None;
+                          replace = true;
+                          pat = `PVar ["_"];
+                          gen = [];
+                          def = dst;
+                          body = mk ~pos:tm.pos (`Var "_");
+                        });
+               })
         in
         let term =
           match base with
@@ -1373,8 +1412,11 @@ and to_term ~env (tm : Parsed_term.t) : Term.t =
                 Flags.(add empty octal_int)
             | _ -> Flags.empty
         in
-        let term = to_ast ~env ~pos:tm.pos ~comments:tm.comments term in
+        let term = to_ast ~throw ~env ~pos:tm.pos ~comments:tm.comments term in
         { t = mk_var ~pos:tm.pos (); term; methods = Methods.empty; flags }
 
-let to_encoder_params = to_encoder_params ~env:[] ~to_term
-let to_term tm = to_term ~env:[] tm
+let to_encoder_params ~throw =
+  let to_term = to_term ~throw in
+  to_encoder_params ~env:[] ~to_term
+
+let to_term ~throw tm = to_term ~throw ~env:[] tm

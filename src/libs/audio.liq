@@ -104,7 +104,7 @@ lufs_builtin = lufs
 # @method target_gain Current target amplification coefficient (in linear scale).
 # @method rms Current rms (in linear scale).
 def replaces normalize(
-  ~id=null(),
+  ~id=null,
   ~target=getter(-13.),
   ~up=getter(10.),
   ~down=getter(.1),
@@ -116,7 +116,7 @@ def replaces normalize(
   ~threshold=getter(-40.),
   ~track_sensitive=true,
   ~enabled=getter(true),
-  ~debug=null(),
+  ~debug=null,
   s
 ) =
   let (s, rms) =
@@ -185,8 +185,9 @@ def replaces normalize(
       s
     end
 
-  s = source.on_frame(s, update)
-  s = if track_sensitive then source.on_track(s, fun (_) -> v := 1.) else s end
+  s = source.methods(s)
+  s.on_frame(update)
+  if track_sensitive then s.on_track(synchronous=true, fun (_) -> v := 1.) end
   amplify(id=id, {v()}, delay_line(lookahead, s)).{
     rms=rms,
     gain={v()},
@@ -224,7 +225,7 @@ end
 # @param t Track to extract from
 def track.audio.stereo.left(~id=null("track.audio.stereo.left"), t) =
   track.audio.amplify(
-    id=id, override=null(), 2., track.audio.mean(track.audio.stereo.pan(-1., t))
+    id=id, override=null, 2., track.audio.mean(track.audio.stereo.pan(-1., t))
   )
 end
 
@@ -241,7 +242,7 @@ end
 # @param s Track to extract from
 def track.audio.stereo.right(~id=null("track.audio.stereo.right"), t) =
   track.audio.amplify(
-    id=id, override=null(), 2., track.audio.mean(track.audio.stereo.pan(1., t))
+    id=id, override=null, 2., track.audio.mean(track.audio.stereo.pan(1., t))
   )
 end
 
@@ -360,10 +361,37 @@ end
 # Defer the source's audio track by a given amount of time. Source will be
 # available when the given `delay` has been fully buffered. Use this operator
 # instead of `buffer` when buffering large amount of data as initial delay.
+#
+# This operator encodes and decodes the audio content. See `defer.pcm_s16` for
+# a low-level operator using directly the `pcm_s16` format.
 # @argsof track.audio.defer[!id]
 # @param ~id Force the source's ID
-def defer(
-  ~id=null("defer"),
+def defer(~id=null("defer"), %argsof(track.audio.defer[!id]), s) =
+  let {audio = a} = source.tracks(s)
+  a = track.encode.audio.pcm_s16(a)
+  a = track.audio.defer(%argsof(track.audio.defer[!id]), a)
+  a = track.decode.audio.pcm_s16(a)
+
+  source(
+    id=id,
+    {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
+  )
+end
+
+# Defer the source's audio track by a given amount of time. Source will be
+# available when the given `delay` has been fully buffered. Use this operator
+# instead of `buffer` when buffering large amount of data as initial delay.
+#
+# This operator uses a source already using `pcm_s16` audio data. It can
+# be used to prevent unneeded data copy. Typically, decoders that know
+# how to decode to `pcm_s16` (like `ffmpeg`) will decode directly
+# into the format and encoders who support it (also `%ffmpeg`)
+# will encoder directly from the `pcm_s16` data. Use `defer` if you
+# prefer a more user-friendly operator.
+# @argsof track.audio.defer[!id]
+# @param ~id Force the source's ID
+def defer.pcm_s16(
+  ~id=null("defer.pcm_s16"),
   %argsof(track.audio.defer[!id]),
   (s:source(audio=pcm_s16))
 ) =
@@ -374,4 +402,20 @@ def defer(
     id=id,
     {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
   )
+end
+
+let settings.normalize_track_gain_metadata =
+  settings.make(
+    description=
+      "Metadata used to store track gain normalization metadata",
+    "liq_normalize_track_gain"
+  )
+
+# Amplify source tracks according to track gain normalization metadata. This operator does not
+# compute that value. You can use integrated LUFS track gain or ReplayGain to compute it.
+# @category Source / Audio processing
+# @param ~id Force the value of the source ID.
+# @param s Source to be amplified.
+def normalize_track_gain(~id=null, s) =
+  amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
 end

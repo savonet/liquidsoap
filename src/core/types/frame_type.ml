@@ -31,7 +31,7 @@ let make ?pos base_type fields =
           Type.meth = field;
           optional = false;
           scheme = ([], field_type);
-          doc = "Field " ^ field;
+          doc = { meth_descr = "Field " ^ field; category = `Method };
           json_name = None;
         }
       in
@@ -50,7 +50,7 @@ let set_field frame_type field field_type =
       Type.meth = field;
       optional = false;
       scheme = ([], field_type);
-      doc = "Field " ^ field;
+      doc = { meth_descr = "Field " ^ field; category = `Method };
       json_name = None;
     }
   in

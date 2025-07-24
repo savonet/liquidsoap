@@ -24,6 +24,11 @@ module Lang = Liquidsoap_lang.Lang
 module Flags = Liquidsoap_lang.Flags
 open Lang
 
+let apply ?pos v env =
+  let ret = apply ?pos v env in
+  Clock.after_eval ();
+  ret
+
 module ClockValue = struct
   include Value.MkCustom (struct
     type content = Clock.t
@@ -44,9 +49,12 @@ module ClockValue = struct
   let methods =
     [
       ( "id",
-        Lang.fun_t [] Lang.string_t,
+        Lang.ref_t Lang.string_t,
         "The clock's id",
-        fun c -> Lang.val_fun [] (fun _ -> Lang.string (Clock.id c)) );
+        fun c ->
+          let get () = Lang.string (Clock.id c) in
+          let set v = Clock.set_id c (Lang.to_string v) in
+          Lang.reference get set );
       ( "sync",
         Lang.fun_t [] Lang.string_t,
         "The clock's current sync mode. One of: `\"stopped\"`, `\"stopping\"`, \
@@ -153,241 +161,473 @@ module Source_val = Liquidsoap_lang.Lang_core.MkCustom (struct
   let compare s1 s2 = Stdlib.compare s1#id s2#id
 end)
 
-let source_methods =
-  [
-    ( "id",
-      ([], fun_t [] string_t),
-      "Identifier of the source.",
-      fun s -> val_fun [] (fun _ -> string s#id) );
-    ( "is_ready",
-      ([], fun_t [] bool_t),
-      "Indicate if a source is ready to stream. This does not mean that the \
-       source is currently streaming, just that its resources are all properly \
-       initialized.",
-      fun s -> val_fun [] (fun _ -> bool s#is_ready) );
-    ( "reset_last_metadata_on_track",
-      ([], ref_t bool_t),
-      "If `true`, the source's `last_metadata` is reset on each new track. If \
-       a metadata is present along with the track mark, then it becomes the \
-       new `last_metadata`, otherwise, `last_metadata becomes `null`.",
-      fun s ->
-        reference
-          (fun () -> bool s#reset_last_metadata_on_track)
-          (fun b -> s#set_reset_last_metadata_on_track (to_bool b)) );
-    ( "buffered",
-      ([], fun_t [] (list_t (product_t string_t float_t))),
-      "Length of buffered data.",
-      fun s ->
-        val_fun [] (fun _ ->
-            let l =
-              Frame.Fields.fold
-                (fun field _ l ->
-                  ( Frame.Fields.string_of_field field,
-                    Frame.seconds_of_main
-                      (Generator.field_length s#buffer field) )
-                  :: l)
-                s#content_type []
-            in
-            list (List.map (fun (lbl, v) -> product (string lbl) (float v)) l))
-    );
-    ( "last_metadata",
-      ([], fun_t [] (nullable_t metadata_t)),
-      "Return the last metadata from the source.",
-      fun s ->
-        val_fun [] (fun _ ->
-            match s#last_metadata with None -> null | Some m -> metadata m) );
-    ( "register_command",
+let conf_source =
+  Dtools.Conf.void ~p:(Configure.conf#plug "source") "Source settings"
+
+let conf_default_synchronous_callback =
+  Dtools.Conf.bool
+    ~p:(conf_source#plug "synchronous_callbacks")
+    ~d:false "Set all callbacks as synchronous by default."
+
+type callback_param = { name : string; typ : t; default : value option }
+
+type 'a callback = {
+  name : string;
+  params : callback_param list;
+  descr : string;
+  default_synchronous : bool;
+  register_deprecated_argument : bool;
+  arg_t : (bool * string * t) list;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
+}
+
+let callback { name; params; descr; arg_t; default_synchronous; register } =
+  let synchronous_t, synchronous_arg, to_synchronous =
+    match default_synchronous with
+      | false ->
+          ( Lang.(nullable_t bool_t),
+            Lang.null,
+            fun v ->
+              Option.value ~default:conf_default_synchronous_callback#get
+                (Lang.to_valued_option Lang.to_bool v) )
+      | true -> (Lang.bool_t, Lang.bool true, Lang.to_bool)
+  in
+  {
+    name;
+    scheme =
       ( [],
         fun_t
-          [
-            (true, "usage", Lang.nullable_t Lang.string_t);
-            (false, "description", Lang.string_t);
-            (false, "", Lang.string_t);
-            (false, "", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t);
-          ]
-          unit_t ),
-      "Register a server command for this source. Command is registered under \
-       the source's id namespace when it gets up and de-registered when it \
-       gets down.",
-      fun s ->
+          (List.map
+             (fun { name; typ; default } -> (default <> None, name, typ))
+             params
+          @ [
+              (true, "synchronous", synchronous_t);
+              ( true,
+                "on_error",
+                Lang.nullable_t
+                  (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t) );
+              (false, "", fun_t arg_t unit_t);
+            ])
+          unit_t );
+    descr =
+      Printf.sprintf "Call a given handler %s.%s" descr
+        (if default_synchronous then
+           " Callback for these events are executed synchronously by default!"
+         else "");
+    value =
+      (fun s ->
         val_fun
-          [
-            ("usage", "usage", Some Lang.null);
-            ("description", "description", None);
-            ("", "", None);
-            ("", "", None);
-          ]
+          ([
+             ("synchronous", "synchronous", Some synchronous_arg);
+             ("on_error", "on_error", Some Lang.null);
+             ("", "", None);
+           ]
+          @ List.map (fun { name; default } -> (name, name, default)) params)
           (fun p ->
-            let usage =
-              Lang.to_valued_option Lang.to_string (List.assoc "usage" p)
+            let synchronous = to_synchronous (List.assoc "synchronous" p) in
+            let on_error = Lang.to_option (List.assoc "on_error" p) in
+            let fn = assoc "" 1 p in
+            let fn args = ignore (apply fn args) in
+            let fn =
+              match on_error with
+                | None -> fn
+                | Some on_error -> (
+                    fun args ->
+                      try fn args
+                      with exn ->
+                        let bt = Printexc.get_raw_backtrace () in
+                        let error =
+                          Lang.runtime_error_of_exception ~bt ~kind:"source" exn
+                        in
+                        ignore (apply on_error [("", Lang.error error)]))
             in
-            let descr = Lang.to_string (List.assoc "description" p) in
-            let command = Lang.to_string (Lang.assoc "" 1 p) in
-            let f = Lang.assoc "" 2 p in
-            let f x = Lang.to_string (Lang.apply f [("", Lang.string x)]) in
-            s#register_command ?usage ~descr command f;
-            unit) );
-    ( "on_metadata",
-      ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
-      "Call a given handler on metadata packets.",
-      fun s ->
-        val_fun
-          [("", "", None)]
-          (fun p ->
-            let f = assoc "" 1 p in
-            s#on_metadata (fun m -> ignore (apply f [("", metadata m)]));
-            unit) );
-    ( "on_wake_up",
-      ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
-      "Register a function to be called after the source is asked to get \
-       ready. This is when, for instance, the source's final ID is set.",
-      fun s ->
-        val_fun
-          [("", "", None)]
-          (fun p ->
-            let f = assoc "" 1 p in
-            s#on_wake_up (fun () -> ignore (apply f []));
-            unit) );
-    ( "on_shutdown",
-      ([], fun_t [(false, "", fun_t [] unit_t)] unit_t),
-      "Register a function to be called when source shuts down.",
-      fun s ->
-        val_fun
-          [("", "", None)]
-          (fun p ->
-            let f = assoc "" 1 p in
-            s#on_sleep (fun () -> ignore (apply f []));
-            unit) );
-    ( "on_track",
-      ([], fun_t [(false, "", fun_t [(false, "", metadata_t)] unit_t)] unit_t),
-      "Call a given handler on new tracks.",
-      fun s ->
-        val_fun
-          [("", "", None)]
-          (fun p ->
-            let f = assoc "" 1 p in
-            s#on_track (fun m -> ignore (apply f [("", metadata m)]));
-            unit) );
-    ( "remaining",
-      ([], fun_t [] float_t),
-      "Estimation of remaining time in the current track.",
-      fun s ->
-        val_fun [] (fun _ ->
-            float
-              (let r = s#remaining in
-               if r < 0 then infinity else Frame.seconds_of_main r)) );
-    ( "elapsed",
-      ([], fun_t [] float_t),
-      "Elapsed time in the current track.",
-      fun s ->
-        val_fun [] (fun _ ->
-            float
-              (let e = s#elapsed in
-               if e < 0 then infinity else Frame.seconds_of_main e)) );
-    ( "duration",
-      ([], fun_t [] float_t),
-      "Estimation of the duration of the current track.",
-      fun s ->
-        val_fun [] (fun _ ->
-            float
-              (let d = s#duration in
-               if d < 0 then infinity else Frame.seconds_of_main d)) );
-    ( "self_sync",
-      ([], fun_t [] bool_t),
-      "Is the source currently controlling its own real-time loop.",
-      fun s -> val_fun [] (fun _ -> bool (snd s#self_sync <> None)) );
-    ( "log",
-      ( [],
-        record_t
-          [
-            ( "level",
-              method_t
-                (fun_t [] (nullable_t int_t))
-                [
-                  ( "set",
-                    ([], fun_t [(false, "", int_t)] unit_t),
-                    "Set the source's log level" );
-                ] );
-          ] ),
-      "Get or set the source's log level, from `1` to `5`.",
-      fun s ->
-        record
-          [
-            ( "level",
-              meth
-                (val_fun [] (fun _ ->
-                     match s#log#level with Some lvl -> int lvl | None -> null))
-                [
-                  ( "set",
-                    val_fun
-                      [("", "", None)]
-                      (fun p ->
-                        let lvl = min 5 (max 1 (to_int (List.assoc "" p))) in
-                        s#log#set_level lvl;
-                        unit) );
-                ] );
-          ] );
-    ( "is_up",
-      ([], fun_t [] bool_t),
-      "Indicate that the source can be asked to produce some data at any time. \
-       This is `true` when the source is currently being used or if it could \
-       be used at any time, typically inside a `switch` or `fallback`.",
-      fun s -> val_fun [] (fun _ -> bool s#is_up) );
-    ( "is_active",
-      ([], fun_t [] bool_t),
-      "`true` if the source is active, i.e. it is continuously animated by its \
-       own clock whenever it is ready. Typically, `true` for outputs and \
-       sources such as `input.http`.",
-      fun s ->
-        val_fun [] (fun _ ->
-            bool (match s#source_type with `Passive -> false | _ -> true)) );
-    ( "seek",
-      ([], fun_t [(false, "", float_t)] float_t),
-      "Seek forward, in seconds (returns the amount of time effectively \
-       seeked).",
-      fun s ->
-        val_fun
-          [("", "", None)]
-          (fun p ->
-            float
-              (Frame.seconds_of_main
-                 (s#seek (Frame.main_of_seconds (to_float (List.assoc "" p))))))
-    );
-    ( "skip",
-      ([], fun_t [] unit_t),
-      "Skip to the next track.",
-      fun s ->
-        val_fun [] (fun _ ->
-            s#abort_track;
-            unit) );
-    ( "fallible",
-      ([], bool_t),
-      "Indicate if a source may fail, i.e. may not be ready to stream.",
-      fun s -> bool s#fallible );
-    ( "clock",
-      ([], ClockValue.base_t),
-      "The source's clock",
-      fun s -> ClockValue.to_base_value s#clock );
-    ( "time",
-      ([], fun_t [] float_t),
-      "Get a source's time, based on its assigned clock.",
-      fun s ->
-        val_fun [] (fun _ ->
-            let ticks = Clock.ticks s#clock in
-            let frame_position =
-              Lazy.force Frame.duration *. float_of_int ticks
+            let fn =
+              if synchronous then fn
+              else fun args ->
+                let task =
+                  {
+                    Duppy.Task.priority = `Maybe_blocking;
+                    events = [`Delay 0.];
+                    handler =
+                      (fun _ ->
+                        fn args;
+                        []);
+                  }
+                in
+                Duppy.Task.add Tutils.scheduler task
             in
-            let in_frame_position =
-              if s#is_ready then Frame.(seconds_of_main (position s#get_frame))
-              else 0.
-            in
-            float (frame_position +. in_frame_position)) );
+            (s#log : Log.t)#debug "Registering %s %s callback" name
+              (if synchronous then "synchronous" else "asynchronous");
+            register ~params:p s fn;
+            unit));
+  }
+
+let source_callbacks =
+  [
+    {
+      name = "on_metadata";
+      params = [];
+      descr = "to execute on each metadata";
+      register_deprecated_argument = false;
+      default_synchronous = false;
+      arg_t = [(false, "", metadata_t)];
+      register =
+        (fun ~params:_ s f ->
+          let f m = f [("", metadata m)] in
+          s#on_frame (`Metadata f));
+    };
+    {
+      name = "on_wake_up";
+      descr = "to be called after the source is asked to get ready";
+      params = [];
+      register_deprecated_argument = false;
+      default_synchronous = false;
+      arg_t = [];
+      register = (fun ~params:_ s f -> s#on_wake_up (fun () -> f []));
+    };
+    {
+      name = "on_shutdown";
+      params = [];
+      descr = "to be called when source shuts down";
+      register_deprecated_argument = false;
+      default_synchronous = false;
+      arg_t = [];
+      register = (fun ~params:_ s f -> s#on_sleep (fun () -> f []));
+    };
+    {
+      name = "on_track";
+      params = [];
+      descr = "on track marks";
+      register_deprecated_argument = false;
+      default_synchronous = false;
+      arg_t = [(false, "", metadata_t)];
+      register =
+        (fun ~params:_ s f ->
+          let f m = f [("", metadata m)] in
+          s#on_frame (`Track f));
+    };
+    {
+      name = "on_frame";
+      params =
+        [
+          { name = "before"; typ = Lang.bool_t; default = Some (Lang.bool true) };
+        ];
+      descr =
+        "on frame. When `before` is `true`, callback is executed before \
+         computing the frame and after otherwise.";
+      register_deprecated_argument = false;
+      default_synchronous = true;
+      arg_t = [];
+      register =
+        (fun ~params:p s on_frame ->
+          let on_frame () = on_frame [] in
+          let before = Lang.to_bool (List.assoc "before" p) in
+          s#on_frame (`Frame { Source.before; on_frame }));
+    };
+    {
+      name = "on_position";
+      params =
+        [
+          { name = "position"; typ = Lang.(getter_t float_t); default = None };
+          {
+            name = "remaining";
+            typ = Lang.bool_t;
+            default = Some (Lang.bool false);
+          };
+          {
+            name = "allow_partial";
+            typ = Lang.bool_t;
+            default = Some (Lang.bool true);
+          };
+        ];
+      descr =
+        "on track position. If `remaining` is `false`, callback is executed \
+         when position in track is more or equal to `position`. If `remaining` \
+         is `true`, callback is executed when remaining time in the current \
+         track is less or equal to `position`. Keep in mind that elapsed time \
+         is exact while remaining time is always estimated. Remaining time is \
+         usually more accurate for file-based sources. When `allow_partial` is \
+         `true`, if the current track ends before the `offset` position is \
+         reached, callback is still executed.";
+      register_deprecated_argument = false;
+      default_synchronous = false;
+      arg_t = [(false, "", float_t); (false, "", metadata_t)];
+      register =
+        (fun ~params:p s on_position ->
+          let on_position ~pos m =
+            on_position [("", float pos); ("", metadata m)]
+          in
+          let allow_partial = Lang.to_bool (List.assoc "allow_partial" p) in
+          let remaining = Lang.to_bool (List.assoc "remaining" p) in
+          let mode = if remaining then `Remaining else `Elapsed in
+          let position = Lang.to_float_getter (List.assoc "position" p) in
+          let position () = Frame.main_of_seconds (position ()) in
+          s#on_frame
+            (`Position
+               {
+                 Source.allow_partial;
+                 position;
+                 mode;
+                 executed = false;
+                 on_position;
+               }));
+    };
   ]
+
+let source_methods =
+  [
+    {
+      name = "id";
+      scheme = ([], fun_t [] string_t);
+      descr = "Identifier of the source.";
+      value = (fun s -> val_fun [] (fun _ -> string s#id));
+    };
+    {
+      name = "is_ready";
+      scheme = ([], fun_t [] bool_t);
+      descr =
+        "Indicate if a source is ready to stream. This does not mean that the \
+         source is currently streaming, just that its resources are all \
+         properly initialized.";
+      value = (fun s -> val_fun [] (fun _ -> bool s#is_ready));
+    };
+    {
+      name = "insert_metadata";
+      scheme =
+        ( [],
+          Lang.fun_t
+            [(true, "new_track", Lang.bool_t); (false, "", metadata_t)]
+            Lang.unit_t );
+      descr =
+        "Dynamically insert metadata in a stream. Inserts a new track with the \
+         given metadata if `new_track` is `true`.";
+      value =
+        (fun s ->
+          Lang.val_fun
+            [("new_track", "new_track", Some (Lang.bool false)); ("", "", None)]
+            (fun p ->
+              let new_track = to_bool (List.assoc "new_track" p) in
+              let m = to_metadata (List.assoc "" p) in
+              s#insert_metadata ~new_track m;
+              unit));
+    };
+    {
+      name = "reset_last_metadata_on_track";
+      scheme = ([], ref_t bool_t);
+      descr =
+        "If `true`, the source's `last_metadata` is reset on each new track. \
+         If a metadata is present along with the track mark, then it becomes \
+         the new `last_metadata`, otherwise, `last_metadata becomes `null`.";
+      value =
+        (fun s ->
+          reference
+            (fun () -> bool s#reset_last_metadata_on_track)
+            (fun b -> s#set_reset_last_metadata_on_track (to_bool b)));
+    };
+    {
+      name = "buffered";
+      scheme = ([], fun_t [] (list_t (product_t string_t float_t)));
+      descr = "Length of buffered data.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              let l =
+                Frame.Fields.fold
+                  (fun field _ l ->
+                    ( Frame.Fields.string_of_field field,
+                      Frame.seconds_of_main
+                        (Generator.field_length s#buffer field) )
+                    :: l)
+                  s#content_type []
+              in
+              list (List.map (fun (lbl, v) -> product (string lbl) (float v)) l)));
+    };
+    {
+      name = "last_metadata";
+      scheme = ([], fun_t [] (nullable_t metadata_t));
+      descr = "Return the last metadata from the source.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              match s#last_metadata with
+                | None -> null
+                | Some (_, m) -> metadata m));
+    };
+    {
+      name = "register_command";
+      scheme =
+        ( [],
+          fun_t
+            [
+              (true, "usage", Lang.nullable_t Lang.string_t);
+              (false, "description", Lang.string_t);
+              (false, "", Lang.string_t);
+              (false, "", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t);
+            ]
+            unit_t );
+      descr =
+        "Register a server command for this source. Command is registered \
+         under the source's id namespace when it gets up and de-registered \
+         when it gets down.";
+      value =
+        (fun s ->
+          val_fun
+            [
+              ("usage", "usage", Some Lang.null);
+              ("description", "description", None);
+              ("", "", None);
+              ("", "", None);
+            ]
+            (fun p ->
+              let usage =
+                Lang.to_valued_option Lang.to_string (List.assoc "usage" p)
+              in
+              let descr = Lang.to_string (List.assoc "description" p) in
+              let command = Lang.to_string (Lang.assoc "" 1 p) in
+              let f = Lang.assoc "" 2 p in
+              let f x = Lang.to_string (apply f [("", Lang.string x)]) in
+              s#register_command ?usage ~descr command f;
+              unit));
+    };
+    {
+      name = "remaining";
+      scheme = ([], fun_t [] float_t);
+      descr = "Estimation of remaining time in the current track.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              float
+                (let r = s#remaining in
+                 if r < 0 then infinity else Frame.seconds_of_main r)));
+    };
+    {
+      name = "elapsed";
+      scheme = ([], fun_t [] float_t);
+      descr = "Elapsed time in the current track.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              float
+                (let e = s#elapsed in
+                 if e < 0 then infinity else Frame.seconds_of_main e)));
+    };
+    {
+      name = "duration";
+      scheme = ([], fun_t [] float_t);
+      descr = "Estimation of the duration of the current track.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              float
+                (let d = s#duration in
+                 if d < 0 then infinity else Frame.seconds_of_main d)));
+    };
+    {
+      name = "self_sync";
+      scheme = ([], fun_t [] bool_t);
+      descr = "Is the source currently controlling its own real-time loop.";
+      value = (fun s -> val_fun [] (fun _ -> bool (snd s#self_sync <> None)));
+    };
+    {
+      name = "log";
+      scheme = ([], record_t [("level", ref_t int_t)]);
+      descr = "Get or set the source's log level, from `1` to `5`.";
+      value =
+        (fun s ->
+          record
+            [
+              ( "level",
+                reference
+                  (fun () -> int s#log#level)
+                  (fun v -> s#log#set_level (to_int v)) );
+            ]);
+    };
+    {
+      name = "is_up";
+      scheme = ([], fun_t [] bool_t);
+      descr =
+        "Indicate that the source can be asked to produce some data at any \
+         time. This is `true` when the source is currently being used or if it \
+         could be used at any time, typically inside a `switch` or `fallback`.";
+      value = (fun s -> val_fun [] (fun _ -> bool s#is_up));
+    };
+    {
+      name = "is_active";
+      scheme = ([], fun_t [] bool_t);
+      descr =
+        "`true` if the source is active, i.e. it is continuously animated by \
+         its own clock whenever it is ready. Typically, `true` for outputs and \
+         sources such as `input.http`.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              bool (match s#source_type with `Passive -> false | _ -> true)));
+    };
+    {
+      name = "seek";
+      scheme = ([], fun_t [(false, "", float_t)] float_t);
+      descr =
+        "Seek forward, in seconds (returns the amount of time effectively \
+         seeked).";
+      value =
+        (fun s ->
+          val_fun
+            [("", "", None)]
+            (fun p ->
+              float
+                (Frame.seconds_of_main
+                   (s#seek (Frame.main_of_seconds (to_float (List.assoc "" p)))))));
+    };
+    {
+      name = "skip";
+      scheme = ([], fun_t [] unit_t);
+      descr = "Skip to the next track.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              s#abort_track;
+              unit));
+    };
+    {
+      name = "fallible";
+      scheme = ([], bool_t);
+      descr = "Indicate if a source may fail, i.e. may not be ready to stream.";
+      value = (fun s -> bool s#fallible);
+    };
+    {
+      name = "clock";
+      scheme = ([], ClockValue.base_t);
+      descr = "The source's clock";
+      value = (fun s -> ClockValue.to_base_value s#clock);
+    };
+    {
+      name = "time";
+      scheme = ([], fun_t [] float_t);
+      descr = "Get a source's time, based on its assigned clock.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              let ticks = Clock.ticks s#clock in
+              let frame_position =
+                Lazy.force Frame.duration *. float_of_int ticks
+              in
+              let in_frame_position =
+                if s#is_ready then
+                  Frame.(seconds_of_main (position s#get_frame))
+                else 0.
+              in
+              float (frame_position +. in_frame_position)));
+    };
+  ]
+  @ List.map callback source_callbacks
 
 let make_t ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
 
 let source_methods_t t =
-  method_t t (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
+  method_t t
+    (List.map
+       (fun { name; scheme; descr } -> (name, scheme, descr))
+       source_methods)
 
 let source_t ?(pos : Liquidsoap_lang.Term_base.parsed_pos option)
     ?(methods = false) frame_t =
@@ -410,17 +650,13 @@ let source_tracks_t frame_t =
     (Type.meth "metadata" ([], Format_type.metadata) frame_t)
 
 let source_methods ~base s =
-  meth base (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
+  meth base (List.map (fun { name; value } -> (name, value s)) source_methods)
 
 let source s = source_methods ~base:(Source_val.to_value s) s
 let track = Track.to_value ?pos:None
 let to_source = Source_val.of_value
 let to_source_list l = List.map to_source (to_list l)
 let to_track = Track.of_value
-
-(** A method: name, type scheme, documentation and implementation (which takes
-    the currently defined source as argument). *)
-type 'a operator_method = string * scheme * string * ('a -> value)
 
 let has_value_flag v flag =
   match v with
@@ -432,7 +668,8 @@ let add_value_flag v flag =
     | Value.Float _ | Value.String _ | Value.Bool _ | Value.Null _ -> ()
     | v -> Value.add_flag v flag
 
-(** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
+(** Ensure that the frame contents of all the sources occurring in the value
+    agree with [t]. *)
 let check_content v t =
   let check t t' = Typing.(t <: t') in
   let rec check_value v t =
@@ -539,18 +776,20 @@ let check_content v t =
   in
   check_value v t
 
-(** An operator is a builtin function that builds a source.
-  * It is registered using the wrapper [add_operator].
-  * Creating the associated function type (and function) requires some work:
-  *  - Specify which content_kind the source will carry:
-  *    a given fixed number of channels, any fixed, a variable number?
-  *  - The content_kind can also be linked to a type variable,
-  *    e.g. the parameter of a format type.
-  * From this high-level description a type is created. Often it will
-  * carry a type constraint.
-  * Once the type has been inferred, the function might be executed,
-  * and at this point the type might still not be known completely
-  * so we have to force its value within the acceptable range. *)
+(** An operator is a builtin function that builds a source. It is registered
+    using the wrapper [add_operator]. Creating the associated function type (and
+    function) requires some work:
+    - Specify which content_kind the source will carry: a given fixed number of
+      channels, any fixed, a variable number?
+    - The content_kind can also be linked to a type variable, e.g. the parameter
+      of a format type.
+
+    From this high-level description a type is created. Often it will carry a
+    type constraint.
+
+    Once the type has been inferred, the function might be executed, and at this
+    point the type might still not be known completely so we have to force its
+    value within the acceptable range. *)
 
 let _meth = meth
 
@@ -617,8 +856,50 @@ let check_arguments ~env ~return_t arguments =
   in
   (return_t, env)
 
+let deprecated_callback_registration_arguments callbacks =
+  match !Liquidsoap_lang.Runtime.deprecated with
+    | false -> ([], [])
+    | true ->
+        List.fold_left
+          (fun (arguments, register_deprecated_callbacks) -> function
+            | { name; register_deprecated_argument = true; arg_t } as cb ->
+                let arg =
+                  ( name,
+                    nullable_t (fun_t arg_t unit_t),
+                    Some Lang.null,
+                    Some
+                      (Printf.sprintf
+                         "This argument is deprecated! Please use the `%s` \
+                          source method."
+                         name) )
+                in
+                let { value = register_callback } = callback cb in
+                let register_deprecated_callback s p =
+                  match Lang.to_option (List.assoc name p) with
+                    | None -> ()
+                    | Some fn ->
+                        (s#log : Log.t)#severe
+                          "The `%s` argument is deprecated! Please use the \
+                           source's `%s` method."
+                          name name;
+                        let register = register_callback s in
+                        ignore
+                          (Lang.apply register
+                             [
+                               ("synchronous", Lang.bool true);
+                               ("on_error", Lang.null);
+                               ("", fn);
+                             ])
+                in
+                ( arg :: arguments,
+                  register_deprecated_callback :: register_deprecated_callbacks
+                )
+            | _ -> (arguments, register_deprecated_callbacks))
+          ([], []) callbacks
+
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
-    ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
+    ?(meth = ([] : ((< Source.source ; .. > as 'a) -> value) meth list))
+    ?(callbacks = ([] : 'a callback list)) ?base name arguments ~return_t f =
   let compare (x, _, _, _) (y, _, _, _) =
     match (x, y) with
       | "", "" -> 0
@@ -626,16 +907,21 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       | "", _ -> 1
       | x, y -> Stdlib.compare x y
   in
+  let callback_arguments, register_deprecated_callbacks =
+    deprecated_callback_registration_arguments callbacks
+  in
   let arguments =
     ( "id",
       nullable_t string_t,
       Some null,
       Some "Force the value of the source ID." )
-    :: List.stable_sort compare arguments
+    :: List.stable_sort compare (arguments @ callback_arguments)
   in
+  let meth = meth @ List.map callback callbacks in
   let f env =
     let return_t, env = check_arguments ~return_t ~env arguments in
     let src : < Source.source ; .. > = f env in
+    List.iter (fun register -> register src env) register_deprecated_callbacks;
     src#set_stack (Liquidsoap_lang.Lang_core.pos env);
     Typing.(src#frame_type <: return_t);
     ignore
@@ -646,7 +932,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       let src = (src :> Source.source) in
       if category = `Output then source_methods ~base:unit src else source src
     in
-    _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
+    _meth v (List.map (fun { name; value } -> (name, value src)) meth)
   in
   let base_t =
     if category = `Output then unit_t else source_t ~methods:false return_t
@@ -654,13 +940,15 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
   let return_t = source_methods_t base_t in
   let return_t =
     method_t return_t
-      (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
+      (List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth)
   in
   let category = `Source category in
-  add_builtin ~category ~descr ~flags ?base name arguments return_t f
+  let callback_names l = List.map (fun { name } -> name) l in
+  let callbacks = callback_names source_callbacks @ callback_names callbacks in
+  add_builtin ~category ~descr ~flags ~callbacks ?base name arguments return_t f
 
 let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
-    ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
+    ?(meth = ([] : ('a -> value) meth list)) ?base name arguments ~return_t f =
   let arguments =
     ( "id",
       nullable_t string_t,
@@ -682,11 +970,11 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
          (fun id -> src#set_id id)
          (to_valued_option to_string (List.assoc "id" env)));
     let v = Track.to_value (field, (src :> Source.source)) in
-    _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
+    _meth v (List.map (fun { name; value } -> (name, value src)) meth)
   in
   let return_t =
     method_t return_t
-      (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
+      (List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth)
   in
   let category = `Track category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f

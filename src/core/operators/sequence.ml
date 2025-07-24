@@ -22,11 +22,11 @@
 
 open Source
 
-(** Given a list of [sources], play one track from each of the first
-  * sources, then loop on the last one. Optionally, merge tracks when
-  * advancing in the sequence. The [merge] flag will *not* merge tracks
-  * while looping on the last source -- this behavior would not be suited
-  * to the current use of [sequence] in transitions. *)
+(** Given a list of [sources], play one track from each of the first sources,
+    then loop on the last one. Optionally, merge tracks when advancing in the
+    sequence. The [merge] flag will *not* merge tracks while looping on the last
+    source -- this behavior would not be suited to the current use of [sequence]
+    in transitions. *)
 class sequence ?(merge = false) ?(single_track = true) sources =
   let self_sync_type = Clock_base.self_sync_type sources in
   let seq_sources = Atomic.make sources in
@@ -151,12 +151,15 @@ let _ =
     ~return_t:frame_t
     ~meth:
       [
-        ( "queue",
-          ([], Lang.fun_t [] (Lang.list_t (Lang.source_t frame_t))),
-          "Return the current sequence of source",
-          fun s ->
-            Lang.val_fun [] (fun _ -> Lang.list (List.map Lang.source s#queue))
-        );
+        {
+          name = "queue";
+          scheme = ([], Lang.fun_t [] (Lang.list_t (Lang.source_t frame_t)));
+          descr = "Return the current sequence of source";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  Lang.list (List.map Lang.source s#queue)));
+        };
       ]
     (fun p ->
       new sequence

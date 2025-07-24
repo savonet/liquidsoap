@@ -108,7 +108,7 @@ let encoder ~pos aac =
     Strings.Mutable.to_strings rem
   in
   {
-    Encoder.insert_metadata = (fun _ -> ());
+    Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);
     hls = Encoder_utils.mk_id3_hls ~pos encode;
     encode;

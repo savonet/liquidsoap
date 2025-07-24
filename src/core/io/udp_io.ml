@@ -28,14 +28,14 @@ module Tutils = struct
   (* Thread with preemptive kill/wait mechanism, see mli for details. *)
 
   (** Preemptive stoppable thread.
-   *
-   * The thread function receives a [should_stop,has_stop] pair on startup.
-   * It should regularly poll the [should_stop] and stop when asked to.
-   * Before stopping it should call [has_stopped].
-   *
-   * The function returns a [kill,wait] pair. The first function should be
-   * called to request that the thread stops, and the second to wait
-   * that it has effectively stopped. *)
+
+      The thread function receives a [should_stop,has_stop] pair on startup. It
+      should regularly poll the [should_stop] and stop when asked to. Before
+      stopping it should call [has_stopped].
+
+      The function returns a [kill,wait] pair. The first function should be
+      called to request that the thread stops, and the second to wait that it
+      has effectively stopped. *)
   let stoppable_thread f name =
     let cond = Condition.create () in
     let lock = Mutex.create () in
@@ -53,18 +53,20 @@ module Tutils = struct
     (kill, wait)
 end
 
-class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
-  ~hostname ~port ~encoder_factory source =
+class output ~register_telnet ~infallible ~autostart ~hostname ~port
+  ~encoder_factory source_val =
+  let source = Lang.to_source source_val in
   object (self)
     inherit
       [Strings.t] Output.encoded
-        ~output_kind:"udp" ~on_start ~on_stop ~register_telnet ~infallible
-          ~autostart ~export_cover_metadata:false
+        ~output_kind:"udp" ~register_telnet ~infallible ~autostart
+          ~export_cover_metadata:false
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
-        source
+        source_val
 
     val mutable socket_send = None
     val mutable encoder = None
+    method self_sync = source#self_sync
 
     method private start =
       let socket =
@@ -96,8 +98,8 @@ class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
 
     method private encode frame = (Option.get encoder).Encoder.encode frame
 
-    method private insert_metadata m =
-      (Option.get encoder).Encoder.insert_metadata m
+    method private encode_metadata m =
+      (Option.get encoder).Encoder.encode_metadata m
 
     method private send data =
       let socket_send = Option.get socket_send in
@@ -111,8 +113,7 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
 
     inherit!
       Start_stop.active_source
-        ~name:"input.udp" ~fallible:true ~on_start:ignore ~on_stop:ignore
-          ~autostart:true () as super
+        ~name:"input.udp" ~fallible:true ~autostart:true () as super
 
     val mutable kill_feeding = None
     val mutable wait_feeding = None
@@ -182,8 +183,8 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
         Generator.add_track_mark self#buffer;
 
         (* Closing the socket is slightly overkill but
-         * we need to recreate the decoder anyway, which
-         * might loose some data too. *)
+           we need to recreate the decoder anyway, which
+           might loose some data too. *)
         Unix.close socket;
         begin
           match e with
@@ -213,14 +214,6 @@ let _ =
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-      let on_start =
-        let f = List.assoc "on_start" p in
-        fun () -> ignore (Lang.apply f [])
-      in
-      let on_stop =
-        let f = List.assoc "on_stop" p in
-        fun () -> ignore (Lang.apply f [])
-      in
       (* Specific UDP parameters *)
       let port = Lang.to_int (List.assoc "port" p) in
       let hostname = Lang.to_string (List.assoc "host" p) in
@@ -234,8 +227,8 @@ let _ =
       in
       let source = Lang.assoc "" 2 p in
       (new output
-         ~on_start ~on_stop ~register_telnet ~infallible ~autostart ~hostname
-         ~port ~encoder_factory:fmt source
+         ~register_telnet ~infallible ~autostart ~hostname ~port
+         ~encoder_factory:fmt source
         :> Source.source))
 
 let _ =

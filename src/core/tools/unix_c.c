@@ -7,6 +7,7 @@
 
 #include <pthread.h>
 #include <unistd.h>
+#include <string.h>
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <pthread_np.h>
@@ -26,9 +27,9 @@
 #include <time.h>
 
 /* Some libraries mess with locale. In OCaml, locale should always
- * be "C", otherwise float_of_string and other functions do not behave
- * as expected. This issues arises in particular when using telnet
- * commands that need floats and when loading modules in bytecode mode.. */
+   be "C", otherwise float_of_string and other functions do not behave
+   as expected. This issues arises in particular when using telnet
+   commands that need floats and when loading modules in bytecode mode.. */
 CAMLprim value liquidsoap_set_locale(value _locale) {
   CAMLparam1(_locale);
   const char *locale = String_val(_locale);
@@ -96,6 +97,7 @@ CAMLprim value liquidsoap_get_pagesize() {
 }
 
 CAMLprim value liquidsoap_set_current_thread_name(value _name) {
+  CAMLparam1(_name);
 #if defined(_WIN32)
   char_os *thread_name = caml_stat_strdup_to_os(String_val(_name));
   SetThreadDescription(GetCurrentThread(), thread_name);
@@ -105,7 +107,16 @@ CAMLprim value liquidsoap_set_current_thread_name(value _name) {
 #elif defined(__NetBSD__)
   pthread_setname_np(pthread_self(), "%s", String_val(_name));
 #else
-  pthread_setname_np(pthread_self(), String_val(_name));
+  char name[16];
+  const char *str = String_val(_name);
+#  ifdef __linux__
+  if (caml_string_length(_name) > 15) {
+    memcpy(name, str, 15);
+    name[15] = 0;
+    str = name;
+  }
+# endif
+  pthread_setname_np(pthread_self(), str);
 #endif
-  return Val_unit;
+  CAMLreturn(Val_unit);
 }

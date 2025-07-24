@@ -8,7 +8,7 @@ then
     "Found metaflac binary: enabling flac external metadata resolver."
   )
 
-  def flac_meta(~metadata=_, fname) =
+  def flac_meta(~metadata:_, fname) =
     ret =
       process.read.lines(
         "metaflac --export-tags-to=- #{process.quote(fname)} 2>/dev/null"

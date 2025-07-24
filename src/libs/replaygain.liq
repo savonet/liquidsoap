@@ -1,13 +1,3 @@
-# Amplify source tracks according to replaygain metadata. This operator does not
-# compute itself the replaygain: you can use either `enable_replaygain_metadata`
-# or the `replaygain:` protocol for this.
-# @category Source / Audio processing
-# @param ~id Force the value of the source ID.
-# @param s Source to be amplified.
-def replaygain(~id=null(), s) =
-  amplify(id=id, override="replaygain_track_gain", 1., s)
-end
-
 let file.replaygain = ()
 
 # Compute the ReplayGain for a file (in dB).
@@ -22,7 +12,7 @@ def file.replaygain.compute(~ratio=50., file_name) =
   if
     request.resolve(_request)
   then
-    get_gain = ref(fun () -> null())
+    get_gain = ref(fun () -> null)
     def process(s) =
       s = source.replaygain.compute(s)
       get_gain := {s.gain()}
@@ -34,7 +24,7 @@ def file.replaygain.compute(~ratio=50., file_name) =
     fn = get_gain()
     fn()
   else
-    null()
+    null
   end
 end
 
@@ -48,7 +38,7 @@ def metadata.replaygain(_metadata) =
     try
       float_of_string(_metadata["r128_track_gain"]) / 256.
     catch _ do
-      null()
+      null
     end
   elsif
     list.assoc.mem("replaygain_track_gain", _metadata)
@@ -58,10 +48,10 @@ def metadata.replaygain(_metadata) =
     try
       float_of_string(list.assoc(1, match))
     catch _ do
-      null()
+      null
     end
   else
-    null()
+    null
   end
 end
 
@@ -72,7 +62,7 @@ end
 # @param ~ratio Decoding ratio. A value of `50` means try to decode the file `50x` faster than real time, if possible.
 #               Use this setting to lower CPU peaks when computing replaygain tags.
 # @param file_name File name.
-def replaces file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name) =
+def replaces file.replaygain(~id=null, ~compute=true, ~ratio=50., file_name) =
   id = string.id.default(default="file.replaygain", id)
   file_name_quoted = string.quote(file_name)
 
@@ -80,7 +70,7 @@ def replaces file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name) =
   gain = metadata.replaygain(_metadata)
 
   if
-    gain != null()
+    gain != null
   then
     log.info(
       label=id,
@@ -98,7 +88,7 @@ def replaces file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name) =
     gain = file.replaygain.compute(ratio=ratio, file_name)
     elapsed_time = time() - start_time
     if
-      gain != null()
+      gain != null
     then
       log.info(
         label=id,
@@ -109,7 +99,7 @@ def replaces file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name) =
     end
     gain
   else
-    null()
+    null
   end
 end
 
@@ -118,18 +108,17 @@ end
 # value could be computed. For a finer-grained replay gain processing, use the
 # `replaygain:` protocol.
 # @param ~compute Compute replaygain if metadata tag is empty.
-# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible.
-#               Use this setting to lower CPU peaks when computing replaygain tags.
+# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing replaygain tags.
 # @category Liquidsoap
 def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
-  def replaygain_metadata(~metadata=_, file_name) =
+  def replaygain_metadata(~metadata:_, file_name) =
     gain = file.replaygain(compute=compute, ratio=ratio, file_name)
     if
-      gain != null()
+      gain != null
     then
       [
         (
-          "replaygain_track_gain",
+          settings.normalize_track_gain_metadata(),
           "#{null.get(gain)} dB"
         )
       ]

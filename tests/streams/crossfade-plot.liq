@@ -1,16 +1,17 @@
-log.level := 5
+log.level := 4
 
 a = sine(duration=20., 440.)
 a =
   metadata.map(
+    insert_missing=true,
     update=false,
     fun (_) ->
       [
-        ("liq_cross_duration", "5."),
+        ("liq_cross_duration", "3."),
+        ("liq_fade_out", "1."),
         ("liq_fade_out_type", "exp"),
-        ("liq_fade_out_curve", "10"),
-        ("liq_fade_out_delay", "2"),
-        ("liq_fade_out", "3.")
+        ("liq_fade_out_curve", "50"),
+        ("liq_fade_out_delay", "2.")
       ],
     a
   )
@@ -18,12 +19,14 @@ a =
 b = sine(duration=20., 880.)
 b =
   metadata.map(
+    insert_missing=true,
     update=false,
     fun (_) ->
       [
-        ("liq_fade_out_type", "lin"),
-        ("liq_fade_in_delay", "2"),
-        ("liq_fade_in", "2.")
+        ("liq_fade_in", "1."),
+        ("liq_fade_in_type", "exp"),
+        ("liq_fade_in_curve", "50"),
+        ("liq_fade_in_delay", "0.3")
       ],
     b
   )
@@ -53,4 +56,5 @@ def on_stop() =
   test.pass()
 end
 
-output.dummy(fallible=true, on_stop=on_stop, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, on_stop)

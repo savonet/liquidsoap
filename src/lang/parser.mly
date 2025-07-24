@@ -36,6 +36,8 @@ open Parser_helper
 %token <string * char list > REGEXP
 %token <string> INT PP_INT_DOT_LCUR
 %token <string> FLOAT
+%token NULL
+%token NULLDOT
 %token <bool> BOOL
 %token <Parsed_term.time_el> TIME
 %token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
@@ -221,6 +223,7 @@ expr:
   | expr DOT LCUR record RCUR        { mk ~pos:$loc (`Methods (Some $1, $4)) }
   | expr DOT LCUR record optional_comma RCUR
                                      { mk ~pos:$loc (`Methods (Some $1, $4)) }
+  | NULL                             { mk ~pos:$loc `Null }
   | LCUR record RCUR                 { mk ~pos:$loc (`Methods (None, $2)) }
   | LCUR record optional_comma RCUR  { mk ~pos:$loc (`Methods (None, $2)) }
   | LCUR RCUR                        { mk ~pos:$loc (`Methods (None, [])) }
@@ -515,16 +518,24 @@ arglist:
   | arg                   { [$1] }
   | arg COMMA arglist     { $1::$3 }
 arg:
-  | TILD VAR opt { `Term {label = $2; as_variable = None; typ = None; default = $3} }
+  | TILD VAR opt { `Term {label = $2; as_variable = None; typ = None; default = $3; annotations = []; pos = $loc($2) } }
   | TILD LPAR VAR COLON ty RPAR opt {
-                   `Term {label = $3; as_variable = None; typ =  Some $5; default = $7}
+                   `Term {label = $3; as_variable = None; typ =  Some $5; default = $7; annotations = []; pos = $loc($3) }
                  }
   | TILD VAR GETS UNDERSCORE opt {
-                   `Term {label = $2; as_variable = Some "_"; typ = None; default = $5}
+                    `Term {label = $2; as_variable = Some { pat_pos = $loc($4); pat_entry = `PVar ["_"] }; typ = None; default = $5;
+                           annotations = [`Deprecated (Printf.sprintf "Use `~%s:_`" $2)];
+                           pos = $loc($2) }
                  }
-  | optvar opt   { `Term {label = ""; as_variable = Some $1; typ = None; default = $2} }
-  | LPAR optvar COLON ty RPAR opt {
-                   `Term {label = ""; as_variable =  Some $2; typ = Some $4; default =  $6}
+  | TILD VAR COLON pattern opt {
+                   `Term {label = $2; as_variable = Some $4; typ =  None; default = $5; annotations = []; pos = $loc($4) }
+                 }
+  | TILD VAR COLON LPAR pattern COLON ty RPAR opt {
+                   `Term {label = $2; as_variable = Some $5; typ =  Some $7; default = $9; annotations = []; pos = $loc($5) }
+                 }
+  | pattern opt   { `Term {label = ""; as_variable = Some $1; typ = None; default = $2; annotations = []; pos = $loc($1)} }
+  | LPAR pattern COLON ty RPAR opt {
+                   `Term {label = ""; as_variable =  Some $2; typ = Some $4; default =  $6; annotations = []; pos = $loc($2) }
                  }
   | ARGS_OF LPAR VAR RPAR {
                    `Argsof {only = []; except = []; source = $3 }

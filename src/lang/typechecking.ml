@@ -24,28 +24,28 @@ open Term
 open Typing
 
 exception No_method of string * Type.t
+exception Top_level_override of string * Pos.t option
 
 let debug = ref false
 
 (** {1 Type checking / inference} *)
 
-(** Can a function return type be generalized after being applied?
-    Current implementation considers it safe to generalize when all
-    universal types in the function return type are specified by a non-optional
-    argument.
+(** Can a function return type be generalized after being applied? Current
+    implementation considers it safe to generalize when all universal types in
+    the function return type are specified by a non-optional argument.
 
-    For instance, this can be generalized:
+    For instance,
+    - this can be generalized:
       [def f() = fun (x) -> x end; fn = f() : fun ('a) -> 'a ]
-    But this cannot:
-      [s = single() : source('A) ]
-    and this cannot either:
-      [def f() = fun (x=null()) -> ref(x) end; fn = f() : (?'A?) -> ref('A) ]
+    - but this cannot: [s = single() : source('A) ]
+    - and this cannot either:
+      [def f() = fun (x=null) -> ref(x) end; fn = f() : (?'A?) -> ref('A) ]
 
     When all universal types in the return are specified by a non-optional
     argument, we are assured that anything that would be generalized is later
-    specified when the required argument is passed. If this argument is still
-    of a universal type, then the argument's universal type takes over the
-    type that was generalized. *)
+    specified when the required argument is passed. If this argument is still of
+    a universal type, then the argument's universal type takes over the type
+    that was generalized. *)
 
 let function_app_value_restriction fn =
   let rec filter_app_vars l t =
@@ -70,8 +70,7 @@ let function_app_value_restriction fn =
           let pl =
             List.fold_left
               (fun pl -> function
-                | true, _, _ -> pl
-                | false, _, t -> filter_app_vars pl t)
+                | true, _, _ -> pl | false, _, t -> filter_app_vars pl t)
               [] p
           in
           List.filter (fun v -> not (List.memq v pl)) l
@@ -127,7 +126,7 @@ let type_of_pat ~level ~pos = function
       (env, Type.make ?pos (Type.Tuple l))
 
 (* Type-check an expression. *)
-let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
+let rec check ?(print_toplevel = false) ~throw ~level ~env e =
   let check = check ~throw in
   if !debug then Printf.printf "\n# %s : ?\n\n%!" (Term.to_string e);
   let check ?print_toplevel ~level ~env e =
@@ -146,16 +145,18 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
     let proto_t, env =
       List.fold_left
         (fun (p, env) -> function
-          | { label; as_variable; typ; default = None } ->
+          | { label; as_variable; typ; default = None; pos } ->
               update_level level typ;
               ( (false, label, typ) :: p,
-                (Option.value ~default:label as_variable, ([], typ)) :: env )
-          | { label; as_variable; typ; default = Some v } ->
+                env#add ~pos (Option.value ~default:label as_variable) ([], typ)
+              )
+          | { label; as_variable; typ; default = Some v; pos } ->
               update_level level typ;
               base_check v;
               v.t <: typ;
               ( (true, label, typ) :: p,
-                (Option.value ~default:label as_variable, ([], typ)) :: env ))
+                env#add ~pos (Option.value ~default:label as_variable) ([], typ)
+              ))
         ([], env) arguments
     in
     let proto_t = List.rev proto_t in
@@ -179,7 +180,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             {
               var_name = Atomic.get Type_base.var_name_atom;
               var_id = Atomic.get Type_base.var_id_atom;
-              env;
+              env = env#current;
             };
           base_type >: mk (Tuple [])
       | `Int _ -> base_type >: mk Int
@@ -232,7 +233,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                           meth = name;
                           optional = true;
                           scheme = ([], Type.make ?pos Type.Never);
-                          doc = "";
+                          doc = { meth_descr = ""; category = `Method };
                           json_name = None;
                         },
                         ty )))
@@ -262,7 +263,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                                meth = l;
                                optional = invoke_default <> None;
                                scheme = ([], x);
-                               doc = "";
+                               doc = { meth_descr = ""; category = `Method };
                                json_name = None;
                              },
                              y ));
@@ -295,7 +296,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           let rec aux env t =
             match (Type.deref t).Type.descr with
               | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
-                  aux ((l, (g, u)) :: env) t
+                  aux (env#add ~pos l (g, u)) t
               | _ -> env
           in
           let env = aux env a.t in
@@ -303,7 +304,9 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           base_type >: b.t
       | `Seq (a, b) ->
           check ~env ~level a;
-          if not (can_ignore a.t) then throw (Ignored a);
+          if not (can_ignore a.t) then (
+            let bt = Printexc.get_callstack 0 in
+            throw ~bt (Ignored a));
           check ~print_toplevel ~level ~env b;
           base_type >: b.t
       | `App (a, l) -> (
@@ -314,7 +317,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
              better error messages. Otherwise generate its type and unify -- in
              that case the optionality can't be guessed and mandatory is the
              default. *)
-          match (Type.demeth a.t).Type.descr with
+            match (Type.demeth a.t).Type.descr with
             | Type.Arrow (ap, t) ->
                 (* Find in l the first arg labeled lbl, return it together with the
                    remaining of the list. *)
@@ -366,14 +369,11 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           let env =
             match p.name with
               | None -> env
-              | Some name -> (name, ([], base_type)) :: env
+              | Some name -> env#add ~pos name ([], base_type)
           in
           check_fun ~env e p
       | `Var var ->
-          let s =
-            try List.assoc var env
-            with Not_found -> raise (Unbound (pos, var))
-          in
+          let s = env#get ~pos var in
           base_type >: Typing.instantiate ~level s;
           if Lazy.force Term.debug then
             Printf.eprintf "Instantiate %s : %s becomes %s\n" var
@@ -385,34 +385,30 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           in
           let penv, pa = type_of_pat ~level ~pos pat in
           def.t <: pa;
-          let penv =
-            List.map
-              (fun (ll, a) ->
+          let env =
+            List.fold_left
+              (fun env (ll, a) ->
                 match ll with
                   | [] -> assert false
                   | [x] ->
                       let a =
-                        if replace then Type.remeth (snd (List.assoc x env)) a
+                        if replace then Type.remeth (snd (env#get ~pos x)) a
                         else a
                       in
                       if !debug then
                         Printf.printf "\nLET %s : %s\n%!" x
                           (Repr.string_of_scheme (generalized, a));
-                      (x, (generalized, a))
-                  | l :: ll -> (
-                      try
-                        let g, t = List.assoc l env in
-                        let a =
-                          (* If we are replacing the value, we keep the previous methods. *)
-                          if replace then
-                            Type.remeth (snd (Type.invokes t ll)) a
-                          else a
-                        in
-                        (l, (g, Type.meths ?pos ll (generalized, a) t))
-                      with Not_found -> raise (Unbound (pos, l))))
-              penv
+                      env#add ~pos x (generalized, a)
+                  | l :: ll ->
+                      let g, t = env#get ~pos l in
+                      let a =
+                        (* If we are replacing the value, we keep the previous methods. *)
+                        if replace then Type.remeth (snd (Type.invokes t ll)) a
+                        else a
+                      in
+                      env#override l (g, Type.meths ?pos ll (generalized, a) t))
+              env penv
           in
-          let env = penv @ env in
           l.gen <- generalized;
           if print_toplevel then
             add_task (fun () ->
@@ -435,7 +431,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                   Type.meth;
                   optional = false;
                   scheme = Typing.generalize ~level meth_term.t;
-                  doc = "";
+                  doc = { meth_descr = ""; category = `Method };
                   json_name = None;
                 },
                 t )))
@@ -444,13 +440,41 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
 let display_types = ref false
 
 (* The simple definition for external use. *)
-let check ?env ~throw e =
+let check ?env ~check_top_level_override ~throw e =
   let print_toplevel = !display_types in
   try
     let env =
       match env with
         | Some env -> env
         | None -> Environment.default_typing_environment ()
+    in
+    let top_level_variables =
+      if check_top_level_override then List.map fst env else []
+    in
+    let env =
+      object (self)
+        val env = env
+        val top_level_variables = top_level_variables
+        method current = env
+
+        method check_top_level_override ~pos var =
+          if List.mem var top_level_variables then (
+            let bt = Printexc.get_callstack 1 in
+            throw ~bt (Top_level_override (var, pos)))
+
+        method add ~pos var v =
+          self#check_top_level_override ~pos var;
+          self#override var v
+
+        method override var v =
+          {<env = (var, v) :: env
+           ; top_level_variables = List.filter
+                                     (fun v -> v <> var)
+                                     top_level_variables>}
+
+        method get ~pos var =
+          try List.assoc var env with Not_found -> raise (Unbound (pos, var))
+      end
     in
     check ~print_toplevel ~throw ~level:0 ~env e;
     if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then

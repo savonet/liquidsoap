@@ -1,5 +1,4 @@
 log.level := 4
-settings.log.level.lifecycle := 5
 settings.init.force_start := true
 
 test = ()
@@ -21,7 +20,7 @@ def test.pass() =
 end
 
 # End test with a failure.
-def test.fail(reason=null()) =
+def test.fail(reason=null) =
   reason =
     if
       null.defined(reason)
@@ -93,7 +92,7 @@ def test.check_non_repeating(~nb_files, ~nb_rounds, s) =
     end
   end
 
-  s.on_track(check)
+  s.on_track(synchronous=true, check)
   s
 end
 
@@ -192,7 +191,7 @@ def test.not_almost_equal(~digits=7, first, second) =
   end
 end
 
-def test.raises(fn, e=null()) =
+def test.raises(fn, e=null) =
   try
     ignore(fn())
     error.raise(
@@ -227,26 +226,26 @@ def test.check(f) =
 end
 
 # Add a metric
-def test.metric(~category, ~name, ~value, ~unit, ~min=null()) =
-  min =
-    null.defined(min)
+def test.metric(~category, ~name, ~value, ~unit, ~min:min_value=null) =
+  min_value =
+    null.defined(min_value)
     ?
-      "\n  min: #{(null.get(min) : float)}"
+      "\n  min: #{(null.get(min_value) : float)}"
     : ""
   data =
     "- name: \"#{(name : string)}\"\n  category: \"#{(category : string)}\"\n  \
      value: #{(value : float)}\n  unit: \"#{(unit : string)}\"\n  time: #{
       (time() : float)
-    }#{min}\n\n"
+    }#{min_value}\n\n"
 
   file.write(append=true, data=data, "/tmp/metrics.yaml")
 end
 
-def on_error(~backtrace, error) =
+def on_error(~backtrace, err) =
   print(
-    "Uncaught error while running test: #{error}\n#{backtrace}"
+    "Uncaught error while running test: #{err}\n#{backtrace}"
   )
   test.fail()
 end
 
-thread.on_error(null(), on_error)
+thread.on_error(null, on_error)

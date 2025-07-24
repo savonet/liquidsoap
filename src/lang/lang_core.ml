@@ -107,7 +107,7 @@ let val_cst_fun p c =
   let mkg g = Type.make g in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
-  match c with
+    match c with
     | Null _ -> f (Type.var ()) `Null
     | Tuple { value = [] } -> f (Type.make Type.unit) Term.unit
     | Int { value = i } -> f (mkg Type.Int) (`Int i)
@@ -142,30 +142,41 @@ let mk_module_name ?base name =
     failwith ("module name " ^ name ^ " has a dot in it!");
   match base with None -> name | Some b -> b ^ "." ^ name
 
-let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
-    ?base name proto return_t f =
+type 'a meth = { name : string; scheme : scheme; descr : string; value : 'a }
+
+let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(callbacks = [])
+    ?(examples = []) ?base name proto return_t f =
   let name = mk_module_name ?base name in
   let return_t =
-    let meth = List.map (fun (l, t, d, _) -> (l, t, d)) meth in
+    let meth =
+      List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth
+    in
     method_t return_t meth
   in
   let f =
     if meth = [] then f
     else (
-      let meth = List.map (fun (l, _, _, f) -> (l, f)) meth in
+      let meth = List.map (fun { name; value } -> (name, value)) meth in
       fun p -> meth_fun (f p) meth)
   in
   let t = builtin_type proto return_t in
   let value =
     mk
       (`FFI
-        {
-          ffi_args = List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto;
-          ffi_fn = f;
-        })
+         {
+           ffi_args = List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto;
+           ffi_fn = f;
+         })
   in
   let doc () =
     let meth, return_t = Type.split_meths return_t in
+    let callbacks, meth =
+      List.partition
+        (fun (m : Type.meth) ->
+          if List.mem m.meth callbacks then m.doc.category <- `Callback;
+          m.doc.category = `Callback)
+        meth
+    in
     let t = builtin_type proto return_t in
     let generalized = Typing.filter_vars (fun _ -> true) t in
     let examples =
@@ -198,7 +209,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     let methods =
       List.map
         (fun (m : Type.meth) ->
-          let d = m.doc in
+          let d = m.doc.meth_descr in
           let d = if d = "" then None else Some d in
           ( m.meth,
             Doc.Value.
@@ -207,6 +218,19 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
                 meth_description = d;
               } ))
         meth
+    in
+    let callbacks =
+      List.map
+        (fun (m : Type.meth) ->
+          let d = m.doc.meth_descr in
+          let d = if d = "" then None else Some d in
+          ( m.meth,
+            Doc.Value.
+              {
+                meth_type = Repr.string_of_scheme m.scheme;
+                meth_description = d;
+              } ))
+        callbacks
     in
     Doc.Value.
       {
@@ -217,6 +241,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
         examples;
         arguments;
         methods;
+        callbacks;
       }
     (* to_plugin_doc category flags examples descr proto return_t *)
   in
@@ -240,6 +265,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
         examples = [];
         arguments = [];
         methods = [];
+        callbacks = [];
       }
   in
   Environment.add_builtin ~doc:(Lazy.from_fun doc)
@@ -266,10 +292,10 @@ let apply ?pos f p = !apply_fun ?pos f p [@@inline always]
 (** {1 High-level manipulation of values} *)
 
 let to_unit = function Tuple { value = [] } -> () | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_bool = function Bool { value = b } -> b | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_bool_getter = function
   | Bool { value = b } -> fun () -> b
@@ -277,12 +303,12 @@ let to_bool_getter = function
       fun () ->
         match apply v [] with Bool { value = b } -> b | _ -> assert false)
   | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_fun v = apply v [@@inline always]
 
 let to_string = function String { value = s } -> s | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_string_getter = function
   | String { value = s } -> fun () -> s
@@ -290,10 +316,10 @@ let to_string_getter = function
       fun () ->
         match apply v [] with String { value = s } -> s | _ -> assert false)
   | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_float = function Float { value = f } -> f | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_float_getter = function
   | Float { value = f } -> fun () -> f
@@ -301,10 +327,10 @@ let to_float_getter = function
       fun () ->
         match apply v [] with Float { value = f } -> f | _ -> assert false)
   | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_int = function Int { value = i } -> i | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_int_getter = function
   | Int { value = i } -> fun () -> i
@@ -312,33 +338,33 @@ let to_int_getter = function
       fun () ->
         match apply v [] with Int { value = i } -> i | _ -> assert false)
   | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_num = function
   | Int { value = i } -> `Int i
   | Float { value = f } -> `Float f
   | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_list = function List { value = l } -> l | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_tuple = function Tuple { value = l } -> l | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_option = function Null _ -> None | v -> Some v [@@inline always]
 
 let to_valued_option convert v = Option.map convert (to_option v)
-  [@@inline always]
+[@@inline always]
 
 let to_default_option ~default convert v =
   Option.value ~default (to_valued_option convert v)
-  [@@inline always]
+[@@inline always]
 
 let to_product = function
   | Tuple { value = [a; b] } -> (a, b)
   | _ -> assert false
-  [@@inline always]
+[@@inline always]
 
 let to_string_list l = List.map to_string (to_list l) [@@inline always]
 let to_int_list l = List.map to_int (to_list l) [@@inline always]
@@ -347,7 +373,7 @@ let to_getter = function
   | (Fun { fun_args = [] } as v) | (FFI { ffi_args = []; _ } as v) ->
       fun () -> apply v []
   | v -> fun () -> v
-  [@@inline always]
+[@@inline always]
 
 let to_ref t =
   let m, t = split_meths t in
@@ -362,8 +388,8 @@ let to_valued_ref getc setc t =
   let get, set = to_ref t in
   ((fun () -> getc (get ())), fun x -> set (setc x))
 
-(** [assoc lbl n l] returns the [n]th element in [l]
-  * of which the first component is [lbl]. *)
+(** [assoc lbl n l] returns the [n]th element in [l] of which the first
+    component is [lbl]. *)
 let rec assoc label n = function
   | [] -> raise Not_found
   | (l, e) :: tl ->
@@ -412,7 +438,7 @@ let raise_as_runtime ~bt ~kind exn =
 let environment () =
   let l = Unix.environment () in
   (* Split at first occurrence of '='. Return v,"" if
-   * no '=' could be found. *)
+     no '=' could be found. *)
   let split s =
     try
       let pos = String.index s '=' in

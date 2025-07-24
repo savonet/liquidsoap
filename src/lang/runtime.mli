@@ -46,21 +46,32 @@ val eval_term : ?name:string -> toplevel:bool -> Term.t -> Value.t
 (** Raise errors for warnings. *)
 val strict : bool ref
 
+(** Register deprecated arguments and functions. *)
+val deprecated : bool ref
+
+(** Raise raw errors. *)
+val raw_errors : bool ref
+
 (** Return the list of external libraries. *)
 val libs :
-  ?stdlib:string ->
   ?error_on_no_stdlib:bool ->
   ?deprecated:bool ->
+  stdlib:string ->
   unit ->
   string list
 
 (** Load the external libraries. *)
-val load_libs : ?stdlib:string -> unit -> unit
+val load_libs : stdlib:string -> unit -> unit
 
 (* Wrapper for format language errors. Re-raises [Error]
    after printing language errors. *)
 val throw :
-  ?formatter:Format.formatter -> ?lexbuf:Sedlexing.lexbuf -> unit -> exn -> unit
+  ?formatter:Format.formatter ->
+  lexbuf:Sedlexing.lexbuf option ->
+  bt:Printexc.raw_backtrace ->
+  unit ->
+  exn ->
+  unit
 
 val program :
   (unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t
@@ -75,7 +86,7 @@ val error_header : formatter:Format.formatter -> int -> Pos.Option.t -> unit
 
 (** Report language errors. *)
 val report :
-  ?lexbuf:Sedlexing.lexbuf ->
   ?default:(unit -> 'a) ->
-  (throw:(exn -> unit) -> unit -> 'a) ->
+  lexbuf:Sedlexing.lexbuf option ->
+  (throw:(bt:Printexc.raw_backtrace -> exn -> unit) -> unit -> 'a) ->
   'a

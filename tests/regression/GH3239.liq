@@ -12,5 +12,8 @@ def transition(a, b) =
 end
 
 s = fallback(transitions=[transition, transition], [a, b])
+
 clock.assign_new(sync='none', [s])
-output.file(fallible=true, on_stop=test.pass, %mp3(mono), tmp, s)
+
+o = output.file(fallible=true, %mp3(mono), tmp, s)
+o.on_stop(synchronous=true, test.pass)

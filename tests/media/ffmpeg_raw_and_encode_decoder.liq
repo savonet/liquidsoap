@@ -1,8 +1,6 @@
 log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
 
-test.skip()
-
 fname = argv(default="", 1)
 out = {"#{fname}+ffmpeg_raw_and_encode_decoder-#{random.int()}.mp4"}
 
@@ -11,7 +9,7 @@ s = once(s)
 
 done = ref(false)
 
-#clock.assign_new(sync='none', [s])
+clock.assign_new(sync='none', [s])
 def on_close(filename) =
   if
     not done()

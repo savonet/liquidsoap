@@ -23,17 +23,16 @@
 open Mm
 
 (** Create a buffer between two clocks.
-  *
-  * This creates an active operator in the inner clock (the action consists
-  * in filling the buffer) but it does not create or force in any
-  * way the clock that's going to animate it.
-  *
-  * We actually create two sources, to avoid the mess of having a same
-  * source belonging to one clock but being animated by another.
-  * This makes it possible to have the inner clock stop and shutdown
-  * the source that feeds the buffer, without disturbing the other clock
-  * in which the buffer-consumer will still behave OK (except obviously
-  * that the buffer will empty). *)
+
+    This creates an active operator in the inner clock (the action consists in
+    filling the buffer) but it does not create or force in any way the clock
+    that's going to animate it.
+
+    We actually create two sources, to avoid the mess of having a same source
+    belonging to one clock but being animated by another. This makes it possible
+    to have the inner clock stop and shutdown the source that feeds the buffer,
+    without disturbing the other clock in which the buffer-consumer will still
+    behave OK (except obviously that the buffer will empty). *)
 module Buffer = struct
   (* The kind of value shared by a producer and a consumer. *)
   type control = {
@@ -82,19 +81,21 @@ module Buffer = struct
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
 
-  class consumer ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
-    ~max_buffer source_val c =
+  class consumer ~id ~autostart ~infallible ~pre_buffer ~max_buffer source_val c
+    =
     let prebuf = Frame.main_of_seconds pre_buffer in
     let maxbuf = Frame.main_of_seconds max_buffer in
+    let source = Lang.to_source source_val in
     object
       inherit
         Output.output
-          ~output_kind:id ~infallible ~register_telnet:false ~on_start ~on_stop
-            source_val autostart
+          ~output_kind:id ~infallible ~register_telnet:false source_val
+            autostart
 
       method! reset = ()
       method start = ()
       method stop = ()
+      method self_sync = source#self_sync
       val source = Lang.to_source source_val
 
       method send_frame frame =
@@ -110,8 +111,7 @@ module Buffer = struct
                   (Generator.length (Lazy.force c.generator) - maxbuf)))
     end
 
-  let create ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
-      ~max_buffer source_val =
+  let create ~id ~autostart ~infallible ~pre_buffer ~max_buffer source_val =
     let control =
       {
         generator =
@@ -125,8 +125,7 @@ module Buffer = struct
     let _ =
       new consumer
         ~id:(Printf.sprintf "%s.consumer" id)
-        ~autostart ~infallible ~on_start ~on_stop source_val ~pre_buffer
-        ~max_buffer control
+        ~autostart ~infallible source_val ~pre_buffer ~max_buffer control
     in
     new producer ~id:(Printf.sprintf "%s.producer" id) control
 end
@@ -155,10 +154,12 @@ let buffer =
     ~return_t:frame_t ~category:`Liquidsoap
     ~meth:
       [
-        ( "buffer_length",
-          ([], Lang.fun_t [] Lang.int_t),
-          "Buffer length, in main ticks",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.int s#buffer_length) );
+        {
+          Lang.name = "buffer_length";
+          scheme = ([], Lang.fun_t [] Lang.int_t);
+          descr = "Buffer length, in main ticks";
+          value = (fun s -> Lang.val_fun [] (fun _ -> Lang.int s#buffer_length));
+        };
       ]
     ~descr:"Create a buffer between two different clocks."
     (fun p ->
@@ -168,16 +169,11 @@ let buffer =
       in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let on_start = List.assoc "on_start" p in
-      let on_stop = List.assoc "on_stop" p in
-      let on_start () = ignore (Lang.apply on_start []) in
-      let on_stop () = ignore (Lang.apply on_stop []) in
       let s = List.assoc "" p in
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      Buffer.create ~id ~infallible ~autostart ~on_start ~on_stop ~pre_buffer
-        ~max_buffer s)
+      Buffer.create ~id ~infallible ~autostart ~pre_buffer ~max_buffer s)
 
 module AdaptativeBuffer = struct
   (** Ringbuffers where number of channels is fixed on first write. *)
@@ -359,19 +355,19 @@ module AdaptativeBuffer = struct
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
 
-  class consumer ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~reset
-    source_val c =
+  class consumer ~autostart ~infallible ~pre_buffer ~reset source_val c =
     let prebuf = Frame.audio_of_seconds pre_buffer in
+    let source = Lang.to_source source_val in
     object (self)
       inherit
         Output.output
           ~output_kind:"buffer" ~register_telnet:false
-            ~name:"buffer.adaptative.consumer" ~infallible ~on_start ~on_stop
-            source_val autostart
+            ~name:"buffer.adaptative.consumer" ~infallible source_val autostart
 
       method! reset = ()
       method start = ()
       method stop = ()
+      method self_sync = source#self_sync
       val source = Lang.to_source source_val
 
       method send_frame frame =
@@ -394,8 +390,8 @@ module AdaptativeBuffer = struct
               c.buffering <- false))
     end
 
-  let create ~autostart ~infallible ~on_start ~on_stop ~pre_buffer ~max_buffer
-      ~averaging ~limit ~reset ~resample source_val =
+  let create ~autostart ~infallible ~pre_buffer ~max_buffer ~averaging ~limit
+      ~reset ~resample source_val =
     let control =
       {
         lock = Mutex.create ();
@@ -407,9 +403,7 @@ module AdaptativeBuffer = struct
       }
     in
     let _ =
-      new consumer
-        ~autostart ~infallible ~on_start ~on_stop source_val ~pre_buffer ~reset
-        control
+      new consumer ~autostart ~infallible source_val ~pre_buffer ~reset control
     in
     new producer ~pre_buffer ~averaging ~limit ~resample control
 end
@@ -456,21 +450,31 @@ let _ =
         ("", Lang.source_t frame_t, None, None);
       ])
     ~meth:
-      [
-        ( "duration",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current buffer duration, in seconds.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_duration) );
-        ( "estimated",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Current smoothed buffer duration, in seconds.",
-          fun s ->
-            Lang.val_fun [] (fun _ -> Lang.float s#buffer_estimated_duration) );
-        ( "ratio",
-          ([], Lang.fun_t [] Lang.float_t),
-          "Get the current scaling ratio.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.float s#ratio) );
-      ]
+      Lang.
+        [
+          {
+            name = "duration";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Current buffer duration, in seconds.";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#buffer_duration));
+          };
+          {
+            name = "estimated";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Current smoothed buffer duration, in seconds.";
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    Lang.float s#buffer_estimated_duration));
+          };
+          {
+            name = "ratio";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr = "Get the current scaling ratio.";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#ratio));
+          };
+        ]
     ~return_t:frame_t ~category:`Liquidsoap
     ~descr:
       "Create a buffer between two different clocks. The speed of the output \
@@ -480,10 +484,6 @@ let _ =
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
-      let on_start = List.assoc "on_start" p in
-      let on_stop = List.assoc "on_stop" p in
-      let on_start () = ignore (Lang.apply on_start []) in
-      let on_stop () = ignore (Lang.apply on_stop []) in
       let s = List.assoc "" p in
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
@@ -493,5 +493,5 @@ let _ =
       let reset = Lang.to_bool (List.assoc "reset" p) in
       let resample = List.assoc "resample" p |> Lang.to_bool in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      AdaptativeBuffer.create ~infallible ~autostart ~on_start ~on_stop
-        ~pre_buffer ~max_buffer ~averaging ~limit ~reset ~resample s)
+      AdaptativeBuffer.create ~infallible ~autostart ~pre_buffer ~max_buffer
+        ~averaging ~limit ~reset ~resample s)

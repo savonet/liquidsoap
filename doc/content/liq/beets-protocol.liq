@@ -14,7 +14,7 @@ def beets_protocol(~rlog, ~maxtime, arg) =
     rlog(
       "Failed to execute #{command}: #{p.status} (#{p.status.code}) #{p.stderr}"
     )
-    null()
+    null
   end
 end
 protocol.add(

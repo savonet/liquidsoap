@@ -260,7 +260,7 @@ let json_of_of { only; except; source } =
 let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> (string * Json.t) list =
   function
   | `Argsof _of -> ast_node ~typ:"argsof" (json_of_of _of)
-  | `Term { Term_base.label; as_variable; typ; default } ->
+  | `Term { Parsed_term.label; as_variable; typ; default } ->
       ast_node ~typ:"term"
         [
           ( "value",
@@ -271,7 +271,7 @@ let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> (string * Json.t) list =
                    ( "as_variable",
                      match as_variable with
                        | None -> `Null
-                       | Some v -> `String v );
+                       | Some pat -> json_of_pat pat );
                    ( "typ",
                      match typ with
                        | None -> `Null
@@ -591,12 +591,13 @@ let rec to_json { pos; term; comments } : Json.t =
 
 let parse_string ?(formatter = Format.err_formatter) content =
   let lexbuf = Sedlexing.Utf8.from_string content in
-  let throw = Runtime.throw ~formatter ~lexbuf () in
+  let throw = Runtime.throw ~formatter ~lexbuf:(Some lexbuf) () in
   try
     let tokenizer = Preprocessor.mk_tokenizer lexbuf in
     let term = Runtime.program tokenizer in
     Parser_helper.attach_comments term;
     to_json term
   with exn ->
-    throw exn;
+    let bt = Printexc.get_raw_backtrace () in
+    throw ~bt exn;
     exit 1

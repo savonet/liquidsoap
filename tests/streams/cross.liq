@@ -1,8 +1,14 @@
 video.frame.rate.set(24)
 a = sine(duration=5., 440.)
-a = metadata.map(update=false, (fun (_) -> [("title", "a")]), a)
+a =
+  metadata.map(
+    insert_missing=true, update=false, (fun (_) -> [("title", "a")]), a
+  )
 b = sine(duration=5., 880.)
-b = metadata.map(update=false, (fun (_) -> [("title", "b")]), b)
+b =
+  metadata.map(
+    insert_missing=true, update=false, (fun (_) -> [("title", "b")]), b
+  )
 s = sequence([a, b])
 
 def t(a, b) =
@@ -34,11 +40,12 @@ def check_duplicate(m) =
   end
 end
 
-s = source.on_metadata(s, check_duplicate)
+s.on_metadata(synchronous=true, check_duplicate)
 clock.assign_new(sync="none", [s])
 
 def on_stop() =
   if seen_a() and seen_b() then test.pass() else test.fail() end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, on_stop)

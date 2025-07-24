@@ -106,7 +106,7 @@ def f() =
   test.equal(f(()), 3)
   test.equal(f({}), 3)
   test.equal(f({foo=1}), 2)
-  test.equal(f({foo=null()}), 3)
+  test.equal(f({foo=null}), 3)
 
   def f(x) =
     ret = x?.foo(123)
@@ -116,7 +116,7 @@ def f() =
   test.equal(f(()), 1)
   test.equal(f({}), 1)
   test.equal(f({foo=(fun (x) -> x)}), 123)
-  test.equal(f({foo=null()}), 1)
+  test.equal(f({foo=null}), 1)
 
   def f(x) =
     [x, {foo=123}]
@@ -168,7 +168,7 @@ def f() =
     x.foo?.gni.bla(1, 2, 3)
   end
 
-  test.equal(f({foo=null()}), null())
+  test.equal(f({foo=null}), null)
 
   # We want to make sure that:
   def f(x) =
@@ -176,12 +176,12 @@ def f() =
   end
 
   # is properly typed as: ('B.{foo? : 'A}) -> 'A?
-  test.equal(f({}), null())
-  x = ({foo=null()} : {foo: int?})
-  test.equal(f(x), null())
-  x = ({foo=null()} : {foo?: int?})
-  test.equal(f(x), null())
-  test.equal(f(true), null())
+  test.equal(f({}), null)
+  x = ({foo=null} : {foo: int?})
+  test.equal(f(x), null)
+  x = ({foo=null} : {foo?: int?})
+  test.equal(f(x), null)
+  test.equal(f(true), null)
   test.equal(f({foo=1}), null(1))
 
   # We want to make sure that:
@@ -191,8 +191,8 @@ def f() =
 
   # is properly typed as: ('A.{foo? : (int) -> 'B.{gni? : 'C}}) -> 'C?
   # i.e. that { foo = (fun (_) -> { } ) } is a valid argument
-  test.equal(f({foo=(fun (_) -> {})}), null())
-  test.equal(f(112.{foo=(fun (_) -> false)}), null())
+  test.equal(f({foo=(fun (_) -> {})}), null)
+  test.equal(f(112.{foo=(fun (_) -> false)}), null)
   test.equal(f({foo=(fun (_) -> {gni=2})}), null(2))
   test.equal(f(345.{foo=(fun (_) -> "aabb".{gni=2})}), null(2))
 
@@ -216,24 +216,24 @@ def f() =
   test.equal(foo, 123)
   test.equal(y.gni, "aabb")
   test.equal(y, {gni="aabb"})
-  test.equal(y?.foo, null())
+  test.equal(y?.foo, null)
   x = 1.{foo=123, gni="aabb"}
   let {foo, ...y} = x
   test.equal(foo, 123)
   test.equal(y.gni, "aabb")
   test.equal(y, 1)
-  test.equal(y?.foo, null())
+  test.equal(y?.foo, null)
   x = 1.{foo=123, gni="aabb"}
   let {foo, ...y} = x
   test.equal(foo, 123)
   test.equal(y.gni, "aabb")
   test.equal(y, 1)
-  test.equal(y?.foo, null())
+  test.equal(y?.foo, null)
   x = {foo=3.14}.{foo=123, gni="aabb"}
   let {foo, ...y} = x
   test.equal(foo, 123)
   test.equal(y, {gni="aabb"})
-  test.equal(y?.foo, null())
+  test.equal(y?.foo, null)
   x = {foo=123, gni="aabb"}
   y = {bla=3.14, ...x}
   test.equal(y, {gni="aabb", foo=123, bla=3.14})
@@ -264,7 +264,7 @@ def f() =
 
   # Allow optional method extraction
   let {x?} = ()
-  test.equal(x, null())
+  test.equal(x, null)
 
   let {x?} = {x=123}
   test.equal(x, 123)
@@ -302,14 +302,14 @@ def f() =
   test.equal({...y, ...x}, {foo=1})
 
   x = {foo=1}
-  y = {foo=null()}
-  test.equal({...x, ...y}, {foo=null()})
+  y = {foo=null}
+  test.equal({...x, ...y}, {foo=null})
   test.equal({...y, ...x}, {foo=1})
 
-  x = {foo=null()}
-  y = {foo=null()}
-  test.equal({...x, ...y}, {foo=null()})
-  test.equal({...y, ...x}, {foo=null()})
+  x = {foo=null}
+  y = {foo=null}
+  test.equal({...x, ...y}, {foo=null})
+  test.equal({...y, ...x}, {foo=null})
 
   x = {foo=1}
   y = {foo="a"}
@@ -325,7 +325,7 @@ def f() =
   def f(x) =
     x.foo() ?? 123
   end
-  test.equal(f({foo=fun () -> null()}), 123)
+  test.equal(f({foo=fun () -> null}), 123)
 
   def f(x) =
     x = (x : {foo: int})
@@ -338,6 +338,33 @@ def f() =
   # Test priority for ?.
   x = ({} : {bla?: int})
   test.equal(x?.bla == x?.bla, true)
+
+  # Test destructuring of record
+  x = {foo={gni="aabb"}}
+  foo = 123
+
+  let {foo = {gni}} = x
+  test.equal(foo, 123)
+  test.equal(gni, "aabb")
+
+  gni = 123
+  let {foo = {gni = gno}, foo, foo = gna} = x
+  test.equal(foo, {gni="aabb"})
+  test.equal(gni, 123)
+  test.equal(gno, "aabb")
+  test.equal(gna, {gni="aabb"})
+
+  x = {gni=123, bla=true}
+  let {gni = _, ...rest} = x
+  test.equal(rest, {bla=true})
+
+  x = {gni={foo="aabb"}, bla="blo"}
+  gni = 345
+  let {gni = {foo}, gni = gno, ...rest} = x
+  test.equal(gni, 345)
+  test.equal(foo, "aabb")
+  test.equal(gno, {foo="aabb"})
+  test.equal(rest, {bla="blo"})
 
   test.pass()
 end

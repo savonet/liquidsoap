@@ -188,10 +188,17 @@ module Value = struct
     examples : string list;
     arguments : (string option * argument) list;
     methods : (string * meth) list;
+    callbacks : (string * meth) list;
   }
 
   let db = ref Map.empty
-  let add (name : string) (doc : t Lazy.t) = db := Map.add name doc !db
+
+  let add (name : string) (doc : t Lazy.t) =
+    let name =
+      Re.replace ~all:true ~f:(fun _ -> "null") (Re.Pcre.regexp "^_null") name
+    in
+    db := Map.add name doc !db
+
   let get name = Lazy.force (Map.find name !db)
   let count () = Map.cardinal !db
 
@@ -306,7 +313,15 @@ module Value = struct
           print (" * " ^ label_color l ^ " : " ^ type_color m.meth_type ^ "\n");
           Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
           print "\n\n")
-        (List.sort compare f.methods))
+        (List.sort compare f.methods));
+    if f.callbacks <> [] then (
+      print (title_color "Callbacks:\n\n");
+      List.iter
+        (fun (l, m) ->
+          print (" * " ^ label_color l ^ " : " ^ type_color m.meth_type ^ "\n");
+          Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
+          print "\n\n")
+        (List.sort compare f.callbacks))
 
   let to_json () : Json.t =
     !db |> Map.to_seq
@@ -329,20 +344,28 @@ module Value = struct
                f.arguments
            in
            let arguments = `Assoc arguments in
-           let methods =
-             List.map
-               (fun (l, m) ->
-                 ( l,
+           let methods, callbacks =
+             match
+               List.map
+                 (fun m ->
                    `Assoc
-                     [
-                       ("type", `String m.meth_type);
-                       ( "description",
-                         `String (Option.value ~default:"" m.meth_description)
-                       );
-                     ] ))
-               f.methods
+                     (List.map
+                        (fun (l, m) ->
+                          ( l,
+                            `Assoc
+                              [
+                                ("type", `String m.meth_type);
+                                ( "description",
+                                  `String
+                                    (Option.value ~default:"" m.meth_description)
+                                );
+                              ] ))
+                        m))
+                 [f.methods; f.callbacks]
+             with
+               | [x; v] -> (x, v)
+               | _ -> assert false
            in
-           let methods = `Assoc methods in
            ( l,
              `Assoc
                [
@@ -356,6 +379,7 @@ module Value = struct
                  ("examples", `Tuple (List.map (fun s -> `String s) f.examples));
                  ("arguments", arguments);
                  ("methods", methods);
+                 ("callbacks", callbacks);
                ] ))
     |> List.of_seq
     |> fun l -> `Assoc l
@@ -437,6 +461,19 @@ module Value = struct
                     Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
                   (List.sort compare d.methods);
                 print "\n");
+              if d.callbacks <> [] then (
+                print "Callbacks:\n\n";
+                List.iter
+                  (fun (l, m) ->
+                    let t = m.meth_type in
+                    let s =
+                      match m.meth_description with
+                        | None -> ""
+                        | Some s -> ": " ^ s
+                    in
+                    Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
+                  (List.sort compare d.callbacks);
+                print "\n");
               if List.mem `Experimental d.flags then
                 print "This function is experimental.\n\n"))
           !db)
@@ -459,6 +496,14 @@ end
 
 type doc_type = [ `Full | `Argsof of string list ]
 
+type doc = {
+  main : string list;
+  special : [ `Category of string | `Flag of string ] list;
+  params : (string option * string) list;
+  methods : (string * string) list;
+  callbacks : (string * string) list;
+}
+
 let parse_doc ~pos doc =
   let doc = String.split_on_char '\n' doc in
   let doc =
@@ -469,8 +514,9 @@ let parse_doc ~pos doc =
   in
   if doc = [] then None
   else (
-    let rec parse_doc (main, special, params, methods) = function
-      | [] -> (main, special, params, methods)
+    let rec parse_doc ({ main; special; params; methods; callbacks } as _doc) =
+      function
+      | [] -> _doc
       | line :: lines -> (
           try
             let sub =
@@ -504,7 +550,7 @@ let parse_doc ~pos doc =
                          doc.flags
                   in
                   parse_doc
-                    (main, doc_specials @ special, params, methods)
+                    { _doc with main; special = doc_specials @ special; params }
                     lines
               | "argsof" ->
                   let s, only, except =
@@ -555,13 +601,11 @@ let parse_doc ~pos doc =
                         Option.map (fun d -> (n, d)) a.Value.arg_description)
                       args
                   in
-                  parse_doc (main, special, args @ params, methods) lines
+                  parse_doc { _doc with main; params = args @ params } lines
               | "category" ->
-                  parse_doc
-                    (main, `Category s :: special, params, methods)
-                    lines
+                  parse_doc { _doc with special = `Category s :: special } lines
               | "flag" ->
-                  parse_doc (main, `Flag s :: special, params, methods) lines
+                  parse_doc { _doc with special = `Flag s :: special } lines
               | "param" ->
                   let sub =
                     Re.Pcre.exec
@@ -594,7 +638,7 @@ let parse_doc ~pos doc =
                   in
                   let descr, lines = parse_descr [] (descr :: lines) in
                   parse_doc
-                    (main, special, (label, descr) :: params, methods)
+                    { _doc with params = (label, descr) :: params }
                     lines
               | "method" ->
                   let sub =
@@ -605,13 +649,27 @@ let parse_doc ~pos doc =
                   let label = Re.Pcre.get_substring sub 1 in
                   let descr = Re.Pcre.get_substring sub 2 in
                   parse_doc
-                    (main, special, params, (label, descr) :: methods)
+                    { _doc with methods = (label, descr) :: methods }
+                    lines
+              | "callback" ->
+                  let sub =
+                    Re.Pcre.exec
+                      ~rex:(Re.Pcre.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
+                      s
+                  in
+                  let label = Re.Pcre.get_substring sub 1 in
+                  let descr = Re.Pcre.get_substring sub 2 in
+                  parse_doc
+                    { _doc with callbacks = (label, descr) :: callbacks }
                     lines
               | d -> failwith ("Unknown documentation item: " ^ d)
-          with Not_found ->
-            parse_doc (line :: main, special, params, methods) lines)
+          with Not_found -> parse_doc { _doc with main = line :: main } lines)
     in
-    let main, special, params, methods = parse_doc ([], [], [], []) doc in
+    let { main; special; params; methods; callbacks } =
+      parse_doc
+        { main = []; special = []; params = []; methods = []; callbacks = [] }
+        doc
+    in
     let main = List.rev main in
     let params =
       List.map
@@ -627,6 +685,12 @@ let parse_doc ~pos doc =
         (fun (l, d) ->
           (l, Value.{ meth_type = "???"; meth_description = Some d }))
         (List.rev methods)
+    in
+    let callbacks =
+      List.map
+        (fun (l, d) ->
+          (l, Value.{ meth_type = "???"; meth_description = Some d }))
+        (List.rev callbacks)
     in
     let main = String.concat "\n" main in
     let main = Lang_string.unbreak_md main in
@@ -668,4 +732,5 @@ let parse_doc ~pos doc =
           examples = [];
           arguments = params;
           methods;
+          callbacks;
         })

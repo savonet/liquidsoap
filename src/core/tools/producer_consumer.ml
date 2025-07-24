@@ -24,26 +24,29 @@ type write_payload = [ `Frame of Frame.t | `Flush ]
 type write_frame = write_payload -> unit
 
 (* This here is tricky:
- * - We want to use the output API to have a method for
- *   generating data when calling a clock tick.
- * - We want to opt-out of the generic child_process
- *   clock animation framework.
- * Thus, we manually mark this operator as ready only
- * before we're about to pull from it. *)
+   - We want to use the output API to have a method for
+     generating data when calling a clock tick.
+   - We want to opt-out of the generic child_process
+     clock animation framework.
+   Thus, we manually mark this operator as ready only
+   before we're about to pull from it.
+
+   There is one exception: when we're expeciting the operator
+   to mostly follow real-time. In this case, we set [always_enabled]
+   to [true] and [check_self_sync] to [false] on the producer. *)
 class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   let s = Lang.to_source source in
   let infallible = not s#fallible in
-  let noop () = () in
   object
     inherit
       Output.output
-        ~output_kind:name ~register_telnet:false ~infallible ~on_start:noop
-          ~on_stop:noop source true as super
+        ~output_kind:name ~register_telnet:false ~infallible source true as super
 
     val mutable output_enabled = false
     val mutable producer_buffer = Generator.create Frame.Fields.empty
     method set_producer_buffer b = producer_buffer <- b
     method set_output_enabled v = output_enabled <- v
+    method self_sync = s#self_sync
     method! reset = ()
     method start = ()
     method stop = write_frame producer_buffer `Flush
@@ -51,9 +54,9 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
     method private send_frame frame = write_frame producer_buffer (`Frame frame)
   end
 
-(** The source which produces data by reading the buffer.
-    We do NOT want to use [operator] here b/c the [consumers]
-    may have different content-kind when this is used in the muxers. *)
+(** The source which produces data by reading the buffer. We do NOT want to use
+    [operator] here b/c the [consumers] may have different content-kind when
+    this is used in the muxers. *)
 class producer ?stack ~check_self_sync ~consumers ~name () =
   let infallible = List.for_all (fun s -> not s#fallible) consumers in
   let self_sync = Clock_base.self_sync consumers in

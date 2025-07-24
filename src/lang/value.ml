@@ -26,8 +26,8 @@ open Term_hash
 module Custom = Term.Custom
 module Methods = Runtime_term.Methods
 
-(** We derive a hash of the environment to invalidate the cache
-    when the builtin env change. We mostly keep name and methods. *)
+(** We derive a hash of the environment to invalidate the cache when the builtin
+    env change. We mostly keep name and methods. *)
 type env = (string * t) list
 
 and dynamic_methods = {
@@ -80,6 +80,7 @@ and t =
   | (* Function with given list of argument name, argument variable and default
        value, the (relevant part of the) closure, and the body. *)
     Fun of {
+      id : int;
       pos : Pos.Option.t; [@hash.ignore]
       fun_args : (string * string * t option) list;
       fun_env : env; [@hash.ignore]
@@ -90,6 +91,7 @@ and t =
   | (* For a foreign function only the arguments are visible, the closure
        doesn't capture anything in the environment. *)
     FFI of {
+      id : int;
       pos : Pos.Option.t; [@hash.ignore]
       ffi_args : (string * string * t option) list;
       mutable ffi_fn : env -> t; [@hash.ignore]
@@ -130,7 +132,7 @@ let methods = function
   | Fun { methods }
   | FFI { methods } ->
       methods
-  [@@inline always]
+[@@inline always]
 
 let map_methods v fn =
   match v with
@@ -144,7 +146,7 @@ let map_methods v fn =
     | List ({ methods } as p) -> List { p with methods = fn methods }
     | Fun ({ methods } as p) -> Fun { p with methods = fn methods }
     | FFI ({ methods } as p) -> FFI { p with methods = fn methods }
-  [@@inline always]
+[@@inline always]
 
 let pos = function
   | Int { pos }
@@ -158,7 +160,7 @@ let pos = function
   | Fun { pos }
   | FFI { pos } ->
       pos
-  [@@inline always]
+[@@inline always]
 
 let set_pos v pos =
   match v with
@@ -172,7 +174,7 @@ let set_pos v pos =
     | List p -> List { p with pos }
     | Fun p -> Fun { p with pos }
     | FFI p -> FFI { p with pos }
-  [@@inline always]
+[@@inline always]
 
 let has_flag v flag =
   match v with
@@ -184,7 +186,7 @@ let has_flag v flag =
     | Fun { flags }
     | FFI { flags } ->
         Flags.has flags flag
-  [@@inline always]
+[@@inline always]
 
 let add_flag v flag =
   match v with
@@ -195,10 +197,11 @@ let add_flag v flag =
     | List p -> p.flags <- Flags.add p.flags flag
     | Fun p -> p.flags <- Flags.add p.flags flag
     | FFI p -> p.flags <- Flags.add p.flags flag
-  [@@inline always]
+[@@inline always]
 
 let unit = `Tuple []
 let is_unit = function Tuple { value = [] } -> true | _ -> false
+let fun_id = Atomic.make 0
 
 let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
     = function
@@ -212,8 +215,26 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
   | `Tuple l -> Tuple { pos; methods; flags; value = l }
   | `List l -> List { pos; methods; flags; value = l }
   | `Fun { fun_args; fun_env; fun_body } ->
-      Fun { pos; methods; flags; fun_args; fun_env; fun_body }
-  | `FFI { ffi_args; ffi_fn } -> FFI { pos; methods; flags; ffi_args; ffi_fn }
+      Fun
+        {
+          id = Atomic.fetch_and_add fun_id 1;
+          pos;
+          methods;
+          flags;
+          fun_args;
+          fun_env;
+          fun_body;
+        }
+  | `FFI { ffi_args; ffi_fn } ->
+      FFI
+        {
+          id = Atomic.fetch_and_add fun_id 1;
+          pos;
+          methods;
+          flags;
+          ffi_args;
+          ffi_fn;
+        }
 
 let string_of_int_value ~flags i =
   if Flags.has flags Flags.octal_int then Printf.sprintf "0o%o" i
@@ -308,10 +329,18 @@ let compare a b =
               if c = 0 then cmp (l1, l2) else c
         in
         cmp (l1, l2)
+    | Fun { id = i }, Fun { id = i' }
+    | FFI { id = i }, FFI { id = i' }
+    | Fun { id = i }, FFI { id = i' }
+    | FFI { id = i }, Fun { id = i' } ->
+        Stdlib.compare i i'
     | Null _, Null _ -> 0
     | Null _, _ -> -1
     | _, Null _ -> 1
-    | _ -> assert false
+    | v, v' ->
+        failwith
+          (Printf.sprintf "Cannot compare %s and %s" (to_string v)
+             (to_string v'))
   and compare a b =
     (* For records, we compare the list ["label", field; ..] of common fields. *)
     if is_unit a && is_unit b then (
@@ -333,12 +362,16 @@ let compare a b =
       let a =
         make
           (`Tuple
-            (List.map (fun (lbl, v) -> make (`Tuple [make (`String lbl); v])) a))
+             (List.map
+                (fun (lbl, v) -> make (`Tuple [make (`String lbl); v]))
+                a))
       in
       let b =
         make
           (`Tuple
-            (List.map (fun (lbl, v) -> make (`Tuple [make (`String lbl); v])) b))
+             (List.map
+                (fun (lbl, v) -> make (`Tuple [make (`String lbl); v]))
+                b))
       in
       aux (a, b))
     else aux (a, b)

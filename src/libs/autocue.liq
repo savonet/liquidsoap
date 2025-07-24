@@ -207,7 +207,8 @@ def autocue.internal.ebur128(~duration, ~ratio=50., ~timeout=10., filename) =
       end
 
       s = ebur128(s)
-      source.on_metadata(s, fun (m) -> frames := [...frames(), m])
+      s.on_metadata(synchronous=true, fun (m) -> frames := [...frames(), m])
+      s
     end
 
     request.process(ratio=ratio, process=process, r)
@@ -263,7 +264,7 @@ def autocue.internal.implementation(
       label="autocue.internal.metadata",
       "Override metadata detected for #{filename}, disabling autocue!"
     )
-    null()
+    null
   else
     log(
       level=4,
@@ -274,18 +275,18 @@ def autocue.internal.implementation(
 %ifdef request.duration.ffmpeg
     duration = request.duration.ffmpeg(resolve_metadata=false, filename)
 %else
-    duration = null()
+    duration = null
 %endif
 
     if
-      duration == null()
+      duration == null
     then
       log(
         level=2,
         label="autocue.internal",
         "Could not get request duration, internal autocue disabled!"
       )
-      null()
+      null
     else
       duration = null.get(duration)
 
@@ -302,7 +303,7 @@ def autocue.internal.implementation(
           label="autocue.internal",
           "Autocue computation failed!"
         )
-        null()
+        null
       else
         # Get the 2nd last frame which is the last with loudness data
         frame = list.nth(frames, list.length(frames) - 2)
@@ -775,7 +776,7 @@ def autocue.internal.implementation(
             fade_out_type?: string,
             fade_out_curve?: float,
             start_next?: float,
-            extra_metadata?: [(string*string)]
+            extra_metadata?: [(string * string)]
           }
         )
       end
@@ -981,7 +982,7 @@ def enable_autocue_metadata() =
       user_supplied_amplify =
         list.filter_map(
           fun (el) ->
-            if list.mem(fst(el), all_amplify) then fst(el) else null() end,
+            if list.mem(fst(el), all_amplify) then fst(el) else null end,
           metadata
         )
 
@@ -1054,8 +1055,8 @@ def enable_autocue_metadata() =
   mime_types = settings.decoder.mime_types.ffmpeg()
   file_extensions = settings.decoder.file_extensions.ffmpeg()
 %else
-  mime_types = null()
-  file_extensions = null()
+  mime_types = null
+  file_extensions = null
 %endif
 
   decoder.metadata.add(
@@ -1070,7 +1071,7 @@ end
 
 # Define autocue protocol
 # @flag hidden
-def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
+def protocol.autocue(~rlog:_, ~maxtime:_, arg) =
   cue_metadata = file.autocue.metadata(request_metadata=[], arg)
 
   if

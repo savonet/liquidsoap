@@ -24,9 +24,9 @@ include Frame_settings
 include Frame_base
 open Content
 
-(** Compatibilities between content kinds, types and values.
-  * [sub a b] if [a] is more permissive than [b]..
-  * TODO this is the other way around... it's correct in Lang, phew! *)
+(** Compatibilities between content kinds, types and values. [sub a b] if [a] is
+    more permissive than [b].. TODO this is the other way around... it's correct
+    in Lang, phew! *)
 
 let string_of_format = string_of_format
 
@@ -144,5 +144,5 @@ let clear_metadata frame = map_metadata frame (fun _ -> [])
 let add_metadata frame pos m = map_metadata frame (fun meta -> (pos, m) :: meta)
 let set_all_metadata frame m' = map_metadata frame (fun _ -> m')
 
-let free_metadata frame pos =
+let remove_metadata frame pos =
   map_metadata frame (fun meta -> List.filter (fun (p, _) -> p <> pos) meta)

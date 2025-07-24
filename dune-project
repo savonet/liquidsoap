@@ -1,4 +1,4 @@
-(lang dune 3.6)
+(lang dune 3.18)
 (using menhir 2.1)
 (using dune_site 0.1)
 (name liquidsoap)
@@ -8,47 +8,17 @@
 (maintainers "The Savonet Team <savonet-users@lists.sourceforge.net>")
 (homepage "https://github.com/savonet/liquidsoap")
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
+(maintenance_intent "(latest)")
 
-(version 2.3.1)
+(version 2.4.0)
 (generate_opam_files true)
+(opam_file_location inside_opam_directory)
 (executables_implicit_empty_intf true)
 
 (package
   (name liquidsoap)
-  (depends
-    (liquidsoap-core (= :version))
-    (liquidsoap-libs (and (>= 2.3.1) (< 2.3.2)))
-    (liquidsoap-libs-extra (and (>= 2.3.1) (< 2.3.2)))
-    (pandoc :with-doc)
-    (pandoc-include :with-doc))
-  (synopsis "Swiss-army knife for multimedia streaming")
-  (description
-"\| Liquidsoap is a powerful and flexible language for describing your
-"\| streams. It offers a rich collection of operators that you can combine
-"\| at will, giving you more power than you need for creating or
-"\| transforming streams. But liquidsoap is still very light and easy to
-"\| use, in the Unix tradition of simple strong components working
-"\| together.
-  ))
-
-(package
-   (name liquidsoap-libs-extra)
    (depends
-      (liquidsoap-libs (= :version))
-      (liquidsoap-lang :build))
-   (synopsis "Liquidosap standard library -- extra functionalities"))
-
-(package
-   (name liquidsoap-libs)
-   (depends (liquidsoap-lang :build))
-   (synopsis "Liquidosap standard library"))
-
-(package
-  (name liquidsoap-core)
-  (depends
     (ocaml (>= 4.14))
-    (dtools (>= 0.4.5))
-    (duppy (>= 0.9.4))
     (mm (>= 0.8.6))
     (re (>= 1.11.0))
     (ocurl (>= 0.9.2))
@@ -92,6 +62,7 @@
     osc-unix
     portaudio
     posix-time2
+    posix-socket
     pulseaudio
     prometheus-liquidsoap
     samplerate
@@ -105,8 +76,7 @@
     theora
     sdl-liquidsoap
     vorbis
-    yaml
-    xmlplaylist)
+    yaml)
  (conflicts
     (alsa (< 0.3.0))
     (ao (< 0.2.0))
@@ -115,8 +85,8 @@
     (dssi (< 0.1.3))
     (faad (< 0.5.0))
     (fdkaac (< 0.3.1))
-    (ffmpeg (< 1.2.0))
-    (ffmpeg-avutil (< 1.2.0))
+    (ffmpeg (< 1.2.5))
+    (ffmpeg-avutil (< 1.2.5))
     (flac (< 1.0.0))
     (frei0r (< 0.1.0))
     (inotify (< 1.0))
@@ -125,30 +95,41 @@
     (lo (< 0.2.0))
     (mad (< 0.5.0))
     (magic (< 0.6))
+    (mirage-crypto-rng (< 0.6.2))
     (ogg (< 1.0.0))
     (opus (< 0.2.0))
+    (odoc (< 3.0.0~beta1))
     (portaudio (< 0.2.0))
     (posix-time2 (< 2.0.2))
+    (posix-socket (< 2.1.0))
     (pulseaudio (< 0.1.4))
     (samplerate (< 0.1.5))
     (shine (< 0.2.0))
     (soundtouch (< 0.1.9))
     (speex (< 1.0.0))
-    (srt (< 0.3.0))
+    (srt (< 0.3.2))
     (ssl (< 0.7.0))
     (tls (< 1.0.2))
     (sdl-liquidsoap (< 2))
     (theora (< 1.0.0))
     (vorbis (< 1.0.0))
-    (xmlplaylist (< 0.1.3)))
-  (synopsis "Liquidsoap core library and binary"))
+    (pandoc :with-doc)
+    (pandoc-include :with-doc))
+  (synopsis "Swiss-army knife for multimedia streaming")
+  (description
+"\| Liquidsoap is a powerful and flexible language for describing your
+"\| streams. It offers a rich collection of operators that you can combine
+"\| at will, giving you more power than you need for creating or
+"\| transforming streams. But liquidsoap is still very light and easy to
+"\| use, in the Unix tradition of simple strong components working
+"\| together.
+  ))
 
 (package
   (name liquidsoap-lang)
   (depends
     (ocaml (>= 4.14))
     dune-site
-    (saturn_lockfree (>= 0.5.0))
     (re (>= 1.11.0))
     (ppx_string :build)
     (ppx_hash :build)

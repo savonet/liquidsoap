@@ -1,6 +1,5 @@
-(** Binding to the proprietary NDI library.
-    Please refer to the library's documentation for details
-    regarding this binding's functions. *)
+(** Binding to the proprietary NDI library. Please refer to the library's
+    documentation for details regarding this binding's functions. *)
 
 type t
 type source = { source_name : string; source_url : string }

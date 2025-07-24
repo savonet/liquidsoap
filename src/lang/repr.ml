@@ -77,8 +77,8 @@ let excerpt pos =
 
 let excerpt_opt = function Some pos -> excerpt pos | None -> None
 
-(** Given a strictly positive integer, generate a name in [a-z]+:
-    a, b, ... z, aa, ab, ... az, ba, ... *)
+(** Given a strictly positive integer, generate a name in [a-z]+: a, b, ... z,
+    aa, ab, ... az, ba, ... *)
 let name =
   let base = 26 in
   let c i = char_of_int (int_of_char 'a' + i - 1) in
@@ -107,8 +107,8 @@ let evar_global_name =
 (** Compute the structure that a term represents, given the list of universally
     quantified variables. Also takes care of computing the printing name of
     variables, including constraint symbols, which are removed from constraint
-    lists. It supports a mechanism for filtering out parts of the type, which are
-    then translated as `Ellipsis. *)
+    lists. It supports a mechanism for filtering out parts of the type, which
+    are then translated as `Ellipsis. *)
 let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
   let split_constr c =
     List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
@@ -209,8 +209,8 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     one printing, as they are re-used. *)
 let print f t =
   (* Display the type and return the list of variables that occur in it.
-   * The [par] params tells whether (..)->.. should be surrounded by
-   * parenthesis or not. *)
+     The [par] params tells whether (..)->.. should be surrounded by
+     parenthesis or not. *)
   let rec print ~par vars : t -> DS.t = function
     | `Constr (name, [(_, (`Meth _ as record_type))])
       when name = "source" || name = "format" ->

@@ -2,7 +2,7 @@
  (section
   (site
    (liquidsoap-lang libs)))
- (package liquidsoap-libs)
+ (package liquidsoap)
  (files
   (glob_files *.liq)))
 
@@ -10,6 +10,6 @@
  (section
   (site
    (liquidsoap-lang libs)))
- (package liquidsoap-libs-extra)
+ (package liquidsoap)
  (files
   (glob_files extra/*.liq)))

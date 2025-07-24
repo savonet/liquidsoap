@@ -37,7 +37,8 @@ type ('a, 'b) func_argument = {
   label : string;
   as_variable : string option;
   default : 'a option;
-  typ : 'b;
+  typ : 'b; [@hash.ignore]
+  pos : Pos.t option; [@hash.ignore]
 }
 [@@deriving hash]
 

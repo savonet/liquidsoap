@@ -8,12 +8,14 @@ let () =
 let execute ~throw expr =
   (try
      try
-       Typechecking.check ~throw expr;
+       Typechecking.check ~throw ~check_top_level_override:false expr;
        Term.check_unused ~throw ~lib:true expr;
        let v = Evaluation.eval expr in
        Format.fprintf Format.str_formatter "- : %a = %s@." Repr.print_type
          expr.t (Value.to_string v)
-     with exn -> throw exn
+     with exn ->
+       let bt = Printexc.get_raw_backtrace () in
+       throw ~bt exn
    with
     | Runtime.Error -> ()
     | exn ->
@@ -58,12 +60,14 @@ let on_execute =
   Dom_html.handler (fun _ ->
       let expr = Js.to_string (getLiqCode ()) in
       let lexbuf = Sedlexing.Utf8.from_string expr in
-      let throw = Runtime.throw ~formatter:Format.str_formatter ~lexbuf () in
+      let throw =
+        Runtime.throw ~formatter:Format.str_formatter ~lexbuf:(Some lexbuf) ()
+      in
       let tokenizer = Preprocessor.mk_tokenizer lexbuf in
       let parsed_term = Runtime.program tokenizer in
       let json = Liquidsoap_tooling.Parsed_json.to_json parsed_term in
       let json = Liquidsoap_lang.Json.to_string json in
-      let term = Term_reducer.to_term parsed_term in
+      let term = Term_reducer.to_term ~throw parsed_term in
       let result = execute ~throw term in
       formatLiqCode (Js.string json) (fun formatted ->
           setOutput

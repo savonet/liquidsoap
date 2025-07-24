@@ -121,28 +121,32 @@ module Specs = struct
           true
       | _ -> p = p'
 
+  let compatible_audio p p' =
+    Avutil.Channel_layout.compare
+      (Audio.get_channel_layout p)
+      (Audio.get_channel_layout p')
+    && Audio.get_sample_format p = Audio.get_sample_format p'
+    && Audio.get_sample_rate p = Audio.get_sample_rate p'
+
+  let compatible_video (r, p) (r', p') =
+    r = r'
+    && Video.get_width p = Video.get_width p'
+    && Video.get_height p = Video.get_height p'
+    && compatible_aspect_radio
+         (Video.get_sample_aspect_ratio p)
+         (Video.get_sample_aspect_ratio p')
+    && Video.get_pixel_format p = Video.get_pixel_format p'
+
   let compatible p p' =
     match (p, p') with
       | None, _ | _, None -> true
       | Some (`Audio p), Some (`Audio p') ->
           Audio.get_params_id p = Audio.get_params_id p'
-          && (conf_ffmpeg_copy_relaxed#get
-             || Avutil.Channel_layout.compare
-                  (Audio.get_channel_layout p)
-                  (Audio.get_channel_layout p')
-                && Audio.get_sample_format p = Audio.get_sample_format p'
-                && Audio.get_sample_rate p = Audio.get_sample_rate p')
+          && (conf_ffmpeg_copy_relaxed#get || compatible_audio p p')
       | ( Some (`Video { avg_frame_rate = r; params = p }),
           Some (`Video { avg_frame_rate = r'; params = p' }) ) ->
-          r = r'
-          && Video.get_params_id p = Video.get_params_id p'
-          && (conf_ffmpeg_copy_relaxed#get
-             || Video.get_width p = Video.get_width p'
-                && Video.get_height p = Video.get_height p'
-                && compatible_aspect_radio
-                     (Video.get_sample_aspect_ratio p)
-                     (Video.get_sample_aspect_ratio p')
-                && Video.get_pixel_format p = Video.get_pixel_format p')
+          Video.get_params_id p = Video.get_params_id p'
+          && (conf_ffmpeg_copy_relaxed#get || compatible_video (r, p) (r', p'))
       | _ -> false
 
   let merge p p' =

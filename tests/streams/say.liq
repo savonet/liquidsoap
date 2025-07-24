@@ -1,8 +1,8 @@
 s =
   if
-    file.which(null.get(settings.protocol.gtts.path())) == null()
+    file.which(null.get(settings.protocol.gtts.path())) == null
   and
-    file.which(null.get(settings.protocol.text2wave.path())) == null()
+    file.which(null.get(settings.protocol.text2wave.path())) == null
   then
     print(
       "Could not test gtts"
@@ -20,5 +20,5 @@ def f(_) =
   if n() < 1 then n := n() + 1 else test.pass() end
 end
 
-s.on_track(f)
+s.on_track(synchronous=true, f)
 output.dummy(s)

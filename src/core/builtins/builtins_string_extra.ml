@@ -59,11 +59,11 @@ let _ =
     (fun p ->
       let v = List.assoc "" p in
       try
-        let metadata, uri = Annotate.parse (Lang.to_string v) in
+        let metadata, uri = Annotate_parser.parse (Lang.to_string v) in
         Lang.product
           (Lang.metadata (Frame.Metadata.from_list metadata))
           (Lang.string uri)
-      with Annotate.Error err ->
+      with Annotate_parser.Error err ->
         Lang.raise_error ~message:err ~pos:(Lang.pos p) "string")
 
 let _ =
@@ -174,3 +174,16 @@ let _ =
           ("picture_type", Lang.int pic.Metadata.ID3v2.pic_type);
           ("description", Lang.string pic.Metadata.ID3v2.pic_description);
         ])
+
+let _ =
+  Lang.add_builtin ~base:string "id" ~category:`String
+    ~descr:"Generate an identifier with given operator name."
+    [
+      ("category", Lang.string_t, Some (Lang.string ""), Some "Category");
+      ("", Lang.string_t, None, Some "Operator name.");
+    ]
+    Lang.string_t
+    (fun p ->
+      let name = List.assoc "" p |> Lang.to_string in
+      let category = List.assoc "category" p |> Lang.to_string in
+      Lang.string (Lang_string.generate_id ~category name))

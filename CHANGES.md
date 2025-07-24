@@ -1,7 +1,121 @@
-# 2.3.1 (unreleased)
+# 2.4.0 (unreleased)
 
 New:
 
+- Allow deststructing function arguments using the same patterns as for
+  variable assignment (#4562)
+- BREAKING: `on_metadata`, `on_track`, `on_offset`, `on_end`, `on_wake_up`
+  an `on_shutdown` callbacks have been moved to source methods and are now
+  executed asynchronously by default. Also, `on_offset` and `on_end` have
+  been merged into a single `on_position` source methods. See migratons
+  notes and PR #4536 for details and discussions.
+- Deprecated `insert_metadata`, added default `insert_metadata` method on
+  every source (#4541)
+- Added `liquidsoap.script.path` that contains the path to the current
+  script's file, if available.
+- Added LUFS-based per-track loudness correction (#4545)
+- `null` can now be used directly without having to call `null()`.
+  `null(value)` calls are still valid and can be used to create
+  non-null values with nullable types. Calls to `null()` are marked
+  as deprecated (#4516)
+- Enhanced labeled arguments syntax (#4526)
+- Add warning when erasing top-level variables (#4518)
+
+Changed:
+
+- Improved source and clock naming (#4497)
+- Deprecated `replaygain` operator, introduced unified
+  `normalize_track_gain` which works with both ReplayGain
+  and LUFS (#4545)
+- BREAKING: Error methods have been removed by default.
+  Use `error.methods` to get them! (#4537)
+- Make sure that `let { foo = gni } = v` assigns a value to
+  `gni` but not to `foo` (#4561)
+
+Fixed:
+
+- Fix error when loading script path having non-ascii characters in them
+  (#4343)
+- Don't mark source as ready until their clock has started. (#4496)
+- Fixed mutex deadlock caused by aggressive inlining (#4540)
+- Fixed segfault when using SRT on windows (#4538)
+- Fixed memleak in ffmpeg inline encoder (#4501)
+
+---
+
+# 2.3.3 (2025-05-16)
+
+New:
+
+- `input.srt`: add `ipv6only` to allow to bind only to ipv6 addresses.
+  Set it to `true` when `bind_address` is ipv6.
+- Allow HLS segment names to contain sub-directories.
+- Implicitly convert ffmpeg raw audio data, making it much more practical
+  to write scripts using the raw ffmpeg format (#4478)
+
+Changed:
+
+- Made `defer` more user-friendly by operating directly on generic `source(audio=pcm('a))`
+  sources. Renamed old `defer` to `defer.pcm_s16`
+- `dtools`, `duppy` and `xmlplaylist` have been moved into the liquidsoap code
+  base and will no longer be developed or required as stand-alone packages (#12582)
+- Changed default value of `metadata.map` `strip` argument to `true` and `insert_missing`
+  to `false` Added `settings.metadata.map.strip` and `settings.metadata.map.insert_missing`
+  configuration keys to revert to previous defaults. (#4447)
+- Made crossfade metadata override dynamic. Some overridden parameters where never effectively
+  applied if they were passed after the start of the crossfade. This should make crossfade behave
+  as expected but may also change some crossfade computations (#4492)
+
+Fixed:
+
+- Do not send empty metadata to shoutcast servers (#4408)
+- Automatically close file descriptor opened via scripted values with a log message
+  warning of file descriptor leaks (#4481)
+- Fixed segfault in new `lufs` C code introduced with release `2.3.2` (#4490)
+
+---
+
+# 2.3.2 (2025-04-01) 🃏
+
+New:
+
+- Added support for multiple metadata fields in
+  ogg and flac metadata
+- Added support for track-level REM ALBUM in cue file parsing
+  (#4381)
+
+Changed:
+
+- Added `"pic"` to list of excluded metadata for automatic charset conversion.
+- Added `settings.charset.max_string_length` setting to prevent automatic charset
+  conversions of strings over that length.
+
+Fixed:
+
+- Optimized CPU usage (#4369, #4370)
+- Fixed empty initial HLS segment (#4401)
+- Fixed support for `duration` metadata in image decoder (#4397)
+- Fixed cue-out bug in cue file parsing (#4381)
+- Bring back parse error location. (#4362)
+- Fixed SRT encoding when restarting a stream with reverse data flow
+  (#4399)
+- Make sure that audioscrobbler `on_track`/`on_end` operations are
+  sent to a asynchronous task queue.
+- Fixed resources accumulation leading to catchup when using `crossfade`
+  (#4419, #4410)
+- Fixed source reselection logic issue that was causing crashes when using
+  `switch` and `fallback` operators (#4420)
+- Fixed self-sync logic with pulse audio outputs (#4429)
+- Fixed script caching on windows.
+
+---
+
+# 2.3.1 (2025-02-05)
+
+New:
+
+- Added support for address resolution preference in SRT (#4317)
+- Added global address resolution settings for SRT and Icecast (#4317)
 - Added support for parsing and rendering XML natively (#4252)
 - Added support for `WAVE_FORMAT_EXTENSIBLE` to the internal
   wav dexcoder.
@@ -16,6 +130,9 @@ Changed:
 
 - Make alsa I/O work with buffer size different than
   liquidsoap internal frame (#4236)
+- Reimplemented CUE file parser in native liquidsoap script,
+  added support for multiple files and EAC non-compliant extension
+  (#1373, #4330)
 - Make `"song"` metadata mapping to `"title"` metadata in
   `input.harbor` disabled when either `"artist"` or `"title"`
   is also passed. Add a configuration key to disable this mechanism.
@@ -23,6 +140,10 @@ Changed:
 - `output.icecast` now re-sends the last metadata when connecting to the
   remote server unless explicitly disabled using the `send_last_metadata_on_connect`
   option (#3906)
+- Add full explicit support for `ipv4` vs. `ipv6` resolution in SRT inputs and outputs,
+  add global `settings.srt.prefer_address` and `settings.icecast.prefer_address` (#4317)
+- Added generic SRT socket get/set API. Added new socket options, including `latency`
+  and `ipv6only`.
 
 Fixed:
 
@@ -397,7 +518,7 @@ Changed:
   into, respectively, `decoder.add`, `decoder.oblivious.add`, `decoder.metadata.add`
 - Deprecated `get_mime`, added `file.mime.libmagic` and `file.mime.cli`, made
   `file.mime` try `file.mime.libmagic` if present and `file.mime.cli` otherwise,
-  changed eturned value when no mime was found to `null()`.
+  changed returned value when no mime was found to `null`.
 - Return a nullable float in `request.duration`.
 - Removed `--list-plugins-json` and `--list-plugins-xml` options.
 - Added `--list-functions-json` option.
@@ -2296,7 +2417,6 @@ New:
   - disk_manyfiles: on disk, a lot of small files
     See documentation for more details.
 - Added EXPERIMENTAL video support:
-
   - Support for ogg/theora file input.
   - Support for ogg/theora file and icecast output
   - Support for SDL output.

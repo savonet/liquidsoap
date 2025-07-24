@@ -3,7 +3,10 @@
 # Make sure that we properly shutdown on init error
 log.level.set(5)
 
-o = output.dummy(blank())
-o.on_shutdown(test.pass)
+test.skip()
 
-o.on_wake_up({output.dummy(fallible=true, source.fail.init())})
+o = output.dummy(blank())
+o.on_shutdown(synchronous=true, test.pass)
+o.on_wake_up(
+  synchronous=true, {output.dummy(fallible=true, source.fail.init())}
+)

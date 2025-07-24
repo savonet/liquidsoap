@@ -27,7 +27,7 @@ end
 s = single(fname)
 s' = single(fname2)
 last = single(id="last", fname)
-last = metadata.map(fun (_) -> [("title", "done")], last)
+last = metadata.map(insert_missing=true, fun (_) -> [("title", "done")], last)
 s = sequence([s, s', s, s', s, last, s, s', s])
 s = f(s)
 done = ref(false)

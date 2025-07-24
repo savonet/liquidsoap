@@ -319,22 +319,20 @@ def channel_radiopilote(~skip=true, name) =
   s = if skip then blank.skip(s, max_blank=10., threshold=-40.) else s end
 
   # Submit new tracks on lastfm
-  s = source.on_metadata(s, lastfm)
+  s.on_metadata(lastfm)
 
   # Tell the system when a new track is played
-  s =
-    source.on_metadata(
-      s,
-      fun (meta) ->
-        process.run(
-          scripts ^
-            "radiopilote-feedback " ^
-            process.quote(meta["canal"]) ^
-            " " ^
-            process.quote(meta["file_id"]) ^
-            "'"
-        )
-    )
+  s.on_metadata(
+    fun (meta) ->
+      process.run(
+        scripts ^
+          "radiopilote-feedback " ^
+          process.quote(meta["canal"]) ^
+          " " ^
+          process.quote(meta["file_id"]) ^
+          "'"
+      )
+  )
 
   # Finally apply a smart crossfading
   crossfade(s)

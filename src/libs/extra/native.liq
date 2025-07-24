@@ -7,7 +7,7 @@ let native = ()
 def native.once(s) =
   # source.available(track_sensitive=true, s, predicate.first({true}))
   a = ref(true)
-  s = source.on_track(s, fun (_) -> a := false)
+  s.on_track(synchronous=true, fun (_) -> a := false)
   source.available(s, a)
 end
 
@@ -16,7 +16,7 @@ end
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
-def native.fallback(~id=null(), ~track_sensitive=true, sources) =
+def native.fallback(~id=null, ~track_sensitive=true, sources) =
   fail = (source.fail() : source)
 
   def s() =
@@ -39,7 +39,7 @@ end
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param sources List of sources to play tracks from.
-def native.sequence(~id=null(), sources) =
+def native.sequence(~id=null, sources) =
   len = list.length(sources)
   n = ref(0)
   fail = source.fail()
@@ -65,7 +65,7 @@ def native.sequence(~id=null(), sources) =
     if first() then first := false else ref.incr(n) end
   end
 
-  s = source.on_track(s, ot)
+  s.on_track(synchronous=true, ot)
   s
 end
 
@@ -76,7 +76,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~track_sensitive Re-select only on end of tracks.
 # @param sources Sources with the predicate telling when they can be played.
-def native.switch(~id=null(), ~track_sensitive=true, sources) =
+def native.switch(~id=null, ~track_sensitive=true, sources) =
   sources = list.map(fun (ps) -> source.available(snd(ps), fst(ps)), sources)
   native.fallback(id=id, track_sensitive=track_sensitive, sources)
 end
@@ -95,7 +95,7 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     try
       f()
     catch _ do
-      null()
+      null
     end
   end
 
@@ -127,7 +127,7 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     list.iter(fun (r) -> ignore(add(r)), l)
   end
 
-  current = ref(null())
+  current = ref(null)
 
   def get_current() =
     if
@@ -136,7 +136,7 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
       s = null.get(current())
       s.request
     else
-      null()
+      null
     end
   end
 

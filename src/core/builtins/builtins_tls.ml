@@ -30,7 +30,7 @@ module Liq_tls = struct
     mutable state : Tls.Engine.state;
   }
 
-  let () = Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna)
+  let () = Mirage_crypto_rng_unix.use_default ()
   let buf_len = 4096
 
   let string_of_alert_level = function

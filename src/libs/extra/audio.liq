@@ -57,7 +57,7 @@ end
 # @category Source / Audio processing
 # @flag extra
 def limit(
-  ~id=null(),
+  ~id=null,
   ~attack=getter(50.),
   ~release=getter(200.),
   ~ratio=getter(20.),
@@ -87,7 +87,7 @@ let limiter = limit
 # @param ~low Lower frequency of the bandpass filter.
 # @param ~high Higher frequency of the bandpass filter.
 # @param ~q Q factor.
-def filter.iir.eq.low_high(~id=null(), ~low, ~high, ~q=1., s) =
+def filter.iir.eq.low_high(~id=null, ~low, ~high, ~q=1., s) =
   s =
     if
       not (getter.is_constant(high) and getter.get(high) == infinity)
@@ -345,7 +345,7 @@ end
 # @category Source / Audio processing
 # @param ~id Force the value of the source ID.
 # @param ~register_server_commands Register corresponding server commands
-def mix(~id=null(), ~register_server_commands=true, sources) =
+def mix(~id=null, ~register_server_commands=true, sources) =
   id = string.id.default(default="mixer", id)
   inputs =
     list.map(
@@ -365,20 +365,19 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
       fun (input) ->
         begin
           s = amplify(input.volume, input.source)
-          s =
-            source.on_track(
-              s, fun (_) -> if input.single() then input.selected := false end
-            )
+          s.on_track(
+            synchronous=true,
+            fun (_) -> if input.single() then input.selected := false end
+          )
 
-          s =
-            source.on_metadata(
-              s,
-              fun (m) ->
-                begin
-                  fn = insert_metadata_fn()
-                  fn(m)
-                end
-            )
+          s.on_metadata(
+            synchronous=true,
+            fun (m) ->
+              begin
+                fn = insert_metadata_fn()
+                fn(m)
+              end
+          )
 
           switch([(input.selected, s)])
         end,
@@ -388,7 +387,6 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
   s = add(sources)
   let {metadata = _, ...tracks} = source.tracks(s)
   s = source(tracks)
-  s = insert_metadata(s)
   insert_metadata_fn := s.insert_metadata
   let {track_marks = _, ...tracks} = source.tracks(s)
   s = source(id=id, tracks)
@@ -579,16 +577,12 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~codec Codec to use for audio (following FFmpeg's conventions).
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
 def output.file.dash(
-  ~id=null(),
+  ~id=null,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   ~codec="libmp3lame",
   ~bitrate=128,
   ~start=true,
@@ -600,8 +594,6 @@ def output.file.dash(
   output.file(
     id=id,
     fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
     start=start,
     enc,
     "#{(directory : string)}/#{playlist}",

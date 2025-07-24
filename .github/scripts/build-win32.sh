@@ -12,7 +12,7 @@ IS_RELEASE="$5"
 GITHUB_SHA="$6"
 
 OPAM_PREFIX="$(opam var prefix)"
-VERSION="$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)"
+VERSION="$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)"
 PWD="$(dirname "$0")"
 BASE_DIR="$(cd "${PWD}/../.." && pwd)"
 COMMIT_SHORT="$(echo "${GITHUB_SHA}" | cut -c-7)"
@@ -45,12 +45,14 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
-opam update windows
+opam update
+
+opam install -y posix-socket.3.0.0 srt-windows.0.3.4 prometheus-app-windows cohttp-lwt-unix-windows ffmpeg-avutil-windows.1.2.5
 
 echo "::endgroup::"
 
 echo "::group::Install liquidsoap-windows"
-opam install -y liquidsoap-core-windows
+opam install -y liquidsoap-windows
 echo "::endgroup::"
 
 echo "::group::Save build config"

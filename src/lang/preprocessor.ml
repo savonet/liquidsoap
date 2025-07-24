@@ -122,8 +122,9 @@ let int_meth tokenizer =
   in
   token
 
-(* Replace DOTVAR v with DOT, VAR v *)
-let dotvar tokenizer =
+(* Replace DOTVAR v with DOT, VAR v
+   and NULLDOT with "_null", DOT *)
+let dotter tokenizer =
   let state = ref None in
   let token () =
     match !state with
@@ -132,6 +133,9 @@ let dotvar tokenizer =
           t
       | None -> (
           match tokenizer () with
+            | Parser.NULLDOT, pos ->
+                state := Some (Parser.DOT, pos);
+                (Parser.VAR "_null", pos)
             | Parser.DOTVAR v, pos ->
                 state := Some (Parser.VAR v, pos);
                 (Parser.DOT, pos)
@@ -140,7 +144,7 @@ let dotvar tokenizer =
   token
 
 (** Change MINUS to UMINUS if the minus is not preceded by a number (or an
-   expression which could produce a number). *)
+    expression which could produce a number). *)
 let uminus tokenizer =
   let no_uminus = ref false in
   let token () =
@@ -189,12 +193,15 @@ let strip_newlines tokenizer =
       | None -> (
           match tokenizer () with
             | Parser.PP_ENDL, _ -> token ()
-            | (Parser.VAR _, _) as v ->
+            | ((Parser.NULL, _) as v)
+            | ((Parser.UNDERSCORE, _) as v)
+            | ((Parser.VAR _, _) as v) ->
                 state := Some v;
                 token ()
             | x -> x)
       | Some ((Parser.VAR var, _) as v) -> inject_varlpar var v
       | Some ((Parser.UNDERSCORE, _) as v) -> inject_varlpar "_" v
+      | Some ((Parser.NULL, _) as v) -> inject_varlpar "_null" v
       | Some x ->
           state := None;
           x
@@ -204,7 +211,7 @@ let strip_newlines tokenizer =
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname lexbuf =
   let tokenizer =
-    mk_tokenizer ?fname lexbuf |> expand_string ?fname |> int_meth |> dotvar
+    mk_tokenizer ?fname lexbuf |> expand_string ?fname |> int_meth |> dotter
     |> uminus |> strip_newlines
   in
   fun () ->

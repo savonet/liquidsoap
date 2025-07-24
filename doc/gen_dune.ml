@@ -2,15 +2,17 @@ module Pcre = Re.Pcre
 
 let generated_md =
   [
-    ("protocols.md", "--list-protocols-md", None);
-    ("reference.md", "--list-functions-md", Some "content/reference-header.md");
+    ("protocols.md", "--list-protocols-md --disable-deprecated", None);
+    ( "reference.md",
+      "--list-functions-md --disable-deprecated",
+      Some "content/reference-header.md" );
     ( "reference-extras.md",
-      "--no-external-plugins --list-extra-functions-md",
+      "--no-external-plugins --list-extra-functions-md --disable-deprecated",
       Some "content/reference-header.md" );
     ( "reference-deprecated.md",
-      "--list-deprecated-functions-md",
+      "--list-deprecated-functions-md --enable-deprecated",
       Some "content/reference-header.md" );
-    ("settings.md", "--list-settings", None);
+    ("settings.md", "--list-settings --disable-deprecated", None);
   ]
 
 let mk_html f =

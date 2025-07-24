@@ -66,24 +66,19 @@ val url_output : format -> bool
 
 val with_url_output : format -> string -> format
 
-(** An encoder, once initialized, is something that consumes
-  * frames, insert metadata and that you eventually close
-  * (triggers flushing).
-  * Insert metadata is really meant for inline metadata, i.e.
-  * in most cases, stream sources. Otherwise, metadata are
-  * passed when creating the encoder. For instance, the mp3
-  * encoder may accept metadata initially and write them as
-  * id3 tags but does not support inline metadata.
-  * Also, the ogg encoder supports inline metadata but restarts
-  * its stream. This is ok, though, because the ogg container/streams
-  * is meant to be sequentialized but not the mp3 format.
-  * header contains data that should be sent first to streaming
-  * client. *)
+(** An encoder, once initialized, is something that consumes frames, insert
+    metadata and that you eventually close (triggers flushing). Insert metadata
+    is really meant for inline metadata, i.e. in most cases, stream sources.
+    Otherwise, metadata are passed when creating the encoder. For instance, the
+    mp3 encoder may accept metadata initially and write them as id3 tags but
+    does not support inline metadata. Also, the ogg encoder supports inline
+    metadata but restarts its stream. This is ok, though, because the ogg
+    container/streams is meant to be sequentialized but not the mp3 format.
+    header contains data that should be sent first to streaming client. *)
 
 type split_result =
   [ (* Returns (flushed, first_bytes_for_next_segment) *)
-    `Ok of
-    Strings.t * Strings.t
+    `Ok of Strings.t * Strings.t
   | `Nope of Strings.t ]
 
 (* Raised by [init_encode] if more data is needed. *)
@@ -109,7 +104,7 @@ type hls = {
 val dummy_hls : (Frame.t -> Strings.t) -> hls
 
 type encoder = {
-  insert_metadata : Frame.Metadata.Export.t -> unit;
+  encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   hls : hls;
   encode : Frame.t -> Strings.t;
@@ -119,8 +114,8 @@ type encoder = {
 type factory =
   ?hls:bool -> pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 
-(** A plugin might or might not accept a given format.
-  * If it accepts it, it gives a function creating suitable encoders. *)
+(** A plugin might or might not accept a given format. If it accepts it, it
+    gives a function creating suitable encoders. *)
 type plugin = format -> factory option
 
 val plug : plugin Plug.t

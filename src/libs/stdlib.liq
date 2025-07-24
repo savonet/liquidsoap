@@ -24,6 +24,7 @@
 %include "fades.liq"
 %include "autocue.liq"
 %include "replaygain.liq"
+%include "lufs.liq"
 %include "http_codes.liq"
 %include "http.liq"
 %include "protocols.liq"

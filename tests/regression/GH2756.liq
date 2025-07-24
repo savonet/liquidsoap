@@ -1,9 +1,9 @@
 def f() =
   tmp = file.temp("foo", "bla")
   on_cleanup({file.remove(tmp)})
-  s = insert_metadata(sine())
+  s = sine()
   insert_metadata = s.insert_metadata
-  err = ref(null())
+  err = ref(null)
 
   def on_frame() =
     null.case(
@@ -11,13 +11,13 @@ def f() =
       {()},
       fun (e) ->
         begin
-          err := null()
+          err := null
           error.raise(e)
         end
     )
   end
 
-  s = source.on_frame(s, on_frame)
+  s.on_frame(on_frame)
   reopen_when_ref = ref(true)
   reopen_delay = ref(120.)
   callstack = ref([])

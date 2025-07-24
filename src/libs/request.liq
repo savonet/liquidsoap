@@ -32,12 +32,12 @@ end
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
 def request.queue(
-  ~id=null(),
+  ~id=null,
   ~interactive=true,
-  ~prefetch=null(),
+  ~prefetch=null,
   ~native=false,
   ~queue=[],
-  ~timeout=null()
+  ~timeout=null
 ) =
   ignore(native)
   id = string.id.default(default="request.queue", id)
@@ -54,7 +54,7 @@ def request.queue(
       queue := q
       (r : request)
     else
-      null()
+      null
     end
   end
 
@@ -134,6 +134,7 @@ def request.queue(
     }
 
   s.on_wake_up(
+    synchronous=true,
     fun () ->
       begin
         started := true
@@ -142,7 +143,6 @@ def request.queue(
       end
   )
 
-  source.set_name(s, "request.queue")
   fetch := s.fetch
 
   if
@@ -215,11 +215,7 @@ end
 # @category Source / Input
 # @param ~timeout Timeout in seconds for resolving the request.
 # @param r Request to play.
-def request.once(
-  ~id=null("request.once"),
-  ~timeout=null(),
-  r
-) =
+def request.once(~id=null("request.once"), ~timeout=null, r) =
   id = string.id.default(default="request.once", id)
 
   done = ref(false)
@@ -229,7 +225,7 @@ def request.once(
     if
       done()
     then
-      null()
+      null
     else
       done := true
       if
@@ -264,9 +260,9 @@ end
 # @param r Request
 def request.single(
   ~id=null("request.single"),
-  ~prefetch=null(),
-  ~timeout=null(),
-  ~fallible=null(),
+  ~prefetch=null,
+  ~timeout=null,
+  ~fallible=null,
   r
 ) =
   id = string.id.default(default="single", id)
@@ -304,7 +300,7 @@ def request.single(
     )
   end
 
-  static_request = ref(null())
+  static_request = ref(null)
 
   def on_wake_up(s) =
     if
@@ -338,7 +334,7 @@ def request.single(
     then
       request.destroy(null.get(static_request()))
     end
-    static_request := null()
+    static_request := null
   end
 
   def next() =
@@ -346,12 +342,7 @@ def request.single(
   end
 
   def mk_source(id) =
-    request.dynamic(
-      id=id,
-      prefetch=prefetch,
-      synchronous=infallible,
-      next
-    )
+    request.dynamic(id=id, prefetch=prefetch, synchronous=infallible, next)
   end
 
   # We want to mark infallible source as such. `source.dynamic` is a nice
@@ -369,8 +360,8 @@ def request.single(
       mk_source(id)
     end
 
-  s.on_wake_up(fun () -> on_wake_up(s))
-  s.on_shutdown(on_shutdown)
+  s.on_wake_up(synchronous=true, fun () -> on_wake_up(s))
+  s.on_shutdown(synchronous=true, on_shutdown)
   (s : source_methods)
 end
 
@@ -428,32 +419,40 @@ def request.player(~simultaneous=true) =
     simultaneous
   then
     l = ref([])
+    s = ref(add(normalize=false, l()))
 
     # Perform some garbage collection in order to avoid that the list grows too
     # much.
-    def collect() =
+    def collect(~reload_source) =
+      len = list.length(l())
       l := list.filter(source.is_ready, l())
+      if
+        reload_source and list.length(l()) != len
+      then
+        s := add(normalize=false, l())
+      end
     end
 
     def play(r) =
-      collect()
-      l := request.once(r)::l()
+      collect(reload_source=false)
+      l := [request.once(r), ...l()]
+      s := add(normalize=false, l())
     end
 
-    source.dynamic({add(normalize=false, l())}).{
+    source.dynamic(s).{
       play=play,
       length=
         {
-          collect()
+          collect(reload_source=true)
           list.length(l())
         }
     }
   else
-    next_source = ref(null())
+    next_source = ref(null)
 
     def next() =
       s = next_source()
-      next_source := null()
+      next_source := null
       s
     end
 

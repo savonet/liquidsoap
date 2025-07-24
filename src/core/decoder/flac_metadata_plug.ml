@@ -28,10 +28,15 @@ let mime_types =
     "Mime-types used for decoding metadata using native FLAC metadata parser."
     ~d:["audio/flac"]
 
-let conf_id3 =
+let conf_flac =
   Dtools.Conf.void
     ~p:(Decoder.conf_decoder#plug "flac_metadata")
     "Native FLAC metadata parser settings."
+
+let conf_separator =
+  Dtools.Conf.string ~d:", "
+    ~p:(conf_flac#plug "separator")
+    "Separator used to join metadata field with several entries."
 
 let file_extensions =
   Dtools.Conf.list
@@ -51,7 +56,15 @@ let get_tags ~metadata:_ ~extension ~mime parse fname =
         (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
            ~extensions:(Some file_extensions#get) fname)
     then raise Metadata.Invalid;
-    parse fname
+    let m = parse fname in
+    let sep = conf_separator#get in
+    List.fold_left
+      (fun m (key, new_entry) ->
+        try
+          let old_entry = List.assoc key m in
+          (key, old_entry ^ sep ^ new_entry) :: List.remove_assoc key m
+        with Not_found -> (key, new_entry) :: m)
+      [] m
   with
     | Metadata.Invalid -> []
     | e ->

@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Source
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = Queues.Queue
 
 let conf_prefetch =
   Dtools.Conf.int ~p:(Request.conf#plug "prefetch") ~d:1 "Default prefetch"
@@ -258,7 +258,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
             | _ -> assert false)
 
     (** This method should be called whenever the feeding task has a new
-      opportunity to feed the queue, in case it is sleeping. *)
+        opportunity to feed the queue, in case it is sleeping. *)
     method private notify_new_request =
       match Atomic.get state with
         | `Started (d, { notify }) when d <= Unix.gettimeofday () -> notify ()
@@ -380,66 +380,87 @@ let _ =
     ]
     ~meth:
       [
-        ( "fetch",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Try feeding the queue with a new request. Returns `true` if \
-           successful. This method can take long to return and should usually \
-           be run in a separate thread.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match s#fetch with
-                  | `Finished -> Lang.bool true
-                  | `Retry ->
-                      log#important "Fetch failed";
-                      Lang.bool false) );
-        ( "queue",
-          ([], Lang.fun_t [] (Lang.list_t Request.Value.t)),
-          "Get the requests currently in the queue.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                let requests =
-                  List.map
-                    (fun r -> Request.Value.to_value r.request)
-                    (Queue.elements s#queue)
-                in
-                Lang.list requests) );
-        ( "add",
-          ([], Lang.fun_t [(false, "", Request.Value.t)] Lang.bool_t),
-          "Add a request to the queue. Requests are resolved before being \
-           added. Returns `true` if the request was successfully added.",
-          fun s ->
-            Lang.val_fun
-              [("", "", None)]
-              (fun p ->
-                Lang.bool
-                  (s#add
-                     {
-                       request = Request.Value.of_value (List.assoc "" p);
-                       expired = false;
-                     })) );
-        ( "set_queue",
-          ([], Lang.fun_t [(false, "", Lang.list_t Request.Value.t)] Lang.unit_t),
-          "Set the queue of requests. Requests are resolved before being added \
-           to the queue. You are responsible for destroying the requests \
-           currently in the queue.",
-          fun s ->
-            Lang.val_fun
-              [("", "", None)]
-              (fun p ->
-                let l =
-                  List.map Request.Value.of_value
-                    (Lang.to_list (List.assoc "" p))
-                in
-                s#set_queue l;
-                Lang.unit) );
-        ( "current",
-          ([], Lang.fun_t [] (Lang.nullable_t Request.Value.t)),
-          "Get the request currently being played.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match s#current with
-                  | None -> Lang.null
-                  | Some c -> Request.Value.to_value c.req) );
+        {
+          name = "fetch";
+          scheme = ([], Lang.fun_t [] Lang.bool_t);
+          descr =
+            "Try feeding the queue with a new request. Returns `true` if \
+             successful. This method can take long to return and should \
+             usually be run in a separate thread.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  match s#fetch with
+                    | `Finished -> Lang.bool true
+                    | `Retry ->
+                        log#important "Fetch failed";
+                        Lang.bool false));
+        };
+        {
+          name = "queue";
+          scheme = ([], Lang.fun_t [] (Lang.list_t Request.Value.t));
+          descr = "Get the requests currently in the queue.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  let requests =
+                    List.map
+                      (fun r -> Request.Value.to_value r.request)
+                      (Queue.elements s#queue)
+                  in
+                  Lang.list requests));
+        };
+        {
+          name = "add";
+          scheme = ([], Lang.fun_t [(false, "", Request.Value.t)] Lang.bool_t);
+          descr =
+            "Add a request to the queue. Requests are resolved before being \
+             added. Returns `true` if the request was successfully added.";
+          value =
+            (fun s ->
+              Lang.val_fun
+                [("", "", None)]
+                (fun p ->
+                  Lang.bool
+                    (s#add
+                       {
+                         request = Request.Value.of_value (List.assoc "" p);
+                         expired = false;
+                       })));
+        };
+        {
+          name = "set_queue";
+          scheme =
+            ( [],
+              Lang.fun_t [(false, "", Lang.list_t Request.Value.t)] Lang.unit_t
+            );
+          descr =
+            "Set the queue of requests. Requests are resolved before being \
+             added to the queue. You are responsible for destroying the \
+             requests currently in the queue.";
+          value =
+            (fun s ->
+              Lang.val_fun
+                [("", "", None)]
+                (fun p ->
+                  let l =
+                    List.map Request.Value.of_value
+                      (Lang.to_list (List.assoc "" p))
+                  in
+                  s#set_queue l;
+                  Lang.unit));
+        };
+        {
+          name = "current";
+          scheme = ([], Lang.fun_t [] (Lang.nullable_t Request.Value.t));
+          descr = "Get the request currently being played.";
+          value =
+            (fun s ->
+              Lang.val_fun [] (fun _ ->
+                  match s#current with
+                    | None -> Lang.null
+                    | Some c -> Request.Value.to_value c.req));
+        };
       ]
     ~return_t
     (fun p ->

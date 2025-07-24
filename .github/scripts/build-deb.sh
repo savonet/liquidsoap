@@ -2,15 +2,6 @@
 
 set -e
 
-GITHUB_SHA="$1"
-BRANCH="$2"
-DOCKER_TAG="$3"
-PLATFORM="$4"
-IS_ROLLING_RELEASE="$5"
-IS_RELEASE="$6"
-MINIMAL_EXCLUDE_DEPS="$7"
-DEB_RELEASE=1
-
 ARCH=$(dpkg --print-architecture)
 
 COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
@@ -25,7 +16,7 @@ eval "$(opam config env)"
 OCAMLPATH="$(cat ../.ocamlpath)"
 export OCAMLPATH
 
-LIQ_VERSION=$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)
+LIQ_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
 LIQ_TAG=$(echo "${DOCKER_TAG}" | sed -e 's#_#-#g')
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
@@ -56,9 +47,9 @@ echo "::endgroup::"
 if [ "${PLATFORM}" = "amd64" ]; then
   echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-  ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+  ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
-  mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+  mv /tmp/liquidsoap-full/*.deb "${LIQ_TMP_DIR}"
 fi
 
 echo "::endgroup::"
@@ -66,7 +57,7 @@ echo "::endgroup::"
 echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 
 # shellcheck disable=SC2086
-opam remove -y --verbose $MINIMAL_EXCLUDE_DEPS
+opam remove -y --verbose --assume-depexts $MINIMAL_EXCLUDE_DEPS
 
 cd /tmp/liquidsoap-full
 make clean
@@ -98,12 +89,12 @@ echo "::endgroup::"
 if [ "${PLATFORM}" = "amd64" ]; then
   echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-  ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+  ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
   echo "::endgroup::"
 fi
 
-mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+mv /tmp/liquidsoap-full/*.deb "${LIQ_TMP_DIR}"
 
 {
   echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"

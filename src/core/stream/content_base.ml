@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 type 'a chunk = { data : 'a; offset : int; length : int option }
-type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
+type ('a, 'b) chunks = { params : 'a; mutable chunks : 'b chunk list }
 
 module Contents = struct
   type format_content
@@ -82,7 +82,6 @@ module type Content = sig
   val is_data : Contents.data -> bool
   val lift_data : ?offset:int -> ?length:int -> data -> Contents.data
   val get_data : Contents.data -> data
-  val get_chunked_data : Contents.data -> (params, data) chunks
   val is_format : Contents.format -> bool
   val lift_params : params -> Contents.format
   val get_params : Contents.format -> params
@@ -165,7 +164,6 @@ let parse_param kind label value =
   with Parsed_format p -> p
 
 type data_handler = {
-  fill : data -> int -> data -> int -> int -> unit;
   sub : data -> int -> int -> data;
   truncate : data -> int -> data;
   _length : data -> int;
@@ -177,7 +175,6 @@ type data_handler = {
 
 let dummy_handler =
   {
-    fill = (fun _ _ _ _ _ -> raise Invalid);
     sub = (fun _ _ _ -> raise Invalid);
     truncate = (fun _ _ -> raise Invalid);
     _length = (fun _ -> raise Invalid);
@@ -196,7 +193,6 @@ let register_data_handler t h =
 
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ?length k = (get_format_handler k).make length
-let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
 let truncate d = (get_data_handler d).truncate d
 let is_empty c = (get_data_handler c).is_empty c
@@ -317,16 +313,6 @@ module MkContentBase (C : ContentSpecs) :
     let d' = of_content d' in
     to_content { d with chunks = d.chunks @ d'.chunks }
 
-  let fill src src_pos dst dst_pos len =
-    let src = of_content src in
-    let dst = of_content dst in
-    dst.params <- src.params;
-    let dst_len = length dst in
-    dst.chunks <-
-      (sub dst 0 dst_pos).chunks @ (sub src src_pos len).chunks
-      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
-    assert (dst_len = length dst)
-
   let consolidate_chunks =
     let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
       let length = chunk_length chunk in
@@ -434,7 +420,6 @@ module MkContentBase (C : ContentSpecs) :
     Queue.push format_of_string format_parsers;
     let data_handler =
       {
-        fill;
         sub = (fun d ofs len -> to_content (sub (of_content d) ofs len));
         truncate = (fun d len -> to_content (truncate (of_content d) len));
         is_empty = (fun d -> is_empty (of_content d));
@@ -449,10 +434,8 @@ module MkContentBase (C : ContentSpecs) :
   let lift_data ?(offset = 0) ?length d =
     to_content { params = C.params d; chunks = [{ offset; length; data = d }] }
 
-  let get_chunked_data = of_content
-
   let get_data d =
-    let d = get_chunked_data d in
+    let d = of_content d in
     match (consolidate_chunks ~copy:false d).chunks with
       | [] -> C.make ~length:0 d.params
       | [{ data }] -> data

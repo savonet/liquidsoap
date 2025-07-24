@@ -108,7 +108,7 @@ let store ~dirtype filename value =
               | `System -> !system_file_perms
           in
           let tmp_file, oc =
-            Filename.open_temp_file
+            Filename.open_temp_file ~mode:[Open_binary]
               ~temp_dir:(Filename.dirname filename)
               ~perms "tmp" ".liq-cache"
           in
@@ -118,11 +118,16 @@ let store ~dirtype filename value =
               if Sys.file_exists tmp_file then Sys.remove tmp_file)
             (fun () ->
               Marshal.to_channel oc value [Marshal.Closures];
+              close_out_noerr oc;
               Sys.rename tmp_file filename);
           let fn = !Hooks.cache_maintenance in
           fn dirtype
   with exn ->
-    Startup.message "Error while saving cache: %s" (Printexc.to_string exn)
+    let bt = Printexc.get_backtrace () in
+    let exn = Printexc.to_string exn in
+    if Sys.getenv_opt "LIQ_DEBUG_CACHE" <> None then
+      Startup.message "Error while loading cache: %s\n%s" exn bt
+    else Startup.message "Error while loading cache: %s" exn
 
 (** A key-value table in cache. *)
 module Table = struct

@@ -58,6 +58,112 @@ def f() =
   test.equal(fn({gni=1}), {foo=1})
   test.equal(fn({gni="aabb"}), {foo="aabb"})
 
+  # Ignored anonymous argument
+  def f(_) =
+    123
+  end
+  # f : ('a) -> int = fun (_) -> 123
+
+  # Typed anonymous argument
+  def f((foo:int)) =
+    foo
+  end
+  # f : (int) -> int = <fun>
+
+  # Anonymous argument with default value
+  def f(foo=123) =
+    foo
+  end
+  # f : (?int) -> int = <fun>
+
+  # Typed ignored anonymous argument
+  def f((_:int)) =
+    123
+  end
+  # f : (int) -> int = fun (_) -> 123
+
+  # Typed anonymous argument with default value
+  def f((foo:int)=123) =
+    foo
+  end
+  # f : (?int) -> int = <fun>
+
+  # Ignored anonymous argument with default value
+  def f(_=123) =
+    456
+  end
+  # f : (?int) -> int = fun (_=123) -> 456
+
+  # Typed ignored anonymous argument with default value
+  def f((_:int)=123) =
+    456
+  end
+  # f : (?int) -> int = fun (_=123) -> 456
+
+  # Typed named argument
+  def f(~(foo:int)) =
+    foo
+  end
+  # f : (foo : int) -> int = <fun>
+
+  # Named argument with rename
+  def f(~foo:bla) =
+    bla
+  end
+  # f : (foo : 'a) -> 'a = <fun>
+
+  # Ignored named argument
+  def f(~foo:_) =
+    123
+  end
+  # f : (foo : 'a) -> int = fun (~foo=_) -> 123
+
+  # Named argument with default value
+  def f(~foo=123) =
+    foo
+  end
+  # f : (?foo : int) -> int = <fun>
+
+  # Typed named argument with rename
+  def f(~foo:(bla:int)) =
+    bla
+  end
+  # f : (foo : int) -> int = <fun>
+
+  # Typed named argument with default value
+  def f(~(foo:int)=123) =
+    foo
+  end
+  # f : (?foo : int) -> int = <fun>
+
+  # Typed named argument with rename and default value
+  def f(~foo:(bla:int)=123) =
+    bla
+  end
+  # f : (?foo : int) -> int = <fun>
+
+  # Typed ignored named argument with default value
+  def f(~foo:(_:int)=123) =
+    456
+  end
+  # f : (?foo : int) -> int = fun (~foo=123) -> 456
+
+  # Ignored argument with default value
+  def f(~foo:_=123) =
+    456
+  end
+  # f : (?foo : int) -> int = fun (~foo=123) -> 456
+
+  x = 123
+  def f({foo}, [a, b], ~x:{gni}) =
+    test.equal(foo, 123)
+    test.equal(a, "aaa")
+    test.equal(b, "bbb")
+    test.equal(x, 123)
+    test.equal(gni, 3.14)
+  end
+  f({foo=123}, ["aaa", "bbb"], x={gni=3.14})
+
   test.pass()
 end
 

@@ -302,12 +302,12 @@ let audio_n ?(pcm_kind = Content_audio.kind) n =
   Type.make
     (descr
        (`Format
-         (Frame_base.audio_format ~pcm_kind
-            {
-              channel_layout =
-                Lazy.from_val
-                  (Audio_converter.Channel_layout.layout_of_channels n);
-            })))
+          (Frame_base.audio_format ~pcm_kind
+             {
+               channel_layout =
+                 Lazy.from_val
+                   (Audio_converter.Channel_layout.layout_of_channels n);
+             })))
 
 let audio_mono ?pcm_kind () = audio_n ?pcm_kind 1
 let audio_stereo ?pcm_kind () = audio_n ?pcm_kind 2

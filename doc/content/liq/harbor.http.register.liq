@@ -1,4 +1,5 @@
 path = "/bla"
+
 # BEGIN
 def handler(request, response) =
   log(

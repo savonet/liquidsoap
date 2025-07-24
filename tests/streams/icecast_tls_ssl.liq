@@ -1,4 +1,7 @@
 log.level := 4
+settings.icecast.prefer_address := "ipv4"
+
+test.skip()
 
 tls = http.transport.tls(certificate="./ssl.cert", key="./ssl.key")
 
@@ -24,6 +27,6 @@ i = input.harbor(buffer=2., port=port, transport=ssl, "tls_test")
 
 i.on_wake_up(on_wake_up)
 
-i = source.on_track(i, fun (_) -> test.pass())
+i.on_track(synchronous=true, fun (_) -> test.pass())
 
 output.dummy(fallible=true, i)

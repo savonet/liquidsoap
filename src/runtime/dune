@@ -6,6 +6,7 @@
   liquidsoap_core
   liquidsoap_optionals
   liquidsoap_builtins
+  liquidsoap_tooling
   (select
    runner.ml
    from

@@ -8,9 +8,9 @@ let rec append_ref =
   | tm ->
       Term.make ?pos:tm.t.Type.pos
         (`Seq
-          ( tm,
-            Term.make ?pos:tm.t.Type.pos
-              (`Cache_env (ref { var_name = 0; var_id = 0; env = [] })) ))
+           ( tm,
+             Term.make ?pos:tm.t.Type.pos
+               (`Cache_env (ref { var_name = 0; var_id = 0; env = [] })) ))
 
 let rec extract_ref =
   let open Runtime_term in
@@ -46,25 +46,29 @@ let rec prepend_parsed_stdlib =
         { tm with term = `Seq (t1, prepend_parsed_stdlib ~parsed_term t2) }
     | tm -> Parsed_term.make ~pos:tm.pos (`Seq (tm, parsed_term))
 
-(** To be cacheable, the standard library is parsed and converted to a term.
-    We add [`Cache_env] to it and type-check it. This results in having the full
-    standard library env stored in it. We can then cache this term and retrieve the full
-    env using it. Next, we append the user script to the resulting term and typecheck
-    the user script only using the standard library environment. *)
-let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
-  let libs =
-    match libs with
-      | Some libs -> libs
-      | None -> Runtime.libs ~error_on_no_stdlib ~deprecated ()
+(** To be cacheable, the standard library is parsed and converted to a term. We
+    add [`Cache_env] to it and type-check it. This results in having the full
+    standard library env stored in it. We can then cache this term and retrieve
+    the full env using it. Next, we append the user script to the resulting term
+    and typecheck the user script only using the standard library environment.
+*)
+let prepare ~stdlib ~cache ~error_on_no_stdlib ~deprecated parsed_term =
+  let stdlib =
+    match stdlib with
+      | Some stdlib -> stdlib
+      | None ->
+          let dir = !Hooks.liq_libs_dir () in
+          Filename.concat dir "stdlib.liq"
   in
+  let libs = Runtime.libs ~stdlib ~error_on_no_stdlib ~deprecated () in
   let script = List.fold_left (Printf.sprintf "%s\n%%include %S") "" libs in
   let lexbuf = Sedlexing.Utf8.from_string script in
   let parsed_stdlib, stdlib =
-    Runtime.report
+    Runtime.report ~lexbuf:(Some lexbuf)
       ~default:(fun () -> raise Runtime.Error)
-      (fun ~throw:_ () ->
+      (fun ~throw () ->
         let parsed_stdlib = Term_reducer.mk_expr Term_reducer.program lexbuf in
-        (parsed_stdlib, Term_reducer.to_term parsed_stdlib))
+        (parsed_stdlib, Term_reducer.to_term ~throw parsed_stdlib))
   in
   let append () =
     let stdlib = append_ref stdlib in
@@ -76,9 +80,9 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
     Atomic.set Type_base.var_name_atom var_name;
     Atomic.set Type_base.var_id_atom var_id;
     let checked_term =
-      Runtime.report
+      Runtime.report ~lexbuf:None
         ~default:(fun () -> raise Runtime.Error)
-        (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
+        (fun ~throw () -> Term_reducer.to_term ~throw parsed_term)
     in
     let full_term = prepend_stdlib ~term:checked_term stdlib in
     { Runtime.checked_term; full_term; env }

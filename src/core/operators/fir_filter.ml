@@ -91,7 +91,8 @@ class fir (source : source) freq beta numcoeffs =
             !t.(s + i) <- !d.(s + (2 * i));
 
             (* even *)
-            !t.(s + h + i) <- !d.(s + (2 * i) + 1) (* odd  *)
+            !t.(s + h + i) <- !d.(s + (2 * i) + 1)
+            (* odd  *)
           done;
           fft d t s h;
           fft d t (s + h) h;

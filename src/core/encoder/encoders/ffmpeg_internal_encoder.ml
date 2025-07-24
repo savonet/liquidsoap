@@ -294,11 +294,14 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
         ~sample_format:target_sample_format ~frame_size
         (Av.write_frame ?on_keyframe stream)
     with e ->
+      let bt = Printexc.get_raw_backtrace () in
       log#severe "Error writing audio frame: %s." (Printexc.to_string e);
-      raise e
+      Printexc.raise_with_backtrace e bt
   in
 
-  let encode frame = List.iter write_frame (converter frame) in
+  let encode frame =
+    if 0 < Frame.position frame then List.iter write_frame (converter frame)
+  in
 
   {
     Ffmpeg_encoder_common.mk_stream;
@@ -524,7 +527,10 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     match mode with `Internal -> internal_converter | `Raw -> raw_converter
   in
 
-  let encode = converter fps_converter in
+  let encode =
+    let convert = converter fps_converter in
+    fun frame -> if 0 < Frame.position frame then convert frame
+  in
 
   {
     Ffmpeg_encoder_common.mk_stream;

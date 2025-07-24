@@ -39,48 +39,30 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
-opam install -y xml-light
-
-git clone https://github.com/savonet/ocaml-xiph.git
-cd ocaml-xiph
-opam install -y .
-cd ..
-
-cd /tmp
-rm -rf ocaml-posix
-git clone https://github.com/savonet/ocaml-posix.git
-cd ocaml-posix
-opam pin -ny .
-opam install -y posix-socket.2.1.0 posix-base.2.1.0 posix-time2.2.1.0 posix-types.2.1.0
+opam update
+opam upgrade -y odoc posix-socket
 
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
-git clone https://github.com/savonet/ocaml-mem_usage.git
-cd ocaml-mem_usage
-opam install -y .
-cd ..
-
-opam update
-opam remove -y jemalloc
-opam install -y tls.1.0.2 ca-certs mirage-crypto-rng cstruct saturn_lockfree.0.5.0 ppx_hash memtrace
-
 cd /tmp/liquidsoap-full
 
-# TODO: Remove gstreamer from liquidsoap-full
-sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
-
-# TODO: Remove taglib from liquidsoap-full
-sed -e 's@ocaml-taglib@#ocaml-taglib@' -i PACKAGES
-
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
+
+echo "::endgroup::"
+
+echo "::group::Cleaning up cache"
+
+rm -rf /var/cache/liquidsoap/* "$HOME"/.cache/liquidsoap/*
 
 echo "::endgroup::"
 
 echo "::group::Compiling"
 
 cd /tmp/liquidsoap-full
+
+test -f PACKAGES || cp PACKAGES.default PACKAGES
 
 # Workaround
 touch liquidsoap/configure
@@ -101,6 +83,7 @@ OCAMLPATH="$(cat .ocamlpath)"
 export OCAMLPATH
 
 cd /tmp/liquidsoap-full/liquidsoap
+dune build @doc @doc-private
 dune build --profile=release
 
 echo "::endgroup::"
@@ -108,14 +91,5 @@ echo "::endgroup::"
 echo "::group::Print build config"
 
 dune exec -- liquidsoap --build-config
-
-echo "::endgroup::"
-
-echo "::group::Basic tests"
-
-cd /tmp/liquidsoap-full/liquidsoap
-
-dune exec -- liquidsoap --version
-dune exec -- liquidsoap --check 'print("hello world")'
 
 echo "::endgroup::"

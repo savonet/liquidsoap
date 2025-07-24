@@ -252,7 +252,7 @@ def f() =
       "HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n"
     )
     req.socket.close()
-    null()
+    null
   end
 
   harbor.http.register.simple("/custom", port=3456, handler)
@@ -292,7 +292,7 @@ def f() =
   end
 
   # Response ended
-  read = ref(fun (~timeout=_) -> error.raise(error.assertion))
+  read = ref(fun (~timeout:_) -> error.raise(error.assertion))
 
   def handler(req, _) =
     read := req.data
@@ -314,7 +314,8 @@ def f() =
   end
 
   # Register output on the same port
-  output.harbor(port=4455, mount="bla.wav", on_start=test.pass, %wav, sine())
+  o = output.harbor(port=4455, mount="bla.wav", %wav, sine())
+  o.on_start(synchronous=true, test.pass)
 end
 
 test.check(f)

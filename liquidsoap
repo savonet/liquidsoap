@@ -4,4 +4,4 @@
 DIR="$(dirname "$0")"
 export DIR
 
-opam exec dune -- exec --display=quiet --no-print-directory --root="$DIR" src/bin/liquidsoap.exe -- --stdlib "$DIR"/src/libs/stdlib.liq $@
+opam exec dune -- exec --display=quiet --no-print-directory --root="$DIR" src/bin/liquidsoap.exe -- --disable-deprecated --stdlib "$DIR"/src/libs/stdlib.liq "$@"

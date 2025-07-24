@@ -12,10 +12,7 @@ let () =
   (* Track marks outside of the declared length should be ignored. *)
   Track_marks.set_data c' (marks 10);
   assert (Track_marks.get_data c' = marks 10);
-  assert (Track_marks.get_data (Content.sub c 5 10) = List.init 10 (fun x -> x));
-  Track_marks.set_data c' [];
-  Content.fill c' 0 c 5 10;
-  assert (Track_marks.get_data c = marks 5 @ marks ~offset:15 (1000 - 15))
+  assert (Track_marks.get_data (Content.sub c 5 10) = List.init 10 (fun x -> x))
 
 (* Test metadata uniqueness. *)
 let () =
@@ -50,45 +47,11 @@ let () =
   let data = Content.append fst snd in
   let data = Content.append data thrd in
   assert (Content.length data = length);
-  let final = Content.make ~length Content.(default_format Video.kind) in
-  Content.fill data 0 final 0 length;
   let data = Content.Video.get_data data in
-  let final = Content.Video.get_data final in
   assert (List.length data.Content.Video.data = 1);
-  assert (List.length final.Content.Video.data = 1);
-  assert (
-    compare_image
-      (List.hd data.Content.Video.data)
-      (List.hd final.Content.Video.data));
   let fst = Content.Video.get_data fst in
   assert (List.length fst.Content.Video.data = 1);
   assert (
     compare_image
       (List.hd fst.Content.Video.data)
-      (List.hd final.Content.Video.data))
-
-(* Another content test boundary.
-   We create a source of 1 and a source of length 2 * Frame.size - 1
-   and a destination of 2 * Frame.size and fill the source into destination.
-   The second chunk should have enough data to fill the destination. *)
-let () =
-  let size = Lazy.force Frame.size in
-  let src = Content.make ~length:1 Content.(default_format Video.kind) in
-  let src =
-    Content.append src
-      (Content.make
-         ~length:((2 * size) - 1)
-         Content.(default_format Video.kind))
-  in
-  let dst =
-    Content.make ~length:(2 * size) Content.(default_format Video.kind)
-  in
-  Content.fill src 0 dst 0 (2 * size);
-  let src = Content.Video.get_data src in
-  let dst = Content.Video.get_data dst in
-  assert (
-    List.length src.Content.Video.data = List.length dst.Content.Video.data);
-  List.iteri
-    (fun pos d ->
-      assert (compare_image d (List.nth dst.Content.Video.data pos)))
-    src.Content.Video.data
+      (List.hd data.Content.Video.data))

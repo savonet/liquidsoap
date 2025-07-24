@@ -110,8 +110,8 @@ class virtual base ~name tracks =
             Frame.set_all_metadata buf metadata
   end
 
-(** Add/mix several sources together.
-  * If [renorm], renormalize the PCM channels. *)
+(** Add/mix several sources together. If [renorm], renormalize the PCM channels.
+*)
 class audio_add ~renorm ~power ~field tracks =
   object (self)
     inherit base ~name:"audio.add" tracks

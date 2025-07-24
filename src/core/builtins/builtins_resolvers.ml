@@ -106,6 +106,22 @@ let _ =
       if reentrant then reentrant_decoders := format :: !reentrant_decoders;
       Lang.unit)
 
+let _ =
+  Lang.add_builtin ~base:Builtins_sys.playlist_parse "get_file"
+    ~category:`Liquidsoap ~descr:"Resolve a uri relative to a given pwd."
+    [
+      ( "pwd",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Current directory to use for relative file path." );
+      ("", Lang.string_t, None, Some "URI");
+    ]
+    Lang.string_t
+    (fun p ->
+      let pwd = Lang.to_valued_option Lang.to_string (List.assoc "pwd" p) in
+      let uri = Lang.to_string (List.assoc "" p) in
+      Lang.string (Playlist_parser.get_file ?pwd uri))
+
 let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
   let return_t = Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t) in
   Lang.add_builtin ~base:Builtins_sys.playlist_parse name ~category:`Liquidsoap
@@ -141,10 +157,8 @@ let _ =
       "Register a new playlist parser. An empty playlist is considered as a \
        failure to resolve."
     [
-      ( "format",
-        Lang.string_t,
-        None,
-        Some "Playlist format. If possible, a mime-type." );
+      ("name", Lang.string_t, None, Some "User-friendly format name");
+      ("mimes", Lang.(list_t string_t), None, Some "Supported mime formats.");
       ( "strict",
         Lang.bool_t,
         None,
@@ -153,7 +167,10 @@ let _ =
     ]
     Lang.unit_t
     (fun p ->
-      let format = Lang.to_string (List.assoc "format" p) in
+      let name = Lang.to_string (List.assoc "name" p) in
+      let mimes =
+        List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
+      in
       let strict = Lang.to_bool (List.assoc "strict" p) in
       let fn = List.assoc "" p in
       let fn ?pwd uri =
@@ -171,8 +188,8 @@ let _ =
             (Lang.to_metadata_list m, Lang.to_string s))
           ret
       in
-      Plug.register Playlist_parser.parsers format ~doc:""
-        { Playlist_parser.strict; Playlist_parser.parser = fn };
+      Plug.register Playlist_parser.parsers name ~doc:""
+        { Playlist_parser.mimes; strict; parser = fn };
       Lang.unit)
 
 let default_static =

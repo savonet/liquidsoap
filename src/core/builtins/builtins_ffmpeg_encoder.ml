@@ -267,10 +267,10 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
           let params =
             Some
               (`Video
-                {
-                  Ffmpeg_copy_content.avg_frame_rate = Some target_frame_rate;
-                  params = Avcodec.params encoder;
-                })
+                 {
+                   Ffmpeg_copy_content.avg_frame_rate = Some target_frame_rate;
+                   params = Avcodec.params encoder;
+                 })
           in
           let effective_t =
             Type.make
@@ -556,8 +556,8 @@ let mk_encoder mode =
 
          let consumer =
            new Producer_consumer.consumer
-             ~write_frame:encode_frame ~name:(id ^ ".consumer")
-             ~source:(Lang.source source) ()
+             ~always_enabled:true ~write_frame:encode_frame
+             ~name:(id ^ ".consumer") ~source:(Lang.source source) ()
          in
          let stack = Liquidsoap_lang.Lang_core.pos p in
          consumer#set_stack stack;

@@ -44,7 +44,7 @@ let () =
       ignore
         (Lang.add_builtin_value ~base:process name ~category:`System
            ~descr:("The process' " ^ name)
-           (Builtins_socket.Socket_value.to_value (Http.unix_socket fd))
+           (Builtins_socket.Socket_value.to_value (Http.unix_socket ~pos:[] fd))
            Builtins_socket.Socket_value.t))
     [("stdin", Unix.stdin); ("stdout", Unix.stdout); ("stderr", Unix.stderr)]
 
@@ -258,12 +258,20 @@ let _ =
               try
                 Tutils.wait_for (`Read out_pipe) timeout;
                 -1.
-              with Tutils.Timeout f ->
-                (try Process_handler.kill p
-                 with exn ->
-                   log#important "Error while killing process: %s"
-                     (Printexc.to_string exn));
-                f
+              with
+                | Tutils.Exit ->
+                    (try Process_handler.kill p
+                     with exn ->
+                       log#important "Error while killing process: %s"
+                         (Printexc.to_string exn));
+                    status := Some (`Exception Tutils.Exit);
+                    -1.
+                | Tutils.Timeout f ->
+                    (try Process_handler.kill p
+                     with exn ->
+                       log#important "Error while killing process: %s"
+                         (Printexc.to_string exn));
+                    f
             in
             (timed_out, !status))
       in

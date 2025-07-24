@@ -2,7 +2,7 @@ port = 3463
 
 def fn() =
   def on_metadata(m) =
-  print(m)
+    print(m)
     if
       m["title"] == ""
     and
@@ -59,7 +59,7 @@ def fn() =
       on_connect=on_connect
     )
 
-  s.on_metadata(on_metadata)
+  s.on_metadata(synchronous=true, on_metadata)
   output.dummy(fallible=true, s)
   output.icecast(
     %mp3, password="testtest", user="testtest", mount="test", port=port, noise()

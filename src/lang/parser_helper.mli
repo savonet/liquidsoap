@@ -72,6 +72,7 @@ val mk_json_assoc_object_ty :
 
 val mk :
   ?comments:(pos * Parsed_term.comment) list ->
+  ?annotations:Parsed_term.term_annotation list ->
   pos:pos ->
   Term.parsed_ast ->
   Term.t

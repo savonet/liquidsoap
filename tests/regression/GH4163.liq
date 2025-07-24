@@ -1,11 +1,17 @@
 first_blank =
   metadata.map(
-    id="first_blank", fun (_) -> [("title", "first_blank")], blank(duration=3.)
+    insert_missing=true,
+    id="first_blank",
+    fun (_) -> [("title", "first_blank")],
+    blank(duration=3.)
   )
 
 after_blank =
   metadata.map(
-    id="after_blank", fun (_) -> [("title", "after_blank")], sine(duration=10.)
+    insert_missing=true,
+    id="after_blank",
+    fun (_) -> [("title", "after_blank")],
+    sine(duration=10.)
   )
 
 blank_sequence = sequence(id="blank_sequence", [first_blank, after_blank])
@@ -14,7 +20,12 @@ blank_strip =
   blank.strip(id="blank_strip", max_blank=5., start_blank=true, blank_sequence)
 
 fallback_sine =
-  metadata.map(id="fallback_sine", fun (_) -> [("title", "fallback")], sine())
+  metadata.map(
+    insert_missing=true,
+    id="fallback_sine",
+    fun (_) -> [("title", "fallback")],
+    sine()
+  )
 
 s =
   fallback(
@@ -35,7 +46,7 @@ def on_metadata(m) =
   end
 end
 
-s = source.on_metadata(id="on_meta", s, on_metadata)
+s.on_metadata(synchronous=true, on_metadata)
 
 clock.assign_new(sync='none', [s])
 

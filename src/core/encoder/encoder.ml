@@ -79,20 +79,20 @@ let type_of_format f =
                     Type.make
                       (Format_type.descr
                          (`Format
-                           Content.(
-                             default_format (kind_of_string "ffmpeg.copy"))))
+                            Content.(
+                              default_format (kind_of_string "ffmpeg.copy"))))
                 | `Encode { Ffmpeg_format.mode = `Raw; options = `Audio _ } ->
                     Type.make
                       (Format_type.descr
                          (`Format
-                           Content.(
-                             default_format (kind_of_string "ffmpeg.audio.raw"))))
+                            Content.(
+                              default_format (kind_of_string "ffmpeg.audio.raw"))))
                 | `Encode { Ffmpeg_format.mode = `Raw; options = `Video _ } ->
                     Type.make
                       (Format_type.descr
                          (`Format
-                           Content.(
-                             default_format (kind_of_string "ffmpeg.video.raw"))))
+                            Content.(
+                              default_format (kind_of_string "ffmpeg.video.raw"))))
                 | `Encode
                     Ffmpeg_format.
                       {
@@ -270,24 +270,19 @@ let with_url_output encoder file =
     | Ffmpeg opts -> Ffmpeg { opts with Ffmpeg_format.output = `Url file }
     | _ -> failwith "No file output!"
 
-(** An encoder, once initialized, is something that consumes
-    frames, insert metadata and that you eventually close
-    (triggers flushing).
-    Insert metadata is really meant for inline metadata, i.e.
-    in most cases, stream sources. Otherwise, metadata are
-    passed when creating the encoder. For instance, the mp3
-    encoder may accept metadata initially and write them as
-    id3 tags but does not support inline metadata.
-    Also, the ogg encoder supports inline metadata but restarts
-    its stream. This is ok, though, because the ogg container/streams
-    is meant to be sequentialized but not the mp3 format.
-    header contains data that should be sent first to streaming
-    client. *)
+(** An encoder, once initialized, is something that consumes frames, insert
+    metadata and that you eventually close (triggers flushing). Insert metadata
+    is really meant for inline metadata, i.e. in most cases, stream sources.
+    Otherwise, metadata are passed when creating the encoder. For instance, the
+    mp3 encoder may accept metadata initially and write them as id3 tags but
+    does not support inline metadata. Also, the ogg encoder supports inline
+    metadata but restarts its stream. This is ok, though, because the ogg
+    container/streams is meant to be sequentialized but not the mp3 format.
+    header contains data that should be sent first to streaming client. *)
 
 type split_result =
   [ (* Returns (flushed, first_bytes_for_next_segment) *)
-    `Ok of
-    Strings.t * Strings.t
+    `Ok of Strings.t * Strings.t
   | `Nope of Strings.t ]
 
 (* Raised by [init_encode] if more data is needed. *)
@@ -322,7 +317,7 @@ let dummy_hls encode =
   }
 
 type encoder = {
-  insert_metadata : Frame.Metadata.Export.t -> unit;
+  encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   hls : hls;
   encode : Frame.t -> Strings.t;
@@ -332,8 +327,8 @@ type encoder = {
 type factory =
   ?hls:bool -> pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 
-(** A plugin might or might not accept a given format.
-    If it accepts it, it gives a function creating suitable encoders. *)
+(** A plugin might or might not accept a given format. If it accepts it, it
+    gives a function creating suitable encoders. *)
 type plugin = format -> factory option
 
 let plug : plugin Plug.t =
@@ -349,12 +344,12 @@ let get_factory fmt =
     raise Not_found
   with Found factory ->
     fun ?hls ~pos name m ->
-      let { insert_metadata; hls; encode; stop; header } =
+      let { encode_metadata; hls; encode; stop; header } =
         factory ?hls ~pos name m
       in
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in
-      let insert_metadata = Mutex_utils.mutexify m insert_metadata in
+      let encode_metadata = Mutex_utils.mutexify m encode_metadata in
       let header = Mutex_utils.mutexify m header in
       let {
         init;
@@ -397,4 +392,4 @@ let get_factory fmt =
       in
       let encode frame = Mutex_utils.mutexify m (fun () -> encode frame) () in
       let stop = Mutex_utils.mutexify m stop in
-      { insert_metadata; hls; encode; stop; header }
+      { encode_metadata; hls; encode; stop; header }

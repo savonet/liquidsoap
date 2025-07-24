@@ -1,11 +1,15 @@
 success = ref(false)
 
 a = sine(duration=5., 440.)
-a = metadata.map(id="a", update=false, (fun (_) -> [("source", "a")]), a)
+a =
+  metadata.map(
+    insert_missing=true, id="a", update=false, (fun (_) -> [("source", "a")]), a
+  )
 
 b = sine(duration=5., 880.)
 b =
   metadata.map(
+    insert_missing=true,
     id="b",
     update=false,
     (fun (_) -> [("source", "b"), ("liq_cross_start_duration", "1.1")]),
@@ -13,7 +17,10 @@ b =
   )
 
 c = sine(duration=5., 440.)
-c = metadata.map(id="c", update=false, (fun (_) -> [("source", "c")]), c)
+c =
+  metadata.map(
+    insert_missing=true, id="c", update=false, (fun (_) -> [("source", "c")]), c
+  )
 
 s = sequence([a, b, c])
 s = crossfade(persist_override=true, start_duration=5., end_duration=4., s)
@@ -43,11 +50,12 @@ def on_metadata(m) =
   end
 end
 
-s.on_metadata(on_metadata)
+s.on_metadata(synchronous=true, on_metadata)
 clock.assign_new(sync="none", [s])
 
 def on_stop() =
   if !success then test.pass() else test.fail() end
 end
 
-output.dummy(fallible=true, on_stop=on_stop, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, on_stop)

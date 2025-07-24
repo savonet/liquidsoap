@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Avoids some source to play a new track before some delay elapses after the
-  * end of the previous track played. *)
+    end of the previous track played. *)
 
 open Source
 

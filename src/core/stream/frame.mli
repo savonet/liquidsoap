@@ -89,8 +89,7 @@ end
 (** Metadata of a frame. *)
 type metadata = Metadata.t
 
-(** A frame is a chunk of data which should be
-    at most [size] *)
+(** A frame is a chunk of data which should be at most [size] *)
 type t = Content.data Fields.t
 
 (** {2 Content-independent frame operations} *)
@@ -106,15 +105,15 @@ val slice : t -> int -> t
 (** Get the content after a given offset. *)
 val after : t -> int -> t
 
-(** [sub frame ofs len]: get the a subset of length [len]
-    of the frame content, starting at [ofs]. *)
+(** [sub frame ofs len]: get the a subset of length [len] of the frame content,
+    starting at [ofs]. *)
 val sub : t -> int -> int -> t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type
 
-(** [append f f'] appends the data from [f'] to [f].
-    [f'] can possibly have more fields that [f]. *)
+(** [append f f'] appends the data from [f'] to [f]. [f'] can possibly have more
+    fields that [f]. *)
 val append : t -> t -> t
 
 (** Get a frame's content. *)
@@ -123,9 +122,8 @@ val get : t -> field -> Content.data
 (** Set a frame's content. *)
 val set : t -> field -> Content.data -> t
 
-(** Set a frame's content using data.
-    Data is assumed to be of the frame's position
-    length. The type is designed to work with `Content.*.lift_data`
+(** Set a frame's content using data. Data is assumed to be of the frame's
+    position length. The type is designed to work with `Content.*.lift_data`
     functions. *)
 val set_data :
   t -> field -> (?offset:int -> ?length:int -> 'a -> Content.data) -> 'a -> t
@@ -174,7 +172,7 @@ exception No_metadata
 val add_metadata : t -> int -> metadata -> t
 
 (* Remove a metadata at a given position. *)
-val free_metadata : t -> int -> t
+val remove_metadata : t -> int -> t
 
 (** Retrieve metadata at a given position. *)
 val get_metadata : t -> int -> metadata option
@@ -199,9 +197,9 @@ val compatible : content_type -> content_type -> bool
 
 (** {2 Format settings} *)
 
-(** The channel numbers are only defaults, used when channel numbers
-  * cannot be inferred / are not forced from the context.
-  * I'm currently unsure how much they are really useful. *)
+(** The channel numbers are only defaults, used when channel numbers cannot be
+    inferred / are not forced from the context. I'm currently unsure how much
+    they are really useful. *)
 
 (** Default number of audio channels. *)
 val audio_channels : int Lazy.t
@@ -236,8 +234,8 @@ val duration : float Lazy.t
 
 (** {2 Time and frequency conversions} *)
 
-(** Conversion between the internal unit (main ticks), seconds, and data
-    units. *)
+(** Conversion between the internal unit (main ticks), seconds, and data units.
+*)
 
 (** Duration of given number of samples in ticks. *)
 val audio_of_main : int -> int

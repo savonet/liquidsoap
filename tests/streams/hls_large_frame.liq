@@ -22,10 +22,6 @@ enc =
 
 streams = [("radio", enc)]
 
-output.file.hls(
-  segment_duration=2.0,
-  on_file_change=(fun (~state=_, _) -> test.pass()),
-  tmp_dir,
-  streams,
-  s
-)
+o = output.file.hls(segment_duration=2.0, tmp_dir, streams, s)
+
+o.on_file_change(fun (_) -> test.pass())

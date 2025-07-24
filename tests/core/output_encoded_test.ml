@@ -1,4 +1,4 @@
-let insert_metadata_called = ref false
+let encode_metadata_called = ref false
 let encode_called = ref false
 let send_called = ref false
 
@@ -9,15 +9,14 @@ class encoded_test =
     inherit
       [unit] Output.encoded
         ~output_kind:"foo" ~name:"encoded_test" ~infallible:false
-          ~register_telnet:false
-        ~on_start:(fun _ -> ())
-        ~on_stop:(fun _ -> ())
-        ~autostart:false ~export_cover_metadata:false
+          ~register_telnet:false ~autostart:false ~export_cover_metadata:false
         (Lang.source (new Noise.noise None))
 
-    method insert_metadata _ =
+    method self_sync = (`Static, None)
+
+    method encode_metadata _ =
       assert !send_called;
-      insert_metadata_called := true
+      encode_metadata_called := true
 
     method encode _ =
       encode_called := true;
@@ -42,4 +41,4 @@ let () =
   let m = Frame.Metadata.from_list [("foo", "bla")] in
   let frame = Frame.add_metadata frame 0 m in
   encoded_test#test_send_frame frame;
-  assert !insert_metadata_called
+  assert !encode_metadata_called

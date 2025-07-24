@@ -28,71 +28,69 @@ val fallibility_check : bool ref
 val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
-  output_kind:string
-  -> ?clock:Clock.t
-  -> ?name:string
-  -> infallible:bool
-  -> register_telnet:bool
-  -> on_start:(unit -> unit)
-  -> on_stop:(unit -> unit)
-  -> Lang.value
-  -> bool
-  -> object
-       inherit Source.active_source
-       method fallible : bool
-       method self_sync : Clock.self_sync
-       method remaining : int
-       method abort_track : unit
-       method private can_generate_frame : bool
-       method private generate_frame : Frame.t
-       method state : Start_stop.state
-       method transition_to : Start_stop.state -> unit
-       method seek_source : Source.source
-       method output : unit
-       method private video_dimensions : int * int
-       method private reset : unit
-       method virtual private send_frame : Frame.t -> unit
-       method virtual private start : unit
-       method virtual private stop : unit
-     end
+  output_kind:string ->
+  ?clock:Clock.t ->
+  ?name:string ->
+  infallible:bool ->
+  register_telnet:bool ->
+  Lang.value ->
+  bool ->
+object
+  inherit Source.active_source
+  method fallible : bool
+  method remaining : int
+  method abort_track : unit
+  method private can_generate_frame : bool
+  method private generate_frame : Frame.t
+  method state : Start_stop.state
+  method transition_to : Start_stop.state -> unit
+  method seek_source : Source.source
+  method output : unit
+  method on_start : (unit -> unit) -> unit
+  method on_stop : (unit -> unit) -> unit
+  method private video_dimensions : int * int
+  method private reset : unit
+  method virtual private send_frame : Frame.t -> unit
+  method virtual private start : unit
+  method virtual private stop : unit
+end
 
 (** Default methods on output values. *)
-val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
+val meth : (output -> Lang.value) Lang.meth list
+
+val callbacks : output Lang_source.callback list
 
 class virtual ['a] encoded :
-  output_kind:string
-  -> ?clock:Clock.t
-  -> name:string
-  -> infallible:bool
-  -> on_start:(unit -> unit)
-  -> on_stop:(unit -> unit)
-  -> register_telnet:bool
-  -> autostart:bool
-  -> export_cover_metadata:bool
-  -> Lang.value
-  -> object
-       inherit output
-       method private send_frame : Frame.t -> unit
-       method virtual private encode : Frame.t -> 'a
-       method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
-       method virtual private send : 'a -> unit
-       method private reset : unit
-       method virtual private start : unit
-       method virtual private stop : unit
-     end
+  output_kind:string ->
+  ?clock:Clock.t ->
+  name:string ->
+  infallible:bool ->
+  register_telnet:bool ->
+  autostart:bool ->
+  export_cover_metadata:bool ->
+  Lang.value ->
+object
+  inherit output
+  method private send_frame : Frame.t -> unit
+  method virtual private encode : Frame.t -> 'a
+  method virtual private encode_metadata : Frame.Metadata.Export.t -> unit
+  method virtual private send : 'a -> unit
+  method private reset : unit
+  method virtual private start : unit
+  method virtual private stop : unit
+end
 
 class dummy :
-  ?clock:Clock.t
-  -> infallible:bool
-  -> on_start:(unit -> unit)
-  -> on_stop:(unit -> unit)
-  -> autostart:bool
-  -> register_telnet:bool
-  -> Lang.value
-  -> object
-       inherit output
-       method private reset : unit
-       method private start : unit
-       method private stop : unit
-       method private send_frame : Frame.t -> unit
-     end
+  ?clock:Clock.t ->
+  infallible:bool ->
+  autostart:bool ->
+  register_telnet:bool ->
+  Lang.value ->
+object
+  inherit output
+  method private reset : unit
+  method private start : unit
+  method private stop : unit
+  method private send_frame : Frame.t -> unit
+  method self_sync : Clock.self_sync
+end
