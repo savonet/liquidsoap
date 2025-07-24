@@ -43,7 +43,7 @@ def request.queue(
   id = string.id.default(default="request.queue", id)
   initial_queue = ref(queue)
   queue = ref([])
-  fetch = ref(fun () -> true)
+  fetch = ref(fun () -> ())
   started = ref(false)
 
   def next() =
@@ -68,7 +68,7 @@ def request.queue(
       )
       queue := [...queue(), r]
       fn = fetch()
-      ignore(fn())
+      fn()
     else
       log.info(
         label=id,

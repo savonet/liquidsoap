@@ -259,7 +259,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
 
     (** This method should be called whenever the feeding task has a new
         opportunity to feed the queue, in case it is sleeping. *)
-    method private notify_new_request =
+    method notify_new_request =
       match Atomic.get state with
         | `Started (d, { notify }) when d <= Unix.gettimeofday () -> notify ()
         | _ -> ()
@@ -344,7 +344,6 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  let log = Log.make ["request"; "dynamic"] in
   Lang.add_operator ~base:Modules.request "dynamic" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
     [
@@ -382,19 +381,18 @@ let _ =
       [
         {
           name = "fetch";
-          scheme = ([], Lang.fun_t [] Lang.bool_t);
+          scheme = ([], Lang.fun_t [] Lang.unit_t);
           descr =
-            "Try feeding the queue with a new request. Returns `true` if \
-             successful. This method can take long to return and should \
-             usually be run in a separate thread.";
+            "Notify the source to queue a new request. If `synchronous` is \
+             `false` (the default), this method returns immediately and a new \
+             request is fetched in the background. If `synchronous` is `true`, \
+             can take long to return and should usually be run in a separate \
+             thread.";
           value =
             (fun s ->
               Lang.val_fun [] (fun _ ->
-                  match s#fetch with
-                    | `Finished -> Lang.bool true
-                    | `Retry ->
-                        log#important "Fetch failed";
-                        Lang.bool false));
+                  s#notify_new_request;
+                  Lang.unit));
         };
         {
           name = "queue";

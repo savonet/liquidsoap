@@ -816,8 +816,14 @@ def playlist.list(
     default()
 %endif
 
+  # Prevent concurrent reload and next()
+  is_reloading = ref(false)
+  pending_next = ref(false)
+
   # The reload function
   def reload(~empty_queue=true, p) =
+    is_reloading := true
+
     log.debug(
       label=id,
       "Reloading playlist."
@@ -831,8 +837,13 @@ def playlist.list(
       q = s.queue()
       s.set_queue([])
       list.iter(request.destroy, q)
-      ignore(s.fetch())
+      pending_next := true
     end
+
+    if pending_next() then s.fetch() end
+
+    pending_next := false
+    is_reloading := false
   end
 
   # When we have more than max_fail failures in a row, we wait for 1 second
@@ -843,6 +854,10 @@ def playlist.list(
   # The (real) next function
   def rec next() =
     if
+      is_reloading()
+    then
+      pending_next := true
+    elsif
       loop and list.is_empty(playlist())
     then
       on_loop()
