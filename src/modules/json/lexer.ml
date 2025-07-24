@@ -23,6 +23,7 @@
 open Base
 open Parser
 open String
+module String = Stdlib.String
 
 (* Json specs *)
 
