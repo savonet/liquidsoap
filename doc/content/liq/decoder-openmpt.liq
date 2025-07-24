@@ -1,3 +1,6 @@
+options = ""
+
+# BEGIN
 decoder.add(
   name="OPENMPT123",
   description=
@@ -35,7 +38,7 @@ decoder.add(
       "med",
       "669"
     ],
-  fun (~rlog, ~maxtime=_, infile) ->
+  fun (~rlog, ~maxtime:_, infile) ->
     begin
       ret =
         process.read.lines(
