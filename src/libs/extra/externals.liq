@@ -319,8 +319,6 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.external.ffmpeg(
@@ -328,8 +326,6 @@ def output.external.ffmpeg(
   ~show_command=false,
   ~flush=false,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   %argsof(output.external[
     reopen_on_metadata,
     reopen_on_error,
@@ -359,8 +355,6 @@ def output.external.ffmpeg(
     id=id,
     flush=flush,
     fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
     %argsof(output.external[
       reopen_on_metadata,
       reopen_on_error,
@@ -381,8 +375,6 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
@@ -391,8 +383,6 @@ def output.file.hls.ffmpeg(
   ~id=null,
   ~flush=false,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   %argsof(output.external[
     reopen_on_metadata,
     reopen_on_error,
@@ -418,8 +408,6 @@ def output.file.hls.ffmpeg(
     id=id,
     flush=flush,
     fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
     %argsof(output.external[
       reopen_on_metadata,
       reopen_on_error,
@@ -441,8 +429,6 @@ let output.file.dash = ()
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~flush Perform a flush after each write.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
@@ -451,8 +437,6 @@ def output.file.dash.ffmpeg(
   ~id=null,
   ~flush=false,
   ~fallible=false,
-  ~on_start={()},
-  ~on_stop={()},
   %argsof(output.external[
     reopen_on_metadata,
     reopen_on_error,
@@ -480,8 +464,6 @@ def output.file.dash.ffmpeg(
     id=id,
     flush=flush,
     fallible=fallible,
-    on_start=on_start,
-    on_stop=on_stop,
     %argsof(output.external[
       reopen_on_metadata,
       reopen_on_error,
