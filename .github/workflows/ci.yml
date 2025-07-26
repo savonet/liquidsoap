@@ -358,7 +358,7 @@ jobs:
   build_posix:
     runs-on: ${{ matrix.runs-on }}
     needs: build_details
-    if: matrix.os != 'alpine' || matrix.ocaml_version != '5.2.0_ox'
+    if: ${{ matrix.os != 'alpine' || matrix.ocaml_version != '5.2.0_ox' }}
     strategy:
       fail-fast: false
       matrix:
