@@ -358,7 +358,6 @@ jobs:
   build_posix:
     runs-on: ${{ matrix.runs-on }}
     needs: build_details
-    if: ${{ matrix.os != 'alpine' || matrix.ocaml_version != '5.2.0_ox' }}
     strategy:
       fail-fast: false
       matrix:
@@ -366,6 +365,9 @@ jobs:
         ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
+        exclude:
+          - os: alpine
+            ocaml_version: 5.2.0_ox
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}-${{ matrix.ocaml_version }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
