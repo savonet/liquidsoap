@@ -186,7 +186,7 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
-          sudo -u opam -E opam exec dune -- build @doc @doc-private
+          sudo -u opam -E ./.github/scripts/build-doc.sh
           cd /tmp/liquidsoap-full/liquidsoap/
           mkdir -p /tmp/${{ github.run_number }}/odoc
           cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
