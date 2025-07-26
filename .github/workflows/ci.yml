@@ -92,10 +92,6 @@ jobs:
           ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
         env:
           LIQ_BUILD_MIN: true
-      - name: Build doc
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          ./.github/scripts/build-doc.sh
 
   build_js:
     runs-on: depot-ubuntu-24.04-4
@@ -190,6 +186,7 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+          dune build @doc @doc-private
           cd /tmp/liquidsoap-full/liquidsoap/
           mkdir -p /tmp/${{ github.run_number }}/odoc
           cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
@@ -265,7 +262,8 @@ jobs:
         if: matrix.target == '@doctest'
         run: |
           apt-get -y update
-          apt-get -y install frei0r-plugins odoc
+          apt-get -y install frei0r-plugins
+          sudo -u opam -E opam install odoc
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -391,11 +389,6 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
-      - name: Build doc
-        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-doc.sh
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
