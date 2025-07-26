@@ -186,7 +186,7 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
-          dune build @doc @doc-private
+          sudo -u opam -E opam exec dune -- build @doc @doc-private
           cd /tmp/liquidsoap-full/liquidsoap/
           mkdir -p /tmp/${{ github.run_number }}/odoc
           cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
@@ -358,6 +358,7 @@ jobs:
   build_posix:
     runs-on: ${{ matrix.runs-on }}
     needs: build_details
+    if: matrix.os != 'alpine' || matrix.ocaml_version != '5.2.0_ox'
     strategy:
       fail-fast: false
       matrix:
