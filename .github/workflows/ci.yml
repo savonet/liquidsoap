@@ -265,7 +265,7 @@ jobs:
         if: matrix.target == '@doctest'
         run: |
           apt-get -y update
-          apt-get -y install frei0r-plugins
+          apt-get -y install frei0r-plugins odoc
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}

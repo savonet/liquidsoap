@@ -34,3 +34,8 @@
  (deps
   (alias_rec perftest)
   (alias_rec runtest)))
+
+(alias
+ (name doctest)
+ (deps
+  (alias_rec doc)))

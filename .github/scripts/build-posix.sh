@@ -40,7 +40,7 @@ echo "::endgroup::"
 echo "::group::Setting up specific dependencies"
 
 opam update
-opam upgrade -y odoc posix-socket
+opam upgrade -y posix-socket
 
 cd /tmp/liquidsoap-full/liquidsoap
 
@@ -83,7 +83,6 @@ OCAMLPATH="$(cat .ocamlpath)"
 export OCAMLPATH
 
 cd /tmp/liquidsoap-full/liquidsoap
-dune build @doc @doc-private
 dune build --profile=release
 
 echo "::endgroup::"
