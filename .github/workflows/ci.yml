@@ -768,7 +768,7 @@ jobs:
   build_docker_alpine_minimal:
     runs-on: ${{ matrix.runs-on }}
     needs: [build_details, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && matrix.ocaml_version != '5.2.0-ox'
+    if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
       matrix:
