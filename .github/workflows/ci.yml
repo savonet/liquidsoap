@@ -608,6 +608,9 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
+        exclude:
+          - os: alpine
+            ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

@@ -25,6 +25,8 @@ include Clock_base
 type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
 type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
 
+let () = Gc.set { (Gc.get ()) with minor_heap_size = 153231 }
+
 let string_of_sync_mode = function
   | `Stopped -> "stopped"
   | `Stopping -> "stopping"
@@ -112,6 +114,7 @@ type active_params = {
   passive_sources : source WeakQueue.t;
   on_tick : (unit -> unit) Queue.t;
   after_tick : (unit -> unit) Queue.t;
+  mutable minor_words : float;
   ticks : int Atomic.t;
 }
 
@@ -348,7 +351,7 @@ let _after_tick ~clock x =
   let end_time = Time.time () in
   let target_time = _target_time x in
   check_stopped ();
-  match (x.sync, _self_sync ~clock x, Time.(end_time |<| target_time)) with
+  (match (x.sync, _self_sync ~clock x, Time.(end_time |<| target_time)) with
     | `Unsynced, _, _ | `Passive, _, _ | `Automatic, true, _ -> ()
     | `Automatic, false, true | `CPU, _, true ->
         if
@@ -375,7 +378,11 @@ let _after_tick ~clock x =
         then (
           Atomic.set x.last_catchup_log end_time;
           x.log#severe "We must catchup %.2f seconds!"
-            Time.(to_float (end_time |-| target_time)))
+            Time.(to_float (end_time |-| target_time))));
+  if false then (
+    Printf.printf "%f words allocated during the cycle\n%!"
+      (Gc.minor_words () -. x.minor_words);
+    if false then Gc.minor ())
 
 let started c =
   match Atomic.get (Unifier.deref c).state with
@@ -413,6 +420,7 @@ and _activate_pending_sources ~clock x =
            | `Passive -> WeakQueue.push x.passive_sources s))
 
 and _tick ~clock x =
+  x.minor_words <- Gc.minor_words ();
   _activate_pending_sources ~clock x;
   let sub_clocks =
     List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
@@ -537,6 +545,7 @@ and _start ?force ~sync clock =
       log = Log.make (["clock"] @ String.split_on_char '.' id);
       last_catchup_log;
       sync;
+      minor_words = 0.;
       active_sources = WeakQueue.create ();
       passive_sources = WeakQueue.create ();
       on_tick = Queue.create ();
