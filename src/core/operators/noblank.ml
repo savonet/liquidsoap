@@ -301,7 +301,6 @@ let _ =
       ]
     (proto frame_t)
     (fun p ->
-      let p = List.remove_assoc "" p in
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
