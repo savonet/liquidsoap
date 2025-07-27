@@ -658,13 +658,15 @@ jobs:
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
     needs: [build_details, build_posix, fetch_s3_artifacts]
-    if: needs.build_details.outputs.is_fork != 'true' && matrix.ocaml_version != '5.2.0-ox'
+    if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
+        exclude:
+          - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -773,6 +775,8 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
+        exclude:
+          - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
