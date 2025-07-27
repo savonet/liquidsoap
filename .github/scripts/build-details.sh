@@ -65,7 +65,7 @@ fi
 MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd graphics gstreamer imagelib irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt tls theora tsdl sqlite3 vorbis sdl-liquidsoap"
 
 echo "Ocaml version to build: 4.14.2, 5.2.0-ox"
-OCAML_VERSION='["4.14.2", "5.2.0_ox"]'
+OCAML_VERSION='["4.14.2", "5.2.0-ox"]'
 
 echo "OCaml docker release version: 4.14.2"
 OCAML_DOCKER_RELEASE_VERSION="4.14.2"
