@@ -20,15 +20,21 @@ end
 # @category String
 # @param args Argument string to split.
 def url.split_args(args) =
-  def f(x) =
-    ret = r/=/.split(x)
-    arg = url.decode(list.nth(default="", ret, 0))
-    val = url.decode(list.nth(default="", ret, 1))
-    (arg, val)
+  def f(args, x) =
+    if
+      x == ""
+    then
+      args
+    else
+      ret = r/=/.split(x)
+      arg = url.decode(list.nth(default="", ret, 0))
+      val = url.decode(list.nth(default="", ret, 1))
+      [...args, (arg, val)]
+    end
   end
 
   l = r/&/.split(args)
-  list.map(f, l)
+  list.fold(f, [], l)
 end
 
 # Split an url of the form `foo?arg=bar&arg2=bar2` into
