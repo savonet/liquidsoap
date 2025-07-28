@@ -63,9 +63,6 @@ Changed:
 - Changed default value of `metadata.map` `strip` argument to `true` and `insert_missing`
   to `false` Added `settings.metadata.map.strip` and `settings.metadata.map.insert_missing`
   configuration keys to revert to previous defaults. (#4447)
-- Made crossfade metadata override dynamic. Some overridden parameters where never effectively
-  applied if they were passed after the start of the crossfade. This should make crossfade behave
-  as expected but may also change some crossfade computations (#4492)
 
 Fixed:
 
