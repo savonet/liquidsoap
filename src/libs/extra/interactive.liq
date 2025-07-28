@@ -515,7 +515,7 @@ def interactive.harbor(
           }
         }
         if (interactive[i].type != 'button') {
-          data = data.concat(interactive[i].name+'='+encodeURIComponent(interactive[i].value))+'&';
+          data = data.concat(interactive[i].name+'='+encodeURIComponent(interactive[i].value))+(i < interactive.length - 1 ? '&' : '')
         }
       }
       console.log('Posting: ' + data);
