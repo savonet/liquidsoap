@@ -68,20 +68,15 @@ let settings.fade.out.curve =
 # @param ~duration Duration in seconds.
 # @param ~on_done Function to execute when the fade is finished
 def mkfade(
-  ~curve=getter(null),
-  ~type=getter("lin"),
+  ~curve=null,
+  ~type="lin",
   ~start=0.,
   ~stop=1.,
-  ~delay=getter(0.),
-  ~duration=getter(3.),
+  ~delay=0.,
+  ~duration=3.,
   ~on_done={()},
   s
 ) =
-  curve = getter.function(curve)
-  type = getter.function(type)
-  delay = getter.function(delay)
-  duration = getter.function(duration)
-
   def log(x) =
     log(label="mkfade", x)
   end
@@ -93,23 +88,38 @@ def mkfade(
     (1. + sin((x - 0.5) * pi)) / 2.
   end
 
-  exp_curve = {curve() ?? 3.}
-  m = {exp(exp_curve() - 1.) - exp(-1.)}
+  exp_curve = curve ?? 3.
+  m = exp(exp_curve - 1.) - exp(-1.)
 
   def exp_shape(x) =
-    (exp((exp_curve() * x) - 1.) - exp(-1.)) / m()
+    (exp((exp_curve * x) - 1.) - exp(-1.)) / m
   end
 
-  ln_curve = {curve() ?? 10.}
-  m = {ln(1. + ln_curve())}
+  ln_curve = curve ?? 10.
+  m = ln(1. + ln_curve)
 
   def log_shape(x) =
-    ln(1. + ln_curve() * x) / m()
+    ln(1. + ln_curve * x) / m
   end
 
   def lin_shape(x) =
     x
   end
+
+  shape =
+    if
+      type == "sin"
+    then
+      sin_shape
+    elsif type == "exp" then exp_shape
+    elsif type == "log" then log_shape
+    elsif type == "lin" then lin_shape
+    else
+      log(
+        "Invalid type #{type}, using \"lin\""
+      )
+      lin_shape
+    end
 
   start_time = ref(-1.)
   increasing_fade = start <= stop
@@ -117,39 +127,23 @@ def mkfade(
   def fade() =
     if start_time() < 0. then start_time := source.time(s) end
 
-    t = source.time(s) - start_time() - delay()
+    t = source.time(s) - start_time() - delay
     if
       t <= 0.
     then
       if increasing_fade then 0. else 1. end
     elsif
-      t >= duration()
+      t >= duration
     then
       on_done()
       stop
     else
-      type = type()
-      shape =
-        if
-          type == "sin"
-        then
-          sin_shape
-        elsif type == "exp" then exp_shape
-        elsif type == "log" then log_shape
-        elsif type == "lin" then lin_shape
-        else
-          log(
-            "Invalid type #{type}, using \"lin\""
-          )
-          lin_shape
-        end
-
       if
         increasing_fade
       then
-        start + shape(t / duration()) * (stop - start)
+        start + shape(t / duration) * (stop - start)
       else
-        stop + shape((1. - t) / duration()) * (start - stop)
+        stop + shape(1. - t / duration) * (start - stop)
       end
     end
   end
@@ -216,8 +210,7 @@ def fade.out(
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
     start_time := source.time(s)
-
-    def delay_duration() =
+    let (delay, duration) =
       if
         d < delay() + duration()
       then
@@ -231,23 +224,18 @@ def fade.out(
       else
         (delay(), duration())
       end
-    end
-
-    delay = {fst(delay_duration())}
-    duration = {snd(delay_duration())}
 
     log(
-      "Fading out with type: #{type()}, curve: #{curve_log}, delay: #{
-        delay()
-      }s, duration: #{duration()}s and #{d}s remaining."
+      "Fading out with type: #{type()}, curve: #{curve_log}, delay: #{delay}s, \
+       duration: #{duration}s and #{d}s remaining."
     )
 
     fn :=
       mkfade(
         start=1.,
         stop=0.,
-        type=type,
-        curve=curve,
+        type=type(),
+        curve=curve(),
         delay=delay,
         duration=duration,
         s
@@ -448,7 +436,7 @@ def fade.skip(
       m[override_skip] == "true"
     then
       remaining = source.remaining(s)
-      duration = {if remaining < duration() then remaining else duration() end}
+      duration = if remaining < duration() then remaining else duration() end
       log(
         "Skip fade executed for: #{duration}s"
       )
@@ -456,10 +444,10 @@ def fade.skip(
         mkfade(
           start=1.,
           stop=0.,
-          type=type,
-          curve=curve,
+          type=type(),
+          curve=curve(),
           duration=duration,
-          delay=delay,
+          delay=delay(),
           on_done=skip,
           s
         )
@@ -601,7 +589,7 @@ def fade.in(
     curve_log =
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
-    def duration() =
+    duration =
       if
         source.remaining(s) < duration()
       then
@@ -609,19 +597,18 @@ def fade.in(
       else
         duration()
       end
-    end
 
     log(
       "Fading in with type: #{type()}, curve: #{curve_log}, delay: #{delay()}s \
-       and duration: #{duration()}s."
+       and duration: #{duration}s."
     )
     fn :=
       mkfade(
         start=0.,
         stop=1.,
-        type=type,
-        curve=curve,
-        delay=delay,
+        type=type(),
+        curve=curve(),
+        delay=delay(),
         duration=duration,
         s
       )
