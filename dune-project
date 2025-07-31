@@ -47,7 +47,6 @@
     frei0r
     gd
     graphics
-    imagelib
     inotify
     irc-client-unix
     jemalloc
