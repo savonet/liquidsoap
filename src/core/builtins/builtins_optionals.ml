@@ -24,7 +24,6 @@ let () =
       ("gd", Gd_option.enabled);
       ("graphics", Graphics_option.enabled);
       ("inotify", Inotify_option.enabled);
-      ("imagelib", Imagelib_option.enabled);
       ("irc", Irc_option.enabled);
       ("ladspa", Ladspa_option.enabled);
       ("lame", Lame_option.enabled);
