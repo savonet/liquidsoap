@@ -391,8 +391,23 @@ protocol.add(
 
 # Register tmp
 # @flag hidden
-def protocol.tmp(~rlog:_, ~maxtime:_, arg) =
-  arg
+def protocol.tmp(~rlog, ~maxtime, arg) =
+  r = request.create(arg)
+  delay = maxtime - time()
+  if
+    request.resolve(timeout=delay, r)
+  then
+    request.filename(r)
+  else
+    rlog(
+      "Failed to resolve #{arg}"
+    )
+    log(
+      level=3,
+      "Failed to resolve #{arg}"
+    )
+    null
+  end
 end
 
 protocol.add(

@@ -42,6 +42,7 @@ Fixed:
 - Fixed mutex deadlock caused by aggressive inlining (#4540)
 - Fixed segfault when using SRT on windows (#4538)
 - Fixed memleak in ffmpeg inline encoder (#4501)
+- Fixed `tmp:` protocol logic (#4544)
 
 ---
 
