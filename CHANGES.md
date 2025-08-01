@@ -24,6 +24,8 @@ New:
 Changed:
 
 - Improved source and clock naming (#4497)
+- Turned initial memory compaction on by default. This
+  has show to greatly reduce initial memory consumption.
 - Deprecated `replaygain` operator, introduced unified
   `normalize_track_gain` which works with both ReplayGain
   and LUFS (#4545)

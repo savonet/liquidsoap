@@ -29,7 +29,7 @@ let settings.init.compact_before_start =
        consumption is a concern. This will result in a large chunk of memory \
        being freed right before starting the script. This also increases the \
        script's initial startup time.",
-    false
+    true
   )
 
 # Top-level init module for convenience.
