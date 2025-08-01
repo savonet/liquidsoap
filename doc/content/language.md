@@ -1572,7 +1572,7 @@ This results in additional memory usage reduction with a slight delay in initial
 
 To maximize your script startup time you should:
 
-- Cache it before running it skip the initial typececking
+- Cache it before running it to skip the initial typececking
 - Set `settings.init.compact_before_start` to `false` to skip the initial memory compaction:
 
 ```liquidsoap
