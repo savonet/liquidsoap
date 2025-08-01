@@ -31,6 +31,9 @@ Changed:
   Use `error.methods` to get them! (#4537)
 - Make sure that `let { foo = gni } = v` assigns a value to
   `gni` but not to `foo` (#4561)
+- Support for `ImageLib` has been removed. The library is not
+  maintained anymore and causes issues with dangling external
+  processes (#4595)
 
 Fixed:
 
