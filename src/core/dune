@@ -97,7 +97,6 @@
   encoder_formats
   encoder_utils
   error
-  external_decoder
   external_encoder
   external_encoder_format
   external_input

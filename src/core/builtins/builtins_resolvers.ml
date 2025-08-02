@@ -215,7 +215,7 @@ let _ =
         Some (Lang.bool false),
         Some "if true, file is removed when it is finished." );
       ( "static",
-        Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t,
+        Builtins_sys.static_t,
         Some default_static,
         Some
           "When given an uri for the protocol, if it returns `true`, then \
@@ -252,7 +252,8 @@ let _ =
       let static s = Lang.to_bool (Lang.apply static [("", Lang.string s)]) in
       let doc = Lang.to_string (List.assoc "doc" p) in
       let syntax = Lang.to_string (List.assoc "syntax" p) in
-      Lang.add_protocol ~syntax ~doc ~static name (fun arg ~log timeout ->
+      Lang.add_protocol ~syntax ~doc ~static ~mode:Request.Uri name
+        (fun arg ~log timeout ->
           let log =
             Lang.val_fun log_p (fun p ->
                 let v = List.assoc "" p in

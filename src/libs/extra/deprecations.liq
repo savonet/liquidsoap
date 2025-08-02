@@ -733,25 +733,11 @@ def add_protocol(%argsof(protocol.add), name, fn) =
   protocol.add(%argsof(protocol.add), name, fn)
 end
 
-# Deprecated: use `decoder.add`.
-# @flag deprecated
-def add_decoder(%argsof(decoder.add), process) =
-  deprecated("add_decoder", "decoder.add")
-  decoder.add(%argsof(decoder.add), process)
-end
-
 # Deprecated: use `decoder.metadata.add`.
 # @flag deprecated
 def add_metadata_resolver(name, fn) =
   deprecated("add_metadata_resolver", "decoder.metadata.add")
   decoder.metadata.add(name, fn)
-end
-
-# Deprecated: use `decoder.oblivious.add`.
-# @flag deprecated
-def add_oblivious_decoder(%argsof(decoder.oblivious.add), process) =
-  deprecated("add_oblivious_decoder", "decoder.oblivious.add")
-  decoder.oblivious.add(%argsof(decoder.oblivious.add), process)
 end
 
 # Deprecated: use `source.mux.audio`.

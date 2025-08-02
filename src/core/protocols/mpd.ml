@@ -148,4 +148,4 @@ let () =
     ~doc:"Finds all files with a tag equal to a given value using mpd."
     ~syntax:"mpd:tag=value"
     ~static:(fun _ -> false)
-    "mpd" mpd
+    ~mode:Request.Uri "mpd" mpd
