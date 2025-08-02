@@ -135,6 +135,11 @@ type clock = {
 
 and t = clock Unifier.t
 
+let string_of_state = function
+  | `Stopping _ -> "stopping"
+  | `Started _ -> "started"
+  | `Stopped _ -> "stopped"
+
 let _default_id { id; pending_activations } =
   match (Unifier.deref id, Queue.elements pending_activations) with
     | Some id, _ -> id
@@ -407,7 +412,9 @@ let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
     | _ when Atomic.get global_stop -> raise Has_stopped
-    | _ -> raise Invalid_state
+    | s ->
+        log#critical "Clock %s has invalid state: %s" (id c) (string_of_state s);
+        raise Invalid_state
 
 and _activate_pending_sources ~clock x =
   Queue.flush_iter clock.pending_activations
@@ -599,9 +606,11 @@ let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
   c
 
 let time c =
-  let ({ time_implementation } as c) = active_params c in
-  let module Time = (val time_implementation : Liq_time.T) in
-  Time.to_float (_time c)
+  match active_params c with
+    | { time_implementation } as c ->
+        let module Time = (val time_implementation : Liq_time.T) in
+        Time.to_float (_time c)
+    | exception Invalid_state -> -1.
 
 let start_pending () =
   let c = WeakQueue.flush_elements pending_clocks in
