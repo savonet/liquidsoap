@@ -86,7 +86,7 @@ type scheme = var list * t
 
 type meth_doc = Type_base.meth_doc = {
   meth_descr : string;
-  mutable category : [ `Method | `Callback ];
+  category : [ `Method | `Callback ];
 }
 
 type meth = Type_base.meth = {
