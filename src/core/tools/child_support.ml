@@ -52,6 +52,8 @@ class virtual base ~check_self_sync children_val =
              self#clock);
 
       self#on_before_streaming_cycle (fun () ->
+          if not (Clock.started self#child_clock) then
+            Clock.start self#child_clock;
           Clock.activate_pending_sources self#child_clock)
 
     method child_clock =
