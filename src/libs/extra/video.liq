@@ -40,6 +40,7 @@ end
 
 let video.ffmpeg = ()
 
+%ifdef input.ffmpeg
 # ffmpeg's test source video (useful for testing and debugging).
 # @category Source / Video processing
 # @flag extra
@@ -55,3 +56,4 @@ def video.ffmpeg.testsrc(~id="video.testsrc") =
     "#{video} [out0]; #{audio} [out1]"
   )
 end
+%endif
