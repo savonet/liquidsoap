@@ -8,6 +8,7 @@
 %include "settings.liq"
 %include "log.liq"
 %include "thread.liq"
+%include "cron.liq"
 %include "process.liq"
 %include "string.liq"
 %include "socket.liq"
