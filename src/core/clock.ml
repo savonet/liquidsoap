@@ -606,11 +606,11 @@ let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
   c
 
 let time c =
-  try
-    let ({ time_implementation } as c) = active_params c in
-    let module Time = (val time_implementation : Liq_time.T) in
-    Time.to_float (_time c)
-  with Invalid_start -> Time.to_float (-1.)
+  match active_params c with
+    | { time_implementation } as c ->
+        let module Time = (val time_implementation : Liq_time.T) in
+        Time.to_float (_time c)
+    | exception Invalid_state -> -1.
 
 let start_pending () =
   let c = WeakQueue.flush_elements pending_clocks in
