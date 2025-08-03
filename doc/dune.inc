@@ -92,6 +92,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -157,6 +161,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -221,6 +229,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -286,6 +298,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -350,6 +366,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -415,6 +435,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -479,6 +503,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -544,6 +572,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -608,6 +640,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -673,6 +709,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -737,6 +777,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -802,6 +846,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -866,6 +914,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -931,6 +983,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -995,6 +1051,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -1060,6 +1120,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -1124,6 +1188,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -1189,6 +1257,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -1253,6 +1325,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -1318,6 +1394,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -1382,6 +1462,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -1447,6 +1531,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -1511,6 +1599,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -1576,6 +1668,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -1640,6 +1736,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -1705,6 +1805,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -1769,6 +1873,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -1834,6 +1942,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -1898,6 +2010,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -1963,6 +2079,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -2027,6 +2147,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -2092,6 +2216,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -2156,6 +2284,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -2221,6 +2353,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -2285,6 +2421,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -2350,6 +2490,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -2414,6 +2558,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -2479,6 +2627,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -2543,6 +2695,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -2608,6 +2764,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -2672,6 +2832,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -2737,6 +2901,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -2801,6 +2969,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -2866,6 +3038,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -2930,6 +3106,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -2995,6 +3175,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -3059,6 +3243,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -3124,6 +3312,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -3188,6 +3380,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -3253,6 +3449,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -3317,6 +3517,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -3382,6 +3586,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -3446,6 +3654,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -3511,6 +3723,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -3575,6 +3791,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -3640,6 +3860,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -3704,6 +3928,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -3769,6 +3997,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -3833,6 +4065,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -3898,6 +4134,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -3962,6 +4202,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -4027,6 +4271,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -4091,6 +4339,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -4156,6 +4408,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -4220,6 +4476,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -4285,6 +4545,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -4349,6 +4613,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -4414,6 +4682,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -4478,6 +4750,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -4543,6 +4819,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -4607,6 +4887,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -4672,6 +4956,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -4736,6 +5024,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -4801,6 +5093,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -4865,6 +5161,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -4930,6 +5230,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -4994,6 +5298,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -5059,6 +5367,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -5123,6 +5435,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -5188,6 +5504,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -5252,6 +5572,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -5317,6 +5641,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -5381,6 +5709,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -5446,6 +5778,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -5510,6 +5846,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -5575,6 +5915,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -5639,6 +5983,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -5704,6 +6052,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -5768,6 +6120,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -5833,6 +6189,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -5897,6 +6257,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -5962,6 +6326,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -6026,6 +6394,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -6091,6 +6463,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -6155,6 +6531,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -6220,6 +6600,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -6284,6 +6668,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -6349,6 +6737,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -6413,6 +6805,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -6478,6 +6874,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -6542,6 +6942,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -6607,6 +7011,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -6671,6 +7079,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -6736,6 +7148,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -6800,6 +7216,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -6865,6 +7285,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -6929,6 +7353,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -6994,6 +7422,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -7058,6 +7490,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -7123,6 +7559,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -7187,6 +7627,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -7252,6 +7696,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -7316,6 +7764,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -7381,6 +7833,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -7445,6 +7901,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -7510,6 +7970,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -7574,6 +8038,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -7639,6 +8107,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -7703,6 +8175,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -7768,6 +8244,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -7832,6 +8312,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -7897,6 +8381,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -7939,7 +8427,7 @@
   (package liquidsoap)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
-  (target script_loading.html)
+  (target scheduling.html)
   (action (run cp %{no_pandoc} %{target}))
 )
 
@@ -7961,6 +8449,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -8026,6 +8518,147 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
+    content/liq/seek-telnet.liq
+    content/liq/settings.liq
+    content/liq/shoutcast.liq
+    content/liq/single.liq
+    content/liq/source-cue.liq
+    content/liq/space_overhead.liq
+    content/liq/split-cue.liq
+    content/liq/sqlite.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/switch-show.liq
+    content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-canvas-example.liq
+    content/liq/video-default-canvas.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
+    content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
+    (:md content/scheduling.md)
+  )
+  (target scheduling.html)
+  (action
+    (pipe-stdout
+      (run pandoc %{md} -t json)
+      (run pandoc-include --directory content/liq)
+      (run pandoc -f json --syntax-definition=liquidsoap.xml --highlight=pygments --metadata pagetitle=scheduling --template=template.html -o %{target})
+    )
+  )
+)
+
+(rule
+  (alias doc)
+  (package liquidsoap)
+  (enabled_if (not %{bin-available:pandoc}))
+  (deps (:no_pandoc no-pandoc))
+  (target script_loading.html)
+  (action (run cp %{no_pandoc} %{target}))
+)
+
+(rule
+  (alias doc)
+  (package liquidsoap)
+  (enabled_if %{bin-available:pandoc})
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
+    content/liq/basic-radio.liq
+    content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
+    content/liq/beets-protocol.liq
+    content/liq/beets-source.liq
+    content/liq/blank-detect.liq
+    content/liq/blank-sorry.liq
+    content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
+    content/liq/cross.custom.liq
+    content/liq/crossfade.liq
+    content/liq/decoder-faad.liq
+    content/liq/decoder-flac.liq
+    content/liq/decoder-metaflac.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/external-output.file.liq
+    content/liq/fallback.liq
+    content/liq/ffmpeg-filter-dynamic-volume.liq
+    content/liq/ffmpeg-filter-flanger-highpass.liq
+    content/liq/ffmpeg-filter-hflip.liq
+    content/liq/ffmpeg-filter-hflip2.liq
+    content/liq/ffmpeg-filter-parallel-flanger-highpass.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/fixed-time1.liq
+    content/liq/fixed-time2.liq
+    content/liq/frame-size.liq
+    content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
+    content/liq/harbor-insert-metadata.liq
+    content/liq/harbor-metadata.liq
+    content/liq/harbor-redirect.liq
+    content/liq/harbor-simple.liq
+    content/liq/harbor-usage.liq
+    content/liq/harbor.http.register.liq
+    content/liq/harbor.http.response.liq
+    content/liq/hls-metadata.liq
+    content/liq/hls-mp4.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
+    content/liq/json-ex.liq
+    content/liq/json-stringify.liq
+    content/liq/json1.liq
+    content/liq/labeled_arguments.liq
+    content/liq/live-switch.liq
+    content/liq/loudness-correction.liq
+    content/liq/medialib-predicate.liq
+    content/liq/medialib.liq
+    content/liq/medialib.sqlite.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
+    content/liq/output.file.hls.liq
+    content/liq/playlists.liq
+    content/liq/prometheus-callback.liq
+    content/liq/prometheus-settings.liq
+    content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
+    content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
+    content/liq/rtmp.liq
+    content/liq/samplerate3.liq
+    content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -8090,6 +8723,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -8155,6 +8792,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -8219,6 +8860,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -8284,6 +8929,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -8348,6 +8997,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -8413,6 +9066,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -8477,6 +9134,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -8542,6 +9203,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -8606,6 +9271,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -8671,6 +9340,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -8735,6 +9408,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -8800,6 +9477,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -8864,6 +9545,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -8929,6 +9614,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -8993,6 +9682,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -9058,6 +9751,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -9122,6 +9819,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -9187,6 +9888,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -9251,6 +9956,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -9316,6 +10025,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -9380,6 +10093,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -9445,6 +10162,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -9509,6 +10230,10 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
+    content/liq/cron_add.liq
+    content/liq/cron_id.liq
+    content/liq/cron_id_arg.liq
+    content/liq/cron_remove.liq
     content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
@@ -9574,6 +10299,10 @@
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
+    content/liq/scheduling_9am.liq
+    content/liq/scheduling_queue.liq
+    content/liq/scheduling_queue_midnight.liq
+    content/liq/scheduling_simple.liq
     content/liq/seek-telnet.liq
     content/liq/settings.liq
     content/liq/shoutcast.liq
@@ -9709,6 +10438,46 @@
     (:test_liq content/liq/complete-case.liq)
   )
   (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/complete-case.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/cron_add.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/cron_add.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/cron_id.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/cron_id.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/cron_id_arg.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/cron_id_arg.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/cron_remove.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/cron_remove.liq))
 )
 
 (rule
@@ -10366,6 +11135,46 @@
   (package liquidsoap)
   (deps
     (source_tree ../src/libs)
+    (:test_liq content/liq/scheduling_9am.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/scheduling_9am.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/scheduling_queue.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/scheduling_queue.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/scheduling_queue_midnight.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/scheduling_queue_midnight.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/scheduling_simple.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/scheduling_simple.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
     (:test_liq content/liq/seek-telnet.liq)
   )
   (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/seek-telnet.liq))
@@ -10696,6 +11505,7 @@
     (request_sources.html as html/request_sources.html)
     (requests.html as html/requests.html)
     (rolling-release.html as html/rolling-release.html)
+    (scheduling.html as html/scheduling.html)
     (script_loading.html as html/script_loading.html)
     (seek.html as html/seek.html)
     (server.html as html/server.html)
