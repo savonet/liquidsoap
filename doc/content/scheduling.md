@@ -33,7 +33,7 @@ You can schedule any function here — such as sending metadata, modifying a sou
 
 ### Example: Play a file every hour
 
-```{.liquidsoap include="scheduling_queue.liq"}
+```{.liquidsoap include="scheduling_queue.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -45,7 +45,7 @@ To schedule a task at a specific time, use `thread.when`. It takes a [time predi
 
 ### Example: Run a task at 9:00 AM
 
-```{.liquidsoap include="scheduling_9am.liq"}
+```{.liquidsoap include="scheduling_9am.liq" from="BEGIN" to="END"}
 
 ```
 
