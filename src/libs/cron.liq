@@ -1,40 +1,48 @@
 let cron.tab = ref([])
 
-# Add an entry to the cron tab
-# @param ~label Entry label
+# Add an entry to the cron tab.
 # @param ~cron Cron entry
+# @param ~id Optional task ID.
+# @method id ID to be used to remove the task.
 # @category Programming
-def cron.tab.append(~(label:string), ~cron:c, handler) =
+def cron.add(~id=null, c, handler) =
+  id = id ?? string.id.default(default="cron.task", null)
+
   if
-    list.exists(fun ({label = l}) -> l == label, cron.tab())
+    list.exists(fun ({id = i}) -> i == id, cron.tab())
   then
     error.raise(
       error.invalid,
-      "Cron tab entry for #{label} already exists!"
+      "Cron tab entry with ID #{id} already exists!"
     )
   end
 
   let {test} = cron.parse(c)
   log.info(
     label="cron",
-    "Adding cron.tab entry #{label} (cron entry: #{c})"
+    "Adding cron.tab entry #{c} (cron id: #{id})"
   )
-  cron.tab := [...cron.tab(), {label=label, cron=c, test=test, handler=handler}]
+  cron.tab := [...cron.tab(), {id=id, cron=c, test=test, handler=handler}]
+
+  {id=id}
 end
 
-def cron.tab.remove(label) =
+# Remove a cron tab entry. ID is returned during
+# the task's registration
+# @category Programming
+def cron.remove(id) =
   if
-    list.exists(fun ({label = l}) -> l == label, cron.tab())
+    list.exists(fun ({id = i}) -> i == id, cron.tab())
   then
     log.info(
       label="cron",
-      "Removing cron.tab entry #{label}"
+      "Removing cron.tab entry #{id}"
     )
-    cron.tab := list.filter(fun ({label = l}) -> l != label, cron.tab())
+    cron.tab := list.filter(fun ({id = i}) -> i != id, cron.tab())
   else
     log.important(
       label="cron",
-      "Cannot remove cron.tab entry #{label}: entry does not exist!"
+      "Cannot remove cron.tab entry #{id}: entry does not exist!"
     )
   end
 end
@@ -46,14 +54,14 @@ thread.when(
   {0s-30s},
   {
     list.iter(
-      fun ({label, cron, test, handler}) ->
+      fun ({id, cron, test, handler}) ->
         begin
           if
             test()
           then
             log.info(
               label="cron",
-              "Executing cron.tab entry #{label} (cron entry: #{cron})"
+              "Executing cron.tab entry #{cron} (id: #{id})"
             )
             thread.run(fast=false, handler)
           end
