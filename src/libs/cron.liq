@@ -1,8 +1,9 @@
 let cron.tab = ref([])
 
 # Add an entry to the cron tab.
-# @param ~cron Cron entry
 # @param ~id Optional task ID.
+# @param c Cron entry
+# @param handler Function to execute
 # @method id ID to be used to remove the task.
 # @category Programming
 def cron.add(~id=null, c, handler) =
