@@ -45,7 +45,7 @@ To schedule a task at a specific time, use `thread.when`. It takes a [time predi
 
 ### Example: Run a task at 9:00 AM
 
-```{.liquidsoap include="scheduling_9am.liq" from="BEGIN" to="END"}
+```{.liquidsoap include="scheduling_9am.liq"}
 
 ```
 
@@ -55,7 +55,7 @@ You can refer to the `thread.when` and `predicate.activates` documentation for m
 
 ### Example: Queue a track at midnight
 
-```{.liquidsoap include="scheduling_queue_midnight.liq"}
+```{.liquidsoap include="scheduling_queue_midnight.liq" from="BEGIN" to="END"}
 
 ```
 
