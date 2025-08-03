@@ -14,7 +14,7 @@ New:
 - Added `liquidsoap.script.path` that contains the path to the current
   script's file, if available.
 - Added LUFS-based per-track loudness correction (#4545)
-- Added `cron.parse`, `cron.tab.{append,remove}` and a cron thread
+- Added `cron.parse`, `cron.{add,remove}` and a cron thread
   to allow registration of cron-like asynchronous tasks (#4579)
 - `null` can now be used directly without having to call `null()`.
   `null(value)` calls are still valid and can be used to create
