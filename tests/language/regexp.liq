@@ -20,8 +20,12 @@ def f() =
   test.equal(r/^\/bla/.test("blabla"), false)
 
   # Test replace
-  test.equal(r/gni/.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnibla")
-  test.equal(r/gni/g.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnobla")
+  test.equal(
+    r/gni/.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnibla"
+  )
+  test.equal(
+    r/gni/g.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnobla"
+  )
 
   # Test string escape.
   x = r/^\/foo$/g

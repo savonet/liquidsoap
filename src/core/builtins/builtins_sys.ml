@@ -71,131 +71,6 @@ let _ =
       let f = Lang.to_format (List.assoc "" p) in
       try Lang.string (Encoder.extension f) with _ -> Lang.string "")
 
-let decoder = Modules.decoder
-let decoder_oblivious = Lang.add_module ~base:decoder "oblivious"
-
-let _ =
-  (* The type of the test function for external decoders.
-     Return is one of:
-     . 0: no audio
-     . -1: audio with unknown number of channels.
-     . x >= 1: audio with a fixed number (x) of channels. *)
-  let test_file_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.int_t in
-  let test_arg =
-    ( "test",
-      test_file_t,
-      None,
-      Some
-        "Function used to determine if a file should be decoded by the \
-         decoder. Returned values are: 0: no decodable audio, -1: decodable \
-         audio but number of audio channels unknown, x: fixed number of \
-         decodable audio channels." )
-  in
-  let test_f f file = Lang.to_int (Lang.apply f [("", Lang.string file)]) in
-  ignore
-    (Lang.add_builtin ~base:decoder "add" ~category:`Liquidsoap
-       ~descr:
-         "Register an external decoder. The encoder should output in WAV \
-          format to his standard output (stdout) and read data from its \
-          standard input (stdin)."
-       [
-         ("name", Lang.string_t, None, Some "Format/decoder's name.");
-         ("description", Lang.string_t, None, Some "Description of the decoder.");
-         ( "mimes",
-           Lang.list_t Lang.string_t,
-           Some (Lang.list []),
-           Some
-             "List of mime types supported by this decoder. Empty means any \
-              mime type should be accepted." );
-         ( "file_extensions",
-           Lang.list_t Lang.string_t,
-           Some (Lang.list []),
-           Some
-             "List of file extensions. Empty means any file extension should \
-              be accepted." );
-         ("priority", Lang.int_t, Some (Lang.int 1), Some "Decoder priority");
-         test_arg;
-         ("", Lang.string_t, None, Some "Process to start.");
-       ]
-       Lang.unit_t
-       (fun p ->
-         let process = Lang.to_string (Lang.assoc "" 1 p) in
-         let name = Lang.to_string (List.assoc "name" p) in
-         let doc = Lang.to_string (List.assoc "description" p) in
-         let mimes =
-           List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
-         in
-         let mimes = if mimes = [] then None else Some mimes in
-         let file_extensions =
-           List.map Lang.to_string
-             (Lang.to_list (List.assoc "file_extensions" p))
-         in
-         let file_extensions =
-           if file_extensions = [] then None else Some file_extensions
-         in
-         let priority = Lang.to_int (List.assoc "priority" p) in
-         let test = List.assoc "test" p in
-         External_decoder.register_stdin ~name ~doc ~priority ~mimes
-           ~file_extensions ~test:(test_f test) process;
-         Lang.unit));
-  let process_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t in
-  Lang.add_builtin ~base:decoder_oblivious "add" ~category:`Liquidsoap
-    ~descr:
-      "Register an external file decoder. The encoder should output in WAV \
-       format to his standard output (stdout) and read data from the file it \
-       receives. The estimated remaining duration for this decoder will be \
-       unknown until the `buffer` last seconds of the file. If possible, it is \
-       recommended to decode from stdin and use `decoder.add`."
-    [
-      ("name", Lang.string_t, None, Some "Format/decoder's name.");
-      ("description", Lang.string_t, None, Some "Description of the decoder.");
-      test_arg;
-      ("priority", Lang.int_t, Some (Lang.int 1), Some "Decoder priority");
-      ( "mimes",
-        Lang.list_t Lang.string_t,
-        Some (Lang.list []),
-        Some
-          "List of mime types supported by this decoder. Empty means any mime \
-           type should be accepted." );
-      ( "file_extensions",
-        Lang.list_t Lang.string_t,
-        Some (Lang.list []),
-        Some
-          "List of file extensions. Empty means any file extension should be \
-           accepted." );
-      ("buffer", Lang.float_t, Some (Lang.float 5.), None);
-      ( "",
-        process_t,
-        None,
-        Some
-          "Process to start. The function takes the filename as argument and \
-           returns the process to start." );
-    ]
-    Lang.unit_t
-    (fun p ->
-      let f = Lang.assoc "" 1 p in
-      let name = Lang.to_string (List.assoc "name" p) in
-      let doc = Lang.to_string (List.assoc "description" p) in
-      let prebuf = Lang.to_float (List.assoc "buffer" p) in
-      let process file =
-        Lang.to_string (Lang.apply f [("", Lang.string file)])
-      in
-      let test = List.assoc "test" p in
-      let priority = Lang.to_int (List.assoc "priority" p) in
-      let mimes =
-        List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
-      in
-      let mimes = if mimes = [] then None else Some mimes in
-      let file_extensions =
-        List.map Lang.to_string (Lang.to_list (List.assoc "file_extensions" p))
-      in
-      let file_extensions =
-        if file_extensions = [] then None else Some file_extensions
-      in
-      External_decoder.register_oblivious ~name ~doc ~priority ~mimes
-        ~file_extensions ~test:(test_f test) ~process prebuf;
-      Lang.unit)
-
 (** Misc control/system functions. *)
 
 let _ =
@@ -474,4 +349,107 @@ let _ =
       let label = Lang.to_string (Lang.assoc "" 1 p) in
       let value = Lang.to_string (Lang.assoc "" 2 p) in
       Unix.putenv label value;
+      Lang.unit)
+
+let static_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t
+
+let default_static =
+  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled "fun (_) -> true"
+
+let _ =
+  Lang.add_builtin ~base:Modules.decoder "add" ~category:`Liquidsoap
+    ~descr:
+      "Register an external decoder. The decoder receives a local file and \
+       produces another local file. Produced file can be any format decodable \
+       by liquidsoap and can also be a request uri. Recommended returned value \
+       is: `annotate:metadata=\"value\",..:/path/to/file.wav`. File decoders \
+       are applied during the request resolution process."
+    [
+      ("name", Lang.string_t, None, None);
+      ("description", Lang.string_t, None, Some "Description of the decoder.");
+      ( "static",
+        static_t,
+        Some default_static,
+        Some
+          "Return `true`, then requests can be resolved once and for all. \
+           Typically, static decoders can be used to create infallible \
+           sources." );
+      ( "mimes",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some
+          "List of mime types supported by this decoder. Empty means any mime \
+           type should be accepted." );
+      ( "file_extensions",
+        Lang.list_t Lang.string_t,
+        None,
+        Some "List of file extensions. Should not be empty." );
+      ( "",
+        Lang.fun_t
+          [
+            (false, "rlog", Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t);
+            (false, "maxtime", Lang.float_t);
+            (false, "", Lang.string_t);
+          ]
+          Lang.(
+            nullable_t
+              (optional_method_t string_t
+                 [
+                   ( "temporary",
+                     ([], bool_t),
+                     "Delete the returned file when it is no longer needed" );
+                 ])),
+        None,
+        Some "Resolution function. Returns `null` if no file could be decoded."
+      );
+    ]
+    Lang.unit_t
+    (fun p ->
+      let name = Lang.to_string (List.assoc "name" p) in
+      let description = Lang.to_string (List.assoc "description" p) in
+      let mime_types =
+        List.map Lang.to_string (Lang.to_list (List.assoc "mimes" p))
+      in
+      let _file_extensions = List.assoc "file_extensions" p in
+      let file_extensions =
+        List.map Lang.to_string (Lang.to_list _file_extensions)
+      in
+      if file_extensions = [] then
+        Runtime_error.raise ~pos:(Lang.pos p)
+          "file_extensions should not be empty!";
+      let static = List.assoc "static" p in
+      let static s = Lang.to_bool (Lang.apply static [("", Lang.string s)]) in
+      let fn = List.assoc "" p in
+      let fn fname ~log timeout =
+        let log =
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              let v = List.assoc "" p in
+              log (Lang.to_string v);
+              Lang.unit)
+        in
+        let ret =
+          Lang.apply fn
+            [
+              ("rlog", log);
+              ("maxtime", Lang.float timeout);
+              ("", Lang.string fname);
+            ]
+        in
+        match Lang.to_option ret with
+          | None -> None
+          | Some v ->
+              let meths, v = Lang.split_meths v in
+              let uri = Lang.to_string v in
+              let temporary =
+                match List.assoc_opt "temporary" meths with
+                  | None -> true
+                  | Some v -> Lang.to_bool v
+              in
+              Some (Request.indicator ~temporary uri)
+      in
+      Lang.add_protocol ~doc:description ~syntax:"/path/to/file" ~static
+        ~mode:Request.(File { file_extensions; mime_types })
+        name fn;
       Lang.unit)

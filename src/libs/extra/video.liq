@@ -37,3 +37,23 @@ def video.add_cover(
     s
   )
 end
+
+let video.ffmpeg = ()
+
+%ifdef input.ffmpeg
+# ffmpeg's test source video (useful for testing and debugging).
+# @category Source / Video processing
+# @flag extra
+def video.ffmpeg.testsrc(~id="video.testsrc") =
+  video =
+    "testsrc=size=#{video.frame.width()}x#{video.frame.height()}:rate=#{
+      video.frame.rate()
+    }"
+  audio = "sine=frequency=440:beep_factor=2:sample_rate=#{audio.samplerate()}"
+  input.ffmpeg(
+    id=id,
+    format="lavfi",
+    "#{video} [out0]; #{audio} [out1]"
+  )
+end
+%endif

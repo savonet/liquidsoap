@@ -2,6 +2,8 @@
 
 New:
 
+- BREAKING: Added new file-to-file external `decoder.add` API. This
+  makes it much easier and safer to write external decoders. See: [#4531](https://github.com/savonet/liquidsoap/pull/4531)
 - Allow deststructing function arguments using the same patterns as for
   variable assignment (#4562)
 - BREAKING: `on_metadata`, `on_track`, `on_offset`, `on_end`, `on_wake_up`
