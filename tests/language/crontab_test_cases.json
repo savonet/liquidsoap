@@ -1,0 +1,574 @@
+[
+  {
+    "crontab_entry": "* * * * *",
+    "time": {
+      "day": 15,
+      "hour": 12,
+      "min": 30,
+      "month": 6,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "30 14 * * *",
+    "time": {
+      "day": 10,
+      "hour": 14,
+      "min": 30,
+      "month": 7,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 1 1 *",
+    "time": {
+      "day": 1,
+      "hour": 0,
+      "min": 0,
+      "month": 1,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 1 1 *",
+    "time": {
+      "day": 2,
+      "hour": 0,
+      "min": 0,
+      "month": 1,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "15 10 * * 1",
+    "time": {
+      "day": 8,
+      "hour": 10,
+      "min": 15,
+      "month": 7,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "15 10 * * 1",
+    "time": {
+      "day": 9,
+      "hour": 10,
+      "min": 15,
+      "month": 7,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "*/15 * * * *",
+    "time": {
+      "day": 20,
+      "hour": 8,
+      "min": 45,
+      "month": 3,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "*/15 * * * *",
+    "time": {
+      "day": 20,
+      "hour": 8,
+      "min": 44,
+      "month": 3,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 9-17 * * *",
+    "time": {
+      "day": 22,
+      "hour": 13,
+      "min": 0,
+      "month": 10,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 9-17 * * *",
+    "time": {
+      "day": 22,
+      "hour": 18,
+      "min": 0,
+      "month": 10,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 0 1 */2 *",
+    "time": {
+      "day": 1,
+      "hour": 0,
+      "min": 0,
+      "month": 4,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 1 */2 *",
+    "time": {
+      "day": 1,
+      "hour": 0,
+      "min": 0,
+      "month": 5,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 0 * 12 *",
+    "time": {
+      "day": 15,
+      "hour": 0,
+      "min": 0,
+      "month": 12,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 * 12 *",
+    "time": {
+      "day": 15,
+      "hour": 0,
+      "min": 0,
+      "month": 11,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 12 * * 6",
+    "time": {
+      "day": 6,
+      "hour": 12,
+      "min": 0,
+      "month": 7,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 12 * * 6",
+    "time": {
+      "day": 7,
+      "hour": 12,
+      "min": 0,
+      "month": 7,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "5 4 * * 1-5",
+    "time": {
+      "day": 17,
+      "hour": 4,
+      "min": 5,
+      "month": 6,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "5 4 * * 3-5",
+    "time": {
+      "day": 18,
+      "hour": 4,
+      "min": 5,
+      "month": 6,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 6,18 * * *",
+    "time": {
+      "day": 10,
+      "hour": 6,
+      "min": 0,
+      "month": 8,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 6,18 * * *",
+    "time": {
+      "day": 10,
+      "hour": 17,
+      "min": 0,
+      "month": 8,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "@hourly",
+    "time": {
+      "day": 5,
+      "hour": 14,
+      "min": 0,
+      "month": 9,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "@hourly",
+    "time": {
+      "day": 5,
+      "hour": 14,
+      "min": 1,
+      "month": 9,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "@daily",
+    "time": {
+      "day": 8,
+      "hour": 0,
+      "min": 0,
+      "month": 3,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "@daily",
+    "time": {
+      "day": 8,
+      "hour": 0,
+      "min": 1,
+      "month": 3,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "@weekly",
+    "time": {
+      "day": 7,
+      "hour": 0,
+      "min": 0,
+      "month": 4,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "@weekly",
+    "time": {
+      "day": 8,
+      "hour": 0,
+      "min": 0,
+      "month": 4,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "@monthly",
+    "time": {
+      "day": 1,
+      "hour": 0,
+      "min": 0,
+      "month": 5,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "@monthly",
+    "time": {
+      "day": 2,
+      "hour": 0,
+      "min": 0,
+      "month": 5,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "@yearly",
+    "time": {
+      "day": 1,
+      "hour": 0,
+      "min": 0,
+      "month": 1,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "@yearly",
+    "time": {
+      "day": 2,
+      "hour": 0,
+      "min": 0,
+      "month": 1,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "@annually",
+    "time": {
+      "day": 1,
+      "hour": 0,
+      "min": 0,
+      "month": 1,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "@annually",
+    "time": {
+      "day": 2,
+      "hour": 0,
+      "min": 0,
+      "month": 1,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 0 1,15 * *",
+    "time": {
+      "day": 1,
+      "hour": 0,
+      "min": 0,
+      "month": 7,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 1,15 * *",
+    "time": {
+      "day": 15,
+      "hour": 0,
+      "min": 0,
+      "month": 7,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 1,15 * *",
+    "time": {
+      "day": 2,
+      "hour": 0,
+      "min": 0,
+      "month": 7,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 8,20 * * *",
+    "time": {
+      "day": 5,
+      "hour": 8,
+      "min": 0,
+      "month": 5,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 8,20 * * *",
+    "time": {
+      "day": 5,
+      "hour": 20,
+      "min": 0,
+      "month": 5,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 8,20 * * *",
+    "time": {
+      "day": 5,
+      "hour": 19,
+      "min": 0,
+      "month": 5,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "30 7 * 1,6,12 *",
+    "time": {
+      "day": 10,
+      "hour": 7,
+      "min": 30,
+      "month": 6,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "30 7 * 1,6,12 *",
+    "time": {
+      "day": 10,
+      "hour": 7,
+      "min": 30,
+      "month": 3,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 0 * * 1,3,5",
+    "time": {
+      "day": 10,
+      "hour": 0,
+      "min": 0,
+      "month": 7,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 * * 2,4",
+    "time": {
+      "day": 11,
+      "hour": 0,
+      "min": 0,
+      "month": 7,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 * * 2,4",
+    "time": {
+      "day": 12,
+      "hour": 0,
+      "min": 0,
+      "month": 7,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 6 10,20 3,6 *",
+    "time": {
+      "day": 10,
+      "hour": 6,
+      "min": 0,
+      "month": 3,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 6 10,20 3,6 *",
+    "time": {
+      "day": 20,
+      "hour": 6,
+      "min": 0,
+      "month": 6,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 6 10,20 3,6 *",
+    "time": {
+      "day": 15,
+      "hour": 6,
+      "min": 0,
+      "month": 6,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "45 1 1,15,30 * *",
+    "time": {
+      "day": 15,
+      "hour": 1,
+      "min": 45,
+      "month": 8,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "45 1 1,15,30 * *",
+    "time": {
+      "day": 30,
+      "hour": 1,
+      "min": 45,
+      "month": 8,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "45 1 1,15,30 * *",
+    "time": {
+      "day": 10,
+      "hour": 1,
+      "min": 45,
+      "month": 8,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 0 1,15 1,6,12 *",
+    "time": {
+      "day": 15,
+      "hour": 0,
+      "min": 0,
+      "month": 1,
+      "year": 2024
+    },
+    "result": true
+  },
+  {
+    "crontab_entry": "0 0 1,15 1,6,12 *",
+    "time": {
+      "day": 15,
+      "hour": 0,
+      "min": 0,
+      "month": 2,
+      "year": 2024
+    },
+    "result": false
+  },
+  {
+    "crontab_entry": "0 0 1,15 1,6,12 *",
+    "time": {
+      "day": 1,
+      "hour": 0,
+      "min": 0,
+      "month": 6,
+      "year": 2024
+    },
+    "result": true
+  }
+]

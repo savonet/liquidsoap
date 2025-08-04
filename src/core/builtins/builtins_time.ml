@@ -227,3 +227,51 @@ output.file({time.string("/path/to/file%H%M%S.wav")}, ...)|};
         |> Option.value ~default:"%A, %d %B %Y %H:%M:%S"
       in
       Lang.string (Utils.strftime ?time s))
+
+let cron = Lang.add_module "cron"
+
+let _ =
+  Lang.add_builtin ~category:`Time ~base:cron "parse"
+    ~descr:
+      "Parse a cron entry. Format is the posix crontab format with linux \
+       extensions (named months and week days and \
+       @{yearly,annyally,monthly,weeklydaily,hourly}."
+    [("", Lang.string_t, None, None)]
+    Lang.(
+      record_t
+        [
+          ("week_day", Lang.string_t);
+          ("month", Lang.string_t);
+          ("month_day", Lang.string_t);
+          ("hour", Lang.string_t);
+          ("minute", Lang.string_t);
+          ( "test",
+            Lang.fun_t [(true, "time", Lang.(nullable_t float_t))] Lang.bool_t
+          );
+        ])
+    (fun p ->
+      let entry_val = List.assoc "" p in
+      let entry = Lang.to_string entry_val in
+      let ({ Cron.week_day; month; month_day; hour; minute } as entry) =
+        try Cron.parse entry with
+          | Cron.Parse_error s -> raise (Error.Invalid_value (entry_val, s))
+          | _ -> raise (Error.Invalid_value (entry_val, "Invalid CRON entry!"))
+      in
+      let test =
+        Lang.val_fun
+          [("time", "time", Some Lang.null)]
+          (fun p ->
+            let time =
+              Lang.to_valued_option Lang.to_float (List.assoc "time" p)
+            in
+            Lang.bool (Cron.test ?time entry))
+      in
+      Lang.record
+        [
+          ("week_day", Lang.string (Cron.string_of_entry week_day));
+          ("month", Lang.string (Cron.string_of_entry month));
+          ("month_day", Lang.string (Cron.string_of_entry month_day));
+          ("hour", Lang.string (Cron.string_of_entry hour));
+          ("minute", Lang.string (Cron.string_of_entry minute));
+          ("test", test);
+        ])

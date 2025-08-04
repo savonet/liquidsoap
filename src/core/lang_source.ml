@@ -117,7 +117,7 @@ module ClockValue = struct
     ]
 
   let t =
-    Lang.method_t base_t
+    method_t base_t
       (List.map (fun (lbl, typ, descr, _) -> (lbl, ([], typ), descr)) methods)
 
   let to_value c =
@@ -619,15 +619,20 @@ let source_methods =
               float (frame_position +. in_frame_position)));
     };
   ]
-  @ List.map callback source_callbacks
+
+let source_methods =
+  List.map (fun m -> (m, `Method)) source_methods
+  @ List.map (fun c -> (callback c, `Callback)) source_callbacks
 
 let make_t ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
 
-let source_methods_t t =
-  method_t t
-    (List.map
-       (fun { name; scheme; descr } -> (name, scheme, descr))
-       source_methods)
+let _method_t t l =
+  List.fold_left
+    (fun t ({ name; scheme; descr = doc }, category) ->
+      Type.meth ~doc ~category name scheme t)
+    t l
+
+let source_methods_t t = _method_t t source_methods
 
 let source_t ?(pos : Liquidsoap_lang.Term_base.parsed_pos option)
     ?(methods = false) frame_t =
@@ -650,7 +655,8 @@ let source_tracks_t frame_t =
     (Type.meth "metadata" ([], Format_type.metadata) frame_t)
 
 let source_methods ~base s =
-  meth base (List.map (fun { name; value } -> (name, value s)) source_methods)
+  meth base
+    (List.map (fun ({ name; value }, _) -> (name, value s)) source_methods)
 
 let source s = source_methods ~base:(Source_val.to_value s) s
 let track = Track.to_value ?pos:None
@@ -917,7 +923,10 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       Some "Force the value of the source ID." )
     :: List.stable_sort compare (arguments @ callback_arguments)
   in
-  let meth = meth @ List.map callback callbacks in
+  let meth =
+    List.map (fun m -> (m, `Method)) meth
+    @ List.map (fun c -> (callback c, `Callback)) callbacks
+  in
   let f env =
     let return_t, env = check_arguments ~return_t ~env arguments in
     let src : < Source.source ; .. > = f env in
@@ -932,20 +941,15 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       let src = (src :> Source.source) in
       if category = `Output then source_methods ~base:unit src else source src
     in
-    _meth v (List.map (fun { name; value } -> (name, value src)) meth)
+    _meth v (List.map (fun ({ name; value }, _) -> (name, value src)) meth)
   in
   let base_t =
     if category = `Output then unit_t else source_t ~methods:false return_t
   in
   let return_t = source_methods_t base_t in
-  let return_t =
-    method_t return_t
-      (List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth)
-  in
+  let return_t = _method_t return_t meth in
   let category = `Source category in
-  let callback_names l = List.map (fun { name } -> name) l in
-  let callbacks = callback_names source_callbacks @ callback_names callbacks in
-  add_builtin ~category ~descr ~flags ~callbacks ?base name arguments return_t f
+  add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
 let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : ('a -> value) meth list)) ?base name arguments ~return_t f =

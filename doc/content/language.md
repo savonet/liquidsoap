@@ -1567,15 +1567,17 @@ One side-benefit from loading a script from cache is that the entire typecheckin
 
 This leads to a significant reduction in initial memory consumption, typically down from about `375MB` to about `80MB`!
 
-If memory consumption is a concern but you are not sure you can cache your script, you can also set the environment variable
-`settings.init.compact_before_start` to `true`:
+Additionally, the OCaml memory compaction algorithm is executed after typechecking your script but before running it.
+This results in additional memory usage reduction with a slight delay in initial startup time.
+
+To maximize your script startup time you should:
+
+- Cache it before running it to skip the initial typececking
+- Set `settings.init.compact_before_start` to `false` to skip the initial memory compaction:
 
 ```liquidsoap
-settings.init.compact_before_start := true
+settings.init.compact_before_start := false
 ```
-
-This will run the OCaml memory compaction algorithm after typechecking your script but before running it. This will result
-in a similar memory footprint when running the script but will delay its initial startup time.
 
 ### Cache environment variables
 

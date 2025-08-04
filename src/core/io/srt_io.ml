@@ -560,7 +560,7 @@ class virtual base () =
     val should_stop = Atomic.make false
     val id = id ()
     method private should_stop = Atomic.get shutdown || Atomic.get should_stop
-    method set_should_stop = Atomic.set should_stop
+    method set_should_stop v = Atomic.set should_stop v
     method srt_id = id
   end
 

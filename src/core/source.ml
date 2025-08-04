@@ -158,8 +158,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     initializer
       self#register_command ~descr:"Insert a metadata chunk."
-        ~usage:"insert_metadata [label=\"value\",..]" "insert_metadata"
-        (fun s ->
+        ~usage:"insert_metadata label=\"value\",.." "insert_metadata" (fun s ->
           try
             let meta, _ = Annotate_parser.parse s in
             if meta <> [] then

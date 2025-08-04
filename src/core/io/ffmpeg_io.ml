@@ -553,12 +553,6 @@ let register_input is_http =
                              | `Connected (url, _) ->
                                  Printf.sprintf "connected %s" url)));
                };
-               {
-                 name = "buffer_length";
-                 scheme = ([], fun_t [] float_t);
-                 descr = "Get the buffer's length in seconds.";
-                 value = (fun s -> val_fun [] (fun _ -> float s#buffer_length));
-               };
              ])
        (fun p ->
          let format = Lang.to_option (List.assoc "format" p) in

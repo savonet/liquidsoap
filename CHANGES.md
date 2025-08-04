@@ -16,6 +16,8 @@ New:
 - Added `liquidsoap.script.path` that contains the path to the current
   script's file, if available.
 - Added LUFS-based per-track loudness correction (#4545)
+- Added `cron.parse`, `cron.{add,remove}` and a cron thread
+  to allow registration of cron-like asynchronous tasks (#4579)
 - `null` can now be used directly without having to call `null()`.
   `null(value)` calls are still valid and can be used to create
   non-null values with nullable types. Calls to `null()` are marked
@@ -26,6 +28,8 @@ New:
 Changed:
 
 - Improved source and clock naming (#4497)
+- Turned initial memory compaction on by default. This
+  has show to greatly reduce initial memory consumption.
 - Deprecated `replaygain` operator, introduced unified
   `normalize_track_gain` which works with both ReplayGain
   and LUFS (#4545)
@@ -33,15 +37,21 @@ Changed:
   Use `error.methods` to get them! (#4537)
 - Make sure that `let { foo = gni } = v` assigns a value to
   `gni` but not to `foo` (#4561)
+- Support for `ImageLib` has been removed. The library is not
+  maintained anymore and causes issues with dangling external
+  processes (#4595)
 
 Fixed:
 
 - Fix error when loading script path having non-ascii characters in them
   (#4343)
+- Fix error with interactive variables (#4592, @myeungdev)
+- Prevent concurrent reload and request fetch in playlists (#4316)
 - Don't mark source as ready until their clock has started. (#4496)
 - Fixed mutex deadlock caused by aggressive inlining (#4540)
 - Fixed segfault when using SRT on windows (#4538)
 - Fixed memleak in ffmpeg inline encoder (#4501)
+- Fixed `tmp:` protocol logic (#4544)
 
 ---
 
@@ -64,9 +74,6 @@ Changed:
 - Changed default value of `metadata.map` `strip` argument to `true` and `insert_missing`
   to `false` Added `settings.metadata.map.strip` and `settings.metadata.map.insert_missing`
   configuration keys to revert to previous defaults. (#4447)
-- Made crossfade metadata override dynamic. Some overridden parameters where never effectively
-  applied if they were passed after the start of the crossfade. This should make crossfade behave
-  as expected but may also change some crossfade computations (#4492)
 
 Fixed:
 

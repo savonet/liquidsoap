@@ -363,10 +363,10 @@ def interactive.load(fname) =
   vars = file.contents(fname)
   let json.parse (vars :
     {
-      float: [(string*float)],
-      int: [(string*int)],
-      bool: [(string*bool)],
-      string: [(string*string)]
+      float: [(string * float)],
+      int: [(string * int)],
+      bool: [(string * bool)],
+      string: [(string * string)]
     }
   ) = vars
 
@@ -515,7 +515,7 @@ def interactive.harbor(
           }
         }
         if (interactive[i].type != 'button') {
-          data = data.concat(interactive[i].name+'='+encodeURIComponent(interactive[i].value))+'&';
+          data = data.concat(interactive[i].name+'='+encodeURIComponent(interactive[i].value))+(i < interactive.length - 1 ? '&' : '')
         }
       }
       console.log('Posting: ' + data);
@@ -548,8 +548,7 @@ def interactive.harbor(
     add("</head><body>")
     add("<h1>#{title}</h1>")
 
-    def add_var(nv) =
-      let (name, v) = nv
+    def add_var((name, v)) =
       description = interactive.description(name)
       description =
         if
@@ -651,8 +650,7 @@ def interactive.harbor(
   def setter(request, _) =
     data = url.split_args(request.body())
 
-    def update(nv) =
-      let (name, v) = nv
+    def update((name, v)) =
       try
         t = interactive.type(name)
         if

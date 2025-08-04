@@ -92,10 +92,6 @@ jobs:
           ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
         env:
           LIQ_BUILD_MIN: true
-      - name: Build doc
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          ./.github/scripts/build-doc.sh
 
   build_js:
     runs-on: depot-ubuntu-24.04-4
@@ -190,6 +186,7 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+          sudo -u opam -E ./.github/scripts/build-doc.sh
           cd /tmp/liquidsoap-full/liquidsoap/
           mkdir -p /tmp/${{ github.run_number }}/odoc
           cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
@@ -266,6 +263,7 @@ jobs:
         run: |
           apt-get -y update
           apt-get -y install frei0r-plugins
+          sudo -u opam -E opam install odoc
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -330,7 +328,7 @@ jobs:
         run: |
           sudo apt-get update
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@2f57267f071bc8547dfcb9433ff21d44fffef190 # v3.4.0
+        uses: ocaml/setup-ocaml@4dd53a587b9836a35604fec9601e606ff42145bc # v3.4.1
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-pin: false
@@ -367,6 +365,9 @@ jobs:
         ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
+        exclude:
+          - os: alpine
+            ocaml_version: 5.2.0-ox
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}-${{ matrix.ocaml_version }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
@@ -391,11 +392,6 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
-      - name: Build doc
-        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-doc.sh
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
@@ -669,6 +665,8 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
+        exclude:
+          - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -777,6 +775,8 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         ocaml_version: ${{ fromJson(needs.build_details.outputs.ocaml_version) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
+        exclude:
+          - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

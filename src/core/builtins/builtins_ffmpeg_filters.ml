@@ -90,7 +90,9 @@ let initialized graph =
 
 let is_ready graph =
   (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
-    | false, Some s -> Clock.tick s#clock
+    | false, Some s ->
+        if not (Clock.started s#clock) then Clock.start s#clock;
+        Clock.tick s#clock
     | _ -> ());
   (not graph.failed)
   && Queue.fold graph.graph_inputs

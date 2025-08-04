@@ -144,8 +144,8 @@ let mk_module_name ?base name =
 
 type 'a meth = { name : string; scheme : scheme; descr : string; value : 'a }
 
-let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(callbacks = [])
-    ?(examples = []) ?base name proto return_t f =
+let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
+    ?base name proto return_t f =
   let name = mk_module_name ?base name in
   let return_t =
     let meth =
@@ -171,11 +171,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(callbacks = [])
   let doc () =
     let meth, return_t = Type.split_meths return_t in
     let callbacks, meth =
-      List.partition
-        (fun (m : Type.meth) ->
-          if List.mem m.meth callbacks then m.doc.category <- `Callback;
-          m.doc.category = `Callback)
-        meth
+      List.partition (fun (m : Type.meth) -> m.doc.category = `Callback) meth
     in
     let t = builtin_type proto return_t in
     let generalized = Typing.filter_vars (fun _ -> true) t in

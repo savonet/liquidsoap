@@ -85,7 +85,6 @@ val add_builtin :
   descr:string ->
   ?flags:Doc.Value.flag list ->
   ?meth:value meth list ->
-  ?callbacks:string list ->
   ?examples:string list ->
   ?base:module_name ->
   string ->

@@ -19,6 +19,7 @@
   (pps ppx_string))
  (libraries
   mm
+  cron
   dtools
   dune-build-info
   duppy
@@ -580,14 +581,6 @@
  (modules sdlimage_decoder video_text_sdl sdl_out keyboard_sdl sdl_utils))
 
 (library
- (name liquidsoap_imagelib)
- (libraries imagelib imagelib.unix liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules imagelib_decoder))
-
-(library
  (name liquidsoap_shine)
  (libraries shine liquidsoap_core)
  (library_flags -linkall)
@@ -720,7 +713,6 @@
   frei0r_option
   gd_option
   graphics_option
-  imagelib_option
   inotify_option
   irc_option
   jemalloc_option
@@ -921,11 +913,6 @@
    from
    (liquidsoap_sdl -> sdl_option.enabled.ml)
    (-> sdl_option.disabled.ml))
-  (select
-   imagelib_option.ml
-   from
-   (liquidsoap_imagelib -> imagelib_option.enabled.ml)
-   (-> imagelib_option.disabled.ml))
   (select
    shine_option.ml
    from

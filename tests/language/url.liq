@@ -7,6 +7,12 @@ def f() =
     ("abc", [("a", "aa"), ("b", ""), ("c", "cc")])
   )
 
+  # Trailing & (#4592)
+  test.equal(
+    url.split("abc?a=aa&b=&c=cc&"),
+    ("abc", [("a", "aa"), ("b", ""), ("c", "cc")])
+  )
+
   # No argument (#3126).
   test.equal(url.split("/bla"), ("/bla", []))
   test.pass()

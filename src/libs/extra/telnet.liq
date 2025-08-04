@@ -217,7 +217,8 @@ def replaces input.http(%argsof(input.http), s) =
             description=
               "Get the buffer's length, in seconds.",
             "buffer_length",
-            fun (_) -> begin "#{s.buffer_length()}" end
+            fun (_) ->
+              "#{list.fold(fun (l, (_, l')) -> max(l, l'), 0., s.buffered())}"
           )
         end
       }

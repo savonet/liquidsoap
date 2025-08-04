@@ -11,6 +11,7 @@
 %include "process.liq"
 %include "string.liq"
 %include "socket.liq"
+%include "cron.liq"
 %include "file.liq"
 %include "switches.liq"
 %include "utils.liq"
