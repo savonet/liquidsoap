@@ -13,7 +13,7 @@
  (sites liquidsoap-lang))
 
 (menhir
- (modules parser json_parser)
+ (modules parser)
  (flags
   --unused-token
   NULLDOT
@@ -93,6 +93,7 @@
   liquidsoap-lang.stdlib
   dune-site
   fileutils
+  liquidsoap_json
   re
   str
   unix
@@ -127,9 +128,6 @@
   extralib
   flags
   hooks
-  json_base
-  json_lexer
-  json_parser
   json
   lang
   lang_core

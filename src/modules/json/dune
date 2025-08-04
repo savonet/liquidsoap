@@ -1,0 +1,10 @@
+(menhir
+ (modules parser))
+
+(library
+ (name liquidsoap_json)
+ (public_name liquidsoap-lang.json)
+ (libraries menhirLib re)
+ (preprocess
+  (pps sedlex.ppx))
+ (synopsis "Json parser and renderer"))

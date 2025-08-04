@@ -1,4 +1,5 @@
-type parse_error = { pos : Pos.t; message : string }
+type pos = Lexing.position * Lexing.position
+type parse_error = { pos : pos; message : string }
 
 exception Parse_error of parse_error
 
