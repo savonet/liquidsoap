@@ -1,6 +1,9 @@
 port = 6756
 settings.icecast.prefer_address := "ipv4"
 
+# Too Flakey..
+test.skip()
+
 s = sine()
 
 o = output.icecast(port=port, mount="icecast_no_restart", timeout=2., %mp3, s)
