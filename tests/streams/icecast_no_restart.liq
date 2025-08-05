@@ -3,20 +3,28 @@ settings.icecast.prefer_address := "ipv4"
 
 s = sine()
 
-o = output.icecast(port=port, mount="icecast_no_restart", %mp3, s)
+o = output.icecast(port=port, mount="icecast_no_restart", timeout=2., %mp3, s)
 
-i = input.harbor(buffer=2., port=port, "icecast_no_restart")
+i = input.harbor(port=port, "icecast_no_restart")
 d = output.dummy(fallible=true, i)
 
 has_connected = ref(false)
+has_errored = ref(false)
 pass = ref(true)
 
 def on_error(~restart_in, err) =
   print(
     "Error: #{err}"
   )
-  restart_in(null)
-  thread.run(delay=4., {if pass() then test.pass() else test.fail() end})
+  if
+    has_errored()
+  then
+    test.fail()
+  else
+    has_errored := true
+    restart_in(null)
+    thread.run(delay=4., {if pass() then test.pass() else test.fail() end})
+  end
 end
 
 def on_connect() =

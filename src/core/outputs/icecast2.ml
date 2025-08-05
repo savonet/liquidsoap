@@ -497,11 +497,23 @@ class output p =
     method on_disconnect fn = on_disconnect <- fn :: on_disconnect
 
     val mutable on_error
-        : restart_in:(float -> unit) -> bt:Printexc.raw_backtrace -> exn -> unit
-        =
+        : restart_in:(float option -> unit) ->
+          bt:Printexc.raw_backtrace ->
+          exn ->
+          unit =
       fun ~restart_in:_ ~bt:_ _ -> ()
 
     method on_error fn = on_error <- fn
+
+    method call_on_error ~bt exn =
+      let delay = ref (Some 3.) in
+      on_error ~restart_in:(fun v -> delay := v) ~bt exn;
+      match !delay with
+        | None -> restart_time <- infinity
+        | Some v when v < 0. -> Printexc.raise_with_backtrace exn bt
+        | Some delay ->
+            restart_time <- Unix.gettimeofday () +. delay;
+            self#log#important "Will try to reconnect in %.02f seconds." delay
 
     method encode frame =
       (* We assume here that there always is
@@ -554,17 +566,11 @@ class output p =
         match dump with
           | Some s -> Strings.iter (output_substring s) b
           | None -> ()
-      with e ->
+      with exn ->
         let bt = Printexc.get_raw_backtrace () in
-        self#log#severe "Error while sending data: %s!" (Printexc.to_string e);
-        let delay = ref 3. in
-        on_error ~restart_in:(fun v -> delay := v) ~bt e;
-        if !delay >= 0. then (
-          (* Ask for a restart after [restart_time]. *)
-          (try self#icecast_stop with _ -> ());
-          restart_time <- Unix.gettimeofday () +. !delay;
-          self#log#important "Will try to reconnect in %.02f seconds." !delay)
-        else Printexc.raise_with_backtrace e bt
+        self#log#severe "Error while sending data: %s!" (Printexc.to_string exn);
+        (try self#icecast_stop with _ -> ());
+        self#call_on_error ~bt exn
 
     method send b =
       match Cry.get_status connection with
@@ -633,18 +639,13 @@ class output p =
       with
       (* In restart mode, no_connect and no_login are not fatal.
          The output will just try to reconnect later. *)
-      | e ->
+      | exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log
           ~bt:(Printexc.raw_backtrace_to_string bt)
-          (Printf.sprintf "Connection failed: %s" (Printexc.to_string e));
+          (Printf.sprintf "Connection failed: %s" (Printexc.to_string exn));
         self#icecast_stop;
-        let delay = ref 3. in
-        on_error ~restart_in:(fun v -> delay := v) ~bt e;
-        if !delay >= 0. then (
-          self#log#important "Will try again in %.02f sec." !delay;
-          restart_time <- Unix.time () +. !delay)
-        else Printexc.raise_with_backtrace e bt
+        self#call_on_error ~bt exn
 
     method icecast_stop =
       (* In some cases it might be possible to output the remaining data,
@@ -716,10 +717,10 @@ let _ =
                occurred and a restart callback. If restart callback is \
                executed with a positive float value, connection will be tried \
                again after this amount of time (in seconds). If executed with \
-               a negative or `null` value (preferred!), connection is not \
-               attempted again. There can only be one single callback \
-               registered for this at a time. Every secondary registration \
-               replaces the previous one.";
+               a negative value, an error is raised. If executed with `null`, \
+               connection is not attempted again and no errors are raised. \
+               There can only be one single callback registered for this at a \
+               time. Every secondary registration replaces the previous one.";
             default_synchronous = true;
             register_deprecated_argument = true;
             arg_t =
@@ -739,12 +740,8 @@ let _ =
                         [("", "", None)]
                         (fun p ->
                           let restart =
-                            match
-                              Lang.to_valued_option Lang.to_float
-                                (List.assoc "" p)
-                            with
-                              | None -> -1.
-                              | Some v -> v
+                            Lang.to_valued_option Lang.to_float
+                              (List.assoc "" p)
                           in
                           restart_in restart;
                           Lang.unit)
