@@ -8,13 +8,11 @@
 #reopen.stderr("/dev/null")
 on_cleanup(test.pass)
 
-def on_error(_) =
+def on_error(~restart_in:_, _) =
   test.pass()
-  3.
 end
 
 p = noise()
-o =
-  output.icecast(
-    %wav, fallible=true, host="nonexistent", mount="test", on_error=on_error, p
-  )
+o = output.icecast(%wav, fallible=true, host="nonexistent", mount="test", p)
+
+o.on_error(on_error)

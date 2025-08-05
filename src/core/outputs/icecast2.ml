@@ -315,22 +315,6 @@ let proto frame_t =
            either is defined or `null`." );
       ("url", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ("description", Lang.nullable_t Lang.string_t, Some Lang.null, None);
-      ( "on_connect",
-        Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Callback executed when connection is established." );
-      ( "on_disconnect",
-        Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Callback executed when connection stops." );
-      ( "on_error",
-        Lang.fun_t [(false, "", Lang.string_t)] Lang.float_t,
-        Some (Lang.val_cst_fun [("", None)] (Lang.float 3.)),
-        Some
-          "Callback executed when an error happens. The callback receives a \
-           string representation of the error that occurred and returns a \
-           float. If returned value is positive, connection will be tried \
-           again after this amount of time (in seconds)." );
       ("public", Lang.bool_t, Some (Lang.bool true), None);
       ( "headers",
         Lang.metadata_t,
@@ -349,15 +333,6 @@ class output p =
   let e f v = f (List.assoc v p) in
   let s v = e Lang.to_string v in
   let s_opt v = e (Lang.to_valued_option Lang.to_string) v in
-  let on_connect = List.assoc "on_connect" p in
-  let on_disconnect = List.assoc "on_disconnect" p in
-  let on_error = List.assoc "on_error" p in
-  let on_connect () = ignore (Lang.apply on_connect []) in
-  let on_disconnect () = ignore (Lang.apply on_disconnect []) in
-  let on_error error =
-    let msg = Printexc.to_string error in
-    Lang.to_float (Lang.apply on_error [("", Lang.string msg)])
-  in
   let send_last_metadata_on_connect =
     e Lang.to_bool "send_last_metadata_on_connect"
   in
@@ -516,6 +491,29 @@ class output p =
 
     val mutable encoder = None
     method self_sync = source#self_sync
+    val mutable on_connect = []
+    method on_connect fn = on_connect <- fn :: on_connect
+    val mutable on_disconnect = []
+    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
+
+    val mutable on_error
+        : restart_in:(float option -> unit) ->
+          bt:Printexc.raw_backtrace ->
+          exn ->
+          unit =
+      fun ~restart_in:_ ~bt:_ _ -> ()
+
+    method on_error fn = on_error <- fn
+
+    method call_on_error ~bt exn =
+      let delay = ref (Some 3.) in
+      on_error ~restart_in:(fun v -> delay := v) ~bt exn;
+      match !delay with
+        | None -> restart_time <- infinity
+        | Some v when v < 0. -> Printexc.raise_with_backtrace exn bt
+        | Some delay ->
+            restart_time <- Unix.gettimeofday () +. delay;
+            self#log#important "Will try to reconnect in %.02f seconds." delay
 
     method encode frame =
       (* We assume here that there always is
@@ -568,16 +566,11 @@ class output p =
         match dump with
           | Some s -> Strings.iter (output_substring s) b
           | None -> ()
-      with e ->
+      with exn ->
         let bt = Printexc.get_raw_backtrace () in
-        self#log#severe "Error while sending data: %s!" (Printexc.to_string e);
-        let delay = on_error e in
-        if delay >= 0. then (
-          (* Ask for a restart after [restart_time]. *)
-          (try self#icecast_stop with _ -> ());
-          restart_time <- Unix.gettimeofday () +. delay;
-          self#log#important "Will try to reconnect in %.02f seconds." delay)
-        else Printexc.raise_with_backtrace e bt
+        self#log#severe "Error while sending data: %s!" (Printexc.to_string exn);
+        (try self#icecast_stop with _ -> ());
+        self#call_on_error ~bt exn
 
     method send b =
       match Cry.get_status connection with
@@ -642,22 +635,17 @@ class output p =
               with _ -> ())
           | _ -> ());
 
-        (* Execute on_connect hook. *)
-        on_connect ()
+        List.iter (fun fn -> fn ()) on_connect
       with
       (* In restart mode, no_connect and no_login are not fatal.
          The output will just try to reconnect later. *)
-      | e ->
+      | exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log
           ~bt:(Printexc.raw_backtrace_to_string bt)
-          (Printf.sprintf "Connection failed: %s" (Printexc.to_string e));
+          (Printf.sprintf "Connection failed: %s" (Printexc.to_string exn));
         self#icecast_stop;
-        let delay = on_error e in
-        if delay >= 0. then (
-          self#log#important "Will try again in %.02f sec." delay;
-          restart_time <- Unix.time () +. delay)
-        else Printexc.raise_with_backtrace e bt
+        self#call_on_error ~bt exn
 
     method icecast_stop =
       (* In some cases it might be possible to output the remaining data,
@@ -677,14 +665,93 @@ class output p =
                  Utils.log_exception ~log:self#log ~bt
                    (Printf.sprintf "Error while closing connection: %s"
                       (Printexc.to_string exn)));
-              on_disconnect ()
+              List.iter (fun fn -> fn ()) on_disconnect
       end;
       match dump with Some f -> close_out f | None -> ()
   end
 
 let _ =
   let return_t = Lang.univ_t () in
+  let meth =
+    List.map
+      (fun meth ->
+        {
+          meth with
+          Lang.value = (fun s -> meth.Lang.value (s :> Output.output));
+        })
+      Output.meth
+  in
   Lang.add_operator ~base:Modules.output "icecast" ~category:`Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    ~meth:Output.meth ~callbacks:Output.callbacks (proto return_t) ~return_t
-    (fun p -> (new output p :> Output.output))
+    ~meth
+    ~callbacks:
+      (Start_stop.callbacks ~label:"output"
+      @ [
+          {
+            Lang_source.name = "on_connect";
+            params = [];
+            descr = "when connection is established.";
+            default_synchronous = false;
+            register_deprecated_argument = true;
+            arg_t = [];
+            register =
+              (fun ~params:_ s on_connect ->
+                s#on_connect (fun () -> on_connect []));
+          };
+          {
+            Lang_source.name = "on_disconnect";
+            params = [];
+            descr = "when connection stops.";
+            default_synchronous = false;
+            register_deprecated_argument = true;
+            arg_t = [];
+            register =
+              (fun ~params:_ s on_disconnect ->
+                s#on_disconnect (fun () -> on_disconnect []));
+          };
+          {
+            Lang_source.name = "on_error";
+            params = [];
+            descr =
+              "when an error happens. The callback receives the error that \
+               occurred and a restart callback. If restart callback is \
+               executed with a positive float value, connection will be tried \
+               again after this amount of time (in seconds). If executed with \
+               a negative value, an error is raised. If executed with `null`, \
+               connection is not attempted again and no errors are raised. \
+               There can only be one single callback registered for this at a \
+               time. Every secondary registration replaces the previous one.";
+            default_synchronous = true;
+            register_deprecated_argument = true;
+            arg_t =
+              [
+                ( false,
+                  "restart_in",
+                  Lang.fun_t
+                    [(false, "", Lang.(nullable_t float_t))]
+                    Lang.unit_t );
+                (false, "", Lang.error_t);
+              ];
+            register =
+              (fun ~params:_ s on_error ->
+                s#on_error (fun ~restart_in ~bt exn ->
+                    let restart_in =
+                      Lang.val_fun
+                        [("", "", None)]
+                        (fun p ->
+                          let restart =
+                            Lang.to_valued_option Lang.to_float
+                              (List.assoc "" p)
+                          in
+                          restart_in restart;
+                          Lang.unit)
+                    in
+                    let err =
+                      Lang.error
+                        (Lang.runtime_error_of_exception ~bt ~kind:"source" exn)
+                    in
+                    on_error [("restart_in", restart_in); ("", err)]));
+          };
+        ])
+    (proto return_t) ~return_t
+    (fun p -> new output p)

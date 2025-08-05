@@ -1,47 +1,61 @@
 # 2.4.0 (unreleased)
 
-New:
+## New:
 
-- BREAKING: Added new file-to-file external `decoder.add` API. This
-  makes it much easier and safer to write external decoders. See: [#4531](https://github.com/savonet/liquidsoap/pull/4531)
-- Allow deststructing function arguments using the same patterns as for
+### Language:
+
+- Allow destructing function arguments using the same patterns as for
   variable assignment (#4562)
-- BREAKING: `on_metadata`, `on_track`, `on_offset`, `on_end`, `on_wake_up`
-  an `on_shutdown` callbacks have been moved to source methods and are now
-  executed asynchronously by default. Also, `on_offset` and `on_end` have
-  been merged into a single `on_position` source methods. See migratons
-  notes and PR #4536 for details and discussions.
-- Deprecated `insert_metadata`, added default `insert_metadata` method on
-  every source (#4541)
-- Added `liquidsoap.script.path` that contains the path to the current
-  script's file, if available.
-- Added LUFS-based per-track loudness correction (#4545)
-- Added `cron.parse`, `cron.{add,remove}` and a cron thread
-  to allow registration of cron-like asynchronous tasks (#4579)
+- Enhanced labeled arguments syntax (#4526)
+- Add warning when erasing top-level variables (#4518)
 - `null` can now be used directly without having to call `null()`.
   `null(value)` calls are still valid and can be used to create
   non-null values with nullable types. Calls to `null()` are marked
   as deprecated (#4516)
-- Enhanced labeled arguments syntax (#4526)
-- Add warning when erasing top-level variables (#4518)
+- Added `liquidsoap.script.path` that contains the path to the current
+  script's file, if available.
 
-Changed:
+### Core:
 
-- Improved source and clock naming (#4497)
-- Turned initial memory compaction on by default. This
-  has show to greatly reduce initial memory consumption.
-- Deprecated `replaygain` operator, introduced unified
-  `normalize_track_gain` which works with both ReplayGain
-  and LUFS (#4545)
+- BREAKING: Most callbacks have been moved to source methods and are now
+  executed asynchronously by default. See migration notes for all the
+  details.
+- BREAKING: Added new file-to-file external `decoder.add` API. This
+  makes it much easier and safer to write external decoders (#4531)
+- Deprecated `insert_metadata`, added default `insert_metadata` method on
+  every source (#4541)
+
+### Utilities:
+
+- Added `cron.parse`, `cron.{add,remove}` and a cron thread
+  to allow registration of cron-like asynchronous tasks (#4579)
+- Added LUFS-based per-track loudness correction (#4545)
+
+## Changed:
+
+### Language:
+
 - BREAKING: Error methods have been removed by default.
   Use `error.methods` to get them! (#4537)
 - Make sure that `let { foo = gni } = v` assigns a value to
   `gni` but not to `foo` (#4561)
+
+### Core:
+
+- Turned initial memory compaction on by default. This
+  has show to greatly reduce initial memory consumption.
+- Improved source and clock naming (#4497)
 - Support for `ImageLib` has been removed. The library is not
   maintained anymore and causes issues with dangling external
   processes (#4595)
 
-Fixed:
+### Utilities:
+
+- Deprecated `replaygain` operator, introduced unified
+  `normalize_track_gain` which works with both ReplayGain
+  and LUFS (#4545)
+
+## Fixed:
 
 - Fix error when loading script path having non-ascii characters in them
   (#4343)

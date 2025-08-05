@@ -1,0 +1,52 @@
+port = 6756
+settings.icecast.prefer_address := "ipv4"
+
+# Too Flakey..
+test.skip()
+
+s = sine()
+
+o = output.icecast(port=port, mount="icecast_no_restart", timeout=2., %mp3, s)
+
+i = input.harbor(port=port, "icecast_no_restart")
+d = output.dummy(fallible=true, i)
+
+has_connected = ref(false)
+has_errored = ref(false)
+pass = ref(true)
+
+def on_error(~restart_in, err) =
+  print(
+    "Error: #{err}"
+  )
+  if
+    has_errored()
+  then
+    test.fail()
+  else
+    has_errored := true
+    restart_in(null)
+    thread.run(delay=4., {if pass() then test.pass() else test.fail() end})
+  end
+end
+
+def on_connect() =
+  if
+    has_connected()
+  then
+    test.fail()
+  else
+    has_connected := true
+    o.on_error(on_error)
+    i.shutdown()
+    d.shutdown()
+  end
+end
+
+o.on_connect(synchronous=true, on_connect)
+
+def on_disconnect() =
+  pass := true
+end
+
+o.on_disconnect(synchronous=true, on_disconnect)
