@@ -71,18 +71,8 @@ can result in this error:
 Error 17: clock input.srt has multiple synchronization sources. Do you need to set self_sync=false?
 
 Sync sources:
- source(id=input.srt) from source input.srt
+ srt from source input.srt
  ao from source output.ao
-
-Stack traces:
-clock input.srt:
- at line 1, char 25-103
-
-input.srt:
- at line 1, char 25-103
-
-output.srt:
- at line 1, char 0-104
 ```
 
 In this case, you should let one of the two sources or output drive the other one:
