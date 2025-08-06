@@ -786,6 +786,84 @@ end
 
 autocue.register(name="internal", autocue.internal.implementation)
 
+# Translate autocue values into internal metadara
+# @flag hidden
+def autocue.metadata(~implementation, autocue) =
+  let {cue_in, cue_out, fade_in, fade_out} = autocue
+
+  extra_metadata = autocue.extra_metadata ?? []
+  amplify = autocue?.amplify
+
+  fade_in_type = autocue?.fade_in_type
+  fade_in_curve = autocue?.fade_in_curve
+  fade_out_type = autocue?.fade_out_type
+  fade_out_curve = autocue?.fade_out_curve
+
+  fade_out_start = cue_out - fade_out
+  let (fade_out, fade_out_start) =
+    if
+      fade_out_start < 0.
+    then
+      log(
+        level=2,
+        label="autocue",
+        "Invalid cue_out/fade_out values: #{cue_out}/#{fade_out}"
+      )
+      (0., cue_out)
+    else
+      (fade_out, fade_out_start)
+    end
+
+  start_next = autocue.start_next ?? fade_out_start
+
+  start_next =
+    if
+      start_next < cue_in or cue_out < start_next
+    then
+      log(
+        level=2,
+        label="autocue",
+        "Invalid start_next: #{start_next}"
+      )
+      fade_out_start
+    else
+      start_next
+    end
+
+  fade_out_start_next =
+    if fade_out_start < start_next then start_next - fade_out_start else 0. end
+
+  let fade_out_delay =
+    if start_next < fade_out_start then fade_out_start - start_next else 0. end
+
+  total_fade_out = fade_out + fade_out_delay
+
+  max_start_duration = cue_out - cue_in - total_fade_out
+
+  opt_arg = fun (lbl, v) -> null.defined(v) ? [(lbl, string(v))] : []
+
+  [
+    ("liq_autocue", implementation),
+    ...opt_arg("liq_amplify", amplify),
+
+    ("liq_cue_in", string(cue_in)),
+    ("liq_cue_out", string(cue_out)),
+    ("liq_cross_start_duration", string(fade_in)),
+    ("liq_cross_max_start_duration", string(max_start_duration)),
+    ("liq_cross_end_duration", string(total_fade_out)),
+    ("liq_fade_in", string(fade_in)),
+    ...opt_arg("liq_fade_in_type", fade_in_type),
+    ...opt_arg("liq_fade_in_curve", fade_in_curve),
+
+    ("liq_fade_out", string(fade_out)),
+    ("liq_fade_out_start_next", string(fade_out_start_next)),
+    ("liq_fade_out_delay", string(fade_out_delay)),
+    ...opt_arg("liq_fade_out_type", fade_out_type),
+    ...opt_arg("liq_fade_out_curve", fade_out_curve),
+    ...extra_metadata
+  ]
+end
+
 let file.autocue = ()
 
 # Return the file's autocue values as metadata suitable for metadata override.
@@ -793,6 +871,7 @@ let file.autocue = ()
 def file.autocue.metadata(~request_metadata, uri) =
   preferred_implementation = settings.autocue.preferred()
   implementations = settings.autocue.implementations()
+  autocue_metadata = autocue.metadata
 
   let (implementation_name, implementation) =
     if
@@ -863,85 +942,7 @@ def file.autocue.metadata(~request_metadata, uri) =
     if
       null.defined(autocue)
     then
-      autocue = null.get(autocue)
-      let {cue_in, cue_out, fade_in, fade_out} = autocue
-
-      extra_metadata = autocue.extra_metadata ?? []
-      amplify = autocue?.amplify
-
-      fade_in_type = autocue?.fade_in_type
-      fade_in_curve = autocue?.fade_in_curve
-      fade_out_type = autocue?.fade_out_type
-      fade_out_curve = autocue?.fade_out_curve
-
-      fade_out_start = cue_out - fade_out
-      let (fade_out, fade_out_start) =
-        if
-          fade_out_start < 0.
-        then
-          log(
-            level=2,
-            label="autocue",
-            "Invalid cue_out/fade_out values: #{cue_out}/#{fade_out}"
-          )
-          (0., cue_out)
-        else
-          (fade_out, fade_out_start)
-        end
-
-      start_next = autocue.start_next ?? fade_out_start
-
-      start_next =
-        if
-          start_next < cue_in or cue_out < start_next
-        then
-          log(
-            level=2,
-            label="autocue",
-            "Invalid start_next: #{start_next}"
-          )
-          fade_out_start
-        else
-          start_next
-        end
-
-      fade_out_start_next = start_next - fade_out_start
-
-      let fade_out_delay =
-        if
-          start_next < fade_out_start
-        then
-          fade_out_start - start_next
-        else
-          0.
-        end
-
-      total_fade_out = fade_out + fade_out_delay
-
-      max_start_duration = cue_out - cue_in - total_fade_out
-
-      opt_arg = fun (lbl, v) -> null.defined(v) ? [(lbl, string(v))] : []
-
-      [
-        ("liq_autocue", implementation_name),
-        ...opt_arg("liq_amplify", amplify),
-
-        ("liq_cue_in", string(cue_in)),
-        ("liq_cue_out", string(cue_out)),
-        ("liq_cross_start_duration", string(fade_in)),
-        ("liq_cross_max_start_duration", string(max_start_duration)),
-        ("liq_cross_end_duration", string(total_fade_out)),
-        ("liq_fade_in", string(fade_in)),
-        ...opt_arg("liq_fade_in_type", fade_in_type),
-        ...opt_arg("liq_fade_in_curve", fade_in_curve),
-
-        ("liq_fade_out", string(fade_out)),
-        ("liq_fade_out_start_next", string(fade_out_start_next)),
-        ("liq_fade_out_delay", string(fade_out_delay)),
-        ...opt_arg("liq_fade_out_type", fade_out_type),
-        ...opt_arg("liq_fade_out_curve", fade_out_curve),
-        ...extra_metadata
-      ]
+      autocue_metadata(implementation=implementation_name, null.get(autocue))
     else
       log(
         level=2,

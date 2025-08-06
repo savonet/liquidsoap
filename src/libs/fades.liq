@@ -728,6 +728,8 @@ end
 # @param ~fade_out Fade-out duration, if any.
 # @param ~initial_fade_in_metadata Initial fade-in metadata
 # @param ~initial_fade_out_metadata Initial fade-out metadata
+# @param ~ending_map Optional mapping for the ending track
+# @param ~starting_map Optional mapping for the starting track
 # @param a Ending track
 # @param b Starting track
 def cross.simple(
@@ -736,6 +738,8 @@ def cross.simple(
   ~fade_out=3.,
   ~initial_fade_in_metadata=[],
   ~initial_fade_out_metadata=[],
+  ~ending_map=fun (s) -> s,
+  ~starting_map=fun (s) -> s,
   a,
   b
 ) =
@@ -794,7 +798,7 @@ def cross.simple(
     )
   end
 
-  add = fun (a, b) -> add(normalize=false, [b, a])
+  add = fun (a, b) -> add(normalize=false, [starting_map(b), ending_map(a)])
   add(fade.out(a), fade.in(b))
 end
 

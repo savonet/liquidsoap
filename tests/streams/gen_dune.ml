@@ -44,6 +44,12 @@ let () =
   ./without_replaygain_track_gain.mp3
   ./crossfade-plot.old.txt
   ./crossfade-plot.new.txt
+  ./autocue-plot.0.new.txt
+  ./autocue-plot.0.old.txt
+  ./autocue-plot.1.new.txt
+  ./autocue-plot.1.old.txt
+  ./autocue-plot.2.new.txt
+  ./autocue-plot.2.old.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
