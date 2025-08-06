@@ -75,7 +75,7 @@ Sync sources:
  ao from source output.ao
 ```
 
-In this case, you should let one of the two sources or output drive the other one:
+In this case, you should let one of the source or output drive the other one:
 
 ```liquidsoap
 output.ao(fallible=true, input.srt("...", self_sync=false))
