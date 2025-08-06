@@ -36,7 +36,7 @@ Other setups—like playing audio files or streaming to icecast—don’t manage
 Examples:
 
 - Audio files (`single`, `playlist`, etc.)
-- Icecast or shoutcast streaming (`output.icecast`, `output.icecastv2`)
+- Icecast or shoutcast streaming (`output.icecast`, `output.shoutcast`)
 
 ### Switching Between Time Sources 🔀
 
