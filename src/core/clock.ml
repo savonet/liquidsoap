@@ -345,7 +345,7 @@ let _set_time { time_implementation; t0; frame_duration; ticks } t =
   let delta = Time.(to_float (t |-| t0)) in
   Atomic.set ticks (int_of_float (delta /. Time.to_float frame_duration))
 
-let _after_tick ~clock x =
+let _after_tick ~self_sync x =
   Queue.flush_iter x.after_tick (fun fn ->
       check_stopped ();
       fn ());
@@ -353,7 +353,7 @@ let _after_tick ~clock x =
   let end_time = Time.time () in
   let target_time = _target_time x in
   check_stopped ();
-  match (x.sync, _self_sync ~clock x, Time.(end_time |<| target_time)) with
+  match (x.sync, self_sync, Time.(end_time |<| target_time)) with
     | `Unsynced, _, _ | `Passive, _, _ | `Automatic, true, _ -> ()
     | `Automatic, false, true | `CPU, _, true ->
         if
@@ -420,10 +420,10 @@ and _activate_pending_sources ~clock x =
            | `Passive -> WeakQueue.push x.passive_sources s))
 
 and _tick ~clock x =
-  _activate_pending_sources ~clock x;
   let sub_clocks =
     List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
   in
+  _activate_pending_sources ~clock x;
   let sources = _animated_sources x in
   List.iter
     (wrap_errors clock (fun s ->
@@ -435,6 +435,8 @@ and _tick ~clock x =
   Queue.flush_iter x.on_tick (fun fn ->
       check_stopped ();
       fn ());
+  let self_sync = _self_sync ~clock x in
+  check_stopped ();
   List.iter
     (fun (c, old_ticks) ->
       if ticks c = old_ticks then
@@ -442,7 +444,7 @@ and _tick ~clock x =
     sub_clocks;
   Atomic.incr x.ticks;
   check_stopped ();
-  _after_tick ~clock x;
+  _after_tick ~self_sync x;
   check_stopped ()
 
 and _clock_thread ~clock x =

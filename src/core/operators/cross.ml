@@ -403,12 +403,12 @@ class cross val_source ~end_duration_getter ~override_end_duration
              (Option.value ~default:Frame.Metadata.empty after_metadata))
 
     method private autocue_adjustements ~before_autocue ~after_autocue
-        ~buffered_before ~buffered_after ~buffered () =
+        ~buffered_before ~buffered_after () =
       let before_metadata =
         Option.value ~default:Frame.Metadata.empty before_metadata
       in
       let extra_cross_duration = buffered_before - buffered_after in
-      if after_autocue then (
+      if after_autocue then
         if before_autocue && 0 < extra_cross_duration then (
           let new_cross_duration = buffered_before - extra_cross_duration in
           Generator.keep gen_before new_cross_duration;
@@ -427,33 +427,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
           let fade_out_delay = max (new_cross_duration -. fade_out) 0. in
           self#append_before_metadata "liq_fade_out" (string_of_float fade_out);
           self#append_before_metadata "liq_fade_out_delay"
-            (string_of_float fade_out_delay));
-        (try
-           let cross_duration = Frame.seconds_of_main buffered in
-           let cue_out =
-             float_of_string (Frame.Metadata.find "liq_cue_out" before_metadata)
-           in
-           let start_next =
-             float_of_string
-               (Frame.Metadata.find "liq_cross_start_next" before_metadata)
-           in
-           if cue_out -. start_next < cross_duration then (
-             self#log#info "Adding fade-in delay to match start next";
-             self#append_after_metadata "liq_fade_in_delay"
-               (string_of_float (cross_duration -. cue_out +. start_next)))
-         with _ -> ());
-        let fade_out_delay =
-          try
-            float_of_string
-              (Frame.Metadata.find "liq_fade_out_delay" before_metadata)
-          with _ -> 0.
-        in
-        if 0. < fade_out_delay then (
-          self#log#info
-            "Adding %.2f fade-in delay to match the ending track's buffer"
-            fade_out_delay;
-          self#append_after_metadata "liq_fade_in_delay"
-            (string_of_float fade_out_delay)))
+            (string_of_float fade_out_delay))
 
     (* Sum up analysis and build the transition *)
     method private create_after =
@@ -471,7 +445,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
           (sqrt (rms_before /. float rmsi_before /. float self#audio_channels))
       in
       self#autocue_adjustements ~before_autocue ~after_autocue ~buffered_before
-        ~buffered_after ~buffered ();
+        ~buffered_after ();
       let compound =
         let metadata = function None -> Frame.Metadata.empty | Some m -> m in
         let before_metadata = metadata before_metadata in
