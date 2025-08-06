@@ -112,22 +112,6 @@ If timing is CPU-controlled, then Liquidsoap needs to generate chunks fast enoug
 
 Sometimes it's not Liquidsoap's fault. Other system tasks—like `cron` jobs or background processes—can momentarily hog CPU or disk resources and cause temporary latency.
 
-### Real-World Examples
-
-**Example 1: CPU-controlled (default timing)**
-
-```liquidsoap
-# Playing a local file to Icecast
-output.icecast(%mp3, host="...", mount="/live.mp3", playlist("..."))
-```
-
-**Example 2: Self-sync setup**
-
-```liquidsoap
-# Playlsit sent to sound card, AO controls timing
-output.ao(fallible=true, playlist("..."))
-```
-
 ### Final Notes
 
 Latency can be confusing at first, but it's usually about one of two things:
