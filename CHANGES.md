@@ -57,6 +57,8 @@
 
 ## Fixed:
 
+- Fixed issues with autocue `start_next`. This brings autocue's behavior
+  inline with its expectation but can change existing script's output (#4605)
 - Fix error when loading script path having non-ascii characters in them
   (#4343)
 - Fix error with interactive variables (#4592, @myeungdev)
