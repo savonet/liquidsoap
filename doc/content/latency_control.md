@@ -54,7 +54,7 @@ In this case:
 Liquidsoap has to decide **who’s in charge of the clock** at any given moment. It does this by looking at the sources
 that will be used to produce data in the next round of the streaming loop.
 
-For instance, in the above, only one of the two sources will ever be use to produce data. If it is `single`, the source
+For instance, in the above, only one of the two sources will ever be used to produce data. If it is `single`, the source
 is CPU-controled, otherwise it is `self-sync`.
 
 ### Synchronization conflicts ⚠️
