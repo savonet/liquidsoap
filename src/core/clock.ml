@@ -379,7 +379,12 @@ let _after_tick ~self_sync x =
             && x.log_delay |<=| (end_time |-| Atomic.get x.last_catchup_log))
         then (
           Atomic.set x.last_catchup_log end_time;
-          x.log#severe "We must catchup %.2f seconds!"
+          x.log#severe
+            "Latency is too high: we must catchup %.2f seconds! Check if your \
+             system can process your stream fast enough (CPU usage, disk \
+             access, etc) or if your stream should be self-sync (can happen \
+             when using `input.ffmpeg`). Refer to the latency control section \
+             of the documentation for more info."
             Time.(to_float (end_time |-| target_time)))
 
 let started c =
