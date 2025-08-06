@@ -224,7 +224,7 @@ let test_file ~(log : Log.t) ~extension ~mime ~mimes ~extensions fname =
       | Some _, None -> false
       | Some extensions, Some extension ->
           let ret = List.mem extension extensions in
-          if ret then
+          if not ret then
             log#info "Unsupported file extension for %s!"
               (Lang_string.quote_string fname);
           ret
