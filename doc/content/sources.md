@@ -1,138 +1,120 @@
-# Sources
+# Understanding Sources in Liquidsoap 🎧
 
-Using liquidsoap is about writing a script describing how to build what you
-want. It is about building a stream using elementary streams and stream
-combinators, etc. Actually, it's a bit more than streams, we call them
-_sources_.
+When you write a Liquidsoap script, you're not just stringing commands together — you're **building a streaming system**.
 
-A source is a stream with metadata and track annotations. It is discretized as
-a stream of fixed-length buffers of media samples, the frames. Every frame may
-have metadata inserted at any point, independently of track boundaries. At
-every instant, a source can be asked to fill a frame of data.
+At the heart of that system is a powerful and abstract concept: the **source**.
 
-The liquidsoap API provides plenty of functions for building sources.
-Some of those functions build elementary sources from scratch, others are
-operators that combine sources into more complex ones. An important class of
-sources is that of _active sources_, they are the sources that actively
-trigger the computation of your stream. Typically, active sources are built
-from output functions, because outputting a stream is the only reason why you
-want to compute it.
+## What Is a Source?
 
-All sources, operators and outputs are listed in the
-[scripting API reference](reference.html).
+A **source** is more than just a stream of audio or video — it’s the fundamental unit of streaming in Liquidsoap. Think of it like a little engine that knows how to produce media, frame by frame.
 
-## How does it work?
+Each source emits:
 
-To clarify the picture let's study in more details an example:
+- **Frames**: Small chunks of media samples.
+- **Metadata**: Information like artist, title, etc.
+- **Track marks**: Signals when a track starts or ends.
+
+At any moment, Liquidsoap can ask a source: _"Give me the next frame."_ The source responds with a small packet of sound (or video), plus any metadata if available.
+
+This model lets you combine sources, decorate them, filter them, or choose between them — all in a script.
+
+## Building Streams from Sources 🧱
+
+The Liquidsoap language gives you **functions and operators** to build sources:
+
+- Some functions produce **elementary sources** (e.g. reading from a file or microphone).
+- Others **combine or transform** sources (e.g. playlists, fallbacks, crossfades, etc.).
+
+You can build complex behaviors from simple building blocks. For example:
 
 ```liquidsoap
 radio =
   output.icecast(
-    %vorbis,mount="test.ogg",
-    random(
-      [ jingle ,
-        fallback([ playlist1,playlist2,playlist3 ]) ]))
+    %vorbis, mount="test.ogg",
+    random([
+      jingle,
+      fallback([playlist1, playlist2, playlist3])
+    ])
+  )
 ```
 
-At every cycle of the [clock](clocks.html), the output asks the `random` node for data,
-until it gets a full frame of raw audio.
-Then, it encodes the frame and sends it to the Icecast server.
-Suppose `random` has chosen the `fallback` node,
-and that only `playlist2` is available, and thus played.
-At every cycle, the buffer is passed from `random` to
-`fallback` and then to `playlist2` which fills it,
-returns it to `fallback` which returns it to `random`
-which returns it to the output.
+Here’s what’s happening:
 
-At some point, `playlist2` ends a track.
-The fallback detects that on the returned buffer,
-and selects a new child for the next filling,
-depending on who's available.
-But it doesn't change the buffer, and returns it to `random`,
-which also (randomly) selects a new child at this point,
-before returning the buffer to the output.
-On next filling, the route of the frame can be different.
+1. The `output.icecast` sends audio to an Icecast server.
+2. It gets that audio from a `random` source.
+3. `random` picks between `jingle` or a `fallback` playlist group.
+4. `fallback` plays from the first available playlist in order.
 
-Note that it is also possible to have the route changed inside a track,
-for example using the `track_sensitive` option of fallback,
-which is typically done for instant switches to live shows when they start.
+Every time the system needs audio, this little pipeline wakes up and produces a frame of data.
 
-The important point here is that **all of the above steps are local**.
-Everything takes place between one operator and its immediate children source;
-operators do not see beyond that point.
+## Sources Are Not Always Reliable (And That’s Okay) ⚠️
 
-## Fallibility
+What happens if a playlist runs out of tracks? Or a file fails to load?
 
-By default, liquidsoap outputs are meant to emit a stream without
-discontinuing. Since this stream is provided by the source passed to the
-output operator, it is the source responsibility to never fail.
-Liquidsoap has a mechanism to verify this, which helps you think of
-all possible failures, and prevent them.
-Elementary sources are either _fallible_ or _infallible_, and this
-_liveness type_ is propagated through operators to finally
-compute the type of any source.
-For example,
-a `fallback` or `random` source is infallible
-if an only if at least one of its children is infallible,
-and a `switch` is infallible if and only if it has one infallible
-child guarded by the trivial predicate `{ true }`.
+In Liquidsoap, we say that a source is either:
 
-On startup, each output checks the liveness type of its input source,
-and issues an error if it is fallible. The typical fix for such problems
-is to add one fallback to play a default file (`single()`)
-or a checked playlist (`playlist.safe()`) if the normal source
-fails.
-One can also use the `mksafe` operator that will insert silence
-during failures.
+- **Infallible**: Guaranteed to always produce data.
+- **Fallible**: Might fail at some point.
 
-If you do not care about failures, you can pass the parameter
-`fallible=true` to most outputs. In that case, the output
-will accept a fallible source, and stop whenever the source fails,
-to restart when it is ready to emit a stream again.
+To keep your stream running smoothly, your output expects an **infallible** source. That means somewhere in your source graph, you need a fallback plan.
 
-## Caching mode
+For example:
 
-In some situations, a source must take care of the consistency of its
-output. If it is asked twice to fill buffers during the same cycle, it
-should fill them with the same data. Suppose for example that a playlist is
-used by two outputs, and that it gives the first frame to the first
-output, the second frame to the second output: it would give the third frame
-to the first output during the second cycle,
-and the output will have missed one frame.
+- Add a static file with `single()` at the end of a `fallback()`.
+- Use `mksafe()` to replace failures with silence.
 
-It is sometimes useful to keep this is mind to understand the behaviour
-of some complex scripts. The high-level picture is enough for users,
-more details follow for developers and curious readers.
+Liquidsoap can **check the liveness** of your source graph at startup and warn you if it detects possible failure. That’s a safety net to ensure your stream doesn’t unexpectedly stop.
 
-The sources detect if they need to remember (cache) their previous output in
-order to replay it. To do that, clients of the source must register in
-advance. If two clients have registered, then caching should be enabled.
-Actually that's a bit more complicated, because of transitions. Obviously the
-sources which use a transition involving some other source must register to
-it, because they may eventually use it. But a jingle used in two transitions
-by the same switching operator doesn't need caching. The solution involves two
-kinds of registering: _dynamic_ and _static activations_. Activations are
-associated with a path in the graph of sources' nesting. The dynamic
-activation is a pre-registration allowing a single real _static activation_
-to come later, possibly in the middle of a cycle.
-Two static activations trigger caching. The other reason for enabling caching
-is when there is one static activation and one dynamic activation which
-doesn't come from a prefix of the static activation's path. It means that the
-dynamic activation can yield at any moment to a static activation and that the
-source will be used by two sources at the same time.
+Want to allow failures? You can pass `fallible=true` to most output operators — but do so only if you’re okay with your stream pausing and restarting when necessary.
 
-## Execution model
+## How Streaming Actually Happens 🔁
 
-In your script you define a bunch of sources interacting together. Each
-source belongs to a [clock](clocks.html), but clocks only have direct access
-to _active sources_, which are mostly outputs.
-At every cycle of the clock, active sources are animated: a chunk of stream
-(frame) is computed, and potentially outputted one way or another.
+Once your script defines a set of sources and outputs, how does Liquidsoap keep the data flowing?
 
-This streaming task is the most important and shouldn't be disturbed.
-Thus, other tasks are done in auxiliary threads:
-file download, audio validity checking, http polling, playlist reloading...
-No blocking or expensive call should be done in streaming threads.
-Remote files are completely downloaded to a local temporary file
-before use by the root thread. It also means that you shouldn't access NFS
-or any kind of falsely local files.
+It all comes down to a **clock**. ⏰
+
+Each source is assigned to a clock. During each clock tick (i.e. iteration), Liquidsoap:
+
+1. Asks the output to send a frame of data.
+2. The output asks its underlying source.
+3. That source might ask other sources.
+4. This chain continues until some elementary sources produce real data.
+
+This forms a **streaming loop**, and it's central to how Liquidsoap runs.
+
+## Active Sources 🔌
+
+Most sources are passive: they only do work when asked. But some are **active** — they need to run even if no one is listening.
+
+For example:
+
+- `input.harbor`: Accepts live streams from the network.
+- `input.alsa`: Listens to a microphone.
+
+These sources are **always receiving data**, so they must process it continually or risk overflowing. Even if you don’t route them to an output, Liquidsoap keeps them alive.
+
+## Don’t Block the Stream 🛑
+
+The streaming loop must stay fast and responsive. So, **expensive tasks are offloaded to background threads**:
+
+- Downloading remote files
+- Reloading playlists
+- Checking metadata
+- Polling URLs
+
+This means:
+
+- Don’t rely on remote files that stream directly from NFS or the web.
+- All remote files are pre-downloaded into a temp file before playback begins.
+
+Keep the streaming loop light and snappy — it’s the heartbeat of your system.
+
+## What’s Next?
+
+Now that you understand what sources are and how they work, you’ve unlocked the foundation of Liquidsoap. 🎉
+
+Want to go deeper?
+
+- Explore the [scripting API reference](reference.html)
+- Learn about [clocks](clocks.html)
+- Experiment with your own custom source graphs
