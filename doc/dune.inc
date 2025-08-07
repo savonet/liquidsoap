@@ -141,12 +141,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -276,12 +273,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -411,12 +405,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -546,12 +537,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -681,12 +669,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -816,12 +801,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -951,12 +933,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1086,12 +1065,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1221,12 +1197,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1356,12 +1329,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1491,12 +1461,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1626,12 +1593,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1761,12 +1725,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1896,12 +1857,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2031,12 +1989,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2166,12 +2121,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2301,12 +2253,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2436,12 +2385,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2571,12 +2517,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2706,12 +2649,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2841,12 +2781,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2976,12 +2913,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3111,12 +3045,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3246,12 +3177,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3381,12 +3309,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3516,12 +3441,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3651,12 +3573,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3786,12 +3705,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3921,12 +3837,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4056,12 +3969,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4191,12 +4101,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4326,12 +4233,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4461,12 +4365,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4596,12 +4497,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4731,12 +4629,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4866,12 +4761,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5001,12 +4893,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5136,12 +5025,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5271,12 +5157,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5406,12 +5289,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5541,12 +5421,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5676,12 +5553,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5811,12 +5685,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5946,12 +5817,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6081,12 +5949,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6216,12 +6081,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6351,12 +6213,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6486,12 +6345,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6621,12 +6477,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6756,12 +6609,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6891,12 +6741,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7026,12 +6873,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7161,12 +7005,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7296,12 +7137,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7431,12 +7269,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7566,12 +7401,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7701,12 +7533,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7836,12 +7665,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7971,12 +7797,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8106,12 +7929,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8241,12 +8061,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8376,12 +8193,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8511,12 +8325,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8646,12 +8457,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8781,12 +8589,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8916,12 +8721,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9051,12 +8853,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9186,12 +8985,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9321,12 +9117,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9456,12 +9249,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9591,12 +9381,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9726,12 +9513,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9861,12 +9645,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9996,12 +9777,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10131,12 +9909,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10266,12 +10041,9 @@
     content/liq/medialib-predicate.liq
     content/liq/medialib.liq
     content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
     content/liq/multitrack-add-video-track2.liq
     content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
     content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10920,16 +10692,6 @@
   (package liquidsoap)
   (deps
     (source_tree ../src/libs)
-    (:test_liq content/liq/multitrack-add-video-track.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack-add-video-track.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
     (:test_liq content/liq/multitrack-add-video-track2.liq)
   )
   (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack-add-video-track2.liq))
@@ -10950,29 +10712,9 @@
   (package liquidsoap)
   (deps
     (source_tree ../src/libs)
-    (:test_liq content/liq/multitrack.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
     (:test_liq content/liq/multitrack2.liq)
   )
   (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack2.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/multitrack3.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack3.liq))
 )
 
 (rule
