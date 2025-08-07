@@ -1,56 +1,72 @@
-# Encoding formats
+# Encoding Formats in Liquidsoap 🎙️
 
-Encoders are used to define formats into which raw sources should be encoded by
-an output. Syntax for encoder is: `%encoder(parameters...)` or, if you use
-default parameters, `%encoder`.
+When you're ready to send audio (or video!) out into the world—whether to Icecast, a file, or another system—you'll need to encode it into a suitable format. MP3, Opus, FLAC, WAV... Liquidsoap supports many, and each comes with its own settings and behaviors.
 
-Please note that not all encoding formats are available at all time. Most of
-them require optional dependencies. If a format is not available, you should see
-an error like this:
+At the heart of this process are **encoders**—special values that you pass to output operators to define the desired stream format.
 
-```shell
-Error 12: Unsupported encoder: %sine().
+This page introduces how encoders work in Liquidsoap, how they influence your pipeline, and what formats and options are available. Don’t worry if it feels abstract at first—it’s a central concept, and it will click as you explore more! 🚀
+
+## Encoders: More Than Just Compression
+
+In Liquidsoap, an encoder is more than just a codec or compression setting. It **defines the structure of the stream**—and that structure must match the source you're feeding into it.
+
+For example, if you write:
+
+```liquidsoap
+output.file(%mp3, "/tmp/foo.mp3", playlist("songs"))
+```
+
+You might think: “I want to encode this playlist as MP3.” But under the hood, `%mp3` is a **format specification**. It says: _This output will encode stereo PCM audio in MP3 format._
+
+So your `playlist("songs")` must produce that exact kind of data—PCM audio, stereo. If it doesn’t, Liquidsoap may try to convert it. But it can’t always.
+
+🧠 **Important:** The encoder drives the output type. You must feed it a compatible source.
+
+For instance:
+
+- `%mp3` expects `format(audio=pcm(stereo))`
+- `%theora` expects video
+- `%opus(channels=1)` expects mono audio
+
+So, if you use `%mp3` in your output, your source must produce stereo PCM audio. If it doesn't, Liquidsoap will try to adapt it:
+
+- Mono sources? Liquidsoap duplicates the channel to make stereo.
+- Stereo sources for a mono encoder? Liquidsoap averages both channels.
+
+## Encoder Syntax
+
+Encoders use a special syntax:
+
+```liquidsoap
+%encoder_name(parameter1=value1, parameter2=value2)
+```
+
+You can omit parameters if defaults are acceptable:
+
+```liquidsoap
+output.icecast(%mp3, my_source)
+```
+
+Parameters are optional (unless noted) and can be reordered. You can also write `mono=true` or `channels=1`; both are equivalent.
+
+## ⚠️ Format Availability
+
+Not all encoders are always available in every Liquidsoap build. Some require optional libraries.
+
+If an encoder isn’t available, you’ll see something like:
+
+```
+Error 12: Unsupported encoder: %xyz().
 You must be missing an optional dependency.
 ```
 
-In particular, due to limitations with static linking on windows, only the
-`%ffmpeg` encoder is available with our windows build. However, this encoder provides
-a lot of codecs and formats, and it is quite likely that it can provide what you need.
+In this case, you might need to enable an external dependency (if you are installing via `opam`) or rebuild liquidsoap.
 
-## Formats determine the stream content
+On our Windows build, only `%ffmpeg` is included due to linking limitations. Luckily, `%ffmpeg` supports many common formats.
 
-In most liquidsoap scripts, the encoding format determines what
-kind of data is streamed.
-
-The type of an encoding format depends on its parameter.
-For example, `%mp3` has type `format(audio=pcm(stereo))`.
-
-The type of an output like `output.icecast`
-or `output.file` is something like
-`(...,format('a),...,source('a))->source('a)`.
-This means that your source will have to have the same type as your format.
-
-For example if you write
-
-```liquidsoap
-output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))
-```
-
-then the playlist source will have to stream stereo audio.
-
-In the case of audio format, liquidsoap tries its best to convert the format whenever
-possible. For instance, in the above, liquidsoap will convert mono files
-from the playlist to stereo files by duplicating the single audio channel
-in a mono file. Likewise, if the encoder requires mono audio, it will compute
-the mean of a stereo files.
+## 🔍 Format Reference
 
 # List of formats and their syntax
-
-All parameters are optional, and the parenthesis are not needed
-when no parameter is passed. In the following default values
-are shown.
-As a special case, the keywords `mono` and `stereo` can be used to indicate
-the number of channels (whether is is passed as an integer or a boolean).
 
 ## MP3
 
@@ -95,7 +111,6 @@ Setting it to `""` disables this feature. This is its default value.
 ## Shine
 
 Shine is the fixed-point mp3 encoder. It is useful on architectures without a FPU, such as ARM.
-It is named `%shine` or `%mp3.fxp` and its parameters are:
 
 ```liquidsoap
 %shine(channels=2,samplerate=44100,bitrate=128)
@@ -114,7 +129,7 @@ Because Liquidsoap encodes a possibly infinite stream, there
 is no way to know in advance the duration of encoded data. Since WAV header
 has to be written first, by default its length is set to the maximum possible
 value. If you know the expected duration of the encoded data and you actually
-care about the WAV length header then you should use this parameter.
+care about the WAV length header then you should use the `duration` parameter.
 
 ## FFmpeg
 
@@ -145,9 +160,6 @@ try to limit ogg logical pages size. For instance:
 # Constant bitrate
 %vorbis.cbr(samplerate=44100, channels=2, bitrate=128)
 ```
-
-Quality ranges from -0.2 to 1,
-but quality -0.2 is only available with the aotuv implementation of libvorbis.
 
 ### Opus
 
@@ -237,20 +249,3 @@ Bitrate can be either constant by passing: `bitrate=64` or variable: `vbr=<1-5>`
 
 You can consult the [Hydrogenaudio knowledge base](http://wiki.hydrogenaud.io/index.php?title=Fraunhofer_FDK_AAC) for more details
 on configuration values and meanings.
-
-## External encoders
-
-For a detailed presentation of external encoders, see [this page](external_encoders.html).
-
-```liquidsoap
-%external(channels=2,samplerate=44100,header=true,
-          restart_on_crash=false,
-          restart_on_metadata,
-          restart_after_delay=30,
-          process="progname")
-```
-
-Only one of `restart_on_metadata` and `restart_after_delay` should
-be passed. The delay is specified in seconds.
-The encoding process is mandatory, and can also be passed directly
-as a string, without `process=`.
