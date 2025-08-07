@@ -66,9 +66,7 @@ On our Windows build, only `%ffmpeg` is included due to linking limitations. Luc
 
 ## 🔍 Format Reference
 
-# List of formats and their syntax
-
-## MP3
+### MP3
 
 Mp3 encoder comes in 3 flavors:
 
@@ -108,7 +106,7 @@ Examples:
 Optionally, liquidsoap can insert a message within mp3 data. You can set its value using the `msg` parameter.
 Setting it to `""` disables this feature. This is its default value.
 
-## Shine
+### Shine
 
 Shine is the fixed-point mp3 encoder. It is useful on architectures without a FPU, such as ARM.
 
@@ -116,7 +114,7 @@ Shine is the fixed-point mp3 encoder. It is useful on architectures without a FP
 %shine(channels=2,samplerate=44100,bitrate=128)
 ```
 
-## WAV
+### WAV
 
 ```liquidsoap
 %wav(stereo=true, channels=2, samplesize=16, header=true, duration=10.)
@@ -131,11 +129,11 @@ has to be written first, by default its length is set to the maximum possible
 value. If you know the expected duration of the encoded data and you actually
 care about the WAV length header then you should use the `duration` parameter.
 
-## FFmpeg
+### FFmpeg
 
 See detailed [ffmpeg encoders](ffmpeg_encoder.html) article.
 
-## Ogg
+### Ogg
 
 The following formats can be put together in an Ogg container.
 The syntax for doing so is `%ogg(x,y,z)` but it is also
@@ -227,7 +225,7 @@ The parameters are:
 `compression` ranges from 0 to 8 and `bits_per_sample` should be one of: `8`, `16`, `24` or `32`.
 Please note that `32` bits per sample is currently not supported by the underlying `libflac`.
 
-## FDK-AAC
+### FDK-AAC
 
 This encoder can do both AAC and AAC+.
 
