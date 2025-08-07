@@ -305,4 +305,4 @@ print(json.stringify(j))
 🧠 Type annotations help catch issues early and make your code clearer
 🛠️ Advanced types let you tackle real-world data with ease
 
-Once you’ve got the hang of parsing, try exploring the actual `tests/language/json.liq` test files in the source repo—they’re full of neat examples and tricks!
+Once you’ve got the hang of parsing, try exploring the actual `tests/language/json.liq` test file in the source repo—it's full of neat examples and tricks!
