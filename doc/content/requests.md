@@ -129,6 +129,6 @@ It’s one of the features that makes Liquidsoap adaptable to many streaming set
 
 To explore further:
 
-- Read the [Protocol API documentation](protocols.html) to learn how to implement your own.
+- Read the [Protocol API documentation](protocols-presentation.html) to learn how to implement your own.
 - Experiment with `annotate:` in your playlists.
 - Try chaining protocols to create more complex behavior.
