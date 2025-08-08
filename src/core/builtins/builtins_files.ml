@@ -440,6 +440,13 @@ let _ =
 let _ =
   Lang.add_builtin ~base:file "watch" ~category:`File
     [
+      ( "include_subdirs",
+        Lang.bool_t,
+        Some (Lang.bool File_watcher.include_subdirs),
+        Some
+          "If file is a directory, include all of its subdirectories in the \
+           list of watched files. Useful when using the native watch function \
+           as it does not account for subdirectories." );
       ("", Lang.string_t, None, Some "File to watch.");
       ("", Lang.fun_t [] Lang.unit_t, None, Some "Handler function.");
     ]
@@ -455,6 +462,13 @@ let _ =
     (fun p ->
       let fname = Lang.to_string (Extralib.List.assoc_nth "" 0 p) in
       let fname = Lang_string.home_unrelate fname in
+      let include_subdirs = Lang.to_bool (List.assoc "include_subdirs" p) in
+      let files =
+        match include_subdirs with
+          | true when not (Utils.is_dir fname) -> [fname]
+          | true -> fname :: Utils.get_all_subdirs fname
+          | false -> [fname]
+      in
       let f = Extralib.List.assoc_nth "" 1 p in
       let f () =
         try ignore (Lang.apply f [])
@@ -462,7 +476,7 @@ let _ =
           let bt = Printexc.get_raw_backtrace () in
           Lang.raise_as_runtime ~bt ~kind:"file" exn
       in
-      let unwatch = File_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f in
+      let unwatch = File_watcher.watch ~pos:(Lang.pos p) [`Modify] files f in
       Lang.meth Lang.unit
         [
           ( "unwatch",

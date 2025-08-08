@@ -30,7 +30,7 @@ type unwatch = unit -> unit
 type watch =
   pos:Liquidsoap_lang.Pos.t list ->
   event list ->
-  string ->
+  string list ->
   (unit -> unit) ->
   unwatch
 
@@ -45,6 +45,7 @@ let launched = ref false
 let watched = ref []
 let m = Mutex.create ()
 let file_mtime file = (Unix.stat file).Unix.st_mtime
+let include_subdirs = true
 
 let rec handler _ =
   Mutex_utils.mutexify m
@@ -65,8 +66,16 @@ let rec handler _ =
     ()
 
 let watch : watch =
- fun ~pos e file callback ->
-  if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
+ fun ~pos e files callback ->
+  List.iter
+    (fun file ->
+      if not (Sys.file_exists file) then
+        Lang.raise_error ~pos
+          ~message:
+            (Printf.sprintf "File %s not found!"
+               (Lang_string.quote_utf8_string file))
+          "not_found")
+    files;
   if List.mem `Modify e then
     Mutex_utils.mutexify m
       (fun () ->
@@ -79,11 +88,16 @@ let watch : watch =
               handler;
             }
         end;
-        let mtime = try file_mtime file with _ -> 0. in
-        watched := { file; mtime; callback } :: !watched;
+        watched :=
+          List.fold_left
+            (fun watched file ->
+              let mtime = try file_mtime file with _ -> 0. in
+              { file; mtime; callback } :: watched)
+            !watched files;
         let unwatch =
           Mutex_utils.mutexify m (fun () ->
-              watched := List.filter (fun w -> w.file <> file) !watched)
+              watched :=
+                List.filter (fun w -> not (List.mem w.file files)) !watched)
         in
         unwatch)
       ()

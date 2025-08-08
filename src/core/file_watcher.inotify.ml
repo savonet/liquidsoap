@@ -30,7 +30,7 @@ type unwatch = unit -> unit
 type watch =
   pos:Liquidsoap_lang.Pos.t list ->
   event list ->
-  string ->
+  string list ->
   (unit -> unit) ->
   unwatch
 
@@ -38,6 +38,7 @@ let fd = ref (None : Unix.file_descr option)
 let handlers = ref []
 let m = Mutex.create ()
 let log = Log.make ["inotify"]
+let include_subdirs = false
 
 let rec watchdog () =
   let fd = Option.get !fd in
@@ -47,7 +48,7 @@ let rec watchdog () =
         List.iter
           (fun (wd, _, _, _) ->
             match List.assoc wd !handlers with
-              | f -> f ()
+              | callback -> callback ()
               | exception Not_found -> (
                   try Inotify.rm_watch fd wd with _ -> ()))
           events;
@@ -56,8 +57,16 @@ let rec watchdog () =
   { Duppy.Task.priority = `Maybe_blocking; events = [`Read fd]; handler }
 
 let watch : watch =
- fun ~pos e file f ->
-  if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
+ fun ~pos e files callback ->
+  List.iter
+    (fun file ->
+      if not (Sys.file_exists file) then
+        Lang.raise_error ~pos
+          ~message:
+            (Printf.sprintf "File %s not found!"
+               (Lang_string.quote_utf8_string file))
+          "not_found")
+    files;
   Mutex_utils.mutexify m
     (fun () ->
       if !fd = None then (
@@ -75,14 +84,19 @@ let watch : watch =
             @ if Sys.is_directory file then [] else [Inotify.S_Modify]
       in
       let e = List.flatten (List.map event_conv e) in
-      let wd = Inotify.add_watch fd file e in
-      handlers := (wd, f) :: !handlers;
+      let watchers =
+        List.map (fun file ->
+            let watcher = Inotify.add_watch fd file e in
+            (watcher, callback))
+      in
+      handlers := watchers @ !handlers;
       Mutex_utils.mutexify m (fun () ->
-          (try Inotify.rm_watch fd wd
+          (try List.iter (Inotify.rm_watch fd) watchers
            with exn ->
              let bt = Printexc.get_backtrace () in
              Utils.log_exception ~log ~bt
                (Printf.sprintf "Error while removing file watch handler: %s"
                   (Printexc.to_string exn)));
-          handlers := List.remove_assoc wd !handlers))
+          handlers :=
+            List.filter (fun (w, _) -> not (List.mem w watchers)) !handlers))
     ()

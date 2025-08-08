@@ -360,6 +360,14 @@ let is_dir d =
 
 let dir_exists d = Sys.file_exists d && is_dir d
 
+let get_all_subdirs path =
+  let rec get_all_subdirs cur path =
+    match Sys.readdir path with
+      | (exception _) | [||] -> cur
+      | a -> List.fold_left get_all_subdirs cur (Array.to_list a)
+  in
+  get_all_subdirs [] path
+
 (** Create a directory, and its parents if needed. Raise Unix_error on error. *)
 let rec mkdir ~perm dir =
   if Sys.file_exists dir then
