@@ -1,4 +1,4 @@
-# Understanding Requests and Protocols in Liquidsoap
+# Understanding Requests
 
 When you ask Liquidsoap to play something, it’s easy to imagine that the system just grabs your file or stream and starts playing it. In reality, there’s a small but important process that happens first — one that makes Liquidsoap flexible and able to handle a wide variety of media sources.
 
