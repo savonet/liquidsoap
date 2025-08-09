@@ -74,7 +74,8 @@ let watch : watch =
         Duppy.Task.add Tutils.scheduler (watchdog ()));
       let fd = Option.get !fd in
       let watchers =
-        List.map (fun file ->
+        List.map
+          (fun file ->
             let event_conv = function
               | `Modify ->
                   [
@@ -88,6 +89,7 @@ let watch : watch =
             let e = List.flatten (List.map event_conv e) in
             let watcher = Inotify.add_watch fd file e in
             (watcher, callback))
+          files
       in
       handlers := watchers @ !handlers;
       Mutex_utils.mutexify m (fun () ->
