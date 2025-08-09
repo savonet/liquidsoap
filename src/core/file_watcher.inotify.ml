@@ -73,19 +73,19 @@ let watch : watch =
         fd := Some (Inotify.create ());
         Duppy.Task.add Tutils.scheduler (watchdog ()));
       let fd = Option.get !fd in
-      let event_conv = function
-        | `Modify ->
-            [
-              Inotify.S_Moved_to;
-              Inotify.S_Moved_from;
-              Inotify.S_Delete;
-              Inotify.S_Create;
-            ]
-            @ if Sys.is_directory file then [] else [Inotify.S_Modify]
-      in
-      let e = List.flatten (List.map event_conv e) in
       let watchers =
         List.map (fun file ->
+            let event_conv = function
+              | `Modify ->
+                  [
+                    Inotify.S_Moved_to;
+                    Inotify.S_Moved_from;
+                    Inotify.S_Delete;
+                    Inotify.S_Create;
+                  ]
+                  @ if Sys.is_directory file then [] else [Inotify.S_Modify]
+            in
+            let e = List.flatten (List.map event_conv e) in
             let watcher = Inotify.add_watch fd file e in
             (watcher, callback))
       in
