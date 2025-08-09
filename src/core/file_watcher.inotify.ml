@@ -93,7 +93,10 @@ let watch : watch =
       in
       handlers := watchers @ !handlers;
       Mutex_utils.mutexify m (fun () ->
-          (try List.iter (Inotify.rm_watch fd) watchers
+          (try
+             List.iter
+               (fun (watcher, _) -> Inotify.rm_watch fd watcher)
+               watchers
            with exn ->
              let bt = Printexc.get_backtrace () in
              Utils.log_exception ~log ~bt
