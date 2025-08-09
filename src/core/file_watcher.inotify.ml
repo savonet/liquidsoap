@@ -103,5 +103,5 @@ let watch : watch =
                (Printf.sprintf "Error while removing file watch handler: %s"
                   (Printexc.to_string exn)));
           handlers :=
-            List.filter (fun (w, _) -> not (List.mem w watchers)) !handlers))
+            List.filter (fun (_, file) -> not (List.mem file files)) !handlers))
     ()
