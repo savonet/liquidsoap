@@ -83,8 +83,7 @@ Protocols can also be dynamic. For instance, you might store file paths in a dat
 
 ```liquidsoap
 def db_lookup_protocol(~rlog, ~maxtime, arg) =
-  # This is a simple example. Beware of time bound and SQL injection!!
-  string.trim(process.read("psql -t -c 'SELECT path FROM tracks WHERE id=#{arg};'"))
+  string.trim(process.read("psql -t -c 'SELECT path FROM tracks WHERE id=#{int_of_string(arg)};'"))
 end
 
 protocol.add("db_lookup", db_lookup_protocol,
