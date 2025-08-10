@@ -41,9 +41,6 @@ let proto =
            stopped until the source is available again." );
     ]
 
-let meth = Start_stop.meth ()
-let callbacks = Start_stop.callbacks ~label:"output"
-
 module Queue = Queues.Queue
 
 (** Given abstract start stop and send methods, creates an output. Takes care of
@@ -208,8 +205,10 @@ let _ =
   Lang.add_operator ~base:Modules.output "dummy"
     (proto @ [("", Lang.source_t return_t, None, None)])
     ~category:`Output
-    ~descr:"Dummy output: computes the stream, without actually using it." ~meth
-    ~callbacks ~return_t
+    ~descr:"Dummy output: computes the stream, without actually using it."
+    ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~return_t
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in

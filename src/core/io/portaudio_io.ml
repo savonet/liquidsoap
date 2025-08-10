@@ -270,8 +270,8 @@ let _ =
           Some "Device latency. Only used when specifying device ID." );
         ("", Lang.source_t frame_t, None, None);
       ])
-    ~return_t:frame_t ~category:`Output ~meth:Output.meth
-    ~callbacks:Output.callbacks
+    ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"output")
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let e f v = f (List.assoc v p) in

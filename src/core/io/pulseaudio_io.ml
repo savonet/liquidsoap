@@ -272,8 +272,8 @@ let _ =
   in
   Lang.add_operator ~base:Modules.output "pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t frame_t, None, None)])
-    ~return_t:frame_t ~category:`Output ~meth:Output.meth
-    ~callbacks:Output.callbacks
+    ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"output")
     ~descr:"Output the source's stream to a pulseaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in

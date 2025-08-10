@@ -1264,29 +1264,9 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  let output_meth =
-    List.map
-      (fun m ->
-        {
-          m with
-          Lang.value = (fun (s : output) -> m.Lang.value (s :> Output.output));
-        })
-      Output.meth
-  in
-  let output_callbacks =
-    List.map
-      (fun m ->
-        {
-          m with
-          Lang.register =
-            (fun ~params (s : output) fn ->
-              m.Lang.register ~params (s :> Output.output) fn);
-        })
-      Output.callbacks
-  in
   Lang.add_operator ~base:Modules.output "srt" ~return_t ~category:`Output
-    ~meth:(meth () @ output_meth)
-    ~callbacks:(callbacks @ output_callbacks)
+    ~meth:(meth () @ Start_stop.meth ())
+    ~callbacks:(callbacks @ Start_stop.callbacks ~label:"output")
     ~descr:"Send a SRT stream to a distant agent."
     (Output.proto
     @ common_options ~mode:`Caller

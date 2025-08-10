@@ -596,23 +596,6 @@ class output p =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  let output_meth =
-    List.map
-      (fun m ->
-        { m with Lang.value = (fun s -> m.Lang.value (s :> Output.output)) })
-      Output.meth
-  in
-  let output_callbacks =
-    List.map
-      (fun m ->
-        {
-          m with
-          Lang.register =
-            (fun ~params s fn ->
-              m.Lang.register ~params (s :> Output.output) fn);
-        })
-      Output.callbacks
-  in
   Lang.add_operator ~category:`Output
     ~descr:"Encode and output the stream using the harbor server."
     ~callbacks:
@@ -664,6 +647,7 @@ let _ =
                s#on_disconnect (fun ip -> f [("", Lang.string ip)]));
          };
        ]
-      @ output_callbacks)
-    ~meth:output_meth ~base:Modules.output "harbor" (proto return_t) ~return_t
+      @ Start_stop.callbacks ~label:"output")
+    ~meth:(Start_stop.meth ()) ~base:Modules.output "harbor" (proto return_t)
+    ~return_t
     (fun p -> new output p)

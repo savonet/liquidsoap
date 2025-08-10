@@ -110,8 +110,9 @@ let output_sdl =
   in
   Lang.add_operator ~base:Modules.output "sdl"
     (Output.proto @ [("", Lang.source_t frame_t, None, None)])
-    ~return_t:frame_t ~category:`Output ~meth:Output.meth
-    ~callbacks:Output.callbacks ~descr:"Display a video using SDL."
+    ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~descr:"Display a video using SDL."
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
