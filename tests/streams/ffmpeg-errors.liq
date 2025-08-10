@@ -12,7 +12,7 @@ def f() =
   end
 
   s = input.ffmpeg("invalid")
-  s.on_error(on_error)
+  s.on_error(synchronous=true, on_error)
   output.dummy(s, fallible=true)
 end
 

@@ -21,7 +21,7 @@ end
 
 i = input.harbor(buffer=2., port=port, transport=transport, "ssl_test")
 
-i.on_wake_up(on_wake_up)
+i.on_wake_up(synchronous=false, on_wake_up)
 
 i.on_track(synchronous=true, fun (_) -> test.pass())
 

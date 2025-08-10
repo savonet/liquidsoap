@@ -37,7 +37,7 @@ def on_connect() =
     test.fail()
   else
     has_connected := true
-    o.on_error(on_error)
+    o.on_error(synchronous=true, on_error)
     i.shutdown()
     d.shutdown()
   end
