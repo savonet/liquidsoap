@@ -319,10 +319,11 @@ def channel_radiopilote(~skip=true, name) =
   s = if skip then blank.skip(s, max_blank=10., threshold=-40.) else s end
 
   # Submit new tracks on lastfm
-  s.on_metadata(lastfm)
+  s.on_metadata(synchronous=false, lastfm)
 
   # Tell the system when a new track is played
   s.on_metadata(
+    synchronous=false,
     fun (meta) ->
       process.run(
         scripts ^

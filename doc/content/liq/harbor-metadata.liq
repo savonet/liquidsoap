@@ -4,7 +4,7 @@ s = sine()
 meta = ref([])
 
 # s = some source
-s.on_metadata(fun (m) -> meta := m)
+s.on_metadata(synchronous=true, fun (m) -> meta := m)
 
 # Return the json content of meta
 def get_meta(_, response) =

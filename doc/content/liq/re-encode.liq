@@ -13,4 +13,4 @@ clock.assign_new(sync="none", [source])
 # Finally, we output the source to an ogg/vorbis file
 o = output.file(%vorbis, target, fallible=true, source)
 
-o.on_stop(shutdown)
+o.on_stop(synchronous=true, shutdown)

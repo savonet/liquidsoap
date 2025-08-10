@@ -7,7 +7,7 @@ def handler() =
   )
 end
 s = blank.detect(s)
-s.on_blank(handler)
+s.on_blank(synchronous=false, handler)
 
 # END
 output.dummy(fallible=true, s)
