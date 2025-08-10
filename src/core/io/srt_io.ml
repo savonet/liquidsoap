@@ -245,7 +245,6 @@ let callbacks =
         name = "on_connect";
         params = [];
         descr = "when connected.";
-        default_synchronous = false;
         register_deprecated_argument = true;
         arg_t = [];
         register = (fun ~params:_ s f -> s#on_connect (fun () -> f []));
@@ -254,7 +253,6 @@ let callbacks =
         name = "on_disconnect";
         params = [];
         descr = "when disconnected.";
-        default_synchronous = false;
         register_deprecated_argument = true;
         arg_t = [];
         register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
@@ -269,7 +267,6 @@ let callbacks =
            (socket created before binding for receiving new incoming \
            connections), `\"incoming\"` (socket received as incoming \
            connection) or `\"close\"` (socket is about to closed).";
-        default_synchronous = false;
         register_deprecated_argument = true;
         arg_t =
           [

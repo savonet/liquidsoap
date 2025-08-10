@@ -623,7 +623,6 @@ let _ =
            descr =
              "when connection is established (takes headers, connection uri, \
               protocol and client's IP as arguments).";
-           default_synchronous = false;
            register_deprecated_argument = true;
            arg_t =
              [
@@ -658,7 +657,6 @@ let _ =
            name = "on_disconnect";
            params = [];
            descr = "when a source is disconnected.";
-           default_synchronous = false;
            register_deprecated_argument = true;
            arg_t = [(false, "", Lang.string_t)];
            register =

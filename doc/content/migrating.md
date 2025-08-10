@@ -37,8 +37,10 @@ Now, all sources have a `insert_metadata` server command by default!
 
 tl;dr:
 
-- Callbacks are now executed using `thread.run` by default.
-- You can use `settings.source.synchronous_callbacks` to change the default.
+- Callbacks have been moved to their own section of the documentation
+  for better standardization and information.
+- Callbacks can be executed using `thread.run` by passing `synchronous=false`
+  when registering them.
 - Most callback arguments should be accepted as deprecated arguments.
 - `on_frame` callbacks are still registered as synchronous by default.
 - `blank.detect` could not be updated in a backward-compatible manner.
@@ -64,7 +66,7 @@ s = on_metadata(s, fn)
 You should now do:
 
 ```liquidsoap
-s.on_metadata(fn)
+s.on_metadata(synchronous=true, fn)
 ```
 
 Additionally, `on_end` and `on_offset` have been merged into a single `on_position` source method. Here is the new syntax:
@@ -72,6 +74,7 @@ Additionally, `on_end` and `on_offset` have been merged into a single `on_positi
 ```liquidsoap
 # Execute a callback after current track position:
 s.on_position(
+  synchronous=false,
   # This is the default
   remaining=false,
   position=1.2,
@@ -83,6 +86,7 @@ s.on_position(
 # Execute a callback when remaining position is less
 # than the given position:
 s.on_position(
+  synchronous=false,
   remaining=true,
   position=1.2,
   fn
@@ -99,30 +103,12 @@ You should now do:
 
 ```liquidsoap
 o = output.ao(...)
-o.on_start(fn)
+o.on_start(synchronous=false, fn)
 ```
 
-Most callbacks are now registered as asynchronous callbacks. This means that they may not be executed immediately and execution order can sometime be re-shuffled.
-If your callback is fast or if you need to have tighter control over this, you can set the `synchronous` parameter to `true`:
+❓ **Asynchronous or synchronous?** When registering callbacks, you have to specify if you want the function to be called synchronously or asynchronously. If the function is fast to execute or requires precise timing (it should still be fast to execute though!) then you should register with `synchronous=true`. Slow tasks that are not time-sensitive like submitting to a remote HTTP server should be registered with `synchronous=false`.
 
-```liquidsoap
-s.on_track(synchronous=true, fn)
-```
-
-Lastly, if you are concerned with advanced callback execution logic, callbacks are executed in the order
-they are registered so, when, before, you would do:
-
-```liquidsoap
-s = on_metadata(s, f1)
-s = on_track(s, f2)
-```
-
-Resulting in `f1` being executed before `f2` in case of new track with metadata, you can now do:
-
-```liquidsoap
-s.on_metadata(synchronous=true, f1)
-s.on_track(synchronous=true, f2)
-```
+⚠️ **Asynchronous callbacks execution order** When registered with `synchronous=false`, callbacks are executed using `thread.run`. This means that there can be a slight delay in their execution. Also, execution order is not guaranteed to be respected.
 
 In some cases, callbacks that were originally passed as argument when creating a source or output are now registered after
 the source or output has been created.
@@ -142,8 +128,7 @@ o.on_stop(shutdown)
 
 ### Error methods
 
-Because of the multiplication of callbacks with `on_error` arguments, error methods have
-been removed by default from the error types to avoid cluttering the documentation.
+Error methods have been removed by default from the error types to avoid cluttering the documentation.
 
 If you need to access error methods, you can use `error.methods`:
 

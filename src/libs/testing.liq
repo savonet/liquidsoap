@@ -32,6 +32,6 @@ def sleeper(
     end
   end
 
-  source.methods(s).on_frame(f)
+  source.methods(s).on_frame(synchronous=true, f)
   s.{frozen=frozen}
 end

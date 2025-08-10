@@ -439,7 +439,7 @@ def audioscrobbler.submit(
   end
 
   s = source.methods(s)
-  s.on_metadata(now_playing)
+  s.on_metadata(synchronous=false, now_playing)
 
   f =
     fun (rem, m) ->
