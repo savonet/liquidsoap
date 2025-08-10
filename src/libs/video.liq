@@ -327,7 +327,7 @@ def output.youtube.live.hls(
       [("live", encoder)],
       s
     )
-  o.on_file_change(on_file_change)
+  o.on_file_change(synchronous=true, on_file_change)
   o
 end
 
@@ -822,7 +822,7 @@ def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y) =
     end
   end
 
-  s'.on_frame(update)
+  s'.on_frame(synchronous=true, update)
   s'
 end
 

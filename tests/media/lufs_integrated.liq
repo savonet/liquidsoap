@@ -3,7 +3,7 @@ def f() =
 
   def process(s) =
     s = lufs(s)
-    s.on_frame({lufs_integrated := s.lufs_integrated()})
+    s.on_frame(synchronous=true, {lufs_integrated := s.lufs_integrated()})
     s
   end
 

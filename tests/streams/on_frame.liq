@@ -10,5 +10,5 @@ def f() =
 end
 
 s = sine()
-s.on_frame(f)
+s.on_frame(synchronous=true, f)
 output.dummy(s)

@@ -17,7 +17,7 @@ def f() =
     )
   end
 
-  s.on_frame(on_frame)
+  s.on_frame(synchronous=true, on_frame)
   reopen_when_ref = ref(true)
   reopen_delay = ref(120.)
   callstack = ref([])

@@ -625,7 +625,7 @@ class hls_output p =
     val mutable state : hls_state = `Idle
     method self_sync = source#self_sync
     val mutable on_file_change : (state:file_state -> string -> unit) list = []
-    method on_file_change fn = on_file_change <- fn :: on_file_change
+    method on_file_change fn = on_file_change <- on_file_change @ [fn]
 
     method private toggle_state event =
       match (event, state) with
@@ -1251,7 +1251,6 @@ let _ =
              "when a file changes. `state` is one of: `\"created\"`, \
               `\"updated\"` or `\"deleted\"`, `path` is the full file path. \
               Typical use: sync file with a CDN";
-           default_synchronous = true;
            register_deprecated_argument = false;
            arg_t =
              [

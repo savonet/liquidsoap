@@ -245,7 +245,6 @@ let callbacks =
         name = "on_connect";
         params = [];
         descr = "when connected.";
-        default_synchronous = false;
         register_deprecated_argument = true;
         arg_t = [];
         register = (fun ~params:_ s f -> s#on_connect (fun () -> f []));
@@ -254,7 +253,6 @@ let callbacks =
         name = "on_disconnect";
         params = [];
         descr = "when disconnected.";
-        default_synchronous = false;
         register_deprecated_argument = true;
         arg_t = [];
         register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
@@ -269,7 +267,6 @@ let callbacks =
            (socket created before binding for receiving new incoming \
            connections), `\"incoming\"` (socket received as incoming \
            connection) or `\"close\"` (socket is about to closed).";
-        default_synchronous = false;
         register_deprecated_argument = true;
         arg_t =
           [
@@ -586,16 +583,16 @@ class virtual base () =
     method set_should_stop v = Atomic.set should_stop v
     method srt_id = id
     val mutable on_socket = []
-    method on_socket fn = on_socket <- fn :: on_socket
+    method on_socket fn = on_socket <- on_socket @ [fn]
 
     method apply_on_socket ~(mode : socket_mode) (s : Srt.socket) =
       List.iter (fun fn -> fn ~mode s) on_socket
 
     val mutable on_connect = []
-    method on_connect fn = on_connect <- fn :: on_connect
+    method on_connect fn = on_connect <- on_connect @ [fn]
     method apply_on_connect = List.iter (fun fn -> fn ()) on_connect
     val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
+    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
     method apply_on_disconnect = List.iter (fun fn -> fn ()) on_disconnect
   end
 

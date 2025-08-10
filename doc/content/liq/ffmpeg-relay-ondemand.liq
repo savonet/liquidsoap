@@ -38,5 +38,5 @@ o =
     stream
   )
 
-o.on_connect(on_connect)
-o.on_disconnect(on_disconnect)
+o.on_connect(synchronous=true, on_connect)
+o.on_disconnect(synchronous=true, on_disconnect)

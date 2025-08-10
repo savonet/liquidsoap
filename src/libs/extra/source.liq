@@ -215,7 +215,7 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
     end
   end
 
-  s.on_frame(f)
+  s.on_frame(synchronous=true, f)
   s
 end
 
@@ -262,7 +262,7 @@ def fallback.skip(s, ~fallback=null) =
   s = stdlib_fallback(track_sensitive=false, [s, fallback])
 
   # TODO: could we have something more efficient that checking on every frame
-  s.on_frame(check)
+  s.on_frame(synchronous=true, check)
   s
 end
 

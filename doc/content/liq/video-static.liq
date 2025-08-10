@@ -17,4 +17,4 @@ o = output.file(
   fallible=true, encoder, "/tmp/encoded-video.mp4", source
 )
 
-o.on_stop(shutdown)
+o.on_stop(synchronous=true, shutdown)

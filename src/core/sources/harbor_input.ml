@@ -50,9 +50,9 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     val mutable dump = None
     val mutable logf = None
     val mutable on_connect = []
-    method on_connect fn = on_connect <- fn :: on_connect
+    method on_connect fn = on_connect <- on_connect @ [fn]
     val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
+    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
 
     method connected_client =
       Option.map address_resolver (Atomic.get relay_socket)
@@ -250,7 +250,6 @@ let _ =
           descr =
             "when a source is connected. Its receives the list of headers, of \
              the form: (<label>,<value>). All labels are lowercase.";
-          default_synchronous = false;
           register_deprecated_argument = true;
           arg_t = [(false, "", Lang.metadata_t)];
           register =
@@ -262,7 +261,6 @@ let _ =
           name = "on_disconnect";
           params = [];
           descr = "when a source is disconnected.";
-          default_synchronous = false;
           register_deprecated_argument = true;
           arg_t = [];
           register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
