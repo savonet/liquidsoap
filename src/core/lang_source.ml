@@ -202,10 +202,6 @@ let callback { name; params; descr; arg_t; default_synchronous; register } =
              params
           @ [
               (true, "synchronous", synchronous_t);
-              ( true,
-                "on_error",
-                Lang.nullable_t
-                  (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t) );
               (false, "", fun_t arg_t unit_t);
             ])
           unit_t );
@@ -218,29 +214,13 @@ let callback { name; params; descr; arg_t; default_synchronous; register } =
       (fun s ->
         val_fun
           ([
-             ("synchronous", "synchronous", Some synchronous_arg);
-             ("on_error", "on_error", Some Lang.null);
-             ("", "", None);
+             ("synchronous", "synchronous", Some synchronous_arg); ("", "", None);
            ]
           @ List.map (fun { name; default } -> (name, name, default)) params)
           (fun p ->
             let synchronous = to_synchronous (List.assoc "synchronous" p) in
-            let on_error = Lang.to_option (List.assoc "on_error" p) in
             let fn = assoc "" 1 p in
             let fn args = ignore (apply fn args) in
-            let fn =
-              match on_error with
-                | None -> fn
-                | Some on_error -> (
-                    fun args ->
-                      try fn args
-                      with exn ->
-                        let bt = Printexc.get_raw_backtrace () in
-                        let error =
-                          Lang.runtime_error_of_exception ~bt ~kind:"source" exn
-                        in
-                        ignore (apply on_error [("", Lang.error error)]))
-            in
             let fn =
               if synchronous then fn
               else fun args ->
@@ -891,11 +871,7 @@ let deprecated_callback_registration_arguments callbacks =
                         let register = register_callback s in
                         ignore
                           (Lang.apply register
-                             [
-                               ("synchronous", Lang.bool true);
-                               ("on_error", Lang.null);
-                               ("", fn);
-                             ])
+                             [("synchronous", Lang.bool true); ("", fn)])
                 in
                 ( arg :: arguments,
                   register_deprecated_callback :: register_deprecated_callbacks
