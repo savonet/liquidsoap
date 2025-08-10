@@ -1002,7 +1002,7 @@ let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~base:Modules.input "srt" ~return_t ~category:`Input
     ~meth:(meth () @ Start_stop.meth ())
-    ~callbacks:(Start_stop.callbacks ~label:"source")
+    ~callbacks:(callbacks @ Start_stop.callbacks ~label:"source")
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
     @ Start_stop.active_source_proto ~fallible_opt:`Nope
@@ -1072,6 +1072,9 @@ let _ =
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit
+                 ; on_socket : (mode:socket_mode -> Srt.socket -> unit) -> unit
+                 ; on_connect : (unit -> unit) -> unit
+                 ; on_disconnect : (unit -> unit) -> unit
                  ; connect : unit
                  ; disconnect : unit >)
         | `Caller ->
@@ -1083,6 +1086,9 @@ let _ =
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list
                  ; set_should_stop : bool -> unit
+                 ; on_socket : (mode:socket_mode -> Srt.socket -> unit) -> unit
+                 ; on_connect : (unit -> unit) -> unit
+                 ; on_disconnect : (unit -> unit) -> unit
                  ; connect : unit
                  ; disconnect : unit >))
 
@@ -1261,7 +1267,7 @@ let _ =
         { m with Lang.value = (fun s -> m.Lang.value (s :> Output.output)) })
       Output.meth
   in
-  let callbacks =
+  let output_callbacks =
     List.map
       (fun m ->
         {
@@ -1274,7 +1280,8 @@ let _ =
   in
   Lang.add_operator ~base:Modules.output "srt" ~return_t ~category:`Output
     ~meth:(meth () @ output_meth)
-    ~callbacks ~descr:"Send a SRT stream to a distant agent."
+    ~callbacks:(callbacks @ output_meth)
+    ~descr:"Send a SRT stream to a distant agent."
     (Output.proto
     @ common_options ~mode:`Caller
     @ [
