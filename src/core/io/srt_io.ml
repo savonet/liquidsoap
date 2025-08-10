@@ -28,6 +28,26 @@ exception Not_connected
 type prefer_address = [ `System_default | `Ipv4 | `Ipv6 ]
 type socket_mode = [ `Connect | `Listen | `Incoming | `Close ]
 
+type input =
+  < Start_stop.active_source
+  ; get_sockets : (Unix.sockaddr * Srt.socket) list
+  ; set_should_stop : bool -> unit
+  ; on_socket : (mode:socket_mode -> Srt.socket -> unit) -> unit
+  ; on_connect : (unit -> unit) -> unit
+  ; on_disconnect : (unit -> unit) -> unit
+  ; connect : unit
+  ; disconnect : unit >
+
+type output =
+  < Output.output
+  ; get_sockets : (Unix.sockaddr * Srt.socket) list
+  ; set_should_stop : bool -> unit
+  ; on_socket : (mode:socket_mode -> Srt.socket -> unit) -> unit
+  ; on_connect : (unit -> unit) -> unit
+  ; on_disconnect : (unit -> unit) -> unit
+  ; connect : unit
+  ; disconnect : unit >
+
 let conf_srt =
   Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
 
@@ -1069,28 +1089,14 @@ let _ =
                ~bind_address ~port ~prefer_address ~read_timeout ~write_timeout
                ~payload_size ~self_sync ~messageapi ~max ~dump ~autostart
                ~ipv6only format
-              :> < Start_stop.active_source
-                 ; get_sockets : (Unix.sockaddr * Srt.socket) list
-                 ; set_should_stop : bool -> unit
-                 ; on_socket : (mode:socket_mode -> Srt.socket -> unit) -> unit
-                 ; on_connect : (unit -> unit) -> unit
-                 ; on_disconnect : (unit -> unit) -> unit
-                 ; connect : unit
-                 ; disconnect : unit >)
+              :> input)
         | `Caller ->
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~prefer_address ~payload_size
                ~self_sync ~read_timeout ~write_timeout ~connection_timeout
                ~messageapi ~max ~dump ~autostart format
-              :> < Start_stop.active_source
-                 ; get_sockets : (Unix.sockaddr * Srt.socket) list
-                 ; set_should_stop : bool -> unit
-                 ; on_socket : (mode:socket_mode -> Srt.socket -> unit) -> unit
-                 ; on_connect : (unit -> unit) -> unit
-                 ; on_disconnect : (unit -> unit) -> unit
-                 ; connect : unit
-                 ; disconnect : unit >))
+              :> input))
 
 class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
   ~autostart ~encoder_factory source =
@@ -1264,7 +1270,10 @@ let _ =
   let output_meth =
     List.map
       (fun m ->
-        { m with Lang.value = (fun s -> m.Lang.value (s :> Output.output)) })
+        {
+          m with
+          Lang.value = (fun (s : output) -> m.Lang.value (s :> Output.output));
+        })
       Output.meth
   in
   let output_callbacks =
@@ -1273,14 +1282,14 @@ let _ =
         {
           m with
           Lang.register =
-            (fun ~params s fn ->
+            (fun ~params (s : output) fn ->
               m.Lang.register ~params (s :> Output.output) fn);
         })
       Output.callbacks
   in
   Lang.add_operator ~base:Modules.output "srt" ~return_t ~category:`Output
     ~meth:(meth () @ output_meth)
-    ~callbacks:(callbacks @ output_meth)
+    ~callbacks:(callbacks @ output_callbacks)
     ~descr:"Send a SRT stream to a distant agent."
     (Output.proto
     @ common_options ~mode:`Caller
@@ -1337,19 +1346,11 @@ let _ =
                ~polling_delay ~hostname ~port ~prefer_address ~payload_size
                ~autostart ~read_timeout ~write_timeout ~connection_timeout
                ~infallible ~register_telnet ~messageapi ~encoder_factory source
-              :> < Output.output
-                 ; get_sockets : (Unix.sockaddr * Srt.socket) list
-                 ; set_should_stop : bool -> unit
-                 ; connect : unit
-                 ; disconnect : unit >)
+              :> output)
         | `Listener ->
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~bind_address ~port
                ~prefer_address ~read_timeout ~write_timeout ~payload_size
                ~autostart ~infallible ~register_telnet ~messageapi
                ~encoder_factory ~listen_callback ~max_clients ~ipv6only source
-              :> < Output.output
-                 ; get_sockets : (Unix.sockaddr * Srt.socket) list
-                 ; set_should_stop : bool -> unit
-                 ; connect : unit
-                 ; disconnect : unit >))
+              :> output))
