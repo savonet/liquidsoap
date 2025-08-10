@@ -294,7 +294,7 @@ let source_callbacks =
         ];
       descr =
         "on frame. When `before` is `true`, callback is executed before \
-         computing the frame and after otherwise.";
+         computing the frame and after otherwise";
       register_deprecated_argument = false;
       default_synchronous = true;
       arg_t = [];
@@ -328,7 +328,7 @@ let source_callbacks =
          is exact while remaining time is always estimated. Remaining time is \
          usually more accurate for file-based sources. When `allow_partial` is \
          `true`, if the current track ends before the `offset` position is \
-         reached, callback is still executed.";
+         reached, callback is still executed";
       register_deprecated_argument = false;
       default_synchronous = false;
       arg_t = [(false, "", float_t); (false, "", metadata_t)];
