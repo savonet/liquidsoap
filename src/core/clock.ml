@@ -74,7 +74,7 @@ let conf_clock_preferred =
 let conf_clock_latency =
   Dtools.Conf.float
     ~p:(conf_clock#plug "latency")
-    ~d:0.2
+    ~d:0.1
     "How much time ahead (in seconds) we should be until we let the streaming \
      loop rest."
     ~comments:
