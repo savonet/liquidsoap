@@ -672,18 +672,9 @@ class output p =
 
 let _ =
   let return_t = Lang.univ_t () in
-  let meth =
-    List.map
-      (fun meth ->
-        {
-          meth with
-          Lang.value = (fun s -> meth.Lang.value (s :> Output.output));
-        })
-      Output.meth
-  in
   Lang.add_operator ~base:Modules.output "icecast" ~category:`Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    ~meth
+    ~meth:(Start_stop.meth ())
     ~callbacks:
       (Start_stop.callbacks ~label:"output"
       @ [

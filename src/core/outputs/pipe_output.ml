@@ -107,10 +107,6 @@ let url_proto frame_t =
         Lang.nullable_t Lang.float_t,
         Some (Lang.float 2.),
         Some "If not `null`, restart output on errors after the given delay." );
-      ( "on_error",
-        Lang.fun_t [(false, "", Lang.error_t)] Lang.unit_t,
-        Some (Lang.val_fun [("", "", None)] (fun _ -> Lang.unit)),
-        Some "Callback executed when an error occurs." );
       ( "self_sync",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -119,6 +115,25 @@ let url_proto frame_t =
            for output to e.g. `rtmp` output using `%ffmpeg` and etc." );
       ("", Lang.format_t frame_t, None, Some "Encoding format.");
       ("", Lang.source_t frame_t, None, None);
+    ]
+
+let url_callbacks =
+  Lang.
+    [
+      {
+        name = "on_error";
+        params = [];
+        descr = "when an error occurs.";
+        register_deprecated_argument = true;
+        arg_t = [(false, "", Lang.error_t)];
+        register =
+          (fun ~params:_ s f ->
+            s#on_error (fun ~bt exn ->
+                let error =
+                  Lang.runtime_error_of_exception ~bt ~kind:"output" exn
+                in
+                f [("", Lang.error error)]));
+      };
     ]
 
 class url_output p =
@@ -136,11 +151,6 @@ class url_output p =
   let restart_delay =
     Lang.to_valued_option Lang.to_float (List.assoc "restart_delay" p)
   in
-  let on_error = List.assoc "on_error" p in
-  let on_error ~bt exn =
-    let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
-    ignore (Lang.apply on_error [("", Lang.error error)])
-  in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let name = "output.url" in
   object (self)
@@ -148,13 +158,15 @@ class url_output p =
     method private encoder_factory = encoder_factory ~format format_val
     val mutable restart_time = 0.
     method can_connect = restart_time <= Unix.gettimeofday ()
+    val mutable on_error = []
+    method on_error fn = on_error <- on_error @ [fn]
 
-    method on_error ~bt exn =
+    method apply_on_error ~bt exn =
       (try ignore self#close_encoder with _ -> ());
       Utils.log_exception ~log:self#log
         ~bt:(Printexc.raw_backtrace_to_string bt)
         (Printf.sprintf "Error while connecting: %s" (Printexc.to_string exn));
-      on_error ~bt exn;
+      List.iter (fun fn -> fn ~bt exn) on_error;
       match restart_delay with
         | None -> Printexc.raise_with_backtrace exn bt
         | Some delay ->
@@ -172,7 +184,7 @@ class url_output p =
               List.iter (fun fn -> fn ()) on_start
             with exn ->
               let bt = Printexc.get_raw_backtrace () in
-              self#on_error ~bt exn)
+              self#apply_on_error ~bt exn)
         | _ -> ()
 
     method start = self#connect
@@ -188,7 +200,7 @@ class url_output p =
           | Some _ -> base#encode frame
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
-        self#on_error ~bt exn;
+        self#apply_on_error ~bt exn;
         Strings.empty
 
     method write_pipe _ _ _ = ()
@@ -198,12 +210,13 @@ class url_output p =
 let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "url" (url_proto return_t) ~return_t
-    ~category:`Output ~meth:Output.meth ~callbacks:Output.callbacks
+    ~category:`Output ~meth:(Start_stop.meth ())
+    ~callbacks:(url_callbacks @ Start_stop.callbacks ~label:"output")
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \
-       encoder, e.g. `%ffmpeg` with `rtmp` output." (fun p ->
-      (new url_output p :> Output.output))
+       encoder, e.g. `%ffmpeg` with `rtmp` output."
+    (fun p -> new url_output p)
 
 (** Piped virtual class: open/close pipe, implements metadata interpolation and
     takes care of the various reload mechanisms. *)
@@ -247,25 +260,25 @@ let pipe_proto frame_t arg_doc =
         Some
           "Prevent re-opening within that delay, in seconds. Only applies to \
            `reopen_when`." );
-      ( "on_reopen",
-        Lang.fun_t [] Lang.unit_t,
-        Some (Lang.val_cst_fun [] Lang.unit),
-        Some "Callback executed when the output is reopened." );
       ("", Lang.format_t frame_t, None, Some "Encoding format.");
       ("", Lang.getter_t Lang.string_t, None, Some arg_doc);
       ("", Lang.source_t frame_t, None, None);
     ]
 
+let pipe_callbacks =
+  Lang.
+    [
+      {
+        name = "on_reopen";
+        params = [];
+        descr = "when the output is reopened.";
+        register_deprecated_argument = true;
+        arg_t = [];
+        register = (fun ~params:_ s f -> s#on_reopen (fun () -> f []));
+      };
+    ]
+
 let pipe_meth =
-  let meth =
-    List.map
-      (fun meth ->
-        {
-          meth with
-          Lang.value = (fun s -> meth.Lang.value (s :> Output.output));
-        })
-      Output.meth
-  in
   {
     Lang.name = "reopen";
     scheme = ([], Lang.fun_t [] Lang.unit_t);
@@ -278,17 +291,7 @@ let pipe_meth =
             s#need_reopen;
             Lang.unit));
   }
-  :: meth
-
-let pipe_callbacks =
-  List.map
-    (fun m ->
-      {
-        m with
-        Lang.register =
-          (fun ~params s fn -> m.Lang.register ~params (s :> Output.output) fn);
-      })
-    Output.callbacks
+  :: Start_stop.meth ()
 
 class virtual piped_output ?clock ~name p =
   let source = Lang.assoc "" 3 p in
@@ -310,8 +313,6 @@ class virtual piped_output ?clock ~name p =
   let reopen_when = List.assoc "reopen_when" p in
   let reopen_when () = Lang.to_bool (Lang.apply reopen_when []) in
   let reopen_delay = Lang.to_float_getter (List.assoc "reopen_delay" p) in
-  let on_reopen = List.assoc "on_reopen" p in
-  let on_reopen () = ignore (Lang.apply on_reopen []) in
   object (self)
     inherit base ?clock ~source ~name p as base
     val mutable open_date = 0.
@@ -342,6 +343,8 @@ class virtual piped_output ?clock ~name p =
         base#send self#close_encoder;
         self#close_pipe)
 
+    val mutable on_reopen = []
+    method on_reopen fn = on_reopen <- on_reopen @ [fn]
     method start = self#prepare_pipe
     method stop = self#cleanup_pipe
 
@@ -349,7 +352,7 @@ class virtual piped_output ?clock ~name p =
       self#log#important "Re-opening output pipe.";
       self#cleanup_pipe;
       self#prepare_pipe;
-      on_reopen ()
+      List.iter (fun fn -> fn ()) on_reopen
 
     method private reopen_on_error ~bt exn =
       let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
@@ -587,8 +590,10 @@ let new_file_output ?clock p =
 let output_file =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "file" (file_proto return_t) ~return_t
-    ~category:`Output ~meth:pipe_meth ~callbacks:pipe_callbacks
-    ~descr:"Output the source stream to a file." (fun p -> new_file_output p)
+    ~category:`Output ~meth:pipe_meth
+    ~callbacks:(pipe_callbacks @ Start_stop.callbacks ~label:"output")
+    ~descr:"Output the source stream to a file."
+    (fun p -> new_file_output p)
 
 (** External output *)
 
