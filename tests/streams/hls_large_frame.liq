@@ -24,4 +24,4 @@ streams = [("radio", enc)]
 
 o = output.file.hls(segment_duration=2.0, tmp_dir, streams, s)
 
-o.on_file_change(fun (_) -> test.pass())
+o.on_file_change(synchronous=true, fun (_) -> test.pass())
