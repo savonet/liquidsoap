@@ -2,14 +2,12 @@ port = 8003
 settings.srt.prefer_address := "ipv4"
 
 def fn() =
-  output.srt(
-    %wav,
-    blank(),
-    port=port,
-    mode="listener",
-    passphrase="foobarfoobarfoobar",
-    on_connect=test.pass
-  )
+  o =
+    output.srt(
+      %wav, blank(), port=port, mode="listener", passphrase="foobarfoobarfoobar"
+    )
+
+  o.on_connect(synchronous=true, test.pass)
 
   output.dummy(
     fallible=true,
