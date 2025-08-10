@@ -492,9 +492,9 @@ class output p =
     val mutable encoder = None
     method self_sync = source#self_sync
     val mutable on_connect = []
-    method on_connect fn = on_connect <- fn :: on_connect
+    method on_connect fn = on_connect <- on_connect @ [fn]
     val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
+    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
 
     val mutable on_error
         : restart_in:(float option -> unit) ->

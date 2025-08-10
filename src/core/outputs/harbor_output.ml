@@ -389,9 +389,9 @@ class output p =
     method encode frame = (Option.get encoder).Encoder.encode frame
     method self_sync = source#self_sync
     val mutable on_connect = []
-    method on_connect fn = on_connect <- fn :: on_connect
+    method on_connect fn = on_connect <- on_connect @ [fn]
     val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
+    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
 
     method encode_metadata m =
       let m = Frame.Metadata.Export.to_metadata m in

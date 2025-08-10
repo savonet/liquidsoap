@@ -625,7 +625,7 @@ class hls_output p =
     val mutable state : hls_state = `Idle
     method self_sync = source#self_sync
     val mutable on_file_change : (state:file_state -> string -> unit) list = []
-    method on_file_change fn = on_file_change <- fn :: on_file_change
+    method on_file_change fn = on_file_change <- on_file_change @ [fn]
 
     method private toggle_state event =
       match (event, state) with

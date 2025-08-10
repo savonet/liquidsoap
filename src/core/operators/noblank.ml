@@ -99,9 +99,9 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     val mutable on_blank = []
-    method on_blank fn = on_blank <- fn :: on_blank
+    method on_blank fn = on_blank <- on_blank @ [fn]
     val mutable on_noise = []
-    method on_noise fn = on_noise <- fn :: on_noise
+    method on_noise fn = on_noise <- on_noise @ [fn]
 
     method private generate_frame =
       let buf = source#get_frame in

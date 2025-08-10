@@ -40,8 +40,8 @@ class virtual base =
     method virtual private stop : unit
     val mutable on_start = []
     val mutable on_stop = []
-    method on_start fn = on_start <- fn :: on_start
-    method on_stop fn = on_stop <- fn :: on_stop
+    method on_start fn = on_start <- on_start @ [fn]
+    method on_stop fn = on_stop <- on_stop @ [fn]
 
     (* Default [reset] method. Can be overridden if necessary. *)
     method reset =
