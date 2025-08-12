@@ -178,7 +178,8 @@ let tls_socket ~session transport =
     method close = Liq_tls.close session
   end
 
-let server ~read_timeout ~write_timeout ~certificate ~key transport =
+let server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
+    transport =
   let server =
     try
       let certificate = Utils.read_all (certificate ()) in
@@ -188,8 +189,21 @@ let server ~read_timeout ~write_timeout ~certificate ~key transport =
       let key =
         Result.get_ok (X509.Private_key.decode_pem (Utils.read_all (key ())))
       in
+      let authenticator =
+        match client_certificate () with
+          | None -> None
+          | Some cert ->
+              Some
+                (X509.Authenticator.chain_of_trust
+                   ~time:(fun () -> Some (Ptime_clock.now ()))
+                   (Result.get_ok
+                      (X509.Certificate.decode_pem_multiple
+                         (Utils.read_all cert))))
+      in
       match
-        Tls.Config.server ~certificates:(`Single (certificates, key)) ()
+        Tls.Config.server
+          ~certificates:(`Single (certificates, key))
+          ?authenticator ()
       with
         | Ok server -> server
         | Error (`Msg message) -> Runtime_error.raise ~pos:[] ~message "tls"
@@ -213,7 +227,8 @@ let server ~read_timeout ~write_timeout ~certificate ~key transport =
         Printexc.raise_with_backtrace exn bt
   end
 
-let transport ~read_timeout ~write_timeout ~certificate ~key () =
+let transport ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
+    ~client_key () =
   object (self)
     method name = "tls"
     method protocol = "https"
@@ -242,8 +257,21 @@ let transport ~read_timeout ~write_timeout ~certificate ~key () =
               let r = auth ?ip ~host certs in
               if Result.is_ok r then r else authenticator ?ip ~host certs
       in
+      let certificates =
+        match client_certificate () with
+          | None -> `None
+          | Some cert ->
+              `Single
+                ( Result.get_ok
+                    (X509.Certificate.decode_pem_multiple (Utils.read_all cert)),
+                  Result.get_ok
+                    (X509.Private_key.decode_pem
+                       (Utils.read_all (client_key ()))) )
+      in
       let client =
-        match Tls.Config.client ~authenticator ~peer_name:domain () with
+        match
+          Tls.Config.client ~authenticator ~certificates ~peer_name:domain ()
+        with
           | Ok client -> client
           | Error (`Msg message) -> Runtime_error.raise ~pos:[] ~message "tls"
       in
@@ -251,7 +279,9 @@ let transport ~read_timeout ~write_timeout ~certificate ~key () =
       let session = Liq_tls.init_client ~timeout ~client fd in
       tls_socket ~session self
 
-    method server = server ~read_timeout ~write_timeout ~certificate ~key self
+    method server =
+      server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
+        self
   end
 
 let _ =
@@ -279,6 +309,20 @@ let _ =
         Some
           "Path to certificate private key. Required in server mode, e.g. \
            `input.harbor`, etc. Unused in client mode." );
+      ( "client_certificate",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some
+          "Path to client certificate file. If passed in server mode, clients \
+           will be required to present a certificate from this file. If passed \
+           in client mode, the first certificate in this file will be \
+           presented to the server." );
+      ( "client_key",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some
+          "Path to client certificate private key. Required in client mode if \
+           a client certificate is passed. Unused in server mode." );
     ]
     Lang.http_transport_t
     (fun p ->
@@ -303,5 +347,13 @@ let _ =
       in
       let certificate = find "certificate" in
       let key = find "key" in
+      let find_opt name () =
+        match Lang.to_valued_option Lang.to_string (List.assoc name p) with
+          | None -> None
+          | Some path -> Some (Utils.check_readable ~pos:(Lang.pos p) path)
+      in
+      let client_certificate = find_opt "client_certificate" in
+      let client_key = find "client_key" in
       Lang.http_transport
-        (transport ~read_timeout ~write_timeout ~certificate ~key ()))
+        (transport ~read_timeout ~write_timeout ~certificate ~key
+           ~client_certificate ~client_key ()))

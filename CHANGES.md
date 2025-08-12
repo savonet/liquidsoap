@@ -24,6 +24,7 @@
   makes it much easier and safer to write external decoders (#4531)
 - Deprecated `insert_metadata`, added default `insert_metadata` method on
   every source (#4541)
+- Added client certificate support to `http.transport.tls` (#4589)
 
 ### Utilities:
 
