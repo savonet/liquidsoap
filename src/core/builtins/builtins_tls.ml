@@ -312,11 +312,17 @@ let _ =
       ( "client_certificate",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
-        Some "Path to client certificate file." );
+        Some
+          "Path to client certificate file. If passed in server mode, clients \
+           will be required to present a certificate from this file. If passed \
+           in client mode, the first certificate in this file will be \
+           presented to the server." );
       ( "client_key",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
-        Some "Path to client certificate private key. Unused in server mode." );
+        Some
+          "Path to client certificate private key. Required in client mode if \
+           a client certificate is passed. Unused in server mode." );
     ]
     Lang.http_transport_t
     (fun p ->
