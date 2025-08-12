@@ -126,15 +126,16 @@ def blank.skip(
   ~track_sensitive=true,
   s
 ) =
-  s' = blank.detect(
-    id=id,
-    threshold=threshold,
-    max_blank=max_blank,
-    min_noise=min_noise,
-    track_sensitive=track_sensitive,
-    s
-  )
-  s'.on_blank(source.methods(s).skip)
+  s' =
+    blank.detect(
+      id=id,
+      threshold=threshold,
+      max_blank=max_blank,
+      min_noise=min_noise,
+      track_sensitive=track_sensitive,
+      s
+    )
+  s'.on_blank(synchronous=true, source.methods(s).skip)
   s'
 end
 
@@ -160,7 +161,7 @@ def source.run(s, ~delay=0., ~every=null, f) =
     end
   end
 
-  source.methods(s).on_frame(check)
+  source.methods(s).on_frame(synchronous=true, check)
   s
 end
 

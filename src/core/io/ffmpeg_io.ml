@@ -97,12 +97,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       (`Dynamic, self#source_sync (self#get_self_sync && self#is_connected))
 
     val mutable on_connect = []
-    method on_connect fn = on_connect <- fn :: on_connect
+    method on_connect fn = on_connect <- on_connect @ [fn]
     method on_connect_metadata_map _ : (string * string) list = []
     val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
+    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
     val mutable on_error = []
-    method on_error fn = on_error <- fn :: on_error
+    method on_error fn = on_error <- on_error @ [fn]
     method private start = self#connect
     method private stop = self#disconnect
     val mutable url = url
@@ -459,7 +459,6 @@ let register_input is_http =
                   descr =
                     "when a source is connected. Its receives the list of \
                      ICY-specific headers, if available.";
-                  default_synchronous = false;
                   register_deprecated_argument = true;
                   arg_t = [(false, "", Lang.metadata_t)];
                   register =
@@ -476,7 +475,6 @@ let register_input is_http =
                   name = "on_connect";
                   params = [];
                   descr = "Function to execute when a source is connected.";
-                  default_synchronous = false;
                   register_deprecated_argument = true;
                   arg_t = [];
                   register =
@@ -490,7 +488,6 @@ let register_input is_http =
                name = "on_disconnect";
                params = [];
                descr = "when a source is disconnected.";
-               default_synchronous = false;
                register_deprecated_argument = true;
                arg_t = [];
                register =
@@ -500,7 +497,6 @@ let register_input is_http =
                name = "on_error";
                params = [];
                descr = "when an error occurs.";
-               default_synchronous = false;
                register_deprecated_argument = true;
                arg_t = [(false, "", Lang.error_t)];
                register =

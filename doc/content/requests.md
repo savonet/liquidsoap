@@ -33,6 +33,8 @@ Here’s the general path from URI to playback:
 
 💡 **Note:** A request can resolve to a local file but still be unplayable — for example, if the file’s format doesn’t match what the source expects.
 
+⚠️ **Warning:** If you want to use `cue_in` and `cue_out` metadata, they need to be available to the selected decoder! This means that they should be set during protocol resolution using the `annotate:` protocol. See below for more details!
+
 ## Protocols: How URIs Are Resolved 🗂
 
 A **protocol** in Liquidsoap is a handler for a particular kind of URI.
@@ -108,6 +110,8 @@ In the example above:
 - `cue_out="23."` stops playback at second 23, so only 20 seconds are heard.
 
 This is particularly useful with pre-processed tracks where intros or outros have been identified.
+
+These metadata need to be provided at the request level so that they are available to the decoders! If you add them later in the chain, typically using `metadata.map`, they will not be seen by the decoder and not acted upon.
 
 ## Other Built-in Protocols
 

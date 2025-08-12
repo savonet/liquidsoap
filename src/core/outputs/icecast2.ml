@@ -492,9 +492,9 @@ class output p =
     val mutable encoder = None
     method self_sync = source#self_sync
     val mutable on_connect = []
-    method on_connect fn = on_connect <- fn :: on_connect
+    method on_connect fn = on_connect <- on_connect @ [fn]
     val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
+    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
 
     val mutable on_error
         : restart_in:(float option -> unit) ->
@@ -672,18 +672,9 @@ class output p =
 
 let _ =
   let return_t = Lang.univ_t () in
-  let meth =
-    List.map
-      (fun meth ->
-        {
-          meth with
-          Lang.value = (fun s -> meth.Lang.value (s :> Output.output));
-        })
-      Output.meth
-  in
   Lang.add_operator ~base:Modules.output "icecast" ~category:`Output
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
-    ~meth
+    ~meth:(Start_stop.meth ())
     ~callbacks:
       (Start_stop.callbacks ~label:"output"
       @ [
@@ -691,7 +682,6 @@ let _ =
             Lang_source.name = "on_connect";
             params = [];
             descr = "when connection is established.";
-            default_synchronous = false;
             register_deprecated_argument = true;
             arg_t = [];
             register =
@@ -702,7 +692,6 @@ let _ =
             Lang_source.name = "on_disconnect";
             params = [];
             descr = "when connection stops.";
-            default_synchronous = false;
             register_deprecated_argument = true;
             arg_t = [];
             register =
@@ -721,7 +710,6 @@ let _ =
                connection is not attempted again and no errors are raised. \
                There can only be one single callback registered for this at a \
                time. Every secondary registration replaces the previous one.";
-            default_synchronous = true;
             register_deprecated_argument = true;
             arg_t =
               [

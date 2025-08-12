@@ -71,12 +71,12 @@ let conf_clock_preferred =
     ~p:(conf_clock#plug "preferred")
     "Preferred clock implementation. One if: \"posix\" or \"ocaml\"."
 
-let conf_clock_sleep_latency =
-  Dtools.Conf.int
-    ~p:(conf_clock#plug "sleep_latency")
-    ~d:5
-    "How much time ahead (in frame duration) we should be until we let the \
-     streaming loop sleep."
+let conf_clock_latency =
+  Dtools.Conf.float
+    ~p:(conf_clock#plug "latency")
+    ~d:0.1
+    "How much time ahead (in seconds) we should be until we let the streaming \
+     loop rest."
     ~comments:
       [
         "Once we have computed the given amount of time time in advance,";
@@ -357,9 +357,7 @@ let _after_tick ~self_sync x =
     | `Unsynced, _, _ | `Passive, _, _ | `Automatic, true, _ -> ()
     | `Automatic, false, true | `CPU, _, true ->
         if
-          Time.(
-            of_float (float conf_clock_sleep_latency#get)
-            |*| x.frame_duration |<=| (target_time |-| end_time))
+          Time.(of_float conf_clock_latency#get |<=| (target_time |-| end_time))
         then Time.sleep_until target_time
     | _ ->
         let latency = Time.(end_time |-| target_time) in

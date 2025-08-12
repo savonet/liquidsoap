@@ -272,7 +272,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | Some dim -> dim
 
     val mutable on_wake_up = []
-    method on_wake_up fn = on_wake_up <- fn :: on_wake_up
+    method on_wake_up fn = on_wake_up <- on_wake_up @ [fn]
 
     initializer
       self#on_wake_up (fun () ->
@@ -310,7 +310,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           Printexc.raise_with_backtrace exn bt)
 
     val mutable on_sleep = []
-    method on_sleep fn = on_sleep <- fn :: on_sleep
+    method on_sleep fn = on_sleep <- on_sleep @ [fn]
 
     method force_sleep =
       if Atomic.compare_and_set is_up `True `False then (
@@ -363,7 +363,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable on_before_streaming_cycle = []
 
     method on_before_streaming_cycle fn =
-      on_before_streaming_cycle <- fn :: on_before_streaming_cycle
+      on_before_streaming_cycle <- on_before_streaming_cycle @ [fn]
 
     initializer
       self#on_before_streaming_cycle (fun () ->
@@ -372,7 +372,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable on_after_streaming_cycle = []
 
     method on_after_streaming_cycle fn =
-      on_after_streaming_cycle <- fn :: on_after_streaming_cycle
+      on_after_streaming_cycle <- on_after_streaming_cycle @ [fn]
 
     initializer
       self#on_after_streaming_cycle (fun () ->

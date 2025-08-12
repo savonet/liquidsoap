@@ -109,7 +109,8 @@ let _ =
           Some "List of parameters, depends on the driver." );
         ("", Lang.source_t return_t, None, None);
       ])
-    ~category:`Output ~meth:Output.meth ~callbacks:Output.callbacks
+    ~category:`Output ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"output")
     ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p ->
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in

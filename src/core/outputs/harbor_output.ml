@@ -389,9 +389,9 @@ class output p =
     method encode frame = (Option.get encoder).Encoder.encode frame
     method self_sync = source#self_sync
     val mutable on_connect = []
-    method on_connect fn = on_connect <- fn :: on_connect
+    method on_connect fn = on_connect <- on_connect @ [fn]
     val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- fn :: on_disconnect
+    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
 
     method encode_metadata m =
       let m = Frame.Metadata.Export.to_metadata m in
@@ -596,23 +596,6 @@ class output p =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  let output_meth =
-    List.map
-      (fun m ->
-        { m with Lang.value = (fun s -> m.Lang.value (s :> Output.output)) })
-      Output.meth
-  in
-  let output_callbacks =
-    List.map
-      (fun m ->
-        {
-          m with
-          Lang.register =
-            (fun ~params s fn ->
-              m.Lang.register ~params (s :> Output.output) fn);
-        })
-      Output.callbacks
-  in
   Lang.add_operator ~category:`Output
     ~descr:"Encode and output the stream using the harbor server."
     ~callbacks:
@@ -623,7 +606,6 @@ let _ =
            descr =
              "when connection is established (takes headers, connection uri, \
               protocol and client's IP as arguments).";
-           default_synchronous = false;
            register_deprecated_argument = true;
            arg_t =
              [
@@ -658,7 +640,6 @@ let _ =
            name = "on_disconnect";
            params = [];
            descr = "when a source is disconnected.";
-           default_synchronous = false;
            register_deprecated_argument = true;
            arg_t = [(false, "", Lang.string_t)];
            register =
@@ -666,6 +647,7 @@ let _ =
                s#on_disconnect (fun ip -> f [("", Lang.string ip)]));
          };
        ]
-      @ output_callbacks)
-    ~meth:output_meth ~base:Modules.output "harbor" (proto return_t) ~return_t
+      @ Start_stop.callbacks ~label:"output")
+    ~meth:(Start_stop.meth ()) ~base:Modules.output "harbor" (proto return_t)
+    ~return_t
     (fun p -> new output p)

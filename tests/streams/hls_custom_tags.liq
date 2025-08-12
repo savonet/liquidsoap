@@ -84,7 +84,7 @@ o =
     s
   )
 
-o.on_file_change(on_file_change)
+o.on_file_change(synchronous=true, on_file_change)
 
 thread.run(delay=2., {list.hd(o.streams()).insert_tag("X-CUSTOM-AAC-INSERT")})
 clock.assign_new(sync="none", [s])

@@ -269,5 +269,5 @@ def spinitron.submit.on_metadata(%argsof(spinitron.submit.metadata), s) =
     end
   end
 
-  source.methods(s).on_metadata(on_metadata)
+  source.methods(s).on_metadata(synchronous=false, on_metadata)
 end

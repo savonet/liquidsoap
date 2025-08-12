@@ -55,11 +55,6 @@ object
   method virtual private stop : unit
 end
 
-(** Default methods on output values. *)
-val meth : (output -> Lang.value) Lang.meth list
-
-val callbacks : output Lang_source.callback list
-
 class virtual ['a] encoded :
   output_kind:string ->
   ?clock:Clock.t ->

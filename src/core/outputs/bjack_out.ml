@@ -105,8 +105,9 @@ let _ =
           Some "Jack server to connect to." );
         ("", Lang.source_t frame_t, None, None);
       ])
-    ~return_t:frame_t ~category:`Output ~meth:Output.meth
-    ~callbacks:Output.callbacks ~descr:"Output stream to jack."
+    ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
+    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in

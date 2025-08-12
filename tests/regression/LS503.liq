@@ -15,4 +15,4 @@ end
 p = noise()
 o = output.icecast(%wav, fallible=true, host="nonexistent", mount="test", p)
 
-o.on_error(on_error)
+o.on_error(synchronous=true, on_error)

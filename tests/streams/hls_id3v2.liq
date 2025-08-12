@@ -167,4 +167,4 @@ o = output.file.hls(
   s
 )
 
-o.on_file_change(on_file_change)
+o.on_file_change(synchronous=true, on_file_change)

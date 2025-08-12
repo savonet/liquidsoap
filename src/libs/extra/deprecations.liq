@@ -426,7 +426,7 @@ end
 def on_blank(%argsof(blank.detect), f, s) =
   deprecated("on_blank", "blank.detect")
   s = blank.detect(%argsof(blank.detect), s)
-  s.on_blank(f)
+  s.on_blank(synchronous=true, f)
   s
 end
 
@@ -894,7 +894,7 @@ def source.on_frame(~id:_, ~before=true, s, fn) =
     label="lang.deprecated",
     "Use the on_frame source method!"
   )
-  source.methods(s).on_frame(before=before, fn)
+  source.methods(s).on_frame(synchronous=true, before=before, fn)
 end
 
 # Deprecated: use the on_position source method
