@@ -59,11 +59,11 @@ let _ =
     (fun p ->
       let v = List.assoc "" p in
       try
-        let metadata, uri = Annotate_parser.parse (Lang.to_string v) in
+        let metadata, uri = Annotate.parse (Lang.to_string v) in
         Lang.product
           (Lang.metadata (Frame.Metadata.from_list metadata))
           (Lang.string uri)
-      with Annotate_parser.Error err ->
+      with Annotate.Error err ->
         Lang.raise_error ~message:err ~pos:(Lang.pos p) "string")
 
 let _ =

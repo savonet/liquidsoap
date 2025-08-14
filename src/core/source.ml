@@ -157,16 +157,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           Queue.push registered_commands (ns, name))
 
     initializer
-      self#register_command ~descr:"Insert a metadata chunk."
-        ~usage:"insert_metadata label=\"value\",.." "insert_metadata" (fun s ->
-          try
-            let meta, _ = Annotate_parser.parse s in
-            if meta <> [] then
-              self#insert_metadata ~new_track:false
-                (Frame.Metadata.from_list meta);
-            "Done"
-          with Annotate_parser.Error err ->
-            Liquidsoap_lang.Lang.raise_error ~message:err ~pos:[] "string");
       self#on_sleep (fun () ->
           Queue.flush_iter registered_commands (fun (ns, name) ->
               Server.remove ~ns name))
