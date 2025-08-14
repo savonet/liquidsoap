@@ -133,9 +133,9 @@ type namespace = string list
    can be called from arbitrary clock threads. *)
 let lock = Mutex.create ()
 
-let commands : (string, (string -> string) * string * string) Hashtbl.t =
-  Hashtbl.create 50
+type command = { handler : string -> string; usage : string; descr : string }
 
+let commands : (string * command) list ref = ref []
 let to_string = String.concat "."
 let prefix_ns cmd ns = to_string (ns @ [cmd])
 
@@ -146,18 +146,18 @@ let add ~ns ?usage ~descr cmd handler =
   Mutex_utils.mutexify lock
     (fun () ->
       let name = prefix_ns cmd ns in
-      if Hashtbl.mem commands name then
+      if List.mem_assoc name !commands then (
         log#f (conf_log_level#get - 1)
           "Server command %s already registered! Previous definition replaced."
-          name
-      else ();
-      Hashtbl.replace commands (prefix_ns cmd ns) (handler, usage, descr))
+          name;
+        commands := List.remove_assoc name !commands);
+      commands := (name, { handler; usage; descr }) :: !commands)
     ()
 
 (* ... and maybe remove them. *)
 let remove ~ns cmd =
   Mutex_utils.mutexify lock
-    (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
+    (fun () -> commands := List.remove_assoc (prefix_ns cmd ns) !commands)
     ()
 
 (* That's if you want to have your command wait. *)
@@ -218,14 +218,12 @@ let read ~after payload = raise (Read { payload; after })
 
 (* The usage string sums up all the commands... *)
 let usage () =
-  let l =
-    Mutex_utils.mutexify lock
-      (fun () -> Hashtbl.fold (fun k v l -> (k, v) :: l) commands [])
-      ()
-  in
+  let l = !commands in
   let compare (x, _) (y, _) = compare x y in
   let l = List.sort compare l in
-  List.fold_left (fun s (_, (_, u, _)) -> s ^ Printf.sprintf "\r\n| %s" u) "" l
+  List.fold_left
+    (fun s (_, { usage }) -> s ^ Printf.sprintf "\r\n| %s" usage)
+    "" l
 
 (** {1 Handling of a client} *)
 
@@ -238,9 +236,9 @@ let () =
     ~descr:"Get information on available commands." (fun args ->
       try
         let args = String.trim args in
-        let _, us, d = Mutex_utils.mutexify lock (Hashtbl.find commands) args in
+        let { usage; descr } = List.assoc args !commands in
         Printf.printf "Done\n%!";
-        Printf.sprintf "Usage: %s\r\n  %s" us d
+        Printf.sprintf "Usage: %s\r\n  %s" usage descr
       with Not_found ->
         (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
         ^ "Available commands:" ^ usage () ^ "\r\n\r\n"
@@ -255,8 +253,8 @@ let exec s =
     with Not_found -> (s, "")
   in
   try
-    let command, _, _ = Mutex_utils.mutexify lock (Hashtbl.find commands) s in
-    command args
+    let { handler } = List.assoc s !commands in
+    handler args
   with
     | Server_wait opts -> raise (Server_wait opts)
     | Write opts -> raise (Write opts)
