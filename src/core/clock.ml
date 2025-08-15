@@ -214,14 +214,11 @@ let _sync ?(pending = false) x =
     | `Started { sync } -> (sync :> sync_mode)
 
 let sync c = _sync (Unifier.deref c)
-let cleanup_source s = try s#force_sleep with _ -> ()
 let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
-let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
-  Queue.iter outputs cleanup_source;
-  WeakQueue.iter passive_sources cleanup_source;
-  WeakQueue.iter active_sources cleanup_source;
+let rec _cleanup ~clock { outputs } =
+  Queue.iter outputs (fun o -> try o#sleep o with _ -> ());
   Queue.iter clock.sub_clocks stop;
   Queue.filter_out clocks (fun c -> Unifier.deref c == clock)
 
@@ -415,10 +412,11 @@ and _activate_pending_sources ~clock x =
   Queue.flush_iter clock.pending_activations
     (wrap_errors clock (fun s ->
          check_stopped ();
-         s#wake_up;
          match s#source_type with
            | `Active _ -> WeakQueue.push x.active_sources s
-           | `Output _ -> Queue.push x.outputs s
+           | `Output _ ->
+               s#wake_up s;
+               Queue.push x.outputs s
            | `Passive -> WeakQueue.push x.passive_sources s))
 
 and _tick ~clock x =

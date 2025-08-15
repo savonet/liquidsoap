@@ -38,7 +38,6 @@ def on_connect() =
   else
     has_connected := true
     o.on_error(synchronous=true, on_error)
-    i.shutdown()
     d.shutdown()
   end
 end

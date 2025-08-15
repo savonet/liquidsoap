@@ -25,10 +25,10 @@
     avoid infinite stack of sources. *)
 class max_duration ~override_meta ~duration source =
   object (self)
-    inherit Source.operator ~name:"max_duration" []
+    inherit Source.operator ~name:"max_duration" [source]
     initializer Clock.unify ~pos:self#pos self#clock source#clock
     val mutable remaining = duration
-    val mutable s : Source.source = source
+    val mutable s = source
     method self_sync = source#self_sync
     method fallible = true
     method private can_generate_frame = remaining > 0 && s#is_ready

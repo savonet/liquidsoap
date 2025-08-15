@@ -869,6 +869,24 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: List.stable_sort compare (arguments @ callback_arguments)
   in
   let meth =
+    if category = `Output then
+      meth
+      @ [
+          {
+            name = "shutdown";
+            scheme = ([], fun_t [] unit_t);
+            descr = "Shutdown the output.";
+            value =
+              (fun s ->
+                val_fun [] (fun _ ->
+                    Clock.detach s#clock (s :> Clock.source);
+                    s#sleep (s :> Clock.source);
+                    unit));
+          };
+        ]
+    else meth
+  in
+  let meth =
     List.map (fun m -> (m, `Method)) meth
     @ List.map (fun c -> (callback c, `Callback)) callbacks
   in

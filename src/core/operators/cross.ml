@@ -214,19 +214,22 @@ class cross val_source ~end_duration_getter ~override_end_duration
      * since we are going to pull data from it at a higher rate around
      * track limits. *)
     val source = s
-
-    method private prepare_source s =
-      let s = (s :> source) in
-      s#wake_up
+    method private prepare_source s = s#wake_up (self :> Clock.source)
 
     initializer
       self#on_wake_up (fun () ->
-          source#wake_up;
+          source#wake_up (self :> Clock.source);
           self#reset_analysis)
 
     val mutable status
         : [ `Idle | `Before of Source.source | `After of Source.source ] =
       `Idle
+
+    method set_status v =
+      (match status with
+        | `Idle -> ()
+        | `Before s | `After s -> s#sleep (self :> Clock.source));
+      status <- v
 
     method private child_get ~is_first source =
       let frame = ref self#empty_frame in
@@ -313,7 +316,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
       let before = new consumer ~clock:source#clock gen_before in
       Typing.(before#frame_type <: self#frame_type);
       self#prepare_source before;
-      status <- `Before (before :> Source.source);
+      self#set_status (`Before (before :> Source.source));
       self#buffer_before ~is_first:true ();
       if before#is_ready then Some before else None
 
@@ -535,7 +538,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
       in
       self#prepare_source compound;
       self#reset_analysis;
-      status <- `After compound
+      self#set_status (`After compound)
 
     method remaining =
       match status with

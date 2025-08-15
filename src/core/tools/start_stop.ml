@@ -77,7 +77,8 @@ class virtual active_source ~name ~fallible ~autostart () =
     inherit base as base
 
     initializer
-      self#on_wake_up (fun () -> if autostart then base#transition_to `Started)
+      self#on_wake_up (fun () -> if autostart then base#transition_to `Started);
+      self#on_sleep (fun () -> base#transition_to `Stopped)
 
     method fallible = fallible
     method private started = state = `Started
@@ -166,17 +167,6 @@ let meth :
                     ~message:"Source is infallible and cannot be stopped"
                     "input";
                 s#transition_to `Stopped;
-                unit));
-      };
-      {
-        name = "shutdown";
-        scheme = ([], fun_t [] unit_t);
-        descr = "Shutdown the output or source.";
-        value =
-          (fun s ->
-            val_fun [] (fun _ ->
-                Clock.detach s#clock (s :> Clock.source);
-                s#sleep;
                 unit));
       };
     ]

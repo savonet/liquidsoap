@@ -42,6 +42,10 @@ class virtual base ~check_self_sync children_val =
     method virtual clock : Clock.t
     method virtual pos : Pos.Option.t
     method virtual on_before_streaming_cycle : (unit -> unit) -> unit
+    method virtual on_wake_up : (unit -> unit) -> unit
+    method virtual on_sleep : (unit -> unit) -> unit
+    method virtual self_sync : [ `Dynamic | `Static ] * Clock.sync_source option
+    method virtual source_type : Clock.source_type
     val mutable child_clock = None
 
     initializer
@@ -64,7 +68,11 @@ class virtual base ~check_self_sync children_val =
     initializer
       List.iter
         (fun s -> Clock.unify ~pos:self#pos self#child_clock s#clock)
-        children
+        children;
+      self#on_wake_up (fun () ->
+          List.iter (fun s -> s#wake_up (self :> Clock.source)) children);
+      self#on_sleep (fun () ->
+          List.iter (fun s -> s#sleep (self :> Clock.source)) children)
 
     method child_tick = Clock.tick self#child_clock
 

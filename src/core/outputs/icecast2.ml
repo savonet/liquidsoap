@@ -474,8 +474,6 @@ class output p =
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false ~name source_val
 
-    initializer self#on_sleep (fun () -> self#icecast_stop)
-
     (** In this operator, we don't exactly follow the start/stop mechanism of
         Output.encoded because we want to control in a more subtle way the
         connection/disconnection with icecast. So we have specific
