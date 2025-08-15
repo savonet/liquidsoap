@@ -267,8 +267,7 @@ let unify =
       | Some _, None -> Unifier.(clock'.id <-- clock.id)
       | None, Some _ -> Unifier.(clock.id <-- clock'.id)
       | Some _, Some id ->
-          log#important
-            "Clocks %s and %s both have id already set. Setting id to %s"
+          log#info "Clocks %s and %s both have id already set. Setting id to %s"
             (descr c) (descr c') id;
           Unifier.(clock.id <-- clock'.id));
     Unifier.(c <-- c');
