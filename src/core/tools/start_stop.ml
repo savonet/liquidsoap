@@ -176,6 +176,7 @@ let meth :
           (fun s ->
             val_fun [] (fun _ ->
                 Clock.detach s#clock (s :> Clock.source);
+                s#sleep;
                 unit));
       };
     ]

@@ -40,6 +40,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   object (self)
     inherit Source.active_source ~name:"input.harbor" ()
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
+    initializer self#on_sleep (fun () -> self#disconnect)
     val relay_socket = Atomic.make None
 
     (** Function to read on socket. *)
@@ -220,24 +221,19 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     method disconnect =
       match Atomic.exchange relay_socket None with
         | None -> ()
-        | Some s -> ( try Harbor.close s with _ -> ())
-
-    method private after_disconnect =
-      begin
-        match dump with
-          | Some f ->
-              close_out f;
-              dump <- None
-          | None -> ()
-      end;
-      begin
-        match logf with
-          | Some f ->
-              close_out f;
-              logf <- None
-          | None -> ()
-      end;
-      List.iter (fun fn -> fn ()) on_disconnect
+        | Some s ->
+            (try Harbor.close s with _ -> ());
+            (match dump with
+              | Some f ->
+                  close_out f;
+                  dump <- None
+              | None -> ());
+            (match logf with
+              | Some f ->
+                  close_out f;
+                  logf <- None
+              | None -> ());
+            List.iter (fun fn -> fn ()) on_disconnect
   end
 
 let _ =
