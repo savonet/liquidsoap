@@ -40,7 +40,6 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   object (self)
     inherit Source.active_source ~name:"input.harbor" ()
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
-    initializer self#on_sleep (fun () -> self#disconnect)
     val relay_socket = Atomic.make None
 
     (** Function to read on socket. *)
