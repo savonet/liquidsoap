@@ -82,15 +82,7 @@ type on_frame =
   | `Frame of frame_callback ]
 
 let source_log = Log.make ["source"]
-
-let finalise s =
-  source_log#debug "Source %s is collected." s#id;
-  try s#force_sleep
-  with e ->
-    let bt = Printexc.get_backtrace () in
-    Utils.log_exception ~log:source_log ~bt
-      (Printf.sprintf "Error when leaving output %s: %s!" s#id
-         (Printexc.to_string e))
+let finalise s = source_log#debug "Source %s is collected." s#id
 
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
@@ -207,8 +199,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
               failwith
                 (Printf.sprintf
                    "Early computation of source content-type detected for \
-                    source %s!"
-                   self#id);
+                    source %s on clock %s!"
+                   self#id (Clock.id self#clock));
             self#log#debug "Assigning source content type for frame type: %s"
               (Type.to_string self#frame_type);
             let ct = Frame_type.content_type self#frame_type in
@@ -266,7 +258,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     initializer
       self#on_wake_up (fun () ->
-          List.iter (fun s -> s#wake_up) sources;
+          List.iter (fun s -> s#wake_up (self :> Clock.source)) sources;
           self#iter_watchers (fun w ->
               w.wake_up ~fallible:self#fallible ~source_type:self#source_type
                 ~id:self#id ~ctype:self#content_type
@@ -275,8 +267,14 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
     val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
+    val mutable activations : Clock.source list = []
 
-    method wake_up =
+    method wake_up (src : Clock.source) =
+      self#mutexify
+        (fun () ->
+          if not (List.memq src activations) then
+            activations <- src :: activations)
+        ();
       if Atomic.compare_and_set is_up `False `True then (
         try
           self#content_type_computation_allowed;
@@ -302,16 +300,22 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- on_sleep @ [fn]
 
-    method force_sleep =
+    method private actual_sleep =
       if Atomic.compare_and_set is_up `True `False then (
         source_log#info "Source %s gets down." self#id;
         List.iter (fun fn -> fn ()) on_sleep)
 
-    method sleep =
-      match (Clock.started self#clock, Atomic.get streaming_state) with
-        | true, (`Ready _ | `Unavailable) ->
-            Clock.after_tick self#clock (fun () -> self#force_sleep)
-        | _ -> self#force_sleep
+    method sleep (src : Clock.source) =
+      self#mutexify
+        (fun () -> activations <- List.filter (fun s -> s == src) activations)
+        ();
+      match
+        (activations, Clock.started self#clock, Atomic.get streaming_state)
+      with
+        | _ :: _, _, _ -> ()
+        | _, true, (`Ready _ | `Unavailable) ->
+            Clock.after_tick self#clock (fun () -> self#actual_sleep)
+        | _ -> self#actual_sleep
 
     initializer
       Gc.finalise finalise self;

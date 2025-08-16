@@ -88,17 +88,19 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
     val mutable transition_length = transition_length
     val mutable selected : selection option = None
 
+    method set_selected v =
+      (match selected with
+        | Some { child; effective_source } when effective_source != child.source
+          ->
+            effective_source#sleep (self :> Clock.source)
+        | _ -> ());
+      selected <- v
+
     (* We cannot reselect the same source twice during a streaming cycle. *)
     val mutable excluded_sources = []
 
     initializer
       self#on_before_streaming_cycle (fun () -> excluded_sources <- [])
-
-    method private is_selected_generated =
-      match selected with
-        | None -> false
-        | Some { child = { source }; effective_source } ->
-            source != effective_source
 
     method private select ~reselect () =
       let may_select ~single s =
@@ -145,7 +147,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                     () )
               with
                 | None, None -> ()
-                | Some _, None -> selected <- None
+                | Some _, None -> self#set_selected None
                 | None, Some (predicate, c) ->
                     self#log#important "Switch to %s." c.source#id;
                     let new_source =
@@ -162,10 +164,10 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                         | _ -> c.source
                     in
                     Typing.(new_source#frame_type <: self#frame_type);
-                    new_source#wake_up;
-                    selected <-
-                      Some
-                        { predicate; child = c; effective_source = new_source }
+                    new_source#wake_up (self :> Clock.source);
+                    self#set_selected
+                      (Some
+                         { predicate; child = c; effective_source = new_source })
                 | Some old_selection, Some (_, c)
                   when old_selection.child.source == c.source ->
                     ()
@@ -217,9 +219,9 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                     in
                     Typing.(s#frame_type <: self#frame_type);
                     Clock.unify ~pos:self#pos s#clock self#clock;
-                    s#wake_up;
-                    selected <-
-                      Some { predicate; child = c; effective_source = s }
+                    s#wake_up (self :> Clock.source);
+                    self#set_selected
+                      (Some { predicate; child = c; effective_source = s })
             end;
             match selected with
               | Some s when s.effective_source#is_ready ->

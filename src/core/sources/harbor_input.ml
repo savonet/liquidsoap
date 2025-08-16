@@ -220,24 +220,19 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     method disconnect =
       match Atomic.exchange relay_socket None with
         | None -> ()
-        | Some s -> ( try Harbor.close s with _ -> ())
-
-    method private after_disconnect =
-      begin
-        match dump with
-          | Some f ->
-              close_out f;
-              dump <- None
-          | None -> ()
-      end;
-      begin
-        match logf with
-          | Some f ->
-              close_out f;
-              logf <- None
-          | None -> ()
-      end;
-      List.iter (fun fn -> fn ()) on_disconnect
+        | Some s ->
+            (try Harbor.close s with _ -> ());
+            (match dump with
+              | Some f ->
+                  close_out f;
+                  dump <- None
+              | None -> ());
+            (match logf with
+              | Some f ->
+                  close_out f;
+                  logf <- None
+              | None -> ());
+            List.iter (fun fn -> fn ()) on_disconnect
   end
 
 let _ =
@@ -269,17 +264,6 @@ let _ =
     ~meth:
       Lang.
         [
-          {
-            name = "shutdown";
-            scheme = ([], Lang.fun_t [] Lang.unit_t);
-            descr = "Shutdown the output or source.";
-            value =
-              (fun s ->
-                Lang.val_fun [] (fun _ ->
-                    Clock.detach s#clock (s :> Clock.source);
-                    s#sleep;
-                    Lang.unit));
-          };
           {
             name = "stop";
             scheme = ([], Lang.fun_t [] Lang.unit_t);

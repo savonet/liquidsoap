@@ -30,8 +30,8 @@ def f() =
       not has_source()
     then
       s = input.harbor(port=8005, password="hackme", "test")
-      shutdown := s.shutdown
-      output.dummy(fallible=true, s)
+      o = output.dummy(fallible=true, s)
+      shutdown := o.shutdown
       has_source := true
     else
       last_connect := true
@@ -41,18 +41,19 @@ def f() =
   end
 
   s = sine()
-  o = output.url(
-    on_error=on_error,
-    restart_delay=0.5,
-    url="icecast://source:hackme@localhost:8005/test",
-    %ffmpeg(
-      format = "ogg",
-      content_type = "application/ogg",
-      %audio(codec = "flac")
-    ),
-    s
-  )
+  o =
+    output.url(
+      restart_delay=0.5,
+      url="icecast://source:hackme@localhost:8005/test",
+      %ffmpeg(
+        format = "ogg",
+        content_type = "application/ogg",
+        %audio(codec = "flac")
+      ),
+      s
+    )
   o.on_start(synchronous=true, on_start)
+  o.on_error(synchronous=true, on_error)
 end
 
 test.check(f)

@@ -242,7 +242,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     initializer
       self#on_wake_up (fun () ->
-          source#wake_up;
+          source#wake_up (self :> Clock.source);
           converter <-
             Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
               ~samplesize;
@@ -254,20 +254,20 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
             Some
               (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
                  ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
-                 ~priority:`Blocking ~on_stderr:self#on_stderr ~log process))
+                 ~priority:`Blocking ~on_stderr:self#on_stderr ~log process));
+      self#on_sleep (fun () ->
+          source#sleep (self :> Clock.source);
+          Mutex_utils.mutexify mutex
+            (fun () ->
+              try
+                next_stop := `Sleep;
+                replay_pending := [];
+                Process_handler.stop self#get_handler;
+                handler <- None
+              with Process_handler.Finished -> ())
+            ())
 
     method! abort_track = source#abort_track
-
-    method! sleep =
-      Mutex_utils.mutexify mutex
-        (fun () ->
-          try
-            next_stop := `Sleep;
-            replay_pending := [];
-            Process_handler.stop self#get_handler;
-            handler <- None
-          with Process_handler.Finished -> ())
-        ()
   end
 
 let _ =

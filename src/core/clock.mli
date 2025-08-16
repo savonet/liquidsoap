@@ -64,10 +64,12 @@ type source =
   ; self_sync : self_sync
   ; source_type : source_type
   ; active : bool
-  ; wake_up : unit
-  ; force_sleep : unit
+  ; wake_up : 'a -> unit
+  ; sleep : 'a -> unit
   ; is_ready : bool
   ; get_frame : Frame.t >
+  as
+  'a
 
 type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
 type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]

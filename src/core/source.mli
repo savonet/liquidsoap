@@ -151,17 +151,14 @@ object
   method on_wake_up : (unit -> unit) -> unit
 
   (** Called when the source must be ready. Can be called multiple times *)
-  method wake_up : unit
+  method wake_up : Clock.source -> unit
 
   (** Register a callback when sleep is called. *)
   method on_sleep : (unit -> unit) -> unit
 
   (** Called when the source can release all its resources. Can be called
       concurrently and multiple times. *)
-  method sleep : unit
-
-  (** Force the source to sleep. Should be called by the clocks only. *)
-  method force_sleep : unit
+  method sleep : Clock.source -> unit
 
   (** Check if a source is up or not. *)
   method is_up : bool

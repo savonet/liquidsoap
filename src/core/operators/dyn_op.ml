@@ -29,31 +29,39 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     val current_source : Source.source option Atomic.t = Atomic.make init
     method current_source = Atomic.get current_source
 
-    method private no_source =
+    method private no_source id =
       if infallible then
         Lang.raise_error ~pos:[]
           ~message:
             (Printf.sprintf
-               "Infallible source.dynamic %s was not able to prepare a source \
-                in time! Make sure to either define infallible sources in the \
+               "Infallible source.dynamic %s was not able to prepare %s in \
+                time! Make sure to either define infallible sources in the \
                 source's dynamic function or mark the source as fallible.."
-               self#id)
+               self#id
+               (match id with
+                 | None -> "a source"
+                 | Some id -> Printf.sprintf "source %s" id))
           "failure";
       None
 
     method prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
-      s#wake_up
+      s#wake_up (self :> Clock.source)
+
+    method private switch s =
+      self#log#info "Switching to source %s" s#id;
+      self#prepare s;
+      Atomic.set current_source (Some s);
+      if s#is_ready then Some s else self#no_source (Some s#id)
 
     method private exchange s =
       match self#current_source with
         | Some s' when s == s' -> Some s
-        | _ ->
-            self#log#info "Switching to source %s" s#id;
-            self#prepare s;
-            Atomic.set current_source (Some s);
-            if s#is_ready then Some s else self#no_source
+        | Some s' ->
+            s'#sleep (self :> Clock.source);
+            self#switch s
+        | None -> self#switch s
 
     method private get_next reselect =
       self#mutexify
@@ -73,9 +81,9 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
                     ~reselect:(match reselect with `Force -> `Ok | v -> v)
                     s
                 then Some s
-                else self#no_source
+                else self#no_source None
             | Some s, _ -> self#exchange s
-            | _ -> self#no_source)
+            | _ -> self#no_source None)
         ()
 
     method private get_source ~reselect () =
@@ -93,7 +101,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
           ignore (self#get_source ~reselect:`Force ()));
       self#on_sleep (fun () ->
           match Atomic.exchange current_source None with
-            | Some s -> s#sleep
+            | Some s -> s#sleep (self :> Clock.source)
             | None -> ())
 
     method remaining =
