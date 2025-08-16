@@ -30,8 +30,10 @@ body:
       label: Log extracts
       description: |
         Please provide extracts from your logs. Make sure to set `log.level := 4`.
+      placeholder: |
+        If unavailable just write N/A.
     validations:
-      required: false
+      required: true
   - type: textarea
     id: script
     attributes:
@@ -39,7 +41,7 @@ body:
       description: |
         Please provide extracts from your liquidsoap script.
     validations:
-      required: false
+      required: true
   - type: textarea
     id: version
     attributes:
