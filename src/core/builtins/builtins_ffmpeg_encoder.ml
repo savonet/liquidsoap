@@ -28,10 +28,8 @@ let ffmpeg_encode =
 let ffmpeg_raw_encode =
   Lang.add_module ~base:Builtins_ffmpeg_base.track_ffmpeg_raw "encode"
 
-module InternalResampler =
-  Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
-
-module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
+module InternalResampler = Ffmpeg_internal_encoder.InternalResampler
+module InternalScaler = Ffmpeg_internal_encoder.InternalScaler
 
 type source_idx = { source : Source.source; idx : int64 }
 
