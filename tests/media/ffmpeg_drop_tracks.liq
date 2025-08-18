@@ -53,10 +53,10 @@ def check_stream() =
   then
     is_done := true
 
-    process.run("sync")
-
     def check_stream(name) =
       stream = process.quote("#{output_dir}/#{name}.m3u8")
+
+      file.write(append=true, data="\r\n#EXT-X-ENDLIST\r\n", stream)
 
       ojson =
         process.read(

@@ -23,20 +23,19 @@
 (** Utility for operators that need to control child source clocks. See
     [clock.mli] for a more detailed description. *)
 
-class virtual base ~check_self_sync children_val =
+class virtual base children_val =
   let children = List.map Lang.to_source children_val in
   object (self)
     initializer
-      if check_self_sync then
-        List.iter
-          (fun c ->
-            if (Lang.to_source c)#self_sync <> (`Static, None) then
-              raise
-                (Error.Invalid_value
-                   ( c,
-                     "This source may control its own latency and cannot be \
-                      used with this operator." )))
-          children_val
+      List.iter
+        (fun c ->
+          if (Lang.to_source c)#self_sync <> (`Static, None) then
+            raise
+              (Error.Invalid_value
+                 ( c,
+                   "This source may control its own latency and cannot be used \
+                    with this operator." )))
+        children_val
 
     method virtual id : string
     method virtual clock : Clock.t

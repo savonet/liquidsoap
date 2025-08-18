@@ -94,6 +94,7 @@
   dyn_op
   echo
   encoder
+  simple_encoder
   encoder_formats
   encoder_utils
   error

@@ -552,25 +552,7 @@ let mk_encoder mode =
                  encode_frame_ref := None
          in
 
-         let consumer =
-           new Producer_consumer.consumer
-             ~always_enabled:true ~write_frame:encode_frame
-             ~name:(id ^ ".consumer") ~source:(Lang.source source) ()
-         in
-         let stack = Liquidsoap_lang.Lang_core.pos p in
-         consumer#set_stack stack;
-
-         let input_frame_t = Type.fresh input_frame_t in
-         Typing.(
-           consumer#frame_type
-           <: Lang.frame_t (Lang.univ_t ())
-                (Frame.Fields.add field input_frame_t Frame.Fields.empty));
-
-         ( field,
-           new Producer_consumer.producer
-           (* We are expecting real-rate with a couple of hickups.. *)
-             ~stack ~check_self_sync:false ~consumers:[consumer]
-             ~name:(id ^ ".producer") () )))
+         (field, new Simple_encoder.encoder ~name:id ~encode:encode_frame source)))
 
 let () =
   List.iter mk_encoder [`Audio_encoded; `Audio_raw; `Video_encoded; `Video_raw]

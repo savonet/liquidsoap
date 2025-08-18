@@ -37,7 +37,7 @@ class soundtouch source_val rate tempo pitch =
   in
   object (self)
     inherit operator ~name:"soundtouch" []
-    inherit Child_support.base ~check_self_sync:true [source_val]
+    inherit Child_support.base [source_val]
     val mutable st = None
     method fallible = source#fallible
     method self_sync = source#self_sync

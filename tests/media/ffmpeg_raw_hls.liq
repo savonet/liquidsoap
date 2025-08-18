@@ -47,7 +47,9 @@ def check_stream() =
   then
     is_done := true
 
-    process.run("sync")
+    file.write(
+      append=true, data="\r\n#EXT-X-ENDLIST\r\n", "#{output_dir}/mp4.m3u8"
+    )
 
     ojson =
       process.read(
@@ -74,9 +76,7 @@ def check_stream() =
       list.find((fun (stream) -> stream.codec_name == "h264"), parsed.streams)
 
     audio_stream =
-      list.find(
-        (fun (stream) -> stream.codec_name == "aac"), parsed.streams
-      )
+      list.find((fun (stream) -> stream.codec_name == "aac"), parsed.streams)
 
     if
       null.get(video_stream.codec_name) == "h264"
@@ -98,20 +98,21 @@ end
 
 def segment_name(metadata) =
   let {position, extname, stream_name} = metadata
-  if position > 1 then check_stream() end
+  if position == 2 then check_stream() end
   timestamp = int_of_float(time())
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
 
 clock.assign_new(sync='none', [raw])
-output.file.hls(
-  playlist="live.m3u8",
-  segment_duration=2.0,
-  segments=5,
-  segments_overhead=5,
-  segment_name=segment_name,
-  output_dir,
-  streams,
-  fallible=true,
-  raw
-)
+o =
+  output.file.hls(
+    playlist="live.m3u8",
+    segment_duration=2.0,
+    segments=5,
+    segments_overhead=5,
+    segment_name=segment_name,
+    output_dir,
+    streams,
+    fallible=true,
+    raw
+  )

@@ -29,11 +29,7 @@ type write_frame = write_payload -> unit
    - We want to opt-out of the generic child_process
      clock animation framework.
    Thus, we manually mark this operator as ready only
-   before we're about to pull from it.
-
-   There is one exception: when we're expeciting the operator
-   to mostly follow real-time. In this case, we set [always_enabled]
-   to [true] and [check_self_sync] to [false] on the producer. *)
+   before we're about to pull from it. *)
 class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   let s = Lang.to_source source in
   let infallible = not s#fallible in
@@ -57,7 +53,7 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
 (** The source which produces data by reading the buffer. We do NOT want to use
     [operator] here b/c the [consumers] may have different content-kind when
     this is used in the muxers. *)
-class producer ?stack ~check_self_sync ~consumers ~name () =
+class producer ?stack ~consumers ~name () =
   let infallible = List.for_all (fun s -> not s#fallible) consumers in
   let self_sync = Clock_base.self_sync consumers in
   object (self)
@@ -65,7 +61,6 @@ class producer ?stack ~check_self_sync ~consumers ~name () =
 
     inherit
       Child_support.base
-        ~check_self_sync
         (List.map (fun s -> Lang.source (s :> Source.source)) consumers)
 
     method self_sync = self_sync ~source:self ()

@@ -34,7 +34,7 @@ class resample ~field ~ratio source =
   let () = Typing.(consumer#frame_type <: source#frame_type) in
   object (self)
     inherit operator ~name:"stretch" []
-    inherit Child_support.base ~check_self_sync:true [source_val]
+    inherit Child_support.base [source_val]
     method self_sync = source#self_sync
     method fallible = source#fallible
 

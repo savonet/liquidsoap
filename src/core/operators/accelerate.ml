@@ -26,7 +26,7 @@ class accelerate ~ratio ~randomize source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit operator ~name:"accelerate" []
-    inherit Child_support.base ~check_self_sync:true [source_val]
+    inherit Child_support.base [source_val]
     method self_sync = source#self_sync
     method fallible = source#fallible
     method seek_source = source#seek_source

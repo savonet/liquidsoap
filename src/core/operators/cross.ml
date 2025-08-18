@@ -66,7 +66,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
         ~track_sensitive:(fun () -> false)
         ()
 
-    inherit Child_support.base ~check_self_sync:true [val_source]
+    inherit Child_support.base [val_source]
     initializer Typing.(s#frame_type <: self#frame_type)
     method fallible = true
 

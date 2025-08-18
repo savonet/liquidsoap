@@ -208,7 +208,7 @@ let register_filters () =
                     details.")
                ~flags:[`Extra] args_t ~return_t:source_t
                (fun p ->
-                 let source = List.assoc "" p in
+                 let source = Lang.to_source (List.assoc "" p) in
 
                  let filter_opts = args_of_args (args_parser p []) in
 
@@ -295,19 +295,7 @@ let register_filters () =
                    | `Flush -> flush ~put_data
                  in
 
-                 let consumer =
-                   new Producer_consumer.consumer
-                     ~write_frame:encode_frame ~name:(name ^ ".consumer")
-                     ~source ()
-                 in
-
-                 let producer =
-                   new Producer_consumer.producer
-                     ~check_self_sync:false ~consumers:[consumer]
-                     ~name:(name ^ ".producer") ()
-                 in
-                 Typing.(producer#frame_type <: consumer#frame_type);
-                 producer)))
+                 new Simple_encoder.encoder ~name ~encode:encode_frame source)))
         modes)
     Avcodec.BitstreamFilter.filters
 
