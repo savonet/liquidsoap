@@ -47,7 +47,9 @@ def check_stream() =
   then
     is_done := true
 
-    process.run("sync")
+    file.write(
+      append=true, data="\r\n#EXT-X-ENDLIST\r\n", "#{output_dir}/mp4.m3u8"
+    )
 
     ojson =
       process.read(
@@ -74,9 +76,7 @@ def check_stream() =
       list.find((fun (stream) -> stream.codec_name == "h264"), parsed.streams)
 
     audio_stream =
-      list.find(
-        (fun (stream) -> stream.codec_name == "aac"), parsed.streams
-      )
+      list.find((fun (stream) -> stream.codec_name == "aac"), parsed.streams)
 
     if
       null.get(video_stream.codec_name) == "h264"
