@@ -487,25 +487,23 @@ let mk_decoder mode =
                  decode_frame_ref := None
          in
 
-         let consumer =
-           new Producer_consumer.consumer
-             ~always_enabled:true ~write_frame:decode_frame
-             ~name:(id ^ ".consumer") ~source:(Lang.source source) ()
-         in
-         let stack = Liquidsoap_lang.Lang_core.pos p in
-         consumer#set_stack stack;
-
          let input_frame_t = Type.fresh input_frame_t in
-         Typing.(
-           consumer#frame_type
-           <: Lang.frame_t (Lang.univ_t ())
-                (Frame.Fields.add field input_frame_t Frame.Fields.empty));
+         let child_frame_type =
+           Lang.frame_t (Lang.univ_t ())
+             (Frame.Fields.add field input_frame_t Frame.Fields.empty)
+         in
 
-         ( field,
-           new Producer_consumer.producer
-           (* We are expecting real-rate with a couple of hickups.. *)
-             ~stack ~check_self_sync:false ~consumers:[consumer]
-             ~name:(id ^ ".producer") () )))
+         let producer =
+           new Child_support.producer
+             ~child_frame_type
+             ~stack:(Liquidsoap_lang.Lang_core.pos p)
+             ~check_self_sync:false ~name:id (Lang.source source)
+         in
+
+         producer#child#set_process_frame (fun gen frame ->
+             decode_frame gen (`Frame frame));
+
+         (field, producer)))
 
 let () =
   List.iter mk_decoder [`Audio_encoded; `Audio_raw; `Video_encoded; `Video_raw]

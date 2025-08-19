@@ -353,36 +353,6 @@ let () =
 let _animated_sources { outputs; active_sources } =
   Queue.elements outputs @ WeakQueue.elements active_sources
 
-let _self_sync ~clock x =
-  let self_sync_sources =
-    List.fold_left
-      (fun self_sync_sources s ->
-        match s#self_sync with
-          | _, None -> self_sync_sources
-          | _, Some sync_source ->
-              { sync_source; name = s#id; stack = s#stack } :: self_sync_sources)
-      [] (_animated_sources x)
-  in
-  let self_sync_sources =
-    List.sort_uniq
-      (fun { sync_source = s } { sync_source = s' } -> Stdlib.compare s s')
-      self_sync_sources
-  in
-  if List.length self_sync_sources > 1 then
-    raise
-      (Sync_error
-         {
-           name = Printf.sprintf "clock %s" (_id clock);
-           stack = Atomic.get clock.stack;
-           sync_sources = self_sync_sources;
-         });
-  let is_self_sync = List.length self_sync_sources = 1 in
-  if x.is_self_sync <> is_self_sync && x.sync = `Automatic then (
-    x.log#important "Switching to %sself-sync mode"
-      (if is_self_sync then "" else "non ");
-    x.is_self_sync <- is_self_sync);
-  is_self_sync
-
 let ticks c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopped _ -> 0
@@ -536,6 +506,41 @@ and _tick ~clock x =
   check_stopped ();
   _after_tick ~self_sync x;
   check_stopped ()
+
+and _self_sync ~clock x =
+  let self_sync_sources =
+    List.fold_left
+      (fun self_sync_sources s ->
+        match s#self_sync with
+          | _, None -> self_sync_sources
+          | _, Some sync_source ->
+              { sync_source; name = s#id; stack = s#stack } :: self_sync_sources)
+      [] (_animated_sources x)
+  in
+  let self_sync_sources =
+    List.sort_uniq
+      (fun { sync_source = s } { sync_source = s' } -> Stdlib.compare s s')
+      self_sync_sources
+  in
+  if List.length self_sync_sources > 1 then
+    raise
+      (Sync_error
+         {
+           name = Printf.sprintf "clock %s" (_id clock);
+           stack = Atomic.get clock.stack;
+           sync_sources = self_sync_sources;
+         });
+  let is_self_sync =
+    List.length self_sync_sources = 1
+    || Queue.exists clock.sub_clocks (fun c ->
+           let clock = Unifier.deref c in
+           _self_sync ~clock (active_params c))
+  in
+  if x.is_self_sync <> is_self_sync && x.sync = `Automatic then (
+    x.log#important "Switching to %sself-sync mode"
+      (if is_self_sync then "" else "non ");
+    x.is_self_sync <- is_self_sync);
+  is_self_sync
 
 and _clock_thread ~clock x =
   let has_sources_to_process () =
