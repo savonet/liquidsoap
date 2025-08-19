@@ -414,6 +414,7 @@ let rec active_params c =
         raise Invalid_state
 
 and _activate_pending_sources ~clock x =
+  let pending_sources = Queue.length clock.pending_activations in
   Queue.flush_iter clock.pending_activations
     (wrap_errors clock (fun s ->
          check_stopped ();
@@ -423,31 +424,32 @@ and _activate_pending_sources ~clock x =
                s#wake_up s;
                Queue.push x.outputs s
            | `Passive -> WeakQueue.push x.passive_sources s));
-  let total_sources =
-    Queue.length x.outputs
-    + WeakQueue.length x.active_sources
-    + WeakQueue.length x.passive_sources
-  in
-  if total_sources > 0 && total_sources mod conf_leak_warning#get = 0 then (
-    x.log#severe
-      "There are currently %d sources, possible source leak! Please check that \
-       you don't have a loop creating multiple sources."
-      total_sources;
-    let ids =
-      List.map
-        (fun s ->
-          let source_type =
-            match s#source_type with
-              | `Passive -> "passive"
-              | `Active _ -> "active"
-              | `Output _ -> "output"
-          in
-          Printf.sprintf "%s (%s)" s#id source_type)
-        (Queue.elements x.outputs
-        @ WeakQueue.elements x.active_sources
-        @ WeakQueue.elements x.passive_sources)
+  if 0 < pending_sources then (
+    let total_sources =
+      Queue.length x.outputs
+      + WeakQueue.length x.active_sources
+      + WeakQueue.length x.passive_sources
     in
-    x.log#important "Current sources: %s" (String.concat ", " ids))
+    if total_sources > 0 && total_sources mod conf_leak_warning#get = 0 then (
+      x.log#severe
+        "There are currently %d sources, possible source leak! Please check \
+         that you don't have a loop creating multiple sources."
+        total_sources;
+      let ids =
+        List.map
+          (fun s ->
+            let source_type =
+              match s#source_type with
+                | `Passive -> "passive"
+                | `Active _ -> "active"
+                | `Output _ -> "output"
+            in
+            Printf.sprintf "%s (%s)" s#id source_type)
+          (Queue.elements x.outputs
+          @ WeakQueue.elements x.active_sources
+          @ WeakQueue.elements x.passive_sources)
+      in
+      x.log#important "Current sources: %s" (String.concat ", " ids)))
 
 and _tick ~clock x =
   let sub_clocks =
