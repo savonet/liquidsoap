@@ -50,10 +50,7 @@ class virtual base ~check_self_sync children_val =
 
     initializer
       child_clock <-
-        Some
-          (Clock.create_sub_clock
-             ~id:(Clock.id self#clock ^ ".child")
-             self#clock);
+        Some (Clock.create_sub_clock ~id:(Clock.id self#clock) self#clock);
 
       self#on_before_streaming_cycle (fun () ->
           if not (Clock.started self#child_clock) then
