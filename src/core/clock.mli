@@ -71,11 +71,14 @@ type source =
   as
   'a
 
-type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
+type passive_controller = < id : string >
+
+type active_sync_mode =
+  [ `Automatic | `CPU | `Unsynced | `Passive of passive_controller ]
+
 type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
 
 val string_of_sync_mode : sync_mode -> string
-val active_sync_mode_of_string : string -> active_sync_mode
 
 val create :
   ?stack:Liquidsoap_lang.Pos.t list ->
@@ -102,7 +105,7 @@ val set_stack : t -> Liquidsoap_lang.Pos.t list -> unit
 val self_sync : t -> bool
 val time : t -> float
 val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
-val create_sub_clock : id:string -> t -> t
+val create_sub_clock : id:string -> controller:passive_controller -> t -> t
 val attach : t -> source -> unit
 val detach : t -> source -> unit
 val activate_pending_sources : t -> unit

@@ -70,6 +70,7 @@ type outputs =
 type graph = {
   mutable config : Avfilter.config option;
   mutable failed : bool;
+  controller : Clock.passive_controller;
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
   graph_outputs : Source.source Queue.t;
@@ -642,7 +643,9 @@ let _ =
          let name = uniq_name "abuffer" in
          let s =
            Ffmpeg_filter_io.(
-             new audio_output ~pass_metadata ~name ~frame_t ~field source)
+             new audio_output
+               ~pass_metadata ~controller:graph.controller ~name ~frame_t ~field
+               source)
          in
          s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
@@ -770,7 +773,9 @@ let _ =
          let name = uniq_name "buffer" in
          let s =
            Ffmpeg_filter_io.(
-             new video_output ~pass_metadata ~name ~frame_t ~field source)
+             new video_output
+               ~pass_metadata ~controller:graph.controller ~name ~frame_t ~field
+               source)
          in
          s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
@@ -864,11 +869,19 @@ let _ =
     (fun p ->
       let fn = List.assoc "" p in
       let config = Avfilter.init () in
+      let id = "ffmpeg.filter" in
+      let output_clock = Clock.create ~id () in
+      let controller =
+        object
+          method id = Clock.id output_clock
+        end
+      in
       let graph =
         Avfilter.
           {
             config = Some config;
             failed = false;
+            controller;
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
             graph_outputs = Queue.create ();
@@ -883,10 +896,8 @@ let _ =
           }
       in
       let ret = Lang.apply ~pos:(Lang.pos p) fn [("", Graph.to_value graph)] in
-      let id = "ffmpeg.filter" in
-      let output_clock = Clock.create ~id () in
       let input_clock =
-        Clock.create_sub_clock ~id:(id ^ ".input") output_clock
+        Clock.create_sub_clock ~controller ~id:(id ^ ".input") output_clock
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       unify_clocks ~clock:output_clock graph.graph_outputs;

@@ -25,7 +25,12 @@ let () =
   Frame_settings.lazy_config_eval := true;
   let started = ref false in
   let test_source = new test_source in
-  let clock = Clock.create ~sync:`Passive () in
+  let controller =
+    object
+      method id = "output_test"
+    end
+  in
+  let clock = Clock.create ~sync:(`Passive controller) () in
   Clock.start ~force:true clock;
   let o = new dummy ~clock ~autostart:true test_source in
   o#on_start (fun () -> started := true);

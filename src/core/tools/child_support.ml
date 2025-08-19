@@ -53,6 +53,7 @@ class virtual base ~check_self_sync children_val =
         Some
           (Clock.create_sub_clock
              ~id:(Clock.id self#clock ^ ".child")
+             ~controller:(self :> Clock.passive_controller)
              self#clock);
 
       self#on_before_streaming_cycle (fun () ->

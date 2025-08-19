@@ -22,7 +22,11 @@
 
 include Clock_base
 
-type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
+type passive_controller = < id : string >
+
+type active_sync_mode =
+  [ `Automatic | `CPU | `Unsynced | `Passive of passive_controller ]
+
 type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
 
 let string_of_sync_mode = function
@@ -31,14 +35,7 @@ let string_of_sync_mode = function
   | `Automatic -> "auto"
   | `CPU -> "cpu"
   | `Unsynced -> "none"
-  | `Passive -> "passive"
-
-let active_sync_mode_of_string = function
-  | "auto" -> `Automatic
-  | "cpu" -> `CPU
-  | "none" -> `Unsynced
-  | "passive" -> `Passive
-  | _ -> raise Not_found
+  | `Passive s -> Printf.sprintf "passive(controller=%s)" s#id
 
 let log = Log.make ["clock"]
 
@@ -226,10 +223,10 @@ and stop c =
   let clock = Unifier.deref c in
   match Atomic.get clock.state with
     | `Stopped _ | `Stopping _ -> ()
-    | `Started ({ sync = `Passive } as x) ->
+    | `Started ({ sync = `Passive _ as sync } as x) ->
         _cleanup ~clock x;
         x.log#important "Clock stopped";
-        Atomic.set clock.state (`Stopped `Passive)
+        Atomic.set clock.state (`Stopped sync)
     | `Started x ->
         x.log#important "Clock stopping";
         Atomic.set clock.state (`Stopping x)
@@ -270,12 +267,15 @@ let unify =
     Unifier.(c <-- c');
     Queue.filter_out clocks (fun el -> el == c)
   in
+  let sync_mode_check s s' =
+    match (s, s') with `Passive c, `Passive c' -> c == c' | s, s' -> s == s'
+  in
   fun ~pos c c' ->
     let _c = Unifier.deref c in
     let _c' = Unifier.deref c' in
     match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
       | true, _, _ -> ()
-      | _, `Stopped s, `Stopped s' when s = s' -> unify c c'
+      | _, `Stopped s, `Stopped s' when sync_mode_check s s' -> unify c c'
       | _, `Stopped s, _
         when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
           unify c c'
@@ -288,7 +288,8 @@ let unify =
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
       Atomic.set global_stop true;
-      Queue.iter clocks (fun c -> if sync c <> `Passive then stop c))
+      Queue.iter clocks (fun c ->
+          match sync c with `Passive _ -> () | _ -> stop c))
 
 let _animated_sources { outputs; active_sources } =
   Queue.elements outputs @ WeakQueue.elements active_sources
@@ -350,7 +351,7 @@ let _after_tick ~self_sync x =
   let target_time = _target_time x in
   check_stopped ();
   match (x.sync, self_sync, Time.(end_time |<| target_time)) with
-    | `Unsynced, _, _ | `Passive, _, _ | `Automatic, true, _ -> ()
+    | `Unsynced, _, _ | `Passive _, _, _ | `Automatic, true, _ -> ()
     | `Automatic, false, true | `CPU, _, true ->
         if
           Time.(of_float conf_clock_latency#get |<=| (target_time |-| end_time))
@@ -503,7 +504,7 @@ and _can_start ?(force = false) clock =
     (not (Atomic.get global_stop)) && (force || Atomic.get clocks_started)
   in
   match (can_start, has_output, Atomic.get clock.state) with
-    | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
+    | true, _, `Stopped (`Passive _ as sync) | true, true, `Stopped sync ->
         `True sync
     | _ -> `False
 
@@ -556,7 +557,7 @@ and _start ?force ~sync clock =
   in
   Queue.iter clock.sub_clocks (fun c -> start ?force c);
   Atomic.set clock.state (`Started x);
-  if sync <> `Passive then _clock_thread ~clock x
+  match sync with `Passive _ -> () | _ -> _clock_thread ~clock x
 
 and start ?force c =
   let clock = Unifier.deref c in
@@ -571,7 +572,8 @@ let add_pending_clock =
   let finalise c =
     let clock = Unifier.deref c in
     match _can_start clock with
-      | `True sync when sync <> `Passive ->
+      | `True (`Passive _) -> ()
+      | `True sync ->
           _start ~sync clock;
           Queue.push clocks c
       | _ -> ()
@@ -595,7 +597,7 @@ let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
         on_error = on_error_queue;
       }
   in
-  if sync <> `Passive then add_pending_clock c;
+  (match sync with `Passive _ -> () | _ -> add_pending_clock c);
   c
 
 let time c =
@@ -614,7 +616,7 @@ let start_pending () =
       match Atomic.get clock.state with
         | `Stopped _ -> (
             match _can_start clock with
-              | `True `Passive -> ()
+              | `True (`Passive _) -> ()
               | `True sync ->
                   _start ~sync clock;
                   Queue.push clocks c
@@ -651,12 +653,12 @@ let tick clock = _tick ~clock:(Unifier.deref clock) (active_params clock)
 let set_stack c stack =
   ignore (Atomic.compare_and_set (Unifier.deref c).stack [] stack)
 
-let create_sub_clock ~id clock =
+let create_sub_clock ~id ~controller clock =
   let clock = Unifier.deref clock in
   let sub_clock =
     create ~stack:(Atomic.get clock.stack) ~id
       ~sub_ids:(clock.sub_ids @ ["child"])
-      ~sync:`Passive ()
+      ~sync:(`Passive controller) ()
   in
   Queue.push clock.sub_clocks sub_clock;
   sub_clock

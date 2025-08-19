@@ -348,7 +348,8 @@ let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
           let s = new process ~name r in
           let s = (process (s :> Source.source) :> Source.source) in
           let clock =
-            Clock.create ~id:name ~sync:`Passive
+            Clock.create ~id:name
+              ~sync:(`Passive (s :> Clock.passive_controller))
               ~on_error:(fun exn bt ->
                 Utils.log_exception ~log
                   ~bt:(Printexc.raw_backtrace_to_string bt)

@@ -78,11 +78,12 @@ class virtual ['a] duration_converter =
       Ffmpeg_utils.Duration.push duration_converter frame
   end
 
-class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
+class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field ~controller
+  source =
   object (self)
     inherit
       Output.output
-        ~clock:(Clock.create ~sync:`Passive ~id:name ())
+        ~clock:(Clock.create ~sync:(`Passive controller) ~id:name ())
         ~infallible:false ~register_telnet:false ~name
         ~output_kind:"ffmpeg.filter.input" (Lang.source source) true as super
 
@@ -149,17 +150,21 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
 
 (** From the script perspective, the operator sending data to a filter graph is
     an output. *)
-class audio_output ~pass_metadata ~name ~frame_t ~field source =
+class audio_output ~pass_metadata ~name ~frame_t ~field ~controller source =
   object
-    inherit [[ `Audio ]] base_output ~pass_metadata ~name ~frame_t ~field source
+    inherit
+      [[ `Audio ]] base_output
+        ~pass_metadata ~controller ~name ~frame_t ~field source
 
     method raw_ffmpeg_frames content =
       List.map snd Ffmpeg_raw_content.((Audio.get_data content).AudioSpecs.data)
   end
 
-class video_output ~pass_metadata ~name ~frame_t ~field source =
+class video_output ~pass_metadata ~name ~frame_t ~field ~controller source =
   object
-    inherit [[ `Video ]] base_output ~pass_metadata ~name ~frame_t ~field source
+    inherit
+      [[ `Video ]] base_output
+        ~pass_metadata ~controller ~name ~frame_t ~field source
 
     method raw_ffmpeg_frames content =
       List.map snd Ffmpeg_raw_content.((Video.get_data content).VideoSpecs.data)

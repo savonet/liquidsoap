@@ -59,6 +59,8 @@ let _ =
     Lang_source.ClockValue.t
     (fun p ->
       let id = Lang.to_valued_option Lang.to_string (List.assoc "id" p) in
+      let id = Option.value ~default:"scripted_clock" id in
+      let id = Lang_string.generate_id ~category:"clock" id in
       let on_error = Lang.to_option (List.assoc "on_error" p) in
       let on_error =
         Option.map
@@ -71,13 +73,21 @@ let _ =
       in
       let sync = List.assoc "sync" p in
       let sync =
-        try Clock.active_sync_mode_of_string (Lang.to_string sync)
-        with _ ->
-          raise
-            (Error.Invalid_value
-               ( sync,
-                 "Invalid sync mode! Should be one of: `\"auto\"`, `\"CPU\"`, \
-                  `\"unsynced\"` or `\"passive\"`" ))
+        match Lang.to_string sync with
+          | "auto" -> `Automatic
+          | "cpu" -> `CPU
+          | "none" -> `Unsynced
+          | "passive" ->
+              `Passive
+                (object
+                   method id = id
+                end)
+          | _ ->
+              raise
+                (Error.Invalid_value
+                   ( sync,
+                     "Invalid sync mode! Should be one of: `\"auto\"`, \
+                      `\"CPU\"`, `\"unsynced\"` or `\"passive\"`" ))
       in
       Lang_source.ClockValue.to_value
-        (Clock.create ~stack:(Lang.pos p) ?on_error ?id ~sync ()))
+        (Clock.create ~stack:(Lang.pos p) ?on_error ~id ~sync ()))
