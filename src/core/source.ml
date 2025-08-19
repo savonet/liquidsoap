@@ -312,7 +312,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           in
           if not found then
             self#log#critical "Not activations found for %s" src#id;
-          assert found;
           activations <- l)
         ();
       match
@@ -325,7 +324,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     initializer
       Gc.finalise finalise self;
-      self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
+      self#on_sleep (fun () ->
+          List.iter (fun s -> s#sleep (self :> Clock.source)) sources;
+          self#iter_watchers (fun w -> w.sleep ()))
 
     (** Streaming *)
 
