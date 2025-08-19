@@ -25,13 +25,32 @@ exception Invalid_value of Value.t * string
 
 exception Clock_conflict of (Pos.Option.t * string * string)
 
+type clock_main = {
+  pos : Pos.Option.t;
+  left_main : string;
+  left_child : string;
+  right_main : string;
+  right_child : string;
+}
+
+exception Clock_main of clock_main
+
 let () =
   Printexc.register_printer (function
     | Clock_conflict (pos, a, b) ->
         let pos = Pos.Option.to_string pos in
         Some
           (Printf.sprintf
-             "Clock_conflict: At position: %s, a source cannot belong to two \
-              clocks (%s, %s)"
+             "Clock unification error: At position: %s, clocks %s and %s \
+              cannot be unified"
              pos a b)
+    | Clock_main { pos; left_main; left_child; right_main; right_child } ->
+        let pos = Pos.Option.to_string pos in
+        Some
+          (Printf.sprintf
+             "Clock unification error: At position: %s, clocks %s and %s \
+              cannot be unified: clock %s is controlled by clock %s while \
+              clock %s is controlled by %s."
+             pos left_child right_child left_child left_main right_child
+             right_main)
     | _ -> None)
