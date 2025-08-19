@@ -430,7 +430,10 @@ and _activate_pending_sources ~clock x =
       + WeakQueue.length x.active_sources
       + WeakQueue.length x.passive_sources
     in
-    if total_sources > 0 && total_sources mod conf_leak_warning#get = 0 then (
+    if
+      (total_sources - pending_sources) / conf_leak_warning#get
+      < total_sources / conf_leak_warning#get
+    then (
       x.log#severe
         "There are currently %d sources, possible source leak! Please check \
          that you don't have a loop creating multiple sources."
