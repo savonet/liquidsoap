@@ -23,6 +23,8 @@
 exception Invalid_state
 exception Has_stopped
 
+val conf_clock : Dtools.Conf.ut
+
 type t
 type active_source = < reset : unit ; output : unit >
 
