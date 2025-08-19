@@ -197,7 +197,6 @@
   pos
   ppm_decoder
   process_handler
-  producer_consumer
   queues
   raw_audio_decoder
   replay_metadata

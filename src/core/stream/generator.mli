@@ -71,8 +71,8 @@ val truncate : t -> int -> unit
 val keep : t -> int -> unit
 
 (* Return at most the given len of data from the start of the generator
-   and truncate the generator of that data. *)
-val slice : t -> int -> Frame.t
+   and truncate the generator of that data when [peek] is [true] (default). *)
+val slice : ?peek:bool -> t -> int -> Frame.t
 
 (* Empty the generator. *)
 val clear : t -> unit
