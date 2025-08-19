@@ -83,6 +83,7 @@
   conversion
   configure
   cross
+  debug_operators
   debug_sources
   decoder
   decoder_utils
