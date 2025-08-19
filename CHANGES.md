@@ -62,6 +62,7 @@
   inline with its expectation but can change existing script's output (#4605)
 - Fix error when loading script path having non-ascii characters in them
   (#4343)
+- Fix concurrent inline encoders (#4638)
 - Fix error with interactive variables (#4592, @myeungdev)
 - Prevent concurrent reload and request fetch in playlists (#4316)
 - Don't mark source as ready until their clock has started. (#4496)

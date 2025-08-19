@@ -127,6 +127,7 @@ type state =
 
 type clock = {
   id : string option Unifier.t;
+  main_clock : t option;
   sub_ids : string list;
   stack : Pos.t list Atomic.t;
   state : state Atomic.t;
@@ -257,7 +258,7 @@ let descr clock =
       | _ -> "")
 
 let unify =
-  let unify c c' =
+  let _unify c c' =
     let clock = Unifier.deref c in
     let clock' = Unifier.deref c' in
     Queue.flush_iter clock.pending_activations
@@ -275,20 +276,37 @@ let unify =
     Unifier.(c <-- c');
     Queue.filter_out clocks (fun el -> el == c)
   in
-  fun ~pos c c' ->
+  let rec unify ~pos c c' =
     let _c = Unifier.deref c in
     let _c' = Unifier.deref c' in
+    (match (_c.main_clock, _c'.main_clock) with
+      | Some x, Some x' -> (
+          try unify ~pos x x'
+          with _ ->
+            raise
+              Liquidsoap_lang.Error.(
+                Clock_main
+                  {
+                    pos;
+                    left_main = descr x;
+                    left_child = descr c;
+                    right_main = descr x';
+                    right_child = descr c';
+                  }))
+      | _ -> ());
     match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
       | true, _, _ -> ()
-      | _, `Stopped s, `Stopped s' when s = s' -> unify c c'
+      | _, `Stopped s, `Stopped s' when s = s' -> _unify c c'
       | _, `Stopped s, _
         when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
-          unify c c'
+          _unify c c'
       | _, _, `Stopped s'
         when s' = `Automatic || _sync ~pending:true _c = (s' :> sync_mode) ->
-          unify c' c
+          _unify c' c
       | _ ->
           raise (Liquidsoap_lang.Error.Clock_conflict (pos, descr c, descr c'))
+  in
+  unify
 
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
@@ -615,13 +633,15 @@ let add_pending_clock =
     Gc.finalise finalise c;
     WeakQueue.push pending_clocks c
 
-let create ?(stack = []) ?on_error ?id ?(sub_ids = []) ?(sync = `Automatic) () =
+let create ?(stack = []) ?main_clock ?on_error ?id ?(sub_ids = [])
+    ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
   let c =
     Unifier.make
       {
         id = Unifier.make (Option.map generate_id id);
+        main_clock;
         sub_ids;
         stack = Atomic.make stack;
         pending_activations = Queue.create ();
@@ -687,13 +707,13 @@ let set_stack c stack =
   ignore (Atomic.compare_and_set (Unifier.deref c).stack [] stack)
 
 let create_sub_clock ~id clock =
-  let clock = Unifier.deref clock in
+  let _clock = Unifier.deref clock in
   let sub_clock =
-    create ~stack:(Atomic.get clock.stack) ~id
-      ~sub_ids:(clock.sub_ids @ ["child"])
+    create ~stack:(Atomic.get _clock.stack) ~id ~main_clock:clock
+      ~sub_ids:(_clock.sub_ids @ ["child"])
       ~sync:`Passive ()
   in
-  Queue.push clock.sub_clocks sub_clock;
+  Queue.push _clock.sub_clocks sub_clock;
   sub_clock
 
 let create ?stack ?on_error ?id ?sync () = create ?stack ?on_error ?id ?sync ()
