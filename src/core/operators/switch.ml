@@ -89,6 +89,11 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
     val mutable selected : selection option = None
 
     method set_selected v =
+      (match v with
+        | Some { child; effective_source } when effective_source != child.source
+          ->
+            effective_source#wake_up (self :> Clock.source)
+        | _ -> ());
       (match selected with
         | Some { child; effective_source } when effective_source != child.source
           ->
@@ -125,6 +130,11 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
              (not s.source#fallible) && (not single) && trivially_true d)
            children)
 
+    method private replay_meta m source =
+      let new_source = new Replay_metadata.replay m source in
+      Typing.(new_source#frame_type <: self#frame_type);
+      new_source
+
     method get_source ~reselect () =
       match selected with
         | Some s
@@ -160,11 +170,9 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                        * transition in between. *)
                         match c.source#last_metadata with
                         | Some (_, m) when replay_meta ->
-                            new Replay_metadata.replay m c.source
+                            self#replay_meta m c.source
                         | _ -> c.source
                     in
-                    Typing.(new_source#frame_type <: self#frame_type);
-                    new_source#wake_up (self :> Clock.source);
                     self#set_selected
                       (Some
                          { predicate; child = c; effective_source = new_source })
@@ -191,11 +199,9 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                        * transition in between. *)
                         match c.source#last_metadata with
                         | Some (_, m) when replay_meta ->
-                            new Replay_metadata.replay m c.source
+                            self#replay_meta m c.source
                         | _ -> c.source
                     in
-                    Typing.(old_source#frame_type <: self#frame_type);
-                    Typing.(new_source#frame_type <: self#frame_type);
                     let s =
                       Lang.to_source
                         (Lang.apply c.transition
@@ -204,22 +210,18 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                              ("", Lang.source new_source);
                            ])
                     in
-                    Typing.(s#frame_type <: self#frame_type);
                     let s =
-                      match s#id with
-                        | id when id = new_source#id -> s
-                        | _ ->
-                            let s =
-                              new Max_duration.max_duration
-                                ~override_meta ~duration:transition_length s
-                            in
-                            Typing.(s#frame_type <: self#frame_type);
-                            (new Sequence.sequence ~merge:true [s; new_source]
-                              :> Source.source)
+                      if s == new_source then s
+                      else (
+                        Typing.(s#frame_type <: self#frame_type);
+                        let s =
+                          new Max_duration.max_duration
+                            ~override_meta ~duration:transition_length s
+                        in
+                        Typing.(s#frame_type <: self#frame_type);
+                        (new Sequence.sequence ~merge:true [s; new_source]
+                          :> Source.source))
                     in
-                    Typing.(s#frame_type <: self#frame_type);
-                    Clock.unify ~pos:self#pos s#clock self#clock;
-                    s#wake_up (self :> Clock.source);
                     self#set_selected
                       (Some { predicate; child = c; effective_source = s })
             end;
