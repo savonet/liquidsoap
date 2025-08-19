@@ -53,10 +53,6 @@ def check_stream() =
   then
     is_done := true
 
-    file.write(
-      append=true, data="\r\n#EXT-X-ENDLIST\r\n", "#{output_dir}/mp4.m3u8"
-    )
-
     ojson =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
