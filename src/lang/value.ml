@@ -303,8 +303,20 @@ let demeth e =
     (fun _ -> Methods.empty)
 
 let remeth t u =
-  let t_methods = methods t in
-  map_methods u (fun u_methods -> Methods.fold Methods.add t_methods u_methods)
+  match t with
+    | Custom { dynamic_methods = Some _ } ->
+        Runtime_error.raise
+          ~pos:(match pos u with None -> [] | Some p -> [p])
+          ~message:
+            "Spread and method replacements are not supported for values with \
+             dynamic methods. Most likely, you are trying to define new source \
+             tracks as: `{...source.tracks(s), video=..}`. Please use: \
+             `source.tracks(s).{ video=.. }` instead."
+          "invalid"
+    | _ ->
+        let t_methods = methods t in
+        map_methods u (fun u_methods ->
+            Methods.fold Methods.add t_methods u_methods)
 
 let split_meths e = (Methods.bindings (methods e), demeth e)
 
