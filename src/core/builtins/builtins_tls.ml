@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let log = Log.make ["tls"]
+
 module Http = Liq_http
 
 module Liq_tls = struct
@@ -158,30 +160,48 @@ module Liq_tls = struct
     Unix.close h.fd
 end
 
-let tls_socket ~session transport =
+let tls_socket ~pos ~session transport =
   let closed = Atomic.make false in
-  object
-    method typ = "tls"
-    method transport = transport
-    method file_descr = session.Liq_tls.fd
-
-    method wait_for ?log event timeout =
-      let event =
-        match event with
-          | `Read -> `Read session.Liq_tls.fd
-          | `Write -> `Write session.Liq_tls.fd
-          | `Both -> `Both session.Liq_tls.fd
+  let finalise s =
+    if not (Atomic.get closed) then (
+      let pos =
+        match pos with
+          | [] -> "unknown"
+          | _ ->
+              String.concat ", " (List.map (fun pos -> Pos.to_string pos) pos)
       in
-      Tutils.wait_for ?log event timeout
+      log#critical
+        "SSL socket closed during garbage collection, you must have a leak in \
+         your application! Socket opened at position: %s"
+        pos;
+      try s#close with _ -> ())
+  in
+  let s =
+    object
+      method typ = "tls"
+      method transport = transport
+      method file_descr = session.Liq_tls.fd
 
-    method read = Liq_tls.read session
-    method write = Liq_tls.write session
-    method closed = Atomic.get closed
+      method wait_for ?log event timeout =
+        let event =
+          match event with
+            | `Read -> `Read session.Liq_tls.fd
+            | `Write -> `Write session.Liq_tls.fd
+            | `Both -> `Both session.Liq_tls.fd
+        in
+        Tutils.wait_for ?log event timeout
 
-    method close =
-      Atomic.set closed true;
-      Liq_tls.close session
-  end
+      method read = Liq_tls.read session
+      method write = Liq_tls.write session
+      method closed = Atomic.get closed
+
+      method close =
+        Atomic.set closed true;
+        Liq_tls.close session
+    end
+  in
+  Gc.finalise finalise s;
+  s
 
 let server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
     transport =
@@ -225,7 +245,7 @@ let server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
         Http.set_socket_default ~read_timeout:timeout ~write_timeout:timeout fd;
         let session = Liq_tls.init_server ~timeout ~server fd in
         Http.set_socket_default ~read_timeout ~write_timeout fd;
-        (tls_socket ~session transport, caller)
+        (tls_socket ~pos:[] ~session transport, caller)
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Unix.close fd;
@@ -282,7 +302,7 @@ let transport ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
       in
       let fd = Http.connect ?bind_address ~timeout ?prefer host port in
       let session = Liq_tls.init_client ~timeout ~client fd in
-      tls_socket ~session self
+      tls_socket ~pos:[] ~session self
 
     method server =
       server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
