@@ -129,19 +129,25 @@ def replaces file.write(
       append=append, perms=perms, atomic=atomic, temp_dir=temp_dir, path
     )
 
-  def rec write() =
-    s = getter.get(data) ?? ""
-    cb(s)
+  try
+    s = ref(getter.get(data) ?? "")
+    cb(s())
     if
-      s == ""
+      getter.is_constant(data)
     then
-      ()
-    elsif getter.is_constant(data) then cb("")
-    elsif s != "" then write()
+      cb("")
+    else
+      while
+      s() != ""
+      do
+      s := getter.get(data) ?? ""
+      cb(s())
+      end
     end
+  catch err do
+    cb("")
+    error.raise(err)
   end
-
-  write()
 end
 
 # Ensure that a file exists, creating it empty if it does not.
@@ -156,12 +162,16 @@ end
 def file.contents(fname) =
   fn = file.read(fname)
 
-  def rec f(cur) =
-    s = fn()
-    if s == "" then cur else f("#{cur}#{s}") end
+  cur = ref("")
+  next = ref(fn())
+  while
+  next() != ""
+  do
+  cur := "#{cur()}#{next()}"
+  next := fn()
   end
 
-  f("")
+  cur()
 end
 
 # Get the list of lines of a file.
