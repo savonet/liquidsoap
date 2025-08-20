@@ -272,6 +272,7 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
       null
     end
   catch err do
+    file_writer(null)
     log(
       level=3,
       "Error while fetching http data: #{err}"

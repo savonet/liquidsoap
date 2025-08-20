@@ -70,6 +70,7 @@
 - Fixed segfault when using SRT on windows (#4538)
 - Fixed memleak in ffmpeg inline encoder (#4501)
 - Fixed `tmp:` protocol logic (#4544)
+- Fixed dangling file descriptors with `file.*.stream` (#4639, reported by @limebar)
 
 ---
 

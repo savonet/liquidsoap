@@ -34,30 +34,51 @@ let protocol_of_value protocol_val =
     | "tls.1.3" -> Ssl.TLSv1_3
     | _ -> raise (Error.Invalid_value (protocol_val, "Invalid SSL protocol"))
 
-let ssl_socket transport ssl =
-  object
-    method typ = "ssl"
-    method transport = transport
-    method file_descr = Ssl.file_descr_of_socket ssl
-
-    method wait_for ?log event timeout =
-      let event =
-        match event with
-          | `Read -> `Read (Ssl.file_descr_of_socket ssl)
-          | `Write -> `Write (Ssl.file_descr_of_socket ssl)
-          | `Both -> `Both (Ssl.file_descr_of_socket ssl)
+let ssl_socket ~pos transport ssl =
+  let closed = Atomic.make false in
+  let finalise s =
+    if not (Atomic.get closed) then (
+      let pos =
+        match pos with
+          | [] -> "unknown"
+          | _ ->
+              String.concat ", " (List.map (fun pos -> Pos.to_string pos) pos)
       in
-      Tutils.wait_for ?log event timeout
+      log#critical
+        "SSL socket closed during garbage collection, you must have a leak in \
+         your application! Socket opened at position: %s"
+        pos;
+      try s#close with _ -> ())
+  in
+  let s =
+    object
+      method typ = "ssl"
+      method transport = transport
+      method file_descr = Ssl.file_descr_of_socket ssl
 
-    method read = Ssl.read ssl
-    method write = Ssl.write ssl
+      method wait_for ?log event timeout =
+        let event =
+          match event with
+            | `Read -> `Read (Ssl.file_descr_of_socket ssl)
+            | `Write -> `Write (Ssl.file_descr_of_socket ssl)
+            | `Both -> `Both (Ssl.file_descr_of_socket ssl)
+        in
+        Tutils.wait_for ?log event timeout
 
-    method close =
-      let fd = Ssl.file_descr_of_socket ssl in
-      Fun.protect
-        ~finally:(fun () -> Unix.close fd)
-        (fun () -> ignore (Ssl.close_notify ssl))
-  end
+      method read = Ssl.read ssl
+      method write = Ssl.write ssl
+      method closed = Atomic.get closed
+
+      method close =
+        Atomic.set closed true;
+        let fd = Ssl.file_descr_of_socket ssl in
+        Fun.protect
+          ~finally:(fun () -> Unix.close fd)
+          (fun () -> ignore (Ssl.close_notify ssl))
+    end
+  in
+  Gc.finalise finalise s;
+  s
 
 let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
     ~certificate ~key transport =
@@ -91,7 +112,7 @@ let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
         let ssl_s = Ssl.embed_socket s context in
         Ssl.accept ssl_s;
         Http.set_socket_default ~read_timeout ~write_timeout s;
-        (ssl_socket transport ssl_s, caller)
+        (ssl_socket ~pos:[] transport ssl_s, caller)
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Unix.close s;
@@ -140,7 +161,7 @@ let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
                 (Printf.sprintf "SSL verification error: %s"
                    (Ssl.get_verify_error_string err))
               "ssl";
-          ssl_socket self socket
+          ssl_socket ~pos:[] self socket
         with exn ->
           let bt = Printexc.get_raw_backtrace () in
           Unix.close unix_socket;

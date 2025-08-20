@@ -14,6 +14,7 @@ type socket =
   ; wait_for : ?log:(string -> unit) -> event -> float -> unit
   ; write : Bytes.t -> int -> int -> int
   ; read : Bytes.t -> int -> int -> int
+  ; closed : bool
   ; close : unit >
 
 and server =
@@ -60,9 +61,9 @@ let rec accept ?timeout sock =
 
 let rec unix_socket ~pos fd =
   let s = Cry.unix_socket fd in
-  let closed = ref false in
+  let closed = Atomic.make false in
   let finalise () =
-    if not !closed then (
+    if not (Atomic.get closed) then (
       let pos =
         match pos with
           | [] -> "unknown"
@@ -84,10 +85,11 @@ let rec unix_socket ~pos fd =
       method wait_for = s#wait_for
       method write = s#write
       method read = s#read
+      method closed = Atomic.get closed
 
       method close =
-        s#close;
-        closed := true
+        Atomic.set closed true;
+        s#close
     end
   in
   Gc.finalise_last finalise s;

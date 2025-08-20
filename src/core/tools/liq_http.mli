@@ -9,6 +9,7 @@ type socket =
   ; wait_for : ?log:(string -> unit) -> event -> float -> unit
   ; write : Bytes.t -> int -> int -> int
   ; read : Bytes.t -> int -> int -> int
+  ; closed : bool
   ; close : unit >
 
 and server =
