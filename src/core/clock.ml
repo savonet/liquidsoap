@@ -274,7 +274,8 @@ let unify =
             (descr c) (descr c') id;
           Unifier.(clock.id <-- clock'.id));
     Unifier.(c <-- c');
-    Queue.filter_out clocks (fun el -> el == c)
+    Queue.filter_out clocks (fun el -> el == c);
+    WeakQueue.filter_out pending_clocks (fun el -> el == c)
   in
   let rec unify ~pos c c' =
     let _c = Unifier.deref c in
