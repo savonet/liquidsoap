@@ -339,6 +339,10 @@ module Socket_value = struct
                  with exn ->
                    let bt = Printexc.get_raw_backtrace () in
                    Lang.raise_as_runtime ~bt ~kind:"socket" exn)) );
+      ( "closed",
+        ([], Lang.fun_t [] Lang.bool_t),
+        "`true` if the socket is already closed.",
+        fun socket -> Lang.val_fun [] (fun _ -> Lang.bool socket#closed) );
       ( "close",
         ([], Lang.fun_t [] Lang.unit_t),
         "Close the socket.",

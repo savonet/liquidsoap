@@ -35,6 +35,7 @@ let protocol_of_value protocol_val =
     | _ -> raise (Error.Invalid_value (protocol_val, "Invalid SSL protocol"))
 
 let ssl_socket transport ssl =
+  let closed = Atomic.make false in
   object
     method typ = "ssl"
     method transport = transport
@@ -51,8 +52,10 @@ let ssl_socket transport ssl =
 
     method read = Ssl.read ssl
     method write = Ssl.write ssl
+    method closed = Atomic.get closed
 
     method close =
+      Atomic.set closed true;
       let fd = Ssl.file_descr_of_socket ssl in
       Fun.protect
         ~finally:(fun () -> Unix.close fd)

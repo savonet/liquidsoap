@@ -159,6 +159,7 @@ module Liq_tls = struct
 end
 
 let tls_socket ~session transport =
+  let closed = Atomic.make false in
   object
     method typ = "tls"
     method transport = transport
@@ -175,7 +176,11 @@ let tls_socket ~session transport =
 
     method read = Liq_tls.read session
     method write = Liq_tls.write session
-    method close = Liq_tls.close session
+    method closed = Atomic.get closed
+
+    method close =
+      Atomic.set closed true;
+      Liq_tls.close session
   end
 
 let server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate

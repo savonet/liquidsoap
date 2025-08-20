@@ -96,8 +96,12 @@ def file.write.stream(
     if
       s == ""
     then
-      fd.close()
-      exec()
+      if
+        not fd.closed()
+      then
+        fd.close()
+        exec()
+      end
     else
       fd.write(s)
     end

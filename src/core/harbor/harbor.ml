@@ -864,6 +864,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               method file_descr = socket#file_descr
               method write = socket#write
               method close = socket#close
+              method closed = socket#closed
 
               method wait_for ?log event timeout =
                 match (event, Atomic.get rem_ofs) with
