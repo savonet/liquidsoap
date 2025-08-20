@@ -318,7 +318,9 @@ class cross val_source ~end_duration_getter ~override_end_duration
       self#prepare_source before;
       self#set_status (`Before (before :> Source.source));
       self#buffer_before ~is_first:true ();
-      if before#is_ready then Some before else None
+      match status with
+        | `After s | `Before s -> if s#is_ready then Some s else None
+        | _ -> assert false
 
     method private get_source ~reselect () =
       let reselect = match reselect with `Force -> `Ok | _ -> reselect in

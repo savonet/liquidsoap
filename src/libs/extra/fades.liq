@@ -215,8 +215,6 @@ def autocue.plot(
 
   clock.assign_new(sync=sync, [s])
 
-  shutdown = ref(fun () -> ())
-
   def on_stop() =
     if
       null.defined(png)
@@ -228,11 +226,9 @@ def autocue.plot(
       )
     end
     on_stop()
-    actual_shutdown = shutdown()
-    actual_shutdown()
+    clock(s.clock).stop()
   end
 
   o = output.dummy(fallible=true, s)
   o.on_stop(synchronous=true, on_stop)
-  shutdown := o.shutdown
 end

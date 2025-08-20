@@ -270,11 +270,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable activations : Clock.source list = []
 
     method wake_up (src : Clock.source) =
-      self#mutexify
-        (fun () ->
-          if not (List.memq src activations) then
-            activations <- src :: activations)
-        ();
+      self#mutexify (fun () -> activations <- src :: activations) ();
       if Atomic.compare_and_set is_up `False `True then (
         try
           self#content_type_computation_allowed;
@@ -307,7 +303,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method sleep (src : Clock.source) =
       self#mutexify
-        (fun () -> activations <- List.filter (fun s -> s == src) activations)
+        (fun () ->
+          let found, l =
+            List.fold_left
+              (fun (found, l) s ->
+                if (not found) && s == src then (true, l) else (found, s :: l))
+              (false, []) activations
+          in
+          if not found then
+            self#log#critical "Not activations found for %s" src#id;
+          activations <- l)
         ();
       match
         (activations, Clock.started self#clock, Atomic.get streaming_state)
@@ -319,7 +324,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     initializer
       Gc.finalise finalise self;
-      self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
+      self#on_sleep (fun () ->
+          List.iter (fun s -> s#sleep (self :> Clock.source)) sources;
+          self#iter_watchers (fun w -> w.sleep ()))
 
     (** Streaming *)
 
