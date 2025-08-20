@@ -31,6 +31,7 @@ type source_type =
 
 type sync_source = Clock_base.sync_source
 type self_sync = [ `Static | `Dynamic ] * sync_source option
+type controller = [ `None | `Clock of t | `Other of < id : string > ]
 
 val string_of_sync_source : sync_source -> string
 
@@ -79,6 +80,7 @@ val active_sync_mode_of_string : string -> active_sync_mode
 
 val create :
   ?stack:Liquidsoap_lang.Pos.t list ->
+  ?controller:controller ->
   ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
   ?id:string ->
   ?sync:active_sync_mode ->
@@ -102,7 +104,7 @@ val set_stack : t -> Liquidsoap_lang.Pos.t list -> unit
 val self_sync : t -> bool
 val time : t -> float
 val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
-val create_sub_clock : id:string -> t -> t
+val create_sub_clock : ?controller:controller -> id:string -> t -> t
 val attach : t -> source -> unit
 val detach : t -> source -> unit
 val activate_pending_sources : t -> unit
