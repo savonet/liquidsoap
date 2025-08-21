@@ -136,9 +136,7 @@ type clock = {
 }
 
 and t = clock Unifier.t
-
-and controller =
-  [ `None | `Top_level | `Clock of t | `Other of string * < id : string > ]
+and controller = [ `None | `Clock of t | `Other of string * < id : string > ]
 
 let string_of_state = function
   | `Stopping _ -> "stopping"
@@ -176,7 +174,6 @@ let generate_id = Lang_string.generate_id ~category:"clock"
 
 let string_of_controller = function
   | `None -> "none"
-  | `Top_level -> "top_level"
   | `Clock c -> Printf.sprintf "clock %s" (id c)
   | `Other (c, o) -> Printf.sprintf "%s %s" c o#id
 
@@ -189,7 +186,6 @@ let unifiable_controller ~unify c c' =
           unify c c';
           true
         with _ -> false)
-    | `Top_level, `Top_level -> true
     | _ -> false
 
 let _set_id _clock new_id =
@@ -579,13 +575,12 @@ and _clock_thread ~clock x =
       on_stop ()
     with Has_stopped -> on_stop ()
   in
-  ignore
-    (Tutils.create
-       (fun () ->
-         x.log#info "Clock thread is starting";
-         run ())
-       ()
-       ("Clock " ^ _id clock))
+  Tutils.create
+    (fun () ->
+      x.log#info "Clock thread is starting";
+      run ())
+    ()
+    ("Clock " ^ _id clock)
 
 and _can_start ?(force = false) clock =
   let has_output =
@@ -625,10 +620,10 @@ and _start ?force ~sync clock =
           ( "top-level",
             Printf.sprintf " and sync: %s" (string_of_sync_mode sync) )
   in
+  let _controller = Unifier.deref clock.controller in
   let controlled_by =
-    let controller = Unifier.deref clock.controller in
-    if controller = `None then ""
-    else Printf.sprintf " controlled by %s" (string_of_controller controller)
+    if _controller = `None then ""
+    else Printf.sprintf " controlled by %s" (string_of_controller _controller)
   in
   log#important "Starting %s clock %s%s with sources: %s%s" top_level id
     controlled_by sources sync_mode;
@@ -662,7 +657,18 @@ and _start ?force ~sync clock =
   in
   Queue.iter clock.sub_clocks (fun c -> start ?force c);
   Atomic.set clock.state (`Started x);
-  if sync <> `Passive then _clock_thread ~clock x
+  if sync <> `Passive then (
+    let th = _clock_thread ~clock x in
+    (match _controller with
+      | `None ->
+          let controller =
+            object
+              method id = string_of_int (Thread.id th)
+            end
+          in
+          Unifier.set clock.controller (`Other ("thread", controller))
+      | _ -> raise Invalid_state);
+    _clock_thread ~clock x)
 
 and start ?force c =
   let clock = Unifier.deref c in
@@ -686,7 +692,7 @@ let add_pending_clock =
     Gc.finalise finalise c;
     WeakQueue.push pending_clocks c
 
-let create ?(stack = []) ?(controller = `Top_level) ?on_error ?id
+let create ?(stack = []) ?(controller = `None) ?on_error ?id
     ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
