@@ -95,7 +95,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           (fun v ->
             try
               let len = self#seek (Frame.main_of_seconds (float_of_string v)) in
-              Printf.sprintf "Skipped %.02f" (Frame.seconds_of_main len)
+              Printf.sprintf "Seeked %.02f" (Frame.seconds_of_main len)
             with exn -> Printf.sprintf "Error: %s" (Printexc.to_string exn))
           ~usage:"seek <seconds>" ~descr:"Seek forward.";
         self#register_command "metadata" ~descr:"Print current metadata."
