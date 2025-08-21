@@ -231,7 +231,8 @@ class cross val_source ~end_duration_getter ~override_end_duration
         | `Before s | `After s -> s#sleep (self :> Clock.source));
       status <- v
 
-    method! child_clock_controller = Some (`Other (self :> < id : string >))
+    method! child_clock_controller =
+      Some (`Other ("source", (self :> < id : string >)))
 
     method private child_get ~is_first source =
       let frame = ref self#empty_frame in

@@ -128,7 +128,6 @@ type state =
 type clock = {
   id : string option Unifier.t;
   controller : controller Unifier.t;
-  sub_ids : string list;
   stack : Pos.t list Atomic.t;
   state : state Atomic.t;
   pending_activations : source Queue.t;
@@ -137,25 +136,57 @@ type clock = {
 }
 
 and t = clock Unifier.t
-and controller = [ `None | `Clock of t | `Other of < id : string > ]
+and controller = [ `None | `Clock of t | `Other of string * < id : string > ]
 
 let string_of_state = function
   | `Stopping _ -> "stopping"
   | `Started _ -> "started"
   | `Stopped _ -> "stopped"
 
-let _default_id { id; pending_activations } =
-  match (Unifier.deref id, Queue.elements pending_activations) with
-    | Some id, _ -> id
-    | None, el :: _ -> el#id
-    | None, _ -> "generic"
+let meaningful_pending_id pending =
+  match
+    List.sort
+      (fun s s' ->
+        match (s#source_type, s'#source_type) with
+          | `Output _, `Output _ -> 0
+          | `Output _, _ -> -1
+          | _, `Output _ -> 1
+          | `Active _, `Active _ -> 0
+          | `Active _, _ -> -1
+          | _, `Active _ -> 1
+          | `Passive, `Passive -> 0)
+      pending
+  with
+    | el :: _ -> Some el#id
+    | _ -> None
 
-let _id clock =
-  _default_id clock
-  ^ match clock.sub_ids with [] -> "" | l -> "." ^ String.concat "." l
+let _id { id; pending_activations } =
+  match
+    ( Unifier.deref id,
+      meaningful_pending_id (Queue.elements pending_activations) )
+  with
+    | Some id, _ -> id
+    | None, Some id -> id
+    | _ -> "generic"
 
 let id c = _id (Unifier.deref c)
 let generate_id = Lang_string.generate_id ~category:"clock"
+
+let string_of_controller = function
+  | `None -> "none"
+  | `Clock c -> Printf.sprintf "clock %s" (id c)
+  | `Other (c, o) -> Printf.sprintf "%s %s" c o#id
+
+let unifiable_controller ~unify c c' =
+  match (c, c') with
+    | `None, _ | _, `None -> true
+    | `Other (c, o), `Other (c', o') -> c = c' && o == o'
+    | `Clock c, `Clock c' -> (
+        try
+          unify c c';
+          true
+        with _ -> false)
+    | _ -> false
 
 let _set_id _clock new_id =
   if Unifier.deref _clock.id <> Some new_id then
@@ -286,55 +317,20 @@ let unify =
   let rec unify ~pos c c' =
     let _c = Unifier.deref c in
     let _c' = Unifier.deref c' in
-    (match (Unifier.deref _c.controller, Unifier.deref _c'.controller) with
-      | `Other o, `Other o' ->
-          if o != o' then
-            raise
-              Liquidsoap_lang.Error.(
-                Clock_main
-                  {
-                    pos;
-                    left_main = o#id;
-                    left_child = descr c;
-                    right_main = o'#id;
-                    right_child = descr c';
-                  })
-      | `Clock x, `Clock x' -> (
-          try unify ~pos x x'
-          with _ ->
-            raise
-              Liquidsoap_lang.Error.(
-                Clock_main
-                  {
-                    pos;
-                    left_main = descr x;
-                    left_child = descr c;
-                    right_main = descr x';
-                    right_child = descr c';
-                  }))
-      | `Other o, `Clock x' ->
-          raise
-            Liquidsoap_lang.Error.(
-              Clock_main
-                {
-                  pos;
-                  left_main = o#id;
-                  left_child = descr c;
-                  right_main = descr x';
-                  right_child = descr c';
-                })
-      | `Clock x, `Other o' ->
-          raise
-            Liquidsoap_lang.Error.(
-              Clock_main
-                {
-                  pos;
-                  left_main = descr x;
-                  left_child = descr c;
-                  right_main = o'#id;
-                  right_child = descr c';
-                })
-      | _, `None | `None, _ -> ());
+    let _controller = Unifier.deref _c.controller in
+    let _controller' = Unifier.deref _c'.controller in
+    if not (unifiable_controller ~unify:(unify ~pos) _controller _controller')
+    then
+      raise
+        Liquidsoap_lang.Error.(
+          Clock_main
+            {
+              pos;
+              left_main = string_of_controller _controller;
+              left_child = descr c;
+              right_main = string_of_controller _controller';
+              right_child = descr c';
+            });
     match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
       | true, _, _ -> ()
       | _, `Stopped s, `Stopped s' when s = s' -> _unify c c'
@@ -602,7 +598,7 @@ and _can_start ?(force = false) clock =
     | _ -> `False
 
 and _start ?force ~sync clock =
-  _set_id clock (_default_id clock);
+  _set_id clock (_id clock);
   let id = _id clock in
   let sources =
     List.fold_left
@@ -618,8 +614,20 @@ and _start ?force ~sync clock =
       (Queue.elements clock.pending_activations)
   in
   let sources = String.concat ", " sources in
-  log#important "Starting clock %s with sources: %s and sync: %s" id sources
-    (string_of_sync_mode sync);
+  let top_level, sync_mode =
+    match sync with
+      | `Passive -> ("passive", "")
+      | _ ->
+          ( "top-level",
+            Printf.sprintf " and sync: %s" (string_of_sync_mode sync) )
+  in
+  let controlled_by =
+    let controller = Unifier.deref clock.controller in
+    if controller = `None then ""
+    else Printf.sprintf " controlled by %s" (string_of_controller controller)
+  in
+  log#important "Starting %s clock %s%s with sources: %s%s" top_level id
+    controlled_by sources sync_mode;
   let time_implementation = time_implementation () in
   let module Time = (val time_implementation : Liq_time.T) in
   let frame_duration = Time.of_float (Lazy.force Frame.duration) in
@@ -674,7 +682,7 @@ let add_pending_clock =
     Gc.finalise finalise c;
     WeakQueue.push pending_clocks c
 
-let create ?(stack = []) ?(controller = `None) ?on_error ?id ?(sub_ids = [])
+let create ?(stack = []) ?(controller = `None) ?on_error ?id
     ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
@@ -683,7 +691,6 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id ?(sub_ids = [])
       {
         id = Unifier.make (Option.map generate_id id);
         controller = Unifier.make controller;
-        sub_ids;
         stack = Atomic.make stack;
         pending_activations = Queue.create ();
         sub_clocks = Queue.create ();
@@ -751,9 +758,7 @@ let create_sub_clock ?controller ~id clock =
   let controller = Option.value ~default:(`Clock clock) controller in
   let _clock = Unifier.deref clock in
   let sub_clock =
-    create ~stack:(Atomic.get _clock.stack) ~id ~controller
-      ~sub_ids:(_clock.sub_ids @ ["child"])
-      ~sync:`Passive ()
+    create ~stack:(Atomic.get _clock.stack) ~id ~controller ~sync:`Passive ()
   in
   Queue.push _clock.sub_clocks sub_clock;
   sub_clock

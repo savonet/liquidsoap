@@ -14,6 +14,19 @@ let generate_id =
   let m = Mutex.create () in
   let h = IdMap.create 10 in
   fun ~category name ->
+    (* Remove trailing numbers. *)
+    let name =
+      let rec drop_dots = function
+        | v :: tail -> (
+            try
+              ignore (int_of_string v);
+              drop_dots tail
+            with _ -> v :: tail)
+        | v -> v
+      in
+      String.concat "."
+        (List.rev (drop_dots (List.rev (String.split_on_char '.' name))))
+    in
     Mutex_utils.mutexify m
       (fun () ->
         let base_id = IdMap.merge h { category; name; counter = 0 } in
