@@ -575,13 +575,12 @@ and _clock_thread ~clock x =
       on_stop ()
     with Has_stopped -> on_stop ()
   in
-  ignore
-    (Tutils.create
-       (fun () ->
-         x.log#info "Clock thread is starting";
-         run ())
-       ()
-       ("Clock " ^ _id clock))
+  Tutils.create
+    (fun () ->
+      x.log#info "Clock thread is starting";
+      run ())
+    ()
+    ("Clock " ^ _id clock)
 
 and _can_start ?(force = false) clock =
   let has_output =
@@ -621,10 +620,10 @@ and _start ?force ~sync clock =
           ( "top-level",
             Printf.sprintf " and sync: %s" (string_of_sync_mode sync) )
   in
+  let _controller = Unifier.deref clock.controller in
   let controlled_by =
-    let controller = Unifier.deref clock.controller in
-    if controller = `None then ""
-    else Printf.sprintf " controlled by %s" (string_of_controller controller)
+    if _controller = `None then ""
+    else Printf.sprintf " controlled by %s" (string_of_controller _controller)
   in
   log#important "Starting %s clock %s%s with sources: %s%s" top_level id
     controlled_by sources sync_mode;
@@ -658,7 +657,17 @@ and _start ?force ~sync clock =
   in
   Queue.iter clock.sub_clocks (fun c -> start ?force c);
   Atomic.set clock.state (`Started x);
-  if sync <> `Passive then _clock_thread ~clock x
+  if sync <> `Passive then (
+    let th = _clock_thread ~clock x in
+    match _controller with
+      | `None ->
+          let controller =
+            object
+              method id = string_of_int (Thread.id th)
+            end
+          in
+          Unifier.set clock.controller (`Other ("thread", controller))
+      | _ -> raise Invalid_state)
 
 and start ?force c =
   let clock = Unifier.deref c in
