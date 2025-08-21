@@ -659,7 +659,7 @@ and _start ?force ~sync clock =
   Atomic.set clock.state (`Started x);
   if sync <> `Passive then (
     let th = _clock_thread ~clock x in
-    (match _controller with
+    match _controller with
       | `None ->
           let controller =
             object
@@ -667,8 +667,7 @@ and _start ?force ~sync clock =
             end
           in
           Unifier.set clock.controller (`Other ("thread", controller))
-      | _ -> raise Invalid_state);
-    _clock_thread ~clock x)
+      | _ -> raise Invalid_state)
 
 and start ?force c =
   let clock = Unifier.deref c in
