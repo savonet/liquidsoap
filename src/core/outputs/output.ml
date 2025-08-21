@@ -83,23 +83,23 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
       if Queue.length metadata_queue > q_length then
         ignore (Queue.pop metadata_queue)
 
-    initializer self#on_frame (`Metadata self#add_metadata)
-
-    (* Registration of Telnet commands must be delayed because some operators
-       change their id at initialization time. *)
-    val mutable registered_telnet = false
-
-    method private register_telnet =
-      if register_telnet && not registered_telnet then (
-        registered_telnet <- true;
-        (* Add a few more server controls *)
-        let ns = [self#id] in
-        Server.add ~ns "skip"
+    initializer
+      self#on_frame (`Metadata self#add_metadata);
+      if register_telnet then (
+        self#register_command "skip"
           (fun _ ->
             self#skip;
             "Done")
           ~descr:"Skip current song.";
-        Server.add ~ns "metadata" ~descr:"Print current metadata." (fun _ ->
+        self#register_command "seek"
+          (fun v ->
+            try
+              let len = self#seek (Frame.main_of_seconds (float_of_string v)) in
+              Printf.sprintf "Skipped %.02f" (Frame.seconds_of_main len)
+            with exn -> Printf.sprintf "Error: %s" (Printexc.to_string exn))
+          ~usage:"seek <seconds>" ~descr:"Seek forward.";
+        self#register_command "metadata" ~descr:"Print current metadata."
+          (fun _ ->
             fst
               (Queue.fold metadata_queue
                  (fun m (s, i) ->
@@ -112,20 +112,13 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
                    in
                    (s, i - 1))
                  ("", Queue.length metadata_queue)));
-        Server.add ~ns "remaining" ~descr:"Display estimated remaining time."
-          (fun _ ->
+        self#register_command "remaining"
+          ~descr:"Display estimated remaining time." (fun _ ->
             let r = source#remaining in
             if r < 0 then "(undef)"
             else (
               let t = Frame.seconds_of_main r in
               Printf.sprintf "%.2f" t)))
-
-    method private cleanup_telnet =
-      if registered_telnet then
-        List.iter
-          (Server.remove ~ns:[self#id])
-          ["skip"; "metadata"; "remaining"];
-      registered_telnet <- false
 
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
@@ -148,12 +141,8 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
                   use an expliciy type annotation!"
                  self#id);
 
-          if not autostart then start_stop#transition_to `Stopped;
-
-          self#register_telnet);
-      self#on_sleep (fun () ->
-          self#cleanup_telnet;
-          start_stop#transition_to `Stopped)
+          if not autostart then start_stop#transition_to `Stopped);
+      self#on_sleep (fun () -> start_stop#transition_to `Stopped)
 
     (* The output process *)
     val mutable skip = false
