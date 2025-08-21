@@ -136,7 +136,9 @@ type clock = {
 }
 
 and t = clock Unifier.t
-and controller = [ `None | `Clock of t | `Other of string * < id : string > ]
+
+and controller =
+  [ `None | `Top_level | `Clock of t | `Other of string * < id : string > ]
 
 let string_of_state = function
   | `Stopping _ -> "stopping"
@@ -174,6 +176,7 @@ let generate_id = Lang_string.generate_id ~category:"clock"
 
 let string_of_controller = function
   | `None -> "none"
+  | `Top_level -> "top_level"
   | `Clock c -> Printf.sprintf "clock %s" (id c)
   | `Other (c, o) -> Printf.sprintf "%s %s" c o#id
 
@@ -186,6 +189,7 @@ let unifiable_controller ~unify c c' =
           unify c c';
           true
         with _ -> false)
+    | `Top_level, `Top_level -> true
     | _ -> false
 
 let _set_id _clock new_id =
@@ -682,7 +686,7 @@ let add_pending_clock =
     Gc.finalise finalise c;
     WeakQueue.push pending_clocks c
 
-let create ?(stack = []) ?(controller = `None) ?on_error ?id
+let create ?(stack = []) ?(controller = `Top_level) ?on_error ?id
     ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
