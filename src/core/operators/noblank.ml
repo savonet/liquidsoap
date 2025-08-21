@@ -111,8 +111,8 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
         self#is_blank
       in
       (match (was_blank, is_blank) with
-        | true, false -> List.iter (fun fn -> fn ()) on_blank
-        | false, true -> List.iter (fun fn -> fn ()) on_noise
+        | true, false -> List.iter (fun fn -> fn ()) on_noise
+        | false, true -> List.iter (fun fn -> fn ()) on_blank
         | _ -> ());
       buf
   end
