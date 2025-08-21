@@ -46,11 +46,14 @@ class virtual base ~check_self_sync children_val =
     method virtual on_sleep : (unit -> unit) -> unit
     method virtual self_sync : [ `Dynamic | `Static ] * Clock.sync_source option
     method virtual source_type : Clock.source_type
+    method child_clock_controller = None
     val mutable child_clock = None
 
     initializer
       child_clock <-
-        Some (Clock.create_sub_clock ~id:(Clock.id self#clock) self#clock);
+        Some
+          (Clock.create_sub_clock ?controller:self#child_clock_controller
+             ~id:(Clock.id self#clock) self#clock);
 
       self#on_before_streaming_cycle (fun () ->
           if not (Clock.started self#child_clock) then

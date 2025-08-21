@@ -127,7 +127,7 @@ type state =
 
 type clock = {
   id : string option Unifier.t;
-  main_clock : t option;
+  controller : controller Unifier.t;
   sub_ids : string list;
   stack : Pos.t list Atomic.t;
   state : state Atomic.t;
@@ -137,6 +137,7 @@ type clock = {
 }
 
 and t = clock Unifier.t
+and controller = [ `None | `Clock of t | `Other of < id : string > ]
 
 let string_of_state = function
   | `Stopping _ -> "stopping"
@@ -261,6 +262,11 @@ let unify =
   let _unify c c' =
     let clock = Unifier.deref c in
     let clock' = Unifier.deref c' in
+    (match
+       (Unifier.deref clock.controller, Unifier.deref clock'.controller)
+     with
+      | _, `None -> Unifier.(clock'.controller <-- clock.controller)
+      | _ -> ());
     Queue.flush_iter clock.pending_activations
       (Queue.push clock'.pending_activations);
     Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
@@ -280,8 +286,20 @@ let unify =
   let rec unify ~pos c c' =
     let _c = Unifier.deref c in
     let _c' = Unifier.deref c' in
-    (match (_c.main_clock, _c'.main_clock) with
-      | Some x, Some x' -> (
+    (match (Unifier.deref _c.controller, Unifier.deref _c'.controller) with
+      | `Other o, `Other o' ->
+          if o != o' then
+            raise
+              Liquidsoap_lang.Error.(
+                Clock_main
+                  {
+                    pos;
+                    left_main = o#id;
+                    left_child = descr c;
+                    right_main = o'#id;
+                    right_child = descr c';
+                  })
+      | `Clock x, `Clock x' -> (
           try unify ~pos x x'
           with _ ->
             raise
@@ -294,7 +312,29 @@ let unify =
                     right_main = descr x';
                     right_child = descr c';
                   }))
-      | _ -> ());
+      | `Other o, `Clock x' ->
+          raise
+            Liquidsoap_lang.Error.(
+              Clock_main
+                {
+                  pos;
+                  left_main = o#id;
+                  left_child = descr c;
+                  right_main = descr x';
+                  right_child = descr c';
+                })
+      | `Clock x, `Other o' ->
+          raise
+            Liquidsoap_lang.Error.(
+              Clock_main
+                {
+                  pos;
+                  left_main = descr x;
+                  left_child = descr c;
+                  right_main = o'#id;
+                  right_child = descr c';
+                })
+      | _, `None | `None, _ -> ());
     match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
       | true, _, _ -> ()
       | _, `Stopped s, `Stopped s' when s = s' -> _unify c c'
@@ -634,7 +674,7 @@ let add_pending_clock =
     Gc.finalise finalise c;
     WeakQueue.push pending_clocks c
 
-let create ?(stack = []) ?main_clock ?on_error ?id ?(sub_ids = [])
+let create ?(stack = []) ?(controller = `None) ?on_error ?id ?(sub_ids = [])
     ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
@@ -642,7 +682,7 @@ let create ?(stack = []) ?main_clock ?on_error ?id ?(sub_ids = [])
     Unifier.make
       {
         id = Unifier.make (Option.map generate_id id);
-        main_clock;
+        controller = Unifier.make controller;
         sub_ids;
         stack = Atomic.make stack;
         pending_activations = Queue.create ();
@@ -707,17 +747,19 @@ let tick clock = _tick ~clock:(Unifier.deref clock) (active_params clock)
 let set_stack c stack =
   ignore (Atomic.compare_and_set (Unifier.deref c).stack [] stack)
 
-let create_sub_clock ~id clock =
+let create_sub_clock ?controller ~id clock =
+  let controller = Option.value ~default:(`Clock clock) controller in
   let _clock = Unifier.deref clock in
   let sub_clock =
-    create ~stack:(Atomic.get _clock.stack) ~id ~main_clock:clock
+    create ~stack:(Atomic.get _clock.stack) ~id ~controller
       ~sub_ids:(_clock.sub_ids @ ["child"])
       ~sync:`Passive ()
   in
   Queue.push _clock.sub_clocks sub_clock;
   sub_clock
 
-let create ?stack ?on_error ?id ?sync () = create ?stack ?on_error ?id ?sync ()
+let create ?stack ?controller ?on_error ?id ?sync () =
+  create ?stack ?controller ?on_error ?id ?sync ()
 
 let clocks () =
   List.sort_uniq
