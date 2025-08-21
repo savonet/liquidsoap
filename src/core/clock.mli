@@ -31,7 +31,7 @@ type source_type =
 
 type sync_source = Clock_base.sync_source
 type self_sync = [ `Static | `Dynamic ] * sync_source option
-type controller = [ `None | `Clock of t | `Other of < id : string > ]
+type controller = [ `None | `Clock of t | `Other of string * < id : string > ]
 
 val string_of_sync_source : sync_source -> string
 

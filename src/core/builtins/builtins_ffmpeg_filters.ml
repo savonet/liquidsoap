@@ -886,14 +886,14 @@ let _ =
       let id = "ffmpeg.filter" in
       let output_clock = Clock.create ~id () in
       let controller =
-        let id = Printf.sprintf "ffmpeg.filter.%s" id in
         object
           method id = id
         end
       in
       let input_clock =
         Clock.create_sub_clock ~id:(id ^ ".input")
-          ~controller:(`Other controller) output_clock
+          ~controller:(`Other ("ffmpeg filter graph", controller))
+          output_clock
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       unify_clocks ~clock:output_clock graph.graph_outputs;
