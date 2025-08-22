@@ -625,10 +625,10 @@ and _start ?force ~sync clock =
           ( "top-level",
             Printf.sprintf " and sync: %s" (string_of_sync_mode sync) )
   in
+  let _controller = Unifier.deref clock.controller in
   let controlled_by =
-    let controller = Unifier.deref clock.controller in
-    if controller = `None then ""
-    else Printf.sprintf " controlled by %s" (string_of_controller controller)
+    if _controller = `None then ""
+    else Printf.sprintf " controlled by %s" (string_of_controller _controller)
   in
   log#important "Starting %s clock %s%s with sources: %s%s" top_level id
     controlled_by sources sync_mode;
