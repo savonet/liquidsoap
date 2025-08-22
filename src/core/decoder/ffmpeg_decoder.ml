@@ -922,7 +922,7 @@ let mk_decoder ~streams ~target_position container =
           | _ -> ()
       with
         | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> f ()
-        | Avutil.Error `Eof ->
+        | Avutil.Error `Exit | Avutil.Error `Eof ->
             Generator.add_track_mark buffer.Decoder.generator;
             raise End_of_file
         | exn ->
