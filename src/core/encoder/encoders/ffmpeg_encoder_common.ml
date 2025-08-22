@@ -281,8 +281,13 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
   in
   let split_encode frame =
     let encoder = Atomic.get encoder in
+    let encoded_fields = List.map fst (Frame.Fields.bindings encoder.streams) in
     let can_split () =
-      List.for_all (fun (_, keyframe) -> Atomic.get keyframe) keyframes
+      List.for_all
+        (fun (field, keyframe) ->
+          if not (List.mem field encoded_fields) then true
+          else Atomic.get keyframe)
+        keyframes
     in
     let flushed =
       if can_split () then Atomic.make (Some (Strings.Mutable.flush buf))
