@@ -176,6 +176,7 @@ and type_annotation =
   | `Record of meth_annotation list
   | `Method of type_annotation * meth_annotation list
   | `Invoke of type_annotation * string
+  | `Typeof of t
   | `Source of string * source_annotation ]
 
 (* These terms are reduced at runtime *)
