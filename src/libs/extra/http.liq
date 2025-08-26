@@ -29,7 +29,8 @@ def harbor.http.middleware.cors(
         false
       then
         harbor.http.register(
-          "/foo", fun (r, _) -> ignore(if false then r else req end)
+          "/foo",
+          fun (r, _) -> ignore(if false then r else req end)
         )
       end
 

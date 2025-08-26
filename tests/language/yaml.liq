@@ -25,7 +25,8 @@ baz: 3.14
   ) = j
 
   test.equal(
-    x, {bla="bar", baz=3.14, key_with_methods="value", record={a=1., b="ert"}}
+    x,
+    {bla="bar", baz=3.14, key_with_methods="value", record={a=1., b="ert"}}
   )
 
   test.pass()

@@ -21,7 +21,8 @@ def f() =
     )
 
   test.equal(
-    content_type, {mime="multipart/form-data", args=[("boundary", "something")]}
+    content_type,
+    {mime="multipart/form-data", args=[("boundary", "something")]}
   )
 
   extname =

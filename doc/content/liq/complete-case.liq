@@ -42,12 +42,18 @@ radio = mksafe(radio)
 # Add the ability to relay live shows
 full =
   fallback(
-    track_sensitive=false, [input.http("http://localhost:8000/live.ogg"), radio]
+    track_sensitive=false,
+    [input.http("http://localhost:8000/live.ogg"), radio]
   )
 
 # Output the full stream in OGG and MP3
 output.icecast(
-  %mp3, host="localhost", port=8000, password="hackme", mount="radio", full
+  %mp3,
+  host="localhost",
+  port=8000,
+  password="hackme",
+  mount="radio",
+  full
 )
 output.icecast(
   %vorbis,

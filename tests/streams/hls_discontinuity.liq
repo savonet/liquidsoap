@@ -56,14 +56,15 @@ def on_file_change({path = fname}) =
   end
 end
 
-o = output.file.hls(
-  fallible=true,
-  persist_at="./hls_discontinuity.json",
-  segments=4,
-  segment_duration=2.,
-  tmp_dir,
-  streams,
-  s
-)
+o =
+  output.file.hls(
+    fallible=true,
+    persist_at="./hls_discontinuity.json",
+    segments=4,
+    segment_duration=2.,
+    tmp_dir,
+    streams,
+    s
+  )
 
 o.on_file_change(synchronous=true, on_file_change)

@@ -5,8 +5,7 @@ video.frame.rate.set(45)
 settings.decoder.decoders.set(["ffmpeg"])
 fname =
   argv(
-    default=
-      "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4",
+    default="@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4",
     1
   )
 
@@ -34,7 +33,7 @@ def on_close(filename) =
         }"
       )
 
-    let json.parse (parsed : {streams: ({width: int, height: int}*_)}) = j
+    let json.parse (parsed : {streams: ({width: int, height: int} * _)}) = j
     let stream = fst(parsed.streams)
     print(
       "Output video size is #{stream.width}x#{stream.height}."
@@ -50,5 +49,9 @@ def on_close(filename) =
 end
 
 output.file(
-  fallible=true, on_close=on_close, %avi(width = 47, height = 52), out, s
+  fallible=true,
+  on_close=on_close,
+  %avi(width = 47, height = 52),
+  out,
+  s
 )

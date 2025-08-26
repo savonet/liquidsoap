@@ -28,8 +28,7 @@ def f() =
   if !reloaded != playlist then test.fail() end
   reloaded := ""
   s.reload(
-    uri=
-      "invalid uri again"
+    uri="invalid uri again"
   )
   if
     !reloaded !=

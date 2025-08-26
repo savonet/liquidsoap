@@ -3,8 +3,7 @@ let settings.autocue = {internal=()}
 
 let settings.autocue.implementations =
   settings.make(
-    description=
-      "All available autocue implementations",
+    description="All available autocue implementations",
     []
   )
 
@@ -12,23 +11,20 @@ let settings.autocue.metadata = ()
 
 let settings.autocue.metadata.priority =
   settings.make(
-    description=
-      "Priority for the autocue metadata resolver. Default value allows it to \
-       override both file and request metadata.",
+    description="Priority for the autocue metadata resolver. Default value \
+     allows it to override both file and request metadata.",
     10
   )
 
 let settings.autocue.preferred =
   settings.make(
-    description=
-      "Preferred autocue",
+    description="Preferred autocue",
     "internal"
   )
 
 let settings.autocue.amplify_behavior =
   settings.make(
-    description=
-      "How to proceed with loudness adjustment. Set to `\"override\"` to always prefer
+    description="How to proceed with loudness adjustment. Set to `\"override\"` to always prefer
       the value provided by the `autocue` provider. Set to `\"ignore\"` to ignore all
       loudness correction provided via the `autocue` provider. Set to
       `\"keep\"` to always prefer user-provided values (via request annotation or file tags)
@@ -38,16 +34,14 @@ let settings.autocue.amplify_behavior =
 
 let settings.autocue.amplify_aliases =
   settings.make(
-    description=
-      "List of metadata to treat as amplify aliases when applying the \
-       `amplify_behavior` policy.",
+    description="List of metadata to treat as amplify aliases when applying the \
+     `amplify_behavior` policy.",
     ["replaygain_track_gain"]
   )
 
 let settings.autocue.internal.metadata_override =
   settings.make(
-    description=
-      "Disable processing when one of these metadata is found",
+    description="Disable processing when one of these metadata is found",
     [
       "liq_cue_in",
       "liq_cue_out",
@@ -61,88 +55,77 @@ let settings.autocue.internal.metadata_override =
 
 let settings.autocue.internal.lufs_target =
   settings.make(
-    description=
-      "Loudness target",
+    description="Loudness target",
     -14.0
   )
 
 let settings.autocue.internal.cue_in_threshold =
   settings.make(
-    description=
-      "Cue in threshold",
+    description="Cue in threshold",
     -34.0
   )
 
 let settings.autocue.internal.cue_out_threshold =
   settings.make(
-    description=
-      "Cue out threshold",
+    description="Cue out threshold",
     -42.0
   )
 
 let settings.autocue.internal.cross_threshold =
   settings.make(
-    description=
-      "Crossfade start threshold",
+    description="Crossfade start threshold",
     -7.0
   )
 
 let settings.autocue.internal.max_overlap =
   settings.make(
-    description=
-      "Maximum allowed overlap/crossfade in seconds",
+    description="Maximum allowed overlap/crossfade in seconds",
     6.0
   )
 
 let settings.autocue.internal.sustained_endings_enabled =
   settings.make(
-    description=
-      "Try to optimize crossfade point on sustained endings",
+    description="Try to optimize crossfade point on sustained endings",
     true
   )
 
 let settings.autocue.internal.sustained_endings_dropoff =
   settings.make(
-    description=
-      "Max. loudness drop off immediately after crossfade point to consider it \
-       as relevant ending [percentage]",
+    description="Max. loudness drop off immediately after crossfade point to \
+     consider it as relevant ending [percentage]",
     15.0
   )
 
 let settings.autocue.internal.sustained_endings_slope =
   settings.make(
-    description=
-      "Max. loudness difference between crossfade point and cue out to consider \
-       it as relevant ending [percentage]",
+    description="Max. loudness difference between crossfade point and cue out to \
+     consider it as relevant ending [percentage]",
     20.0
   )
 
 let settings.autocue.internal.sustained_endings_min_duration =
   settings.make(
-    description=
-      "Minimum duration to consider it the ending as sustained [seconds]",
+    description="Minimum duration to consider it the ending as sustained \
+     [seconds]",
     1.0
   )
 
 let settings.autocue.internal.sustained_endings_threshold_limit =
   settings.make(
-    description=
-      "Max reduction of dB thresholds compared to initial value [multiplying \
-       factor]",
+    description="Max reduction of dB thresholds compared to initial value \
+     [multiplying factor]",
     2.0
   )
 
 let settings.autocue.internal.ratio =
   settings.make(
-    description=
-      "Maximum real time ratio to control speed of LUFS data analysis",
+    description="Maximum real time ratio to control speed of LUFS data analysis",
     70.
   )
 
 let settings.autocue.internal.timeout =
   settings.make(
-    description=
-      "Maximum allowed processing time (estimated)",
+    description="Maximum allowed processing time (estimated)",
     10.
   )
 
@@ -292,7 +275,10 @@ def autocue.internal.implementation(
 
       frames =
         autocue.internal.ebur128(
-          duration=duration, ratio=ratio, timeout=timeout, filename
+          duration=duration,
+          ratio=ratio,
+          timeout=timeout,
+          filename
         )
 
       if
@@ -905,7 +891,8 @@ def file.autocue.metadata(~request_metadata, uri) =
 
   r =
     request.create(
-      excluded_metadata_resolvers=decoder.metadata.reentrant(), uri
+      excluded_metadata_resolvers=decoder.metadata.reentrant(),
+      uri
     )
 
   if
@@ -989,8 +976,7 @@ def enable_autocue_metadata() =
 
       user_supplied_amplify_labels =
         string.concat(
-          separator=
-            ", ",
+          separator=", ",
           user_supplied_amplify
         )
 
@@ -1094,7 +1080,6 @@ end
 protocol.add(
   "autocue",
   protocol.autocue,
-  doc=
-    "Adding automatically computed cues/crossfade metadata",
+  doc="Adding automatically computed cues/crossfade metadata",
   syntax="autocue:uri"
 )

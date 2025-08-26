@@ -83,7 +83,7 @@ def f() =
       foo: float,
       "gni gno" as gni_gno: bool,
       nested: {
-        tuple: (_*float),
+        tuple: (_ * float),
         list: [float],
         nullable_list: [int?],
         object_as_list: [(string*float)] as json.object,
@@ -158,7 +158,7 @@ def f() =
     let json.parse (x :
       {
         nested: {
-          tuple: (int*float*int*bool),
+          tuple: (int * float * int * bool),
           list: [float],
           nullable_list: [int?],
           object_as_list: [(string*float)] as json.object,
@@ -182,7 +182,7 @@ def f() =
     let json.parse (x :
       {
         nested: {
-          tuple: (int*float*bool),
+          tuple: (int * float * bool),
           list: [int],
           nullable_list: [int?],
           object_as_list: [(string*float)] as json.object,
@@ -206,7 +206,7 @@ def f() =
     let json.parse (x :
       {
         nested: {
-          tuple: (int*float*bool),
+          tuple: (int * float * bool),
           list: [float],
           nullable_list: [int],
           object_as_list: [(string*float)] as json.object,
@@ -239,11 +239,11 @@ def f() =
     '[ "gni", 123 ]'
   let json.parse (x : [int]?) = data
   test.equal(x, null)
-  let json.parse (x : (string*int*bool)?) = data
+  let json.parse (x : (string * int * bool)?) = data
   test.equal(x, null)
   data =
     '[ "gni", 123, "gno" ]'
-  let json.parse (x : (string*int)) = data
+  let json.parse (x : (string * int)) = data
   test.equal(x, ("gni", 123))
   data = '{
     "foo": {

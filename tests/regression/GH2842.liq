@@ -11,15 +11,16 @@ def f() =
     "bla"
   end
 
-  o = output.file(
-    fallible=true,
-    %ffmpeg(
-      format = "mp3",
-      %audio(codec = "libmp3lame", samplerate = 48000, b = "320k")
-    ),
-    filename,
-    once(sine(duration=1., 480.))
-  )
+  o =
+    output.file(
+      fallible=true,
+      %ffmpeg(
+        format = "mp3",
+        %audio(codec = "libmp3lame", samplerate = 48000, b = "320k")
+      ),
+      filename,
+      once(sine(duration=1., 480.))
+    )
   o.on_stop(synchronous=true, test.pass)
 end
 

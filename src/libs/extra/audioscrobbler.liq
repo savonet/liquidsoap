@@ -7,15 +7,13 @@ let settings.audioscrobbler =
 
 let settings.audioscrobbler.api_key =
   settings.make(
-    description=
-      "Default API key for audioscrobbler",
+    description="Default API key for audioscrobbler",
     ""
   )
 
 let settings.audioscrobbler.api_secret =
   settings.make(
-    description=
-      "Default API secret for audioscrobbler",
+    description="Default API secret for audioscrobbler",
     ""
   )
 
@@ -477,5 +475,5 @@ def audioscrobbler.submit(
       end
   s.on_position(synchronous=true, remaining=true, position=delay, f)
 
-  (s:source)
+  (s : source)
 end

@@ -6,8 +6,7 @@ print(
 )
 test.metric(
   category="memory",
-  name=
-    "Process managed memory",
+  name="Process managed memory",
   value=float(m) / (1024. * 1024.),
   unit="Mio",
   min=0.

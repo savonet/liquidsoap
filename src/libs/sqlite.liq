@@ -20,14 +20,12 @@ def replaces sqlite(file) =
 
     columns =
       string.concat(
-        separator=
-          ", ",
+        separator=", ",
         columns
       )
     values =
       string.concat(
-        separator=
-          ", ",
+        separator=", ",
         values
       )
     sql =
@@ -135,8 +133,7 @@ def replaces sqlite(file) =
       end
     fields =
       string.concat(
-        separator=
-          ", ",
+        separator=", ",
         list.map(
           fun (lt) ->
             "#{fst(lt)} #{snd(lt)}",

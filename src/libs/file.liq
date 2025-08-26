@@ -130,7 +130,11 @@ def replaces file.write(
 ) =
   cb =
     file.write.stream(
-      append=append, perms=perms, atomic=atomic, temp_dir=temp_dir, path
+      append=append,
+      perms=perms,
+      atomic=atomic,
+      temp_dir=temp_dir,
+      path
     )
 
   try
@@ -141,11 +145,9 @@ def replaces file.write(
     then
       cb("")
     else
-      while
-      s() != ""
-      do
-      s := getter.get(data) ?? ""
-      cb(s())
+      while s() != "" do
+        s := getter.get(data) ?? ""
+        cb(s())
       end
     end
   catch err do
@@ -168,11 +170,9 @@ def file.contents(fname) =
 
   cur = ref("")
   next = ref(fn())
-  while
-  next() != ""
-  do
-  cur := "#{cur()}#{next()}"
-  next := fn()
+  while next() != "" do
+    cur := "#{cur()}#{next()}"
+    next := fn()
   end
 
   cur()

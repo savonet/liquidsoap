@@ -44,7 +44,8 @@ def on_close(_) =
 
     audio_stream =
       list.find(
-        (fun (stream) -> null.defined(stream.sample_rate)), parsed.streams
+        (fun (stream) -> null.defined(stream.sample_rate)),
+        parsed.streams
       )
 
     null.get(video_stream.codec_name) == "h264"

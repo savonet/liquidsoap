@@ -29,8 +29,7 @@ protocol.add(
   "lufs_track_gain",
   protocol.lufs_track_gain,
   syntax="lufs_track_gain:uri",
-  doc=
-    "Compute LUFS track gain correction and add it as metadata"
+  doc="Compute LUFS track gain correction and add it as metadata"
 )
 
 # Register the replaygain protocol.
@@ -51,23 +50,22 @@ protocol.add(
   "replaygain",
   protocol.replaygain,
   syntax="replaygain:uri",
-  doc=
-    "Compute ReplayGain value. Adds returned value as \
-     `\"replaygain_track_gain\"` metadata"
+  doc="Compute ReplayGain value. Adds returned value as \
+   `\"replaygain_track_gain\"` metadata"
 )
 
 let settings.protocol.process = settings.make.protocol("process")
 let settings.protocol.process.env =
   settings.make(
-    description=
-      "List of environment variables passed down to the executed process.",
+    description="List of environment variables passed down to the executed \
+     process.",
     []
   )
 
 let settings.protocol.process.inherit_env =
   settings.make(
-    description=
-      "Inherit calling process's environment when `env` parameter is empty.",
+    description="Inherit calling process's environment when `env` parameter is \
+     empty.",
     true
   )
 
@@ -182,12 +180,11 @@ protocol.add(
   temporary=true,
   "process",
   protocol.process,
-  doc=
-    "Resolve a request using an arbitrary process. `<cmd>` is interpolated with: \
-     `[(\"input\",<input>),(\"output\",<output>),(\"colon\",\":\")]`. `uri` is \
-     an optional child request, `<output>` is the name of a fresh temporary file \
-     and has extension `.<extname>`. `<input>` is an optional input file name as \
-     returned while resolving `uri`.",
+  doc="Resolve a request using an arbitrary process. `<cmd>` is interpolated \
+   with: `[(\"input\",<input>),(\"output\",<output>),(\"colon\",\":\")]`. `uri` \
+   is an optional child request, `<output>` is the name of a fresh temporary \
+   file and has extension `.<extname>`. `<input>` is an optional input file name \
+   as returned while resolving `uri`.",
   syntax="process:<extname>,<cmd>[:uri]"
 )
 
@@ -291,8 +288,7 @@ def protocol.add.http(proto) =
   protocol.add(
     temporary=true,
     syntax="#{proto}://...",
-    doc=
-      "Download http URLs using curl",
+    doc="Download http URLs using curl",
     proto,
     protocol.http
   )
@@ -302,15 +298,13 @@ list.iter(protocol.add.http, ["http", "https"])
 let settings.protocol.youtube_dl = settings.make.protocol("youtube-dl")
 let settings.protocol.youtube_dl.path =
   settings.make(
-    description=
-      "Path of the youtube-dl (or yt-dlp) binary.",
+    description="Path of the youtube-dl (or yt-dlp) binary.",
     "yt-dlp"
   )
 
 let settings.protocol.youtube_dl.timeout =
   settings.make(
-    description=
-      "Timeout (in seconds) for youtube-dl executions.",
+    description="Timeout (in seconds) for youtube-dl executions.",
     300.
   )
 
@@ -355,8 +349,7 @@ end
 protocol.add(
   "youtube-dl",
   protocol.youtube_dl,
-  doc=
-    "Resolve a request using youtube-dl.",
+  doc="Resolve a request using youtube-dl.",
   syntax="youtube-dl:uri"
 )
 
@@ -383,9 +376,8 @@ end
 protocol.add(
   "youtube-pl",
   protocol.youtube_pl,
-  doc=
-    "Resolve a request as a youtube playlist using youtube-dl. You typically \
-     want to use this as `playlist(\"youtube-pl:...\")`.",
+  doc="Resolve a request as a youtube playlist using youtube-dl. You typically \
+   want to use this as `playlist(\"youtube-pl:...\")`.",
   temporary=true,
   syntax="youtube-pl:uri"
 )
@@ -414,8 +406,7 @@ end
 protocol.add(
   "tmp",
   protocol.tmp,
-  doc=
-    "Mark the given uri as temporary. Useful when chaining protocols",
+  doc="Mark the given uri as temporary. Useful when chaining protocols",
   temporary=true,
   syntax="tmp:uri"
 )
@@ -429,10 +420,9 @@ end
 protocol.add(
   "fallible",
   protocol.fallible,
-  doc=
-    "Mark the given uri as being fallible. This can be used to prevent a request \
-     or source from being resolved once and for all and considered infallible \
-     for the duration of the script, typically when debugging.",
+  doc="Mark the given uri as being fallible. This can be used to prevent a \
+   request or source from being resolved once and for all and considered \
+   infallible for the duration of the script, typically when debugging.",
   static=fun (_) -> false,
   syntax="fallible:uri"
 )
@@ -440,22 +430,19 @@ protocol.add(
 let settings.protocol.ffmpeg = settings.make.protocol("FFmpeg")
 let settings.protocol.ffmpeg.path =
   settings.make(
-    description=
-      "Path to the ffmpeg binary",
+    description="Path to the ffmpeg binary",
     "ffmpeg"
   )
 
 let settings.protocol.ffmpeg.metadata =
   settings.make(
-    description=
-      "Should the protocol extract metadata",
+    description="Should the protocol extract metadata",
     true
   )
 
 let settings.protocol.ffmpeg.replaygain =
   settings.make(
-    description=
-      "Should the protocol adjust ReplayGain",
+    description="Should the protocol adjust ReplayGain",
     false
   )
 
@@ -606,7 +593,8 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
           fade_out > 0.
         then
           list.append(
-            args, ["afade=out:st=#{end_time - fade_out}:d=#{fade_out}#{curve}"]
+            args,
+            ["afade=out:st=#{end_time - fade_out}:d=#{fade_out}#{curve}"]
           )
         else
           args
@@ -673,8 +661,7 @@ end
 protocol.add(
   "ffmpeg",
   protocol.ffmpeg,
-  doc=
-    "Decode any file to wave using ffmpeg",
+  doc="Decode any file to wave using ffmpeg",
   syntax="ffmpeg:uri"
 )
 
@@ -702,8 +689,7 @@ protocol.add(
   temporary=true,
   "stereo",
   protocol.stereo,
-  doc=
-    "Convert a file to stereo (currently decodes to wav).",
+  doc="Convert a file to stereo (currently decodes to wav).",
   syntax="stereo:<uri>"
 )
 
@@ -721,8 +707,7 @@ protocol.add(
   static=fun (_) -> true,
   "copy",
   protocol.copy,
-  doc=
-    "Copy file to a temporary destination",
+  doc="Copy file to a temporary destination",
   syntax="copy:/path/to/file.extname"
 )
 
@@ -730,8 +715,7 @@ protocol.add(
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 let settings.protocol.text2wave.path =
   settings.make(
-    description=
-      "Path to the text2wave binary",
+    description="Path to the text2wave binary",
     "text2wave"
   )
 
@@ -749,26 +733,22 @@ protocol.add(
   static=fun (_) -> true,
   "text2wave",
   protocol.text2wave,
-  doc=
-    "Generate speech synthesis using text2wave. Result may be mono.",
-  syntax=
-    "text2wave:Text to read"
+  doc="Generate speech synthesis using text2wave. Result may be mono.",
+  syntax="text2wave:Text to read"
 )
 
 # Pico2wave
 let settings.protocol.pico2wave = settings.make.protocol("pico2wave")
 let settings.protocol.pico2wave.path =
   settings.make(
-    description=
-      "Path to the pico2wave binary",
+    description="Path to the pico2wave binary",
     "pico2wave"
   )
 
 let settings.protocol.pico2wave.lang =
   settings.make(
-    description=
-      "pico2wave language. One of: `\"en-US\"`, `\"en-GB\"`, `\"es-ES\"`, \
-       `\"de-DE\"`, `\"fr-FR\"` or `\"it-IT\"`.",
+    description="pico2wave language. One of: `\"en-US\"`, `\"en-GB\"`, \
+     `\"es-ES\"`, `\"de-DE\"`, `\"fr-FR\"` or `\"it-IT\"`.",
     "en-US"
   )
 
@@ -786,32 +766,27 @@ protocol.add(
   static=fun (_) -> true,
   "pico2wave",
   protocol.pico2wave,
-  doc=
-    "Generate speech synthesis using pico2wave. Result may be mono.",
-  syntax=
-    "pico2wave:Text to read"
+  doc="Generate speech synthesis using pico2wave. Result may be mono.",
+  syntax="pico2wave:Text to read"
 )
 
 # GTTS
 let settings.protocol.gtts = settings.make.protocol("gtts")
 let settings.protocol.gtts.path =
   settings.make(
-    description=
-      "Path to the gtts binary",
+    description="Path to the gtts binary",
     "gtts-cli"
   )
 
 let settings.protocol.gtts.lang =
   settings.make(
-    description=
-      "Language to speak in.",
+    description="Language to speak in.",
     "en"
   )
 
 let settings.protocol.gtts.options =
   settings.make(
-    description=
-      "Command line options.",
+    description="Command line options.",
     ""
   )
 
@@ -831,26 +806,22 @@ protocol.add(
   static=fun (_) -> true,
   "gtts",
   protocol.gtts,
-  doc=
-    "Generate speech synthesis using Google translate's text-to-speech API. This \
-     requires the `gtts-cli` binary.  Result may be mono.",
-  syntax=
-    "gtts:Text to read"
+  doc="Generate speech synthesis using Google translate's text-to-speech API. \
+   This requires the `gtts-cli` binary.  Result may be mono.",
+  syntax="gtts:Text to read"
 )
 
 # MacOS say
 let settings.protocol.macos_say = settings.make.protocol("macos_say")
 let settings.protocol.macos_say.path =
   settings.make(
-    description=
-      "Path to the say binary",
+    description="Path to the say binary",
     "say"
   )
 
 let settings.protocol.macos_say.options =
   settings.make(
-    description=
-      "Command line options.",
+    description="Command line options.",
     ""
   )
 
@@ -869,10 +840,8 @@ protocol.add(
   static=fun (_) -> true,
   "macos_say",
   protocol.macos_say,
-  doc=
-    "Generate speech synthesis using the `say` command available on macos.",
-  syntax=
-    "macos_say:Text to read"
+  doc="Generate speech synthesis using the `say` command available on macos.",
+  syntax="macos_say:Text to read"
 )
 
 # Say
@@ -880,9 +849,8 @@ protocol.add(
 let settings.protocol.say = settings.make.protocol("say")
 let settings.protocol.say.implementation =
   settings.make(
-    description=
-      "Implementation to use. One of: \"pico2wave\", \"gtts\", \"text2wave\" or \
-       \"macos_say\".",
+    description="Implementation to use. One of: \"pico2wave\", \"gtts\", \
+     \"text2wave\" or \"macos_say\".",
     liquidsoap.build_config.system == "macosx" ? "macos_say" : "pico2wave"
   )
 
@@ -896,60 +864,52 @@ protocol.add(
   static=fun (_) -> true,
   "say",
   protocol.say,
-  doc=
-    "Generate speech synthesis using text2wave. Result is always stereo.",
-  syntax=
-    "say:Text to read"
+  doc="Generate speech synthesis using text2wave. Result is always stereo.",
+  syntax="say:Text to read"
 )
 
 let settings.protocol.aws = settings.make.protocol("AWS")
 let settings.protocol.aws.profile =
   settings.make(
-    description=
-      "Use a specific profile from your credential file.",
+    description="Use a specific profile from your credential file.",
     null
   )
 
 let settings.protocol.aws.endpoint =
   settings.make(
-    description=
-      "Alternative endpoint URL (useful for other S3 implementations).",
+    description="Alternative endpoint URL (useful for other S3 \
+     implementations).",
     null
   )
 
 let settings.protocol.aws.region =
   settings.make(
-    description=
-      "AWS Region",
+    description="AWS Region",
     null
   )
 
 let settings.protocol.aws.path =
   settings.make(
-    description=
-      "Path to aws CLI binary",
+    description="Path to aws CLI binary",
     "aws"
   )
 
 let settings.protocol.aws.polly = settings.make.protocol("polly")
 let settings.protocol.aws.polly.format =
   settings.make(
-    description=
-      "Output format",
+    description="Output format",
     "mp3"
   )
 
 let settings.protocol.aws.polly.voice =
   settings.make(
-    description=
-      "Voice ID",
+    description="Voice ID",
     "Joanna"
   )
 
 let settings.protocol.aws.polly.extra_args =
   settings.make(
-    description=
-      "Extra command line arguments",
+    description="Extra command line arguments",
     ([] : [string])
   )
 
@@ -1001,8 +961,7 @@ end
 protocol.add(
   "s3",
   s3_protocol,
-  doc=
-    "Fetch files from s3 using the AWS CLI",
+  doc="Fetch files from s3 using the AWS CLI",
   syntax="s3://uri"
 )
 
@@ -1027,8 +986,7 @@ def polly_protocol(~rlog:_, ~maxtime:_, text) =
   voice_id = settings.protocol.aws.polly.voice()
   extra_args =
     string.concat(
-      separator=
-        " ",
+      separator=" ",
       settings.protocol.aws.polly.extra_args()
     )
   cmd =
@@ -1043,11 +1001,9 @@ protocol.add(
   static=fun (_) -> true,
   "polly",
   polly_protocol,
-  doc=
-    "Generate speech synthesis using AWS polly service. Result might be mono, \
-     needs aws binary in the path.",
-  syntax=
-    "polly:Text to read"
+  doc="Generate speech synthesis using AWS polly service. Result might be mono, \
+   needs aws binary in the path.",
+  syntax="polly:Text to read"
 )
 
 # Protocol to synthesize audio.
@@ -1132,8 +1088,7 @@ protocol.add(
   temporary=true,
   "synth",
   synth_protocol,
-  doc=
-    "Synthesize audio. Parameters are optional.",
+  doc="Synthesize audio. Parameters are optional.",
   syntax="synth:shape=sine,frequency=440.,duration=10."
 )
 
@@ -1163,7 +1118,6 @@ protocol.add(
   temporary=false,
   "file",
   file_protocol,
-  doc=
-    "File protocol. Only local files are supported",
+  doc="File protocol. Only local files are supported",
   syntax="file:///path/to/file"
 )

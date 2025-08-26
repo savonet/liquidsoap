@@ -66,7 +66,8 @@ def on_done(filename) =
 
     audio_stream =
       list.find(
-        (fun (stream) -> null.defined(stream.sample_rate)), parsed.streams
+        (fun (stream) -> null.defined(stream.sample_rate)),
+        parsed.streams
       )
 
     if

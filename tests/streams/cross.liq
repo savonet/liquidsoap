@@ -2,12 +2,18 @@ video.frame.rate.set(24)
 a = sine(duration=5., 440.)
 a =
   metadata.map(
-    insert_missing=true, update=false, (fun (_) -> [("title", "a")]), a
+    insert_missing=true,
+    update=false,
+    (fun (_) -> [("title", "a")]),
+    a
   )
 b = sine(duration=5., 880.)
 b =
   metadata.map(
-    insert_missing=true, update=false, (fun (_) -> [("title", "b")]), b
+    insert_missing=true,
+    update=false,
+    (fun (_) -> [("title", "b")]),
+    b
   )
 s = sequence([a, b])
 

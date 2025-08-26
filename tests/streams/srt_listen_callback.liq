@@ -9,7 +9,11 @@ def fn() =
   end
 
   output.srt(
-    %wav, blank(), port=port, mode="listener", listen_callback=listen_callback
+    %wav,
+    blank(),
+    port=port,
+    mode="listener",
+    listen_callback=listen_callback
   )
 
   thread.run(

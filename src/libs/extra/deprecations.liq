@@ -159,7 +159,11 @@ def rewrite_metadata(l, ~insert_missing=true, ~update=true, ~strip=false, s) =
   end
 
   metadata.map(
-    map, insert_missing=insert_missing, update=update, strip=strip, s
+    map,
+    insert_missing=insert_missing,
+    update=update,
+    strip=strip,
+    s
   )
 end
 
@@ -297,8 +301,7 @@ def register_flow(
     ]
 
   request(
-    cmd=
-      "add radio",
+    cmd="add radio",
     params=params
   )
 
@@ -306,8 +309,7 @@ def register_flow(
   def ping() =
     ignore(
       request(
-        cmd=
-          "ping radio",
+        cmd="ping radio",
         params=[]
       )
     )
@@ -321,15 +323,13 @@ def register_flow(
     let (format, url) = format_url
     params = [("stream_format", format), ("stream_url", url)]
     request(
-      cmd=
-        "add stream",
+      cmd="add stream",
       params=params
     )
   end
 
   request(
-    cmd=
-      "clear streams",
+    cmd="clear streams",
     params=[]
   )
   list.iter(register_stream, streams)
@@ -927,7 +927,11 @@ def source.on_end(~id:_, ~delay:position, s, fn) =
     "Use the on_position source method!"
   )
   source.methods(s).on_position(
-    synchronous=true, remaining=true, allow_partial=false, position=position, fn
+    synchronous=true,
+    remaining=true,
+    allow_partial=false,
+    position=position,
+    fn
   )
 end
 

@@ -19,3 +19,5 @@ input = input.alsa()
 output.alsa(input)
 
 # END
+
+ignore(true)

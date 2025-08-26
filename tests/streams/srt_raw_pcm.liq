@@ -6,8 +6,7 @@ port = 8004
 s =
   input.srt(
     port=port,
-    content_type=
-      "application/ffmpeg;format=s16le,ch_layout=mono,sample_rate=48000"
+    content_type="application/ffmpeg;format=s16le,ch_layout=mono,sample_rate=48000"
   )
 
 s.on_track(synchronous=true, fun (_) -> test.pass())

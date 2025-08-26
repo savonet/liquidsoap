@@ -3,7 +3,10 @@ success = ref(false)
 a = sine(duration=5., 440.)
 a =
   metadata.map(
-    insert_missing=true, update=false, (fun (_) -> [("source", "a")]), a
+    insert_missing=true,
+    update=false,
+    (fun (_) -> [("source", "a")]),
+    a
   )
 
 b = sine(duration=5., 880.)
@@ -27,7 +30,10 @@ b =
 c = sine(duration=5., 440.)
 c =
   metadata.map(
-    insert_missing=true, update=false, (fun (_) -> [("source", "c")]), c
+    insert_missing=true,
+    update=false,
+    (fun (_) -> [("source", "c")]),
+    c
   )
 
 s = sequence([a, b, c])

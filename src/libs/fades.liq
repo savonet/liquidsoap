@@ -12,22 +12,19 @@ let settings.fade.in =
 
 let settings.fade.in.duration =
   settings.make(
-    description=
-      "Default fade.in duration",
+    description="Default fade.in duration",
     3.
   )
 
 let settings.fade.in.type =
   settings.make(
-    description=
-      "Default fade.in type",
+    description="Default fade.in type",
     "lin"
   )
 
 let settings.fade.in.curve =
   settings.make(
-    description=
-      "Default fade.in curve",
+    description="Default fade.in curve",
     10.
   )
 
@@ -38,22 +35,19 @@ let settings.fade.out =
 
 let settings.fade.out.duration =
   settings.make(
-    description=
-      "Default fade.out duration",
+    description="Default fade.out duration",
     3.
   )
 
 let settings.fade.out.type =
   settings.make(
-    description=
-      "Default fade.out type",
+    description="Default fade.out type",
     "lin"
   )
 
 let settings.fade.out.curve =
   settings.make(
-    description=
-      "Default fade.out curve",
+    description="Default fade.out curve",
     10.
   )
 
@@ -357,7 +351,10 @@ def fade.out(
     track_sensitive
   then
     s.on_position(
-      synchronous=true, remaining=true, position=duration, start_fade
+      synchronous=true,
+      remaining=true,
+      position=duration,
+      start_fade
     )
   else
     s.on_frame(
@@ -789,11 +786,10 @@ def cross.simple(
       type="sin",
       persist_overrides=true,
       duration=fade_in,
-      initial_metadata=
-        [
-          ...list.assoc.remove("liq_fade_in_delay", initial_fade_in_metadata),
-          ("liq_fade_in_delay", "#{fade_in_delay}")
-        ],
+      initial_metadata=[
+        ...list.assoc.remove("liq_fade_in_delay", initial_fade_in_metadata),
+        ("liq_fade_in_delay", "#{fade_in_delay}")
+      ],
       s
     )
   end

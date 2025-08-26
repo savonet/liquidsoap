@@ -49,7 +49,10 @@ end
 # @param s The source to output
 def output.icecast(%argsof(output.icecast[!protocol,!icy_id]), e, s) =
   output.icecast(
-    %argsof(output.icecast[!protocol,!icy_id]), protocol="http", e, s
+    %argsof(output.icecast[!protocol,!icy_id]),
+    protocol="http",
+    e,
+    s
   )
 end
 %endif

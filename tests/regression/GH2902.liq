@@ -1,7 +1,8 @@
 def f() =
   let {uri, timeout, cmd, extname} =
     protocol.process.parse(
-      default_timeout=200., "timeout=123,.foo,bla,gni,gno:uri:uro:ura"
+      default_timeout=200.,
+      "timeout=123,.foo,bla,gni,gno:uri:uro:ura"
     )
 
   test.equal(uri, "uri:uro:ura")
@@ -10,7 +11,8 @@ def f() =
   test.equal(extname, ".foo")
   let {uri, timeout, cmd, extname} =
     protocol.process.parse(
-      default_timeout=200., "timeout=123.123,.foo,bla,gni,gno:uri:uro:ura"
+      default_timeout=200.,
+      "timeout=123.123,.foo,bla,gni,gno:uri:uro:ura"
     )
 
   test.equal(uri, "uri:uro:ura")
@@ -19,7 +21,8 @@ def f() =
   test.equal(extname, ".foo")
   let {uri, timeout, cmd, extname} =
     protocol.process.parse(
-      default_timeout=100., "timeout=123,.foo,bla,gni,gno:uri:uro:ura"
+      default_timeout=100.,
+      "timeout=123,.foo,bla,gni,gno:uri:uro:ura"
     )
 
   test.equal(uri, "uri:uro:ura")

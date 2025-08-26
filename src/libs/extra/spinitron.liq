@@ -57,15 +57,14 @@ def spinitron.submit.raw(
 
   http.post(
     data=params,
-    headers=
-      [
-        ("Accept", "application/json"),
-        ("Content-Type", "application/x-www-form-urlencoded"),
-        (
-          "Authorization",
-          "Bearer #{(api_key : string)}"
-        )
-      ],
+    headers=[
+      ("Accept", "application/json"),
+      ("Content-Type", "application/x-www-form-urlencoded"),
+      (
+        "Authorization",
+        "Bearer #{(api_key : string)}"
+      )
+    ],
     "#{host}/spins"
   )
 end
@@ -137,8 +136,7 @@ def replaces spinitron.submit(%argsof(spinitron.submit.raw)) =
 
     errors =
       string.concat(
-        separator=
-          ", ",
+        separator=", ",
         errors
       )
 

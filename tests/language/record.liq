@@ -293,7 +293,8 @@ def f() =
   test.equal({...x, ...y}, {gni="aabb", foo=123})
   test.equal({...x, gna=3.14, ...y}, {gni="aabb", gna=3.14, foo=123})
   test.equal(
-    {...x, gna=3.14, ...y, foo="bar"}, {foo="bar", gni="aabb", gna=3.14}
+    {...x, gna=3.14, ...y, foo="bar"},
+    {foo="bar", gni="aabb", gna=3.14}
   )
 
   x = {foo=1}

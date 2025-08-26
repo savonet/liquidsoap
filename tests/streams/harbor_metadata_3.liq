@@ -62,7 +62,12 @@ def fn() =
   s.on_metadata(synchronous=true, on_metadata)
   output.dummy(fallible=true, s)
   output.icecast(
-    %mp3, password="testtest", user="testtest", mount="test", port=port, noise()
+    %mp3,
+    password="testtest",
+    user="testtest",
+    mount="test",
+    port=port,
+    noise()
   )
 end
 

@@ -140,31 +140,32 @@ def on_file_change({state, path = fname}) =
   end
 end
 
-o = output.file.hls(
-  segment_duration=2.,
-  segment_name=segment_name,
-  tmp_dir,
-  [
-    ("aac", %ffmpeg(format = "adts", %audio(codec = "aac")).{id3_version=3}),
-    (
-      "ts_with_meta",
-      %ffmpeg(format = "mpegts", %audio(codec = "aac")).{id3_version=4}
-    ),
-    ("ts", %ffmpeg(format = "mpegts", %audio(codec = "aac")).{id3=false}),
-    ("shine", %shine),
-    ("lame", %mp3),
-    ("fdkaac", %fdkaac),
-    (
-      "mp4",
-      %ffmpeg(
-        format = "mp4",
-        frag_duration = 10,
-        movflags = "+dash+skip_sidx+skip_trailer+frag_custom",
-        %audio(codec = "aac")
+o =
+  output.file.hls(
+    segment_duration=2.,
+    segment_name=segment_name,
+    tmp_dir,
+    [
+      ("aac", %ffmpeg(format = "adts", %audio(codec = "aac")).{id3_version=3}),
+      (
+        "ts_with_meta",
+        %ffmpeg(format = "mpegts", %audio(codec = "aac")).{id3_version=4}
+      ),
+      ("ts", %ffmpeg(format = "mpegts", %audio(codec = "aac")).{id3=false}),
+      ("shine", %shine),
+      ("lame", %mp3),
+      ("fdkaac", %fdkaac),
+      (
+        "mp4",
+        %ffmpeg(
+          format = "mp4",
+          frag_duration = 10,
+          movflags = "+dash+skip_sidx+skip_trailer+frag_custom",
+          %audio(codec = "aac")
+        )
       )
-    )
-  ],
-  s
-)
+    ],
+    s
+  )
 
 o.on_file_change(synchronous=true, on_file_change)

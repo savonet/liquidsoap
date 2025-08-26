@@ -40,7 +40,7 @@ def f(_) =
   ready := true
 end
 
-s.on_track(synchronous=true,f)
+s.on_track(synchronous=true, f)
 
 output.dummy(s)
 

@@ -59,10 +59,9 @@ end
 o =
   output.file.hls(
     playlist="main.m3u8",
-    extra_tags=
-      [
-        "X-CUSTOM \n"
-      ],
+    extra_tags=[
+      "X-CUSTOM \n"
+    ],
     tmp_dir,
     [
       (

@@ -20,7 +20,6 @@ end
 protocol.add(
   "beets",
   beets_protocol,
-  syntax=
-    "same arguments as beet's random module, see \
-     https://beets.readthedocs.io/en/stable/reference/query.html"
+  syntax="same arguments as beet's random module, see \
+   https://beets.readthedocs.io/en/stable/reference/query.html"
 )

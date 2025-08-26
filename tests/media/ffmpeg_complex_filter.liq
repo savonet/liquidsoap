@@ -51,7 +51,8 @@ s' = single("annotate:tag=\"s'\":@mp3[mono].mp3")
 audio = filter(source.tracks(s).audio, source.tracks(s').audio)
 s = source({audio=audio, metadata=track.metadata(audio)})
 s.on_metadata(
-  synchronous=true, fun (m) -> if m["tag"] == "test" then test.pass() end
+  synchronous=true,
+  fun (m) -> if m["tag"] == "test" then test.pass() end
 )
 
 clock.assign_new(sync="none", [s])

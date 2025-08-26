@@ -37,15 +37,14 @@ def f() =
   end
 
   clock.assign_new(
-    on_error=
-      fun (_) ->
-        begin
-          callstack :=
-            [
-              ...(callstack()),
-              "streaming error"
-            ]
-        end,
+    on_error=fun (_) ->
+      begin
+        callstack :=
+          [
+            ...(callstack()),
+            "streaming error"
+          ]
+      end,
     [s]
   )
 

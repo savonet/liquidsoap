@@ -111,7 +111,8 @@ def medialib(
   def scan(~progress=fun (_, _) -> ()) =
     l =
       list.map(
-        fun (d) -> file.ls(absolute=true, recursive=true, d), directories()
+        fun (d) -> file.ls(absolute=true, recursive=true, d),
+        directories()
       )
 
     l = list.flatten(l)
@@ -366,7 +367,9 @@ def medialib(
     null.defined(refresh_time)
   then
     thread.run(
-      delay=null.get(refresh_time), every=null.get(refresh_time), refresh
+      delay=null.get(refresh_time),
+      every=null.get(refresh_time),
+      refresh
     )
   end
 
@@ -477,7 +480,9 @@ def medialib.sqlite(
       def last_scan() =
         let sqlite.query ([{last_scan}] : [{last_scan: float}]) =
           db.select(
-            "last_scan", table="metadata", where="file=#{sqlite.escape(f)}"
+            "last_scan",
+            table="metadata",
+            where="file=#{sqlite.escape(f)}"
           )
         last_scan
       end
@@ -545,7 +550,8 @@ def medialib.sqlite(
   def scan(~progress=fun (_, _) -> ()) =
     l =
       list.map(
-        fun (d) -> file.ls(absolute=true, recursive=true, d), directories()
+        fun (d) -> file.ls(absolute=true, recursive=true, d),
+        directories()
       )
 
     l = list.flatten(l)
@@ -693,8 +699,7 @@ def medialib.sqlite(
     end
     predicates =
       string.concat(
-        separator=
-          " AND ",
+        separator=" AND ",
         predicates()
       )
 
@@ -747,7 +752,9 @@ def medialib.sqlite(
     null.defined(refresh_time)
   then
     thread.run(
-      delay=null.get(refresh_time), every=null.get(refresh_time), refresh
+      delay=null.get(refresh_time),
+      every=null.get(refresh_time),
+      refresh
     )
   end
 

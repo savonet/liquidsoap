@@ -67,7 +67,9 @@ def f() =
 
   # Insertion of lists
   db.table.create(
-    "abc", preserve=true, [("a", "STRING"), ("b", "STRING"), ("c", "STRING")]
+    "abc",
+    preserve=true,
+    [("a", "STRING"), ("b", "STRING"), ("c", "STRING")]
   )
   db.insert.list(table="abc", [("c", "123"), ("a", "456"), ("b", "789")])
 

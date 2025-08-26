@@ -8,7 +8,8 @@ def f() =
   test.equal(null.get(default="x", null), "x")
   test.equal(
     null.find(
-      fun (x) -> if x mod 2 == 0 then 2 * x else null end, [1, 3, 2, 5]
+      fun (x) -> if x mod 2 == 0 then 2 * x else null end,
+      [1, 3, 2, 5]
     ),
     4
   )

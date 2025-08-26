@@ -225,7 +225,10 @@ end
 # @param t Track to extract from
 def track.audio.stereo.left(~id=null("track.audio.stereo.left"), t) =
   track.audio.amplify(
-    id=id, override=null, 2., track.audio.mean(track.audio.stereo.pan(-1., t))
+    id=id,
+    override=null,
+    2.,
+    track.audio.mean(track.audio.stereo.pan(-1., t))
   )
 end
 
@@ -242,7 +245,10 @@ end
 # @param s Track to extract from
 def track.audio.stereo.right(~id=null("track.audio.stereo.right"), t) =
   track.audio.amplify(
-    id=id, override=null, 2., track.audio.mean(track.audio.stereo.pan(1., t))
+    id=id,
+    override=null,
+    2.,
+    track.audio.mean(track.audio.stereo.pan(1., t))
   )
 end
 
@@ -278,7 +284,9 @@ def stereo.pan(
     tracks.{
       audio=
         track.audio.stereo.pan(
-          %argsof(track.audio.stereo.pan), pan, tracks.audio
+          %argsof(track.audio.stereo.pan),
+          pan,
+          tracks.audio
         )
     }
   )
@@ -294,7 +302,8 @@ def stretch(
 ) =
   tracks = source.tracks(s)
   source.audio(
-    id=id, track.audio.stretch(%argsof(track.audio.stretch), tracks.audio)
+    id=id,
+    track.audio.stretch(%argsof(track.audio.stretch), tracks.audio)
   )
 end
 
@@ -314,7 +323,8 @@ def stereo.ms.decode(
     tracks.{
       audio=
         track.audio.stereo.ms.decode(
-          %argsof(track.audio.stereo.ms.decode), tracks.audio
+          %argsof(track.audio.stereo.ms.decode),
+          tracks.audio
         )
     }
   )
@@ -334,7 +344,8 @@ def stereo.ms.encode(
     tracks.{
       audio=
         track.audio.stereo.ms.encode(
-          %argsof(track.audio.stereo.ms.encode), tracks.audio
+          %argsof(track.audio.stereo.ms.encode),
+          tracks.audio
         )
     }
   )
@@ -406,8 +417,7 @@ end
 
 let settings.normalize_track_gain_metadata =
   settings.make(
-    description=
-      "Metadata used to store track gain normalization metadata",
+    description="Metadata used to store track gain normalization metadata",
     "liq_normalize_track_gain"
   )
 

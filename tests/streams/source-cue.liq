@@ -26,26 +26,24 @@ s =
     title="tit",
     performer="perf",
     file="bla.mp3",
-    comment=
-      "this is a comment",
+    comment="this is a comment",
     year=2023,
     last_tracks=2,
-    map_metadata=
-      fun (m) ->
-        list.assoc.filter_map(
-          fun (x, y) ->
-            if
-              y == "title2"
-            then
-              (
-                x,
-                "title 2"
-              )
-            else
-              (x, y)
-            end,
-          m
-        ),
+    map_metadata=fun (m) ->
+      list.assoc.filter_map(
+        fun (x, y) ->
+          if
+            y == "title2"
+          then
+            (
+              x,
+              "title 2"
+            )
+          else
+            (x, y)
+          end,
+        m
+      ),
     create_cuefile,
     s
   )

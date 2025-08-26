@@ -85,8 +85,7 @@ let settings.amplify =
 
 let settings.amplify.override =
   settings.make(
-    description=
-      "Default metadata used to override amplification.",
+    description="Default metadata used to override amplification.",
     "liq_amplify"
   )
 

@@ -40,14 +40,17 @@ def f() =
   test.equal(list.assoc.nullable("b", [("a", 1), ("b", 2)]), 2)
   test.equal(list.assoc.nullable("x", [("a", 1), ("b", 2)]), null)
   test.equal(
-    list.assoc.remove("a", [("b", 2), ("a", 1), ("a", 3)]), [("b", 2), ("a", 3)]
+    list.assoc.remove("a", [("b", 2), ("a", 1), ("a", 3)]),
+    [("b", 2), ("a", 3)]
   )
 
   test.equal(
-    list.assoc.remove.all("c", [("c", 1), ("b", 2), ("c", 2)]), [("b", 2)]
+    list.assoc.remove.all("c", [("c", 1), ("b", 2), ("c", 2)]),
+    [("b", 2)]
   )
   test.equal(
-    list.assoc.remove.all("c", [("a", 1), ("b", 2)]), [("a", 1), ("b", 2)]
+    list.assoc.remove.all("c", [("a", 1), ("b", 2)]),
+    [("a", 1), ("b", 2)]
   )
   test.equal(list.for_all(fun (n) -> n > 0, []), true)
   test.equal(list.for_all(fun (n) -> n > 0, [1, 2, 3]), true)

@@ -59,8 +59,7 @@ ignore(n)
 l =
   db.select(
     table="metadata",
-    where=
-      "year >= 2000"
+    where="year >= 2000"
   )
 
 # select-end
@@ -69,8 +68,7 @@ find_artist = "Brassens"
 l' =
   db.select(
     table="metadata",
-    where=
-      "artist = #{sqlite.escape(find_artist)}"
+    where="artist = #{sqlite.escape(find_artist)}"
   )
 
 # select2-end
@@ -107,8 +105,7 @@ output(s)
 # delete-begin
 db.delete(
   table="metadata",
-  where=
-    "year < 1900"
+  where="year < 1900"
 )
 
 # delete-end

@@ -22,7 +22,8 @@ thread.run(
 )
 
 thread.run(
-  delay=0.3, {output.icecast(port=port, mount="metadata_test", %mp3, s)}
+  delay=0.3,
+  {output.icecast(port=port, mount="metadata_test", %mp3, s)}
 )
 
 i = input.harbor(buffer=2., port=port, "metadata_test")
