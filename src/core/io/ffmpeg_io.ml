@@ -216,7 +216,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private disconnect =
       let stop_task () =
         match Atomic.get connect_task with
-          | None -> ()
+          | None -> Atomic.set source_status `Stopped
           | Some t ->
               Atomic.set source_status `Stopping;
               Duppy.Async.wake_up t
@@ -239,8 +239,11 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             stop_task ()
 
     method private reconnect =
-      self#disconnect;
-      self#connect
+      match self#source_status with
+        | `Stopping | `Stopped | `Polling | `Starting -> ()
+        | `Connected _ ->
+            self#disconnect;
+            self#connect
 
     method private get_connected_container =
       match self#source_status with
