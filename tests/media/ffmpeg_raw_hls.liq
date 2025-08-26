@@ -48,7 +48,9 @@ def check_stream() =
     is_done := true
 
     file.write(
-      append=true, data="\r\n#EXT-X-ENDLIST\r\n", "#{output_dir}/mp4.m3u8"
+      append=true,
+      data="\r\n#EXT-X-ENDLIST\r\n",
+      "#{output_dir}/mp4.m3u8"
     )
 
     ojson =

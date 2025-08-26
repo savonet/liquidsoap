@@ -37,19 +37,15 @@ end
 
 server.register(
   namespace="restream",
-  description=
-    "Redirect a stream.",
-  usage=
-    "start <url>",
+  description="Redirect a stream.",
+  usage="start <url>",
   "start",
   create_stream
 )
 server.register(
   namespace="restream",
-  description=
-    "Stop a dynamic playlist.",
-  usage=
-    "stop <url>",
+  description="Stop a dynamic playlist.",
+  usage="stop <url>",
   "stop",
   delete_stream
 )

@@ -11,8 +11,7 @@ def server.rms(~id=null, s) =
   end
 
   s.register_command(
-    description=
-      "Return the current RMS of the source.",
+    description="Return the current RMS of the source.",
     usage="rms",
     "rms",
     rms
@@ -41,10 +40,8 @@ def server.insert_metadata(s) =
   end
 
   s.register_command(
-    description=
-      "Insert a metadata chunk.",
-    usage=
-      "insert key1=\"val1\",key2=\"val2\",..",
+    description="Insert a metadata chunk.",
+    usage="insert key1=\"val1\",key2=\"val2\",..",
     "insert",
     insert
   )
@@ -123,7 +120,11 @@ def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet") =
   end
 
   harbor.http.register(
-    transport=transport, port=port, method="GET", uri, webpage
+    transport=transport,
+    port=port,
+    method="GET",
+    uri,
+    webpage
   )
 
   def setter(request, response) =
@@ -136,7 +137,11 @@ def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet") =
   end
 
   harbor.http.register(
-    transport=transport, port=port, method="POST", uri, setter
+    transport=transport,
+    port=port,
+    method="POST",
+    uri,
+    setter
   )
 
   log.important(
@@ -163,8 +168,7 @@ def add_skip_command(s) =
       server.register(
         namespace="#{source.id(s)}",
         usage="skip",
-        description=
-          "Skip the current song.",
+        description="Skip the current song.",
         "skip",
         skip
       )

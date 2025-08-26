@@ -112,7 +112,8 @@ def f() =
   )
 
   test.equal(
-    string.data_uri.encode(mime="foo/bar", "✨"), "data:foo/bar;base64,4pyo"
+    string.data_uri.encode(mime="foo/bar", "✨"),
+    "data:foo/bar;base64,4pyo"
   )
 
   test.equal(
@@ -126,7 +127,8 @@ def f() =
   )
 
   test.equal(
-    string.data_uri.decode("data:foo/bar,✨"), null("✨".{mime="foo/bar"})
+    string.data_uri.decode("data:foo/bar,✨"),
+    null("✨".{mime="foo/bar"})
   )
 
   test.equal(

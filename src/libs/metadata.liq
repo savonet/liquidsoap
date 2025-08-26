@@ -193,7 +193,8 @@ end
 # @category Metadata
 def metadata.cover.remove(m) =
   list.assoc.filter(
-    fun (k, (_:string)) -> not list.mem(k, settings.encoder.metadata.cover()), m
+    fun (k, (_:string)) -> not list.mem(k, settings.encoder.metadata.cover()),
+    m
   )
 end
 

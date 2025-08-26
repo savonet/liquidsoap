@@ -5,7 +5,10 @@ def f() =
     "Functions: #{n}."
   )
   test.metric(
-    category="language", name="functions", value=float(n), unit="functions"
+    category="language",
+    name="functions",
+    value=float(n),
+    unit="functions"
   )
 
   n = protocol.count()
@@ -13,7 +16,10 @@ def f() =
     "Protocols: #{n}."
   )
   test.metric(
-    category="language", name="protocols", value=float(n), unit="protocols"
+    category="language",
+    name="protocols",
+    value=float(n),
+    unit="protocols"
   )
 
   test.pass()

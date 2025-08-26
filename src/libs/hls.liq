@@ -10,7 +10,7 @@ def hls.playlist.main(~extra_tags=[], ~prefix="", ~version=7, streams) =
       fun (streams, s) ->
         begin
           let ({bandwidth, codecs, video_size?, ...s} :
-            string.{ bandwidth: int, codecs: string, video_size?: (int*int) }
+            string.{ bandwidth: int, codecs: string, video_size?: (int * int) }
           ) = s
           resolution =
             if
@@ -54,7 +54,10 @@ def replaces output.file.hls(
     fun (~extra_tags, ~prefix, ~version, streams) ->
       null(
         hls.playlist.main(
-          extra_tags=extra_tags, prefix=prefix, version=version, streams
+          extra_tags=extra_tags,
+          prefix=prefix,
+          version=version,
+          streams
         )
       )
   ),
@@ -110,7 +113,9 @@ def input.hls.native(~id=null, ~reload=10., uri) =
 
         s =
           list.fold(
-            fun (cur, el) -> "#{cur},#{fst(el)}=#{escape(snd(el))}", "", meta
+            fun (cur, el) -> "#{cur},#{fst(el)}=#{escape(snd(el))}",
+            "",
+            meta
           )
 
         s = if s == "" then file else "annotate:#{s}:#{file}" end
@@ -310,7 +315,11 @@ def output.harbor.hls.https(
 ) =
   def serve(~port, ~path, ~content_type, dir) =
     harbor.https.static(
-      port=port, path=path, content_type=content_type, headers=headers, dir
+      port=port,
+      path=path,
+      content_type=content_type,
+      headers=headers,
+      dir
     )
   end
 

@@ -13,7 +13,8 @@ unmask = video.frei0r.invert0r(mask)
 # Put the pixellized face over the video
 s =
   video.frei0r.addition(
-    video.frei0r.multiply(mask, censored), video.frei0r.multiply(unmask, cam)
+    video.frei0r.multiply(mask, censored),
+    video.frei0r.multiply(unmask, cam)
   )
 
 # We have to bufferize the source

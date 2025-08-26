@@ -4,7 +4,11 @@ settings.srt.prefer_address := "ipv4"
 def fn() =
   o =
     output.srt(
-      %wav, blank(), port=port, mode="listener", passphrase="foobarfoobarfoobar"
+      %wav,
+      blank(),
+      port=port,
+      mode="listener",
+      passphrase="foobarfoobarfoobar"
     )
 
   o.on_connect(synchronous=true, test.pass)

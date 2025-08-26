@@ -145,7 +145,10 @@ def f() =
   end
 
   harbor.http.register(
-    "/in_memory_file_upload", method="PUT", port=5427, handler
+    "/in_memory_file_upload",
+    method="PUT",
+    port=5427,
+    handler
   )
 
   resp =
@@ -192,8 +195,10 @@ def f() =
   harbor.http.register("/json_put", method="PUT", port=5427, handler)
   resp =
     http.put(
-      headers=
-        [("Content-Type", "application/json"), ("Accept", "application/json")],
+      headers=[
+        ("Content-Type", "application/json"),
+        ("Accept", "application/json")
+      ],
       data=data,
       "http://localhost:5427/json_put"
     )

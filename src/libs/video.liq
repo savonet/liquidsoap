@@ -94,7 +94,13 @@ def track.video.add_request(
 ) =
   image =
     orig_request.image(
-      id=id, fallible=fallible, x=x, y=y, width=width, height=height, request
+      id=id,
+      fallible=fallible,
+      x=x,
+      y=y,
+      width=width,
+      height=height,
+      request
     )
 
   let {video = image} = source.tracks(image)
@@ -183,7 +189,13 @@ def video.add_image(
   let {video, ...tracks} = source.tracks(s)
   video =
     track.video.add_image(
-      fallible=fallible, width=width, height=height, x=x, y=y, file=file, video
+      fallible=fallible,
+      width=width,
+      height=height,
+      x=x,
+      y=y,
+      file=file,
+      video
     )
 
   source(id=id, tracks.{video=video})
@@ -256,7 +268,12 @@ def output.youtube.live.rtmp(
   s
 ) =
   output.url(
-    id=id, fallible=fallible, start=start, url="#{url}/#{key}", encoder, s
+    id=id,
+    fallible=fallible,
+    start=start,
+    url="#{url}/#{key}",
+    encoder,
+    s
   )
 end
 
@@ -498,8 +515,7 @@ end
 
 let settings.video.text =
   settings.make(
-    description=
-      "`video.text` implementation.",
+    description="`video.text` implementation.",
     fst(list.hd(video.text.available()))
   )
 

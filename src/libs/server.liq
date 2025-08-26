@@ -8,8 +8,7 @@ end
 
 server.register(
   namespace="runtime.gc",
-  description=
-    "Run a full memory collection",
+  description="Run a full memory collection",
   "full_major",
   fun (_) ->
     begin
@@ -20,8 +19,7 @@ server.register(
 
 server.register(
   namespace="runtime.gc",
-  description=
-    "Compact OCaml memory",
+  description="Compact OCaml memory",
   "compact",
   fun (_) ->
     begin
@@ -32,8 +30,7 @@ server.register(
 
 server.register(
   namespace="runtime",
-  description=
-    "Return a description of the memory used by the process",
+  description="Return a description of the memory used by the process",
   "memory",
   fun (_) ->
     begin

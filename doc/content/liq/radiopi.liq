@@ -51,7 +51,12 @@ url = "http://radiopi.org"
 live =
   blank.strip(
     input.harbor(
-      id="live", port=8000, password=pass, buffer=8., max=20., "live.ogg"
+      id="live",
+      port=8000,
+      password=pass,
+      buffer=8.,
+      max=20.,
+      "live.ogg"
     ),
     max_blank=10.,
     threshold=-50.
@@ -143,7 +148,9 @@ def lastfm(m) =
     canal = if (m["canal"] == "That70Sound") then "70sound" else m["canal"] end
     username = "radiopi-" ^ canal
     audioscrobbler.api.track.scrobble.metadata(
-      username=username, password="xXXxx", m
+      username=username,
+      password="xXXxx",
+      m
     )
   end
 end

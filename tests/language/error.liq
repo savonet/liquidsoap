@@ -64,8 +64,7 @@ def f() =
 
   pos =
     string.concat(
-      separator=
-        ", ",
+      separator=", ",
       list.map(fun (pos) -> pos.to_string(), trace)
     )
 

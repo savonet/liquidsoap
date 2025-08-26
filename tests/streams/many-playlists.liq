@@ -11,7 +11,8 @@ def f() =
   )
   l =
     list.init(
-      100, fun (i) -> playlist(id="playlist#{i}", mode="normal", "playlist")
+      100,
+      fun (i) -> playlist(id="playlist#{i}", mode="normal", "playlist")
     )
 
   print("done")

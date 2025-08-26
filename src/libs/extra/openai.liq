@@ -52,14 +52,13 @@ def openai.chat(
     http.post(
       data=json.stringify(payload),
       timeout=timeout,
-      headers=
-        [
-          ("Content-Type", "application/json"),
-          (
-            "Authorization",
-            "Bearer #{(key : string)}"
-          )
-        ],
+      headers=[
+        ("Content-Type", "application/json"),
+        (
+          "Authorization",
+          "Bearer #{(key : string)}"
+        )
+      ],
       "#{base_url}/v1/chat/completions"
     )
 
@@ -129,14 +128,13 @@ def openai.speech(
     http.post.stream(
       data=json.stringify(payload),
       timeout=timeout,
-      headers=
-        [
-          ("Content-Type", "application/json"),
-          (
-            "Authorization",
-            "Bearer #{(key : string)}"
-          )
-        ],
+      headers=[
+        ("Content-Type", "application/json"),
+        (
+          "Authorization",
+          "Bearer #{(key : string)}"
+        )
+      ],
       on_body_data=on_data,
       "#{base_url}/v1/audio/speech"
     )

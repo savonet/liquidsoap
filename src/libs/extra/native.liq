@@ -29,7 +29,10 @@ def native.fallback(~id=null, ~track_sensitive=true, sources) =
     not (list.exists(source.fallible, getter.get(sources)))
 
   source.dynamic(
-    id=id, infallible=infallible, track_sensitive=track_sensitive, s
+    id=id,
+    infallible=infallible,
+    track_sensitive=track_sensitive,
+    s
   )
 end
 

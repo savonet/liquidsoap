@@ -7,8 +7,7 @@ def replaces request.dynamic(%argsof(request.dynamic), fn) =
       {
         server.register(
           namespace=source.id(s),
-          description=
-            "Flush the queue and skip the current track",
+          description="Flush the queue and skip the current track",
           "flush_and_skip",
           fun (_) ->
             try
@@ -35,8 +34,7 @@ def replaces blank.strip(%argsof(blank.strip), s) =
       {
         server.register(
           namespace=source.id(s),
-          description=
-            "Check if the source is stripping.",
+          description="Check if the source is stripping.",
           "is_stripping",
           fun (_) -> begin "#{s.is_blank()}" end
         )
@@ -56,8 +54,7 @@ def replaces output.external(%argsof(output.external), f, p, s) =
       {
         server.register(
           namespace=s.id(),
-          description=
-            "Re-open the output.",
+          description="Re-open the output.",
           "reopen",
           fun (_) ->
             begin
@@ -81,8 +78,7 @@ def replaces input.external.avi(%argsof(input.external.avi), s) =
       {
         server.register(
           namespace=source.id(s),
-          description=
-            "Show internal buffer length (in seconds).",
+          description="Show internal buffer length (in seconds).",
           "buffer_length",
           fun (_) ->
             begin
@@ -112,8 +108,7 @@ def replaces input.harbor(%argsof(input.harbor), s) =
         begin
           server.register(
             namespace=source.id(s),
-            description=
-              "Stop current source client, if connected.",
+            description="Stop current source client, if connected.",
             "stop",
             fun (_) ->
               begin
@@ -124,16 +119,14 @@ def replaces input.harbor(%argsof(input.harbor), s) =
 
           server.register(
             namespace=source.id(s),
-            description=
-              "Display current status.",
+            description="Display current status.",
             "status",
             fun (_) -> begin s.status() end
           )
 
           server.register(
             namespace=source.id(s),
-            description=
-              "Get the buffer's length, in seconds.",
+            description="Get the buffer's length, in seconds.",
             "buffer_length",
             fun (_) -> begin "#{s.buffer_length()}" end
           )
@@ -156,8 +149,7 @@ def replaces input.http(%argsof(input.http), s) =
         begin
           server.register(
             namespace=source.id(s),
-            description=
-              "Start the source, if needed.",
+            description="Start the source, if needed.",
             "start",
             fun (_) ->
               begin
@@ -168,8 +160,7 @@ def replaces input.http(%argsof(input.http), s) =
 
           server.register(
             namespace=source.id(s),
-            description=
-              "Stop the source if connected.",
+            description="Stop the source if connected.",
             "stop",
             fun (_) ->
               begin
@@ -180,11 +171,9 @@ def replaces input.http(%argsof(input.http), s) =
 
           server.register(
             namespace=source.id(s),
-            description=
-              "Get or set the stream's HTTP URL. Setting a new URL will not \
-               affect an ongoing connection.",
-            usage=
-              "url [url]",
+            description="Get or set the stream's HTTP URL. Setting a new URL \
+             will not affect an ongoing connection.",
+            usage="url [url]",
             "url",
             fun (url) ->
               begin
@@ -203,19 +192,18 @@ def replaces input.http(%argsof(input.http), s) =
 
           server.register(
             namespace=source.id(s),
-            description=
-              "Return the current status of the source, either \"stopped\" (the \
-               source isn't trying to relay the HTTP stream), \"polling\" \
-               (attempting to connect to the HTTP stream) or \"connected <url>\" \
-               (connected to <url>, buffering or playing back the stream).",
+            description="Return the current status of the source, either \
+             \"stopped\" (the source isn't trying to relay the HTTP stream), \
+             \"polling\" (attempting to connect to the HTTP stream) or \
+             \"connected <url>\" (connected to <url>, buffering or playing back \
+             the stream).",
             "status",
             fun (_) -> begin s.status() end
           )
 
           server.register(
             namespace=source.id(s),
-            description=
-              "Get the buffer's length, in seconds.",
+            description="Get the buffer's length, in seconds.",
             "buffer_length",
             fun (_) ->
               "#{list.fold(fun (l, (_, l')) -> max(l, l'), 0., s.buffered())}"
@@ -238,9 +226,8 @@ def replaces lufs(%argsof(lufs), s) =
       {
         server.register(
           namespace=source.id(s),
-          description=
-            "Current value for the LUFS (short-term value computed over the \
-             duration specified by the `window` parameter).",
+          description="Current value for the LUFS (short-term value computed \
+           over the duration specified by the `window` parameter).",
           "lufs",
           fun (_) ->
             "#{s.lufs()} LUFS"
@@ -248,8 +235,7 @@ def replaces lufs(%argsof(lufs), s) =
 
         server.register(
           namespace=source.id(s),
-          description=
-            "Average LUFS value over the current track.",
+          description="Average LUFS value over the current track.",
           "lufs_integrated",
           fun (_) ->
             "#{s.lufs_integrated()} LUFS"
@@ -257,8 +243,7 @@ def replaces lufs(%argsof(lufs), s) =
 
         server.register(
           namespace=source.id(s),
-          description=
-            "Momentary LUFS (over a 400ms window).",
+          description="Momentary LUFS (over a 400ms window).",
           "lufs_momentary",
           fun (_) ->
             "#{s.lufs_momentary()} LUFS"
@@ -271,8 +256,7 @@ def replaces lufs(%argsof(lufs), s) =
 end
 
 server.register(
-  description=
-    "Shutdown the running liquidsoap instance",
+  description="Shutdown the running liquidsoap instance",
   "shutdown",
   fun (_) ->
     begin

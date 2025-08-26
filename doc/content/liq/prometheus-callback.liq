@@ -2,8 +2,7 @@
 is_playing_metric =
   prometheus.gauge(
     labels=["source"],
-    help=
-      "Whether source is playing.",
+    help="Whether source is playing.",
     "liquidsoap_is_playing"
   )
 

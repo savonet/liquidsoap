@@ -41,8 +41,7 @@ end
 
 server.register(
   usage="list",
-  description=
-    "List available interactive variables.",
+  description="List available interactive variables.",
   namespace="var",
   "list",
   interactive.list
@@ -195,7 +194,8 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
   variables := (name, {type=type, description=description})::variables()
   variables :=
     list.sort(
-      fun (n, n') -> if fst(n) < fst(n') then -1 else 1 end, variables()
+      fun (n, n') -> if fst(n) < fst(n') then -1 else 1 end,
+      variables()
     )
 
 %ifdef osc.on_float
@@ -264,8 +264,7 @@ end
 
 server.register(
   namespace="var",
-  description=
-    "Get the value of a variable.",
+  description="Get the value of a variable.",
   "get",
   interactive.get
 )
@@ -296,10 +295,8 @@ def interactive.set(arg) =
 end
 
 server.register(
-  usage=
-    "set <name> = <value>",
-  description=
-    "Set the value of a variable.",
+  usage="set <name> = <value>",
+  description="Set the value of a variable.",
   namespace="var",
   "set",
   interactive.set
@@ -644,7 +641,11 @@ def interactive.harbor(
   end
 
   harbor.http.register(
-    transport=transport, port=port, method="GET", uri, webpage
+    transport=transport,
+    port=port,
+    method="GET",
+    uri,
+    webpage
   )
 
   def setter(request, _) =
@@ -674,7 +675,11 @@ def interactive.harbor(
   end
 
   harbor.http.register(
-    transport=transport, port=port, method="POST", uri, setter
+    transport=transport,
+    port=port,
+    method="POST",
+    uri,
+    setter
   )
 
   log.important(
@@ -816,17 +821,32 @@ def compress.multiband.interactive(~id=null, ~bands=5, s) =
 
     attack =
       interactive.float(
-        "#{prefix}attack#{i}", unit="ms", min=0., max=1000., step=10., 100.
+        "#{prefix}attack#{i}",
+        unit="ms",
+        min=0.,
+        max=1000.,
+        step=10.,
+        100.
       )
 
     release =
       interactive.float(
-        "#{prefix}release#{i}", unit="ms", min=0., max=1000., step=10., 200.
+        "#{prefix}release#{i}",
+        unit="ms",
+        min=0.,
+        max=1000.,
+        step=10.,
+        200.
       )
 
     threshold =
       interactive.float(
-        "#{prefix}threshold#{i}", unit="dB", min=-20., max=0., step=0.1, -10.
+        "#{prefix}threshold#{i}",
+        unit="dB",
+        min=-20.,
+        max=0.,
+        step=0.1,
+        -10.
       )
 
     ratio =
@@ -834,7 +854,12 @@ def compress.multiband.interactive(~id=null, ~bands=5, s) =
 
     gain =
       interactive.float(
-        "#{prefix}gain#{i}", unit="dB", min=0., max=30., step=0.1, 3.
+        "#{prefix}gain#{i}",
+        unit="dB",
+        min=0.,
+        max=30.,
+        step=0.1,
+        3.
       )
 
     {

@@ -43,7 +43,8 @@ def tests() =
   end
 
   test.equal(
-    string.getter.flush(separator=",", getter(gen)), "foobar,foobar,foobar"
+    string.getter.flush(separator=",", getter(gen)),
+    "foobar,foobar,foobar"
   )
 
   test.equal(string.getter.flush(getter("foobar")), "foobar")

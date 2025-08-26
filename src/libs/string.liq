@@ -75,13 +75,7 @@ end
 # @param ~substring Substring to look for.
 # @param ~suffix Suffix to look for.
 # @param s The string to look into.
-def string.contains(
-  ~encoding=null,
-  ~prefix="",
-  ~substring="",
-  ~suffix="",
-  s
-) =
+def string.contains(~encoding=null, ~prefix="", ~substring="", ~suffix="", s) =
   ans = ref(prefix == "" and substring == "" and suffix == "")
   if
     prefix != ""

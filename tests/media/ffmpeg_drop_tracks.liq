@@ -55,7 +55,9 @@ def check_stream() =
 
     def check_stream(name) =
       file.write(
-        append=true, data="\r\n#EXT-X-ENDLIST\r\n", "#{output_dir}/#{name}.m3u8"
+        append=true,
+        data="\r\n#EXT-X-ENDLIST\r\n",
+        "#{output_dir}/#{name}.m3u8"
       )
 
       stream = process.quote("#{output_dir}/#{name}.m3u8")
@@ -80,7 +82,8 @@ def check_stream() =
 
       audio_stream =
         list.find(
-          (fun (stream) -> null.defined(stream.sample_rate)), parsed.streams
+          (fun (stream) -> null.defined(stream.sample_rate)),
+          parsed.streams
         )
 
       null.get(audio_stream.channel_layout) == "stereo"

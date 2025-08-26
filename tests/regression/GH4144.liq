@@ -3,24 +3,20 @@ def metadata_test(_) =
   try
     http.response(
       status_code=200,
-      headers=
-        [
-          ("Content-Type", "application/json"),
-          ("Access-Control-Allow-Origin", "*")
-        ],
-      content_type=
-        "application/json; charset=UTF-8",
+      headers=[
+        ("Content-Type", "application/json"),
+        ("Access-Control-Allow-Origin", "*")
+      ],
+      content_type="application/json; charset=UTF-8",
       data=json.stringify(data, compact=true)
     )
   catch error do
     log.severe(error.message, label="http")
     http.response(
       status_code=500,
-      content_type=
-        "application/json; charset=UTF-8",
-      data=
-        '{"status"="error","message"="Failed to serialize response data"}' ^
-          "\n"
+      content_type="application/json; charset=UTF-8",
+      data='{"status"="error","message"="Failed to serialize response data"}' ^
+        "\n"
     )
   end
 end

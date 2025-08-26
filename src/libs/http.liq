@@ -35,13 +35,13 @@ def http.multipart_form_data(~boundary=null, data) =
     attributes = [("name", entry.name), ...entry.attributes]
     attributes =
       list.map(
-        fun (v) -> "#{string(fst(v))}=#{string.quote(snd(v))}", attributes
+        fun (v) -> "#{string(fst(v))}=#{string.quote(snd(v))}",
+        attributes
       )
 
     attributes =
       string.concat(
-        separator=
-          "; ",
+        separator="; ",
         attributes
       )
     headers =
@@ -328,7 +328,10 @@ def harbor.http.regexp_of_path(path) =
   def named_capture(s) =
     name =
       string.sub(
-        encoding="ascii", s, start=1, length=string.bytes.length(s) - 1
+        encoding="ascii",
+        s,
+        start=1,
+        length=string.bytes.length(s) - 1
       )
     "(?<#{name}>[^/]+)"
   end
@@ -396,7 +399,9 @@ def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) =
   end
 
   harbor.http.register(
-    %argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler
+    %argsof(harbor.http.register),
+    harbor.http.regexp_of_path(path),
+    handler
   )
 end
 
@@ -504,7 +509,9 @@ def replaces harbor.http.register(
   handler
 ) =
   harbor.http.register.regexp(
-    %argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler
+    %argsof(harbor.http.register),
+    harbor.http.regexp_of_path(path),
+    handler
   )
 end
 
@@ -664,7 +671,11 @@ def replaces harbor.http.static(
   serve =
     fun (~method, uri, handler) ->
       harbor.http.register(
-        transport=transport, port=port, method=method, uri, handler
+        transport=transport,
+        port=port,
+        method=method,
+        uri,
+        handler
       )
 
   harbor.http.static.base(
@@ -843,8 +854,7 @@ let settings.http.mime =
 
 let settings.http.mime.extnames =
   settings.make(
-    description=
-      "MIME to file extension mappings",
+    description="MIME to file extension mappings",
     [
       ("application/mp4", ".mp4"),
       ("application/ogg", ".ogg"),
@@ -964,7 +974,8 @@ def http.headers.content_disposition(headers) =
     (
       filename,
       list.filter(
-        fun (v) -> fst(v) != "filename" and fst(v) != "filename*", args
+        fun (v) -> fst(v) != "filename" and fst(v) != "filename*",
+        args
       )
     )
   end

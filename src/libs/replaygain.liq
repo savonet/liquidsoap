@@ -128,6 +128,8 @@ def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
   end
 
   decoder.metadata.add(
-    reentrant=true, "replaygain_track_gain", replaygain_metadata
+    reentrant=true,
+    "replaygain_track_gain",
+    replaygain_metadata
   )
 end

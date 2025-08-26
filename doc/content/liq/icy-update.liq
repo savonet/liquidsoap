@@ -15,7 +15,10 @@ def icy_update(v) =
 
   # Update metadata
   icy.update_metadata(
-    mount="/mystream", password="hackme", host="myserver.net", meta
+    mount="/mystream",
+    password="hackme",
+    host="myserver.net",
+    meta
   )
   "Done !"
 end
@@ -23,9 +26,7 @@ end
 server.register(
   "update",
   namespace="metadata",
-  description=
-    "Update metadata",
-  usage=
-    "update title=foo,album=bar,..",
+  description="Update metadata",
+  usage="update title=foo,album=bar,..",
   icy_update
 )

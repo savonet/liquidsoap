@@ -6,8 +6,7 @@ f = radio.insert_metadata
 # BEGIN
 radio =
   source.cue(
-    title=
-      "My stream",
+    title="My stream",
     file="backup.mp3",
     "/tmp/backup.cue",
     radio

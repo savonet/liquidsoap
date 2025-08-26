@@ -14,10 +14,8 @@ end
 # Register the function
 server.register(
   namespace=source.id(s),
-  description=
-    "Seek to a relative position in source #{source.id(s)}",
-  usage=
-    "seek <duration>",
+  description="Seek to a relative position in source #{source.id(s)}",
+  usage="seek <duration>",
   "seek",
   seek
 )

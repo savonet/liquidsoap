@@ -12,8 +12,7 @@ def handler(request) =
 
   http.response(
     content_type="text/html",
-    data=
-      "<p>ok, this works!</p>"
+    data="<p>ok, this works!</p>"
   )
 end
 

@@ -47,7 +47,8 @@ def compress.exponential(%argsof(track.audio.compress.exponential), s) =
     tracks.{
       audio=
         track.audio.compress.exponential(
-          %argsof(track.audio.compress.exponential), tracks.audio
+          %argsof(track.audio.compress.exponential),
+          tracks.audio
         )
     }
   )
@@ -176,7 +177,8 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
       not getter.is_constant(wet) or getter.get(wet) != 1.
     then
       add(
-        normalize=false, [amplify({1. - getter.get(wet)}, s), amplify(wet, c)]
+        normalize=false,
+        [amplify({1. - getter.get(wet)}, s), amplify(wet, c)]
       )
     else
       c
@@ -400,8 +402,7 @@ def mix(~id=null, ~register_server_commands=true, sources) =
     end
 
     s.register_command(
-      description=
-        "Skip current track on all enabled sources.",
+      description="Skip current track on all enabled sources.",
       "skip",
       fun (_) ->
         begin
@@ -416,10 +417,8 @@ def mix(~id=null, ~register_server_commands=true, sources) =
     )
 
     s.register_command(
-      description=
-        "Set volume for a given source.",
-      usage=
-        "volume <source nb> <vol%>",
+      description="Set volume for a given source.",
+      usage="volume <source nb> <vol%>",
       "volume",
       fun (v) ->
         begin
@@ -435,10 +434,8 @@ def mix(~id=null, ~register_server_commands=true, sources) =
     )
 
     s.register_command(
-      description=
-        "Enable/disable a source.",
-      usage=
-        "select <source nb> <true|false>",
+      description="Enable/disable a source.",
+      usage="select <source nb> <true|false>",
       "select",
       fun (arg) ->
         begin
@@ -454,10 +451,8 @@ def mix(~id=null, ~register_server_commands=true, sources) =
     )
 
     s.register_command(
-      description=
-        "Enable/disable automatic stop at the end of track.",
-      usage=
-        "single <source nb> <true|false>",
+      description="Enable/disable automatic stop at the end of track.",
+      usage="single <source nb> <true|false>",
       "single",
       fun (arg) ->
         begin
@@ -473,8 +468,7 @@ def mix(~id=null, ~register_server_commands=true, sources) =
     )
 
     s.register_command(
-      description=
-        "Display current status.",
+      description="Display current status.",
       "status",
       fun (i) ->
         begin
@@ -487,13 +481,11 @@ def mix(~id=null, ~register_server_commands=true, sources) =
     )
 
     s.register_command(
-      description=
-        "Print the list of input sources.",
+      description="Print the list of input sources.",
       "inputs",
       fun (_) ->
         string.concat(
-          separator=
-            " ",
+          separator=" ",
           list.map(fun (input) -> source.id(input.source), inputs)
         )
     )

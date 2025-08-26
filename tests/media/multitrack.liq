@@ -38,7 +38,10 @@ s =
 meta_seen = ref(false)
 track_seen = ref(false)
 
-s.on_metadata(synchronous=true, fun (m) -> if m["foo"] == "bla" then meta_seen := true end)
+s.on_metadata(
+  synchronous=true,
+  fun (m) -> if m["foo"] == "bla" then meta_seen := true end
+)
 
 s.on_track(synchronous=true, fun (_) -> track_seen := true)
 

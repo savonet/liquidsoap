@@ -41,7 +41,10 @@ def f() =
   )
 
   osc.native.send_float(
-    host="localhost", port=settings.oscnative.port(), "/bla", 42.
+    host="localhost",
+    port=settings.oscnative.port(),
+    "/bla",
+    42.
   )
 
   sleep(1.)
@@ -61,7 +64,10 @@ def f() =
   )
 
   osc.native.send_string(
-    host="localhost", port=settings.oscnative.port(), "/bla", "xxx"
+    host="localhost",
+    port=settings.oscnative.port(),
+    "/bla",
+    "xxx"
   )
 
   sleep(1.)

@@ -103,7 +103,10 @@ def overlap_sources(
   def on_offset(s) =
     let (s, offset) = metadata.getter.source.float(-1., start_next, s)
     s.on_position(
-      synchronous=true, allow_partial=true, position=offset, on_start_next
+      synchronous=true,
+      allow_partial=true,
+      position=offset,
+      on_start_next
     )
   end
 
@@ -332,7 +335,10 @@ def source.cue(
 
     write =
       stdlib_file.write.stream(
-        append=append, atomic=true, temp_dir=temp_dir, filename
+        append=append,
+        atomic=true,
+        temp_dir=temp_dir,
+        filename
       )
 
     # Append to the file.

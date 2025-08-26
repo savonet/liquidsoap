@@ -16,7 +16,10 @@ end
 
 s =
   playlist(
-    check_next=filter, mode="randomize", reload_mode="rounds", "playlist"
+    check_next=filter,
+    mode="randomize",
+    reload_mode="rounds",
+    "playlist"
   )
 
 s = test.check_non_repeating(nb_files=2, nb_rounds=10, s)

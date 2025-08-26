@@ -92,7 +92,10 @@ def f() =
   end
 
   harbor.http.register.regexp(
-    r/(?<foo>[^\/]+)\/full\/(?<bla>[^\/]+)/g, method="POST", port=3456, handler
+    r/(?<foo>[^\/]+)\/full\/(?<bla>[^\/]+)/g,
+    method="POST",
+    port=3456,
+    handler
   )
 
   resp =
@@ -140,7 +143,8 @@ def f() =
   harbor.http.register("/large_non_chunked", method="POST", port=3456, handler)
   resp =
     http.post(
-      data=string.make(10_000), "http://localhost:3456/large_non_chunked"
+      data=string.make(10_000),
+      "http://localhost:3456/large_non_chunked"
     )
 
   test.equal(resp.status_message, "OK")
@@ -280,7 +284,10 @@ def f() =
   transport = http.transport.ssl(certificate="foo", key="bla")
   try
     harbor.http.register(
-      "/default", transport=transport, port=3456, fun (_, _) -> ()
+      "/default",
+      transport=transport,
+      port=3456,
+      fun (_, _) -> ()
     )
 
     test.fail()

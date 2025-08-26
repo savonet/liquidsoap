@@ -59,7 +59,12 @@ def track.metadata.deduplicate(
   end
 
   track.metadata.map(
-    id=id, insert_missing=false, update=false, strip=true, f, t
+    id=id,
+    insert_missing=false,
+    update=false,
+    strip=true,
+    f,
+    t
   )
 end
 
@@ -154,7 +159,9 @@ def source.run(s, ~delay=0., ~every=null, f) =
       source.time(s) >= next()
     then
       null.case(
-        every, {next := infinity}, fun (every) -> next := next() + every
+        every,
+        {next := infinity},
+        fun (every) -> next := next() + every
       )
 
       f()
@@ -186,7 +193,9 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
 
   d =
     source.dynamic(
-      track_sensitive=true, merge={merge and null.defined(pending)}, next
+      track_sensitive=true,
+      merge={merge and null.defined(pending)},
+      next
     )
 
   def f(m) =
@@ -252,7 +261,8 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
   end
 
   s.on_track(
-    synchronous=true, fun (m) -> m == [] ? last_meta := null : on_meta(m)
+    synchronous=true,
+    fun (m) -> m == [] ? last_meta := null : on_meta(m)
   )
   s.on_metadata(synchronous=true, on_meta)
 

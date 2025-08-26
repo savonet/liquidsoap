@@ -155,8 +155,7 @@ def request.queue(
     end
 
     s.register_command(
-      description=
-        "Flush the queue and skip the current track",
+      description="Flush the queue and skip the current track",
       "flush_and_skip",
       fun (_) ->
         try
@@ -169,10 +168,8 @@ def request.queue(
     )
 
     s.register_command(
-      description=
-        "Push a new request in the queue.",
-      usage=
-        "push <uri>",
+      description="Push a new request in the queue.",
+      usage="push <uri>",
       "push",
       push
     )
@@ -180,15 +177,13 @@ def request.queue(
     def show_queue(_) =
       queue = s.queue()
       string.concat(
-        separator=
-          " ",
+        separator=" ",
         list.map(fun (r) -> string(request.id(r)), queue)
       )
     end
 
     s.register_command(
-      description=
-        "Display current queue content.",
+      description="Display current queue content.",
       usage="queue",
       "queue",
       show_queue
@@ -200,8 +195,7 @@ def request.queue(
     end
 
     s.register_command(
-      description=
-        "Skip current song.",
+      description="Skip current song.",
       usage="skip",
       "skip",
       skip
@@ -354,7 +348,11 @@ def request.single(
     then
       s = mk_source("#{id}.actual")
       source.dynamic(
-        id=id, infallible=infallible, self_sync=false, track_sensitive=true, {s}
+        id=id,
+        infallible=infallible,
+        self_sync=false,
+        track_sensitive=true,
+        {s}
       )
     else
       mk_source(id)

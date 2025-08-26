@@ -6,8 +6,7 @@
 def enable_external_ffmpeg_decoder(~binary="ffmpeg", ~mimes, ~file_extensions) =
   decoder.add(
     name="FFMPEG",
-    description=
-      "Decode files using the ffmpeg decoder binary",
+    description="Decode files using the ffmpeg decoder binary",
     mimes=mimes,
     file_extensions=file_extensions,
     fun (~rlog, ~maxtime:_, fname) ->
@@ -74,8 +73,7 @@ def enable_external_openmpt123_decoder(
 ) =
   decoder.add(
     name="OPENMPT123",
-    description=
-      "Decode files using the openmpt123 decoder binary",
+    description="Decode files using the openmpt123 decoder binary",
     mimes=mimes,
     file_extensions=file_extensions,
     fun (~rlog, ~maxtime:_, infile) ->

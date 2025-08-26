@@ -2,22 +2,19 @@ let settings.lufs = ()
 
 let settings.lufs.track_gain_target =
   settings.make(
-    description=
-      "Target LUFS All available autocue implementations",
+    description="Target LUFS All available autocue implementations",
     -16.
   )
 
 let settings.lufs.integrated_metadata =
   settings.make(
-    description=
-      "Metadata used to store integrated LUFS",
+    description="Metadata used to store integrated LUFS",
     "liq_integrated_lufs"
   )
 
 let settings.lufs.decoding_ratio =
   settings.make(
-    description=
-      "Decoding ratio used when decoding integrated LUFS from files",
+    description="Decoding ratio used when decoding integrated LUFS from files",
     50.
   )
 

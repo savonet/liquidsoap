@@ -47,8 +47,7 @@ def playlist.parse.cue.full(~pwd=null, content) =
           (string.unquote('"#{filename}"'), file_type)
         else
           get_last(
-            char=
-              " ",
+            char=" ",
             [],
             match_chars
           )
@@ -312,10 +311,14 @@ def playlist.parse.cue.full(~pwd=null, content) =
       then
         let (file, track, content) =
           parse_track(
-            file=file, track={...null.get(track), indexes=[]}, content
+            file=file,
+            track={...null.get(track), indexes=[]},
+            content
           )
         parse_content(
-          file=file, sheet={...sheet, tracks=[...sheet.tracks, track]}, content
+          file=file,
+          sheet={...sheet, tracks=[...sheet.tracks, track]},
+          content
         )
       else
         sheet_attributes =
@@ -352,7 +355,9 @@ def playlist.parse.cue.full(~pwd=null, content) =
         end
 
         parse_content(
-          file=file, sheet=check_attribute(attribute_names), content
+          file=file,
+          sheet=check_attribute(attribute_names),
+          content
         )
       end
     end
@@ -368,29 +373,25 @@ let settings.playlist.cue =
 
 let settings.playlist.cue.pregap_metadata =
   settings.make(
-    description=
-      "Metadata used to pass pre-gap cue metadata",
+    description="Metadata used to pass pre-gap cue metadata",
     "liq_pregap"
   )
 
 let settings.playlist.cue.index_zero_metadata =
   settings.make(
-    description=
-      "Metadata used to pass index 0 cue metadata",
+    description="Metadata used to pass index 0 cue metadata",
     "liq_index_zero"
   )
 
 let settings.playlist.cue.index_zero_filename_metadata =
   settings.make(
-    description=
-      "Metadata used to pass index 0 filename metadata",
+    description="Metadata used to pass index 0 filename metadata",
     "liq_index_zero_filename"
   )
 
 let settings.playlist.cue.postgap_metadata =
   settings.make(
-    description=
-      "Metadata used to pass pre-gap cue metadata",
+    description="Metadata used to pass pre-gap cue metadata",
     "liq_postgap"
   )
 
@@ -534,8 +535,7 @@ end
 
 let settings.playlist.mime_types.basic =
   settings.make(
-    description=
-      "Mime-types used for guessing text-based playlists.",
+    description="Mime-types used for guessing text-based playlists.",
     [
       {
         name=
@@ -564,8 +564,7 @@ let settings.playlist.mime_types.basic =
 %ifdef playlist.parse.xml
 let settings.playlist.mime_types.xml =
   settings.make(
-    description=
-      "Mime-types used for guessing xml-based playlists.",
+    description="Mime-types used for guessing xml-based playlists.",
     [
       {
         name=
@@ -604,7 +603,10 @@ let register_playlist_parsers =
           list.iter(
             fun ({name, mimes, strict, parser}) ->
               playlist.parse.register(
-                name=name, mimes=mimes, strict=strict, parser
+                name=name,
+                mimes=mimes,
+                strict=strict,
+                parser
               ),
             parsers
           )
@@ -1074,7 +1076,10 @@ def replaces playlist(
     files =
       try
         playlist.files(
-          id=id, mime_type=mime_type, timeout=timeout, playlist_uri
+          id=id,
+          mime_type=mime_type,
+          timeout=timeout,
+          playlist_uri
         )
       catch err do
         log.info(
@@ -1224,8 +1229,7 @@ def replaces playlist(
   then
     # Set up telnet commands
     s.register_command(
-      description=
-        "Skip current song in the playlist.",
+      description="Skip current song in the playlist.",
       usage="skip",
       "skip",
       fun (_) ->
@@ -1236,8 +1240,7 @@ def replaces playlist(
     )
 
     s.register_command(
-      description=
-        "Return up to 10 next URIs to be played.",
+      description="Return up to 10 next URIs to be played.",
       usage="next",
       "next",
       fun (n) ->
@@ -1270,8 +1273,7 @@ def replaces playlist(
     )
 
     s.register_command(
-      description=
-        "Reload the playlist, unless already being loaded.",
+      description="Reload the playlist, unless already being loaded.",
       usage="reload",
       "reload",
       fun (_) ->
@@ -1305,11 +1307,9 @@ def replaces playlist(
     end
 
     s.register_command(
-      description=
-        "Print playlist URI if called without an argument, otherwise set a new \
-         one and load it.",
-      usage=
-        "uri [<uri>]",
+      description="Print playlist URI if called without an argument, otherwise \
+       set a new one and load it.",
+      usage="uri [<uri>]",
       "uri",
       uri_cmd
     )
