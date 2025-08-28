@@ -164,7 +164,15 @@ val meth :
 (** Type of references on a given type. *)
 val reference : ?pos:Pos.t -> t -> t
 
-val meths : ?pos:Pos.t -> string list -> scheme -> t -> t
+(** [invoke] is used to raise proper exception in [Typechecking]. *)
+val meths :
+  ?invoke:(t -> string -> scheme) ->
+  ?pos:Pos.t ->
+  string list ->
+  scheme ->
+  t ->
+  t
+
 val split_meths : t -> meth list * t
 val hide_meth : string -> t -> t
 val opt_meth : string -> t -> t

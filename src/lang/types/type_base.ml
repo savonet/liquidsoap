@@ -249,13 +249,13 @@ let meth ?pos ?json_name ?(category = `Method) ?(optional = false) meth scheme
          t ))
 
 (** Add a submethod to a type. *)
-let rec meths ?pos l v t =
+let rec meths ?(invoke = invoke) ?pos l v t =
   match l with
     | [] -> assert false
     | [l] -> meth ?pos l v t
     | l :: ll ->
         let g, tl = invoke t l in
-        let v = meths ?pos ll v tl in
+        let v = meths ?pos ~invoke ll v tl in
         meth ?pos l (g, v) t
 
 (** Split the methods from the type. *)

@@ -406,7 +406,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                         if replace then Type.remeth (snd (Type.invokes t ll)) a
                         else a
                       in
-                      env#override l (g, Type.meths ?pos ll (generalized, a) t))
+                      let invoke t l =
+                        try Type.invoke t l
+                        with Not_found -> raise (No_method (l, t))
+                      in
+                      env#override l
+                        (g, Type.meths ?pos ~invoke ll (generalized, a) t))
               env penv
           in
           l.gen <- generalized;
