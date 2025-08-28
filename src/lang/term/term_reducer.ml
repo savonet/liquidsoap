@@ -673,7 +673,8 @@ let expand_argsof ~pos ~env ~to_term ~throw args =
                     incr anonymous_var_id;
                     let v = Printf.sprintf "_ann_%d" !anonymous_var_id in
                     let mk_def def =
-                      mk_def (mk (pattern_reducer ~body:def ~pat (mk (`Var v))))
+                      mk_def
+                        (mk ~pos (pattern_reducer ~body:def ~pat (mk (`Var v))))
                     in
                     (mk_def, Some v)
             in
