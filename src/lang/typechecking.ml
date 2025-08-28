@@ -408,7 +408,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                       in
                       let invoke t l =
                         try Type.invoke t l
-                        with Not_found -> raise (No_method (l, t))
+                        with Not_found ->
+                          raise (No_method (l, { t with Type.pos }))
                       in
                       env#override l
                         (g, Type.meths ?pos ~invoke ll (generalized, a) t))
