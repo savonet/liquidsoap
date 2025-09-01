@@ -51,86 +51,165 @@ rather than to a file.
 : Read script from standard input.
 
 \--
-: Stop parsing the command-line and pass subsequent items to the
-script.
+: Stop parsing the command\-line and pass subsequent items to the script.
+
+\--build-config
+: Display liquidsoap's build configuration.
+
+\--cache-only
+: Parse, type\-check and save script's cache but do no run it.
+
+\--cache-stdlib
+: Generate the standard library cache.
 
 \--debug
 : Print debugging log messages.
 
-\--dynamic-plugins-dir _path_
-: Directory where to look for plugins.
+\--debug-errors
+: Debug errors (show stacktrace instead of printing a message).
 
-\--errors-as-warnings
-: Issue warnings instead of fatal errors for unused variables and ignored
-expressions. If you are not sure about it, it is better to not use it.
+\--debug-lang
+: Debug language implementation.
+
+\--debug-levels
+: Debug typing levels.
+
+\--debug-subtyping
+: Debug subtyping.
+
+\--disable-deprecated
+: Do not load wrappers for deprecated operators.
+
+\--enable-deprecated
+: Load wrappers for deprecated operators.
 
 \--interactive
 : Start an interactive interpreter.
 
+\--list-deprecated-functions-md
+: Documentation of all deprecated functions in markdown.
+
+\--list-extra-functions-md
+: Documentation of all extra functions in markdown.
+
+\--list-functions
+: List all functions.
+
+\--list-functions-by-category
+: List all functions, sorted by category.
+
+\--list-functions-json
+: Documentation of all functions in JSON format.
+
+\--list-functions-md
+: Documentation of all functions in markdown format.
+
 \--list-plugins
 : List all plugins (builtin scripting values, supported formats and protocols).
 
-\--list-plugins-xml
-: List all plugins (builtin scripting values, supported formats and protocols), output as XML.
+\--list-portaudio-devices
+: List all available portaudio devices
 
-\--no-stdlib
-: Do not load pervasive script libraries.
-
-\--version
-: Display Liquidsoap's version.
-
-\--build-config
-: Display Liquidsoap's build config.
-
--c, \--check
-: Check and evaluate scripts but do not perform any streaming.
-
--cl, \--check-lib
-: Like \--check but treats all scripts and expressions as libraries, so that
-unused toplevel variables are not reported.
-
--d, \--daemon
-: Run in daemon mode.
-
--f, \--force-start
-: For advanced dynamic uses: force liquidsoap to start even when no active
-source is initially defined.
-
--h _plugin_
-: Print the description of a plugin, eg. a builtin scripting function.
-
--i
-: Display inferred types.
-
--p, --parse-only
-: Parse scripts but do not type-check and run them.
-
--q, \--quiet
-: Do not print log messages on standard output.
-
--r _filename_
-: Process a request.
-
--T, \--disable-telnet
-: Disable the telnet server.
-
--U, \--disable-unix-socket
-: Disable the unix socket.
-
--t, \--enable-telnet
-: Enable the telnet server.
-
--u, \--enable-unix-socket
-: Enable the unix socket.
-
--v, \--verbose
-: Print log messages on standard output.
+\--list-protocols-md
+: Documentation of all protocols in markdown.
 
 \--list-settings
-: Show all settings with their documentation.
+: Display configuration keys in markdown format.
 
--help, \--help
-Display this list of options
+\--no-cache
+: Disable cache
+
+\--no-deprecated
+: Deprecated: use `--disable-deprecated`
+
+\--no-external-plugins
+: Disable external plugins.
+
+\--no-fallible-check
+: Ignore fallible sources.
+
+\--no-stdlib
+: Do not load stdlib script libraries
+
+\--opam-config
+: Print out opam's liquidsoap.config, for internal use.
+
+\--print-json-term
+: Parse and output the script as normalized JSON. The JSON format is used internally to format code.
+
+\--profile
+: Profile execution.
+
+\--raw-errors
+: In normal executions, exceptions raised during the script are translated into user\-friendly errors. Use this option to let the original error surface. This is useful when debugging.
+
+\--safe
+: Disable the effects of \--unsafe.
+
+\--stdlib
+: Override the location of the standard library.
+
+\--strict
+: Execute script code in strict mode, issuing fatal errors instead of warnings in some cases. Currently: unused variables and ignored expressions.
+
+\--unsafe
+: Faster startup using unsafe features.
+
+\--version
+: Display liquidsoap's version.
+
+\-T
+\--disable-telnet
+: Disable the telnet server.
+
+\-U
+\--disable-unix-socket
+: Disable the unix socket.
+
+\-c
+\--check
+: Parse, type\-check but do not evaluate the script.
+
+\-d
+\--daemon
+: Run in daemon mode.
+
+\-f
+\--force-start
+: For advanced dynamic uses: force liquidsoap to start even when no active source is initially defined.
+
+\-h
+: Get help about a scripting value: source, operator, builtin or library function, etc.
+
+\-i
+: Display inferred types.
+
+\-p
+\--parse-only
+: Parse script but do not type\-check and run them.
+
+\-q
+\--quiet
+: Do not print log messages on standard output.
+
+\-r
+\--request
+: Process a file request and print the metadata.
+
+\-t
+\--enable-telnet
+: Enable the telnet server.
+
+\-u
+\--enable-unix-socket
+: Enable the unix socket.
+
+\-v
+\--verbose
+: Print log messages on standard output.
+
+\-help Display this list of options
+\--help Display this list of options
 
 # SEE ALSO
 
