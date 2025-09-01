@@ -331,24 +331,32 @@ module Socket_value = struct
           "Socket status",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                Lang.string
-                  (match Srt.getsockstate s with
-                    | `Init -> "initialized"
-                    | `Opened -> "opened"
-                    | `Listening -> "listening"
-                    | `Connecting -> "connecting"
-                    | `Connected -> "connected"
-                    | `Broken -> "broken"
-                    | `Closing -> "closing"
-                    | `Closed -> "closed"
-                    | `Nonexist -> "non_existant")) );
+                try
+                  Lang.string
+                    (match Srt.getsockstate s with
+                      | `Init -> "initialized"
+                      | `Opened -> "opened"
+                      | `Listening -> "listening"
+                      | `Connecting -> "connecting"
+                      | `Connected -> "connected"
+                      | `Broken -> "broken"
+                      | `Closing -> "closing"
+                      | `Closed -> "closed"
+                      | `Nonexist -> "non_existant")
+                with exn ->
+                  let bt = Printexc.get_raw_backtrace () in
+                  Lang.raise_as_runtime ~bt ~kind:"srt" exn) );
         ( "close",
           ([], Lang.fun_t [] Lang.unit_t),
           "Close socket",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                Srt.close s;
-                Lang.unit) );
+                try
+                  Srt.close s;
+                  Lang.unit
+                with exn ->
+                  let bt = Printexc.get_raw_backtrace () in
+                  Lang.raise_as_runtime ~bt ~kind:"srt" exn) );
         ( "bstats",
           ([], Lang.fun_t [(true, "clear", Lang.nullable_t Lang.bool_t)] stats_t),
           "Socket bstats",
@@ -359,9 +367,13 @@ module Socket_value = struct
                 let clear =
                   Lang.to_valued_option Lang.to_bool (List.assoc "clear" p)
                 in
-                let stats = Srt.Stats.bstats ?clear s in
-                Lang.record
-                  (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)) );
+                try
+                  let stats = Srt.Stats.bstats ?clear s in
+                  Lang.record
+                    (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)
+                with exn ->
+                  let bt = Printexc.get_raw_backtrace () in
+                  Lang.raise_as_runtime ~bt ~kind:"srt" exn) );
         ( "bistats",
           ( [],
             Lang.fun_t
@@ -385,9 +397,13 @@ module Socket_value = struct
                   Lang.to_valued_option Lang.to_bool
                     (List.assoc "instantaneous" p)
                 in
-                let stats = Srt.Stats.bistats ?clear ?instantaneous s in
-                Lang.record
-                  (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)) );
+                try
+                  let stats = Srt.Stats.bistats ?clear ?instantaneous s in
+                  Lang.record
+                    (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)
+                with exn ->
+                  let bt = Printexc.get_raw_backtrace () in
+                  Lang.raise_as_runtime ~bt ~kind:"srt" exn) );
       ]
 
   let base_t = t
