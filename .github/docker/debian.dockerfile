@@ -1,4 +1,4 @@
-FROM debian:12-slim AS downloader
+FROM debian:13-slim AS downloader
 
 ARG DEB_FILE
 ARG DEB_DEBUG_FILE
