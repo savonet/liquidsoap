@@ -127,7 +127,7 @@ err = error.methods(err)
 print("Error kind: #{err.kind}")
 ```
 
-### Warnings When Overwriting Top-Level Variables
+### Warnings when overwriting top-level variables
 
 The typechecker is now able to detect when top-level variables are overridden.
 
