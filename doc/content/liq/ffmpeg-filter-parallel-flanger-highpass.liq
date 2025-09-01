@@ -12,7 +12,6 @@ def parallel_flanger_highpass(s) =
     # For some reason, we need to enforce the format here.
     a1 =
       ffmpeg.filter.aformat(
-        sample_fmts="s16",
         sample_rates="44100",
         channel_layouts="stereo",
         graph,
@@ -20,7 +19,6 @@ def parallel_flanger_highpass(s) =
       )
     a2 =
       ffmpeg.filter.aformat(
-        sample_fmts="s16",
         sample_rates="44100",
         channel_layouts="stereo",
         graph,
