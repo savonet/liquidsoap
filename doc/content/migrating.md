@@ -17,6 +17,9 @@ so, always best to first to a trial run before putting things to production!
 
 ## From 2.3.x to 2.4.x
 
+See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation
+and cheatsheet of the new features and changes in this release.
+
 ### `insert_metadata`
 
 `insert_metadata` is now available as a source method. You do not need to use the
@@ -39,16 +42,15 @@ tl;dr:
 - Callbacks can be executed using `thread.run` by passing `synchronous=false`
   when registering them.
 - Most callback arguments should be accepted as deprecated arguments.
-- `on_frame` callbacks are still registered as synchronous by default.
 - `blank.detect` could not be updated in a backward-compatible manner.
 - `on_file_change` in `output.*.hls` has been updated to pass a single record.
 - `on_connect` callback on `output.harbor` has been updated to pass a single record.
 
 Stream-related callbacks is the biggest change with this release. They are now fully documented, with their own dedicated section
-in the doc and have been updated to be executed in an asynchronous task by default.
+in the doc and can now be executed in an asynchronous task when asked by setting the mandatory `synchronous` argument to `false`.
 
-This means that the function to be executed by the callback is placed in a `thread.run` task
-by default. This is done to make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
+When setting `synchronous=false`, the function to be executed by the callback is placed in a `thread.run` task. This is done to
+make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
 a callback function takes too long, the streaming cycle gets late, causing issues with the runtime system typically resulting in catchup errors.
 
 Callbacks have also been moved to source methods in order to unify the codebase, options and more. In most cases, callback previously passed as
@@ -63,6 +65,9 @@ s = on_metadata(s, fn)
 You should now do:
 
 ```liquidsoap
+# Set synchronous to false if function fn can potentially
+# take a while to execute to prevent blocking the main streaming
+# thread.
 s.on_metadata(synchronous=true, fn)
 ```
 
@@ -71,6 +76,7 @@ Additionally, `on_end` and `on_offset` have been merged into a single `on_positi
 ```liquidsoap
 # Execute a callback after current track position:
 s.on_position(
+  # See above
   synchronous=false,
   # This is the default
   remaining=false,
@@ -107,22 +113,6 @@ o.on_start(synchronous=false, fn)
 
 ⚠️ **Asynchronous callbacks execution order** When registered with `synchronous=false`, callbacks are executed using `thread.run`. This means that there can be a slight delay in their execution. Also, execution order is not guaranteed to be respected.
 
-In some cases, callbacks that were originally passed as argument when creating a source or output are now registered after
-the source or output has been created.
-
-Typically, where you would do:
-
-```liquidsoap
-output.file(on_stop=shutdown, ...)
-```
-
-You should now do;
-
-```liquidsoap
-o = output.file(...)
-o.on_stop(shutdown)
-```
-
 ### Error methods
 
 Error methods have been removed by default from the error types to avoid cluttering the documentation.
@@ -135,6 +125,44 @@ err = error.methods(err)
 
 # Access them
 print("Error kind: #{err.kind}")
+```
+
+### Warnings When Overwriting Top-Level Variables
+
+The typechecker is now able to detect when top-level variables are overridden.
+
+This prevents situations like this:
+
+```liquidsoap
+request = ...
+# Later...
+request.create(...)  # 💥 Cryptic type error!
+```
+
+Previously, it was far too easy to overwrite important built-in modules (like `request`) and end up with confusing type errors.
+
+No script changes needed for this but if you see:
+
+```
+Warning 6: Top-level variable request is overridden!
+```
+
+…consider renaming your variable.
+
+## `null()` replaced by `null`
+
+Previously, `null` was a function — you had to call `null()` to get a null value, or `null(value)` to wrap something. This confused a lot of people (and the typechecker wasn’t helping).
+
+Now, `null` can be used directly:
+
+```liquidsoap
+my_var = null
+```
+
+Function form still works if you need it:
+
+```liquidsoap
+my_var = null("some value")  # Explicit nullable
 ```
 
 ## From 2.2.x to 2.3.x
