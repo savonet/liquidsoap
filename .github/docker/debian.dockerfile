@@ -29,7 +29,7 @@ RUN --mount=type=bind,from=downloader,source=/downloads,target=/downloads \
         /downloads/deb-multimedia-keyring.deb \
         ca-certificates \
       ; \
-      echo 'deb https://www.deb-multimedia.org bookworm main non-free' > \
+      echo 'deb https://www.deb-multimedia.org trixie main non-free' > \
         /etc/apt/sources.list.d/deb-multimedia.list; \
       rm -rf \
         /var/lib/apt/lists \
