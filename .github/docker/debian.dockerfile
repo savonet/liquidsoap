@@ -17,7 +17,7 @@ RUN set -eux; \
       wget "$DEB_MULTIMEDIA_KEYRING" -O /downloads/deb-multimedia-keyring.deb; \
       echo "$DEB_MULTIMEDIA_KEYRING_SHA256SUM  /downloads/deb-multimedia-keyring.deb" | sha256sum -c -;
 
-FROM debian:12-slim
+FROM debian:13-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
