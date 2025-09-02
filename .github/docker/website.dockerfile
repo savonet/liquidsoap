@@ -1,4 +1,4 @@
-FROM savonet/liquidsoap-ci:debian_bookworm_amd64
+FROM savonet/liquidsoap-ci:debian_trixie_amd64
 
 MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
 

@@ -1,4 +1,4 @@
-FROM debian:12-slim AS downloader
+FROM debian:13-slim AS downloader
 
 ARG DEB_FILE
 ARG DEB_DEBUG_FILE
@@ -17,7 +17,7 @@ RUN set -eux; \
       wget "$DEB_MULTIMEDIA_KEYRING" -O /downloads/deb-multimedia-keyring.deb; \
       echo "$DEB_MULTIMEDIA_KEYRING_SHA256SUM  /downloads/deb-multimedia-keyring.deb" | sha256sum -c -;
 
-FROM debian:12-slim
+FROM debian:13-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -29,12 +29,14 @@ RUN --mount=type=bind,from=downloader,source=/downloads,target=/downloads \
         /downloads/deb-multimedia-keyring.deb \
         ca-certificates \
       ; \
-      echo 'deb https://www.deb-multimedia.org bookworm main non-free' > \
-        /etc/apt/sources.list.d/deb-multimedia.list; \
-      rm -rf \
-        /var/lib/apt/lists \
-        /var/lib/dpkg/status-old \
-      ;
+      cat <<EOF > /etc/apt/sources.list.d/dmo.sources
+Types: deb
+URIs: https://www.deb-multimedia.org
+Suites: trixie
+Components: main non-free
+Signed-By: /usr/share/keyrings/deb-multimedia-keyring.pgp
+Enabled: yes
+EOF
 
 RUN --mount=type=bind,from=downloader,source=/downloads,target=/downloads \
     set -eux; \
