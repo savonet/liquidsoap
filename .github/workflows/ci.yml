@@ -57,7 +57,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-4
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_trixie
+      image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
       options: --user opam
     env:
       HOME: /home/opam
@@ -96,7 +96,7 @@ jobs:
   build_js:
     runs-on: depot-ubuntu-24.04-4
     container:
-      image: savonet/liquidsoap-ci:debian_trixie
+      image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
       options: --user opam
     env:
       HOME: /home/opam
@@ -159,7 +159,7 @@ jobs:
     needs: build_details
     if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
-      image: savonet/liquidsoap-ci:debian_trixie
+      image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
@@ -220,7 +220,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-4
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_trixie
+      image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
