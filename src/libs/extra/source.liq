@@ -290,7 +290,7 @@ end
 def source.cue(
   ~title=null,
   ~performer=null,
-  ~file:f=null,
+  ~file:f=getter(null),
   ~file_type=null,
   ~comment=null,
   ~year=null,
@@ -302,13 +302,14 @@ def source.cue(
   filename,
   s
 ) =
-  if delete and file.exists(filename) then file.remove(filename) end
-
-  file_type = file_type ?? file.extension(leading_dot=false, f ?? "")
-
   is_first = ref(true)
+  current_filename = ref("")
 
   def write(~append, entries) =
+    filename = current_filename()
+    f = getter.get(f)
+    file_type = file_type ?? file.extension(leading_dot=false, f ?? "")
+
     if
       append
     then
@@ -323,6 +324,7 @@ def source.cue(
         level=4,
         "Writing full CUE file at #{filename}"
       )
+      if delete and file.exists(filename) then file.remove(filename) end
     end
 
     write =
@@ -419,11 +421,27 @@ def source.cue(
 
   entries = ref([])
   current_position = ref(1)
-  t0 = source.time(s)
+  t0 = ref(source.time(s))
 
   def handle_metadata(m) =
+    filename = getter.get(filename)
+    if
+      current_filename() != filename
+    then
+      log(
+        label="source.cue",
+        level=4,
+        "Opening new CUE sheet at #{filename}"
+      )
+      t0 := source.time(s)
+      current_position := 1
+      current_filename := filename
+      is_first := true
+    end
+
     m = map_metadata(m)
-    entry = {position=current_position(), time=source.time(s) - t0, metadata=m}
+    entry =
+      {position=current_position(), time=source.time(s) - t0(), metadata=m}
     ref.incr(current_position)
 
     if
@@ -445,5 +463,20 @@ def source.cue(
 
   s = metadata.deduplicate(using=deduplicate_using, s)
   s.on_metadata(synchronous=true, handle_metadata)
+  s.on_frame(
+    before=false,
+    synchronous=true,
+    fun () ->
+      begin
+        # If filename has changed but no metadata handler was executed,
+        # insert one
+        if
+          current_filename() != getter.get(filename)
+        then
+          s.insert_metadata(new_track=true, s.last_metadata() ?? [])
+        end
+      end
+  )
+
   s
 end
