@@ -99,6 +99,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
         Option.value ~default:self#frame_type child_frame_type
       in
       Typing.(child#frame_type <: child_frame_type);
+      Typing.((Lang.to_source child_val)#frame_type <: child#frame_type);
       child_clock <- Some c;
       self#on_wake_up (fun () -> child#set_generator self#buffer)
 
