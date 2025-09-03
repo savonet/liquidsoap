@@ -353,10 +353,12 @@ let () =
 let _animated_sources { outputs; active_sources } =
   Queue.elements outputs @ WeakQueue.elements active_sources
 
-let ticks c =
-  match Atomic.get (Unifier.deref c).state with
+let _ticks { state } =
+  match Atomic.get state with
     | `Stopped _ -> 0
     | `Stopping { ticks } | `Started { ticks } -> Atomic.get ticks
+
+let ticks c = _ticks (Unifier.deref c)
 
 let _time { time_implementation; frame_duration; ticks } =
   let module Time = (val time_implementation : Liq_time.T) in
@@ -481,9 +483,15 @@ and _activate_pending_sources ~clock x =
 
 and _tick ~clock x =
   let sub_clocks =
-    List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
+    List.map
+      (fun c ->
+        let clock = Unifier.deref c in
+        let p = active_params c in
+        (clock, p, _ticks clock))
+      (Queue.elements clock.sub_clocks)
   in
   _activate_pending_sources ~clock x;
+  List.iter (fun (clock, p, _) -> _activate_pending_sources ~clock p) sub_clocks;
   let sources = _animated_sources x in
   List.iter
     (wrap_errors clock (fun s ->
@@ -498,9 +506,8 @@ and _tick ~clock x =
   let self_sync = _self_sync ~clock x in
   check_stopped ();
   List.iter
-    (fun (c, old_ticks) ->
-      if ticks c = old_ticks then
-        _tick ~clock:(Unifier.deref c) (active_params c))
+    (fun (clock, p, old_ticks) ->
+      if _ticks clock = old_ticks then _tick ~clock p)
     sub_clocks;
   Atomic.incr x.ticks;
   check_stopped ();
