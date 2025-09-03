@@ -244,32 +244,28 @@ def skipper(~every=getter(5.), s) =
   s
 end
 
-let stdlib_fallback = fallback
-
 # Special track insensitive fallback that always skips current song before
 # switching.
 # @category Source / Track processing
 # @flag extra
 # @param s The main source.
 # @param ~fallback The fallback source. Defaults to `blank` if `null`.
-def fallback.skip(s, ~fallback=null) =
-  fallback = fallback ?? (blank() : source)
+def fallback.skip(s, ~fallback:f=null) =
+  f = f ?? (blank() : source)
   avail = ref(true)
 
   def check() =
     old = avail()
     avail := source.is_ready(s)
-    if not old and avail() then source.skip(fallback) end
+    if not old and avail() then source.skip(f) end
   end
 
-  s = stdlib_fallback(track_sensitive=false, [s, fallback])
+  s = fallback(track_sensitive=false, [s, f])
 
   # TODO: could we have something more efficient that checking on every frame
   s.on_frame(synchronous=true, check)
   s
 end
-
-stdlib_file = file
 
 # Generate a CUE file for the source. This function will generate a new track in
 # the file for each metadata of the source. This function tries to map metadata to
@@ -294,7 +290,7 @@ stdlib_file = file
 def source.cue(
   ~title=null,
   ~performer=null,
-  ~file=null,
+  ~file:f=null,
   ~file_type=null,
   ~comment=null,
   ~year=null,
@@ -306,13 +302,9 @@ def source.cue(
   filename,
   s
 ) =
-  if
-    delete and stdlib_file.exists(filename)
-  then
-    stdlib_file.remove(filename)
-  end
+  if delete and file.exists(filename) then file.remove(filename) end
 
-  file_type = file_type ?? stdlib_file.extension(leading_dot=false, file ?? "")
+  file_type = file_type ?? file.extension(leading_dot=false, f ?? "")
 
   is_first = ref(true)
 
@@ -334,12 +326,7 @@ def source.cue(
     end
 
     write =
-      stdlib_file.write.stream(
-        append=append,
-        atomic=true,
-        temp_dir=temp_dir,
-        filename
-      )
+      file.write.stream(append=append, atomic=true, temp_dir=temp_dir, filename)
 
     # Append to the file.
     def w(data) =
@@ -376,10 +363,10 @@ def source.cue(
         null.map(string.of_int, year)
       )
       if
-        null.defined(file)
+        null.defined(f)
       then
         w(
-          "FILE \"#{(null.get(file) : string)}\" #{string.uppercase(file_type)}"
+          "FILE \"#{(null.get(f) : string)}\" #{string.uppercase(file_type)}"
         )
       end
     end
