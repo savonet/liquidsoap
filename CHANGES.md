@@ -1,3 +1,11 @@
+# 2.4.1 (unreleased)
+
+## Changed:
+
+- Do not normalize sources in `mix` by default.
+
+---
+
 # 2.4.0 (2025-09-01)
 
 ## New:

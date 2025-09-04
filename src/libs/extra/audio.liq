@@ -347,7 +347,8 @@ end
 # @category Source / Audio processing
 # @param ~id Force the value of the source ID.
 # @param ~register_server_commands Register corresponding server commands
-def mix(~id=null, ~register_server_commands=true, sources) =
+# @param ~normalize Normalize source's volume by the number of mixed sources.
+def mix(~id=null, ~register_server_commands=true, ~normalize=false, sources) =
   id = string.id.default(default="mixer", id)
   inputs =
     list.map(
@@ -386,7 +387,7 @@ def mix(~id=null, ~register_server_commands=true, sources) =
       inputs
     )
 
-  s = add(sources)
+  s = add(normalize=normalize, sources)
   let {metadata = _, ...tracks} = source.tracks(s)
   s = source(tracks)
   insert_metadata_fn := s.insert_metadata
