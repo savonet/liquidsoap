@@ -68,7 +68,7 @@ let () =
     | Warning s -> Some (Printf.sprintf "Warning: %s" s)
     | _ -> None)
 
-let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
+let rec throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
   let print_error ~formatter idx error =
     flush_all ();
     let pos =
@@ -82,6 +82,8 @@ let throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
   in
   function
   | exn when !raw_errors -> Printexc.raise_with_backtrace exn bt
+  | Term_preprocessor.Includer_error (exn, lexbuf, bt) ->
+      throw ~formatter ~lexbuf:(Some lexbuf) ~bt () exn
   (* Warnings *)
   | Term.Ignored tm when Type.is_fun tm.Term.t ->
       flush_all ();

@@ -27,6 +27,8 @@ type processor =
     Parsed_term.t )
   MenhirLib.Convert.revised
 
+exception Includer_error of (exn * Sedlexing.lexbuf * Printexc.raw_backtrace)
+
 let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
 
 let let_script_path ~filename tm =
@@ -98,7 +100,11 @@ let includer_reducer ~pos = function
           ~finally:(fun () -> if fname <> "-" then close_in ic)
           (fun () ->
             let lexbuf = Sedlexing.Utf8.from_channel ic in
-            mk_expr ~fname program lexbuf)
+            if fname <> "-" then Sedlexing.set_filename lexbuf fname;
+            try mk_expr ~fname program lexbuf
+            with (Parser.Error | Parsing.Parse_error) as exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              raise (Includer_error (exn, lexbuf, bt)))
       with No_extra -> Parsed_term.make ~pos (`Tuple []))
 
 let rec expand_encoder (lbl, params) =
