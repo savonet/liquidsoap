@@ -90,6 +90,8 @@ The full syntax is as follows:
 ```liquidsoap
 %ffmpeg(
   format=<format>,
+  # Metadata to be passed when initializing the output
+  metadata=[("label","value"), ...],
   # Audio section
   %audio(codec=<codec>, <option_name>=<option_value>, ...),
   # Or:

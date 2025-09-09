@@ -1,5 +1,10 @@
 # 2.4.1 (unreleased)
 
+## New:
+
+- Added support for explicit metadata to pass to the output
+  when creating a `%ffmpeg` encoder (#4667)
+
 ## Changed:
 
 - Do not normalize sources in `mix` by default.

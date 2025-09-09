@@ -318,7 +318,9 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
     Frame.Fields.iter (fun _ { flush } -> flush ()) (Atomic.get encoder).streams
   in
   let encode_metadata m =
-    let m = Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m) in
+    let m = Frame.Metadata.Export.to_metadata m in
+    let m = Frame.Metadata.append ffmpeg.metadata m in
+    let m = Frame.Metadata.to_list m in
     match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
       | _ when not (Atomic.get (Atomic.get encoder).started) ->
           Av.set_output_metadata (Atomic.get encoder).output m
