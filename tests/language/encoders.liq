@@ -93,6 +93,8 @@ def f() =
     ()
   end
 
+  ignore(%ffmpeg(metadata = [("bla", "blo"), ("title", "gni")]))
+
   test.pass()
 end
 
