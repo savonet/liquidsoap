@@ -558,36 +558,51 @@ class output p =
       else ()
 
     method start =
-      assert (encoder = None);
-      let enc = data.factory self#id in
-      encoder <- Some (enc Frame.Metadata.Export.empty);
-      let handler ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri =
-        self#add_client ~protocol ~headers ~uri ~query socket
-      in
-      Harbor.add_http_handler ~pos ~transport ~port ~verb:`Get ~uri handler;
-      match dumpfile with Some f -> dump <- Some (open_out_bin f) | None -> ()
+      self#mutexify
+        (fun () ->
+          match encoder with
+            | Some _ -> ()
+            | None -> (
+                let enc = data.factory self#id in
+                encoder <- Some (enc Frame.Metadata.Export.empty);
+                let handler ~protocol ~meth:_ ~data:_ ~headers ~query ~socket
+                    uri =
+                  self#add_client ~protocol ~headers ~uri ~query socket
+                in
+                Harbor.add_http_handler ~pos ~transport ~port ~verb:`Get ~uri
+                  handler;
+                match dumpfile with
+                  | Some f -> dump <- Some (open_out_bin f)
+                  | None -> ()))
+        ()
 
     method stop =
-      ignore ((Option.get encoder).Encoder.stop ());
-      encoder <- None;
-      Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
-      let new_clients = Queue.create () in
-      Mutex_utils.mutexify clients_m
+      self#mutexify
         (fun () ->
-          Queue.iter
-            (fun c ->
-              Mutex_utils.mutexify c.mutex
-                (fun () ->
-                  c.state <- Done;
-                  Duppy.Monad.run
-                    ~return:(fun () -> ())
-                    ~raise:(fun () -> ())
-                    (Duppy_c.broadcast duppy_c))
-                ())
-            clients;
-          clients <- new_clients)
-        ();
-      match dump with Some f -> close_out f | None -> ()
+          match encoder with
+            | None -> ()
+            | Some enc -> (
+                ignore (enc.Encoder.stop ());
+                encoder <- None;
+                Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
+                let new_clients = Queue.create () in
+                Mutex_utils.mutexify clients_m
+                  (fun () ->
+                    Queue.iter
+                      (fun c ->
+                        Mutex_utils.mutexify c.mutex
+                          (fun () ->
+                            c.state <- Done;
+                            Duppy.Monad.run
+                              ~return:(fun () -> ())
+                              ~raise:(fun () -> ())
+                              (Duppy_c.broadcast duppy_c))
+                          ())
+                      clients;
+                    clients <- new_clients)
+                  ();
+                match dump with Some f -> close_out f | None -> ()))
+        ()
 
     method! reset =
       self#stop;
