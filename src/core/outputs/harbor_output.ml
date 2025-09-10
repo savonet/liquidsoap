@@ -24,6 +24,8 @@ let ( let* ) = Duppy.Monad.bind
 
 module Http = Liq_http
 
+let log = Log.make ["lang"]
+
 (** Output to an harbor server. *)
 module type T = sig
   include Harbor.Transport_t
@@ -665,4 +667,9 @@ let _ =
       @ Start_stop.callbacks ~label:"output")
     ~meth:(Start_stop.meth ()) ~base:Modules.output "harbor" (proto return_t)
     ~return_t
-    (fun p -> new output p)
+    (fun p ->
+      log#important
+        "`output.harbor` code has not been update in a long while. Please \
+         reach if you wish to contribute to it otherwise we suggest using \
+         `icecast`!";
+      new output p)
