@@ -68,6 +68,7 @@ type t = {
   output : output;
   streams : (Frame.field * stream) list;
   interleaved : [ `Default | `True | `False ];
+  metadata : Frame.Metadata.t;
   opts : opts;
 }
 
@@ -165,6 +166,20 @@ let to_string m =
         | `True -> "true"
         | `False -> "false")
     :: opts
+  in
+  let opts =
+    match Metadata_base.to_list m.metadata with
+      | [] -> opts
+      | l ->
+          Printf.sprintf "metadata=[%s]"
+            (String.concat ","
+               (List.map
+                  (fun (k, v) ->
+                    Printf.sprintf "%s=%s"
+                      (Lang_string.quote_string k)
+                      (Lang_string.quote_string v))
+                  l))
+          :: opts
   in
   let opts =
     match m.format with

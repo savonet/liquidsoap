@@ -293,6 +293,7 @@ let ffmpeg_gen params =
       Ffmpeg_format.format = None;
       output = `Stream;
       streams = [];
+      metadata = Frame.Metadata.empty;
       interleaved = `Default;
       opts = Hashtbl.create 0;
     }
@@ -499,6 +500,27 @@ let ffmpeg_gen params =
           { f with Ffmpeg_format.format = None }
       | `Option ("format", String { value = fmt }) ->
           { f with Ffmpeg_format.format = Some fmt }
+      | `Option (("metadata", Value.List { value = m }) as v) ->
+          let m =
+            match m with
+              | [] -> []
+              | Value.Tuple { value = [Value.String _; Value.String _] } :: _ ->
+                  List.fold_left
+                    (fun m -> function
+                      | Value.Tuple
+                          {
+                            value =
+                              [
+                                Value.String { value = k };
+                                Value.String { value = v };
+                              ];
+                          } ->
+                          (k, v) :: m
+                      | _ -> assert false)
+                    [] m
+              | _ -> Lang_encoder.raise_generic_error (`Labelled v)
+          in
+          { f with metadata = Frame.Metadata.from_list m }
       | `Option ("interleaved", Value.Bool { value = b; _ }) ->
           { f with Ffmpeg_format.interleaved = (if b then `True else `False) }
       | `Option ("interleaved", String { value = "default" }) ->

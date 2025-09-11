@@ -8,6 +8,7 @@ let () =
       format = Some "ogg";
       interleaved = `Default;
       output = `Stream;
+      metadata = Frame.Metadata.empty;
       streams =
         [
           ( Frame.Fields.audio,
@@ -39,6 +40,7 @@ let () =
       format = Some "ogg";
       interleaved = `Default;
       output = `Stream;
+      metadata = Frame.Metadata.empty;
       streams =
         [
           ( Frame.Fields.audio,
