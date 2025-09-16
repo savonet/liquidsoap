@@ -21,49 +21,22 @@
  *****************************************************************************)
 
 open Mm
-open Source
 
 class resample ~field ~ratio source =
-  let source_val = Lang.source source in
-  let write_frame_ref = ref (fun _ -> ()) in
-  let consumer =
-    new Producer_consumer.consumer
-      ~write_frame:(fun _ frame -> !write_frame_ref frame)
-      ~name:"stretch.consumer" ~source:source_val ()
-  in
-  let () = Typing.(consumer#frame_type <: source#frame_type) in
   object (self)
-    inherit operator ~name:"stretch" []
-    inherit Child_support.base ~check_self_sync:true [source_val]
-    method self_sync = source#self_sync
-    method fallible = source#fallible
+    inherit
+      Child_support.producer
+        ~check_self_sync:true ~name:"stretch" (Lang.source source)
 
-    method! seek len =
-      let glen = min (Generator.length self#buffer) len in
-      Generator.truncate self#buffer glen;
-      (if glen < len then source#seek (len - glen) else 0) + glen
-
-    method seek_source = (self :> Source.source)
-
-    method remaining =
-      let rem = source#remaining in
-      if rem = -1 then rem
-      else int_of_float (float (rem + Generator.length self#buffer) *. ratio ())
-
-    method abort_track = source#abort_track
-    method private can_generate_frame = source#is_ready
     val mutable converter = None
 
     initializer
+      self#child#set_process_frame self#process_frame;
       self#on_wake_up (fun () ->
           converter <-
-            Some (Audio_converter.Samplerate.create self#audio_channels);
-          write_frame_ref := self#write_frame)
+            Some (Audio_converter.Samplerate.create self#audio_channels))
 
-    method private write_frame =
-      function `Frame frame -> self#process_frame frame | `Flush -> ()
-
-    method private process_frame frame =
+    method private process_frame gen frame =
       let ratio = ratio () in
       let content = Content.Audio.get_data (Frame.get frame field) in
       let converter = Option.get converter in
@@ -73,26 +46,14 @@ class resample ~field ~ratio source =
       in
       let offset = Frame_settings.main_of_audio offset in
       let length = Frame_settings.main_of_audio length in
-      Generator.put self#buffer field
-        (Content.Audio.lift_data ~offset ~length pcm);
+      Generator.put gen field (Content.Audio.lift_data ~offset ~length pcm);
       let convert x = int_of_float (float x *. ratio) in
       List.iter
-        (fun (pos, m) ->
-          Generator.add_metadata ~pos:(convert pos) self#buffer m)
+        (fun (pos, m) -> Generator.add_metadata ~pos:(convert pos) gen m)
         (Frame.get_all_metadata frame);
       List.iter
-        (fun pos -> Generator.add_track_mark ~pos:(convert pos) self#buffer)
+        (fun pos -> Generator.add_track_mark ~pos:(convert pos) gen)
         (Frame.track_marks frame)
-
-    method private generate_frame =
-      consumer#set_output_enabled true;
-      while
-        Generator.length self#buffer < Lazy.force Frame.size && source#is_ready
-      do
-        self#child_tick
-      done;
-      consumer#set_output_enabled false;
-      Generator.slice self#buffer (Lazy.force Frame.size)
   end
 
 let _ =

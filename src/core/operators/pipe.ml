@@ -57,7 +57,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     inherit source ~name:"pipe" ()
 
     (* We are expecting real-rate with a couple of hickups.. *)
-    inherit Child_support.base ~check_self_sync:false [source_val]
+    inherit Child_support.base ~check_self_sync:false source_val
     inherit! Generated.source ~empty_on_abort:false ~bufferize ()
     val mutable samplesize = 16
     val mutable samplerate = Frame.audio_of_seconds 1.
@@ -142,15 +142,9 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     method private get_handler =
       match handler with Some h -> h | None -> raise Process_handler.Finished
 
-    method private child_get =
-      let frame = ref self#empty_frame in
-      self#on_child_tick (fun () ->
-          if source#is_ready then frame := source#get_frame);
-      !frame
-
     method private get_to_write =
       if source#is_ready then (
-        let frame = self#child_get in
+        let frame = self#child_get_frame () in
         let buf = AFrame.pcm frame in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
