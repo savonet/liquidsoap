@@ -594,6 +594,7 @@ let parse_string ?(formatter = Format.err_formatter) content =
   let throw = Runtime.throw ~formatter ~lexbuf:(Some lexbuf) () in
   try
     let tokenizer = Preprocessor.mk_tokenizer lexbuf in
+    Parser_helper.clear_comments ();
     let term = Runtime.program tokenizer in
     Parser_helper.attach_comments term;
     to_json term
