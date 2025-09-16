@@ -42,6 +42,7 @@ LIQ_CACHE_SYSTEM_DIR=/var/cache/liquidsoap liquidsoap --cache-only '()'
 chown -R liquidsoap:liquidsoap /var/log/liquidsoap
 chmod -R +r /var/log/liquidsoap
 chown -R liquidsoap:liquidsoap /var/cache/liquidsoap
+chmod -R g+w /var/cache/liquidsoap
 chown -R root:root /usr/share/liquidsoap
 
 #DEBHELPER#
