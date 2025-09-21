@@ -136,6 +136,8 @@ let get_all_metadata frame =
 let get_metadata b t =
   try Some (List.assoc t (get_all_metadata b)) with Not_found -> None
 
+let has_metadata frame = get_all_metadata frame <> []
+
 let add_all_metadata frame l =
   let old_metadata = get frame Fields.metadata in
   let length =

@@ -183,6 +183,9 @@ val get_metadata : t -> int -> metadata option
 (** Retrieve all metadata. *)
 val get_all_metadata : t -> (int * metadata) list
 
+(** [true] if the frame contains metadata. *)
+val has_metadata : t -> bool
+
 (** Attach multiple metadata to a frame. *)
 val add_all_metadata : t -> (int * metadata) list -> t
 

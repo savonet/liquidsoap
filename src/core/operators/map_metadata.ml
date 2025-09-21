@@ -77,13 +77,11 @@ class map_metadata source rewrite_f insert_missing update strip =
             let frame = self#process frame in
             let new_track = self#process new_track in
             Frame.append frame
-              (match (insert_missing, Frame.get_metadata new_track 0) with
-                | false, _ -> new_track
-                | true, None ->
-                    self#log#important "Inserting missing metadata.";
-                    Frame.add_metadata new_track 0
-                      (self#rewrite Frame.Metadata.empty)
-                | true, Some _ -> new_track)
+              (if insert_missing && not (Frame.has_metadata new_track) then (
+                 self#log#important "Inserting missing metadata.";
+                 Frame.add_metadata new_track 0
+                   (self#rewrite Frame.Metadata.empty))
+               else new_track)
   end
 
 let register =
