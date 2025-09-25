@@ -165,7 +165,7 @@ def osd_metadata(
     )
   end
 
-  s.on_metadata(feedback)
+  s.on_metadata(synchronous=false, feedback)
 end
 
 # Use notify to display metadata info.
@@ -190,6 +190,7 @@ def notify_metadata(
       ' -t #{time} #{process.quote(title)} '
 
   s.on_metadata(
+    synchronous=false,
     fun (m) -> ignore(process.run(send ^ process.quote(display(m))))
   )
 end
