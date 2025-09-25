@@ -191,6 +191,6 @@ def notify_metadata(
 
   s.on_metadata(
     synchronous=false,
-    fun (m) -> ignore(process.run(send ^ process.quote(display(m)))),
+    fun (m) -> ignore(process.run(send ^ process.quote(display(m))))
   )
 end
