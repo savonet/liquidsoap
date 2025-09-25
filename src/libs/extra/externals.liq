@@ -165,7 +165,7 @@ def osd_metadata(
     )
   end
 
-  s.on_metadata(feedback)
+  s.on_metadata(synchronous=false, feedback)
 end
 
 # Use notify to display metadata info.
