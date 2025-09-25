@@ -190,6 +190,7 @@ def notify_metadata(
       ' -t #{time} #{process.quote(title)} '
 
   s.on_metadata(
-    fun (m) -> ignore(process.run(send ^ process.quote(display(m))))
+    synchronous=false,
+    fun (m) -> ignore(process.run(send ^ process.quote(display(m)))),
   )
 end
