@@ -2,28 +2,21 @@ def rlog(_) =
   ()
 end
 
-def f() =
-  if
-    file_protocol(rlog=rlog, maxtime=1., "file:///path/to/file") !=
-      "/path/to/file"
-  then
-    test.fail()
-  end
-
-  if
-    file_protocol(rlog=rlog, maxtime=1., "file:/path/to/file") !=
-      "/path/to/file"
-  then
-    test.fail()
-  end
-
-  if
-    file_protocol(rlog=rlog, maxtime=1., "file:/path/to/my%20file") !=
+tests =
+  [
+    ("file:///path/to/file", "/path/to/file"),
+    ("file:/path/to/file", "/path/to/file"),
+    (
+      "file:/path/to/my%20file",
       "/path/to/my file"
-  then
-    test.fail()
-  end
+    )
+  ]
 
+def f() =
+  list.iter(
+    fun ((t, t')) -> test.equal(file_protocol(rlog=rlog, maxtime=1., t), t'),
+    tests
+  )
   test.pass()
 end
 
