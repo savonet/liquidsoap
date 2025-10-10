@@ -1095,22 +1095,13 @@ protocol.add(
 # File protocol
 # @flag hidden
 def file_protocol(~rlog:_, ~maxtime:_, arg) =
-  path = list.nth(default="", r/:/.split(arg), 1)
-  segments = r/\//.split(path)
-  segments =
-    if
-      list.length(segments) > 3
-    and
-      list.nth(default="foo", segments, 0) == ""
-    and
-      list.nth(default="foo", segments, 1) == ""
-    then
-      list.tl(list.tl(segments))
-    else
-      segments
-    end
-
-  url.decode(string.concat(separator="/", segments))
+  if
+    not r/^file:/.test(arg)
+  then
+    null
+  else
+    url.decode(r/^file:(?:\/\/)?/.replace(fun (_) -> "", arg))
+  end
 end
 
 protocol.add(
