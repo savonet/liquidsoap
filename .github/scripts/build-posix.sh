@@ -39,6 +39,13 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
+cd /tmp
+rm -rf prometheus
+git clone https://github.com/mirage/prometheus.git
+cd prometheus
+opam pin -ny .
+opam reinstall -y prometheus-app
+
 opam update
 opam install -y re.1.13.2
 opam upgrade -y posix-socket
