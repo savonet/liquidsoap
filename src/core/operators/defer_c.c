@@ -6,7 +6,7 @@
 
 // Single bigarray not registered with the GC.
 CAMLprim value liquidsoap_alloc_managed_int16_ba(value _len) {
-  CAMLparam0();
+  CAMLparam1(_len);
   intnat out_size = Int_val(_len);
   void *data = malloc(out_size * caml_ba_element_size[CAML_BA_SINT16]);
   if (!data)
