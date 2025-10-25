@@ -166,7 +166,7 @@ def f() =
   test.equal("#{resp}", "")
 
   # Test JSON post
-  j = json()
+  j = json.object()
   j.add("foo", random.int())
   j.add("contents", file.contents("post.liq"))
   data = json.stringify(j)

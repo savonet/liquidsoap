@@ -50,7 +50,7 @@ def f() =
   test.equal(json.stringify(json5=true, infinity), 'Infinity')
   test.equal(json.stringify(json5=true, (0. - infinity)), '-Infinity')
   test.equal(json.stringify(json5=true, nan), 'NaN')
-  let b = json()
+  let b = json.object()
   b.add("b", 1)
   s = json.stringify({a=null({a=1}), b=null(b)})
   test.equal(
@@ -274,7 +274,7 @@ def f() =
      \\u0000K\\u0000i\\u0000n\\u0000g\\u0000e\\u0000r\\u0000p\\u0000\\uFFFD\""
   )
 
-  j = json()
+  j = json.object()
   j.add("foo", 1)
   j.add("bla", "bar")
   j.add("baz", 3.14)
@@ -305,6 +305,11 @@ def f() =
 
   f(infinity)
   if not null.defined(e()) then test.fail() end
+
+
+  test.equal(json.stringify(json.value(123)), "123")
+  test.equal(json.stringify(json.value(true)), "true")
+
   test.pass()
 end
 

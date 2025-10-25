@@ -1,5 +1,5 @@
 def f() =
-  j = json()
+  j = json.object()
   j.add("foo", 1)
   j.add("bla", "bar")
   j.add("baz", 3.14)
