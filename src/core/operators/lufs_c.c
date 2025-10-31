@@ -37,7 +37,8 @@ static struct custom_operations iir_ops = {
 CAMLprim value liquidsoap_lufs_create_native(value _channels, value _a1,
                                              value _a2, value _b0, value _b1,
                                              value _b2) {
-  CAMLparam5(_a1, _a2, _b0, _b1, _b2);
+  CAMLparam5(_channels, _a1, _a2, _b0, _b1);
+  CAMLxparam1(_b2);
   CAMLlocal1(ans);
   int channels = Int_val(_channels);
 

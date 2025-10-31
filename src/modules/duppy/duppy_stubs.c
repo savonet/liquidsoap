@@ -51,7 +51,7 @@
 #include <poll.h>
 
 CAMLprim value caml_poll(value _read, value _write, value _err, value _timeout) {
-  CAMLparam3(_read, _write, _err);
+  CAMLparam4(_read, _write, _err, _timeout);
   CAMLlocal4(_pread, _pwrite, _perr, _ret);
 
   struct pollfd *fds;
@@ -151,7 +151,7 @@ CAMLprim value caml_poll(value _read, value _write, value _err, value _timeout) 
 
 CAMLprim value ocaml_duppy_write_ba(value _fd, value ba, value _ofs, value _len)
 {
-  CAMLparam2(ba,_fd) ;
+  CAMLparam4(_fd, ba, _ofs, _len);
   int fd = Fd_val(_fd);
   long ofs = Long_val(_ofs);
   long len = Long_val(_len);
