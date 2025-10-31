@@ -970,3 +970,13 @@ def replaygain(~id=null, s) =
 
   amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
 end
+
+# Deprecated: use json.object
+# @flag deprecated
+def replaces json() =
+  log.severe(
+    label="lang.deprecated",
+    "Use `json.object`"
+  )
+  json.object()
+end

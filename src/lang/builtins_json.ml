@@ -219,20 +219,32 @@ let value_of_typed_json ~ty json =
           "json"
 
 module JsonSpecs = struct
-  type content = (string, Lang.value) Hashtbl.t
+  type content =
+    [ `Object of (string, Lang.value) Hashtbl.t | `Value of Lang.value ]
 
   let name = "json"
   let to_string _ = "json"
 
-  let to_json ~pos v =
-    `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value ~pos v) :: l) v [])
+  let to_json ~pos = function
+    | `Object v ->
+        `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value ~pos v) :: l) v [])
+    | `Value v -> json_of_value v
 
   let compare = Stdlib.compare
 end
 
 module JsonValue = Value.MkCustom (JsonSpecs)
 
-let json =
+let json = Lang.add_module "json"
+
+let _ =
+  Lang.add_builtin ~base:json "value" ~category:`String
+    ~descr:"Create a generic json value"
+    [("", Lang.univ_t (), None, None)]
+    JsonValue.t
+    (fun p -> JsonValue.to_value (`Value (List.assoc "" p)))
+
+let _ =
   let val_t = Lang.univ_t () in
   let var =
     match val_t.Type.descr with
@@ -283,18 +295,18 @@ let json =
               let json5 = Lang.to_bool (List.assoc "json5" p) in
               Lang.string
                 (Json.to_string ~compact ~json5
-                   (JsonSpecs.to_json ~pos:(Lang.pos p) v))) );
+                   (JsonSpecs.to_json ~pos:(Lang.pos p) (`Object v)))) );
     ]
   in
   let t =
     Lang.method_t JsonValue.t
       (List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth)
   in
-  Lang.add_builtin "json" ~category:`String
+  Lang.add_builtin ~base:json "object" ~category:`String
     ~descr:"Create a generic json object" [] t (fun _ ->
       let v = Hashtbl.create 10 in
       let meth = List.map (fun (name, _, _, fn) -> (name, fn v)) meth in
-      Lang.meth (JsonValue.to_value v) meth)
+      Lang.meth (JsonValue.to_value (`Object v)) meth)
 
 let _ =
   Lang.add_builtin ~base:json "stringify" ~category:`String

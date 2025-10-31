@@ -8,6 +8,8 @@
 ## Changed:
 
 - Do not normalize sources in `mix` by default.
+- Added `json.value` to make it possible to mix different value
+  types when returning json values (#4712)
 
 ## Fixed:
 

@@ -289,14 +289,30 @@ print(json.stringify({artist="Bla", title="Blo"}))
 
 - **Building JSON manually**:
 
-This can be useful when dynamically generating json output:
+This can be useful when dynamically generating json output.
+
+The most common tool is `json.object` to build dynamic key-value objects:
 
 ```liquidsoap
-j = json()
+j = json.object()
 j.add("foo", 1)
 j.add("bar", "baz")
 j.remove("foo")
 print(json.stringify(j))
+```
+
+In some cases, for instance when returning a mixed type of json in a http response, you
+can also use `json.value`:
+
+```liquidsoap
+try
+  # Send a number here:
+  id = 1234
+  res.json(json.value(id))
+catch err do
+  # Or a string in case of an error:
+  res.json(json.value("Error while processing request: #{err}"))
+end
 ```
 
 ## 🚀 Recap
