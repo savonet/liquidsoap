@@ -26,7 +26,7 @@
 class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
   ~empty_on_abort () =
   let bufferize = Frame.main_of_seconds bufferize in
-  object (self : < Source.source ; .. > as 'a)
+  object (self : < Source.source ; .. >)
     val mutable buffering = true
     val mutable add_track_mark = false
     val mutable cur_meta : Frame.metadata option = None
