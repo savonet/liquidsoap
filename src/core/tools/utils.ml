@@ -33,8 +33,12 @@ let log_exception ~(log : Log.t) ~bt msg =
   if log#active 4 (* info *) then log#info "%s" bt
 
 module Thread = struct
+  [@@@ocaml.warning "-32"]
+
   external set_current_thread_name : string -> unit
     = "liquidsoap_set_current_thread_name"
+
+  include Thread
 
   let set_current_thread_name s =
     let s =
@@ -93,8 +97,6 @@ module Thread = struct
       else s
     in
     set_current_thread_name s
-
-  include Thread
 end
 
 (* Force locale *)
