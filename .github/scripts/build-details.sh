@@ -34,7 +34,7 @@ else
   DOCKER_RELEASE=
 fi
 
-BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_oracular", "ubuntu_noble", "alpine"]'
+BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_plucky", "ubuntu_noble", "alpine"]'
 BUILD_PLATFORM='["amd64", "arm64"]'
 BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "depot-ubuntu-24.04-4", "alpine-arch": "x86_64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": "depot-ubuntu-24.04-arm-4", "alpine-arch": "aarch64", "docker-debian-os": "bookworm"}]'
 
