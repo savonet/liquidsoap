@@ -59,8 +59,9 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       match self#current_source with
         | Some s' when s == s' -> Some s
         | Some s' ->
+            let ret = self#switch s in
             s'#sleep (self :> Clock.source);
-            self#switch s
+            ret
         | None -> self#switch s
 
     method private get_next reselect =
