@@ -13,6 +13,8 @@
 
 ## Fixed:
 
+- Make sure that sources re-used in `source.dynamic` are never
+  inadvertently cleaned up (#4713)
 - Raise a proper error on parse error raised during `%include`
   parsing.
 - Fixed start/stop logic in `output.harbor` (#4666)
