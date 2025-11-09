@@ -165,7 +165,7 @@ def autocue.plot(
           level=4,
           "Before: #{x}"
         ),
-      metadata.cover.remove(old.metadata)
+      old.metadata
     )
 
     list.iter(
@@ -174,7 +174,7 @@ def autocue.plot(
           level=4,
           "After : #{x}"
         ),
-      metadata.cover.remove(new.metadata)
+      new.metadata
     )
 
     offset = source.duration(old.source) + source.duration(new.source)

@@ -51,6 +51,7 @@ and t =
       pos : Pos.Option.t; [@hash.ignore]
       value : string;
       methods : t Methods.t;
+      mutable flags : Flags.flags; [@hash.ignore]
     }
   | Bool of {
       pos : Pos.Option.t; [@hash.ignore]
@@ -178,7 +179,8 @@ let set_pos v pos =
 
 let has_flag v flag =
   match v with
-    | Float _ | String _ | Bool _ | Null _ -> false
+    | Float _ | Bool _ | Null _ -> false
+    | String { flags }
     | Int { flags }
     | Custom { flags }
     | Tuple { flags }
@@ -190,7 +192,8 @@ let has_flag v flag =
 
 let add_flag v flag =
   match v with
-    | Float _ | String _ | Bool _ | Null _ -> assert false
+    | Float _ | Bool _ | Null _ -> assert false
+    | String p -> p.flags <- Flags.add p.flags flag
     | Int p -> p.flags <- Flags.add p.flags flag
     | Custom p -> p.flags <- Flags.add p.flags flag
     | Tuple p -> p.flags <- Flags.add p.flags flag
@@ -207,7 +210,7 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
     = function
   | `Int i -> Int { pos; methods; flags; value = i }
   | `Float f -> Float { pos; methods; value = f }
-  | `String s -> String { pos; methods; value = s }
+  | `String s -> String { pos; methods; flags; value = s }
   | `Bool b -> Bool { pos; methods; value = b }
   | `Custom c ->
       Custom { pos; methods; flags; dynamic_methods = None; value = c }
@@ -247,6 +250,7 @@ let rec to_string v =
       | Int { value = i; flags } -> string_of_int_value ~flags i
       | Float { value = f } -> Utils.string_of_float f
       | Bool { value = b } -> string_of_bool b
+      | String { flags } when Flags.has flags Flags.binary -> "<string>"
       | String { value = s } -> Lang_string.quote_string s
       | Custom { value = c } -> Custom.to_string c
       | List { value = l } ->

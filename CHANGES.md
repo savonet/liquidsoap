@@ -17,6 +17,7 @@
   inadvertently cleaned up (#4713)
 - Raise a proper error on parse error raised during `%include`
   parsing.
+- Don't print metadata coverart string (#4730)
 - Fixed start/stop logic in `output.harbor` (#4666)
 
 ---
