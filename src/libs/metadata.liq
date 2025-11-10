@@ -188,8 +188,7 @@ def file.cover(fname) =
   metadata.cover(file.metadata(fname))
 end
 
-# Remove cover metadata. This is mostly useful in order not to flood logs
-# with coverart when logging metadata.
+# Remove cover metadata.
 # @category Metadata
 def metadata.cover.remove(m) =
   list.assoc.filter(

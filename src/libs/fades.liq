@@ -856,7 +856,7 @@ def crossfade(
           level=4,
           "Before: #{x}"
         ),
-      metadata.cover.remove(a.metadata)
+      a.metadata
     )
 
     list.iter(
@@ -865,7 +865,7 @@ def crossfade(
           level=4,
           "After : #{x}"
         ),
-      metadata.cover.remove(b.metadata)
+      b.metadata
     )
 
     cross.simple(

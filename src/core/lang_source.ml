@@ -138,7 +138,15 @@ let to_metadata_list t =
 let to_metadata t = Frame.Metadata.from_list (to_metadata_list t)
 
 let metadata_list m =
-  list (List.map (fun (k, v) -> product (string k) (string v)) m)
+  list
+    (List.map
+       (fun (k, v) ->
+         let v = string v in
+         if List.mem k Encoder_formats.conf_meta_cover#get then
+           Value.add_flag v Liquidsoap_lang.Flags.binary;
+         let k = string k in
+         product k v)
+       m)
 
 let metadata m = metadata_list (Frame.Metadata.to_list m)
 let metadata_track_t = Format_type.metadata
