@@ -581,7 +581,7 @@ jobs:
           fail-if-no-release: false
           fail-if-no-assets: false
       - name: Upload assets to main repo release
-        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
+        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
@@ -590,7 +590,7 @@ jobs:
           body: ${{ steps.release_notes.outputs.release_notes }}
           draft: ${{ !needs.build_details.outputs.is_rolling_release }}
       - name: Upload assets to release repo
-        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
+        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
         with:
           token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
