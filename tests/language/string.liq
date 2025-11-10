@@ -170,18 +170,12 @@ def f() =
   test.equal(string.sub(encoding="ascii", start=1, length=2, s), "\x8E\x8B")
 
   try
-    string.chars(encoding="utf16le", s)
+    ignore(string.chars(encoding="utf16le", s))
     test.fail()
   catch e : [error.invalid] do
     ()
   end
 
-  test.pass()
-end
-
-test.check(f)
-
-def test_escape_html() =
   test.equal(string.escape.html("&"), "&amp;")
   test.equal(string.escape.html("<"), "&lt;")
   test.equal(string.escape.html(">"), "&gt;")
@@ -205,7 +199,21 @@ def test_escape_html() =
   test.equal(string.escape.html("/"), "/")
   test.equal(string.escape.html("`"), "`")
 
+  s = "blablo"
+  flag = string.flags.binary(s)
+  test.equal(flag(), false)
+  flag := true
+  test.equal(flag(), true)
+  test.equal("#{s}", "blablo")
+  test.equal(string(s), "blablo")
+  test.equal(string(print_binary=false, s), "<string>")
+  flag := false
+  test.equal(flag(), false)
+  test.equal("#{s}", "blablo")
+  test.equal(string(s), "blablo")
+  test.equal(string(print_binary=false, s), "blablo")
+
   test.pass()
 end
 
-test.check(test_escape_html)
+test.check(f)

@@ -6,6 +6,12 @@ let string =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Show toplevel fields around the value." );
+      ( "print_binary",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "When `false`, strings marked as binary are masked and returned as \
+           `<string>`" );
       ("", Lang.univ_t (), None, None);
     ]
     Lang.string_t
@@ -16,9 +22,27 @@ let string =
       (* Always show fields for records. *)
       let show_fields = if Value.is_unit dv then true else show_fields in
       let v = if show_fields then v else dv in
+      let print_binary = Lang.to_bool (List.assoc "print_binary" p) in
       match v with
-        | String { value = s } -> Lang.string s
+        | String { value = s; flags }
+          when (not (Flags.has flags Flags.binary)) || print_binary ->
+            Lang.string s
         | v -> Lang.string (Value.to_string v))
+
+let flags = Lang.add_module ~base:string "flags"
+
+let _ =
+  Lang.add_builtin "binary" ~base:flags ~category:`String
+    ~descr:"Get or set the string binary flag."
+    [("", Lang.string_t, None, None)]
+    Lang.(ref_t bool_t)
+    (fun p ->
+      let v = List.assoc "" p in
+      Lang.reference
+        (fun () -> Lang.bool (Value.has_flag v Flags.binary))
+        (fun f ->
+          if Lang.to_bool f then Value.add_flag v Flags.binary
+          else Value.remove_flag v Flags.binary))
 
 let _ =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."

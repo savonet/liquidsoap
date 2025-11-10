@@ -202,6 +202,18 @@ let add_flag v flag =
     | FFI p -> p.flags <- Flags.add p.flags flag
 [@@inline always]
 
+let remove_flag v flag =
+  match v with
+    | Float _ | Bool _ | Null _ -> assert false
+    | String p -> p.flags <- Flags.remove p.flags flag
+    | Int p -> p.flags <- Flags.remove p.flags flag
+    | Custom p -> p.flags <- Flags.remove p.flags flag
+    | Tuple p -> p.flags <- Flags.remove p.flags flag
+    | List p -> p.flags <- Flags.remove p.flags flag
+    | Fun p -> p.flags <- Flags.remove p.flags flag
+    | FFI p -> p.flags <- Flags.remove p.flags flag
+[@@inline always]
+
 let unit = `Tuple []
 let is_unit = function Tuple { value = [] } -> true | _ -> false
 let fun_id = Atomic.make 0

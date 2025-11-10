@@ -9,3 +9,4 @@ let itered_value = 1 lsl 3
 let binary = 1 lsl 4
 let has flags flag = flags land flag <> 0
 let add flags flag = flags lor flag
+let remove flags flag = flags land lnot flag
