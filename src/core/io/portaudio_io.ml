@@ -87,6 +87,74 @@ class virtual base =
 
     method virtual log : Log.t
 
+    method get_device ~(mode : [ `Input | `Output ]) ~latency ~channels ~buflen
+        ~device_name ~device_id =
+      let samples_per_second = Lazy.force Frame.audio_rate in
+      let device_id =
+        match (device_name, device_id) with
+          | Some _, Some id ->
+              self#log#important
+                "Both name and id were given for device, ignoring name.";
+              Some id
+          | None, Some id -> Some id
+          | None, None -> None
+          | Some name, None -> (
+              let names =
+                List.init (Portaudio.get_device_count ()) (fun i ->
+                    ((Portaudio.get_device_info i).Portaudio.d_name, i))
+              in
+              match List.assoc_opt name names with
+                | Some id -> Some id
+                | None ->
+                    let names = String.concat ", " @@ List.map fst names in
+                    failwith
+                      (Printf.sprintf
+                         "Could not find portaudio device named %s, available \
+                          devices are %s."
+                         name names))
+      in
+      match device_id with
+        | None ->
+            Portaudio.open_default_stream ~format:Portaudio.format_float32 0
+              channels samples_per_second buflen
+        | Some device ->
+            let device_info = Portaudio.get_device_info device in
+            let inparams, outparams =
+              match mode with
+                | `Input ->
+                    let latency =
+                      Option.value
+                        ~default:
+                          device_info.Portaudio.d_default_high_output_latency
+                        latency
+                    in
+                    ( Some
+                        {
+                          Portaudio.channels;
+                          device;
+                          sample_format = Portaudio.format_float32;
+                          latency;
+                        },
+                      None )
+                | `Output ->
+                    let latency =
+                      Option.value
+                        ~default:
+                          device_info.Portaudio.d_default_high_input_latency
+                        latency
+                    in
+                    ( None,
+                      Some
+                        {
+                          Portaudio.channels;
+                          device;
+                          sample_format = Portaudio.format_float32;
+                          latency;
+                        } )
+            in
+            Portaudio.open_stream inparams outparams (float samples_per_second)
+              buflen []
+
     (* TODO: inline this to be more efficient? *)
     method handle lbl f =
       try f () with
@@ -108,50 +176,8 @@ class virtual base =
                 "Unanticipated host error %d in %s: %s. (ignoring)" n lbl s
   end
 
-let open_device ~mode ~latency ~channels ~buflen device_id =
-  let samples_per_second = Lazy.force Frame.audio_rate in
-  match device_id with
-    | None ->
-        Portaudio.open_default_stream ~format:Portaudio.format_float32 0
-          channels samples_per_second buflen
-    | Some device ->
-        let device_info = Portaudio.get_device_info device in
-        let inparams, outparams =
-          match mode with
-            | `Input ->
-                let latency =
-                  Option.value
-                    ~default:device_info.Portaudio.d_default_high_output_latency
-                    latency
-                in
-                ( Some
-                    {
-                      Portaudio.channels;
-                      device;
-                      sample_format = Portaudio.format_float32;
-                      latency;
-                    },
-                  None )
-            | `Output ->
-                let latency =
-                  Option.value
-                    ~default:device_info.Portaudio.d_default_high_input_latency
-                    latency
-                in
-                ( None,
-                  Some
-                    {
-                      Portaudio.channels;
-                      device;
-                      sample_format = Portaudio.format_float32;
-                      latency;
-                    } )
-        in
-        Portaudio.open_stream inparams outparams (float samples_per_second)
-          buflen []
-
-class output ~self_sync ~start ~infallible ~register_telnet ~device_id ~latency
-  buflen val_source =
+class output ~self_sync ~start ~infallible ~register_telnet ~device_name
+  ~device_id ~latency buflen val_source =
   object (self)
     inherit base
 
@@ -171,8 +197,8 @@ class output ~self_sync ~start ~infallible ~register_telnet ~device_id ~latency
       self#handle "open_device" (fun () ->
           stream <-
             Some
-              (open_device ~mode:`Output ~latency ~channels:self#audio_channels
-                 ~buflen device_id));
+              (self#get_device ~mode:`Output ~latency
+                 ~channels:self#audio_channels ~buflen ~device_name ~device_id));
       self#handle "start_stream" (fun () ->
           Portaudio.start_stream (Option.get stream))
 
@@ -198,7 +224,8 @@ class output ~self_sync ~start ~infallible ~register_telnet ~device_id ~latency
           Portaudio.write_stream stream buf 0 len)
   end
 
-class input ~self_sync ~start ~fallible ~device_id ~latency buflen =
+class input ~self_sync ~start ~fallible ~device_name ~device_id ~latency buflen
+  =
   object (self)
     inherit base
 
@@ -224,8 +251,8 @@ class input ~self_sync ~start ~fallible ~device_id ~latency buflen =
       self#handle "open_device" (fun () ->
           stream <-
             Some
-              (open_device ~mode:`Input ~latency ~channels:self#audio_channels
-                 ~buflen device_id));
+              (self#get_device ~mode:`Input ~latency
+                 ~channels:self#audio_channels ~buflen ~device_name ~device_id));
       self#handle "start_stream" (fun () ->
           Portaudio.start_stream (Option.get stream))
 
@@ -264,6 +291,10 @@ let _ =
           Lang.nullable_t Lang.int_t,
           Some Lang.null,
           Some "Device ID. Uses default device if `null`." );
+        ( "device_name",
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
+          Some "Device name." );
         ( "latency",
           Lang.nullable_t Lang.float_t,
           Some Lang.null,
@@ -276,6 +307,9 @@ let _ =
     (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
+      let device_name =
+        Lang.to_valued_option Lang.to_string @@ List.assoc "device_name" p
+      in
       let device_id =
         Lang.to_valued_option Lang.to_int (List.assoc "device_id" p)
       in
@@ -288,8 +322,8 @@ let _ =
       let source = List.assoc "" p in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       (new output
-         ~start ~infallible ~register_telnet ~self_sync ~device_id ~latency
-         buflen source
+         ~start ~infallible ~register_telnet ~self_sync ~device_name ~device_id
+         ~latency buflen source
         :> Output.output))
 
 let _ =
@@ -313,6 +347,10 @@ let _ =
           Lang.nullable_t Lang.int_t,
           Some Lang.null,
           Some "Device ID. Uses default device if `null`." );
+        ( "device_name",
+          Lang.nullable_t Lang.string_t,
+          Some Lang.null,
+          Some "Device name." );
         ( "latency",
           Lang.nullable_t Lang.float_t,
           Some Lang.null,
@@ -324,6 +362,9 @@ let _ =
     (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
+      let device_name =
+        Lang.to_valued_option Lang.to_string @@ List.assoc "device_name" p
+      in
       let device_id =
         Lang.to_valued_option Lang.to_int (List.assoc "device_id" p)
       in
@@ -333,4 +374,5 @@ let _ =
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
-      new input ~self_sync ~start ~fallible ~device_id ~latency buflen)
+      new input
+        ~self_sync ~start ~fallible ~device_name ~device_id ~latency buflen)
