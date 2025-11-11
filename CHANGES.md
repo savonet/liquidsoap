@@ -10,6 +10,7 @@
 - Do not normalize sources in `mix` by default.
 - Added `json.value` to make it possible to mix different value
   types when returning json values (#4712)
+- Allow referring to pulseaudio devices by name (#4732)
 
 ## Fixed:
 
