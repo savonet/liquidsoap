@@ -108,7 +108,7 @@ class virtual base =
                 | None ->
                     let names =
                       String.concat ", "
-                      @@ List.map (fun s -> "\"" ^ s ^ "\"")
+                      @@ List.map Lang_string.quote_string
                       @@ List.map fst names
                     in
                     failwith
