@@ -106,7 +106,11 @@ class virtual base =
               match List.assoc_opt name names with
                 | Some id -> Some id
                 | None ->
-                    let names = String.concat ", " @@ List.map fst names in
+                    let names =
+                      String.concat ", "
+                      @@ List.map (fun s -> "\"" ^ s ^ "\"")
+                      @@ List.map fst names
+                    in
                     failwith
                       (Printf.sprintf
                          "Could not find portaudio device named %s, available \
