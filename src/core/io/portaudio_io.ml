@@ -91,6 +91,8 @@ class virtual base =
         ~device_name ~device_id =
       let samples_per_second = Lazy.force Frame.audio_rate in
       let device_id =
+        let device_name_value = device_name in
+        let device_name = Lang.to_valued_option Lang.to_string device_name in
         match (device_name, device_id) with
           | Some _, Some id ->
               self#log#important
@@ -111,11 +113,13 @@ class virtual base =
                       @@ List.map Lang_string.quote_string
                       @@ List.map fst names
                     in
-                    failwith
-                      (Printf.sprintf
-                         "Could not find portaudio device named %s, available \
-                          devices are %s."
-                         name names))
+                    raise
+                      (Error.Invalid_value
+                         ( device_name_value,
+                           Printf.sprintf
+                             "Could not find portaudio device named %s, \
+                              available devices are %s."
+                             name names )))
       in
       match device_id with
         | None ->
@@ -291,14 +295,14 @@ let _ =
           Lang.int_t,
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
-        ( "device_id",
-          Lang.nullable_t Lang.int_t,
-          Some Lang.null,
-          Some "Device ID. Uses default device if `null`." );
         ( "device_name",
           Lang.nullable_t Lang.string_t,
           Some Lang.null,
           Some "Device name." );
+        ( "device_id",
+          Lang.nullable_t Lang.int_t,
+          Some Lang.null,
+          Some "Device ID. Uses default device if `null`." );
         ( "latency",
           Lang.nullable_t Lang.float_t,
           Some Lang.null,
@@ -311,9 +315,7 @@ let _ =
     (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
-      let device_name =
-        Lang.to_valued_option Lang.to_string @@ List.assoc "device_name" p
-      in
+      let device_name = List.assoc "device_name" p in
       let device_id =
         Lang.to_valued_option Lang.to_int (List.assoc "device_id" p)
       in
@@ -347,14 +349,14 @@ let _ =
           Some (Lang.bool true),
           Some "Mark the source as being synchronized by the portaudio driver."
         );
-        ( "device_id",
-          Lang.nullable_t Lang.int_t,
-          Some Lang.null,
-          Some "Device ID. Uses default device if `null`." );
         ( "device_name",
           Lang.nullable_t Lang.string_t,
           Some Lang.null,
           Some "Device name." );
+        ( "device_id",
+          Lang.nullable_t Lang.int_t,
+          Some Lang.null,
+          Some "Device ID. Uses default device if `null`." );
         ( "latency",
           Lang.nullable_t Lang.float_t,
           Some Lang.null,
@@ -366,9 +368,7 @@ let _ =
     (fun p ->
       let e f v = f (List.assoc v p) in
       let buflen = e Lang.to_int "buflen" in
-      let device_name =
-        Lang.to_valued_option Lang.to_string @@ List.assoc "device_name" p
-      in
+      let device_name = List.assoc "device_name" p in
       let device_id =
         Lang.to_valued_option Lang.to_int (List.assoc "device_id" p)
       in
