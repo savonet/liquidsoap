@@ -3,13 +3,13 @@
 # @category Source / Output
 # @argsof output.icecast[!method,!mount,!description,!protocol]
 # @param ~icy_reset Reset shoutcast source buffer upon connecting (necessary for NSV).
-# @param ~dj Callback to set dj name.
+# @param ~dj Set DJ name.
 # @param e Encoding format. Should be mp3 or AAC(+).
 # @param s The source to output
 def output.shoutcast(
   %argsof(output.icecast[!method,!mount,!description,!protocol]),
   ~icy_reset=true,
-  ~dj={""},
+  ~dj=getter(""),
   ~aim="",
   ~icq="",
   ~irc="",
@@ -27,7 +27,7 @@ def output.shoutcast(
     ]
 
   def map(m) =
-    dj = dj()
+    dj = getter.get(dj)
     if dj != "" then ("dj", dj)::m else m end
   end
 

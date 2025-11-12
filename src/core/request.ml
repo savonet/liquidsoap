@@ -346,7 +346,7 @@ let conf_recode_excluded =
   Dtools.Conf.list
     ~d:["pic"; "apic"; "metadata_block_picture"; "coverart"]
     ~p:(conf_recode#plug "exclude")
-    "Exclude these metadata from automatic recording."
+    "Exclude these metadata from automatic recoding."
 
 let resolve_metadata ~initial_metadata ~excluded name =
   let decoders = get_decoders conf_metadata_decoders mresolvers in
