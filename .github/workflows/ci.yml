@@ -405,7 +405,7 @@ jobs:
           IS_ROLLING_RELEASE: ${{ needs.build_details.outputs.is_rolling_release }}
           IS_RELEASE: ${{ needs.build_details.outputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
-          DEB_RELEASE: 2
+          DEB_RELEASE: 3
         run: |
           mkdir -p "${LIQ_TMP_DIR}"
           chown -R opam "${LIQ_TMP_DIR}"
@@ -431,7 +431,7 @@ jobs:
           IS_ROLLING_RELEASE: ${{ needs.build_details.outputs.is_rolling_release }}
           IS_RELEASE: ${{ needs.build_details.outputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ needs.build_details.outputs.minimal_exclude_deps }}
-          APK_RELEASE: 1
+          APK_RELEASE: 2
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           apk add alpine-sdk
