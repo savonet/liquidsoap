@@ -27,7 +27,7 @@ let mime_types =
   Dtools.Conf.list
     ~p:(Decoder.conf_mime_types#plug "video_metadata")
     "Mime-types used for decoding metadata using native parser."
-    ~d:["video/x-msvideo"]
+    ~d:["video/x-msvideo"; "video/mp4"]
 
 let conf_video =
   Dtools.Conf.void
@@ -37,7 +37,8 @@ let conf_video =
 let file_extensions =
   Dtools.Conf.list
     ~p:(Decoder.conf_file_extensions#plug "video_metadata")
-    "File extensions used for decoding metadata using native parser." ~d:["avi"]
+    "File extensions used for decoding metadata using native parser."
+    ~d:["avi"; "mp4"]
 
 let priority =
   Dtools.Conf.int
