@@ -551,26 +551,6 @@ jobs:
           echo "release_assets<<EOF" >> $GITHUB_OUTPUT
           find artifacts/${{ needs.build_details.outputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config|\.zip$' | sort -u >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-      - name: Generate release notes
-        id: release_notes
-        run: |
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          if [ ${{ needs.build_details.outputs.is_rolling_release }} = "true" ]; then
-            cat doc/content/rolling-release.md >> $GITHUB_OUTPUT
-          fi
-          echo "" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-      - name: Generate release assets notes
-        id: release_assets_notes
-        run: |
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          cat doc/content/release-assets.md >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          cat CHANGES.md | sed -e "/---/,\$d" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
       - name: Delete old release assets
         uses: mknejp/delete-release-assets@v1
         with:
@@ -585,9 +565,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
           files: ${{ steps.release_assets.outputs.release_assets }}
-          prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
-          body: ${{ steps.release_notes.outputs.release_notes }}
-          draft: ${{ !needs.build_details.outputs.is_rolling_release }}
+          prerelease: false
+          draft: false
       - name: Upload assets to release repo
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
@@ -595,9 +574,8 @@ jobs:
           tag_name: ${{ needs.build_details.outputs.branch }}
           files: ${{ steps.release_assets.outputs.release_assets }}
           repository: savonet/liquidsoap-release-assets
-          prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
-          body: ${{ steps.release_assets_notes.outputs.release_notes }}
-          draft: ${{ !needs.build_details.outputs.is_rolling_release }}
+          prerelease: false
+          draft: false
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
