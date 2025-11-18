@@ -390,8 +390,10 @@ let resolve_metadata ~initial_metadata ~excluded name =
   let mime = Magic_mime.lookup name in
   let get_metadata ~metadata decoders =
     List.fold_left
-      (fun metadata (_, { resolver }) ->
+      (fun metadata (resolver_name, { resolver }) ->
         try
+          log#debug "Resolving metadata for file %s using resolver %s" name
+            resolver_name;
           let ans = resolver ~metadata:initial_metadata ~extension ~mime name in
           List.fold_left
             (fun metadata (k, v) ->
