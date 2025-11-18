@@ -12,6 +12,8 @@
   types when returning json values (#4712)
 - Allow referring to pulseaudio devices by name (#4732)
 - `output.shoutcast`: make `dj` argument a getter.
+- Exclude metadata listed in `settings.encoder.metadata.cover`
+  from automatic metadata recoding. (#4690)
 
 ## Fixed:
 

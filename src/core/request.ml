@@ -343,10 +343,14 @@ let conf_recode =
     ~d:true "Re-encode metadata strings in UTF-8"
 
 let conf_recode_excluded =
-  Dtools.Conf.list
-    ~d:["pic"; "apic"; "metadata_block_picture"; "coverart"]
+  Dtools.Conf.list ~d:[]
     ~p:(conf_recode#plug "exclude")
     "Exclude these metadata from automatic recoding."
+
+let conf_recode_exclude_coverart =
+  Dtools.Conf.bool ~d:true
+    ~p:(conf_recode_excluded#plug "cover")
+    "Exclude metadata listed as cover art from automatic recoding."
 
 let resolve_metadata ~initial_metadata ~excluded name =
   let decoders = get_decoders conf_metadata_decoders mresolvers in
@@ -362,10 +366,24 @@ let resolve_metadata ~initial_metadata ~excluded name =
   let convert =
     if conf_recode#get then (
       let excluded = conf_recode_excluded#get in
+      let excluded =
+        if conf_recode_exclude_coverart#get then
+          Encoder_formats.conf_meta_cover#get @ excluded
+        else excluded
+      in
       fun k v ->
-        if not (List.mem (String.lowercase_ascii k) excluded) then
-          Charset.convert v
-        else v)
+        match
+          (List.mem (String.lowercase_ascii k) excluded, String.length v)
+        with
+          | true, _ -> v
+          | false, n when Charset_base.conf_max_string_length#get <= n ->
+              log#important
+                "Metadata value %s is too long to be recoded. Your might need \
+                 to add to the list of excluded metadata in \
+                 `settings.request.metadata_decoders.recode.exclude`."
+                (Lang_string.quote_string k);
+              v
+          | _ -> Charset.convert v)
     else fun _ x -> x
   in
   let extension = try Some (Utils.get_ext name) with _ -> None in
