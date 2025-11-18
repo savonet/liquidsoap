@@ -49,7 +49,7 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~options
         (`Dynamic, if device <> None then Some sync_source else None)
       else (`Static, None)
 
-    method get_device =
+    method private get_device =
       match device with
         | Some d -> d
         | None ->
@@ -74,10 +74,6 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~options
             Ao.close d;
             device <- None
         | None -> ()
-
-    method push_block data =
-      let dev = self#get_device in
-      play dev (Bytes.unsafe_to_string data)
 
     method send_frame frame = play self#get_device (AFrame.s16le frame)
     method! reset = ()

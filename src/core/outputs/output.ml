@@ -86,6 +86,16 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     initializer
       self#on_frame (`Metadata self#add_metadata);
       if register_telnet then (
+        self#register_command "start"
+          (fun _ ->
+            start_stop#transition_to `Started;
+            "Done")
+          ~descr:"Start the output.";
+        self#register_command "stop"
+          (fun _ ->
+            start_stop#transition_to `Stopped;
+            "Done")
+          ~descr:"Stop the output.";
         self#register_command "skip"
           (fun _ ->
             self#skip;
