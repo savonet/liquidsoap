@@ -133,7 +133,11 @@ let callbacks ~label =
 
 let meth :
     unit ->
-    (< state : state ; transition_to : state -> unit ; .. > -> Lang.value)
+    (< state : state
+     ; transition_to : state -> unit
+     ; source_type : Source.source_type
+     ; .. > ->
+    Lang.value)
     Lang.meth
     list =
  fun () ->
@@ -162,10 +166,13 @@ let meth :
         value =
           (fun s ->
             val_fun [] (fun p ->
-                if not s#fallible then
-                  Lang.raise_error ~pos:(Lang.pos p)
-                    ~message:"Source is infallible and cannot be stopped"
-                    "input";
+                (match (s#source_type, s#fallible) with
+                  | `Output _, _ -> ()
+                  | _, false ->
+                      Lang.raise_error ~pos:(Lang.pos p)
+                        ~message:"Source is infallible and cannot be stopped"
+                        "input"
+                  | _ -> ());
                 s#transition_to `Stopped;
                 unit));
       };
