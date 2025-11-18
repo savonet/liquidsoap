@@ -1,8 +1,5 @@
 log.level := 4
 
-# TODO: investigate again.
-test.skip()
-
 def f() =
   s =
     once(
