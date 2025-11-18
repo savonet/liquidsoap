@@ -5,6 +5,7 @@
 - Added support for explicit metadata to pass to the output
   when creating a `%ffmpeg` encoder (#4667)
 - Added start/stop telnet commands for outputs.
+- Added `settings.syslog.level` to set syslog level (#4686)
 
 ## Changed:
 

@@ -16,6 +16,8 @@
 
 open Dtools_impl
 
+let log = Log.make ["syslog"]
+
 let conf_syslog =
   Conf.bool ~p:(Log.conf#plug "syslog") ~d:false "Enable syslog logging."
 
@@ -28,6 +30,24 @@ let conf_program =
 let conf_facility =
   Conf.string ~p:(conf_syslog#plug "facility") ~d:"DAEMON" "Logging facility."
 
+let conf_level =
+  Conf.string ~p:(onf_syslog#plug "level") ~d:"info"
+    "Logging level. One of: `\"emergency\"`, `\"alert\"`, `\"critical\"`, \
+     `\"error\"`, `\"warning\"`, `\"notice\"`, `\"info\"` or `\"debug\"`."
+
+let level_of_string = function
+  | "emergency" -> `LOG_EMERG
+  | "alert" -> `LOG_ALERT
+  | "critical" -> `LOG_CRIT
+  | "error" -> `LOG_ERR
+  | "warning" -> `LOG_WARNING
+  | "notice" -> `LOG_NOTICE
+  | "info" -> `LOG_INFO
+  | "debug" -> `LOG_DEBUG
+  | s ->
+      log#critical "Invalid log level: %s" s;
+      `LOG_INFO
+
 let logging = ref None
 
 let () =
@@ -37,7 +57,8 @@ let () =
       let program = Printf.sprintf "%s[%d]" conf_program#get (Unix.getpid ()) in
       let log = Syslog.openlog ~facility program in
       logging := Some log;
-      let exec s = Syslog.syslog log `LOG_INFO s in
+      let log_level = level_of_string conf_level#get in
+      let exec s = Syslog.syslog log log_level s in
       Log.add_custom_log program { Log.timestamp = false; exec })
   in
   let stop () = match !logging with Some x -> Syslog.closelog x | _ -> () in
