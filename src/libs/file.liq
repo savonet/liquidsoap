@@ -17,9 +17,19 @@ end
 # Read the content of a file. Returns a function of type `()->string`. File is
 # done reading when function returns the empty string `""`.
 # @category File
+# @method close Close the underlying file descriptor without waiting for the whole file to be read.
 def file.read(fname) =
   fd = file.open(write=false, fname)
   is_done = ref(false)
+
+  def close() =
+    if
+      not is_done()
+    then
+      is_done := true
+      fd.close()
+    end
+  end
 
   def read() =
     if
@@ -28,13 +38,12 @@ def file.read(fname) =
       ""
     else
       s = fd.read()
-      is_done := s == ""
-      if is_done() then fd.close() end
+      if s == "" then close() end
       s
     end
   end
 
-  read
+  read.{close=close}
 end
 
 let file.write = ()
