@@ -47,7 +47,7 @@ opam pin -ny .
 opam reinstall -y prometheus-app
 
 opam update
-opam install -y re.1.13.2
+opam pin -y add re 1.13.2
 opam upgrade -y posix-socket
 
 cd /tmp/liquidsoap-full/liquidsoap
