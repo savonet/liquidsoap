@@ -533,7 +533,6 @@ jobs:
         build_details,
         build_no_depopts,
         build_js,
-        run_tests,
         build_posix,
         build_win32,
         fetch_s3_artifacts,
@@ -822,7 +821,7 @@ jobs:
 
   build_docker_release:
     runs-on: depot-ubuntu-24.04-4
-    needs: [build_details, run_tests, build_docker, build_docker_alpine]
+    needs: [build_details, build_docker, build_docker_alpine]
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
@@ -840,13 +839,7 @@ jobs:
 
   build_docker_release-minimal:
     runs-on: depot-ubuntu-24.04-4
-    needs:
-      [
-        build_details,
-        run_tests,
-        build_docker_minimal,
-        build_docker_alpine_minimal,
-      ]
+    needs: [build_details, build_docker_minimal, build_docker_alpine_minimal]
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
