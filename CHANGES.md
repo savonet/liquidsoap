@@ -12,6 +12,9 @@
 - Do not normalize sources in `mix` by default.
 - Added `json.value` to make it possible to mix different value
   types when returning json values (#4712)
+- Put all output in a default clock by default. This should make
+  most simple clock situations automatically work. Disable using
+  `settings.output.use_default_clock := false` (#4741)
 - Allow referring to pulseaudio devices by name (#4732)
 - `output.shoutcast`: make `dj` argument a getter.
 - Exclude metadata listed in `settings.encoder.metadata.cover`

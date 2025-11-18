@@ -50,6 +50,21 @@ Here’s what that looks like:
 
 ![Graph representation with clocks](/assets/img/graph_clocks.png)
 
+## 🚀 Output clocks
+
+In most basic situations, users will expect all outputs to be connected to the same clock.
+
+This way, if you assign multiple outputs during the execution of your script, all these outputs will work together as a single
+dedicated streaming system.
+
+However, in advanced situations you might need to manually assign clocks or let liquidsoap assign a different clock to each output.
+
+In this case, you should use the following setting:
+
+```liquidsoap
+settings.output.use_default_clock := false
+```
+
 ## 🛑 Understanding Clock-Related Errors
 
 Most of the time, you don’t need to think about clocks—Liquidsoap handles it for you. But when things go wrong, here’s what it might look like:

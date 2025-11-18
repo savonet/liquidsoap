@@ -43,6 +43,16 @@ let proto =
 
 module Queue = Queues.Queue
 
+let default_clock = Clock.create ~id:"default clock" ()
+
+let conf_output =
+  Dtools.Conf.void ~p:(Configure.conf#plug "output") "Output settings"
+
+let conf_use_default_clock =
+  Dtools.Conf.bool
+    ~p:(conf_output#plug "use_default_clock")
+    ~d:true "Use the default clock for all outputs."
+
 (** Given abstract start stop and send methods, creates an output. Takes care of
     pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including start/stop.
@@ -50,6 +60,11 @@ module Queue = Queues.Queue
 class virtual output ~output_kind ?clock ?(name = "") ~infallible
   ~register_telnet val_source autostart =
   let source = Lang.to_source val_source in
+  let clock =
+    match clock with
+      | None when conf_use_default_clock#get -> Some default_clock
+      | c -> c
+  in
   object (self)
     initializer
       (* This should be done before the active_operator initializer attaches us

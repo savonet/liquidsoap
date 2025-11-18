@@ -103,7 +103,8 @@ let () =
         Runtime.error_header ~formatter 17 pos;
         Format.fprintf formatter
           "%s has multiple synchronization sources. Do you need to set \
-           self_sync=false?@."
+           `self_sync=false` or `settings.output.use_default_clock := \
+           false`?@."
           name;
         Format.fprintf formatter "\nSync sources:\n";
         List.iter
