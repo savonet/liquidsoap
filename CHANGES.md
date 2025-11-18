@@ -4,6 +4,7 @@
 
 - Added support for explicit metadata to pass to the output
   when creating a `%ffmpeg` encoder (#4667)
+- Added start/stop telnet commands for outputs.
 
 ## Changed:
 
