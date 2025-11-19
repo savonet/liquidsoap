@@ -57,12 +57,15 @@ let conf_use_default_clock =
     pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including start/stop.
 *)
-class virtual output ~output_kind ?clock ?(name = "") ~infallible
-  ~register_telnet val_source autostart =
+class virtual output ~output_kind ?use_default_clock ?clock ?(name = "")
+  ~infallible ~register_telnet val_source autostart =
   let source = Lang.to_source val_source in
+  let use_default_clock =
+    Option.value ~default:conf_use_default_clock#get use_default_clock
+  in
   let clock =
     match clock with
-      | None when conf_use_default_clock#get -> Some default_clock
+      | None when use_default_clock -> Some default_clock
       | c -> c
   in
   object (self)

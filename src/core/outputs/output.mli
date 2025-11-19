@@ -29,6 +29,7 @@ val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
   output_kind:string ->
+  ?use_default_clock:bool ->
   ?clock:Clock.t ->
   ?name:string ->
   infallible:bool ->
