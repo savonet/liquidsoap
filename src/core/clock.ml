@@ -279,8 +279,7 @@ exception Has_stopped
 
 let[@inline] check_stopped () = if Atomic.get global_stop then raise Has_stopped
 
-let descr clock =
-  let clock = Unifier.deref clock in
+let _descr clock =
   Printf.sprintf "clock(id=%s,sync=%s%s)" (_id clock)
     (string_of_sync_mode (_sync clock))
     (match Atomic.get clock.state with
@@ -289,10 +288,21 @@ let descr clock =
             (string_of_sync_mode (pending :> sync_mode))
       | _ -> "")
 
+let descr clock = _descr (Unifier.deref clock)
+
+let rec check_sub_clocks ~pos _c _c' =
+  Queue.iter _c.sub_clocks (fun x ->
+      let _x = Unifier.deref x in
+      if _x == _c' then
+        raise (Liquidsoap_lang.Error.Clock_loop (pos, _descr _c, _descr _c'));
+      check_sub_clocks ~pos _x _c')
+
 let unify =
-  let _unify c c' =
+  let _unify ~pos c c' =
     let clock = Unifier.deref c in
     let clock' = Unifier.deref c' in
+    check_sub_clocks ~pos clock clock';
+    check_sub_clocks ~pos clock' clock;
     (match
        (Unifier.deref clock.controller, Unifier.deref clock'.controller)
      with
@@ -333,13 +343,13 @@ let unify =
             });
     match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
       | true, _, _ -> ()
-      | _, `Stopped s, `Stopped s' when s = s' -> _unify c c'
+      | _, `Stopped s, `Stopped s' when s = s' -> _unify ~pos c c'
       | _, `Stopped s, _
         when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
-          _unify c c'
+          _unify ~pos c c'
       | _, _, `Stopped s'
         when s' = `Automatic || _sync ~pending:true _c = (s' :> sync_mode) ->
-          _unify c' c
+          _unify ~pos c' c
       | _ ->
           raise (Liquidsoap_lang.Error.Clock_conflict (pos, descr c, descr c'))
   in
