@@ -208,7 +208,13 @@ let rec throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
       Format.fprintf formatter
         "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
       Printexc.raise_with_backtrace Error bt
-  (* Error 11 used to be Clock_loop. *)
+  | Error.Clock_loop (pos, a, b) ->
+      error_header ~formatter 11 pos;
+      Format.fprintf formatter
+        "Cannot unify two nested clocks@ (%s,@ %s).@ Do you need to set@ \
+         `settings.output.use_default_clock := false`?@]@."
+        a b;
+      raise Error
   | Term.Unsupported_encoder (pos, fmt) ->
       error_header ~formatter 12 pos;
       (if Sys.unix then
