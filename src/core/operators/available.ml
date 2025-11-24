@@ -28,7 +28,7 @@ class available ~track_sensitive ~override p (source : source) =
     method fallible = true
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method self_sync = source#self_sync
     val mutable ready = None
 

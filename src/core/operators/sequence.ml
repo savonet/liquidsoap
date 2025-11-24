@@ -95,9 +95,9 @@ class sequence ?(merge = false) ?(single_track = true) sources =
         List.fold_left ( + ) 0 (List.map (fun s -> s#remaining) self#queue))
       else (List.hd self#queue)#remaining
 
-    method seek_source =
+    method effective_source =
       match self#queue with
-        | s :: _ -> s#seek_source
+        | s :: _ -> s#effective_source
         | _ -> (self :> Source.source)
 
     method abort_track =
@@ -116,7 +116,7 @@ class merge_tracks source =
     method abort_track = source#abort_track
     method remaining = -1
     method self_sync = source#self_sync
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
 
     method private generate_frame =
       let buf = source#get_frame in

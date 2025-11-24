@@ -40,8 +40,8 @@ class max_duration ~override_meta ~duration source =
         | _, -1 -> -1
         | rem, rem' -> min rem rem'
 
-    method! seek len = source#seek_source#seek (min remaining len)
-    method seek_source = source#seek_source
+    method! seek len = source#effective_source#seek (min remaining len)
+    method effective_source = source#effective_source
 
     method private check_for_override buf =
       List.iter

@@ -44,7 +44,7 @@ class consumer ~clock buffer =
 
     method abort_track = Generator.clear buffer
     method self_sync = (`Static, None)
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method remaining = Generator.length buffer
   end
 
@@ -554,10 +554,10 @@ class cross val_source ~end_duration_getter ~override_end_duration
               | r, r' -> r + r')
         | `After s -> s#remaining
 
-    method seek_source =
+    method effective_source =
       match status with
-        | `Idle -> source#seek_source
-        | `Before s | `After s -> s#seek_source
+        | `Idle -> source#effective_source
+        | `Before s | `After s -> s#effective_source
 
     method abort_track =
       match status with

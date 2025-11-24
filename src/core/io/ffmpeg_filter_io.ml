@@ -172,7 +172,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
     inherit ['a] duration_converter
     inherit Source.source ~name ()
     initializer Typing.(self#frame_type <: frame_t)
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method fallible = true
     method remaining = Generator.remaining self#buffer
     method abort_track = ()

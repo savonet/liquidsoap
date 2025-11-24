@@ -341,10 +341,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let e = self#elapsed in
       if r < 0 || e < 0 then -1 else e + r
 
-    method virtual seek_source : source
+    method virtual effective_source : source
 
     method seek n =
-      let s = self#seek_source in
+      let s = self#effective_source in
       if (s :> < seek : int -> int >) == (self :> < seek : int -> int >) then 0
       else s#seek n
 

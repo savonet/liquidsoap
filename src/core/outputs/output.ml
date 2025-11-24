@@ -133,7 +133,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
 
     (* Operator startup *)
     initializer

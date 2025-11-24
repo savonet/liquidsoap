@@ -23,7 +23,7 @@
 class fail name =
   object (self)
     inherit Source.source ~name ()
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method fallible = true
     method private can_generate_frame = false
     method self_sync = (`Static, None)
@@ -63,7 +63,7 @@ let _ =
 class is_ready s =
   object (self)
     inherit Source.operator ~name:"is_ready" [s]
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method fallible = true
     method private can_generate_frame = true
     method self_sync = (`Static, None)

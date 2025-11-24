@@ -28,7 +28,7 @@ class track_map ~name ~field ~fn s =
     method fallible = s#fallible
     method remaining = s#remaining
     method abort_track = s#abort_track
-    method seek_source = s#seek_source
+    method effective_source = s#effective_source
     method self_sync = s#self_sync
     method private can_generate_frame = s#is_ready
 

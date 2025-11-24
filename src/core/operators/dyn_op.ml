@@ -111,9 +111,9 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     method abort_track =
       match self#current_source with Some s -> s#abort_track | None -> ()
 
-    method seek_source =
+    method effective_source =
       match self#current_source with
-        | Some s -> s#seek_source
+        | Some s -> s#effective_source
         | None -> (self :> Source.source)
 
     method self_sync =

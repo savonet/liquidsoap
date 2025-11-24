@@ -41,7 +41,7 @@ class jack_in ~self_sync ~fallible ~autostart ~server =
     inherit
       Start_stop.active_source ~name:"input.jack" ~fallible ~autostart () as active_source
 
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
     method abort_track = ()
     method remaining = -1

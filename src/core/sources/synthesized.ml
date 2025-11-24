@@ -43,7 +43,7 @@ class virtual source ~name ~seek duration =
             remaining <- Some 0;
             r
 
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method self_sync = (`Static, None)
 
     method remaining =

@@ -42,7 +42,7 @@ class soundtouch source_val rate tempo pitch =
     method fallible = source#fallible
     method self_sync = source#self_sync
     method private can_generate_frame = source#is_ready
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method remaining = -1
 
     method abort_track =

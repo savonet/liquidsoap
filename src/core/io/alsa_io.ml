@@ -257,7 +257,7 @@ class input ~buffer_size ~self_sync ~start ~fallible dev =
     method private stop = self#close_device
     method remaining = -1
     method abort_track = ()
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
 
     (* TODO: convert samplerate *)

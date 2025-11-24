@@ -46,7 +46,7 @@ class map_metadata source rewrite_f insert_missing update strip =
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method self_sync = source#self_sync
 
     method private rewrite m =

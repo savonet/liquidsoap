@@ -49,7 +49,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
     inherit operator ~name:("frei0r." ^ name) [source]
     method fallible = source#fallible
     method remaining = source#remaining
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
@@ -87,7 +87,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
   let self_sync = Clock_base.self_sync [source; source2] in
   object (self)
     inherit operator ~name:("frei0r." ^ name) [source; source2]
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method fallible = source#fallible && source2#fallible
 
     method remaining =
@@ -168,7 +168,7 @@ class frei0r_source ~name bgra instance params =
   let dt = 1. /. float fps in
   object (self)
     inherit source ~name:("frei0r." ^ name) ()
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method fallible = false
     method private can_generate_frame = true
     method self_sync = (`Static, None)
