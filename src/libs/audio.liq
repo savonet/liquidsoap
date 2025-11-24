@@ -367,6 +367,20 @@ def stereotool(
 
   s
 end
+
+# Output an audio source using stereotool
+# @argsof track.audio.stereotool[!active]
+# @category Source / Output
+def output.stereotool(
+  ~id=null("output.stereotool"),
+  %argsof(track.audio.stereotool[!id,!active]),
+  s
+) =
+  s = stereotool(%argsof(track.audio.stereotool[!id,!active]), active=false, s)
+  let replaces s = output.dummy(id=id, s)
+
+  s
+end
 %endif
 
 # Defer the source's audio track by a given amount of time. Source will be

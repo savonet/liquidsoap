@@ -6,6 +6,7 @@
   when creating a `%ffmpeg` encoder (#4667)
 - Added start/stop telnet commands for outputs.
 - Added `settings.syslog.level` to set syslog level (#4686)
+- Added `active` parameter to `stereotool` and `output.stereotool` (#4749)
 
 ## Changed:
 

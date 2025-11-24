@@ -28,9 +28,10 @@ type config = {
   software_version : int;
 }
 
-class stereotool ~field ~handler source =
+class virtual base ~field ~handler (source : Source.source) =
   object (self)
-    inherit Source.operator ~name:"stereotool" [source]
+    method virtual on_wake_up : (unit -> unit) -> unit
+    method virtual log : Log.t
 
     val config =
       Lazy.from_fun (fun () ->
@@ -87,6 +88,18 @@ class stereotool ~field ~handler source =
       source#set_frame_data field Content.Audio.lift_data b
   end
 
+class stereotool ~field ~handler source =
+  object
+    inherit base ~field ~handler source
+    inherit Source.operator ~name:"stereotool" [source]
+  end
+
+class active_stereotool ~field ~handler source =
+  object
+    inherit base ~field ~handler source
+    inherit Source.operator ~name:"stereotool" [source]
+  end
+
 let _ =
   let frame_t = Format_type.audio () in
   Lang.add_track_operator ~base:Modules.track_audio "stereotool"
@@ -107,6 +120,12 @@ let _ =
           "Load type for preset. One of: \"totalinit\", \"all_settings\", \
            \"audiofm\", \"audio\", \"processing\", \"repair\", \
            \"repair_no_pnr\" or \"sublevel_pnr\"." );
+      ( "active",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Set to `true` to keep the source streaming even when not actively \
+           used by an output." );
       ("", frame_t, None, None);
     ]
     ~meth:
@@ -156,6 +175,7 @@ let _ =
     ~return_t:frame_t ~category:`Audio
     ~descr:"Process the given audio track with StereoTool."
     (fun p ->
+      let active = Lang.to_bool (List.assoc "active" p) in
       let library = Lang.to_string (List.assoc "library_file" p) in
       let license_key =
         Lang.to_valued_option Lang.to_string (List.assoc "license_key" p)
@@ -213,4 +233,8 @@ let _ =
                   (Printf.sprintf "Preset loading of file %S failed!" filename)
                 "eval");
       let field, src = Lang.to_track (List.assoc "" p) in
-      (field, new stereotool ~field ~handler src))
+      let source =
+        if active then new active_stereotool ~field ~handler src
+        else new stereotool ~field ~handler src
+      in
+      (field, source))
