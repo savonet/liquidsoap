@@ -178,7 +178,11 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
       match self#current with None -> 0 | Some cur -> cur.seek x
 
     method seek_source = (self :> Source.source)
-    method abort_track = Atomic.set should_skip true
+
+    method abort_track =
+      match self#current with
+        | None -> ()
+        | Some _ -> Atomic.set should_skip true
 
     method private is_request_ready =
       self#current <> None || try self#fetch_request with _ -> false
