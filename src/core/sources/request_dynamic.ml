@@ -43,6 +43,7 @@ type handler = {
 }
 
 type task = { notify : unit -> unit; stop : unit -> unit }
+type state = [ `Sleeping | `Started of float * task ]
 
 let log_failed_request (log : Log.t) request ans =
   log#important "Could not resolve request %s: %s."
@@ -213,7 +214,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
             log_failed_request self#log i.request ans;
             false
 
-    val state = Atomic.make `Sleeping
+    val state : state Atomic.t = Atomic.make `Sleeping
 
     initializer
       self#on_wake_up (fun () ->
@@ -391,7 +392,22 @@ let _ =
           value =
             (fun s ->
               Lang.val_fun [] (fun _ ->
-                  s#notify_new_request;
+                  let task =
+                    {
+                      Duppy.Task.priority;
+                      events = [`Delay 0.];
+                      handler =
+                        (fun _ ->
+                          (match s#fetch with
+                            | `Finished -> ()
+                            | `Retry ->
+                                s#log#important
+                                  "Requested fetch failed! You might want to \
+                                   retry..");
+                          []);
+                    }
+                  in
+                  Duppy.Task.add Tutils.scheduler task;
                   Lang.unit));
         };
         {
