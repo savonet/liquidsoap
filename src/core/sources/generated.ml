@@ -45,7 +45,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
             len)
           ()
 
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method abort_track = add_track_mark <- true
     method private length = Generator.length self#buffer
     val mutable last_buffering_warning = -1

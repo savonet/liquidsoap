@@ -48,7 +48,7 @@ class delay ~initial (source : source) delay =
       last_track <- time ();
       source#abort_track
 
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method self_sync = source#self_sync
     method private delay_ok = delay_ok last_track
     method private can_generate_frame = self#delay_ok && source#is_ready

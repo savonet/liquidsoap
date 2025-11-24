@@ -171,7 +171,7 @@ class input p =
     method private stop = self#close_device
     method remaining = -1
     method abort_track = ()
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
 
     method private can_generate_frame =
       match (active_source#started, stream) with

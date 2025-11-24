@@ -33,7 +33,7 @@ class replay meta src =
     method abort_track = src#abort_track
     method remaining = src#remaining
     method self_sync = src#self_sync
-    method seek_source = src#seek_source
+    method effective_source = src#effective_source
 
     method private generate_frame =
       let buf = src#get_frame in

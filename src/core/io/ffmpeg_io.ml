@@ -70,7 +70,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   object (self)
     inherit Start_stop.active_source ~name ~fallible:true ~autostart () as super
     val connect_task = Atomic.make None
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 

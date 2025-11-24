@@ -99,7 +99,7 @@ class input ~self_sync ~start ~fallible dev =
 
     method abort_track = ()
     method remaining = -1
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method private start = self#open_device
     method private can_generate_frame = active_source#started
 

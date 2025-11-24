@@ -76,7 +76,7 @@ class producer ?stack ~check_self_sync ~consumers ~name () =
       Generator.truncate self#buffer len;
       len
 
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
 
     method remaining =
       match

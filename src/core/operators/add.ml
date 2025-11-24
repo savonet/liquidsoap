@@ -83,8 +83,10 @@ class virtual base ~name tracks =
                | Some p, Some (_, frame) -> Some (max p (Frame.position frame)))
            None frames)
 
-    method seek_source =
-      match sources with [s] -> s#seek_source | _ -> (self :> Source.source)
+    method effective_source =
+      match sources with
+        | [s] -> s#effective_source
+        | _ -> (self :> Source.source)
 
     (* For backward compatibility: set metadata from the first
        track effectively summed. *)

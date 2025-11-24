@@ -51,7 +51,7 @@ let all_chans = 16
 class dssi ?chan plugin descr outputs params source =
   object
     inherit operator ~name:"dssi" [source]
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method fallible = source#fallible
     method remaining = source#remaining
     method private can_generate_frame = source#is_ready

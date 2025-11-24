@@ -32,7 +32,7 @@ class merge_metadata tracks =
     method private ready_sources = List.filter (fun s -> s#is_ready) sources
     method private can_generate_frame = self#ready_sources <> []
 
-    method seek_source =
+    method effective_source =
       match self#ready_sources with
         | s :: [] -> s
         | _ -> (self :> Source.source)

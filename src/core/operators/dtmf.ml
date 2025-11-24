@@ -158,7 +158,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
     inherit operator ~name:"dtmf" [source]
     method fallible = source#fallible
     method remaining = source#remaining
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
@@ -296,7 +296,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
     inherit operator ~name:"dtmf.detect" [source]
     method fallible = source#fallible
     method remaining = source#remaining
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync

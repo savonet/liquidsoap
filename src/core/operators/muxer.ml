@@ -43,7 +43,7 @@ class muxer ~pos ~base tracks =
     method private can_generate_frame = self#sources_ready
 
     method! seek len =
-      let s = self#seek_source in
+      let s = self#effective_source in
       if s == (self :> Source.source) then (
         self#log#info
           "Operator is muxing from multiple sources and cannot seek without \
@@ -51,15 +51,15 @@ class muxer ~pos ~base tracks =
         len)
       else s#seek len
 
-    method seek_source =
+    method effective_source =
       match
         List.fold_left
           (fun sources source ->
-            let source = source#seek_source in
+            let source = source#effective_source in
             if List.memq source sources then sources else source :: sources)
           [] sources
       with
-        | [s] -> s#seek_source
+        | [s] -> s#effective_source
         | _ -> (self :> Source.source)
 
     method remaining =

@@ -96,7 +96,7 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method self_sync = source#self_sync
     val mutable on_blank = []
     method on_blank fn = on_blank <- on_blank @ [fn]
@@ -135,8 +135,8 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
 
     method remaining = if self#is_blank then 0 else source#remaining
 
-    method seek_source =
-      if self#is_blank then (self :> Source.source) else source#seek_source
+    method effective_source =
+      if self#is_blank then (self :> Source.source) else source#effective_source
 
     method abort_track = source#abort_track
     method self_sync = source#self_sync
@@ -165,7 +165,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     method fallible = true
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 

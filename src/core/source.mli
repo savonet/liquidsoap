@@ -218,7 +218,7 @@ object
   (** Return the source effectively used to seek. Used by the muxer to determine
       if there is a unique seeking source. Should return [self] if there isn't
       such a unique source. *)
-  method virtual seek_source : source
+  method virtual effective_source : source
 
   (** [self#seek_ticks x] skips [x] main ticks. returns the number of ticks
       actually skipped. By default it always returns 0, refusing to seek at all.

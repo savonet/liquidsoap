@@ -63,7 +63,7 @@ class virtual base source =
     inherit operator ~name:"ladspa" [source]
     method fallible = source#fallible
     method remaining = source#remaining
-    method seek_source = source#seek_source
+    method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
@@ -72,7 +72,7 @@ class virtual base source =
 class virtual base_nosource =
   object (self)
     inherit source ~name:"ladspa" ()
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
     method fallible = false
     method private can_generate_frame = true
     method self_sync = (`Static, None)

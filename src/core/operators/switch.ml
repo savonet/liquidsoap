@@ -245,9 +245,9 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         | Some s -> s.effective_source#abort_track
         | None -> ()
 
-    method seek_source =
+    method effective_source =
       match selected with
-        | Some s -> s.effective_source#seek_source
+        | Some s -> s.effective_source#effective_source
         | None -> (self :> Source.source)
 
     method selected = Option.map (fun { child } -> child.source) selected

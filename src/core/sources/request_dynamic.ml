@@ -177,7 +177,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
     method! seek x =
       match self#current with None -> 0 | Some cur -> cur.seek x
 
-    method seek_source = (self :> Source.source)
+    method effective_source = (self :> Source.source)
 
     method abort_track =
       match self#current with

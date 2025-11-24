@@ -61,7 +61,7 @@ module Buffer = struct
         Generator.truncate (Lazy.force c.generator) len;
         len
 
-      method seek_source = (self :> Source.source)
+      method effective_source = (self :> Source.source)
       method buffer_length = Generator.length (Lazy.force c.generator)
 
       method private generate_frame =
@@ -227,7 +227,7 @@ module AdaptativeBuffer = struct
     let alpha = AFrame.duration () /. averaging in
     object (self)
       inherit Source.source ~name:"buffer.adaptative.producer" ()
-      method seek_source = (self :> Source.source)
+      method effective_source = (self :> Source.source)
       method self_sync = (`Static, None)
       method fallible = true
       method remaining = proceed c (fun () -> Generator.remaining c.mg)
