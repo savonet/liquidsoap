@@ -41,8 +41,11 @@ module Specs = struct
   let clear d = d.data <- []
   let is_empty { data } = data = []
 
+  (* Make sure content is unique per position, keeping the last
+     entry for each position. *)
   let sort : 'a. (int * 'a) list -> (int * 'a) list =
-   fun data -> List.stable_sort (fun (p, _) (p', _) -> compare p p') data
+   fun data ->
+    List.sort_uniq (fun (p, _) (p', _) -> compare p' p) (List.rev data)
 
   let sub c ofs length =
     let len = match length with Infinite -> max_int | Finite len -> len in
