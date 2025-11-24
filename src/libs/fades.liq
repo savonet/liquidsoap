@@ -705,7 +705,14 @@ def fade.in(
   s = source.methods(s)
   s.on_track(synchronous=true, reset_overrides)
   s.on_metadata(synchronous=true, update_fade)
-  s = sequence(merge=true, [blank(duration=delay), s])
+  s =
+    if
+      delay() > 0.
+    then
+      sequence(merge=true, [blank(duration=delay), s])
+    else
+      s
+    end
   s = fade.scale(id=id, apply, s)
 
   if
