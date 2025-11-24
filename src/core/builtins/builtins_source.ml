@@ -35,7 +35,7 @@ let _ =
   Lang.add_builtin ~base:source "effective" ~category:(`Source `Liquidsoap)
     ~descr:
       "Returns the effective source for the given source that is the source \
-       effectively being animated during the current streaming cyc le. For \
+       effectively being animated during the current streaming cycle. For \
        instance, this return the currently active source in a `switch` and \
        etc. The operator is recursive so it is applied through the whole \
        streaming graph until it finds a leaf source."
