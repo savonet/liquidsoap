@@ -25,6 +25,7 @@
 - Raise a proper error on parse error raised during `%include`
   parsing.
 - Don't print metadata coverart string (#4730)
+- Make sure `fetch` always fetches a new request in `request.dynamic` (#4745)
 - Fixed start/stop logic in `output.harbor` (#4666)
 
 ---
