@@ -370,14 +370,16 @@ end
 
 # Output an audio source using stereotool
 # @argsof track.audio.stereotool[!active]
+# @argsof output.dummy[!id]
 # @category Source / Output
 def output.stereotool(
   ~id=null("output.stereotool"),
   %argsof(track.audio.stereotool[!id,!active]),
+  %argsof(output.dummy[!id]),
   s
 ) =
   s = stereotool(%argsof(track.audio.stereotool[!id,!active]), active=false, s)
-  let replaces s = output.dummy(id=id, s)
+  let replaces s = output.dummy(id=id, %argsof(output.dummy[!id]), s)
 
   s
 end
