@@ -23,7 +23,7 @@
 open Mm
 open Source
 
-class blank duration =
+class blank ~fallible duration =
   object (self)
     inherit source ~name:"blank" ()
 
@@ -37,8 +37,8 @@ class blank duration =
         | `Elapsed _, d when d < 0. -> -1
         | `Elapsed e, d -> max 0 (Frame.main_of_seconds d - e)
 
-    method fallible = false
-    method private can_generate_frame = true
+    method fallible = fallible
+    method private can_generate_frame = duration () > 0.
     method self_sync = (`Static, None)
     method! seek x = x
     method effective_source = (self :> Source.source)
@@ -126,5 +126,9 @@ let blank =
       );
     ]
     (fun p ->
-      let d = Lang.to_float_getter (List.assoc "duration" p) in
-      (new blank d :> source))
+      let duration = List.assoc "duration" p in
+      let fallible =
+        (not (Lang.is_fun duration)) && Lang.to_float duration <> 0.
+      in
+      let d = Lang.to_float_getter duration in
+      (new blank ~fallible d :> source))
