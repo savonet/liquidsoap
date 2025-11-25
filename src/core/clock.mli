@@ -24,7 +24,7 @@ exception Invalid_state
 exception Has_stopped
 
 type t
-type active_source = < reset : unit ; output : unit >
+type active_source = < id : string ; reset : unit ; output : unit >
 
 type source_type =
   [ `Passive | `Active of active_source | `Output of active_source ]

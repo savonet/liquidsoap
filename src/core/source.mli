@@ -41,7 +41,7 @@ type sync = [ `Auto | `CPU | `None ]
     not connected to any output. The [output] method is called on each clock
     cycle on active sources and outputs. The [reset] method is called when there
     is too much latency. *)
-type active = < reset : unit ; output : unit >
+type active = < id : string ; reset : unit ; output : unit >
 
 type source_type = [ `Passive | `Active of active | `Output of active ]
 
