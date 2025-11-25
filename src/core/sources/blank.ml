@@ -127,8 +127,6 @@ let blank =
     ]
     (fun p ->
       let duration = List.assoc "duration" p in
-      let fallible =
-        (not (Lang.is_fun duration)) && Lang.to_float duration <> 0.
-      in
+      let fallible = Lang.is_fun duration || Lang.to_float duration = 0. in
       let d = Lang.to_float_getter duration in
       (new blank ~fallible d :> source))
