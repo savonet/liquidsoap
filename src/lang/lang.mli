@@ -122,6 +122,7 @@ val to_valued_ref :
 val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_fun : value -> (string * value) list -> value
+val is_fun : value -> bool
 val to_getter : value -> unit -> value
 
 (** [assoc x n l] returns the [n]-th [y] such that [(x,y)] is in the list [l].

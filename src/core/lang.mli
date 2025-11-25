@@ -192,6 +192,7 @@ val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_source_list : value -> Source.source list
 val to_fun : value -> (string * value) list -> value
+val is_fun : value -> bool
 val to_getter : value -> unit -> value
 val to_ref : value -> (unit -> value) * (value -> unit)
 

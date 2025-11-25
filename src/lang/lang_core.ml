@@ -302,6 +302,7 @@ let to_bool_getter = function
 [@@inline always]
 
 let to_fun v = apply v [@@inline always]
+let is_fun = function Fun _ | FFI _ -> true | _ -> false
 
 let to_string = function String { value = s } -> s | _ -> assert false
 [@@inline always]
