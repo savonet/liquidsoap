@@ -14,9 +14,6 @@ RUN apt-get -y install libcurl4-gnutls-dev
 
 USER opam
 
-# This is until the next image rebuild:
-RUN eval "$(opam config env)" && opam install -y ocurl js_of_ocaml js_of_ocaml-ppx
-
 WORKDIR /tmp/liquidsoap-full
 
 RUN rm -rf website/savonet.github.io
