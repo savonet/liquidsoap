@@ -163,7 +163,7 @@ We noticed that you did not install the samplerate package. We strongly
 recommend this package for audio samplerate conversion."""
     {success & !samperate-enabled}
   """\
-We noticed that you did not install the ocurl package. We strongly
+We noticed that you did not install the curl package. We strongly
 recommend this package for http request resolving support."""
     {success & !curl-enabled}
   """\
