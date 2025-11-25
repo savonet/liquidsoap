@@ -4,6 +4,8 @@ let static_tests =
     "icecast_tls.liq";
     "icecast_tls_ssl.liq";
     "icecast_ssl_tls.liq";
+    "crossfade-plot.liq";
+    "autocue-plot.liq";
   ]
 
 let () =
@@ -42,14 +44,6 @@ let () =
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
-  ./crossfade-plot.old.txt
-  ./crossfade-plot.new.txt
-  ./autocue-plot.0.new.txt
-  ./autocue-plot.0.old.txt
-  ./autocue-plot.1.new.txt
-  ./autocue-plot.1.old.txt
-  ./autocue-plot.2.new.txt
-  ./autocue-plot.2.old.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)

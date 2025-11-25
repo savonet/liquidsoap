@@ -214,6 +214,122 @@
 (rule
  (alias citest)
  (package liquidsoap)
+ (targets
+  crossfade-plot.png.gen
+  crossfade-plot.old.txt.gen
+  crossfade-plot.new.txt.gen)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./crossfade-plot.liq
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Crossfade Plot"
+   liquidsoap
+   --stdlib
+   %{stdlib}
+   %{test_liq}
+   ./crossfade-plot.liq)))
+
+(rule
+ (alias citest)
+ (action
+  (diff crossfade-plot.png crossfade-plot.png.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff crossfade-plot.old.txt crossfade-plot.old.txt.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff crossfade-plot.new.txt crossfade-plot.new.txt.gen)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (targets
+  autocue-plot.0.png.gen
+  autocue-plot.1.png.gen
+  autocue-plot.2.png.gen
+  autocue-plot.0.old.txt.gen
+  autocue-plot.0.new.txt.gen
+  autocue-plot.1.old.txt.gen
+  autocue-plot.1.new.txt.gen
+  autocue-plot.2.old.txt.gen
+  autocue-plot.2.new.txt.gen)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./autocue-plot.liq
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Autocue Plot"
+   liquidsoap
+   --stdlib
+   %{stdlib}
+   %{test_liq}
+   ./autocue-plot.liq)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.0.png autocue-plot.0.png.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.0.old.txt autocue-plot.0.old.txt.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.0.new.txt autocue-plot.0.new.txt.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.1.png autocue-plot.1.png.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.1.old.txt autocue-plot.1.old.txt.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.1.new.txt autocue-plot.1.new.txt.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.2.png autocue-plot.2.png.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.2.old.txt autocue-plot.2.old.txt.gen)))
+
+(rule
+ (alias citest)
+ (action
+  (diff autocue-plot.2.new.txt autocue-plot.2.new.txt.gen)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
   ./icecast_ssl.liq

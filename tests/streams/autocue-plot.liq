@@ -42,13 +42,13 @@ def rec execute(pos) =
   on_cleanup({file.rmdir(dir)})
 
   def on_stop() =
-    test.equal(
-      file.contents(path.concat(dir, "old.txt")),
-      file.contents(path.concat(base_dir, "autocue-plot.#{pos}.old.txt"))
+    file.copy(
+      path.concat(dir, "old.txt"),
+      path.concat(base_dir, "autocue-plot.#{pos}.old.txt.gen")
     )
-    test.equal(
-      file.contents(path.concat(dir, "new.txt")),
-      file.contents(path.concat(base_dir, "autocue-plot.#{pos}.new.txt"))
+    file.copy(
+      path.concat(dir, "new.txt"),
+      path.concat(base_dir, "autocue-plot.#{pos}.new.txt.gen")
     )
     if pos == list.length(tests) - 1 then test.pass() else execute(pos + 1) end
   end
@@ -57,6 +57,7 @@ def rec execute(pos) =
 
   autocue.plot(
     dir=dir,
+    png="autocue-plot.#{pos}.png.gen",
     old_autocue=old_autocue,
     new_autocue=new_autocue,
     sync="none",
