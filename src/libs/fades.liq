@@ -562,8 +562,8 @@ def fade.in(
   ~type=null,
   s
 ) =
-  def log(~level=4, x) =
-    log(label=source.id(s), level=level, x)
+  def log(x) =
+    log(label=source.id(s), level=4, x)
   end
 
   fn = ref(fun () -> 0.)
@@ -705,24 +705,7 @@ def fade.in(
   s = source.methods(s)
   s.on_track(synchronous=true, reset_overrides)
   s.on_metadata(synchronous=true, update_fade)
-  s =
-    if
-      delay() > 0.
-    then
-      if
-        source.methods(source.effective(s)).is_active()
-      then
-        log(
-          level=2,
-          "Fade in delay cannot apply when the target source is active as active \
-           sources get animated while the delay is applied! You might consider \
-           setting the delay to `0`."
-        )
-      end
-      sequence(merge=true, [blank(duration=delay), s])
-    else
-      s
-    end
+  s = sequence(merge=true, [blank(duration=delay), s])
   s = fade.scale(id=id, apply, s)
 
   if
