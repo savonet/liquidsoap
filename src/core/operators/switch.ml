@@ -219,8 +219,11 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                             ~override_meta ~duration:transition_length s
                         in
                         Typing.(s#frame_type <: self#frame_type);
-                        (new Sequence.sequence ~merge:true [s; new_source]
-                          :> Source.source))
+                        let s =
+                          new Sequence.sequence ~merge:true [s; new_source]
+                        in
+                        Typing.(s#frame_type <: self#frame_type);
+                        (s :> Source.source))
                     in
                     self#set_selected
                       (Some { predicate; child = c; effective_source = s })
