@@ -95,11 +95,11 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
         | _ -> self#get_next reselect
 
     initializer
-      self#on_wake_up (fun () ->
-          Lang.iter_sources
-            (fun s -> Typing.(s#frame_type <: self#frame_type))
-            next_fn;
-          ignore (self#get_source ~reselect:`Force ()));
+      (* This is required in some unification corner case with memoize: source.dynamic(memoize({s})) *)
+      Lang.iter_sources
+        (fun s -> Typing.(s#frame_type <: self#frame_type))
+        next_fn;
+      self#on_wake_up (fun () -> ignore (self#get_source ~reselect:`Force ()));
       self#on_sleep (fun () ->
           match Atomic.exchange current_source None with
             | Some s -> s#sleep (self :> Clock.source)
