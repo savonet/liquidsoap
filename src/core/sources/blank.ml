@@ -23,16 +23,25 @@
 open Mm
 open Source
 
-class blank duration =
+class blank d =
   object (self)
     inherit source ~name:"blank" ()
 
     val position : [ `New_track | `Elapsed of int ] Atomic.t =
       Atomic.make `New_track
 
+    val mutable last_duration = None
+
+    method private blank_duration =
+      let d = d () in
+      if last_duration <> Some d && d = 0. then
+        self#log#important "Duration of `0.` is not supported!";
+      last_duration <- Some d;
+      d
+
     (** Remaining time, -1 for infinity. *)
     method remaining =
-      match (Atomic.get position, duration ()) with
+      match (Atomic.get position, self#blank_duration) with
         | `New_track, _ -> 0
         | `Elapsed _, d when d < 0. -> -1
         | `Elapsed e, d -> max 0 (Frame.main_of_seconds d - e)
