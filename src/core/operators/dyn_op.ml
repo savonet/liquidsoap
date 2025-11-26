@@ -185,10 +185,13 @@ let _ =
           descr = "Prepare a source that will be returned later.";
           value =
             (fun s ->
+              let finalize child = child#sleep (s :> Clock.source) in
               Lang.val_fun
                 [("", "x", None)]
                 (fun p ->
-                  s#prepare (List.assoc "x" p |> Lang.to_source);
+                  let child = List.assoc "x" p |> Lang.to_source in
+                  s#prepare child;
+                  Gc.finalise finalize child;
                   Lang.unit));
         };
       ]
