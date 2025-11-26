@@ -258,12 +258,17 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/stats-posix.sh
-      - name: Install additional packages
+      - name: Install additional packages for @doc
         if: matrix.target == '@doctest'
         run: |
           apt-get -y update
           apt-get -y install frei0r-plugins
           sudo -u opam -E opam install odoc
+      - name: Install additional packages for @citest
+        if: matrix.target == '@citest'
+        run: |
+          apt-get -y update
+          apt-get -y install gnuplot
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}

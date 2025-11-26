@@ -37,21 +37,15 @@ s = sequence([a, b])
 dir = file.temp_dir("plot")
 on_cleanup({file.rmdir(dir)})
 
-s = cross.plot(dir=dir, s)
+s = cross.plot(dir=dir, png="crossfade-plot.png.gen", s)
 
 clock.assign_new(sync='none', [s])
 
 base_dir = path.dirname(argv(0))
 
 def on_stop() =
-  test.equal(
-    file.contents(path.concat(dir, "old.txt")),
-    file.contents(path.concat(base_dir, "crossfade-plot.old.txt"))
-  )
-  test.equal(
-    file.contents(path.concat(dir, "new.txt")),
-    file.contents(path.concat(base_dir, "crossfade-plot.new.txt"))
-  )
+  file.copy(path.concat(dir, "old.txt"), path.concat(base_dir, "crossfade-plot.old.txt.gen"))
+  file.copy(path.concat(dir, "new.txt"), path.concat(base_dir, "crossfade-plot.new.txt.gen"))
   test.pass()
 end
 
