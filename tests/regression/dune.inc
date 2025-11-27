@@ -1059,6 +1059,22 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  eval-check-demeth.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} eval-check-demeth.liq liquidsoap %{test_liq} eval-check-demeth.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   external-encoder.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe

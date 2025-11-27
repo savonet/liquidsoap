@@ -206,6 +206,12 @@ let rec filter_meths t fn =
     | Meth (m, t) -> { t with descr = Meth (m, filter_meths t fn) }
     | _ -> t
 
+let rec map_meths t fn =
+  let t = deref t in
+  match t.descr with
+    | Meth (m, t) -> { t with descr = Meth (fn m, map_meths t fn) }
+    | _ -> t
+
 (** Put the methods of the first type around the second type. *)
 let rec remeth t u =
   let t = deref t in
