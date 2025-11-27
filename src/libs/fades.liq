@@ -182,8 +182,8 @@ def fade.out(
   ~type=null,
   s
 ) =
-  def log(~level=4, x) =
-    log(label=source.id(s), level=level, x)
+  def log(x) =
+    log(label=source.id(s), level=4, x)
   end
 
   fn = ref(fun () -> 1.)
@@ -347,34 +347,24 @@ def fade.out(
   s.on_metadata(synchronous=true, update_fade)
   if track_sensitive then s.on_track(synchronous=true, stop_fade) end
 
-  d = source.dynamic(memoize({s}))
-
   if
     track_sensitive
   then
-    d.on_position(
+    s.on_position(
       synchronous=true,
       remaining=true,
       position=duration,
       start_fade
     )
   else
-    d.on_frame(
+    s.on_frame(
       synchronous=true,
       before=false,
       memoize({start_fade(source.remaining(s), [])})
     )
   end
 
-  # Make sure we generate a frame before starting the fade
-  # to ensure that we catch all the initial metadata.
-  d.on_frame(
-    synchronous=true,
-    before=true,
-    memoize({if s.is_ready() then s.generate_frame() end})
-  )
-
-  fade.scale(id=id, apply, d).{fade_duration={duration()}, fade_type={type()}}
+  fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
 
 # Fade when the metadata trigger is received and then skip.
@@ -572,8 +562,8 @@ def fade.in(
   ~type=null,
   s
 ) =
-  def log(~level=4, x) =
-    log(label=source.id(s), level=level, x)
+  def log(x) =
+    log(label=source.id(s), level=4, x)
   end
 
   fn = ref(fun () -> 0.)
@@ -609,8 +599,6 @@ def fade.in(
       "Fading in with type: #{type()}, curve: #{curve_log}, delay: #{delay()}s \
        and duration: #{duration}s."
     )
-
-    # Note: delay here must match the add delay via blank to make the curve also match
     fn :=
       mkfade(
         start=0.,
@@ -717,42 +705,7 @@ def fade.in(
   s = source.methods(s)
   s.on_track(synchronous=true, reset_overrides)
   s.on_metadata(synchronous=true, update_fade)
-
-  # Initial duration for fade.in should be computed after fetching the initial
-  # frame from s to make sure any initial metadata is taken into account
-  prepare = ref(fun (_) -> ())
-  s =
-    source.dynamic(
-      memoize(
-        fun () ->
-          begin
-            prepare = prepare()
-            prepare(s)
-            if s.is_active() then s.generate_frame() end
-            delay = delay()
-            if
-              delay > 0.
-            then
-              effective_source = source.methods(source.effective(s))
-              if
-                s.is_active()
-              then
-                log(
-                  level=2,
-                  "Active source #{effective_source.id()} is faded in after an \
-                   initial delay of #{delay}s. This will result is initial data \
-                   loss since the source will be animated while the delay \
-                   expires."
-                )
-              end
-              sequence(merge=true, [blank(duration=delay), s])
-            else
-              s
-            end
-          end
-      )
-    )
-
+  s = sequence(merge=true, [blank(duration=delay), s])
   s = fade.scale(id=id, apply, s)
 
   if
