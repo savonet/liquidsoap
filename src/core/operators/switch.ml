@@ -62,20 +62,12 @@ let find ?(strict = false) f l =
   aux l
 
 class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
-  ~track_sensitive children =
+  ~has_transitions ~track_sensitive children =
   let cases = List.map (fun (_, _, s) -> s) children in
-  let sources = ref (List.map (fun c -> c.source) cases) in
-  let failed = ref false in
-  let () =
-    List.iter
-      (Lang.iter_sources
-         ~on_imprecise:(fun () -> failed := true)
-         (fun s -> sources := s :: !sources))
-      (List.map (fun c -> c.transition) cases)
-  in
+  let sources = List.map (fun c -> c.source) cases in
   let self_sync_type =
-    if !failed then Lazy.from_val `Dynamic
-    else Clock_base.self_sync_type !sources
+    if has_transitions then Lazy.from_val `Dynamic
+    else Clock_base.self_sync_type sources
   in
   object (self)
     inherit operator ~name:"switch" (List.map (fun x -> x.source) cases)
@@ -340,10 +332,11 @@ let _ =
           (Lang.to_list (List.assoc "" p))
       in
       let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
+      let tr = Lang.to_list (List.assoc "transitions" p) in
+      let ltr = List.length tr in
+      let has_transitions = 0 < ltr in
       let tr =
         let l = List.length children in
-        let tr = Lang.to_list (List.assoc "transitions" p) in
-        let ltr = List.length tr in
         if ltr > l then
           raise
             (Error.Invalid_value
@@ -378,5 +371,5 @@ let _ =
                  "there should be exactly one flag per children" ))
       in
       new switch
-        ~replay_meta ~override_meta ~all_predicates ~transition_length:tl
-        ~track_sensitive:ts children)
+        ~replay_meta ~has_transitions ~override_meta ~all_predicates
+        ~transition_length:tl ~track_sensitive:ts children)
