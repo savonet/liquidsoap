@@ -307,6 +307,19 @@ jobs:
         with:
           name: traces-${{ matrix.target }}
           path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
+      - name: Prepare test artifacts
+        if: (success() || failure()) && matrix.target == '@citest'
+        run: |
+          mkdir -p /tmp/${{ github.run_number }}/test-artifacts/tests/streams
+          cd /tmp/liquidsoap-full/liquidsoap
+          cp -f tests/streams/*.txt /tmp/${{ github.run_number }}/test-artifacts/tests/streams
+          cp -f tests/streams/*.png /tmp/${{ github.run_number }}/test-artifacts/tests/streams
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        if: (success() || failure()) && needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
+        with:
+          name: test-artifacts
+          path: ${{ github.workspace }}/${{ github.run_number }}/test-artifacts
       - name: Export potential core dumps
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         if: failure()
