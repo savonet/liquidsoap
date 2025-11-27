@@ -483,6 +483,22 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  GH3239-bis.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3239-bis.liq liquidsoap %{test_liq} GH3239-bis.liq)))
+  
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   GH3239.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
