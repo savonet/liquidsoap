@@ -44,13 +44,6 @@ type value = Liquidsoap_lang.Value.t
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
 
-(** Iter a function over all sources contained in a value. This only applies to
-    statically referenced objects, i.e. it does not explore inside reference
-    cells. [on_imprecise] is used when we encounter a value cell that may
-    contain a source. If not passed, we display a warning log. *)
-val iter_sources :
-  ?on_imprecise:(unit -> unit) -> (Source.source -> unit) -> value -> unit
-
 (** {2 Computation} *)
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
