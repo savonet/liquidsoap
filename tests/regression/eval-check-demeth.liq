@@ -1,0 +1,8 @@
+tmp = file.temp("foo", "mp3")
+on_cleanup({file.remove(tmp)})
+s = sine()
+let {audio = a} = source.tracks(s)
+let a = track.audio.compress(a)
+s = source({audio=a})
+o = output.file(fallible=true, %mp3(mono), tmp, s)
+o.on_start(synchronous=true, test.pass)

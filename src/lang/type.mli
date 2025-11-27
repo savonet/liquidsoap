@@ -178,6 +178,7 @@ val hide_meth : string -> t -> t
 val opt_meth : string -> t -> t
 val get_meth : string -> t -> meth
 val filter_meths : t -> (meth -> bool) -> t
+val map_meths : t -> (meth -> meth) -> t
 val var : ?constraints:constr list -> ?level:int -> ?pos:Pos.t -> unit -> t
 val mk_invariant : t -> unit
 val to_string_fun : (?generalized:var list -> t -> string) ref

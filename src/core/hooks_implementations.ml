@@ -11,9 +11,14 @@ let rec deep_demeth t =
     | Type.{ descr = Nullable t } -> deep_demeth t
     | t -> t
 
+let track_demeth t =
+  Type.map_meths t (fun ({ Type.scheme = vars, typ } as m) ->
+      { m with scheme = (vars, Type.demeth typ) })
+
 let strip_tracks ty =
   let ty = Type.hide_meth "track_marks" ty in
-  Type.hide_meth "metadata" ty
+  let ty = Type.hide_meth "metadata" ty in
+  track_demeth ty
 
 let strip_source_tracks ty =
   match Type.deref ty with
