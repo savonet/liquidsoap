@@ -13,4 +13,4 @@ export OCAMLPATH
 
 export CLICOLOR_FORCE=1
 
-dune build -j 4 "${TARGET}" --error-reporting=twice --display=quiet
+dune build -j 4 "${TARGET}" --error-reporting=twice --display=quiet --auto-promote
