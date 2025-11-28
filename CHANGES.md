@@ -20,6 +20,8 @@
 
 ## Fixed:
 
+- Fix `input.harbor` initial metadata when switching with
+  fades (#4736)
 - Make sure that sources re-used in `source.dynamic` are never
   inadvertently cleaned up (#4713)
 - Raise a proper error on parse error raised during `%include`
@@ -27,6 +29,7 @@
 - Don't print metadata coverart string (#4730)
 - Make sure `fetch` always fetches a new request in `request.dynamic` (#4745)
 - Fixed start/stop logic in `output.harbor` (#4666)
+- Fixed `fade.in`/`fade.out` logic w.r.t. override metadata (#4759)
 
 ---
 
