@@ -349,6 +349,22 @@ let source_methods =
       value = (fun s -> val_fun [] (fun _ -> bool s#is_ready));
     };
     {
+      name = "generate_frame";
+      scheme = ([], fun_t [] unit_t);
+      descr =
+        "Generate a frame from the source without consuming it. This can be \
+         useful in advanced cases where generating a frame is required to \
+         trigger some side effect like calculating some metadata before making \
+         a decision. You should make sure that the source is available before \
+         calling this function and it should only be called inside synchronous \
+         streaming loop callback such as `on_frame`!";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              ignore s#peek_frame;
+              unit));
+    };
+    {
       name = "insert_metadata";
       scheme =
         ( [],
