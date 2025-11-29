@@ -74,7 +74,7 @@ class filter (source : source) freq q wet mode =
           b_c.(i) <-
             (wet
             *.
-            match mode with
+              match mode with
               | Low_pass -> low.(c)
               | High_pass -> high.(c)
               | Band_pass -> band.(c)

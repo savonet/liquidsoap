@@ -264,7 +264,7 @@ let _ =
       let pattern =
         pattern
         |> Option.map (fun s ->
-               String.concat "\\." (String.split_on_char '.' s))
+            String.concat "\\." (String.split_on_char '.' s))
         |> Option.map (fun s -> String.concat ".*" (String.split_on_char '*' s))
         |> Option.map (fun s -> "^" ^ s ^ "$")
         |> Option.value ~default:""

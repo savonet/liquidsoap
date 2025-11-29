@@ -114,12 +114,11 @@ let _ =
           | Cry.Icy -> Cry.Icy_id icy_id
           | _ -> Cry.Icecast_mount mount
       in
-      begin
-        try
-          let transport = (transport :> Cry.transport) in
-          Cry.manual_update_metadata ~host ~port ~protocol ~user ~password
-            ~mount ~headers ~transport metas
-        with e ->
-          log#severe "Manual metadata update failed: %s" (Printexc.to_string e)
+      begin try
+        let transport = (transport :> Cry.transport) in
+        Cry.manual_update_metadata ~host ~port ~protocol ~user ~password ~mount
+          ~headers ~transport metas
+      with e ->
+        log#severe "Manual metadata update failed: %s" (Printexc.to_string e)
       end;
       Lang.unit)

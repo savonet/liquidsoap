@@ -180,20 +180,19 @@ let process_request s =
             let metadata =
               Request.metadata req |> Frame.Metadata.to_list |> List.to_seq
               |> Seq.map (fun (k, v) ->
-                     (k, if String.length v > 1024 then "<redacted>" else v))
+                  (k, if String.length v > 1024 then "<redacted>" else v))
               |> Seq.map (fun (k, v) -> k ^ " = " ^ v)
               |> List.of_seq |> String.concat "\n"
             in
             Printf.printf "%s\n" metadata;
             Printf.printf "duration = %!";
-            begin
-              match
-                Request.duration ~metadata:(Request.metadata req)
-                  (Option.get (Request.get_filename req))
-              with
-                | Some f -> Printf.printf "%.2f s\n" f
-                | None -> Printf.printf "n/a\n"
-                | exception Not_found -> Printf.printf "failed\n"
+            begin match
+              Request.duration ~metadata:(Request.metadata req)
+                (Option.get (Request.get_filename req))
+            with
+              | Some f -> Printf.printf "%.2f s\n" f
+              | None -> Printf.printf "n/a\n"
+              | exception Not_found -> Printf.printf "failed\n"
             end;
             Request.destroy req)
 

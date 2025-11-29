@@ -400,23 +400,22 @@ and ( <: ) a b =
           let rec aux pre p1 p2 =
             match (p1, p2) with
               | (v1, h1) :: t1, (v2, h2) :: t2 ->
-                  begin
-                    try
-                      let v = if v1 = v2 then v1 else `Invariant in
-                      match v with
-                        | `Covariant -> h1 <: h2
-                        | `Invariant ->
-                            mk_invariant h2;
-                            h1 <: h2;
-                            mk_invariant h2
-                    with Error (a, b) ->
-                      let bt = Printexc.get_raw_backtrace () in
-                      let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
-                      Printexc.raise_with_backtrace
-                        (Error
-                           ( `Constr (c1.constructor, pre @ [(v1, a)] @ post),
-                             `Constr (c1.constructor, pre @ [(v2, b)] @ post) ))
-                        bt
+                  begin try
+                    let v = if v1 = v2 then v1 else `Invariant in
+                    match v with
+                      | `Covariant -> h1 <: h2
+                      | `Invariant ->
+                          mk_invariant h2;
+                          h1 <: h2;
+                          mk_invariant h2
+                  with Error (a, b) ->
+                    let bt = Printexc.get_raw_backtrace () in
+                    let post = List.map (fun (v, _) -> (v, `Ellipsis)) t1 in
+                    Printexc.raise_with_backtrace
+                      (Error
+                         ( `Constr (c1.constructor, pre @ [(v1, a)] @ post),
+                           `Constr (c1.constructor, pre @ [(v2, b)] @ post) ))
+                      bt
                   end;
                   aux ((v1, `Ellipsis) :: pre) t1 t2
               | [], [] -> ()
@@ -478,19 +477,17 @@ and ( <: ) a b =
                 in
                 let (o', lbl, t'), l2' = get_param [] l2 in
                 (* Check on-the-fly that the types match. *)
-                begin
-                  try
-                    if (not o') && o then raise (Error (`Ellipsis, `Ellipsis));
-                    t <: t'
-                  with Error (t, t') ->
-                    let bt = Printexc.get_raw_backtrace () in
-                    let make o t =
-                      `Arrow
-                        (List.rev (ellipsis :: (o, lbl, t) :: l1), `Ellipsis)
-                    in
-                    Printexc.raise_with_backtrace
-                      (Error (make o' t', make o t))
-                      bt
+                begin try
+                  if (not o') && o then raise (Error (`Ellipsis, `Ellipsis));
+                  t <: t'
+                with Error (t, t') ->
+                  let bt = Printexc.get_raw_backtrace () in
+                  let make o t =
+                    `Arrow (List.rev (ellipsis :: (o, lbl, t) :: l1), `Ellipsis)
+                  in
+                  Printexc.raise_with_backtrace
+                    (Error (make o' t', make o t))
+                    bt
                 end;
                 ((o, lbl, `Ellipsis) :: l1, l2'))
               ([], l12) l

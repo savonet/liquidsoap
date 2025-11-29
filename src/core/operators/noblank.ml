@@ -46,11 +46,10 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       function `Blank _ -> "blank" | `Noise _ -> "no blank"
 
     method private set_state s =
-      begin
-        match (Atomic.get state, s) with
-          | `Blank _, `Noise _ | `Noise _, `Blank _ ->
-              self#log#info "Setting state to %s" (self#string_of_state s)
-          | _ -> ()
+      begin match (Atomic.get state, s) with
+        | `Blank _, `Noise _ | `Noise _, `Blank _ ->
+            self#log#info "Setting state to %s" (self#string_of_state s)
+        | _ -> ()
       end;
       Atomic.set state s
 

@@ -303,31 +303,27 @@ let params_of_controls control_ports =
             if (min, max) = (None, None) then ""
             else (
               let bounds = ref " (" in
-              begin
-                match min with
-                  | Some f -> (
-                      match t with
-                        | Float ->
-                            bounds := Printf.sprintf "%s%.6g <= " !bounds f
-                        | Int ->
-                            bounds :=
-                              Printf.sprintf "%s%d <= " !bounds
-                                (int_of_float (ceil f))
-                        | Bool -> ())
-                  | None -> ()
+              begin match min with
+                | Some f -> (
+                    match t with
+                      | Float -> bounds := Printf.sprintf "%s%.6g <= " !bounds f
+                      | Int ->
+                          bounds :=
+                            Printf.sprintf "%s%d <= " !bounds
+                              (int_of_float (ceil f))
+                      | Bool -> ())
+                | None -> ()
               end;
               bounds := !bounds ^ "`" ^ p.port_name ^ "`";
-              begin
-                match max with
-                  | Some f -> (
-                      match t with
-                        | Float ->
-                            bounds := Printf.sprintf "%s <= %.6g" !bounds f
-                        | Int ->
-                            bounds :=
-                              Printf.sprintf "%s <= %d" !bounds (int_of_float f)
-                        | Bool -> ())
-                  | None -> ()
+              begin match max with
+                | Some f -> (
+                    match t with
+                      | Float -> bounds := Printf.sprintf "%s <= %.6g" !bounds f
+                      | Int ->
+                          bounds :=
+                            Printf.sprintf "%s <= %d" !bounds (int_of_float f)
+                      | Bool -> ())
+                | None -> ()
               end;
               !bounds ^ ")")
           in

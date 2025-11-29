@@ -43,22 +43,19 @@ let create speex ~metadata () =
       ()
   in
   let enc = Speex.Encoder.init mode frames_per_packet in
-  begin
-    match speex.Speex_format.bitrate_control with
-      | Speex_format.Vbr x ->
-          Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1;
-          Speex.Encoder.set enc Speex.SPEEX_SET_VBR_QUALITY x
-      | Speex_format.Abr x ->
-          Speex.Encoder.set enc Speex.SPEEX_SET_ABR 1;
-          Speex.Encoder.set enc Speex.SPEEX_SET_BITRATE x
-      | Speex_format.Quality x ->
-          Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY x
+  begin match speex.Speex_format.bitrate_control with
+    | Speex_format.Vbr x ->
+        Speex.Encoder.set enc Speex.SPEEX_SET_VBR 1;
+        Speex.Encoder.set enc Speex.SPEEX_SET_VBR_QUALITY x
+    | Speex_format.Abr x ->
+        Speex.Encoder.set enc Speex.SPEEX_SET_ABR 1;
+        Speex.Encoder.set enc Speex.SPEEX_SET_BITRATE x
+    | Speex_format.Quality x -> Speex.Encoder.set enc Speex.SPEEX_SET_QUALITY x
   end;
-  begin
-    match speex.Speex_format.complexity with
-      | Some complexity ->
-          Speex.Encoder.set enc Speex.SPEEX_SET_COMPLEXITY complexity
-      | _ -> ()
+  begin match speex.Speex_format.complexity with
+    | Some complexity ->
+        Speex.Encoder.set enc Speex.SPEEX_SET_COMPLEXITY complexity
+    | _ -> ()
   end;
   if speex.Speex_format.dtx then Speex.Encoder.set enc Speex.SPEEX_SET_DTX 1;
   if speex.Speex_format.vad then Speex.Encoder.set enc Speex.SPEEX_SET_VAD 1;

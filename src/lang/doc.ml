@@ -326,61 +326,61 @@ module Value = struct
   let to_json () : Json.t =
     !db |> Map.to_seq
     |> Seq.map (fun (l, f) ->
-           let f = Lazy.force f in
-           let arguments =
-             List.map
-               (fun (l, a) ->
-                 ( Option.value ~default:"" l,
-                   `Assoc
-                     [
-                       ("type", `String a.arg_type);
-                       ( "default",
-                         Option.fold ~none:`Null
-                           ~some:(fun d -> `String d)
-                           a.arg_default );
-                       ( "description",
-                         `String (Option.value ~default:"" a.arg_description) );
-                     ] ))
-               f.arguments
-           in
-           let arguments = `Assoc arguments in
-           let methods, callbacks =
-             match
-               List.map
-                 (fun m ->
-                   `Assoc
-                     (List.map
-                        (fun (l, m) ->
-                          ( l,
-                            `Assoc
-                              [
-                                ("type", `String m.meth_type);
-                                ( "description",
-                                  `String
-                                    (Option.value ~default:"" m.meth_description)
-                                );
-                              ] ))
-                        m))
-                 [f.methods; f.callbacks]
-             with
-               | [x; v] -> (x, v)
-               | _ -> assert false
-           in
-           ( l,
-             `Assoc
-               [
-                 ("type", `String f.typ);
-                 ("category", `String (string_of_category f.category));
-                 ( "flags",
-                   `Tuple
-                     (List.map string_of_flag f.flags
-                     |> List.map (fun s -> `String s)) );
-                 ("description", `String f.description);
-                 ("examples", `Tuple (List.map (fun s -> `String s) f.examples));
-                 ("arguments", arguments);
-                 ("methods", methods);
-                 ("callbacks", callbacks);
-               ] ))
+        let f = Lazy.force f in
+        let arguments =
+          List.map
+            (fun (l, a) ->
+              ( Option.value ~default:"" l,
+                `Assoc
+                  [
+                    ("type", `String a.arg_type);
+                    ( "default",
+                      Option.fold ~none:`Null
+                        ~some:(fun d -> `String d)
+                        a.arg_default );
+                    ( "description",
+                      `String (Option.value ~default:"" a.arg_description) );
+                  ] ))
+            f.arguments
+        in
+        let arguments = `Assoc arguments in
+        let methods, callbacks =
+          match
+            List.map
+              (fun m ->
+                `Assoc
+                  (List.map
+                     (fun (l, m) ->
+                       ( l,
+                         `Assoc
+                           [
+                             ("type", `String m.meth_type);
+                             ( "description",
+                               `String
+                                 (Option.value ~default:"" m.meth_description)
+                             );
+                           ] ))
+                     m))
+              [f.methods; f.callbacks]
+          with
+            | [x; v] -> (x, v)
+            | _ -> assert false
+        in
+        ( l,
+          `Assoc
+            [
+              ("type", `String f.typ);
+              ("category", `String (string_of_category f.category));
+              ( "flags",
+                `Tuple
+                  (List.map string_of_flag f.flags
+                  |> List.map (fun s -> `String s)) );
+              ("description", `String f.description);
+              ("examples", `Tuple (List.map (fun s -> `String s) f.examples));
+              ("arguments", arguments);
+              ("methods", methods);
+              ("callbacks", callbacks);
+            ] ))
     |> List.of_seq
     |> fun l -> `Assoc l
 
@@ -398,7 +398,7 @@ module Value = struct
       categories
       |> List.map (fun (c, s) -> (s, c))
       |> List.filter (fun (_, category) ->
-             Map.exists (fun _ d -> should_show ~category d) !db)
+          Map.exists (fun _ d -> should_show ~category d) !db)
       |> List.sort compare
     in
     List.iter

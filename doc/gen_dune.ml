@@ -146,7 +146,7 @@ let () =
     Sys.readdir (Filename.concat location "content")
     |> Array.to_list
     |> List.filter (fun f ->
-           Filename.extension f = ".md" || Filename.extension f = ".in")
+        Filename.extension f = ".md" || Filename.extension f = ".in")
     |> List.sort compare
   in
   let liq =

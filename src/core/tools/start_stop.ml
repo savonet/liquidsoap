@@ -98,7 +98,7 @@ let output_proto = base_proto ~label:"output"
 let active_source_proto ~fallible_opt =
   base_proto ~label:"input"
   @
-  match fallible_opt with
+    match fallible_opt with
     | `Nope -> []
     | `Yep v ->
         [

@@ -385,7 +385,7 @@ let get_stream_decoder ~ctype mime =
       (fun (_, specs) ->
         specs.stream_decoder <> None
         &&
-        match specs.mime_types () with
+          match specs.mime_types () with
           | None -> false
           | Some mimes ->
               let mimes = List.map base_mime mimes in

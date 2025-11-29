@@ -29,11 +29,10 @@ let init input =
   let time_offset = ref 0 in
   let dec = ref (Mad.openstream input.Decoder.read) in
   (* Skip id3 tags if possible. *)
-  begin
-    match (input.Decoder.lseek, input.Decoder.tell) with
-      | Some seek, Some tell ->
-          Mad.skip_id3tags ~read:input.Decoder.read ~seek ~tell
-      | _, _ -> ()
+  begin match (input.Decoder.lseek, input.Decoder.tell) with
+    | Some seek, Some tell ->
+        Mad.skip_id3tags ~read:input.Decoder.read ~seek ~tell
+    | _, _ -> ()
   end;
   let get_index time = Hashtbl.find index time in
   let update_index () =
@@ -184,10 +183,10 @@ let () =
 let check filename =
   List.mem (Magic_mime.lookup filename) mime_types#get
   ||
-  try
-    ignore (file_type filename);
-    true
-  with _ -> false
+    try
+      ignore (file_type filename);
+      true
+    with _ -> false
 
 let dresolver ~metadata:_ file =
   if not (check file) then raise Not_found;

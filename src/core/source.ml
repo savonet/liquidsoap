@@ -779,7 +779,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method private can_reselect ~(reselect : reselect) (s : source) =
       s#is_ready
       &&
-      match reselect with
+        match reselect with
         | `Ok -> true
         | `Force -> false
         | `After_position p -> p < Frame.position s#get_frame

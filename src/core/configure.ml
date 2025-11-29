@@ -27,16 +27,16 @@ let conf_default_font =
 let libs_versions () =
   Build_info.V1.Statically_linked_libraries.to_list ()
   |> List.map (fun lib ->
-         let name = Build_info.V1.Statically_linked_library.name lib in
-         let version =
-           Build_info.V1.Statically_linked_library.version lib
-           |> Option.map Build_info.V1.Version.to_string
-           |> Option.value ~default:"?"
-         in
-         (name, version))
+      let name = Build_info.V1.Statically_linked_library.name lib in
+      let version =
+        Build_info.V1.Statically_linked_library.version lib
+        |> Option.map Build_info.V1.Version.to_string
+        |> Option.value ~default:"?"
+      in
+      (name, version))
   |> List.sort compare
   |> List.map (fun (name, version) ->
-         if version = "?" then name else name ^ "=" ^ version)
+      if version = "?" then name else name ^ "=" ^ version)
   |> String.concat " "
 
 let restart = ref false

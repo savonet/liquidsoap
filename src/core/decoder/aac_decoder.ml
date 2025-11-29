@@ -121,8 +121,7 @@ let create_decoder input =
         let len = input.Decoder.read aacbuf 0 aacbuflen in
         if len = aacbuflen then (
           let pos, data = Faad.decode dec aacbuf 0 len in
-          begin
-            try processed := !processed + Audio.length data with _ -> ()
+          begin try processed := !processed + Audio.length data with _ -> ()
           end;
           drop pos;
 
@@ -202,8 +201,7 @@ let create_decoder input =
     if !ended || !sample >= nb_samples || !sample < 0 then raise End_of_track;
     let data = Faad.Mp4.decode mp4 track !sample dec in
     incr sample;
-    begin
-      try pos := !pos + Audio.length data with _ -> ()
+    begin try pos := !pos + Audio.length data with _ -> ()
     end;
     buffer.Decoder.put_pcm ~samplerate data
   in

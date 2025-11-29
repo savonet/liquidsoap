@@ -93,11 +93,10 @@ class keyboard =
                 ignore (Unix.read Unix.stdin c 0 1);
                 Bytes.get c 0
               in
-              begin
-                try
-                  self#log#important "Playing note %d." (note_of_char c);
-                  self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
-                with Not_found -> ()
+              begin try
+                self#log#important "Playing note %d." (note_of_char c);
+                self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
+              with Not_found -> ()
               end;
               [
                 {

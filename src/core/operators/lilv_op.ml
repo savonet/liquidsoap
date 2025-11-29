@@ -319,22 +319,20 @@ let params_of_controls control_ports =
             if (min, max) = (None, None) then ""
             else (
               let bounds = ref " (" in
-              begin
-                match min with
-                  | Some f -> (
-                      match t with
-                        | Float ->
-                            bounds := Printf.sprintf "%s%.6g <= " !bounds f)
-                  | None -> ()
+              begin match min with
+                | Some f -> (
+                    match t with
+                      | Float -> bounds := Printf.sprintf "%s%.6g <= " !bounds f
+                    )
+                | None -> ()
               end;
               bounds := !bounds ^ "`" ^ p.port_symbol ^ "`";
-              begin
-                match max with
-                  | Some f -> (
-                      match t with
-                        | Float ->
-                            bounds := Printf.sprintf "%s <= %.6g" !bounds f)
-                  | None -> ()
+              begin match max with
+                | Some f -> (
+                    match t with
+                      | Float -> bounds := Printf.sprintf "%s <= %.6g" !bounds f
+                    )
+                | None -> ()
               end;
               !bounds ^ ")")
           in

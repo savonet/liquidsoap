@@ -100,10 +100,10 @@ module Specs = struct
                    string_of_rational (Video.get_sample_aspect_ratio params) );
                ]
                @ (match avg_frame_rate with
-                   | Some r -> [("framerate", Avutil.string_of_rational r)]
-                   | None -> [])
+                 | Some r -> [("framerate", Avutil.string_of_rational r)]
+                 | None -> [])
                @
-               match Video.get_pixel_format params with
+                 match Video.get_pixel_format params with
                  | None -> []
                  | Some p ->
                      [

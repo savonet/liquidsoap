@@ -215,25 +215,22 @@ module Conf = struct
       let p s = if prefix = "" then s else prefix ^ "." ^ s in
       let subs = List.map (function s -> aux (p s) (t#path [s])) t#subs in
       Printf.sprintf "## %s\n" t#descr
-      ^ begin
-          match get_d_string t with
-            | None -> ""
-            | Some d -> Printf.sprintf "# default :%s\n" d
-        end
-      ^ begin
-          match (t#kind, get_string t) with
-            | Some k, None -> Printf.sprintf "#%s\t%-30s\n" k prefix
-            | Some k, Some p -> Printf.sprintf "%s\t%-30s :%s\n" k prefix p
-            | _ -> ""
-        end
-      ^ begin
-          match t#comments with
-            | [] -> ""
-            | l ->
-                "# comments:\n"
-                ^ String.concat ""
-                    (List.map (fun s -> Printf.sprintf "#  %s\n" s) l)
-        end
+      ^ begin match get_d_string t with
+        | None -> ""
+        | Some d -> Printf.sprintf "# default :%s\n" d
+      end
+      ^ begin match (t#kind, get_string t) with
+        | Some k, None -> Printf.sprintf "#%s\t%-30s\n" k prefix
+        | Some k, Some p -> Printf.sprintf "%s\t%-30s :%s\n" k prefix p
+        | _ -> ""
+      end
+      ^ begin match t#comments with
+        | [] -> ""
+        | l ->
+            "# comments:\n"
+            ^ String.concat ""
+                (List.map (fun s -> Printf.sprintf "#  %s\n" s) l)
+      end
       ^ "\n" ^ String.concat "" subs
     in
     aux (string_of_path prefix) (t#path prefix)
@@ -242,16 +239,15 @@ module Conf = struct
     let rec aux prefix t =
       let p s = if prefix = "" then s else prefix ^ "." ^ s in
       let subs = List.map (function s -> aux (p s) (t#path [s])) t#subs in
-      begin
-        match t#kind with
-          | Some k -> (
-              match (get_d_string t, get_string t) with
-                | None, None -> Printf.sprintf "#%s\t%-30s\n" k prefix
-                | Some p, None -> Printf.sprintf "#%s\t%-30s :%s\n" k prefix p
-                | Some p, Some p' when p' = p ->
-                    Printf.sprintf "#%s\t%-30s :%s\n" k prefix p
-                | _, Some p -> Printf.sprintf "%s\t%-30s :%s\n" k prefix p)
-          | _ -> ""
+      begin match t#kind with
+        | Some k -> (
+            match (get_d_string t, get_string t) with
+              | None, None -> Printf.sprintf "#%s\t%-30s\n" k prefix
+              | Some p, None -> Printf.sprintf "#%s\t%-30s :%s\n" k prefix p
+              | Some p, Some p' when p' = p ->
+                  Printf.sprintf "#%s\t%-30s :%s\n" k prefix p
+              | _, Some p -> Printf.sprintf "%s\t%-30s :%s\n" k prefix p)
+        | _ -> ""
       end
       ^ String.concat "" subs
     in
@@ -469,8 +465,7 @@ module Init = struct
   open Printexc
 
   let main f () =
-    begin
-      try exec start with e -> raise (StartError e)
+    begin try exec start with e -> raise (StartError e)
     end;
     let quit pid = if Sys.os_type <> "Win32" then Unix.kill pid Sys.sigterm in
     let thread pid =
@@ -679,20 +674,19 @@ module Log = struct
   let print { colorize; entry } =
     let to_stdout = conf_stdout#get in
     let to_file = !log_ch <> None in
-    begin
-      match to_stdout || to_file with
-        | true ->
-            let do_stdout () =
-              Printf.printf "%s\n%!" (message (colorize entry))
-            in
-            let do_file () =
-              match !log_ch with
-                | None -> ()
-                | Some ch -> Printf.fprintf ch "%s\n%!" (message entry)
-            in
-            if to_stdout then do_stdout ();
-            if to_file then do_file ()
-        | false -> ()
+    begin match to_stdout || to_file with
+      | true ->
+          let do_stdout () =
+            Printf.printf "%s\n%!" (message (colorize entry))
+          in
+          let do_file () =
+            match !log_ch with
+              | None -> ()
+              | Some ch -> Printf.fprintf ch "%s\n%!" (message entry)
+          in
+          if to_stdout then do_stdout ();
+          if to_file then do_file ()
+      | false -> ()
     end;
     let f _ x = x.exec (message ~show_timestamp:x.timestamp entry) in
     Hashtbl.iter f custom_log
@@ -798,12 +792,11 @@ module Log = struct
         let log_file_perms = conf_file_perms#get in
         log_ch := Some (open_out_gen opts log_file_perms log_file_path);
         fun _ ->
-          begin
-            match !log_ch with
-              | None -> ()
-              | Some ch ->
-                  log_ch := None;
-                  close_out ch
+          begin match !log_ch with
+            | None -> ()
+            | Some ch ->
+                log_ch := None;
+                close_out ch
           end;
           log_ch := Some (open_out_gen opts log_file_perms log_file_path)
       end
@@ -829,13 +822,12 @@ module Log = struct
         colorize = (fun x -> x);
         entry = { time; level = None; label = None; log = ">>> LOG END" };
       };
-    begin
-      match !log_thread with
-        | None -> ()
-        | Some th ->
-            log_thread := None;
-            Condition.signal log_condition;
-            Thread.join th
+    begin match !log_thread with
+      | None -> ()
+      | Some th ->
+          log_thread := None;
+          Condition.signal log_condition;
+          Thread.join th
     end;
     match !log_ch with
       | None -> ()

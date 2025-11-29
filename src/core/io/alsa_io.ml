@@ -229,13 +229,11 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
       in
       try pcm_write ofs len
       with e ->
-        begin
-          match e with
-            | Buffer_xrun ->
-                self#log#severe
-                  "Underrun! You may minimize them by increasing the buffer \
-                   size."
-            | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+        begin match e with
+          | Buffer_xrun ->
+              self#log#severe
+                "Underrun! You may minimize them by increasing the buffer size."
+          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover..";
@@ -278,13 +276,11 @@ class input ~buffer_size ~self_sync ~start ~fallible dev =
         done;
         Generator.slice gen length
       with e ->
-        begin
-          match e with
-            | Buffer_xrun ->
-                self#log#severe
-                  "Overrun! You may minimize them by increasing the buffer \
-                   size."
-            | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
+        begin match e with
+          | Buffer_xrun ->
+              self#log#severe
+                "Overrun! You may minimize them by increasing the buffer size."
+          | _ -> self#log#severe "Alsa error: %s" (string_of_error e)
         end;
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover..";

@@ -588,10 +588,9 @@ class output p =
       let enc = data.factory self#id Frame.Metadata.Export.empty in
       encoder <- Some enc;
       assert (Cry.get_status connection = Cry.Disconnected);
-      begin
-        match dumpfile with
-          | Some f -> dump <- Some (open_out_bin f)
-          | None -> ()
+      begin match dumpfile with
+        | Some f -> dump <- Some (open_out_bin f)
+        | None -> ()
       end;
       let display_mount =
         match mount with
@@ -650,22 +649,20 @@ class output p =
     method icecast_stop =
       (* In some cases it might be possible to output the remaining data,
          but it's not worth the trouble. *)
-      begin
-        try ignore ((Option.get encoder).Encoder.stop ()) with _ -> ()
+      begin try ignore ((Option.get encoder).Encoder.stop ()) with _ -> ()
       end;
       encoder <- None;
-      begin
-        match Cry.get_status connection with
-          | Cry.Disconnected -> ()
-          | Cry.Connected _ ->
-              self#log#important "Closing connection...";
-              (try Cry.close connection
-               with exn ->
-                 let bt = Printexc.get_backtrace () in
-                 Utils.log_exception ~log:self#log ~bt
-                   (Printf.sprintf "Error while closing connection: %s"
-                      (Printexc.to_string exn)));
-              List.iter (fun fn -> fn ()) on_disconnect
+      begin match Cry.get_status connection with
+        | Cry.Disconnected -> ()
+        | Cry.Connected _ ->
+            self#log#important "Closing connection...";
+            (try Cry.close connection
+             with exn ->
+               let bt = Printexc.get_backtrace () in
+               Utils.log_exception ~log:self#log ~bt
+                 (Printf.sprintf "Error while closing connection: %s"
+                    (Printexc.to_string exn)));
+            List.iter (fun fn -> fn ()) on_disconnect
       end;
       match dump with Some f -> close_out f | None -> ()
   end

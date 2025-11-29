@@ -178,10 +178,10 @@ let () =
 let check filename =
   List.mem (Magic_mime.lookup filename) mime_types#get
   ||
-  try
-    ignore (file_type filename);
-    true
-  with _ -> false
+    try
+      ignore (file_type filename);
+      true
+    with _ -> false
 
 let dresolver ~metadata:_ file =
   if not (check file) then raise Not_found;

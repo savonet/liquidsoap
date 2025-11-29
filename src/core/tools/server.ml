@@ -401,9 +401,8 @@ let start_socket () =
     failwith (Printf.sprintf "Unknown directory for the socket: %s" socket_dir)
   else ();
   if Sys.file_exists socket_path then Unix.unlink socket_path else ();
-  begin
-    try Unix.bind sock bind_addr
-    with exn -> raise (Bind_error (Printexc.to_string exn))
+  begin try Unix.bind sock bind_addr
+  with exn -> raise (Bind_error (Printexc.to_string exn))
   end;
   log#f conf_log_level#get "Socket created at %s." socket_path;
   Unix.listen sock max_conn;
@@ -451,9 +450,8 @@ let start_telnet () =
     ]
   in
   Unix.setsockopt sock Unix.SO_REUSEADDR true;
-  begin
-    try Unix.bind sock bind_addr
-    with exn -> raise (Bind_error (Printexc.to_string exn))
+  begin try Unix.bind sock bind_addr
+  with exn -> raise (Bind_error (Printexc.to_string exn))
   end;
   Unix.listen sock max_conn;
   Duppy.Task.add Tutils.scheduler

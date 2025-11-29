@@ -110,233 +110,224 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
         (* evaluate response, substituting for z *)
         Complex.div (eval t z) (eval b z)
       in
-      begin
-        match filter_family with
-          | Butterworth ->
-              (* Compute S-plane poles (Butterworth) *)
-              self#log#info "This is a Butterworth filter.";
-              let choosepole z =
-                if z.re < 0. then (
-                  self#log#info "z = %+.013f %+.013f i." z.re z.im;
-                  if polemask mod 2 == 0 then (
-                    splane_poles <- Array.append splane_poles [| z |];
-                    splane_numpoles <- splane_numpoles + 1);
-                  polemask <- polemask lsl 1)
-              in
-              self#log#info "Theta:";
-              for i = 0 to (2 * order) - 1 do
-                let theta =
-                  match order mod 2 with
-                    | 1 -> float_of_int i *. Float.pi /. float_of_int order
-                    | 0 ->
-                        (float_of_int i +. 0.5)
-                        *. Float.pi /. float_of_int order
-                    | _ -> assert false
-                in
-                self#log#info "%d: %+.013f --> %+.013f %+.013f i." i theta
-                  (cos theta) (sin theta);
-                choosepole { re = cos theta; im = sin theta }
-              done;
-
-              (* Normalize *)
-              let w1 = cor (2. *. Float.pi *. warped_alpha1) in
-              let w2 = cor (2. *. Float.pi *. warped_alpha2) in
-              begin
-                match filter_type with
-                  | Band_stop ->
-                      (* Band-stop filter *)
-                      self#log#info "This is a band-stop filter.";
-                      let w0 = sqrt (w1 *~ w2) and bw = w2 -~ w1 in
-                      for i = 0 to splane_numpoles - 1 do
-                        let hba = cor 0.5 *~ (bw /~ splane_poles.(i)) in
-                        let t =
-                          sqrt (cor 1. -~ Complex.pow (w0 /~ hba) (cor 2.))
-                        in
-                        splane_poles.(i) <- hba *~ (cor 1. +~ t);
-                        splane_poles <-
-                          Array.append splane_poles [| hba *~ (cor 1. -~ t) |]
-                      done;
-                      for _ = 0 to splane_numpoles - 1 do
-                        (* also N zeros at (0,0) *)
-                        splane_zeros <-
-                          Array.append splane_zeros
-                            [|
-                              { re = 0.; im = w0.re }; { re = 0.; im = -.w0.re };
-                            |]
-                      done;
-                      splane_numpoles <- splane_numpoles * 2;
-                      splane_numzeros <- splane_numpoles;
-                      xv <- Array.make_matrix channels ((order * 2) + 1) 0.;
-                      yv <- Array.make_matrix channels ((order * 2) + 1) 0.
-                  | Band_pass ->
-                      (* Band-pass filter *)
-                      self#log#info "This is a band-pass filter.";
-                      let w0 = sqrt (w1 *~ w2) and bw = w2 -~ w1 in
-                      for i = 0 to splane_numpoles - 1 do
-                        let hba = cor 0.5 *~ (splane_poles.(i) *~ bw) in
-                        let t =
-                          sqrt (cor 1. -~ Complex.pow (w0 /~ hba) (cor 2.))
-                        in
-                        splane_poles.(i) <- hba *~ (cor 1. +~ t);
-                        splane_poles <-
-                          Array.append splane_poles [| hba *~ (cor 1. -~ t) |]
-                      done;
-                      for _ = 0 to splane_numpoles - 1 do
-                        (* also N zeros at (0,0) *)
-                        splane_zeros <- Array.append splane_zeros [| cor 0. |]
-                      done;
-                      splane_numzeros <- splane_numpoles;
-                      splane_numpoles <- splane_numpoles * 2;
-                      xv <- Array.make_matrix channels ((order * 2) + 1) 0.;
-                      yv <- Array.make_matrix channels ((order * 2) + 1) 0.
-                  | High_pass ->
-                      (* Hi-pass filter *)
-                      self#log#info "This is a hi-pass filter.";
-                      for i = 0 to splane_numpoles - 1 do
-                        splane_poles.(i) <- w1 /~ splane_poles.(i)
-                      done;
-                      for _ = 0 to splane_numpoles - 1 do
-                        (* also N zeros at (0,0) *)
-                        splane_zeros <- Array.append splane_zeros [| cor 0. |]
-                      done;
-                      splane_numzeros <- splane_numpoles;
-                      xv <- Array.make_matrix channels (order + 1) 0.;
-                      yv <- Array.make_matrix channels (order + 1) 0.
-                  | Low_pass ->
-                      (* Lo-pass filter *)
-                      self#log#info "This is a lo-pass filter.";
-                      for i = 0 to splane_numpoles - 1 do
-                        splane_poles.(i) <- splane_poles.(i) *~ w1
-                      done;
-                      splane_numzeros <- 0;
-                      xv <- Array.make_matrix channels (order + 1) 0.;
-                      yv <- Array.make_matrix channels (order + 1) 0.
+      begin match filter_family with
+        | Butterworth ->
+            (* Compute S-plane poles (Butterworth) *)
+            self#log#info "This is a Butterworth filter.";
+            let choosepole z =
+              if z.re < 0. then (
+                self#log#info "z = %+.013f %+.013f i." z.re z.im;
+                if polemask mod 2 == 0 then (
+                  splane_poles <- Array.append splane_poles [| z |];
+                  splane_numpoles <- splane_numpoles + 1);
+                polemask <- polemask lsl 1)
+            in
+            self#log#info "Theta:";
+            for i = 0 to (2 * order) - 1 do
+              let theta =
+                match order mod 2 with
+                  | 1 -> float_of_int i *. Float.pi /. float_of_int order
+                  | 0 ->
+                      (float_of_int i +. 0.5) *. Float.pi /. float_of_int order
                   | _ -> assert false
-              end;
-
-              (* Compute Z-plane zeros & poles using bilinear transform *)
-              self#log#info "S-Plane zeros:";
-              self#log#info "%s"
-                (String.concat "\n"
-                   (Array.to_list
-                      (Array.mapi
-                         (fun i a ->
-                           Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
-                         splane_zeros)));
-              self#log#info "S-Plane poles:";
-              self#log#info "%s"
-                (String.concat "\n"
-                   (Array.to_list
-                      (Array.mapi
-                         (fun i a ->
-                           Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
-                         splane_poles)));
-              zplane_numpoles <- splane_numpoles;
-              zplane_numzeros <- splane_numzeros;
-              let blt a =
-                Complex.div
-                  (Complex.add { re = 2.; im = 0. } a)
-                  (Complex.sub { re = 2.; im = 0. } a)
               in
-              for i = 0 to zplane_numpoles - 1 do
-                zplane_poles <-
-                  Array.append zplane_poles [| blt splane_poles.(i) |]
+              self#log#info "%d: %+.013f --> %+.013f %+.013f i." i theta
+                (cos theta) (sin theta);
+              choosepole { re = cos theta; im = sin theta }
+            done;
+
+            (* Normalize *)
+            let w1 = cor (2. *. Float.pi *. warped_alpha1) in
+            let w2 = cor (2. *. Float.pi *. warped_alpha2) in
+            begin match filter_type with
+              | Band_stop ->
+                  (* Band-stop filter *)
+                  self#log#info "This is a band-stop filter.";
+                  let w0 = sqrt (w1 *~ w2) and bw = w2 -~ w1 in
+                  for i = 0 to splane_numpoles - 1 do
+                    let hba = cor 0.5 *~ (bw /~ splane_poles.(i)) in
+                    let t = sqrt (cor 1. -~ Complex.pow (w0 /~ hba) (cor 2.)) in
+                    splane_poles.(i) <- hba *~ (cor 1. +~ t);
+                    splane_poles <-
+                      Array.append splane_poles [| hba *~ (cor 1. -~ t) |]
+                  done;
+                  for _ = 0 to splane_numpoles - 1 do
+                    (* also N zeros at (0,0) *)
+                    splane_zeros <-
+                      Array.append splane_zeros
+                        [| { re = 0.; im = w0.re }; { re = 0.; im = -.w0.re } |]
+                  done;
+                  splane_numpoles <- splane_numpoles * 2;
+                  splane_numzeros <- splane_numpoles;
+                  xv <- Array.make_matrix channels ((order * 2) + 1) 0.;
+                  yv <- Array.make_matrix channels ((order * 2) + 1) 0.
+              | Band_pass ->
+                  (* Band-pass filter *)
+                  self#log#info "This is a band-pass filter.";
+                  let w0 = sqrt (w1 *~ w2) and bw = w2 -~ w1 in
+                  for i = 0 to splane_numpoles - 1 do
+                    let hba = cor 0.5 *~ (splane_poles.(i) *~ bw) in
+                    let t = sqrt (cor 1. -~ Complex.pow (w0 /~ hba) (cor 2.)) in
+                    splane_poles.(i) <- hba *~ (cor 1. +~ t);
+                    splane_poles <-
+                      Array.append splane_poles [| hba *~ (cor 1. -~ t) |]
+                  done;
+                  for _ = 0 to splane_numpoles - 1 do
+                    (* also N zeros at (0,0) *)
+                    splane_zeros <- Array.append splane_zeros [| cor 0. |]
+                  done;
+                  splane_numzeros <- splane_numpoles;
+                  splane_numpoles <- splane_numpoles * 2;
+                  xv <- Array.make_matrix channels ((order * 2) + 1) 0.;
+                  yv <- Array.make_matrix channels ((order * 2) + 1) 0.
+              | High_pass ->
+                  (* Hi-pass filter *)
+                  self#log#info "This is a hi-pass filter.";
+                  for i = 0 to splane_numpoles - 1 do
+                    splane_poles.(i) <- w1 /~ splane_poles.(i)
+                  done;
+                  for _ = 0 to splane_numpoles - 1 do
+                    (* also N zeros at (0,0) *)
+                    splane_zeros <- Array.append splane_zeros [| cor 0. |]
+                  done;
+                  splane_numzeros <- splane_numpoles;
+                  xv <- Array.make_matrix channels (order + 1) 0.;
+                  yv <- Array.make_matrix channels (order + 1) 0.
+              | Low_pass ->
+                  (* Lo-pass filter *)
+                  self#log#info "This is a lo-pass filter.";
+                  for i = 0 to splane_numpoles - 1 do
+                    splane_poles.(i) <- splane_poles.(i) *~ w1
+                  done;
+                  splane_numzeros <- 0;
+                  xv <- Array.make_matrix channels (order + 1) 0.;
+                  yv <- Array.make_matrix channels (order + 1) 0.
+              | _ -> assert false
+            end;
+
+            (* Compute Z-plane zeros & poles using bilinear transform *)
+            self#log#info "S-Plane zeros:";
+            self#log#info "%s"
+              (String.concat "\n"
+                 (Array.to_list
+                    (Array.mapi
+                       (fun i a ->
+                         Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
+                       splane_zeros)));
+            self#log#info "S-Plane poles:";
+            self#log#info "%s"
+              (String.concat "\n"
+                 (Array.to_list
+                    (Array.mapi
+                       (fun i a ->
+                         Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
+                       splane_poles)));
+            zplane_numpoles <- splane_numpoles;
+            zplane_numzeros <- splane_numzeros;
+            let blt a =
+              Complex.div
+                (Complex.add { re = 2.; im = 0. } a)
+                (Complex.sub { re = 2.; im = 0. } a)
+            in
+            for i = 0 to zplane_numpoles - 1 do
+              zplane_poles <-
+                Array.append zplane_poles [| blt splane_poles.(i) |]
+            done;
+            for i = 0 to zplane_numzeros - 1 do
+              zplane_zeros <-
+                Array.append zplane_zeros [| blt splane_zeros.(i) |]
+            done;
+            while zplane_numzeros < zplane_numpoles do
+              zplane_zeros <-
+                Array.append zplane_zeros [| { re = -1.0; im = 0. } |];
+              zplane_numzeros <- zplane_numzeros + 1
+            done;
+            self#log#info "Z-Plane zeros:";
+            self#log#info "%s"
+              (String.concat "\n"
+                 (Array.to_list
+                    (Array.mapi
+                       (fun i a ->
+                         Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
+                       zplane_zeros)));
+            self#log#info "Z-Plane poles:";
+            self#log#info "%s"
+              (String.concat "\n"
+                 (Array.to_list
+                    (Array.mapi
+                       (fun i a ->
+                         Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
+                       zplane_poles)))
+        | Resonator -> (
+            (* Compute Z-plane zeros and poles (Resonator).
+             * Let's assume we're creating a bandpass filter,
+             * we'll transform later if needed. *)
+            self#log#info "This is a Resonator filter.";
+            zplane_numpoles <- 2;
+            zplane_numzeros <- 2;
+            zplane_zeros <- [| cor 1.; cor (-1.) |];
+
+            (* where we want the peak to be *)
+            let theta = 2. *. Float.pi *. raw_alpha1 in
+            if qfactor == infinity then (
+              self#log#info "Infinite Q factor!";
+
+              (* oscillator *)
+              let zp = { re = cos theta; im = sin theta } in
+              zplane_poles <- [| zp; Complex.conj zp |])
+            else (
+              (* must iterate to find exact pole positions *)
+              topcoeffs <- expand zplane_zeros zplane_numzeros;
+              let r = exp (cor (-.theta /. (2. *. qfactor)))
+              and thm = ref theta
+              and th1 = ref 0.
+              and th2 = ref Float.pi
+              and cvg = ref false in
+              for _ = 0 to 50 do
+                let zp = r *~ { re = cos !thm; im = sin !thm } in
+                zplane_poles <- [| zp; Complex.conj zp |];
+                botcoeffs <- expand zplane_poles zplane_numpoles;
+                let g =
+                  evaluate topcoeffs botcoeffs
+                    { re = cos theta; im = sin theta }
+                in
+                let phi = g.im /. g.re in
+                (* approx to atan2 *)
+                if phi > 0. then th2 := !thm else th1 := !thm;
+                if Utils.abs_float phi < 1e-10 then cvg := true;
+                thm := 0.5 *. (!th1 +. !th2)
               done;
-              for i = 0 to zplane_numzeros - 1 do
-                zplane_zeros <-
-                  Array.append zplane_zeros [| blt splane_zeros.(i) |]
-              done;
-              while zplane_numzeros < zplane_numpoles do
-                zplane_zeros <-
-                  Array.append zplane_zeros [| { re = -1.0; im = 0. } |];
-                zplane_numzeros <- zplane_numzeros + 1
-              done;
-              self#log#info "Z-Plane zeros:";
-              self#log#info "%s"
-                (String.concat "\n"
-                   (Array.to_list
-                      (Array.mapi
-                         (fun i a ->
-                           Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
-                         zplane_zeros)));
-              self#log#info "Z-Plane poles:";
-              self#log#info "%s"
-                (String.concat "\n"
-                   (Array.to_list
-                      (Array.mapi
-                         (fun i a ->
-                           Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
-                         zplane_poles)))
-          | Resonator -> (
-              (* Compute Z-plane zeros and poles (Resonator).
-               * Let's assume we're creating a bandpass filter,
-               * we'll transform later if needed. *)
-              self#log#info "This is a Resonator filter.";
-              zplane_numpoles <- 2;
-              zplane_numzeros <- 2;
-              zplane_zeros <- [| cor 1.; cor (-1.) |];
 
-              (* where we want the peak to be *)
-              let theta = 2. *. Float.pi *. raw_alpha1 in
-              if qfactor == infinity then (
-                self#log#info "Infinite Q factor!";
+              (* if we failed to converge ... *)
+              assert !cvg);
+            xv <- Array.make_matrix channels zplane_numzeros 0.;
+            yv <- Array.make_matrix channels zplane_numpoles 0.;
 
-                (* oscillator *)
-                let zp = { re = cos theta; im = sin theta } in
-                zplane_poles <- [| zp; Complex.conj zp |])
-              else (
-                (* must iterate to find exact pole positions *)
-                topcoeffs <- expand zplane_zeros zplane_numzeros;
-                let r = exp (cor (-.theta /. (2. *. qfactor)))
-                and thm = ref theta
-                and th1 = ref 0.
-                and th2 = ref Float.pi
-                and cvg = ref false in
-                for _ = 0 to 50 do
-                  let zp = r *~ { re = cos !thm; im = sin !thm } in
-                  zplane_poles <- [| zp; Complex.conj zp |];
-                  botcoeffs <- expand zplane_poles zplane_numpoles;
-                  let g =
-                    evaluate topcoeffs botcoeffs
-                      { re = cos theta; im = sin theta }
-                  in
-                  let phi = g.im /. g.re in
-                  (* approx to atan2 *)
-                  if phi > 0. then th2 := !thm else th1 := !thm;
-                  if Utils.abs_float phi < 1e-10 then cvg := true;
-                  thm := 0.5 *. (!th1 +. !th2)
-                done;
+            (* Do we need to transform to Bandstop or Allpass? *)
+              match filter_type with
+              | Band_stop ->
+                  (* Band-stop filter *)
+                  self#log#info "This is a band-stop filter.";
 
-                (* if we failed to converge ... *)
-                assert !cvg);
-              xv <- Array.make_matrix channels zplane_numzeros 0.;
-              yv <- Array.make_matrix channels zplane_numpoles 0.;
-
-              (* Do we need to transform to Bandstop or Allpass? *)
-                match filter_type with
-                | Band_stop ->
-                    (* Band-stop filter *)
-                    self#log#info "This is a band-stop filter.";
-
-                    (* compute Z-plane pole & zero positions for bandstop
+                  (* compute Z-plane pole & zero positions for bandstop
                           resonator (notch filter) *)
-                    (* place zeros exactly *)
-                    let zp = { re = cos theta; im = sin theta } in
-                    zplane_poles <- [| zp; Complex.conj zp |]
-                | All_pass ->
-                    (* All-pass filter *)
-                    self#log#info "This is an all-pass filter.";
+                  (* place zeros exactly *)
+                  let zp = { re = cos theta; im = sin theta } in
+                  zplane_poles <- [| zp; Complex.conj zp |]
+              | All_pass ->
+                  (* All-pass filter *)
+                  self#log#info "This is an all-pass filter.";
 
-                    (* compute Z-plane pole & zero positions for allpass
+                  (* compute Z-plane pole & zero positions for allpass
                           resonator *)
-                    zplane_zeros.(0) <-
-                      zplane_poles.(0)
-                      /~ sqrt (cor (Complex.norm zplane_poles.(0)));
-                    zplane_zeros.(1) <-
-                      zplane_poles.(1)
-                      /~ sqrt (cor (Complex.norm zplane_poles.(1)))
-                | Band_pass -> ()
-                | _ -> assert false)
+                  zplane_zeros.(0) <-
+                    zplane_poles.(0)
+                    /~ sqrt (cor (Complex.norm zplane_poles.(0)));
+                  zplane_zeros.(1) <-
+                    zplane_poles.(1)
+                    /~ sqrt (cor (Complex.norm zplane_poles.(1)))
+              | Band_pass -> ()
+              | _ -> assert false)
       end;
 
       (* Now expand the polynomials *)
@@ -370,12 +361,11 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
         evaluate topcoeffs botcoeffs (Complex.exp { re = 0.; im = theta });
       hf_gain <- evaluate topcoeffs botcoeffs { re = -1.; im = 0. };
       gain <-
-        begin
-          match filter_type with
-            | Band_stop -> Complex.norm (sqrt (dc_gain *~ hf_gain))
-            | Band_pass | All_pass -> Complex.norm fc_gain
-            | High_pass -> Complex.norm hf_gain
-            | Low_pass -> Complex.norm dc_gain
+        begin match filter_type with
+          | Band_stop -> Complex.norm (sqrt (dc_gain *~ hf_gain))
+          | Band_pass | All_pass -> Complex.norm fc_gain
+          | High_pass -> Complex.norm hf_gain
+          | Low_pass -> Complex.norm dc_gain
         end;
       self#log#info "Gains:";
       self#log#info "DC=%+.013f Centre=%+.013f HF=%+.013f Final=%+.013f."

@@ -357,8 +357,7 @@ let queue ?log ?(priorities = fun _ -> true) s name =
     end
   in
   let rec f () =
-    begin
-      try run () with Queue_processed -> ()
+    begin try run () with Queue_processed -> ()
     end;
     (f [@tailcall]) ()
   in
@@ -395,13 +394,12 @@ module Async = struct
         (* Consume data from the pipe *)
         ignore (Unix.read out_pipe tmp 0 1024);
       if !stop then begin
-        begin
-          try
-            (* This interface is purely asynchronous
-             * so we close both sides of the pipe here. *)
-            Unix.close in_pipe;
-            Unix.close out_pipe
-          with _ -> ()
+        begin try
+          (* This interface is purely asynchronous
+           * so we close both sides of the pipe here. *)
+          Unix.close in_pipe;
+          Unix.close out_pipe
+        with _ -> ()
         end;
         []
       end
@@ -418,16 +416,15 @@ module Async = struct
   let wake_up t =
     Mutex.lock t.m;
     try
-      begin
-        match t.fd with
-          | Some t -> (
-              try ignore (Unix.write t (Bytes.of_string " ") 0 1)
-              with
-              | Unix.Unix_error (Unix.EAGAIN, _, _)
-              | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
-              ->
-                ())
-          | None -> raise Stopped
+      begin match t.fd with
+        | Some t -> (
+            try ignore (Unix.write t (Bytes.of_string " ") 0 1)
+            with
+            | Unix.Unix_error (Unix.EAGAIN, _, _)
+            | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
+            ->
+              ())
+        | None -> raise Stopped
       end;
       Mutex.unlock t.m
     with e ->
@@ -437,12 +434,11 @@ module Async = struct
   let stop t =
     Mutex.lock t.m;
     try
-      begin
-        match t.fd with
-          | Some c ->
-              t.stop := true;
-              ignore (Unix.write c (Bytes.of_string " ") 0 1)
-          | None -> raise Stopped
+      begin match t.fd with
+        | Some c ->
+            t.stop := true;
+            ignore (Unix.write c (Bytes.of_string " ") 0 1)
+        | None -> raise Stopped
       end;
       t.fd <- None;
       Mutex.unlock t.m
@@ -1034,11 +1030,10 @@ module Monad = struct
 
     let exec ?(delay = 0.) ~priority h f h' =
       let handler _ =
-        begin
-          try f h'
-          with e ->
-            let bt = Printexc.get_raw_backtrace () in
-            h'.raise (h.on_error (Io.Unknown (e, bt)))
+        begin try f h'
+        with e ->
+          let bt = Printexc.get_raw_backtrace () in
+          h'.raise (h.on_error (Io.Unknown (e, bt)))
         end;
         []
       in

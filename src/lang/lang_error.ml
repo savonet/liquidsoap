@@ -57,7 +57,7 @@ module ErrorDef = struct
 end
 
 module Error = struct
-  include Value.MkCustom ((ErrorDef : Value.CustomDef))
+  include Value.MkCustom (ErrorDef : Value.CustomDef)
 
   let meths =
     [

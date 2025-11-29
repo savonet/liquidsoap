@@ -425,56 +425,53 @@ let print f t =
         print_list ~first:false ~acc:(x :: acc) vars l
   in
   Format.fprintf f "@[";
-  begin
-    match t with
-      (* We're only printing a variable: ignore its [repr]esentation. *)
-      | `EVar (_, c) when not (Constraints.is_empty c) ->
-          Format.fprintf f "something that is %s"
-            (String.concat " and "
-               (List.map string_of_constr (Constraints.elements c)))
-      | `UVar (_, c) when not (Constraints.is_empty c) ->
-          Format.fprintf f "anything that is %s"
-            (String.concat " and "
-               (List.map string_of_constr (Constraints.elements c)))
-      (* Print the full thing, then display constraints *)
-      | _ ->
-          let constraints = print ~par:false DS.empty t in
-          let constraints = DS.elements constraints in
-          if constraints <> [] then (
-            let constraints =
-              List.map
-                (fun (name, c) ->
-                  ( name,
-                    String.concat " and "
-                      (List.map string_of_constr (Constraints.elements c)) ))
-                constraints
-            in
-            let constraints =
-              List.stable_sort (fun (_, a) (_, b) -> compare a b) constraints
-            in
-            let group : ('a * 'b) list -> ('a list * 'b) list = function
-              | [] -> []
-              | (i, c) :: l ->
-                  let rec group prev acc = function
-                    | [] -> [(List.rev acc, prev)]
-                    | (i, c) :: l ->
-                        if prev = c then group c (i :: acc) l
-                        else (List.rev acc, prev) :: group c [i] l
-                  in
-                  group c [i] l
-            in
-            let constraints = group constraints in
-            let constraints =
-              List.map
-                (fun (ids, c) -> String.concat ", " ids ^ " is " ^ c)
-                constraints
-            in
-            Format.fprintf f "@ @[<2>where@ ";
-            Format.fprintf f "%s" (List.hd constraints);
-            List.iter
-              (fun s -> Format.fprintf f ",@ %s" s)
-              (List.tl constraints);
-            Format.fprintf f "@]")
+  begin match t with
+    (* We're only printing a variable: ignore its [repr]esentation. *)
+    | `EVar (_, c) when not (Constraints.is_empty c) ->
+        Format.fprintf f "something that is %s"
+          (String.concat " and "
+             (List.map string_of_constr (Constraints.elements c)))
+    | `UVar (_, c) when not (Constraints.is_empty c) ->
+        Format.fprintf f "anything that is %s"
+          (String.concat " and "
+             (List.map string_of_constr (Constraints.elements c)))
+    (* Print the full thing, then display constraints *)
+    | _ ->
+        let constraints = print ~par:false DS.empty t in
+        let constraints = DS.elements constraints in
+        if constraints <> [] then (
+          let constraints =
+            List.map
+              (fun (name, c) ->
+                ( name,
+                  String.concat " and "
+                    (List.map string_of_constr (Constraints.elements c)) ))
+              constraints
+          in
+          let constraints =
+            List.stable_sort (fun (_, a) (_, b) -> compare a b) constraints
+          in
+          let group : ('a * 'b) list -> ('a list * 'b) list = function
+            | [] -> []
+            | (i, c) :: l ->
+                let rec group prev acc = function
+                  | [] -> [(List.rev acc, prev)]
+                  | (i, c) :: l ->
+                      if prev = c then group c (i :: acc) l
+                      else (List.rev acc, prev) :: group c [i] l
+                in
+                group c [i] l
+          in
+          let constraints = group constraints in
+          let constraints =
+            List.map
+              (fun (ids, c) -> String.concat ", " ids ^ " is " ^ c)
+              constraints
+          in
+          Format.fprintf f "@ @[<2>where@ ";
+          Format.fprintf f "%s" (List.hd constraints);
+          List.iter (fun s -> Format.fprintf f ",@ %s" s) (List.tl constraints);
+          Format.fprintf f "@]")
   end;
   Format.fprintf f "@]"
 

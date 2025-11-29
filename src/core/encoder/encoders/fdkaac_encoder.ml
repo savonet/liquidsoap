@@ -41,7 +41,7 @@ let create_encoder ~pos params =
          [`Sbr_mode params.Fdkaac_format.sbr_mode]
        else [])
     @
-    match params.Fdkaac_format.bitrate_mode with
+      match params.Fdkaac_format.bitrate_mode with
       | `Variable vbr -> [`Bitrate_mode (`Variable vbr)]
       | `Constant -> [`Bitrate (params.Fdkaac_format.bitrate * 1000)]
   in

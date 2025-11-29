@@ -433,7 +433,7 @@ let render_string ~pos ~sep s =
   let lexbuf = Sedlexing.Utf8.from_string (Printf.sprintf "%s%c" s sep) in
   let rec render_string () =
     (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
-    match%sedlex lexbuf with
+      match%sedlex lexbuf with
       | '\\', 'a' ->
           Buffer.add_char buf '\x07';
           render_string ()

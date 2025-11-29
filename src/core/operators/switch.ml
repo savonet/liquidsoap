@@ -140,85 +140,83 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                     s.effective_source ->
             Some s.effective_source
         | _ -> (
-            begin
-              match
-                ( selected,
-                  self#select
-                  (* If we've returned the same source, it should be accepted now. *)
-                    ~reselect:(match reselect with `Force -> `Ok | v -> v)
-                    () )
-              with
-                | None, None -> ()
-                | Some _, None -> self#set_selected None
-                | None, Some (predicate, c) ->
-                    self#log#important "Switch to %s." c.source#id;
-                    let new_source =
-                      (* Force insertion of old metadata if relevant.
-                       * It can't be done in a static way: we need to start
-                       * pulling data to see if new metadata comes out, in case
-                       * the source was shared and kept streaming from somewhere
-                       * else (this is thanks to Frame.get_chunk).
-                       * A quicker hack might have been doable if there wasn't a
-                       * transition in between. *)
-                        match c.source#last_metadata with
-                        | Some (_, m) when replay_meta ->
-                            self#replay_meta m c.source
-                        | _ -> c.source
-                    in
-                    self#set_selected
-                      (Some
-                         { predicate; child = c; effective_source = new_source })
-                | Some old_selection, Some (_, c)
-                  when old_selection.child.source == c.source ->
-                    ()
-                | old_selection, Some (predicate, c) ->
-                    let forget, old_source =
-                      match old_selection with
-                        | None -> (true, Debug_sources.empty ())
-                        | Some old_selection ->
-                            (false, old_selection.child.source)
-                    in
-                    self#log#important "Switch to %s with%s transition."
-                      c.source#id
-                      (if forget then " forgetful" else "");
-                    let new_source =
-                      (* Force insertion of old metadata if relevant.
-                       * It can't be done in a static way: we need to start
-                       * pulling data to see if new metadata comes out, in case
-                       * the source was shared and kept streaming from somewhere
-                       * else (this is thanks to Frame.get_chunk).
-                       * A quicker hack might have been doable if there wasn't a
-                       * transition in between. *)
-                        match c.source#last_metadata with
-                        | Some (_, m) when replay_meta ->
-                            self#replay_meta m c.source
-                        | _ -> c.source
-                    in
-                    let s =
-                      Lang.to_source
-                        (Lang.apply c.transition
-                           [
-                             ("", Lang.source old_source);
-                             ("", Lang.source new_source);
-                           ])
-                    in
-                    let s =
-                      if s == new_source then s
-                      else (
-                        Typing.(s#frame_type <: self#frame_type);
-                        let s =
-                          new Max_duration.max_duration
-                            ~override_meta ~duration:transition_length s
-                        in
-                        Typing.(s#frame_type <: self#frame_type);
-                        let s =
-                          new Sequence.sequence ~merge:true [s; new_source]
-                        in
-                        Typing.(s#frame_type <: self#frame_type);
-                        (s :> Source.source))
-                    in
-                    self#set_selected
-                      (Some { predicate; child = c; effective_source = s })
+            begin match
+              ( selected,
+                self#select
+                (* If we've returned the same source, it should be accepted now. *)
+                  ~reselect:(match reselect with `Force -> `Ok | v -> v)
+                  () )
+            with
+              | None, None -> ()
+              | Some _, None -> self#set_selected None
+              | None, Some (predicate, c) ->
+                  self#log#important "Switch to %s." c.source#id;
+                  let new_source =
+                    (* Force insertion of old metadata if relevant.
+                     * It can't be done in a static way: we need to start
+                     * pulling data to see if new metadata comes out, in case
+                     * the source was shared and kept streaming from somewhere
+                     * else (this is thanks to Frame.get_chunk).
+                     * A quicker hack might have been doable if there wasn't a
+                     * transition in between. *)
+                      match c.source#last_metadata with
+                      | Some (_, m) when replay_meta ->
+                          self#replay_meta m c.source
+                      | _ -> c.source
+                  in
+                  self#set_selected
+                    (Some
+                       { predicate; child = c; effective_source = new_source })
+              | Some old_selection, Some (_, c)
+                when old_selection.child.source == c.source ->
+                  ()
+              | old_selection, Some (predicate, c) ->
+                  let forget, old_source =
+                    match old_selection with
+                      | None -> (true, Debug_sources.empty ())
+                      | Some old_selection -> (false, old_selection.child.source)
+                  in
+                  self#log#important "Switch to %s with%s transition."
+                    c.source#id
+                    (if forget then " forgetful" else "");
+                  let new_source =
+                    (* Force insertion of old metadata if relevant.
+                     * It can't be done in a static way: we need to start
+                     * pulling data to see if new metadata comes out, in case
+                     * the source was shared and kept streaming from somewhere
+                     * else (this is thanks to Frame.get_chunk).
+                     * A quicker hack might have been doable if there wasn't a
+                     * transition in between. *)
+                      match c.source#last_metadata with
+                      | Some (_, m) when replay_meta ->
+                          self#replay_meta m c.source
+                      | _ -> c.source
+                  in
+                  let s =
+                    Lang.to_source
+                      (Lang.apply c.transition
+                         [
+                           ("", Lang.source old_source);
+                           ("", Lang.source new_source);
+                         ])
+                  in
+                  let s =
+                    if s == new_source then s
+                    else (
+                      Typing.(s#frame_type <: self#frame_type);
+                      let s =
+                        new Max_duration.max_duration
+                          ~override_meta ~duration:transition_length s
+                      in
+                      Typing.(s#frame_type <: self#frame_type);
+                      let s =
+                        new Sequence.sequence ~merge:true [s; new_source]
+                      in
+                      Typing.(s#frame_type <: self#frame_type);
+                      (s :> Source.source))
+                  in
+                  self#set_selected
+                    (Some { predicate; child = c; effective_source = s })
             end;
             match selected with
               | Some s when s.effective_source#is_ready ->

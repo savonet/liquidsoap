@@ -160,7 +160,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                (fun _ stream m ->
                  m
                  @
-                 match stream with
+                   match stream with
                    | `Audio_frame (stream, _) -> get_metadata stream
                    | `Audio_packet (stream, _) -> get_metadata stream
                    | `Video_frame (stream, _) -> get_metadata stream

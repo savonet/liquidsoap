@@ -310,10 +310,10 @@ and eval_base_term ~eval_check (env : Env.t) tm =
               | Some p ->
                   p
                   ::
-                  (try
-                     List.map Lang_core.Position.of_value
-                       (Lang_core.to_list (List.assoc Lang_core.pos_var env))
-                   with _ -> [])
+                    (try
+                       List.map Lang_core.Position.of_value
+                         (Lang_core.to_list (List.assoc Lang_core.pos_var env))
+                     with _ -> [])
           in
           apply ~pos ~eval_check f l
         in
@@ -497,10 +497,10 @@ let rec eval_toplevel ?(interactive = false) t =
         if
           interactive && var <> "_"
           &&
-          try
-            ignore (Scanf.sscanf var "_%dpat" (fun v -> v));
-            false
-          with _ -> true
+            try
+              ignore (Scanf.sscanf var "_%dpat" (fun v -> v));
+              false
+            with _ -> true
         then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." var
             (fun f t -> Repr.print_scheme f (generalized, t))

@@ -64,7 +64,7 @@ let parse_extinf s =
     let lines = Re.Pcre.split ~rex:(Re.Pcre.regexp "\\s*-\\s*") song in
     meta
     @
-    match lines with
+      match lines with
       | [] | [""; ""] -> []
       | [""; song] -> [("song", String.trim song)]
       | [artist; title] ->

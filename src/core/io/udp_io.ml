@@ -186,10 +186,9 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
            we need to recreate the decoder anyway, which
            might loose some data too. *)
         Unix.close socket;
-        begin
-          match e with
-            | Failure s -> self#log#severe "Feeding stopped: %s." s
-            | e -> self#log#severe "Feeding stopped: %s." (Printexc.to_string e)
+        begin match e with
+          | Failure s -> self#log#severe "Feeding stopped: %s." s
+          | e -> self#log#severe "Feeding stopped: %s." (Printexc.to_string e)
         end;
         if should_stop () then has_stopped ()
         else self#feed (should_stop, has_stopped)

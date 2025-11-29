@@ -315,7 +315,7 @@ let sqlite =
                     let insert = Sqlite3.prepare db sql in
                     l |> List.map snd
                     |> List.iteri (fun i v ->
-                           Sqlite3.bind insert (i + 1) v |> check db);
+                        Sqlite3.bind insert (i + 1) v |> check db);
                     Sqlite3.step insert |> check db ~sql;
                     Sqlite3.finalize insert |> check db;
                     Lang.unit

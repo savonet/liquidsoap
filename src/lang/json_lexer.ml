@@ -83,7 +83,7 @@ let rec json_token lexbuf =
 
 and read_string pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
-  match%sedlex lexbuf with
+    match%sedlex lexbuf with
     | '\\', ('"' | '\\' | '/') ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         Buffer.add_char buf matched.[1];
@@ -259,7 +259,7 @@ and read_multiline_comment pos lexbuf =
 
 and read_json5_string sep pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
-  match%sedlex lexbuf with
+    match%sedlex lexbuf with
     | '\\', ('"' | '\\' | '/') ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         Buffer.add_char buf matched.[1];

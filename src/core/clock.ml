@@ -233,7 +233,7 @@ let sources c =
   let clock = Unifier.deref c in
   Queue.elements clock.pending_activations
   @
-  match Atomic.get clock.state with
+    match Atomic.get clock.state with
     | `Started { passive_sources; active_sources; outputs }
     | `Stopping { passive_sources; active_sources; outputs } ->
         WeakQueue.elements passive_sources
@@ -596,7 +596,7 @@ and _can_start ?(force = false) clock =
   let has_output =
     force
     || Queue.exists clock.pending_activations (fun s ->
-           match s#source_type with `Output _ -> true | _ -> false)
+        match s#source_type with `Output _ -> true | _ -> false)
   in
   let can_start =
     (not (Atomic.get global_stop)) && (force || Atomic.get clocks_started)

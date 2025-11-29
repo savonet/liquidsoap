@@ -220,19 +220,16 @@ let streams_start encoder =
   log#info "%s: Starting %d track(s)" encoder.id (Hashtbl.length encoder.tracks);
 
   (* Add skeleton information first. *)
-  begin
-    match encoder.skeleton with
-      | Some os ->
-          Hashtbl.iter
-            (fun _ x ->
-              let sos = os_of_ogg_track x in
-              let f = fisbone_data_of_ogg_track x in
-              match f sos with
-                | Some p -> Ogg.Stream.put_packet os p
-                | None -> ())
-            encoder.tracks;
-          add_flushed_pages ~header:true encoder os
-      | None -> ()
+  begin match encoder.skeleton with
+    | Some os ->
+        Hashtbl.iter
+          (fun _ x ->
+            let sos = os_of_ogg_track x in
+            let f = fisbone_data_of_ogg_track x in
+            match f sos with Some p -> Ogg.Stream.put_packet os p | None -> ())
+          encoder.tracks;
+        add_flushed_pages ~header:true encoder os
+    | None -> ()
   end;
   Hashtbl.iter
     (fun _ t ->
@@ -243,13 +240,12 @@ let streams_start encoder =
     encoder.tracks;
 
   (* Finish skeleton stream now. *)
-  begin
-    match encoder.skeleton with
-      | Some os ->
-          Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
-          let p = Ogg.Stream.flush_page os in
-          add_page ~header:true encoder p
-      | None -> ()
+  begin match encoder.skeleton with
+    | Some os ->
+        Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
+        let p = Ogg.Stream.flush_page os in
+        add_page ~header:true encoder p
+    | None -> ()
   end;
   encoder.state <- Streaming
 
@@ -261,11 +257,11 @@ let is_empty x =
   Ogg.Stream.eos x.os && x.remaining = None
   && Queue.length x.available = 0
   &&
-  try
-    let p = Ogg.Stream.get_page ?fill:x.page_fill x.os in
-    Queue.add p x.available;
-    false
-  with Ogg.Not_enough_data -> true
+    try
+      let p = Ogg.Stream.get_page ?fill:x.page_fill x.os in
+      Queue.add p x.available;
+      false
+    with Ogg.Not_enough_data -> true
 
 (** Get the least remaining page of all tracks. *)
 let least_remaining encoder =
@@ -378,10 +374,9 @@ let end_of_track encoder id =
 
 (** Flush data from all tracks in the stream. *)
 let flush encoder =
-  begin
-    match encoder.skeleton with
-      | Some os -> add_flushed_pages encoder os
-      | None -> ()
+  begin match encoder.skeleton with
+    | Some os -> add_flushed_pages encoder os
+    | None -> ()
   end;
   while Hashtbl.length encoder.tracks > 0 do
     Hashtbl.iter (fun id _ -> end_of_track encoder id) encoder.tracks

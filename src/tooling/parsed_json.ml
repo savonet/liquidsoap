@@ -239,7 +239,7 @@ let rec base_json_of_pat = function
                             ]))
                  methods
               @
-              match ellipsis with
+                match ellipsis with
                 | None -> []
                 | Some pat ->
                     [

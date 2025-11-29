@@ -111,9 +111,9 @@ let rec to_string (v : t) =
             let p =
               p
               |> List.map (function
-                   | `Anonymous s -> s
-                   | `Encoder e -> aux e
-                   | `Labelled (l, v) -> l ^ "=" ^ to_string v)
+                | `Anonymous s -> s
+                | `Encoder e -> aux e
+                | `Labelled (l, v) -> l ^ "=" ^ to_string v)
               |> String.concat ", "
             in
             "%" ^ e ^ "(" ^ p ^ ")"
@@ -188,8 +188,8 @@ let rec free_vars_pat = function
               (fun cur (lbl, pat) ->
                 [`PVar [lbl]]
                 @ (match pat with
-                    | `None | `Nullable -> []
-                    | `Pattern pat -> [pat])
+                  | `None | `Nullable -> []
+                  | `Pattern pat -> [pat])
                 @ cur)
               [] l))
 
