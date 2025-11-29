@@ -360,7 +360,7 @@ jobs:
       - name: Install ocamlformat
         if: matrix.ocaml-compiler == '4.14.x'
         run: |
-          opam install ocamlformat=0.27.0
+          opam install ocamlformat=0.28.1
       - name: Set PY env variable.
         if: matrix.ocaml-compiler == '4.14.x'
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
