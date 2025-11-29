@@ -24,6 +24,7 @@
   fades (#4736)
 - Make sure that sources re-used in `source.dynamic` are never
   inadvertently cleaned up (#4713)
+- Fix sources not being properly collected (#4670)
 - Raise a proper error on parse error raised during `%include`
   parsing.
 - Don't print metadata coverart string (#4730)
