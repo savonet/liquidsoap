@@ -104,7 +104,7 @@ and scheme = var list * t
 
 (** A method. *)
 and meth = {
-  meth : string;  (** name of the method *)
+  name : string;  (** name of the method *)
   optional : bool;  (** is the method optional? *)
   scheme : scheme;  (** type scheme *)
   doc : meth_doc;  (** documentation *)
@@ -219,7 +219,7 @@ let rec remeth t u =
 (** Type of a method in a type. *)
 let rec invoke t l =
   match (deref t).descr with
-    | Meth { meth = { meth; scheme } } when meth = l -> scheme
+    | Meth { meth = { name; scheme } } when name = l -> scheme
     | Meth { t } -> invoke t l
     | _ -> raise Not_found
 
@@ -238,14 +238,14 @@ let rec invokes t = function
   | [] -> ([], t)
 
 (** Add a method to a type. *)
-let meth ?pos ?json_name ?(category = `Method) ?(optional = false) meth scheme
+let meth ?pos ?json_name ?(category = `Method) ?(optional = false) name scheme
     ?(doc = "") t =
   make ?pos
     (Meth
        {
          meth =
            {
-             meth;
+             name;
              optional;
              scheme;
              doc = { meth_descr = doc; category };
@@ -270,8 +270,8 @@ let split_meths t =
     let t = deref t in
     match t.descr with
       | Meth { meth = m; t } ->
-          let meth, t = aux (m.meth :: hide) t in
-          let meth = if List.mem m.meth hide then meth else m :: meth in
+          let meth, t = aux (m.name :: hide) t in
+          let meth = if List.mem m.name hide then meth else m :: meth in
           (meth, t)
       | _ -> ([], t)
   in
@@ -336,14 +336,14 @@ module Fresh = struct
       | Nullable t -> Nullable (map t)
       | Meth
           {
-            meth = { meth; optional; scheme = vars, t; doc; json_name };
+            meth = { name; optional; scheme = vars, t; doc; json_name };
             t = t';
           } ->
           Meth
             {
               meth =
                 {
-                  meth;
+                  name;
                   optional;
                   scheme = (List.map map_var vars, map t);
                   doc;
@@ -447,19 +447,19 @@ let rec mk_invariant t =
 
 let rec hide_meth l a =
   match (deref a).descr with
-    | Meth { meth = { meth = l' }; t = u } when l' = l -> hide_meth l u
+    | Meth { meth = { name = l' }; t = u } when l' = l -> hide_meth l u
     | Meth ({ t } as m) -> make ?pos:a.pos (Meth { m with t = hide_meth l t })
     | _ -> a
 
 let rec opt_meth l a =
   match (deref a).descr with
-    | Meth { meth = { meth = l' } as m; t } when l' = l ->
+    | Meth { meth = { name = l' } as m; t } when l' = l ->
         make ?pos:a.pos (Meth { meth = { m with optional = true }; t })
     | Meth ({ t } as m) -> make ?pos:a.pos (Meth { m with t = opt_meth l t })
     | _ -> a
 
 let rec get_meth l a =
   match (deref a).descr with
-    | Meth { meth = { meth = l' } as meth } when l = l' -> meth
+    | Meth { meth = { name = l' } as meth } when l = l' -> meth
     | Meth { t } -> get_meth l t
     | _ -> assert false

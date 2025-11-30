@@ -28,7 +28,7 @@ let make ?pos base_type fields =
       let field = Frame.Fields.string_of_field field in
       let meth =
         {
-          Type.meth = field;
+          Type.name = field;
           optional = false;
           scheme = ([], field_type);
           doc = { meth_descr = "Field " ^ field; category = `Method };
@@ -47,7 +47,7 @@ let set_field frame_type field field_type =
   let field = Frame.Fields.string_of_field field in
   let meth =
     {
-      Type.meth = field;
+      Type.name = field;
       optional = false;
       scheme = ([], field_type);
       doc = { meth_descr = "Field " ^ field; category = `Method };
@@ -58,14 +58,14 @@ let set_field frame_type field field_type =
 
 let get_fields frame_type =
   let fields, _ = Type.split_meths frame_type in
-  List.map (fun Type.{ meth } -> Frame.Fields.register meth) fields
+  List.map (fun Type.{ name } -> Frame.Fields.register name) fields
 
 let get_field frame_type field =
   let field = Frame.Fields.string_of_field field in
   let fields, _ = Type.split_meths frame_type in
   match
     List.find_map
-      (fun Type.{ meth; scheme = _, field_type } ->
+      (fun Type.{ name = meth; scheme = _, field_type } ->
         if meth = field then Some field_type else None)
       fields
   with
@@ -102,10 +102,10 @@ let content_type frame_type =
              Typing.satisfies_constraint base_type Format_type.internal_tracks;
              List.iter
                (function
-                 | { Type.meth = "audio"; scheme = [], ty } ->
+                 | { Type.name = "audio"; scheme = [], ty } ->
                      Typing.(
                        ty <: Format_type.audio ~pcm_kind:Content_audio.kind ())
-                 | { Type.meth = "video"; scheme = [], ty } ->
+                 | { Type.name = "video"; scheme = [], ty } ->
                      Typing.(ty <: Format_type.video ())
                  | _ -> ())
                meths
@@ -117,7 +117,7 @@ let content_type frame_type =
   let content_type, resolved_frame_type =
     List.fold_left
       (fun (content_type, resolved_frame_type)
-           ({ Type.meth = field; scheme = _, ty } as meth) ->
+           ({ Type.name = field; scheme = _, ty } as meth) ->
         try
           let format = Format_type.content_type ty in
           let format_type = Type.make (Format_type.descr (`Format format)) in

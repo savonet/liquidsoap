@@ -131,7 +131,7 @@ and mk_meth_ty ?pos ~env ~to_term base
          {
            meth =
              {
-               meth = name;
+               name;
                optional;
                scheme = ([], mk_parsed_ty ?pos ~env ~to_term typ);
                doc = { meth_descr = ""; category = `Method };
@@ -583,7 +583,7 @@ and term_of_value_base ~pos t v =
       (Methods.mapi
          (fun key meth ->
            let { Type.scheme = _, t } =
-             List.find (fun { Type.meth } -> meth = key) meths
+             List.find (fun { Type.name } -> name = key) meths
            in
            process_value ~t meth)
          Value.(methods v))

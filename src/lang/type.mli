@@ -85,7 +85,7 @@ type meth_doc = Type_base.meth_doc = {
 }
 
 type meth = Type_base.meth = {
-  meth : string;
+  name : string;
   optional : bool;
   scheme : scheme;
   doc : meth_doc;

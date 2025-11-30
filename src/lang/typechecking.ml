@@ -232,7 +232,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                       {
                         meth =
                           {
-                            meth = name;
+                            name;
                             optional = true;
                             scheme = ([], Type.make ?pos Type.Never);
                             doc = { meth_descr = ""; category = `Method };
@@ -251,7 +251,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                   Meth
                     {
                       meth =
-                        { meth = l'; scheme = (_, { descr }) as s; optional };
+                        { name = l'; scheme = (_, { descr }) as s; optional };
                     })
                 when l = l' && (optional = false || descr = Never) ->
                   (fst s, Typing.instantiate ~level s)
@@ -269,7 +269,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                            {
                              meth =
                                {
-                                 meth = l;
+                                 name = l;
                                  optional = invoke_default <> None;
                                  scheme = ([], x);
                                  doc = { meth_descr = ""; category = `Method };
@@ -305,7 +305,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
           a.t <: mk Type.unit;
           let rec aux env t =
             match (Type.deref t).Type.descr with
-              | Type.(Meth { meth = { meth = l; scheme = g, u }; t }) ->
+              | Type.(Meth { meth = { name = l; scheme = g, u }; t }) ->
                   aux (env#add ~pos l (g, u)) t
               | _ -> env
           in
@@ -440,14 +440,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
   in
   e.t
   >: Methods.fold
-       (fun meth meth_term t ->
+       (fun name meth_term t ->
          check ~level ~env meth_term;
          Type.make ?pos
            (Type.Meth
               {
                 meth =
                   {
-                    Type.meth;
+                    Type.name;
                     optional = false;
                     scheme = Typing.generalize ~level meth_term.t;
                     doc = { meth_descr = ""; category = `Method };

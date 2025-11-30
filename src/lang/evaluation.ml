@@ -441,7 +441,7 @@ let toplevel_add ?doc pat ~t v =
               let methods, callbacks =
                 List.fold_left
                   (fun (methods, callbacks) m ->
-                    let l = m.Type.meth in
+                    let l = m.Type.name in
                     (* Override description by the one given in comment if it exists. *)
                     let d =
                       match List.assoc_opt l doc.Doc.Value.methods with

@@ -245,7 +245,7 @@ let _ =
         Lang_source.check_arguments ~return_t ~env arguments
       in
       let return_t =
-        Type.filter_meths return_t (fun { Type.meth } ->
+        Type.filter_meths return_t (fun { Type.name = meth } ->
             meth <> "metadata" && meth <> "track_marks")
       in
       let source_val = List.assoc "" env in

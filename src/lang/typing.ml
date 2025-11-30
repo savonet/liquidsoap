@@ -159,15 +159,15 @@ let rec sup ~pos a b =
   in
   let rec meth_type l a =
     match (deref a).descr with
-      | Meth { meth = { meth = l'; optional; scheme = t } } when l = l' ->
+      | Meth { meth = { name = l'; optional; scheme = t } } when l = l' ->
           Some (t, optional)
       | Meth { t } -> meth_type l t
       | _ -> None
   in
   let meth_sup m a b =
-    let a = hide_meth m.meth a in
-    let mb = meth_type m.meth b in
-    let b = hide_meth m.meth b in
+    let a = hide_meth m.name a in
+    let mb = meth_type m.name b in
+    let b = hide_meth m.name b in
     match mb with
       | Some (t', optional) -> (
           try
@@ -289,7 +289,7 @@ and bind ?(variance = `Invariant) a b =
 and unify_meth a b l =
   let {
     optional = optional1;
-    meth = meth1;
+    name = meth1;
     scheme = s1;
     json_name = json_name1;
   } =
@@ -297,7 +297,7 @@ and unify_meth a b l =
   in
   let {
     optional = optional2;
-    meth = meth2;
+    name = meth2;
     scheme = s2;
     json_name = json_name2;
   } =
@@ -537,13 +537,13 @@ and ( <: ) a b =
             Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)
       | _, Nullable t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
-      | Meth { meth = { meth = l } }, _ when Type.has_meth b l ->
+      | Meth { meth = { name = l } }, _ when Type.has_meth b l ->
           unify_meth a b l
-      | _, Meth { meth = { meth = l } } when Type.has_meth a l ->
+      | _, Meth { meth = { name = l } } when Type.has_meth a l ->
           unify_meth a b l
       | ( _,
           Meth
-            { meth = { meth = l; optional; scheme = g2, t2; json_name }; t = c }
+            { meth = { name = l; optional; scheme = g2, t2; json_name }; t = c }
         ) -> (
           let a' = demeth a in
           match a'.descr with
@@ -559,7 +559,7 @@ and ( <: ) a b =
                         {
                           meth =
                             {
-                              meth = l;
+                              name = l;
                               optional;
                               scheme = (g2, t2);
                               doc = { meth_descr = ""; category = `Method };
@@ -582,7 +582,7 @@ and ( <: ) a b =
                                json_name;
                              },
                            `Ellipsis ) )))
-      | Meth { meth = m; t = u1 }, _ -> opt_meth m.meth u1 <: b
+      | Meth { meth = m; t = u1 }, _ -> opt_meth m.name u1 <: b
       | _, Getter t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
       | _, _ ->

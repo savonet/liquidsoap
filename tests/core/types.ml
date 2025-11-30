@@ -32,14 +32,17 @@ let () =
 
   let mk_meth meth ty t =
     Meth
-      ( {
-          meth;
-          optional = false;
-          scheme = ([], make ty);
-          doc = { meth_descr = ""; category = `Method };
-          json_name = None;
-        },
-        make t )
+      {
+        meth =
+          {
+            name;
+            optional = false;
+            scheme = ([], make ty);
+            doc = { meth_descr = ""; category = `Method };
+            json_name = None;
+          };
+        t = make t;
+      }
   in
 
   let m = mk_meth "aa" Int Bool in

@@ -122,7 +122,7 @@ let rec value_of_typed_json ~ty json =
           Typing.(ty <: Lang.unit_t);
           let meth =
             List.map
-              (fun Type.{ meth; optional; json_name; scheme = _, ty } ->
+              (fun Type.{ name = meth; optional; json_name; scheme = _, ty } ->
                 let ty = Type.deref ty in
                 let lbl = Option.value ~default:meth json_name in
                 let nullable_meth = optional || fst (nullable_deref ty) in

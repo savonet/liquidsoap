@@ -175,7 +175,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
         | Meth
-            { meth = { meth = l; optional; scheme = g', u; json_name }; t = v }
+            { meth = { name = l; optional; scheme = g', u; json_name }; t = v }
           ->
             let gen =
               List.map

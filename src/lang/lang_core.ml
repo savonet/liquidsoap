@@ -208,7 +208,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
         (fun (m : Type.meth) ->
           let d = m.doc.meth_descr in
           let d = if d = "" then None else Some d in
-          ( m.meth,
+          ( m.name,
             Doc.Value.
               {
                 meth_type = Repr.string_of_scheme m.scheme;
@@ -221,7 +221,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
         (fun (m : Type.meth) ->
           let d = m.doc.meth_descr in
           let d = if d = "" then None else Some d in
-          ( m.meth,
+          ( m.name,
             Doc.Value.
               {
                 meth_type = Repr.string_of_scheme m.scheme;

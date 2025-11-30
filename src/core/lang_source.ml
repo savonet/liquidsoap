@@ -693,8 +693,10 @@ let check_content v t =
             let meths, v = Value.split_meths v in
             let meths_t, t = Type.split_meths t in
             List.iter
-              (fun { Type.meth; optional; scheme = generalized, t } ->
-                let names = List.map (fun v -> v.Type.name) generalized in
+              (fun { Type.name = meth; optional; scheme = generalized, t } ->
+                let names =
+                  List.map (fun (v : Type.var) -> v.Type.name) generalized
+                in
                 let handler =
                   Type.Fresh.init
                     ~selector:(fun v -> List.mem v.Type.name names)
