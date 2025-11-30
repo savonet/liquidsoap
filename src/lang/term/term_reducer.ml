@@ -105,11 +105,14 @@ let rec mk_parsed_ty ?pos ~env ~to_term = function
       Type.(
         make
           (Arrow
-             ( List.map
-                 (fun (optional, name, t) ->
-                   (optional, name, mk_parsed_ty ~env ~to_term ?pos t))
-                 args,
-               mk_parsed_ty ?pos ~env ~to_term t )))
+             {
+               args =
+                 List.map
+                   (fun (optional, name, t) ->
+                     (optional, name, mk_parsed_ty ~env ~to_term ?pos t))
+                   args;
+               t = mk_parsed_ty ?pos ~env ~to_term t;
+             }))
   | `Record l ->
       List.fold_left (mk_meth_ty ?pos ~env ~to_term) Type.(make (Tuple [])) l
   | `Method (t, l) ->
@@ -125,14 +128,17 @@ and mk_meth_ty ?pos ~env ~to_term base
   Type.(
     make
       (Meth
-         ( {
-             meth = name;
-             optional;
-             scheme = ([], mk_parsed_ty ?pos ~env ~to_term typ);
-             doc = { meth_descr = ""; category = `Method };
-             json_name;
-           },
-           base )))
+         {
+           meth =
+             {
+               meth = name;
+               optional;
+               scheme = ([], mk_parsed_ty ?pos ~env ~to_term typ);
+               doc = { meth_descr = ""; category = `Method };
+               json_name;
+             };
+           t = base;
+         }))
 
 let program = Term_preprocessor.program
 
@@ -498,7 +504,7 @@ let mk_time_pred ~pos (a, b, c) =
 let rec get_env_args ~pos t args =
   let get_arg_type t name =
     match (Type.deref t).Type.descr with
-      | Type.Arrow (l, _) ->
+      | Type.Arrow { args = l } ->
           let _, _, t = List.find (fun (_, n, _) -> n = name) l in
           t
       | _ ->
@@ -1087,7 +1093,7 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let inner_list_ty = mk_var ~pos () in
   Typing.(
-    ty <: mk_ty ~pos (Type.List { Type.t = inner_list_ty; json_repr = `Tuple }));
+    ty <: mk_ty ~pos (Type.List { t = inner_list_ty; json_repr = `Tuple }));
   let tty = Value.RuntimeType.to_term inner_list_ty in
   let parser = mk ~pos (`Var "_sqlite_row_parser_") in
   let mapper =

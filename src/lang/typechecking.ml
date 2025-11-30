@@ -56,7 +56,7 @@ let function_app_value_restriction fn =
       | Getter t -> filter_app_vars l t
       | List { t } | Nullable t -> filter_app_vars l t
       | Tuple aa -> List.fold_left filter_app_vars l aa
-      | Meth ({ scheme = g, t }, u) ->
+      | Meth { meth = { scheme = g, t }; t = u } ->
           let l =
             List.filter (fun v -> not (List.mem v g)) (filter_app_vars l t)
           in
@@ -65,7 +65,7 @@ let function_app_value_restriction fn =
           List.fold_left (fun l (_, t) -> filter_app_vars l t) l c.params
       | Var { contents = Free var } -> var :: l
       | Var { contents = Link _ } -> assert false
-      | Arrow (p, t) ->
+      | Arrow { args = p; t } ->
           let l = filter_app_vars l t in
           let pl =
             List.fold_left
@@ -76,7 +76,7 @@ let function_app_value_restriction fn =
           List.filter (fun v -> not (List.memq v pl)) l
   in
   match Type.demeth fn.Term.t with
-    | { Type.descr = Arrow (_, t) } -> filter_app_vars [] t = []
+    | { Type.descr = Arrow { t } } -> filter_app_vars [] t = []
     | _ -> false
 
 (** Terms for which generalization is safe. *)
@@ -170,7 +170,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
       [] proto_t
     |> ignore;
     check ~level ~env body;
-    e.t >: mk (Type.Arrow (proto_t, body.t))
+    e.t >: mk (Type.Arrow { args = proto_t; t = body.t })
   in
   let base_type = Type.var () in
   let () =
@@ -229,14 +229,17 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                 Type.make ?pos
                   Type.(
                     Meth
-                      ( {
-                          meth = name;
-                          optional = true;
-                          scheme = ([], Type.make ?pos Type.Never);
-                          doc = { meth_descr = ""; category = `Method };
-                          json_name = None;
-                        },
-                        ty )))
+                      {
+                        meth =
+                          {
+                            meth = name;
+                            optional = true;
+                            scheme = ([], Type.make ?pos Type.Never);
+                            doc = { meth_descr = ""; category = `Method };
+                            json_name = None;
+                          };
+                        t = ty;
+                      }))
               a.t methods
           in
           base_type >: ty
@@ -245,10 +248,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
           let rec aux t =
             match (Type.deref t).Type.descr with
               | Type.(
-                  Meth ({ meth = l'; scheme = (_, { descr }) as s; optional }, _))
+                  Meth
+                    {
+                      meth =
+                        { meth = l'; scheme = (_, { descr }) as s; optional };
+                    })
                 when l = l' && (optional = false || descr = Never) ->
                   (fst s, Typing.instantiate ~level s)
-              | Type.(Meth (_, c)) -> aux c
+              | Type.(Meth { t }) -> aux t
               | _ ->
                   (* We did not find the method, the type we will infer is not the
                      most general one (no generalization), but this is safe and
@@ -259,14 +266,17 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                   <: mk
                        Type.(
                          Meth
-                           ( {
-                               meth = l;
-                               optional = invoke_default <> None;
-                               scheme = ([], x);
-                               doc = { meth_descr = ""; category = `Method };
-                               json_name = None;
-                             },
-                             y ));
+                           {
+                             meth =
+                               {
+                                 meth = l;
+                                 optional = invoke_default <> None;
+                                 scheme = ([], x);
+                                 doc = { meth_descr = ""; category = `Method };
+                                 json_name = None;
+                               };
+                             t = y;
+                           });
                   ([], x)
           in
           let vars, typ = aux a.t in
@@ -295,7 +305,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
           a.t <: mk Type.unit;
           let rec aux env t =
             match (Type.deref t).Type.descr with
-              | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
+              | Type.(Meth { meth = { meth = l; scheme = g, u }; t }) ->
                   aux (env#add ~pos l (g, u)) t
               | _ -> env
           in
@@ -318,7 +328,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
              that case the optionality can't be guessed and mandatory is the
              default. *)
             match (Type.demeth a.t).Type.descr with
-            | Type.Arrow (ap, t) ->
+            | Type.Arrow { args = ap; t } ->
                 (* Find in l the first arg labeled lbl, return it together with the
                    remaining of the list. *)
                 let get_arg lbl l =
@@ -346,7 +356,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                                     ( (Type.deref v.t).descr,
                                       (Type.deref t).descr )
                                   with
-                                    | Type.Arrow ([], vt), Type.Arrow ([], t) ->
+                                    | ( Type.Arrow { args = []; t = vt },
+                                        Type.Arrow { args = []; t } ) ->
                                         vt <: t
                                     | _ -> assert false)
                               | _ -> v.t <: t);
@@ -364,7 +375,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                 base_type >: t
             | _ ->
                 let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
-                a.t <: Type.make (Type.Arrow (p, base_type)))
+                a.t <: Type.make (Type.Arrow { args = p; t = base_type }))
       | `Fun p ->
           let env =
             match p.name with
@@ -433,14 +444,17 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
          check ~level ~env meth_term;
          Type.make ?pos
            (Type.Meth
-              ( {
-                  Type.meth;
-                  optional = false;
-                  scheme = Typing.generalize ~level meth_term.t;
-                  doc = { meth_descr = ""; category = `Method };
-                  json_name = None;
-                },
-                t )))
+              {
+                meth =
+                  {
+                    Type.meth;
+                    optional = false;
+                    scheme = Typing.generalize ~level meth_term.t;
+                    doc = { meth_descr = ""; category = `Method };
+                    json_name = None;
+                  };
+                t;
+              }))
        e.methods base_type
 
 let display_types = ref false

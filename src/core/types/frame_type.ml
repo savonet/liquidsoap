@@ -35,7 +35,7 @@ let make ?pos base_type fields =
           json_name = None;
         }
       in
-      Type.make ?pos (Type.Meth (meth, typ)))
+      Type.make ?pos (Type.Meth { meth; t = typ }))
     fields base_type
 
 let internal_tracks ?pos () =
@@ -54,7 +54,7 @@ let set_field frame_type field field_type =
       json_name = None;
     }
   in
-  Type.make (Type.Meth (meth, frame_type))
+  Type.make (Type.Meth { meth; t = frame_type })
 
 let get_fields frame_type =
   let fields, _ = Type.split_meths frame_type in
@@ -124,8 +124,10 @@ let content_type frame_type =
           ( Frame.Fields.add (Frame.Fields.register field) format content_type,
             Type.make
               (Type.Meth
-                 ( { meth with Type.scheme = ([], format_type) },
-                   resolved_frame_type )) )
+                 {
+                   meth = { meth with Type.scheme = ([], format_type) };
+                   t = resolved_frame_type;
+                 }) )
         with Format_type.Never_type -> (content_type, resolved_frame_type))
       (Frame.Fields.empty, Type.make Type.unit)
       meths

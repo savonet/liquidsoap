@@ -88,9 +88,6 @@ and constr = {
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
 
-(** A type constructor applied to arguments (e.g. source). *)
-and constructed = { constructor : string; params : (variance * t) list }
-
 (** Contents of a variable. *)
 and var = {
   name : int;
@@ -114,8 +111,6 @@ and meth = {
   json_name : string option;  (** name when represented as JSON *)
 }
 
-and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
-
 and custom_handler = {
   typ : custom;
   custom_name : string;
@@ -137,13 +132,13 @@ and descr =
   | Bool
   | Never
   | Custom of custom_handler
-  | Constr of constructed
+  | Constr of { constructor : string; params : (variance * t) list }
   | Getter of t  (** a getter: something that is either a t or () -> t *)
-  | List of repr_t
+  | List of { t : t; json_repr : [ `Tuple | `Object ] }
   | Tuple of t list
   | Nullable of t  (** something that is either t or null *)
-  | Meth of meth * t  (** t with a method added *)
-  | Arrow of t argument list * t  (** a function *)
+  | Meth of { meth : meth; t : t }  (** t with a method added *)
+  | Arrow of { args : t argument list; t : t }  (** a function *)
   | Var of var_t  (** a type variable *)
 
 module Constraints = struct
@@ -197,33 +192,35 @@ let rec deref t =
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
   let t = deref t in
-  match t.descr with Meth (_, t) -> demeth t | _ -> t
+  match t.descr with Meth { t } -> demeth t | _ -> t
 
 let rec filter_meths t fn =
   let t = deref t in
   match t.descr with
-    | Meth (m, t) when not (fn m) -> filter_meths t fn
-    | Meth (m, t) -> { t with descr = Meth (m, filter_meths t fn) }
+    | Meth { meth; t } when not (fn meth) -> filter_meths t fn
+    | Meth { meth; t } ->
+        { t with descr = Meth { meth; t = filter_meths t fn } }
     | _ -> t
 
 let rec map_meths t fn =
   let t = deref t in
   match t.descr with
-    | Meth (m, t) -> { t with descr = Meth (fn m, map_meths t fn) }
+    | Meth { meth; t } ->
+        { t with descr = Meth { meth = fn meth; t = map_meths t fn } }
     | _ -> t
 
 (** Put the methods of the first type around the second type. *)
 let rec remeth t u =
   let t = deref t in
   match t.descr with
-    | Meth (m, t) -> { t with descr = Meth (m, remeth t u) }
+    | Meth { meth; t } -> { t with descr = Meth { meth; t = remeth t u } }
     | _ -> u
 
 (** Type of a method in a type. *)
 let rec invoke t l =
   match (deref t).descr with
-    | Meth (m, _) when m.meth = l -> m.scheme
-    | Meth (_, t) -> invoke t l
+    | Meth { meth = { meth; scheme } } when meth = l -> scheme
+    | Meth { t } -> invoke t l
     | _ -> raise Not_found
 
 (** Do we have a method with given label? *)
@@ -245,14 +242,17 @@ let meth ?pos ?json_name ?(category = `Method) ?(optional = false) meth scheme
     ?(doc = "") t =
   make ?pos
     (Meth
-       ( {
-           meth;
-           optional;
-           scheme;
-           doc = { meth_descr = doc; category };
-           json_name;
-         },
-         t ))
+       {
+         meth =
+           {
+             meth;
+             optional;
+             scheme;
+             doc = { meth_descr = doc; category };
+             json_name;
+           };
+         t;
+       })
 
 (** Add a submethod to a type. *)
 let rec meths ?(invoke = invoke) ?pos l v t =
@@ -269,7 +269,7 @@ let split_meths t =
   let rec aux hide t =
     let t = deref t in
     match t.descr with
-      | Meth (m, t) ->
+      | Meth { meth = m; t } ->
           let meth, t = aux (m.meth :: hide) t in
           let meth = if List.mem m.meth hide then meth else m :: meth in
           (meth, t)
@@ -334,18 +334,26 @@ module Fresh = struct
       | List { t; json_repr } -> List { t = map t; json_repr }
       | Tuple l -> Tuple (List.map map l)
       | Nullable t -> Nullable (map t)
-      | Meth ({ meth; optional; scheme = vars, t; doc; json_name }, t') ->
+      | Meth
+          {
+            meth = { meth; optional; scheme = vars, t; doc; json_name };
+            t = t';
+          } ->
           Meth
-            ( {
-                meth;
-                optional;
-                scheme = (List.map map_var vars, map t);
-                doc;
-                json_name;
-              },
-              map t' )
-      | Arrow (args, t) ->
-          Arrow (List.map (fun (b, s, t) -> (b, s, map t)) args, map t)
+            {
+              meth =
+                {
+                  meth;
+                  optional;
+                  scheme = (List.map map_var vars, map t);
+                  doc;
+                  json_name;
+                };
+              t = map t';
+            }
+      | Arrow { args; t } ->
+          Arrow
+            { args = List.map (fun (b, s, t) -> (b, s, map t)) args; t = map t }
       (* Here we keep all links. While it could be tempting to deref,
          we are using links to compute type supremum in type unification
          so we are better off keeping them. Also, we need to create fresh
@@ -439,19 +447,19 @@ let rec mk_invariant t =
 
 let rec hide_meth l a =
   match (deref a).descr with
-    | Meth ({ meth = l' }, u) when l' = l -> hide_meth l u
-    | Meth (m, u) -> make ?pos:a.pos (Meth (m, hide_meth l u))
+    | Meth { meth = { meth = l' }; t = u } when l' = l -> hide_meth l u
+    | Meth ({ t } as m) -> make ?pos:a.pos (Meth { m with t = hide_meth l t })
     | _ -> a
 
 let rec opt_meth l a =
   match (deref a).descr with
-    | Meth (({ meth = l' } as m), u) when l' = l ->
-        make ?pos:a.pos (Meth ({ m with optional = true }, u))
-    | Meth (m, u) -> make ?pos:a.pos (Meth (m, opt_meth l u))
+    | Meth { meth = { meth = l' } as m; t } when l' = l ->
+        make ?pos:a.pos (Meth { meth = { m with optional = true }; t })
+    | Meth ({ t } as m) -> make ?pos:a.pos (Meth { m with t = opt_meth l t })
     | _ -> a
 
 let rec get_meth l a =
   match (deref a).descr with
-    | Meth (({ meth = l' } as meth), _) when l = l' -> meth
-    | Meth (_, a) -> get_meth l a
+    | Meth { meth = { meth = l' } as meth } when l = l' -> meth
+    | Meth { t } -> get_meth l t
     | _ -> assert false

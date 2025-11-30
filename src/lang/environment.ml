@@ -69,14 +69,17 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                 Type.make ?pos:t.Type.pos
                   Type.(
                     Meth
-                      ( {
-                          meth = l;
-                          optional = false;
-                          scheme = (g, t);
-                          doc = { meth_descr = ""; category = `Method };
-                          json_name = None;
-                        },
-                        t0 ))
+                      {
+                        meth =
+                          {
+                            meth = l;
+                            optional = false;
+                            scheme = (g, t);
+                            doc = { meth_descr = ""; category = `Method };
+                            json_name = None;
+                          };
+                        t = t0;
+                      })
               in
               ((g0, t), Value.map_methods v0 (Methods.add l v))
           | l :: ll ->
@@ -85,14 +88,17 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                 Type.make ?pos:t.Type.pos
                   Type.(
                     Meth
-                      ( {
-                          meth = l;
-                          optional = false;
-                          scheme = (vg, vt);
-                          doc = { meth_descr = ""; category = `Method };
-                          json_name = None;
-                        },
-                        t0 ))
+                      {
+                        meth =
+                          {
+                            meth = l;
+                            optional = false;
+                            scheme = (vg, vt);
+                            doc = { meth_descr = ""; category = `Method };
+                            json_name = None;
+                          };
+                        t = t0;
+                      })
               in
               ((g0, t), Value.map_methods v0 (Methods.add l v))
           | [] -> ((g, t), v)

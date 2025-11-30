@@ -366,8 +366,8 @@ let toplevel_add ?doc pat ~t v =
               (* Type for parameters. *)
               let rec ptypes t =
                 match (Type.deref t).Type.descr with
-                  | Type.Arrow (p, _) -> p
-                  | Type.Meth (_, t) -> ptypes t
+                  | Type.Arrow { args = p } -> p
+                  | Type.Meth { t } -> ptypes t
                   | _ -> []
               in
               let ptypes = ref (ptypes t) in
@@ -426,14 +426,16 @@ let toplevel_add ?doc pat ~t v =
               let methods, t =
                 let methods, t = Type.split_meths t in
                 match (Type.deref t).Type.descr with
-                  | Type.Arrow (p, a) ->
+                  | Type.Arrow { args = p; t = a } ->
                       let methods, a = Type.split_meths a in
                       (* Note that in case we have a function, we drop the methods around,
                          the reason being that we expect that they are registered on their
                          own in the documentation. For instance, we don't want the field
                          recurrent to appear in the doc of thread.run: it is registered as
                          thread.run.recurrent anyways. *)
-                      (methods, Type.make ?pos:t.Type.pos (Type.Arrow (p, a)))
+                      ( methods,
+                        Type.make ?pos:t.Type.pos
+                          (Type.Arrow { args = p; t = a }) )
                   | _ -> (methods, t)
               in
               let methods, callbacks =

@@ -54,13 +54,13 @@ type descr = Type_base.descr =
   | Bool
   | Never
   | Custom of custom_handler
-  | Constr of constructed
+  | Constr of { constructor : string; params : (variance * t) list }
   | Getter of t  (** a getter: something that is either a t or () -> t *)
-  | List of repr_t
+  | List of { t : t; json_repr : [ `Tuple | `Object ] }
   | Tuple of t list
   | Nullable of t  (** something that is either t or null *)
-  | Meth of meth * t  (** t with a method added *)
-  | Arrow of t argument list * t  (** a function *)
+  | Meth of { meth : meth; t : t }  (** t with a method added *)
+  | Arrow of { args : t argument list; t : t }  (** a function *)
   | Var of var_t  (** a type variable *)
 
 type constr = Type_base.constr = {
@@ -70,11 +70,6 @@ type constr = Type_base.constr = {
 }
 
 module Constraints = Type_base.Constraints
-
-type constructed = Type_base.constructed = {
-  constructor : string;
-  params : (variance * t) list;
-}
 
 type var = Type_base.var = {
   name : int;
@@ -96,8 +91,6 @@ type meth = Type_base.meth = {
   doc : meth_doc;
   json_name : string option;
 }
-
-type repr_t = Type_base.repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 val string_of_constr : constr -> string
 val record_constr : constr

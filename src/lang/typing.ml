@@ -63,11 +63,12 @@ let filter_vars f t =
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
-      | Meth ({ scheme = g, t }, u) ->
+      | Meth { meth = { scheme = g, t }; t = u } ->
           let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
-      | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
+      | Arrow { args = p; t } ->
+          aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | Var { contents = Free var } ->
           if f var && not (List.exists (Var.eq var) l) then var :: l else l
       | Var { contents = Link _ } -> assert false
@@ -113,14 +114,14 @@ let occur_check (a : var) =
     | { descr = Getter t } -> occur_check t
     | { descr = List { t } } -> occur_check t
     | { descr = Nullable t } -> occur_check t
-    | { descr = Meth ({ scheme = g, t }, u) } ->
+    | { descr = Meth { meth = { scheme = g, t }; t = u } } ->
         (* We assume that a is not a generalized variable of t. *)
         (* TODO: we should not lower the level of bound variables, but this
            complicates the code and has little effect. *)
         assert (not (List.exists (Var.eq a) g));
         occur_check t;
         occur_check u
-    | { descr = Arrow (p, t) } ->
+    | { descr = Arrow { args = p; t } } ->
         List.iter (fun (_, _, t) -> occur_check t) p;
         occur_check t
     | { descr = Custom c } -> c.occur_check occur_check c.typ
@@ -158,9 +159,9 @@ let rec sup ~pos a b =
   in
   let rec meth_type l a =
     match (deref a).descr with
-      | Meth ({ meth = l'; optional; scheme = t }, _) when l = l' ->
+      | Meth { meth = { meth = l'; optional; scheme = t } } when l = l' ->
           Some (t, optional)
-      | Meth (_, a) -> meth_type l a
+      | Meth { t } -> meth_type l t
       | _ -> None
   in
   let meth_sup m a b =
@@ -172,14 +173,17 @@ let rec sup ~pos a b =
           try
             mk
               (Meth
-                 ( {
-                     m with
-                     optional = m.optional || optional;
-                     scheme = scheme_sup t' m.scheme;
-                   },
-                   sup a b ))
+                 {
+                   meth =
+                     {
+                       m with
+                       optional = m.optional || optional;
+                       scheme = scheme_sup t' m.scheme;
+                     };
+                   t = sup a b;
+                 })
           with Incompatible -> sup a b)
-      | None -> mk (Meth ({ m with optional = true }, sup a b))
+      | None -> mk (Meth { meth = { m with optional = true }; t = sup a b })
   in
   let a = deref a in
   let b = deref b in
@@ -194,17 +198,17 @@ let rec sup ~pos a b =
       | _, Nullable b -> mk (Nullable (sup a b))
       | List { t = a }, List { t = b } ->
           mk (List { t = sup a b; json_repr = `Tuple })
-      | Arrow (p, a), Arrow (q, b) ->
+      | Arrow { args = p; t = a }, Arrow { args = q; t = b } ->
           if List.length p <> List.length q then raise Incompatible;
-          mk (Arrow (q, sup a b))
+          mk (Arrow { args = q; t = sup a b })
       | Tuple l, Tuple m ->
           if List.length l <> List.length m then raise Incompatible;
           mk (Tuple (List.map2 sup l m))
       | Custom c, Custom c' -> (
           try mk (Custom { c with typ = c.sup sup c.typ c'.typ })
           with _ -> raise Incompatible)
-      | Meth (m, a), _ -> meth_sup m a b
-      | _, Meth (m, b) -> meth_sup m b a
+      | Meth { meth = m; t = a }, _ -> meth_sup m a b
+      | _, Meth { meth = m; t = b } -> meth_sup m b a
       | Constr { constructor = "source" }, _
       | _, Constr { constructor = "source" }
       | Constr { constructor = "format" }, _
@@ -222,9 +226,9 @@ let rec sup ~pos a b =
           in
           mk (Constr { constructor = c; params })
       | Getter a, Getter b -> mk (Getter (sup a b))
-      | Getter a, Arrow ([], b) -> mk (Getter (sup a b))
+      | Getter a, Arrow { args = []; t = b } -> mk (Getter (sup a b))
       | Getter a, _ -> mk (Getter (sup a b))
-      | Arrow ([], a), Getter b -> mk (Getter (sup a b))
+      | Arrow { args = []; t = a }, Getter b -> mk (Getter (sup a b))
       | _, Getter b -> mk (Getter (sup a b))
       | _, _ ->
           if !debug_subtyping then
@@ -449,7 +453,7 @@ and ( <: ) a b =
                   (Error (`Tuple (l @ [a] @ l'), `Tuple (l @ [b] @ l')))
                   bt)
             l m
-      | Arrow (l12, t), Arrow (l, t') ->
+      | Arrow { args = l12; t }, Arrow { args = l; t = t' } ->
           (* Here, it must be that l12 = l1@l2 where l1 is essentially l modulo
              order and either l2 is erasable and t<:t'. *)
           let ellipsis = (false, "", `Range_Ellipsis) in
@@ -515,7 +519,7 @@ and ( <: ) a b =
       | Getter t1, Getter t2 -> (
           try t1 <: t2
           with Error (a, b) -> raise (Error (`Getter a, `Getter b)))
-      | Arrow ([], t1), Getter t2 -> (
+      | Arrow { args = []; t = t1 }, Getter t2 -> (
           try t1 <: t2
           with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
       | Never, Var { contents = Free _ } | Var { contents = Free _ }, Never ->
@@ -533,9 +537,14 @@ and ( <: ) a b =
             Printexc.raise_with_backtrace (Error (Repr.make a, Repr.make b)) bt)
       | _, Nullable t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
-      | Meth ({ meth = l }, _), _ when Type.has_meth b l -> unify_meth a b l
-      | _, Meth ({ meth = l }, _) when Type.has_meth a l -> unify_meth a b l
-      | _, Meth ({ meth = l; optional; scheme = g2, t2; json_name }, c) -> (
+      | Meth { meth = { meth = l } }, _ when Type.has_meth b l ->
+          unify_meth a b l
+      | _, Meth { meth = { meth = l } } when Type.has_meth a l ->
+          unify_meth a b l
+      | ( _,
+          Meth
+            { meth = { meth = l; optional; scheme = g2, t2; json_name }; t = c }
+        ) -> (
           let a' = demeth a in
           match a'.descr with
             | Var { contents = Free _ } ->
@@ -547,14 +556,17 @@ and ( <: ) a b =
                 a'
                 <: make
                      (Meth
-                        ( {
-                            meth = l;
-                            optional;
-                            scheme = (g2, t2);
-                            doc = { meth_descr = ""; category = `Method };
-                            json_name = None;
-                          },
-                          var () ));
+                        {
+                          meth =
+                            {
+                              meth = l;
+                              optional;
+                              scheme = (g2, t2);
+                              doc = { meth_descr = ""; category = `Method };
+                              json_name = None;
+                            };
+                          t = var ();
+                        });
                 a <: b
             | _ when optional || (deref t2).descr = Never -> a <: hide_meth l c
             | _ ->
@@ -570,7 +582,7 @@ and ( <: ) a b =
                                json_name;
                              },
                            `Ellipsis ) )))
-      | Meth (m, u1), _ -> opt_meth m.meth u1 <: b
+      | Meth { meth = m; t = u1 }, _ -> opt_meth m.meth u1 <: b
       | _, Getter t2 -> (
           try a <: t2 with Error (a, b) -> raise (Error (a, `Getter b)))
       | _, _ ->

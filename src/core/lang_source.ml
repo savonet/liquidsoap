@@ -613,13 +613,13 @@ let source_t ?(pos : Liquidsoap_lang.Term_base.parsed_pos option)
     make_t ?pos
       (Type.Constr
          (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
-         { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
+         { constructor = "source"; params = [(`Invariant, frame_t)] })
   in
   if methods then source_methods_t t else t
 
 let of_source_t t =
   match (Type.demeth t).Type.descr with
-    | Type.Constr { Type.constructor = "source"; params = [(_, t)] } -> t
+    | Type.Constr { constructor = "source"; params = [(_, t)] } -> t
     | _ -> assert false
 
 let source_tracks_t frame_t =
@@ -683,7 +683,7 @@ let check_content v t =
         | Value.Bool _, _
         | Value.Custom _, _ ->
             ()
-        | Value.List { value = l }, Type.List { Type.t } ->
+        | Value.List { value = l }, Type.List { t } ->
             List.iter (fun v -> check_value v t) l
         | Value.Tuple { value = l }, Type.Tuple t -> List.iter2 check_value l t
         | Value.Null _, _ -> ()
@@ -714,7 +714,7 @@ let check_content v t =
                 check_value v t;
                 v)
         | ( Value.Fun { fun_args = args; fun_body = ret },
-            Type.Arrow (args_t, ret_t) ) ->
+            Type.Arrow { args = args_t; t = ret_t } ) ->
             List.iter
               (fun typ ->
                 match typ with
@@ -729,7 +729,8 @@ let check_content v t =
                   | _ -> ())
               args_t;
             Typing.(ret.Term.t <: ret_t)
-        | Value.FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
+        | ( Value.FFI ({ ffi_args; ffi_fn } as ffi),
+            Type.Arrow { args = args_t; t = ret_t } ) ->
             List.iter
               (fun typ ->
                 match typ with

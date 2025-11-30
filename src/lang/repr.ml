@@ -174,7 +174,9 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
-        | Meth ({ meth = l; optional; scheme = g', u; json_name }, v) ->
+        | Meth
+            { meth = { meth = l; optional; scheme = g', u; json_name }; t = v }
+          ->
             let gen =
               List.map
                 (fun v -> match uvar (g' @ g) v with `UVar v -> v)
@@ -191,7 +193,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
                 repr g v )
         | Constr { constructor; params } ->
             `Constr (constructor, List.map (fun (l, t) -> (l, repr g t)) params)
-        | Arrow (args, t) ->
+        | Arrow { args; t } ->
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )

@@ -62,7 +62,7 @@ let of_tuple_t t =
 let of_product_t t =
   match of_tuple_t t with [a; b] -> (a, b) | _ -> assert false
 
-let fun_t p b = Type.make (Type.Arrow (p, b))
+let fun_t p b = Type.make (Type.Arrow { args = p; t = b })
 let list_t t = Type.make Type.(List { t; json_repr = `Tuple })
 
 let of_list_t t =
@@ -133,7 +133,8 @@ type proto = (string * t * value option * string option) list
 
 let builtin_type p t =
   Type.make
-    (Type.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
+    (Type.Arrow
+       { args = List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p; t })
 
 let meth_fun = meth
 
