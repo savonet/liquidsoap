@@ -23,6 +23,6 @@
 open Type_base
 
 let reference ?pos a =
-  let get = make ?pos (Arrow ([], a)) in
-  let set = make ?pos (Arrow ([(false, "", a)], make ?pos unit)) in
+  let get = make ?pos (Arrow { args = []; t = a }) in
+  let set = make ?pos (Arrow { args = [(false, "", a)]; t = make ?pos unit }) in
   meth ?pos "set" ([], set) ~doc:"Set the value of the reference." get

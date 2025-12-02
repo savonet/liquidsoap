@@ -3,17 +3,19 @@ open Runtime_term
 let rec trim_type t =
   let open Type in
   match t with
-    | { descr = Arrow (args, ret_t) } as t ->
+    | { descr = Arrow { args; t = ret_t } } as t ->
         {
           t with
           descr =
             Arrow
-              ( List.map (fun (b, s, p) -> (b, s, trim_type p)) args,
-                trim_type ret_t );
+              {
+                args = List.map (fun (b, s, p) -> (b, s, trim_type p)) args;
+                t = trim_type ret_t;
+              };
         }
     | { descr = Getter g } as t -> { t with descr = Getter (trim_type g) }
     | { descr = Nullable n } as t -> { t with descr = Nullable (trim_type n) }
-    | { descr = Meth (_, t) } -> trim_type t
+    | { descr = Meth { t } } -> trim_type t
     | { descr = List repr } as t ->
         { t with descr = List { repr with t = trim_type repr.t } }
     | { descr = Tuple l } as t ->

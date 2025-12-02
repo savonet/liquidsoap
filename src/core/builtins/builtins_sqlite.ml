@@ -122,7 +122,7 @@ let header_types ty =
   in
   let headers =
     List.fold_left
-      (fun headers { Type.meth = lbl; scheme = _, ty } ->
+      (fun headers { Type.name = lbl; scheme = _, ty } ->
         try (lbl, to_type ~nullable:true ty) :: headers
         with Not_found -> headers)
       [] headers

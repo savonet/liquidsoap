@@ -41,7 +41,7 @@ module L = struct
   (** Type of audio formats that can encode frame of a given kind. *)
   let format_t ?pos k =
     Type.make ?pos
-      (Type.Constr { Type.constructor = "format"; params = [(`Covariant, k)] })
+      (Type.Constr { constructor = "format"; params = [(`Covariant, k)] })
 
   let to_format = V.of_value
   let format = V.to_value

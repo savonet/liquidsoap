@@ -62,7 +62,7 @@ let rec check_value v ty =
   in
   let meths =
     List.fold_left
-      (fun checked_meths { Type.meth; scheme = _, ty } ->
+      (fun checked_meths { Type.name = meth; scheme = _, ty } ->
         let v = List.assoc meth meths in
         (meth, check_value v ty) :: checked_meths)
       [] typ_meths
