@@ -181,13 +181,13 @@ let _ =
           descr = "Prepare a source that will be returned later.";
           value =
             (fun s ->
-              let finalize child = child#sleep (s :> Clock.source) in
               Lang.val_fun
                 [("", "x", None)]
                 (fun p ->
                   let child = List.assoc "x" p |> Lang.to_source in
-                  s#prepare child;
-                  Gc.finalise finalize child;
+                  Typing.(child#frame_type <: s#frame_type);
+                  Clock.unify ~pos:s#pos child#clock s#clock;
+                  child#wake_up_no_register;
                   Lang.unit));
         };
       ]
