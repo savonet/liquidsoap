@@ -22,6 +22,7 @@
 
 - Fix `input.harbor` initial metadata when switching with
   fades (#4736)
+- Fix audio artifact in crossfade transitions (#4739)
 - Make sure that sources re-used in `source.dynamic` are never
   inadvertently cleaned up (#4713)
 - Fix sources not being properly collected (#4670)
