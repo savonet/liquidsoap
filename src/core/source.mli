@@ -150,8 +150,14 @@ object
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit
 
-  (** Called when the source must be ready. Can be called multiple times *)
+  (** Called when the source must be ready. Each call to [wake_up] must be *
+      matched by a corresponding call to [sleep] to allow the source to skip. *
+      Can be called multiple times *)
   method wake_up : Clock.source -> unit
+
+  (** Same as [wake_up] but without the need to call [sleep]. This is intended
+      for * special situations only. *)
+  method wake_up_no_register : unit
 
   (** Register a callback when sleep is called. *)
   method on_sleep : (unit -> unit) -> unit

@@ -269,16 +269,21 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
     val mutable activations : Clock.source list = []
 
-    method wake_up (src : Clock.source) =
-      self#mutexify (fun () -> activations <- src :: activations) ();
+    method private _wake_up (src : Clock.source option) =
+      (match src with
+        | None -> ()
+        | Some src ->
+            self#mutexify (fun () -> activations <- src :: activations) ());
       if Atomic.compare_and_set is_up `False `True then (
         try
           self#content_type_computation_allowed;
           if log == source_log then self#create_log;
           source_log#info
-            "Source %s gets up from %s with content type: %s and frame type: \
-             %s."
-            self#id src#id
+            "Source %s gets up%s with content type: %s and frame type: %s."
+            self#id
+            (match src with
+              | None -> ""
+              | Some src -> Printf.sprintf " from %s" src#id)
             (Frame.string_of_content_type self#content_type)
             (Type.to_string self#frame_type);
           self#log#debug "Clock is %s." (Clock.id self#clock);
@@ -294,6 +299,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                (Printexc.to_string exn));
           Printexc.raise_with_backtrace exn bt)
 
+    method wake_up src = self#_wake_up (Some src)
+    method wake_up_no_register = self#_wake_up None
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- on_sleep @ [fn]
 
