@@ -26,6 +26,25 @@
 
 open Source
 
+class insert_initial_track_mark src =
+  object
+    inherit operator ~name:"insert_initial_track_mark" [src]
+    val mutable first = true
+    method fallible = src#fallible
+    method private can_generate_frame = src#is_ready
+    method abort_track = src#abort_track
+    method remaining = src#remaining
+    method self_sync = src#self_sync
+    method effective_source = src#effective_source
+
+    method private generate_frame =
+      let buf = src#get_frame in
+      if first then (
+        first <- false;
+        Frame.add_track_mark buf 0)
+      else buf
+  end
+
 (* A transition is a value of type (source,source) -> source *)
 type transition = Lang.value
 type child = { source : source; transition : transition }
@@ -119,10 +138,15 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
              (not s.source#fallible) && (not single) && trivially_true d)
            children)
 
-    method private replay_meta m source =
-      let new_source = new Replay_metadata.replay m source in
+    method private prepare_new_source source =
+      let new_source = new insert_initial_track_mark source in
       Typing.(new_source#frame_type <: self#frame_type);
-      new_source
+      match (source#last_metadata, replay_meta) with
+        | Some (_, m), true ->
+            let new_source = new Replay_metadata.replay m new_source in
+            Typing.(new_source#frame_type <: self#frame_type);
+            new_source
+        | _ -> new_source
 
     method get_source ~reselect () =
       match selected with
@@ -148,19 +172,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
               | Some _, None -> self#set_selected None
               | None, Some (predicate, c) ->
                   self#log#important "Switch to %s." c.source#id;
-                  let new_source =
-                    (* Force insertion of old metadata if relevant.
-                     * It can't be done in a static way: we need to start
-                     * pulling data to see if new metadata comes out, in case
-                     * the source was shared and kept streaming from somewhere
-                     * else (this is thanks to Frame.get_chunk).
-                     * A quicker hack might have been doable if there wasn't a
-                     * transition in between. *)
-                      match c.source#last_metadata with
-                      | Some (_, m) when replay_meta ->
-                          self#replay_meta m c.source
-                      | _ -> c.source
-                  in
+                  let new_source = self#prepare_new_source c.source in
                   self#set_selected
                     (Some
                        { predicate; child = c; effective_source = new_source })
@@ -176,19 +188,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                   self#log#important "Switch to %s with%s transition."
                     c.source#id
                     (if forget then " forgetful" else "");
-                  let new_source =
-                    (* Force insertion of old metadata if relevant.
-                     * It can't be done in a static way: we need to start
-                     * pulling data to see if new metadata comes out, in case
-                     * the source was shared and kept streaming from somewhere
-                     * else (this is thanks to Frame.get_chunk).
-                     * A quicker hack might have been doable if there wasn't a
-                     * transition in between. *)
-                      match c.source#last_metadata with
-                      | Some (_, m) when replay_meta ->
-                          self#replay_meta m c.source
-                      | _ -> c.source
-                  in
+                  let new_source = self#prepare_new_source c.source in
                   let s =
                     Lang.to_source
                       (Lang.apply c.transition
