@@ -39,12 +39,8 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
-cd /tmp
-rm -rf prometheus
-git clone https://github.com/mirage/prometheus.git
-cd prometheus
-opam pin -ny .
-opam reinstall -y prometheus-app
+opam unpin -n ffmpeg ffmpeg-av ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil ffmpeg-swresample ffmpeg-swscale
+opam install -y ffmpeg.1.2.7
 
 opam update
 opam pin -y add re 1.13.2
