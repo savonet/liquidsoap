@@ -346,7 +346,7 @@ jobs:
         run: |
           sudo apt-get update
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@4c1df9105efb7a8b996c21e052e4fb8b64a8f2fc # v3.4.7
+        uses: ocaml/setup-ocaml@dec6499fef64fc5d7ed43d43a87251b7b1c306f5 # v3.4.8
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-pin: false
