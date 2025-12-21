@@ -631,7 +631,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Download all artifact
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
@@ -694,7 +694,7 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
@@ -741,7 +741,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Download all artifact
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
@@ -804,7 +804,7 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep ${{ matrix.ocaml_version }} | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
