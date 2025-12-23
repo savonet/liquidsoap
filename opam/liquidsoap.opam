@@ -118,7 +118,6 @@ conflicts: [
   "pandoc-include" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

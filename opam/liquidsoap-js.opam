@@ -19,7 +19,6 @@ conflicts: [
   "liquidsoap" {!= version}
 ]
 build: [
-  ["dune" "subst"] {dev}
   [
     "dune"
     "build"
