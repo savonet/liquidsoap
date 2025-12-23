@@ -132,6 +132,8 @@ build: [
   ]
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
+dev-repo: "git+https://github.com/savonet/liquidsoap.git"
+x-maintenance-intent: ["(latest)"]
 post-messages: [
   """\
 We're sorry that your liquidsoap install failed. Check out our installation
@@ -152,5 +154,3 @@ to install one of ssl or tls-liquidsoap package."""
     {success & !ssl-enabled & !tls-enabled}
 ]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
-dev-repo: "git+https://github.com/savonet/liquidsoap.git"
-x-maintenance-intent: ["(latest)"]
