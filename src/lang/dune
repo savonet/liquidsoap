@@ -54,6 +54,12 @@
    (progn
     (echo "let is_snapshot = %{env:IS_SNAPSHOT=true}\n")
     (echo "let version = \"%{version:liquidsoap-lang}\"\n")
+    (echo "let git_version = String.trim \"")
+    (with-accepted-exit-codes
+     (or 0 128)
+     (run git describe --always --dirty --abbrev=7 --candidates=1 --tags))
+    (echo "\"\n")
+    (echo "let version = if git_version = \"\" then version else git_version\n")
     (echo "let version_len = String.length version\n")
     (echo "let parsed_sha = String.trim \"")
     (with-accepted-exit-codes
