@@ -1788,6 +1788,21 @@
 
 
 (rule
+ (alias ffmpeg_filter_parse)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  ffmpeg_filter_parse.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg filter parse test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4" liquidsoap %{test_liq} ffmpeg_filter_parse.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
+
+
+(rule
  (alias ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
@@ -1908,6 +1923,21 @@
 
 
 (rule
+ (alias ffmpeg_filter_parse)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  ffmpeg_filter_parse.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg filter parse test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4" liquidsoap %{test_liq} ffmpeg_filter_parse.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
+
+
+(rule
  (alias ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
@@ -2025,6 +2055,21 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} "FFmpeg filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4" liquidsoap %{test_liq} ffmpeg_filter.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4")))
+
+
+(rule
+ (alias ffmpeg_filter_parse)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  ffmpeg_filter_parse.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg filter parse test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4" liquidsoap %{test_liq} ffmpeg_filter_parse.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4")))
 
 
 (rule
@@ -2204,6 +2249,7 @@
     (alias ffmpeg_copy_and_encode_decoder)
     (alias ffmpeg_copy_decoder)
     (alias ffmpeg_filter)
+    (alias ffmpeg_filter_parse)
     (alias ffmpeg_inline_encode_decode)
     (alias ffmpeg_inline_encode_decode_audio)
     (alias ffmpeg_inline_encode_decode_video)
