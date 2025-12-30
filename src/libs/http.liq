@@ -889,6 +889,19 @@ let settings.http.mime.extnames =
     ]
   )
 
+%ifndef file.mime
+let file.mime = ()
+%endif
+
+# Return the file extension associated with the given
+# content-type if it is known.
+# @category File
+def file.mime.extension(content_type) =
+  extnames = settings.http.mime.extnames()
+  extname = extnames[content_type]
+  extname == "" ? null : extname
+end
+
 let http.headers = ()
 
 # Extract the content-type header
@@ -1032,9 +1045,7 @@ def http.headers.extname(headers) =
   elsif
     null.defined(content_type)
   then
-    extnames = settings.http.mime.extnames()
-    extname = extnames[null.get(content_type).mime]
-    extname == "" ? null : extname
+    file.mime.extension(null.get(content_type).mime)
   else
     null
   end
