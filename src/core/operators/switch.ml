@@ -86,7 +86,10 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
   let sources = List.map (fun c -> c.source) cases in
   let self_sync_type = Clock_base.self_sync_type sources in
   object (self)
-    inherit operator ~name:"switch" (List.map (fun x -> x.source) cases)
+    (* Don't pass sources to operator base class - they're managed through
+       effective_source wrappers created by prepare_new_source. Passing them
+       causes double wake_up: once from operator base, once from wrapper. *)
+    inherit operator ~name:"switch" []
 
     inherit
       generate_from_multiple_sources
@@ -113,6 +116,10 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
     val mutable excluded_sources = []
 
     initializer
+      (* Manually unify clocks since we don't pass sources to operator base *)
+      List.iter
+        (fun s -> Clock.unify ~pos:self#pos self#clock s.source#clock)
+        cases;
       self#on_before_streaming_cycle (fun () -> excluded_sources <- [])
 
     method private select ~reselect () =
