@@ -216,4 +216,4 @@ let () =
   (deps
     %s))
 |}
-    (String.concat "\n    " !mediatests)
+    (String.concat "\n    " (List.sort_uniq Stdlib.compare !mediatests))
