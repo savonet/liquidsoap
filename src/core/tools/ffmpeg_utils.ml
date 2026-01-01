@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -50,6 +50,10 @@ let conf_verbosity =
 
 let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:3
 
+let conf_capture =
+  Dtools.Conf.bool ~p:(conf_log#plug "capture")
+    "Process logs through the main liquidsoap log facilities." ~d:false
+
 let conf_scaling_algorithm =
   Dtools.Conf.string
     ~p:(conf_ffmpeg#plug "scaling_algorithm")
@@ -78,11 +82,10 @@ let () =
               `Quiet
       in
       (* let level = conf_level#get in *)
-      Avutil.Log.set_level verbosity)
-
-(*
-      Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s)))
-*)
+      Avutil.Log.set_level verbosity;
+      if conf_capture#get then
+        Avutil.Log.set_callback (fun s ->
+            log#f conf_level#get "%s" (String.trim s)))
 
 let liq_main_ticks_time_base () =
   { Avutil.num = 1; den = Lazy.force Frame.main_rate }

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -404,7 +404,7 @@ let options =
             (fun () ->
               Printf.printf
                 {|Liquidsoap %s
-Copyright (c) 2003-2024 Savonet team
+Copyright (c) 2003-2026 Savonet team
 Liquidsoap is open-source software, released under GNU General Public License.
 See <http://liquidsoap.info> for more information.
 |}
