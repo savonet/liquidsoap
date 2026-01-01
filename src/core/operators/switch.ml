@@ -86,10 +86,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
   let sources = List.map (fun c -> c.source) cases in
   let self_sync_type = Clock_base.self_sync_type sources in
   object (self)
-    (* Don't pass sources to operator base class - they're managed through
-       effective_source wrappers created by prepare_new_source. Passing them
-       causes double wake_up: once from operator base, once from wrapper. *)
-    inherit operator ~name:"switch" []
+    inherit operator ~name:"switch" (List.map (fun x -> x.source) cases)
 
     inherit
       generate_from_multiple_sources
@@ -97,7 +94,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         ~track_sensitive ()
 
     val mutable transition_length = transition_length
-    val mutable selected : selection option = None
+    val selected : selection option Atomic.t = Atomic.make None
+    method selected = Atomic.get selected
 
     method set_selected v =
       (match v with
@@ -105,26 +103,29 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
           ->
             effective_source#wake_up (self :> Clock.source)
         | _ -> ());
-      (match selected with
+      match Atomic.exchange selected v with
         | Some { child; effective_source } when effective_source != child.source
           ->
             effective_source#sleep (self :> Clock.source)
-        | _ -> ());
-      selected <- v
+        | _ -> ()
+
+    initializer
+      self#on_sleep (fun () ->
+          match Atomic.exchange selected None with
+            | Some { child; effective_source }
+              when effective_source != child.source ->
+                effective_source#sleep (self :> Clock.source)
+            | _ -> ())
 
     (* We cannot reselect the same source twice during a streaming cycle. *)
     val mutable excluded_sources = []
 
     initializer
-      (* Manually unify clocks since we don't pass sources to operator base *)
-      List.iter
-        (fun s -> Clock.unify ~pos:self#pos self#clock s.source#clock)
-        cases;
       self#on_before_streaming_cycle (fun () -> excluded_sources <- [])
 
     method private select ~reselect () =
       let may_select ~single s =
-        match selected with
+        match self#selected with
           | Some { child; effective_source } when child.source == s.source ->
               (not single) && self#can_reselect ~reselect effective_source
           | _ -> not (List.memq s excluded_sources)
@@ -156,7 +157,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         | _ -> new_source
 
     method get_source ~reselect () =
-      match selected with
+      match self#selected with
         | Some s
           when (track_sensitive () || satisfied s.predicate)
                && self#can_reselect
@@ -169,7 +170,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
             Some s.effective_source
         | _ -> (
             begin match
-              ( selected,
+              ( self#selected,
                 self#select
                 (* If we've returned the same source, it should be accepted now. *)
                   ~reselect:(match reselect with `Force -> `Ok | v -> v)
@@ -222,7 +223,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                   self#set_selected
                     (Some { predicate; child = c; effective_source = s })
             end;
-            match selected with
+            match self#selected with
               | Some s when s.effective_source#is_ready ->
                   excluded_sources <- s.child :: excluded_sources;
                   Some s.effective_source
@@ -230,24 +231,24 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
     method self_sync =
       ( Lazy.force self_sync_type,
-        match selected with
+        match self#selected with
           | Some s -> snd s.effective_source#self_sync
           | None -> None )
 
     method remaining =
-      match selected with None -> 0 | Some s -> s.effective_source#remaining
+      match self#selected with
+        | None -> 0
+        | Some s -> s.effective_source#remaining
 
     method abort_track =
-      match selected with
+      match self#selected with
         | Some s -> s.effective_source#abort_track
         | None -> ()
 
     method effective_source =
-      match selected with
+      match self#selected with
         | Some s -> s.effective_source#effective_source
         | None -> (self :> Source.source)
-
-    method selected = Option.map (fun { child } -> child.source) selected
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -271,7 +272,9 @@ let _ =
           value =
             (fun s ->
               Lang.val_fun [] (fun _ ->
-                  match s#selected with
+                  match
+                    Option.map (fun { child } -> child.source) s#selected
+                  with
                     | Some s -> Lang.source s
                     | None -> Lang.null));
         };
