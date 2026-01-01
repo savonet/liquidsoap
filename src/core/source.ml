@@ -523,6 +523,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method set_reset_last_metadata_on_track v =
       Atomic.set reset_last_metadata_on_track v
 
+    method clear_last_metadata = last_metadata <- None
+
     method private set_last_metadata buf =
       match List.rev (Frame.get_all_metadata buf) with
         | v :: _ -> last_metadata <- Some v
@@ -536,7 +538,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
-        if self#reset_last_metadata_on_track then last_metadata <- None;
+        if self#reset_last_metadata_on_track then self#clear_last_metadata;
         self#set_last_metadata buf;
         let _, m =
           Option.value ~default:(0, Frame.Metadata.empty) last_metadata
@@ -675,7 +677,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           | buf, Some new_track ->
               if 0 < elapsed then self#on_position ~end_of_track:true buf;
               elapsed <- 0;
-              if self#reset_last_metadata_on_track then last_metadata <- None;
+              if self#reset_last_metadata_on_track then self#clear_last_metadata;
               List.iter
                 (function `Position p -> p.executed <- false | _ -> ())
                 on_frame;
@@ -759,6 +761,8 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
     method virtual private set_last_metadata : Frame.t -> unit
+    method virtual reset_last_metadata_on_track : bool
+    method virtual clear_last_metadata : unit
     method virtual log : Log.t
     method virtual id : string
     val mutable ready_source = None
@@ -781,8 +785,9 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method private begin_track buf =
       if merge () then Frame.drop_track_marks buf
       else (
+        let buf = Frame.add_track_mark buf 0 in
         self#execute_on_track buf;
-        Frame.add_track_mark buf 0)
+        buf)
 
     method private can_reselect ~(reselect : reselect) (s : source) =
       s#is_ready
@@ -796,6 +801,8 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       s#get_partial_frame (fun frame ->
           match self#split_frame frame with
             | buf, Some next_track when Frame.position buf = 0 -> (
+                if self#reset_last_metadata_on_track then
+                  self#clear_last_metadata;
                 match current_source with
                   | Some s' when s == s' -> self#empty_frame
                   | _ -> self#begin_track next_track)

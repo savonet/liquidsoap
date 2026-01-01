@@ -235,6 +235,7 @@ object
   (** The source's last metadata. *)
   method last_metadata : (int * Frame.metadata) option
 
+  method clear_last_metadata : unit
   method reset_last_metadata_on_track : bool
   method set_reset_last_metadata_on_track : bool -> unit
 
@@ -415,4 +416,6 @@ object
   method private can_reselect : reselect:reselect -> source -> bool
   method private can_generate_frame : bool
   method private generate_frame : Frame.t
+  method virtual reset_last_metadata_on_track : bool
+  method virtual clear_last_metadata : unit
 end
