@@ -89,8 +89,8 @@ let check_sleep ~activations ~s =
  fun src ->
   if WeakQueue.length activations = 0 && s#is_up then (
     (s#log : Log.t)#important
-      "Unbalanced activations! %s was cleaned-up without calling #sleep on me!"
-      src#id;
+      "Unbalanced activations! %s was cleaned-up without calling #sleep for %s!"
+      s#id src#id;
     s#sleep src)
 
 class virtual operator ?(stack = []) ?clock ~name sources =
