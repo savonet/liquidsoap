@@ -25,7 +25,6 @@ open Mm
 exception Unavailable
 
 module Queue = Queues.Queue
-module WeakQueue = Queues.WeakQueue
 
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
@@ -268,23 +267,14 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
     val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
-    val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
-    method activations = WeakQueue.elements activations
+    val mutable activations : Clock.activation list = []
+    method activations = activations
 
-    method private check_sleep src =
-      if WeakQueue.length activations = 0 && self#is_up then (
-        self#log#important
-          "Unbalanced activations! %s was cleaned-up without calling #sleep on \
-           me!"
-          src#id;
-        self#sleep src)
-
-    method private get_up (src : Clock.activation option) =
+    method private _wake_up (src : Clock.activation option) =
       (match src with
+        | None -> ()
         | Some src ->
-            Gc.finalise self#check_sleep src;
-            WeakQueue.push activations src
-        | None -> ());
+            self#mutexify (fun () -> activations <- src :: activations) ());
       if Atomic.compare_and_set is_up `False `True then (
         try
           self#content_type_computation_allowed;
@@ -310,8 +300,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                (Printexc.to_string exn));
           Printexc.raise_with_backtrace exn bt)
 
-    method wake_up src = self#get_up (Some src)
-    method wake_up_no_register = self#get_up None
+    method wake_up src = self#_wake_up (Some src)
+    method wake_up_no_register = self#_wake_up None
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- on_sleep @ [fn]
 
@@ -321,16 +311,25 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep (src : Clock.activation) =
-      WeakQueue.filter_out activations (fun s -> s == src);
+      self#mutexify
+        (fun () ->
+          let found, l =
+            List.fold_left
+              (fun (found, l) s ->
+                if (not found) && s == src then (true, l) else (found, s :: l))
+              (false, []) activations
+          in
+          if not found then
+            self#log#critical "Not activations found for %s" src#id;
+          activations <- l)
+        ();
       match
-        ( WeakQueue.length activations,
-          Clock.started self#clock,
-          Atomic.get streaming_state )
+        (activations, Clock.started self#clock, Atomic.get streaming_state)
       with
-        | 0, true, (`Ready _ | `Unavailable) ->
+        | _ :: _, _, _ -> ()
+        | _, true, (`Ready _ | `Unavailable) ->
             Clock.after_tick self#clock (fun () -> self#actual_sleep)
-        | 0, _, _ -> self#actual_sleep
-        | _ -> ()
+        | _ -> self#actual_sleep
 
     initializer
       Gc.finalise finalise self;
