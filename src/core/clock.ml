@@ -518,6 +518,7 @@ and _activate_pending_sources ~clock x =
           @ WeakQueue.elements x.active_sources
           @ WeakQueue.elements x.passive_sources)
       in
+      let ids = List.sort Stdlib.compare ids in
       x.log#important "Current sources: %s" (String.concat ", " ids)))
 
 and _tick ~clock x =
