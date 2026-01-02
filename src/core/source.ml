@@ -785,7 +785,9 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method private begin_track buf =
       if merge () then Frame.drop_track_marks buf
       else (
-        let buf = Frame.add_track_mark buf 0 in
+        let buf =
+          if Frame.position buf > 0 then Frame.add_track_mark buf 0 else buf
+        in
         self#execute_on_track buf;
         buf)
 
