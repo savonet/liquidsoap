@@ -321,7 +321,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep (src : Clock.activation) =
-      WeakQueue.filter_out activations (fun s -> Oo.id s == Oo.id src);
+      WeakQueue.filter_out activations (fun s -> s == src);
       match
         ( WeakQueue.length activations,
           Clock.started self#clock,
