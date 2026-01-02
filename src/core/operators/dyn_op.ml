@@ -20,21 +20,57 @@
 
  *****************************************************************************)
 
+type activation_map = {
+  s : Clock.source;
+  mutable activations : Clock.activation list;
+}
+
+module ActivationMap = Weak.Make (struct
+  type t = activation_map
+
+  let equal { s } { s = s' } = Oo.id s == Oo.id s'
+  let hash { s } = Oo.id s
+end)
+
 class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
   object (self)
     inherit Source.source ~name:"source.dynamic" ()
     inherit Source.generate_from_multiple_sources ~merge ~track_sensitive ()
     method fallible = not infallible
-    val mutable activation = []
+    val mutable activation_maps = ActivationMap.create 0
 
-    val current_source : (Clock.activation * Source.source) option Atomic.t =
-      Atomic.make None
+    method prepare s =
+      Typing.(s#frame_type <: self#frame_type);
+      Clock.unify ~pos:self#pos s#clock self#clock;
+      let a = s#wake_up (self :> Clock.source) in
+      self#mutexify
+        (fun () ->
+          let map =
+            ActivationMap.merge activation_maps
+              { s :> Clock.source; activations = [] }
+          in
+          map.activations <- a :: map.activations)
+        ()
 
-    method current_source = Option.map snd (Atomic.get current_source)
+    method take_down s =
+      self#mutexify
+        (fun () ->
+          try
+            let map =
+              ActivationMap.find activation_maps
+                { s :> Clock.source; activations = [] }
+            in
+            List.iter (fun a -> s#sleep a) map.activations;
+            ActivationMap.remove activation_maps map
+          with Not_found -> ())
+        ()
+
+    val current_source : Source.source option Atomic.t = Atomic.make None
+    method current_source = Atomic.get current_source
 
     initializer
       self#on_wake_up (fun () ->
-          match (Atomic.get current_source, init) with
+          match (self#current_source, init) with
             | None, Some s -> ignore (self#switch s)
             | _ -> ())
 
@@ -53,23 +89,18 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
           "failure";
       None
 
-    method prepare s =
-      Typing.(s#frame_type <: self#frame_type);
-      Clock.unify ~pos:self#pos s#clock self#clock;
-      s#wake_up (self :> Clock.source)
-
     method private switch s =
       self#log#info "Switching to source %s" s#id;
-      let a = self#prepare s in
-      Atomic.set current_source (Some (a, s));
+      self#prepare s;
+      Atomic.set current_source (Some s);
       if s#is_ready then Some s else self#no_source (Some s#id)
 
     method private exchange s =
-      match Atomic.get current_source with
-        | Some (_, s') when s == s' -> Some s
-        | Some (a, s') ->
+      match self#current_source with
+        | Some s' when s == s' -> Some s
+        | Some s' ->
             let ret = self#switch s in
-            s'#sleep a;
+            self#take_down s';
             ret
         | None -> self#switch s
 
@@ -107,7 +138,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       self#on_wake_up (fun () -> ignore (self#get_source ~reselect:`Force ()));
       self#on_sleep (fun () ->
           match Atomic.exchange current_source None with
-            | Some (a, s) -> s#sleep a
+            | Some s -> self#take_down s
             | None -> ())
 
     method remaining =
@@ -194,9 +225,7 @@ let _ =
                 [("", "x", None)]
                 (fun p ->
                   let child = List.assoc "x" p |> Lang.to_source in
-                  Typing.(child#frame_type <: s#frame_type);
-                  Clock.unify ~pos:s#pos child#clock s#clock;
-                  child#get_up (Printf.sprintf "%s.prepare" s#id);
+                  s#prepare child;
                   Lang.unit));
         };
       ]
