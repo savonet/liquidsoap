@@ -123,15 +123,17 @@ let () =
         Some (Buffer.contents buf)
     | _ -> None)
 
+type activation = < id : string ; sleep : activation -> unit >
+
 type source =
   < id : string
   ; stack : Pos.t list
   ; self_sync : self_sync
   ; source_type : source_type
   ; active : bool
-  ; activations : source list
-  ; wake_up : 'a -> unit
-  ; sleep : 'a -> unit
+  ; activations : activation list
+  ; wake_up : activation -> unit
+  ; sleep : activation -> unit
   ; is_ready : bool
   ; get_frame : Frame.t >
   as

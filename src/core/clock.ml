@@ -133,6 +133,7 @@ type clock = {
   pending_activations : source Queue.t;
   sub_clocks : t Queue.t;
   on_error : (exn -> Printexc.raw_backtrace -> unit) Queue.t;
+  activation : activation;
 }
 
 and t = clock Unifier.t
@@ -160,7 +161,7 @@ let meaningful_pending_id pending =
     | el :: _ -> Some el#id
     | _ -> None
 
-let _id { id; pending_activations } =
+let get_id ~pending_activations id =
   match
     ( Unifier.deref id,
       meaningful_pending_id (Queue.elements pending_activations) )
@@ -169,8 +170,10 @@ let _id { id; pending_activations } =
     | None, Some id -> id
     | _ -> "generic"
 
+let _id { id; pending_activations } = get_id ~pending_activations id
 let id c = _id (Unifier.deref c)
 let generate_id = Lang_string.generate_id ~category:"clock"
+let activation c = (Unifier.deref c).activation
 
 let string_of_controller = function
   | `None -> "none"
@@ -256,7 +259,7 @@ let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
 let rec _cleanup ~clock { outputs } =
-  Queue.iter outputs (fun o -> try o#sleep o with _ -> ());
+  Queue.iter outputs (fun o -> try o#sleep clock.activation with _ -> ());
   Queue.iter clock.sub_clocks stop;
   Queue.filter_out clocks (fun c -> Unifier.deref c == clock)
 
@@ -486,7 +489,7 @@ and _activate_pending_sources ~clock x =
          match s#source_type with
            | `Active _ -> WeakQueue.push x.active_sources s
            | `Output _ ->
-               s#wake_up s;
+               s#wake_up clock.activation;
                Queue.push x.outputs s
            | `Passive -> WeakQueue.push x.passive_sources s));
   if 0 < pending_sources then (
@@ -707,16 +710,23 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id
     ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
+  let id = Unifier.make (Option.map generate_id id) in
+  let pending_activations = Queue.create () in
   let c =
     Unifier.make
       {
-        id = Unifier.make (Option.map generate_id id);
+        id;
         controller = Unifier.make controller;
         stack = Atomic.make stack;
-        pending_activations = Queue.create ();
+        pending_activations;
         sub_clocks = Queue.create ();
         state = Atomic.make (`Stopped sync);
         on_error = on_error_queue;
+        activation =
+          object
+            method id = get_id ~pending_activations id
+            method sleep _ = ()
+          end;
       }
   in
   if sync <> `Passive then add_pending_clock c;

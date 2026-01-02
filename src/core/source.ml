@@ -259,7 +259,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     initializer
       self#on_wake_up (fun () ->
-          List.iter (fun s -> s#wake_up (self :> Clock.source)) sources;
+          List.iter (fun s -> s#wake_up (self :> Clock.activation)) sources;
           self#iter_watchers (fun w ->
               w.wake_up ~fallible:self#fallible ~source_type:self#source_type
                 ~id:self#id ~ctype:self#content_type
@@ -268,7 +268,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
     val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
-    val activations : Clock.source WeakQueue.t = WeakQueue.create ()
+    val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
     method activations = WeakQueue.elements activations
 
     method private check_sleep src =
@@ -279,7 +279,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           src#id;
         self#sleep src)
 
-    method private get_up (src : Clock.source option) =
+    method private get_up (src : Clock.activation option) =
       (match src with
         | Some src ->
             Gc.finalise self#check_sleep src;
@@ -320,7 +320,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         source_log#info "Source %s gets down." self#id;
         List.iter (fun fn -> fn ()) on_sleep)
 
-    method sleep (src : Clock.source) =
+    method sleep (src : Clock.activation) =
       WeakQueue.filter_out activations (fun s -> Oo.id s == Oo.id src);
       match
         ( WeakQueue.length activations,
@@ -335,7 +335,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     initializer
       Gc.finalise finalise self;
       self#on_sleep (fun () ->
-          List.iter (fun s -> s#sleep (self :> Clock.source)) sources;
+          List.iter (fun s -> s#sleep (self :> Clock.activation)) sources;
           self#iter_watchers (fun w -> w.sleep ()))
 
     (** Streaming *)

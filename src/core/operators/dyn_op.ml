@@ -47,7 +47,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     method prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
-      s#wake_up (self :> Clock.source)
+      s#wake_up (self :> Clock.activation)
 
     method private switch s =
       self#log#info "Switching to source %s" s#id;
@@ -60,7 +60,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
         | Some s' when s == s' -> Some s
         | Some s' ->
             let ret = self#switch s in
-            s'#sleep (self :> Clock.source);
+            s'#sleep (self :> Clock.activation);
             ret
         | None -> self#switch s
 
@@ -98,7 +98,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       self#on_wake_up (fun () -> ignore (self#get_source ~reselect:`Force ()));
       self#on_sleep (fun () ->
           match Atomic.exchange current_source None with
-            | Some s -> s#sleep (self :> Clock.source)
+            | Some s -> s#sleep (self :> Clock.activation)
             | None -> ())
 
     method remaining =

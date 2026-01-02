@@ -101,12 +101,12 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
       (match v with
         | Some { child; effective_source } when effective_source != child.source
           ->
-            effective_source#wake_up (self :> Clock.source)
+            effective_source#wake_up (self :> Clock.activation)
         | _ -> ());
       match Atomic.exchange selected v with
         | Some { child; effective_source } when effective_source != child.source
           ->
-            effective_source#sleep (self :> Clock.source)
+            effective_source#sleep (self :> Clock.activation)
         | _ -> ()
 
     initializer
@@ -114,7 +114,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
           match Atomic.exchange selected None with
             | Some { child; effective_source }
               when effective_source != child.source ->
-                effective_source#sleep (self :> Clock.source)
+                effective_source#sleep (self :> Clock.activation)
             | _ -> ())
 
     (* We cannot reselect the same source twice during a streaming cycle. *)

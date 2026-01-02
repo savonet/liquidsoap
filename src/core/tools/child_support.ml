@@ -70,9 +70,9 @@ class virtual base ~check_self_sync children_val =
         (fun s -> Clock.unify ~pos:self#pos self#child_clock s#clock)
         children;
       self#on_wake_up (fun () ->
-          List.iter (fun s -> s#wake_up (self :> Clock.source)) children);
+          List.iter (fun s -> s#wake_up (self :> Clock.activation)) children);
       self#on_sleep (fun () ->
-          List.iter (fun s -> s#sleep (self :> Clock.source)) children)
+          List.iter (fun s -> s#sleep (self :> Clock.activation)) children)
 
     method child_tick = Clock.tick self#child_clock
 

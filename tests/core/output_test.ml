@@ -5,7 +5,7 @@ class dummy ~clock ~autostart source =
         ~clock ~autostart ~infallible:false ~register_telnet:false
         (Lang.source (source :> Source.source))
 
-    method test_wake_up = self#wake_up (self :> Clock.source)
+    method test_wake_up = self#wake_up (self :> Clock.activation)
     val mutable test_can_generate_frame = false
     method test_set_can_generate_frame = test_can_generate_frame <- true
     method! can_generate_frame = test_can_generate_frame

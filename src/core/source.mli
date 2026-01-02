@@ -153,7 +153,7 @@ object
   (** Called when the source must be ready. Each call to [wake_up] must be *
       matched by a corresponding call to [sleep] to allow the source to skip. *
       Can be called multiple times *)
-  method wake_up : Clock.source -> unit
+  method wake_up : Clock.activation -> unit
 
   (** Same as [wake_up] but without the need to call [sleep]. This is intended
       for * special situations only. *)
@@ -164,10 +164,10 @@ object
 
   (** Called when the source can release all its resources. Can be called
       concurrently and multiple times. *)
-  method sleep : Clock.source -> unit
+  method sleep : Clock.activation -> unit
 
   (** Return the list of the source's activations. *)
-  method activations : Clock.source list
+  method activations : Clock.activation list
 
   (** Check if a source is up or not. *)
   method is_up : bool

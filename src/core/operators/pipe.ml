@@ -241,7 +241,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     initializer
       self#on_wake_up (fun () ->
-          source#wake_up (self :> Clock.source);
+          source#wake_up (self :> Clock.activation);
           converter <-
             Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
               ~samplesize;
@@ -255,7 +255,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
                  ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
                  ~priority:`Blocking ~on_stderr:self#on_stderr ~log process));
       self#on_sleep (fun () ->
-          source#sleep (self :> Clock.source);
+          source#sleep (self :> Clock.activation);
           Mutex_utils.mutexify mutex
             (fun () ->
               try

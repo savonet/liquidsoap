@@ -214,11 +214,11 @@ class cross val_source ~end_duration_getter ~override_end_duration
      * since we are going to pull data from it at a higher rate around
      * track limits. *)
     val source = s
-    method private prepare_source s = s#wake_up (self :> Clock.source)
+    method private prepare_source s = s#wake_up (self :> Clock.activation)
 
     initializer
       self#on_wake_up (fun () ->
-          source#wake_up (self :> Clock.source);
+          source#wake_up (self :> Clock.activation);
           self#reset_analysis)
 
     val mutable status
@@ -228,7 +228,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
     method set_status v =
       (match status with
         | `Idle -> ()
-        | `Before s | `After s -> s#sleep (self :> Clock.source));
+        | `Before s | `After s -> s#sleep (self :> Clock.activation));
       status <- v
 
     method! child_clock_controller =
