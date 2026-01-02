@@ -904,7 +904,6 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
               (fun s ->
                 val_fun [] (fun _ ->
                     Clock.detach s#clock (s :> Clock.source);
-                    s#sleep (Clock.activation s#clock);
                     unit));
           };
         ]

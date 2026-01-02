@@ -112,7 +112,7 @@ type active_params = {
   frame_duration : Liq_time.t;
   max_latency : Liq_time.t;
   last_catchup_log : Liq_time.t Atomic.t;
-  outputs : source Queue.t;
+  outputs : (activation * source) Queue.t;
   active_sources : source WeakQueue.t;
   passive_sources : source WeakQueue.t;
   on_tick : (unit -> unit) Queue.t;
@@ -133,7 +133,6 @@ type clock = {
   pending_activations : source Queue.t;
   sub_clocks : t Queue.t;
   on_error : (exn -> Printexc.raw_backtrace -> unit) Queue.t;
-  activation : activation;
 }
 
 and t = clock Unifier.t
@@ -173,7 +172,6 @@ let get_id ~pending_activations id =
 let _id { id; pending_activations } = get_id ~pending_activations id
 let id c = _id (Unifier.deref c)
 let generate_id = Lang_string.generate_id ~category:"clock"
-let activation c = (Unifier.deref c).activation
 
 let string_of_controller = function
   | `None -> "none"
@@ -207,7 +205,11 @@ let _detach x s =
     | `Stopped _ -> ()
     | `Stopping { outputs; active_sources; passive_sources }
     | `Started { outputs; active_sources; passive_sources } ->
-        Queue.filter_out outputs (fun s' -> s == s');
+        Queue.filter_out outputs (fun (a, s') ->
+            if s == s' then (
+              s#sleep a;
+              true)
+            else false);
         WeakQueue.filter_out active_sources (fun s' -> s == s');
         WeakQueue.filter_out passive_sources (fun s' -> s == s')
 
@@ -221,7 +223,8 @@ let active_sources c =
 
 let outputs c =
   match Atomic.get (Unifier.deref c).state with
-    | `Started { outputs } | `Stopping { outputs } -> Queue.elements outputs
+    | `Started { outputs } | `Stopping { outputs } ->
+        List.map snd (Queue.elements outputs)
     | _ -> []
 
 let passive_sources c =
@@ -241,7 +244,7 @@ let sources c =
     | `Stopping { passive_sources; active_sources; outputs } ->
         WeakQueue.elements passive_sources
         @ WeakQueue.elements active_sources
-        @ Queue.elements outputs
+        @ List.map snd (Queue.elements outputs)
     | _ -> []
 
 (* Return the clock effective sync. Stopped clocks can
@@ -259,7 +262,7 @@ let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
 let rec _cleanup ~clock { outputs } =
-  Queue.iter outputs (fun o -> try o#sleep clock.activation with _ -> ());
+  Queue.iter outputs (fun (a, o) -> try o#sleep a with _ -> ());
   Queue.iter clock.sub_clocks stop;
   Queue.filter_out clocks (fun c -> Unifier.deref c == clock)
 
@@ -364,7 +367,7 @@ let () =
       Queue.iter clocks (fun c -> if sync c <> `Passive then stop c))
 
 let _animated_sources { outputs; active_sources } =
-  Queue.elements outputs @ WeakQueue.elements active_sources
+  List.map snd (Queue.elements outputs) @ WeakQueue.elements active_sources
 
 let _self_sync ~clock x =
   let self_sync_sources =
@@ -489,8 +492,8 @@ and _activate_pending_sources ~clock x =
          match s#source_type with
            | `Active _ -> WeakQueue.push x.active_sources s
            | `Output _ ->
-               s#wake_up clock.activation;
-               Queue.push x.outputs s
+               let a = s#wake_up (s :> source) in
+               Queue.push x.outputs (a, s)
            | `Passive -> WeakQueue.push x.passive_sources s));
   if 0 < pending_sources then (
     let total_sources =
@@ -517,7 +520,7 @@ and _activate_pending_sources ~clock x =
             in
             Printf.sprintf "%s (%s, activations: [%s])" s#id source_type
               (String.concat ", " (List.map (fun s -> s#id) s#activations)))
-          (Queue.elements x.outputs
+          (List.map snd (Queue.elements x.outputs)
           @ WeakQueue.elements x.active_sources
           @ WeakQueue.elements x.passive_sources)
       in
@@ -722,12 +725,6 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id
         sub_clocks = Queue.create ();
         state = Atomic.make (`Stopped sync);
         on_error = on_error_queue;
-        activation =
-          object
-            method id = get_id ~pending_activations id
-            method source_type = `Clock
-            method sleep _ = ()
-          end;
       }
   in
   if sync <> `Passive then add_pending_clock c;

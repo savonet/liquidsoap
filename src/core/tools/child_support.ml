@@ -24,7 +24,6 @@
     [clock.mli] for a more detailed description. *)
 
 class virtual base ~check_self_sync children_val =
-  let children = List.map Lang.to_source children_val in
   object (self)
     initializer
       if check_self_sync then
@@ -46,6 +45,8 @@ class virtual base ~check_self_sync children_val =
     method virtual on_sleep : (unit -> unit) -> unit
     method virtual self_sync : [ `Dynamic | `Static ] * Clock.sync_source option
     method virtual source_type : Clock.source_type
+    method virtual activations : Clock.activation list
+    method virtual wake_up : Clock.source -> Clock.activation
     method child_clock_controller = None
     val mutable child_clock = None
 
@@ -65,14 +66,28 @@ class virtual base ~check_self_sync children_val =
 
     method virtual log : Log.t
 
+    (* activation, source *)
+    val mutable children =
+      List.map (fun v -> (None, Lang.to_source v)) children_val
+
     initializer
       List.iter
-        (fun s -> Clock.unify ~pos:self#pos self#child_clock s#clock)
+        (fun (_, s) -> Clock.unify ~pos:self#pos self#child_clock s#clock)
         children;
       self#on_wake_up (fun () ->
-          List.iter (fun s -> s#wake_up (self :> Clock.activation)) children);
+          children <-
+            List.map
+              (fun (a, s) ->
+                assert (a = None);
+                (Some (s#wake_up (self :> Clock.source)), s))
+              children);
       self#on_sleep (fun () ->
-          List.iter (fun s -> s#sleep (self :> Clock.activation)) children)
+          children <-
+            List.map
+              (fun (a, s) ->
+                s#sleep (Option.get a);
+                (None, s))
+              children)
 
     method child_tick = Clock.tick self#child_clock
 
