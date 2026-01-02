@@ -136,8 +136,6 @@ type source =
   ; sleep : activation -> unit
   ; is_ready : bool
   ; get_frame : Frame.t >
-  as
-  'a
 
 let self_sync_type sources =
   Lazy.from_fun (fun () ->
