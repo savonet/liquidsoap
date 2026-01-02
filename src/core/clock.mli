@@ -59,7 +59,10 @@ module MkSyncSource (S : SyncSource) : sig
   val make : S.t -> sync_source
 end
 
-type activation = < id : string ; sleep : activation -> unit >
+type activation =
+  < id : string
+  ; source_type : [ source_type | `Clock ]
+  ; sleep : activation -> unit >
 
 type source =
   < id : string

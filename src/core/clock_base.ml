@@ -123,7 +123,10 @@ let () =
         Some (Buffer.contents buf)
     | _ -> None)
 
-type activation = < id : string ; sleep : activation -> unit >
+type activation =
+  < id : string
+  ; source_type : [ source_type | `Clock ]
+  ; sleep : activation -> unit >
 
 type source =
   < id : string

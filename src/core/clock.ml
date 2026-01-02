@@ -725,6 +725,7 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id
         activation =
           object
             method id = get_id ~pending_activations id
+            method source_type = `Clock
             method sleep _ = ()
           end;
       }
