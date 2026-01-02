@@ -268,7 +268,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
     val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
-    val mutable activations : Clock.source WeakQueue.t = WeakQueue.create ()
+    val activations : Clock.source WeakQueue.t = WeakQueue.create ()
+    method activations = WeakQueue.elements activations
 
     method private check_sleep src =
       if WeakQueue.length activations = 0 && self#is_up then (

@@ -65,6 +65,7 @@ type source =
   ; self_sync : self_sync
   ; source_type : source_type
   ; active : bool
+  ; activations : source list
   ; wake_up : 'a -> unit
   ; sleep : 'a -> unit
   ; is_ready : bool

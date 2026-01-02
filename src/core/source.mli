@@ -166,6 +166,9 @@ object
       concurrently and multiple times. *)
   method sleep : Clock.source -> unit
 
+  (** Return the list of the source's activations. *)
+  method activations : Clock.source list
+
   (** Check if a source is up or not. *)
   method is_up : bool
 

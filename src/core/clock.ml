@@ -512,7 +512,8 @@ and _activate_pending_sources ~clock x =
                 | `Active _ -> "active"
                 | `Output _ -> "output"
             in
-            Printf.sprintf "%s (%s)" s#id source_type)
+            Printf.sprintf "%s (%s, activations: [%s])" s#id source_type
+              (String.concat ", " (List.map (fun s -> s#id) s#activations)))
           (Queue.elements x.outputs
           @ WeakQueue.elements x.active_sources
           @ WeakQueue.elements x.passive_sources)
