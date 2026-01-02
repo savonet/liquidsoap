@@ -5,7 +5,7 @@ class dummy ~clock ~autostart source =
         ~clock ~autostart ~infallible:false ~register_telnet:false
         (Lang.source (source :> Source.source))
 
-    method test_wake_up = self#wake_up (self :> Clock.activation)
+    method test_wake_up = self#wake_up (self :> Clock.source)
     val mutable test_can_generate_frame = false
     method test_set_can_generate_frame = test_can_generate_frame <- true
     method! can_generate_frame = test_can_generate_frame
@@ -31,7 +31,7 @@ let () =
   o#on_start (fun () -> started := true);
   o#content_type_computation_allowed;
   assert (not o#can_generate_frame);
-  o#test_wake_up;
+  let a = o#test_wake_up in
   assert (not !started);
   Clock.tick clock;
   o#test_set_can_generate_frame;
@@ -40,4 +40,5 @@ let () =
   assert test_source#is_ready;
   o#test_output;
   assert !started;
+  o#sleep a;
   ()

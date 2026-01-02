@@ -26,8 +26,17 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     inherit Source.generate_from_multiple_sources ~merge ~track_sensitive ()
     method fallible = not infallible
     val mutable activation = []
-    val current_source : Source.source option Atomic.t = Atomic.make init
-    method current_source = Atomic.get current_source
+
+    val current_source : (Clock.activation * Source.source) option Atomic.t =
+      Atomic.make None
+
+    method current_source = Option.map snd (Atomic.get current_source)
+
+    initializer
+      self#on_wake_up (fun () ->
+          match (Atomic.get current_source, init) with
+            | None, Some s -> ignore (self#switch s)
+            | _ -> ())
 
     method private no_source id =
       if infallible then
@@ -47,20 +56,20 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     method prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
-      s#wake_up (self :> Clock.activation)
+      s#wake_up (self :> Clock.source)
 
     method private switch s =
       self#log#info "Switching to source %s" s#id;
-      self#prepare s;
-      Atomic.set current_source (Some s);
+      let a = self#prepare s in
+      Atomic.set current_source (Some (a, s));
       if s#is_ready then Some s else self#no_source (Some s#id)
 
     method private exchange s =
-      match self#current_source with
-        | Some s' when s == s' -> Some s
-        | Some s' ->
+      match Atomic.get current_source with
+        | Some (_, s') when s == s' -> Some s
+        | Some (a, s') ->
             let ret = self#switch s in
-            s'#sleep (self :> Clock.activation);
+            s'#sleep a;
             ret
         | None -> self#switch s
 
@@ -98,7 +107,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       self#on_wake_up (fun () -> ignore (self#get_source ~reselect:`Force ()));
       self#on_sleep (fun () ->
           match Atomic.exchange current_source None with
-            | Some s -> s#sleep (self :> Clock.activation)
+            | Some (a, s) -> s#sleep a
             | None -> ())
 
     method remaining =
@@ -187,7 +196,7 @@ let _ =
                   let child = List.assoc "x" p |> Lang.to_source in
                   Typing.(child#frame_type <: s#frame_type);
                   Clock.unify ~pos:s#pos child#clock s#clock;
-                  child#wake_up_no_register;
+                  child#get_up (Printf.sprintf "%s.prepare" s#id);
                   Lang.unit));
         };
       ]

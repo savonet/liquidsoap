@@ -25,6 +25,7 @@ open Mm
 exception Unavailable
 
 module Queue = Queues.Queue
+module WeakQueue = Queues.WeakQueue
 
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
@@ -82,7 +83,15 @@ type on_frame =
   | `Frame of frame_callback ]
 
 let source_log = Log.make ["source"]
-let finalise s = source_log#debug "Source %s is collected." s#id
+let finalise s = source_log#info "Source %s is collected." s#id
+
+let check_sleep ~activations ~s =
+ fun src ->
+  if WeakQueue.length activations = 0 && s#is_up then (
+    (s#log : Log.t)#important
+      "Unbalanced activations! %s was cleaned-up without calling #sleep on me!"
+      src#id;
+    s#sleep src)
 
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
@@ -91,12 +100,18 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     (** Monitoring *)
     val mutable watchers = []
 
+    (** Sources and their activations. *)
+    val mutable sources : (Clock.activation option * operator) list =
+      List.map (fun s -> (None, s)) sources
+
     method add_watcher w = watchers <- w :: watchers
     method private iter_watchers fn = List.iter fn watchers
     method clock = clock
 
     initializer
-      List.iter (fun s -> Clock.unify ~pos:self#pos self#clock s#clock) sources;
+      List.iter
+        (fun (_, s) -> Clock.unify ~pos:self#pos self#clock s#clock)
+        sources;
       Clock.attach self#clock (self :> Clock.source)
 
     val stack = Unifier.make stack
@@ -157,9 +172,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       match self#source_type with
         | `Passive -> false
         | `Output _ | `Active _ -> true
-
-    (** Children sources *)
-    val mutable sources : operator list = sources
 
     method virtual self_sync : Clock.self_sync
     val mutable self_sync_source = None
@@ -258,7 +270,13 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     initializer
       self#on_wake_up (fun () ->
-          List.iter (fun s -> s#wake_up (self :> Clock.activation)) sources;
+          sources <-
+            List.map
+              (fun (a, s) ->
+                assert (a = None);
+                let a = s#wake_up (self :> Clock.source) in
+                (Some a, s))
+              sources;
           self#iter_watchers (fun w ->
               w.wake_up ~fallible:self#fallible ~source_type:self#source_type
                 ~id:self#id ~ctype:self#content_type
@@ -267,24 +285,18 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
     val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
-    val mutable activations : Clock.activation list = []
-    method activations = activations
+    val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
+    method activations = WeakQueue.elements activations
 
-    method private _wake_up (src : Clock.activation option) =
-      (match src with
-        | None -> ()
-        | Some src ->
-            self#mutexify (fun () -> activations <- src :: activations) ());
+    method get_up activation_id =
       if Atomic.compare_and_set is_up `False `True then (
         try
           self#content_type_computation_allowed;
           if log == source_log then self#create_log;
           source_log#info
-            "Source %s gets up%s with content type: %s and frame type: %s."
-            self#id
-            (match src with
-              | None -> ""
-              | Some src -> Printf.sprintf " from %s" src#id)
+            "Source %s gets up from %s with content type: %s and frame type: \
+             %s."
+            self#id activation_id
             (Frame.string_of_content_type self#content_type)
             (Type.to_string self#frame_type);
           self#log#debug "Clock is %s." (Clock.id self#clock);
@@ -299,9 +311,21 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             (Printf.sprintf "Error while starting source %s: %s!" self#id
                (Printexc.to_string exn));
           Printexc.raise_with_backtrace exn bt)
+      else
+        source_log#info "Source %s reminded to get up by %s" self#id
+          activation_id
 
-    method wake_up src = self#_wake_up (Some src)
-    method wake_up_no_register = self#_wake_up None
+    method wake_up src =
+      let activation =
+        object
+          method id = src#id
+        end
+      in
+      Gc.finalise (check_sleep ~activations ~s:self) activation;
+      WeakQueue.push activations activation;
+      self#get_up activation#id;
+      activation
+
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- on_sleep @ [fn]
 
@@ -311,30 +335,26 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep (src : Clock.activation) =
-      self#mutexify
-        (fun () ->
-          let found, l =
-            List.fold_left
-              (fun (found, l) s ->
-                if (not found) && s == src then (true, l) else (found, s :: l))
-              (false, []) activations
-          in
-          if not found then
-            self#log#critical "Not activations found for %s" src#id;
-          activations <- l)
-        ();
+      WeakQueue.filter_out activations (fun s -> s == src);
       match
-        (activations, Clock.started self#clock, Atomic.get streaming_state)
+        ( WeakQueue.length activations,
+          Clock.started self#clock,
+          Atomic.get streaming_state )
       with
-        | _ :: _, _, _ -> ()
-        | _, true, (`Ready _ | `Unavailable) ->
+        | 0, true, (`Ready _ | `Unavailable) ->
             Clock.after_tick self#clock (fun () -> self#actual_sleep)
-        | _ -> self#actual_sleep
+        | 0, _, _ -> self#actual_sleep
+        | _ -> ()
 
     initializer
       Gc.finalise finalise self;
       self#on_sleep (fun () ->
-          List.iter (fun s -> s#sleep (self :> Clock.activation)) sources;
+          sources <-
+            List.map
+              (fun (a, s) ->
+                s#sleep (Option.get a);
+                (None, s))
+              sources;
           self#iter_watchers (fun w -> w.sleep ()))
 
     (** Streaming *)

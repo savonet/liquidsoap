@@ -57,6 +57,7 @@ type selection = {
   predicate : Lang.value;
   child : child;
   effective_source : source;
+  sleep : unit -> unit;
 }
 
 let satisfied f = Lang.to_bool (Lang.apply f [])
@@ -97,17 +98,20 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
     val selected : selection option Atomic.t = Atomic.make None
     method selected = Atomic.get selected
 
-    method set_selected v =
-      (match v with
-        | Some { child; effective_source } when effective_source != child.source
-          ->
-            effective_source#wake_up (self :> Clock.activation)
-        | _ -> ());
+    method exchange_selected v =
       match Atomic.exchange selected v with
-        | Some { child; effective_source } when effective_source != child.source
-          ->
-            effective_source#sleep (self :> Clock.activation)
+        | Some { sleep } -> sleep ()
         | _ -> ()
+
+    method set_selected ~predicate ~child effective_source =
+      let sleep =
+        if effective_source != child.source then (
+          let a = effective_source#wake_up (self :> Clock.source) in
+          fun () -> effective_source#sleep a)
+        else fun () -> ()
+      in
+      self#exchange_selected
+        (Some { predicate; child; effective_source; sleep })
 
     initializer
       self#on_sleep (fun () ->
@@ -177,13 +181,11 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                   () )
             with
               | None, None -> ()
-              | Some _, None -> self#set_selected None
+              | Some _, None -> self#exchange_selected None
               | None, Some (predicate, c) ->
                   self#log#important "Switch to %s." c.source#id;
                   let new_source = self#prepare_new_source c.source in
-                  self#set_selected
-                    (Some
-                       { predicate; child = c; effective_source = new_source })
+                  self#set_selected ~predicate ~child:c new_source
               | Some old_selection, Some (_, c)
                 when old_selection.child.source == c.source ->
                   ()
@@ -220,8 +222,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                       Typing.(s#frame_type <: self#frame_type);
                       (s :> Source.source))
                   in
-                  self#set_selected
-                    (Some { predicate; child = c; effective_source = s })
+                  self#set_selected ~predicate ~child:c s
             end;
             match self#selected with
               | Some s when s.effective_source#is_ready ->
