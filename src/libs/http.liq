@@ -527,29 +527,9 @@ def harbor.http.static.base(
   directory
 ) =
   directory = path.home.unrelate(directory)
-  basepath =
-    if
-      string.sub(encoding="ascii", basepath, start=0, length=1) != "/"
-    then
-      "/#{basepath}"
-    else
-      basepath
-    end
+  basepath = if r/^\//.test(basepath) then basepath else "/#{basepath}" end
 
-  basepath =
-    if
-      string.sub(
-        encoding="ascii",
-        basepath,
-        start=string.bytes.length(basepath) - 1,
-        length=1
-      ) !=
-        "/"
-    then
-      basepath ^ "/"
-    else
-      basepath
-    end
+  basepath = if r/\/$/.test(basepath) then basepath else "#{basepath}/" end
 
   def handler(request, response) =
     response.headers(headers)
@@ -627,14 +607,7 @@ end
 # @flag hidden
 def http.string_of_float(x) =
   s = string(x)
-  n = string.bytes.length(s)
-  if
-    string.sub(encoding="ascii", s, start=n - 1, length=1) == "."
-  then
-    s ^ "0"
-  else
-    s
-  end
+  if r/\.$/.test(s) then "#{s}0" else s end
 end
 
 # @flag hidden
