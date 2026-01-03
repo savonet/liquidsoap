@@ -93,6 +93,8 @@ let check_sleep ~activations ~s =
       s#id src#id;
     s#sleep src)
 
+let hash = Atomic.make 0
+
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
@@ -131,6 +133,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method log = log
     val mutable id = Lang_string.generate_id ~category:"source" name
     method id = id
+    val hash = Atomic.fetch_and_add hash 1
+    method hash = hash
 
     method set_id ?(force = true) s =
       let s =
@@ -288,7 +292,14 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
     method activations = WeakQueue.elements activations
 
-    method get_up activation_id =
+    method wake_up src =
+      let activation =
+        object
+          method id = src#id
+        end
+      in
+      Gc.finalise (check_sleep ~activations ~s:self) activation;
+      WeakQueue.push activations activation;
       if Atomic.compare_and_set is_up `False `True then (
         try
           self#content_type_computation_allowed;
@@ -296,7 +307,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           source_log#info
             "Source %s gets up from %s with content type: %s and frame type: \
              %s."
-            self#id activation_id
+            self#id src#id
             (Frame.string_of_content_type self#content_type)
             (Type.to_string self#frame_type);
           self#log#debug "Clock is %s." (Clock.id self#clock);
@@ -310,20 +321,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             ~bt:(Printexc.raw_backtrace_to_string bt)
             (Printf.sprintf "Error while starting source %s: %s!" self#id
                (Printexc.to_string exn));
-          Printexc.raise_with_backtrace exn bt)
-      else
-        source_log#info "Source %s reminded to get up by %s" self#id
-          activation_id
-
-    method wake_up src =
-      let activation =
-        object
-          method id = src#id
-        end
-      in
-      Gc.finalise (check_sleep ~activations ~s:self) activation;
-      WeakQueue.push activations activation;
-      self#get_up activation#id;
+          Printexc.raise_with_backtrace exn bt);
       activation
 
     val mutable on_sleep = []

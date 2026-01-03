@@ -108,6 +108,10 @@ object
 
   method set_id : ?force:bool -> string -> unit
 
+  (* Unique int allocated at initialization. Can be used to
+     hash the source and use it in a weak map. *)
+  method hash : int
+
   (** Position in script *)
   method pos : Pos.Option.t
 
@@ -155,10 +159,6 @@ object
       allow the source to sleep and be collected. Can be called multiple times
   *)
   method wake_up : Clock.source -> Clock.activation
-
-  (** Same as [wake_up] but without the need to call [sleep]. This is intended
-      for * special situations only. *)
-  method get_up : string -> unit
 
   (** Register a callback when sleep is called. *)
   method on_sleep : (unit -> unit) -> unit
