@@ -580,17 +580,11 @@ def harbor.http.static.base(
             page = ref("")
             base_url =
               if
-                string.sub(
-                  encoding="ascii",
-                  request.path,
-                  start=string.bytes.length(request.path) - 1,
-                  length=1
-                ) !=
-                  "/"
+                r/\/$/.test(request.path)
               then
-                request.path ^ "/"
-              else
                 request.path
+              else
+                request.path ^ "/"
               end
 
             def add(s) =
