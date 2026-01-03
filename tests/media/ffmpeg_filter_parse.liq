@@ -14,7 +14,7 @@ def f(s) =
     let {audio = audio_out, video = video_out} =
       ffmpeg.filter.parse(
         graph,
-        description="[v_in]hue=s=0[v_out];[a_in]volume=0.5[a_out]",
+        description="[v_in]hue=s=0[hue];[hue]fps=fps=30[fps];[fps]format[v_out];[a_in]volume=0.5[volume];[volume]aformat[a_out]",
         inputs={audio=[("a_in", a)], video=[("v_in", v)]},
         outputs={audio=["a_out"], video=["v_out"]}
       )
