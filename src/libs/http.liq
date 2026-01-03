@@ -559,7 +559,7 @@ def harbor.http.static.base(
     then
       response.status_code(404)
     else
-      rpath = null.get(rpath)
+      rpath = url.decode(null.get(rpath))
       fname = path.concat(directory, rpath)
       log.debug(
         "Serving static file: #{fname}"
