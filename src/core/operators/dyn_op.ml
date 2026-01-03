@@ -38,12 +38,13 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     inherit Source.generate_from_multiple_sources ~merge ~track_sensitive ()
     method fallible = not infallible
     val mutable activation_maps = ActivationMap.create 0
+    val activation_m = Mutex.create ()
 
     method prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
       let a = s#wake_up (self :> Clock.source) in
-      self#mutexify
+      Mutex_utils.mutexify activation_m
         (fun () ->
           let map =
             ActivationMap.merge activation_maps
@@ -53,7 +54,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
         ()
 
     method take_down s =
-      self#mutexify
+      Mutex_utils.mutexify activation_m
         (fun () ->
           try
             let map =
