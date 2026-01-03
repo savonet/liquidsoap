@@ -17,6 +17,7 @@ let audio_video_decoding_tests =
     ("FFmpeg copy decoder", "ffmpeg_copy_decoder.liq");
     ("FFmpeg copy+encode decode", "ffmpeg_copy_and_encode_decoder.liq");
     ("FFmpeg filter", "ffmpeg_filter.liq");
+    ("FFmpeg filter parse", "ffmpeg_filter_parse.liq");
     ("FFmpeg bitstream filter", "ffmpeg_bitstream_filter.liq");
     ("FFmpeg raw decoder", "ffmpeg_raw_decoder.liq");
     ("FFmpeg raw+encode decoder", "ffmpeg_raw_and_encode_decoder.liq");
@@ -91,11 +92,18 @@ let escaped_format =
 let encoder_script format =
   Printf.sprintf "%s_encoder.liq" (escaped_format (encoder_format format))
 
+let mediatests = ref []
+
+let mediatest (type a) : (a, unit, string, string) format4 -> a =
+  Printf.ksprintf (fun s ->
+      mediatests := Printf.sprintf "(alias %s)" s :: !mediatests;
+      s)
+
 let mk_encoder source format =
   Printf.printf
     {|
 (rule
-  (alias mediatest)
+  (alias %s)
   (package liquidsoap)
   (target %s)
   (deps
@@ -103,7 +111,10 @@ let mk_encoder source format =
     (:encoder_in ./encoder_%s.liq.in))
   (action
     (with-stdout-to %%{target}
-      (run %%{mk_encoder_test} %S %s %S))))|}
+      (run %%{mk_encoder_test} %S %s %S))))
+
+|}
+    (mediatest "encoder_%s" source)
     (encoder_script format) source (encoder_format format) source
     (escaped_format format)
 
@@ -122,7 +133,9 @@ let mk_encoded_file format =
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-   (run %%{run_test} %%{encoder} liquidsoap %%{test_liq} %%{encoder} -- %S)))|}
+   (run %%{run_test} %%{encoder} liquidsoap %%{test_liq} %%{encoder} -- %S)))
+
+|}
     (escaped_format format) (encoder_script format) (encoder_format format)
 
 let () =
@@ -139,14 +152,16 @@ let () =
   (target all_media_files)
   (deps
     %s)
-  (action (run touch %%{target})))|}
+  (action (run touch %%{target})))
+
+|}
     (String.concat "\n" (List.map escaped_format formats))
 
 let file_test ~label ~test fname =
   Printf.printf
     {|
 (rule
- (alias mediatest)
+ (alias %s)
  (package liquidsoap)
  (deps
   all_media_files
@@ -157,7 +172,10 @@ let file_test ~label ~test fname =
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
-  (run %%{run_test} %S liquidsoap %%{test_liq} %s -- %S)))|}
+  (run %%{run_test} %S liquidsoap %%{test_liq} %s -- %S)))
+
+|}
+    (mediatest "%s" (Filename.remove_extension test))
     test label test fname
 
 let () =
@@ -191,3 +209,12 @@ let () =
     audio_video_formats
 
 let () = List.iter (fun test -> file_test ~label:test ~test "") standalone_tests
+
+let () =
+  Printf.printf
+    {|(alias
+  (name mediatest)
+  (deps
+    %s))
+|}
+    (String.concat "\n    " (List.sort_uniq Stdlib.compare !mediatests))

@@ -50,7 +50,7 @@ body:
       render: text
       placeholder: |
         Liquidsoap 2.2.5
-        Copyright (c) 2003-2024 Savonet team
+        Copyright (c) 2003-2026 Savonet team
         Liquidsoap is open-source software, released under GNU General Public License.
         See <http://liquidsoap.info> for more information.
     validations:

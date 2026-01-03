@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -123,18 +123,20 @@ let () =
         Some (Buffer.contents buf)
     | _ -> None)
 
+type activation = < id : string >
+
 type source =
   < id : string
+  ; hash : int
   ; stack : Pos.t list
   ; self_sync : self_sync
   ; source_type : source_type
   ; active : bool
-  ; wake_up : 'a -> unit
-  ; sleep : 'a -> unit
+  ; activations : activation list
+  ; wake_up : source -> activation
+  ; sleep : activation -> unit
   ; is_ready : bool
   ; get_frame : Frame.t >
-  as
-  'a
 
 let self_sync_type sources =
   Lazy.from_fun (fun () ->

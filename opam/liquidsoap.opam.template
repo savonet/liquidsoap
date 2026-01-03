@@ -18,5 +18,3 @@ to install one of ssl or tls-liquidsoap package."""
     {success & !ssl-enabled & !tls-enabled}
 ]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
-dev-repo: "git+https://github.com/savonet/liquidsoap.git"
-x-maintenance-intent: ["(latest)"]

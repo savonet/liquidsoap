@@ -46,7 +46,7 @@ jobs:
       ocaml_docker_release_version: ${{ steps.build_details.outputs.ocaml_docker_release_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Get build details
         env:
           IS_FORK: ${{ github.event.pull_request.head.repo.fork == true }}
@@ -123,7 +123,7 @@ jobs:
     needs: build_details
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup node
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
@@ -140,7 +140,7 @@ jobs:
     needs: build_details
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup node
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
@@ -282,7 +282,7 @@ jobs:
           chown -R opam "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "${{ needs.build_details.outputs.branch }}" "/tmp/${{ github.run_number }}/metrics"
       - name: Upload metrics artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
         with:
           name: metrics
@@ -303,7 +303,7 @@ jobs:
           find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
       - name: Upload traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: traces-${{ matrix.target }}
           path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
@@ -315,13 +315,13 @@ jobs:
           cp -f tests/streams/*.txt /tmp/${{ github.run_number }}/test-artifacts/tests/streams
           cp -f tests/streams/*.png /tmp/${{ github.run_number }}/test-artifacts/tests/streams
       - name: Upload test artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: (success() || failure()) && needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
         with:
           name: test-artifacts
           path: ${{ github.workspace }}/${{ github.run_number }}/test-artifacts
       - name: Export potential core dumps
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: failure()
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}-${{ matrix.target }}
@@ -341,7 +341,7 @@ jobs:
           - 5.x
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Update packages
         run: |
           sudo apt-get update
@@ -366,7 +366,7 @@ jobs:
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
       - name: Restore pre-commit cache
         if: matrix.ocaml-compiler == '4.14.x'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
@@ -432,7 +432,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/build-deb.sh
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
@@ -488,7 +488,7 @@ jobs:
           SOURCE: ${{ needs.build_details.outputs.s3-artifact-basepath }}
           TARGET: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
       - name: Upload S3 artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: needs.build_details.outputs.is_fork != 'true'
         with:
           name: alpine-packages
@@ -534,7 +534,7 @@ jobs:
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} "${{ steps.cpu_cores.outputs.count }}" "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
         id: build
       - name: Upload artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ steps.build.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/win32/dist
@@ -559,9 +559,9 @@ jobs:
     if: needs.build_details.outputs.is_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: List assets to upload
@@ -629,11 +629,11 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
@@ -688,9 +688,9 @@ jobs:
           - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Set up Docker Buildx
@@ -739,11 +739,11 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
@@ -798,9 +798,9 @@ jobs:
           - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Set up Docker Buildx
@@ -844,7 +844,7 @@ jobs:
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Push consolidated manifest
         env:
           TAG: ${{ needs.build_details.outputs.branch }}
@@ -868,7 +868,7 @@ jobs:
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Push consolidated manifest
         env:
           TAG: ${{ needs.build_details.outputs.branch }}-minimal

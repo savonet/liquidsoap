@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ type selection = {
   predicate : Lang.value;
   child : child;
   effective_source : source;
+  sleep : unit -> unit;
 }
 
 let satisfied f = Lang.to_bool (Lang.apply f [])
@@ -94,20 +95,31 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         ~track_sensitive ()
 
     val mutable transition_length = transition_length
-    val mutable selected : selection option = None
+    val selected : selection option Atomic.t = Atomic.make None
+    method selected = Atomic.get selected
 
-    method set_selected v =
-      (match v with
-        | Some { child; effective_source } when effective_source != child.source
-          ->
-            effective_source#wake_up (self :> Clock.source)
-        | _ -> ());
-      (match selected with
-        | Some { child; effective_source } when effective_source != child.source
-          ->
-            effective_source#sleep (self :> Clock.source)
-        | _ -> ());
-      selected <- v
+    method exchange_selected v =
+      match Atomic.exchange selected v with
+        | Some { sleep } -> sleep ()
+        | _ -> ()
+
+    method set_selected ~predicate ~child effective_source =
+      let sleep =
+        if effective_source != child.source then (
+          let a = effective_source#wake_up (self :> Clock.source) in
+          fun () -> effective_source#sleep a)
+        else fun () -> ()
+      in
+      self#exchange_selected
+        (Some { predicate; child; effective_source; sleep })
+
+    initializer
+      self#on_sleep (fun () ->
+          match Atomic.exchange selected None with
+            | Some { child; effective_source }
+              when effective_source != child.source ->
+                effective_source#sleep (self :> Clock.activation)
+            | _ -> ())
 
     (* We cannot reselect the same source twice during a streaming cycle. *)
     val mutable excluded_sources = []
@@ -117,7 +129,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
     method private select ~reselect () =
       let may_select ~single s =
-        match selected with
+        match self#selected with
           | Some { child; effective_source } when child.source == s.source ->
               (not single) && self#can_reselect ~reselect effective_source
           | _ -> not (List.memq s excluded_sources)
@@ -149,7 +161,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         | _ -> new_source
 
     method get_source ~reselect () =
-      match selected with
+      match self#selected with
         | Some s
           when (track_sensitive () || satisfied s.predicate)
                && self#can_reselect
@@ -162,20 +174,18 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
             Some s.effective_source
         | _ -> (
             begin match
-              ( selected,
+              ( self#selected,
                 self#select
                 (* If we've returned the same source, it should be accepted now. *)
                   ~reselect:(match reselect with `Force -> `Ok | v -> v)
                   () )
             with
               | None, None -> ()
-              | Some _, None -> self#set_selected None
+              | Some _, None -> self#exchange_selected None
               | None, Some (predicate, c) ->
                   self#log#important "Switch to %s." c.source#id;
                   let new_source = self#prepare_new_source c.source in
-                  self#set_selected
-                    (Some
-                       { predicate; child = c; effective_source = new_source })
+                  self#set_selected ~predicate ~child:c new_source
               | Some old_selection, Some (_, c)
                 when old_selection.child.source == c.source ->
                   ()
@@ -212,10 +222,9 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                       Typing.(s#frame_type <: self#frame_type);
                       (s :> Source.source))
                   in
-                  self#set_selected
-                    (Some { predicate; child = c; effective_source = s })
+                  self#set_selected ~predicate ~child:c s
             end;
-            match selected with
+            match self#selected with
               | Some s when s.effective_source#is_ready ->
                   excluded_sources <- s.child :: excluded_sources;
                   Some s.effective_source
@@ -223,24 +232,24 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
     method self_sync =
       ( Lazy.force self_sync_type,
-        match selected with
+        match self#selected with
           | Some s -> snd s.effective_source#self_sync
           | None -> None )
 
     method remaining =
-      match selected with None -> 0 | Some s -> s.effective_source#remaining
+      match self#selected with
+        | None -> 0
+        | Some s -> s.effective_source#remaining
 
     method abort_track =
-      match selected with
+      match self#selected with
         | Some s -> s.effective_source#abort_track
         | None -> ()
 
     method effective_source =
-      match selected with
+      match self#selected with
         | Some s -> s.effective_source#effective_source
         | None -> (self :> Source.source)
-
-    method selected = Option.map (fun { child } -> child.source) selected
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -264,7 +273,9 @@ let _ =
           value =
             (fun s ->
               Lang.val_fun [] (fun _ ->
-                  match s#selected with
+                  match
+                    Option.map (fun { child } -> child.source) s#selected
+                  with
                     | Some s -> Lang.source s
                     | None -> Lang.null));
         };

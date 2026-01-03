@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -59,18 +59,20 @@ module MkSyncSource (S : SyncSource) : sig
   val make : S.t -> sync_source
 end
 
+type activation = < id : string >
+
 type source =
   < id : string
+  ; hash : int
   ; stack : Pos.t list
   ; self_sync : self_sync
   ; source_type : source_type
   ; active : bool
-  ; wake_up : 'a -> unit
-  ; sleep : 'a -> unit
+  ; activations : activation list
+  ; wake_up : source -> activation
+  ; sleep : activation -> unit
   ; is_ready : bool
   ; get_frame : Frame.t >
-  as
-  'a
 
 type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
 type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
