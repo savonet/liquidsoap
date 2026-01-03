@@ -528,7 +528,6 @@ def harbor.http.static.base(
 ) =
   directory = path.home.unrelate(directory)
   basepath = if r/^\//.test(basepath) then basepath else "/#{basepath}" end
-
   basepath = if r/\/$/.test(basepath) then basepath else "#{basepath}/" end
 
   def handler(request, response) =
