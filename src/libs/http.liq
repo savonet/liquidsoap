@@ -578,6 +578,14 @@ def harbor.http.static.base(
             response.status_code(403)
           else
             page = ref("")
+            base_url =
+              if
+                r/\/$/.test(request.path)
+              then
+                request.path
+              else
+                request.path ^ "/"
+              end
 
             def add(s) =
               page := page() ^ s ^ "\n"
@@ -585,7 +593,7 @@ def harbor.http.static.base(
 
             def add_file(f) =
               add(
-                "<li><a href=\"#{request.path}#{url.encode(f)}\">#{f}</a></li>"
+                "<li><a href=\"#{base_url}#{url.encode(f)}\">#{f}</a></li>"
               )
             end
 
