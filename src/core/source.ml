@@ -93,6 +93,8 @@ let check_sleep ~activations ~s =
       s#id src#id;
     s#sleep src)
 
+let hash = Atomic.make 0
+
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
@@ -131,6 +133,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method log = log
     val mutable id = Lang_string.generate_id ~category:"source" name
     method id = id
+    val hash = Atomic.fetch_and_add hash 1
+    method hash = hash
 
     method set_id ?(force = true) s =
       let s =

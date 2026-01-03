@@ -63,6 +63,7 @@ type activation = < id : string >
 
 type source =
   < id : string
+  ; hash : int
   ; stack : Pos.t list
   ; self_sync : self_sync
   ; source_type : source_type

@@ -108,6 +108,10 @@ object
 
   method set_id : ?force:bool -> string -> unit
 
+  (* Unique int allocated at initialization. Can be used to
+     hash the source and use it in a weak map. *)
+  method hash : int
+
   (** Position in script *)
   method pos : Pos.Option.t
 
