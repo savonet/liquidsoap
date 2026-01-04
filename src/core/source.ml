@@ -87,9 +87,10 @@ let finalise s = source_log#info "Source %s is collected." s#id
 
 let check_sleep ~activations ~s =
  fun src ->
-  if WeakQueue.length activations = 0 && s#is_up then (
-    (s#log : Log.t)#important
-      "Unbalanced activations! %s was cleaned-up without calling #sleep for %s!"
+  if List.memq src (WeakQueue.elements activations) then (
+    (s#log : Log.t)#critical
+      "Unbalanced activations! %s was cleaned-up without calling #sleep for \
+       %s! Please report to the developers."
       s#id src#id;
     s#sleep src)
 
