@@ -1360,6 +1360,22 @@
  (action (run %{run_test} shoutcast-args.liq liquidsoap %{test_liq} shoutcast-args.liq)))
   
 (rule
+ (alias source_cleanup)
+ (package liquidsoap)
+ (deps
+  source_cleanup.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} source_cleanup.liq liquidsoap %{test_liq} source_cleanup.liq)))
+  
+(rule
  (alias source_dynamic)
  (package liquidsoap)
  (deps
@@ -1510,6 +1526,7 @@
     (alias replaygain)
     (alias seek_track_map)
     (alias shoutcast-args)
+    (alias source_cleanup)
     (alias source_dynamic)
     (alias track_sensitive)
     (alias unified-pcm-types)

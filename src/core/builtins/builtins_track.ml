@@ -25,7 +25,7 @@ let _ =
   Lang.add_builtin ~base:Modules.track "clock" ~category:`Liquidsoap
     ~descr:"Return the clock associated with the given track."
     [("", track_t, None, None)]
-    Lang_source.ClockValue.base_t
+    Lang_clock.ClockValue.base_t
     (fun p ->
       let _, s = Lang.to_track (List.assoc "" p) in
-      Lang_source.ClockValue.to_base_value s#clock)
+      Lang_clock.ClockValue.to_base_value s#clock)

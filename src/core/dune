@@ -137,6 +137,7 @@
   keyboard
   lang
   lang_avi
+  lang_clock
   lang_encoder
   lang_external_encoder
   lang_fdkaac

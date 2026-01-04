@@ -112,7 +112,7 @@ let () =
     fun ?pos () ->
       Type.make
         ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
-        Lang_source.ClockValue.base_t.Type.descr
+        Lang_clock.ClockValue.base_t.Type.descr
 
 let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
   if name <> "source" then (
