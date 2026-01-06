@@ -46,11 +46,16 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       let a = s#wake_up (self :> Clock.source) in
       Mutex_utils.mutexify activation_m
         (fun () ->
-          let map =
-            ActivationMap.merge activation_maps
-              { s :> Clock.source; activations = [] }
-          in
-          map.activations <- a :: map.activations)
+          try
+            let map =
+              ActivationMap.find activation_maps
+                { s :> Clock.source; activations = [] }
+            in
+            map.activations <- a :: map.activations
+          with Not_found ->
+            let map = { s :> Clock.source; activations = [a] } in
+            Gc.finalise_last (fun () -> ignore (Sys.opaque_identity map)) s;
+            ActivationMap.add activation_maps map)
         ()
 
     method take_down s =
