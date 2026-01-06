@@ -137,6 +137,7 @@
   keyboard
   lang
   lang_avi
+  lang_clock
   lang_encoder
   lang_external_encoder
   lang_fdkaac
@@ -365,6 +366,7 @@
   builtins_ffmpeg_bitstream_filters
   builtins_ffmpeg_decoder
   builtins_ffmpeg_filters
+  builtins_ffmpeg_filter_parse
   builtins_ffmpeg_encoder
   ffmpeg_avfilter_utils
   ffmpeg_audio_converter

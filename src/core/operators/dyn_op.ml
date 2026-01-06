@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,14 +20,65 @@
 
  *****************************************************************************)
 
+type activation_map = {
+  s : Clock.source;
+  mutable activations : Clock.activation list;
+}
+
+module ActivationMap = Weak.Make (struct
+  type t = activation_map
+
+  let equal { s } { s = s' } = s == s'
+  let hash { s } = Oo.id s
+end)
+
 class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
   object (self)
     inherit Source.source ~name:"source.dynamic" ()
     inherit Source.generate_from_multiple_sources ~merge ~track_sensitive ()
     method fallible = not infallible
-    val mutable activation = []
-    val current_source : Source.source option Atomic.t = Atomic.make init
+    val mutable activation_maps = ActivationMap.create 0
+    val activation_m = Mutex.create ()
+
+    method prepare s =
+      Typing.(s#frame_type <: self#frame_type);
+      Clock.unify ~pos:self#pos s#clock self#clock;
+      let a = s#wake_up (self :> Clock.source) in
+      Mutex_utils.mutexify activation_m
+        (fun () ->
+          try
+            let map =
+              ActivationMap.find activation_maps
+                { s :> Clock.source; activations = [] }
+            in
+            map.activations <- a :: map.activations
+          with Not_found ->
+            let map = { s :> Clock.source; activations = [a] } in
+            Gc.finalise_last (fun () -> ignore (Sys.opaque_identity map)) s;
+            ActivationMap.add activation_maps map)
+        ()
+
+    method take_down s =
+      Mutex_utils.mutexify activation_m
+        (fun () ->
+          try
+            let map =
+              ActivationMap.find activation_maps
+                { s :> Clock.source; activations = [] }
+            in
+            List.iter (fun a -> s#sleep a) map.activations;
+            ActivationMap.remove activation_maps map
+          with Not_found -> ())
+        ()
+
+    val current_source : Source.source option Atomic.t = Atomic.make None
     method current_source = Atomic.get current_source
+
+    initializer
+      self#on_wake_up (fun () ->
+          match (self#current_source, init) with
+            | None, Some s -> ignore (self#switch s)
+            | _ -> ())
 
     method private no_source id =
       if infallible then
@@ -44,11 +95,6 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
           "failure";
       None
 
-    method prepare s =
-      Typing.(s#frame_type <: self#frame_type);
-      Clock.unify ~pos:self#pos s#clock self#clock;
-      s#wake_up (self :> Clock.source)
-
     method private switch s =
       self#log#info "Switching to source %s" s#id;
       self#prepare s;
@@ -60,7 +106,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
         | Some s' when s == s' -> Some s
         | Some s' ->
             let ret = self#switch s in
-            s'#sleep (self :> Clock.source);
+            self#take_down s';
             ret
         | None -> self#switch s
 
@@ -98,7 +144,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       self#on_wake_up (fun () -> ignore (self#get_source ~reselect:`Force ()));
       self#on_sleep (fun () ->
           match Atomic.exchange current_source None with
-            | Some s -> s#sleep (self :> Clock.source)
+            | Some s -> self#take_down s
             | None -> ())
 
     method remaining =
@@ -181,13 +227,11 @@ let _ =
           descr = "Prepare a source that will be returned later.";
           value =
             (fun s ->
-              let finalize child = child#sleep (s :> Clock.source) in
               Lang.val_fun
                 [("", "x", None)]
                 (fun p ->
                   let child = List.assoc "x" p |> Lang.to_source in
                   s#prepare child;
-                  Gc.finalise finalize child;
                   Lang.unit));
         };
       ]

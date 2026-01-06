@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,102 +28,6 @@ let apply ?pos v env =
   let ret = apply ?pos v env in
   Clock.after_eval ();
   ret
-
-module ClockValue = struct
-  include Value.MkCustom (struct
-    type content = Clock.t
-
-    let name = "clock"
-    let to_string = Clock.descr
-
-    let to_json ~pos _ =
-      Lang.raise_error ~message:"Clocks cannot be represented as json" ~pos
-        "json"
-
-    let compare = Stdlib.compare
-  end)
-
-  let base_t = t
-  let to_base_value = to_value
-
-  let methods =
-    [
-      ( "id",
-        Lang.ref_t Lang.string_t,
-        "The clock's id",
-        fun c ->
-          let get () = Lang.string (Clock.id c) in
-          let set v = Clock.set_id c (Lang.to_string v) in
-          Lang.reference get set );
-      ( "sync",
-        Lang.fun_t [] Lang.string_t,
-        "The clock's current sync mode. One of: `\"stopped\"`, `\"stopping\"`, \
-         `\"auto\"`, `\"CPU\"`, `\"unsynced\"` or `\"passive\"`.",
-        fun c ->
-          Lang.val_fun [] (fun _ ->
-              Lang.string Clock.(string_of_sync_mode (sync c))) );
-      ( "start",
-        Lang.fun_t [(true, "force", Lang.bool_t)] Lang.unit_t,
-        "Start the clock.",
-        fun c ->
-          Lang.val_fun
-            [("force", "force", Some (Lang.bool true))]
-            (fun p ->
-              let pos = Lang.pos p in
-              let force = Lang.to_bool (List.assoc "force" p) in
-              try
-                Clock.start ~force c;
-                Lang.unit
-              with Clock.Invalid_state ->
-                Runtime_error.raise
-                  ~message:
-                    (Printf.sprintf "Invalid clock state: %s"
-                       Clock.(string_of_sync_mode (sync c)))
-                  ~pos "clock") );
-      ( "stop",
-        Lang.fun_t [] Lang.unit_t,
-        "Stop the clock. Does nothing if the clock is stopping or stopped.",
-        fun c ->
-          Lang.val_fun [] (fun _ ->
-              Clock.stop c;
-              Lang.unit) );
-      ( "self_sync",
-        Lang.fun_t [] Lang.bool_t,
-        "`true` if the clock is in control of its latency.",
-        fun c -> Lang.val_fun [] (fun _ -> Lang.bool (Clock.self_sync c)) );
-      ( "unify",
-        Lang.fun_t [(false, "", base_t)] Lang.unit_t,
-        "Unify the clock with another one. One of the two clocks should be in \
-         `\"stopped\"` sync mode.",
-        fun c ->
-          Lang.val_fun
-            [("", "", None)]
-            (fun p ->
-              let pos = match Lang.pos p with p :: _ -> Some p | [] -> None in
-              let c' = of_value (List.assoc "" p) in
-              Clock.unify ~pos c c';
-              Lang.unit) );
-      ( "tick",
-        Lang.fun_t [] Lang.unit_t,
-        "Animate the clock and run one tick",
-        fun c ->
-          Lang.val_fun [] (fun _ ->
-              Clock.tick c;
-              Lang.unit) );
-      ( "ticks",
-        Lang.fun_t [] Lang.int_t,
-        "The total number of times the clock has ticked.",
-        fun c -> Lang.val_fun [] (fun _ -> Lang.int (Clock.ticks c)) );
-    ]
-
-  let t =
-    method_t base_t
-      (List.map (fun (lbl, typ, descr, _) -> (lbl, ([], typ), descr)) methods)
-
-  let to_value c =
-    Lang.meth (to_base_value c)
-      (List.map (fun (lbl, _, _, v) -> (lbl, v c)) methods)
-end
 
 let log = Log.make ["lang"]
 let metadata_t = list_t (product_t string_t string_t)
@@ -569,9 +473,9 @@ let source_methods =
     };
     {
       name = "clock";
-      scheme = ([], ClockValue.base_t);
+      scheme = ([], Lang_clock.ClockValue.base_t);
       descr = "The source's clock";
-      value = (fun s -> ClockValue.to_base_value s#clock);
+      value = (fun s -> Lang_clock.ClockValue.to_base_value s#clock);
     };
     {
       name = "time";
@@ -907,7 +811,6 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
               (fun s ->
                 val_fun [] (fun _ ->
                     Clock.detach s#clock (s :> Clock.source);
-                    s#sleep (s :> Clock.source);
                     unit));
           };
         ]

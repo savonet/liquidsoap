@@ -1,7 +1,7 @@
 (*****************************************************************************
 
    Liquidsoap, a programmable stream generator.
-   Copyright 2003-2024 Savonet team
+   Copyright 2003-2026 Savonet team
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -72,6 +72,8 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
     method current = Atomic.get current
     method self_sync = (`Static, None)
     val should_skip = Atomic.make false
+    method is_synchronous = synchronous
+    method prefetch = prefetch
 
     (** How to unload a request. *)
     method private end_request =
@@ -281,7 +283,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
                   d)
         | _ -> -1.
 
-    method private synchronous_feed_queue =
+    method synchronous_feed_queue =
       match self#feed_queue () with
         | 0. -> self#synchronous_feed_queue
         | _ -> ()
@@ -396,22 +398,26 @@ let _ =
           value =
             (fun s ->
               Lang.val_fun [] (fun _ ->
-                  let task =
-                    {
-                      Duppy.Task.priority;
-                      events = [`Delay 0.];
-                      handler =
-                        (fun _ ->
-                          (match s#fetch with
-                            | `Finished -> ()
-                            | `Retry ->
-                                s#log#important
-                                  "Requested fetch failed! You might want to \
-                                   retry..");
-                          []);
-                    }
-                  in
-                  Duppy.Task.add Tutils.scheduler task;
+                  (match (s#is_synchronous, s#prefetch) with
+                    | true, _ -> s#synchronous_feed_queue
+                    | _, 0 ->
+                        let task =
+                          {
+                            Duppy.Task.priority;
+                            events = [`Delay 0.];
+                            handler =
+                              (fun _ ->
+                                (match s#fetch with
+                                  | `Finished -> ()
+                                  | `Retry ->
+                                      s#log#important
+                                        "Requested fetch failed! You might \
+                                         want to retry..");
+                                []);
+                          }
+                        in
+                        Duppy.Task.add Tutils.scheduler task
+                    | _ -> s#notify_new_request);
                   Lang.unit));
         };
         {

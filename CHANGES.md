@@ -1,4 +1,4 @@
-# 2.4.1 (unreleased)
+# 2.4.1 (2025-01-04)
 
 ## New:
 
@@ -7,6 +7,8 @@
 - Added start/stop telnet commands for outputs.
 - Added `settings.syslog.level` to set syslog level (#4686)
 - Added `active` parameter to `stereotool` and `output.stereotool` (#4749)
+- Added `file.mime.extension` to get the file extension's associated
+  with a MIME/content-type as registered in `settings.http.mime.extnames`
 
 ## Changed:
 
@@ -22,6 +24,7 @@
 
 - Fix `input.harbor` initial metadata when switching with
   fades (#4736)
+- Fix audio artifact in crossfade transitions (#4739)
 - Make sure that sources re-used in `source.dynamic` are never
   inadvertently cleaned up (#4713)
 - Fix sources not being properly collected (#4670)
@@ -31,6 +34,7 @@
 - Make sure `fetch` always fetches a new request in `request.dynamic` (#4745)
 - Fixed start/stop logic in `output.harbor` (#4666)
 - Fixed `fade.in`/`fade.out` logic w.r.t. override metadata (#4759)
+- Fixed `video.cover`
 
 ---
 

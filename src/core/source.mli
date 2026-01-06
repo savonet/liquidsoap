@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -150,15 +150,21 @@ object
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit
 
-  (** Called when the source must be ready. Can be called multiple times *)
-  method wake_up : Clock.source -> unit
+  (** Called when the source must be ready. Each call to [wake_up] must be
+      matched by a corresponding call to [sleep] with the returned activation to
+      allow the source to sleep and be collected. Can be called multiple times
+  *)
+  method wake_up : Clock.source -> Clock.activation
 
   (** Register a callback when sleep is called. *)
   method on_sleep : (unit -> unit) -> unit
 
   (** Called when the source can release all its resources. Can be called
       concurrently and multiple times. *)
-  method sleep : Clock.source -> unit
+  method sleep : Clock.activation -> unit
+
+  (** Return the list of the source's activations. *)
+  method activations : Clock.activation list
 
   (** Check if a source is up or not. *)
   method is_up : bool
@@ -229,6 +235,7 @@ object
   (** The source's last metadata. *)
   method last_metadata : (int * Frame.metadata) option
 
+  method clear_last_metadata : unit
   method reset_last_metadata_on_track : bool
   method set_reset_last_metadata_on_track : bool -> unit
 
@@ -409,4 +416,6 @@ object
   method private can_reselect : reselect:reselect -> source -> bool
   method private can_generate_frame : bool
   method private generate_frame : Frame.t
+  method virtual reset_last_metadata_on_track : bool
+  method virtual clear_last_metadata : unit
 end

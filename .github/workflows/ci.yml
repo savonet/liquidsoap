@@ -46,7 +46,7 @@ jobs:
       ocaml_docker_release_version: ${{ steps.build_details.outputs.ocaml_docker_release_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Get build details
         env:
           IS_FORK: ${{ github.event.pull_request.head.repo.fork == true }}
@@ -123,9 +123,9 @@ jobs:
     needs: build_details
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup node
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
           node-version: 22
       - name: Parse using tree-sitter
@@ -140,9 +140,9 @@ jobs:
     needs: build_details
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup node
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
           node-version: latest
       - name: Parse using liquidsoap-lezer-print-tree
@@ -282,7 +282,7 @@ jobs:
           chown -R opam "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "${{ needs.build_details.outputs.branch }}" "/tmp/${{ github.run_number }}/metrics"
       - name: Upload metrics artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
         with:
           name: metrics
@@ -303,7 +303,7 @@ jobs:
           find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
       - name: Upload traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: traces-${{ matrix.target }}
           path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
@@ -315,13 +315,13 @@ jobs:
           cp -f tests/streams/*.txt /tmp/${{ github.run_number }}/test-artifacts/tests/streams
           cp -f tests/streams/*.png /tmp/${{ github.run_number }}/test-artifacts/tests/streams
       - name: Upload test artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: (success() || failure()) && needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
         with:
           name: test-artifacts
           path: ${{ github.workspace }}/${{ github.run_number }}/test-artifacts
       - name: Export potential core dumps
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: failure()
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}-${{ matrix.target }}
@@ -341,12 +341,12 @@ jobs:
           - 5.x
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Update packages
         run: |
           sudo apt-get update
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@ddef532293b85980b315344506def8eb09917e2c # v3.4.6
+        uses: ocaml/setup-ocaml@dec6499fef64fc5d7ed43d43a87251b7b1c306f5 # v3.4.8
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-pin: false
@@ -366,7 +366,7 @@ jobs:
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
       - name: Restore pre-commit cache
         if: matrix.ocaml-compiler == '4.14.x'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
@@ -432,7 +432,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/build-deb.sh
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
@@ -488,7 +488,7 @@ jobs:
           SOURCE: ${{ needs.build_details.outputs.s3-artifact-basepath }}
           TARGET: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
       - name: Upload S3 artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: needs.build_details.outputs.is_fork != 'true'
         with:
           name: alpine-packages
@@ -534,7 +534,7 @@ jobs:
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} "${{ steps.cpu_cores.outputs.count }}" "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
         id: build
       - name: Upload artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ steps.build.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/win32/dist
@@ -559,9 +559,9 @@ jobs:
     if: needs.build_details.outputs.is_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: List assets to upload
@@ -599,7 +599,7 @@ jobs:
           fail-if-no-release: false
           fail-if-no-assets: false
       - name: Upload assets to main repo release
-        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
@@ -607,8 +607,93 @@ jobs:
           prerelease: ${{ needs.build_details.outputs.is_rolling_release }}
           body: ${{ steps.release_notes.outputs.release_notes }}
           draft: ${{ !needs.build_details.outputs.is_rolling_release }}
+      - name: Manage release assets repo limit
+        id: manage_release_assets
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          github-token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
+          script: |
+            const owner = 'savonet';
+            const repo = 'liquidsoap-release-assets';
+            const tag = '${{ needs.build_details.outputs.branch }}';
+            const maxAssets = 1000;
+
+            // Count new files to upload
+            const newFiles = `${{ steps.release_assets.outputs.release_assets }}`.trim().split('\n').filter(f => f.length > 0);
+            const newFilesCount = newFiles.length;
+            core.info(`New files to upload: ${newFilesCount}`);
+
+            // Get the release for this tag
+            let release;
+            try {
+              const { data } = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag
+              });
+              release = data;
+            } catch (error) {
+              if (error.status === 404) {
+                core.info(`No existing release found for tag ${tag}, nothing to clean up`);
+                core.setOutput('assets_to_delete', '');
+                return;
+              }
+              throw error;
+            }
+
+            // Get all assets for this release
+            const assets = [];
+            let page = 1;
+            while (true) {
+              const { data } = await github.rest.repos.listReleaseAssets({
+                owner,
+                repo,
+                release_id: release.id,
+                per_page: 100,
+                page
+              });
+              if (data.length === 0) break;
+              assets.push(...data);
+              page++;
+            }
+
+            core.info(`Found ${assets.length} existing assets`);
+
+            // Calculate how many old assets we can keep
+            const maxOldAssets = maxAssets - newFilesCount;
+            core.info(`Maximum old assets to keep: ${maxOldAssets}`);
+
+            if (assets.length <= maxOldAssets) {
+              core.info(`Current asset count (${assets.length}) is within limit, no deletion needed`);
+              core.setOutput('assets_to_delete', '');
+              return;
+            }
+
+            // Sort assets by creation date (oldest first)
+            assets.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+            // Calculate how many to delete
+            const assetsToDeleteCount = assets.length - maxOldAssets;
+            core.info(`Assets to delete: ${assetsToDeleteCount}`);
+
+            // Get the oldest assets to delete
+            const assetsToDelete = assets.slice(0, assetsToDeleteCount);
+            const assetNamesToDelete = assetsToDelete.map(a => a.name);
+
+            core.info(`Deleting assets: ${assetNamesToDelete.join(', ')}`);
+            core.setOutput('assets_to_delete', assetNamesToDelete.join('\n'));
+      - name: Delete old release assets from release repo
+        if: steps.manage_release_assets.outputs.assets_to_delete != ''
+        uses: mknejp/delete-release-assets@v1
+        with:
+          token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
+          tag: ${{ needs.build_details.outputs.branch }}
+          assets: ${{ steps.manage_release_assets.outputs.assets_to_delete }}
+          repository: savonet/liquidsoap-release-assets
+          fail-if-no-release: false
+          fail-if-no-assets: false
       - name: Upload assets to release repo
-        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
           tag_name: ${{ needs.build_details.outputs.branch }}
@@ -629,11 +714,11 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
@@ -688,13 +773,13 @@ jobs:
           - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
@@ -739,11 +824,11 @@ jobs:
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian package
@@ -798,13 +883,13 @@ jobs:
           - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Download all artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep ${{ matrix.ocaml_version }} | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
@@ -844,7 +929,7 @@ jobs:
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Push consolidated manifest
         env:
           TAG: ${{ needs.build_details.outputs.branch }}
@@ -868,7 +953,7 @@ jobs:
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Push consolidated manifest
         env:
           TAG: ${{ needs.build_details.outputs.branch }}-minimal

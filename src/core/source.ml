@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ open Mm
 exception Unavailable
 
 module Queue = Queues.Queue
+module WeakQueue = Queues.WeakQueue
 
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
@@ -82,7 +83,16 @@ type on_frame =
   | `Frame of frame_callback ]
 
 let source_log = Log.make ["source"]
-let finalise s = source_log#debug "Source %s is collected." s#id
+let finalise s = source_log#info "Source %s is collected." s#id
+
+let check_sleep ~activations ~s =
+ fun src ->
+  if List.memq src (WeakQueue.elements activations) then (
+    (s#log : Log.t)#critical
+      "Unbalanced activations! %s was cleaned-up without calling #sleep for \
+       %s! Please report to the developers."
+      s#id src#id;
+    s#sleep src)
 
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
@@ -91,12 +101,18 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     (** Monitoring *)
     val mutable watchers = []
 
+    (** Sources and their activations. *)
+    val mutable sources : (Clock.activation option * operator) list =
+      List.map (fun s -> (None, s)) sources
+
     method add_watcher w = watchers <- w :: watchers
     method private iter_watchers fn = List.iter fn watchers
     method clock = clock
 
     initializer
-      List.iter (fun s -> Clock.unify ~pos:self#pos self#clock s#clock) sources;
+      List.iter
+        (fun (_, s) -> Clock.unify ~pos:self#pos self#clock s#clock)
+        sources;
       Clock.attach self#clock (self :> Clock.source)
 
     val stack = Unifier.make stack
@@ -157,9 +173,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       match self#source_type with
         | `Passive -> false
         | `Output _ | `Active _ -> true
-
-    (** Children sources *)
-    val mutable sources : operator list = sources
 
     method virtual self_sync : Clock.self_sync
     val mutable self_sync_source = None
@@ -258,7 +271,13 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     initializer
       self#on_wake_up (fun () ->
-          List.iter (fun s -> s#wake_up (self :> Clock.source)) sources;
+          sources <-
+            List.map
+              (fun (a, s) ->
+                assert (a = None);
+                let a = s#wake_up (self :> Clock.source) in
+                (Some a, s))
+              sources;
           self#iter_watchers (fun w ->
               w.wake_up ~fallible:self#fallible ~source_type:self#source_type
                 ~id:self#id ~ctype:self#content_type
@@ -267,10 +286,17 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
     val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
-    val mutable activations : Clock.source list = []
+    val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
+    method activations = WeakQueue.elements activations
 
-    method wake_up (src : Clock.source) =
-      self#mutexify (fun () -> activations <- src :: activations) ();
+    method wake_up src =
+      let activation =
+        object
+          method id = src#id
+        end
+      in
+      Gc.finalise (check_sleep ~activations ~s:self) activation;
+      WeakQueue.push activations activation;
       if Atomic.compare_and_set is_up `False `True then (
         try
           self#content_type_computation_allowed;
@@ -292,7 +318,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             ~bt:(Printexc.raw_backtrace_to_string bt)
             (Printf.sprintf "Error while starting source %s: %s!" self#id
                (Printexc.to_string exn));
-          Printexc.raise_with_backtrace exn bt)
+          Printexc.raise_with_backtrace exn bt);
+      activation
 
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- on_sleep @ [fn]
@@ -302,31 +329,27 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         source_log#info "Source %s gets down." self#id;
         List.iter (fun fn -> fn ()) on_sleep)
 
-    method sleep (src : Clock.source) =
-      self#mutexify
-        (fun () ->
-          let found, l =
-            List.fold_left
-              (fun (found, l) s ->
-                if (not found) && s == src then (true, l) else (found, s :: l))
-              (false, []) activations
-          in
-          if not found then
-            self#log#critical "Not activations found for %s" src#id;
-          activations <- l)
-        ();
+    method sleep (src : Clock.activation) =
+      WeakQueue.filter_out activations (fun s -> s == src);
       match
-        (activations, Clock.started self#clock, Atomic.get streaming_state)
+        ( WeakQueue.length activations,
+          Clock.started self#clock,
+          Atomic.get streaming_state )
       with
-        | _ :: _, _, _ -> ()
-        | _, true, (`Ready _ | `Unavailable) ->
+        | 0, true, (`Ready _ | `Unavailable) ->
             Clock.after_tick self#clock (fun () -> self#actual_sleep)
-        | _ -> self#actual_sleep
+        | 0, _, _ -> self#actual_sleep
+        | _ -> ()
 
     initializer
       Gc.finalise finalise self;
       self#on_sleep (fun () ->
-          List.iter (fun s -> s#sleep (self :> Clock.source)) sources;
+          sources <-
+            List.map
+              (fun (a, s) ->
+                s#sleep (Option.get a);
+                (None, s))
+              sources;
           self#iter_watchers (fun w -> w.sleep ()))
 
     (** Streaming *)
@@ -515,6 +538,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method set_reset_last_metadata_on_track v =
       Atomic.set reset_last_metadata_on_track v
 
+    method clear_last_metadata = last_metadata <- None
+
     method private set_last_metadata buf =
       match List.rev (Frame.get_all_metadata buf) with
         | v :: _ -> last_metadata <- Some v
@@ -528,7 +553,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
-        if self#reset_last_metadata_on_track then last_metadata <- None;
+        if self#reset_last_metadata_on_track then self#clear_last_metadata;
         self#set_last_metadata buf;
         let _, m =
           Option.value ~default:(0, Frame.Metadata.empty) last_metadata
@@ -667,7 +692,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           | buf, Some new_track ->
               if 0 < elapsed then self#on_position ~end_of_track:true buf;
               elapsed <- 0;
-              if self#reset_last_metadata_on_track then last_metadata <- None;
+              if self#reset_last_metadata_on_track then self#clear_last_metadata;
               List.iter
                 (function `Position p -> p.executed <- false | _ -> ())
                 on_frame;
@@ -751,6 +776,8 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
     method virtual private set_last_metadata : Frame.t -> unit
+    method virtual reset_last_metadata_on_track : bool
+    method virtual clear_last_metadata : unit
     method virtual log : Log.t
     method virtual id : string
     val mutable ready_source = None
@@ -773,8 +800,11 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method private begin_track buf =
       if merge () then Frame.drop_track_marks buf
       else (
+        let buf =
+          if Frame.position buf > 0 then Frame.add_track_mark buf 0 else buf
+        in
         self#execute_on_track buf;
-        Frame.add_track_mark buf 0)
+        buf)
 
     method private can_reselect ~(reselect : reselect) (s : source) =
       s#is_ready
@@ -788,6 +818,8 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       s#get_partial_frame (fun frame ->
           match self#split_frame frame with
             | buf, Some next_track when Frame.position buf = 0 -> (
+                if self#reset_last_metadata_on_track then
+                  self#clear_last_metadata;
                 match current_source with
                   | Some s' when s == s' -> self#empty_frame
                   | _ -> self#begin_track next_track)

@@ -527,29 +527,8 @@ def harbor.http.static.base(
   directory
 ) =
   directory = path.home.unrelate(directory)
-  basepath =
-    if
-      string.sub(encoding="ascii", basepath, start=0, length=1) != "/"
-    then
-      "/#{basepath}"
-    else
-      basepath
-    end
-
-  basepath =
-    if
-      string.sub(
-        encoding="ascii",
-        basepath,
-        start=string.bytes.length(basepath) - 1,
-        length=1
-      ) !=
-        "/"
-    then
-      basepath ^ "/"
-    else
-      basepath
-    end
+  basepath = if r/^\//.test(basepath) then basepath else "/#{basepath}" end
+  basepath = if r/\/$/.test(basepath) then basepath else "#{basepath}/" end
 
   def handler(request, response) =
     response.headers(headers)
@@ -559,7 +538,7 @@ def harbor.http.static.base(
     then
       response.status_code(404)
     else
-      rpath = null.get(rpath)
+      rpath = url.decode(null.get(rpath))
       fname = path.concat(directory, rpath)
       log.debug(
         "Serving static file: #{fname}"
@@ -578,6 +557,14 @@ def harbor.http.static.base(
             response.status_code(403)
           else
             page = ref("")
+            base_url =
+              if
+                r/\/$/.test(request.path)
+              then
+                request.path
+              else
+                request.path ^ "/"
+              end
 
             def add(s) =
               page := page() ^ s ^ "\n"
@@ -585,7 +572,7 @@ def harbor.http.static.base(
 
             def add_file(f) =
               add(
-                "<li><a href=\"#{request.path}#{url.encode(f)}\">#{f}</a></li>"
+                "<li><a href=\"#{base_url}#{url.encode(f)}\">#{f}</a></li>"
               )
             end
 
@@ -619,14 +606,7 @@ end
 # @flag hidden
 def http.string_of_float(x) =
   s = string(x)
-  n = string.bytes.length(s)
-  if
-    string.sub(encoding="ascii", s, start=n - 1, length=1) == "."
-  then
-    s ^ "0"
-  else
-    s
-  end
+  if r/\.$/.test(s) then "#{s}0" else s end
 end
 
 # @flag hidden
@@ -889,6 +869,19 @@ let settings.http.mime.extnames =
     ]
   )
 
+%ifndef file.mime
+let file.mime = ()
+%endif
+
+# Return the file extension associated with the given
+# content-type if it is known.
+# @category File
+def file.mime.extension(content_type) =
+  extnames = settings.http.mime.extnames()
+  extname = extnames[content_type]
+  extname == "" ? null : extname
+end
+
 let http.headers = ()
 
 # Extract the content-type header
@@ -1032,9 +1025,7 @@ def http.headers.extname(headers) =
   elsif
     null.defined(content_type)
   then
-    extnames = settings.http.mime.extnames()
-    extname = extnames[null.get(content_type).mime]
-    extname == "" ? null : extname
+    file.mime.extension(null.get(content_type).mime)
   else
     null
   end

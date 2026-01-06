@@ -86,7 +86,7 @@ conflicts: [
   "dssi" {< "0.1.3"}
   "faad" {< "0.5.0"}
   "fdkaac" {< "0.3.1"}
-  "ffmpeg" {< "1.2.5"}
+  "ffmpeg" {< "1.2.8"}
   "ffmpeg-avutil" {< "1.2.5"}
   "flac" {< "1.0.0"}
   "frei0r" {< "0.1.0"}
@@ -118,7 +118,6 @@ conflicts: [
   "pandoc-include" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {dev}
   [
     "dune"
     "build"
@@ -133,6 +132,8 @@ build: [
   ]
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
+dev-repo: "git+https://github.com/savonet/liquidsoap.git"
+x-maintenance-intent: ["(latest)"]
 post-messages: [
   """\
 We're sorry that your liquidsoap install failed. Check out our installation
@@ -153,5 +154,3 @@ to install one of ssl or tls-liquidsoap package."""
     {success & !ssl-enabled & !tls-enabled}
 ]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
-dev-repo: "git+https://github.com/savonet/liquidsoap.git"
-x-maintenance-intent: ["(latest)"]

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,6 +26,25 @@
 
 open Source
 
+class insert_initial_track_mark src =
+  object
+    inherit operator ~name:"insert_initial_track_mark" [src]
+    val mutable first = true
+    method fallible = src#fallible
+    method private can_generate_frame = src#is_ready
+    method abort_track = src#abort_track
+    method remaining = src#remaining
+    method self_sync = src#self_sync
+    method effective_source = src#effective_source
+
+    method private generate_frame =
+      let buf = src#get_frame in
+      if first then (
+        first <- false;
+        Frame.add_track_mark buf 0)
+      else buf
+  end
+
 (* A transition is a value of type (source,source) -> source *)
 type transition = Lang.value
 type child = { source : source; transition : transition }
@@ -38,6 +57,7 @@ type selection = {
   predicate : Lang.value;
   child : child;
   effective_source : source;
+  sleep : unit -> unit;
 }
 
 let satisfied f = Lang.to_bool (Lang.apply f [])
@@ -62,13 +82,10 @@ let find ?(strict = false) f l =
   aux l
 
 class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
-  ~has_transitions ~track_sensitive children =
+  ~track_sensitive children =
   let cases = List.map (fun (_, _, s) -> s) children in
   let sources = List.map (fun c -> c.source) cases in
-  let self_sync_type =
-    if has_transitions then Lazy.from_val `Dynamic
-    else Clock_base.self_sync_type sources
-  in
+  let self_sync_type = Clock_base.self_sync_type sources in
   object (self)
     inherit operator ~name:"switch" (List.map (fun x -> x.source) cases)
 
@@ -78,20 +95,29 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         ~track_sensitive ()
 
     val mutable transition_length = transition_length
-    val mutable selected : selection option = None
+    val selected : selection option Atomic.t = Atomic.make None
+    method selected = Atomic.get selected
 
-    method set_selected v =
-      (match v with
-        | Some { child; effective_source } when effective_source != child.source
-          ->
-            effective_source#wake_up (self :> Clock.source)
-        | _ -> ());
-      (match selected with
-        | Some { child; effective_source } when effective_source != child.source
-          ->
-            effective_source#sleep (self :> Clock.source)
-        | _ -> ());
-      selected <- v
+    method exchange_selected v =
+      match Atomic.exchange selected v with
+        | Some { sleep } -> sleep ()
+        | _ -> ()
+
+    method set_selected ~predicate ~child effective_source =
+      let sleep =
+        if effective_source != child.source then (
+          let a = effective_source#wake_up (self :> Clock.source) in
+          fun () -> effective_source#sleep a)
+        else fun () -> ()
+      in
+      self#exchange_selected
+        (Some { predicate; child; effective_source; sleep })
+
+    initializer
+      self#on_sleep (fun () ->
+          match Atomic.exchange selected None with
+            | Some { sleep } -> sleep ()
+            | _ -> ())
 
     (* We cannot reselect the same source twice during a streaming cycle. *)
     val mutable excluded_sources = []
@@ -101,7 +127,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
     method private select ~reselect () =
       let may_select ~single s =
-        match selected with
+        match self#selected with
           | Some { child; effective_source } when child.source == s.source ->
               (not single) && self#can_reselect ~reselect effective_source
           | _ -> not (List.memq s excluded_sources)
@@ -122,13 +148,18 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
              (not s.source#fallible) && (not single) && trivially_true d)
            children)
 
-    method private replay_meta m source =
-      let new_source = new Replay_metadata.replay m source in
+    method private prepare_new_source source =
+      let new_source = new insert_initial_track_mark source in
       Typing.(new_source#frame_type <: self#frame_type);
-      new_source
+      match (source#last_metadata, replay_meta) with
+        | Some (_, m), true ->
+            let new_source = new Replay_metadata.replay m new_source in
+            Typing.(new_source#frame_type <: self#frame_type);
+            new_source
+        | _ -> new_source
 
     method get_source ~reselect () =
-      match selected with
+      match self#selected with
         | Some s
           when (track_sensitive () || satisfied s.predicate)
                && self#can_reselect
@@ -141,32 +172,18 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
             Some s.effective_source
         | _ -> (
             begin match
-              ( selected,
+              ( self#selected,
                 self#select
                 (* If we've returned the same source, it should be accepted now. *)
                   ~reselect:(match reselect with `Force -> `Ok | v -> v)
                   () )
             with
               | None, None -> ()
-              | Some _, None -> self#set_selected None
+              | Some _, None -> self#exchange_selected None
               | None, Some (predicate, c) ->
                   self#log#important "Switch to %s." c.source#id;
-                  let new_source =
-                    (* Force insertion of old metadata if relevant.
-                     * It can't be done in a static way: we need to start
-                     * pulling data to see if new metadata comes out, in case
-                     * the source was shared and kept streaming from somewhere
-                     * else (this is thanks to Frame.get_chunk).
-                     * A quicker hack might have been doable if there wasn't a
-                     * transition in between. *)
-                      match c.source#last_metadata with
-                      | Some (_, m) when replay_meta ->
-                          self#replay_meta m c.source
-                      | _ -> c.source
-                  in
-                  self#set_selected
-                    (Some
-                       { predicate; child = c; effective_source = new_source })
+                  let new_source = self#prepare_new_source c.source in
+                  self#set_selected ~predicate ~child:c new_source
               | Some old_selection, Some (_, c)
                 when old_selection.child.source == c.source ->
                   ()
@@ -179,19 +196,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                   self#log#important "Switch to %s with%s transition."
                     c.source#id
                     (if forget then " forgetful" else "");
-                  let new_source =
-                    (* Force insertion of old metadata if relevant.
-                     * It can't be done in a static way: we need to start
-                     * pulling data to see if new metadata comes out, in case
-                     * the source was shared and kept streaming from somewhere
-                     * else (this is thanks to Frame.get_chunk).
-                     * A quicker hack might have been doable if there wasn't a
-                     * transition in between. *)
-                      match c.source#last_metadata with
-                      | Some (_, m) when replay_meta ->
-                          self#replay_meta m c.source
-                      | _ -> c.source
-                  in
+                  let new_source = self#prepare_new_source c.source in
                   let s =
                     Lang.to_source
                       (Lang.apply c.transition
@@ -215,10 +220,9 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                       Typing.(s#frame_type <: self#frame_type);
                       (s :> Source.source))
                   in
-                  self#set_selected
-                    (Some { predicate; child = c; effective_source = s })
+                  self#set_selected ~predicate ~child:c s
             end;
-            match selected with
+            match self#selected with
               | Some s when s.effective_source#is_ready ->
                   excluded_sources <- s.child :: excluded_sources;
                   Some s.effective_source
@@ -226,24 +230,24 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
     method self_sync =
       ( Lazy.force self_sync_type,
-        match selected with
+        match self#selected with
           | Some s -> snd s.effective_source#self_sync
           | None -> None )
 
     method remaining =
-      match selected with None -> 0 | Some s -> s.effective_source#remaining
+      match self#selected with
+        | None -> 0
+        | Some s -> s.effective_source#remaining
 
     method abort_track =
-      match selected with
+      match self#selected with
         | Some s -> s.effective_source#abort_track
         | None -> ()
 
     method effective_source =
-      match selected with
+      match self#selected with
         | Some s -> s.effective_source#effective_source
         | None -> (self :> Source.source)
-
-    method selected = Option.map (fun { child } -> child.source) selected
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -267,7 +271,9 @@ let _ =
           value =
             (fun s ->
               Lang.val_fun [] (fun _ ->
-                  match s#selected with
+                  match
+                    Option.map (fun { child } -> child.source) s#selected
+                  with
                     | Some s -> Lang.source s
                     | None -> Lang.null));
         };
@@ -332,7 +338,6 @@ let _ =
       let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
       let tr = Lang.to_list (List.assoc "transitions" p) in
       let ltr = List.length tr in
-      let has_transitions = 0 < ltr in
       let tr =
         let l = List.length children in
         if ltr > l then
@@ -369,5 +374,5 @@ let _ =
                  "there should be exactly one flag per children" ))
       in
       new switch
-        ~replay_meta ~has_transitions ~override_meta ~all_predicates
-        ~transition_length:tl ~track_sensitive:ts children)
+        ~replay_meta ~override_meta ~all_predicates ~transition_length:tl
+        ~track_sensitive:ts children)

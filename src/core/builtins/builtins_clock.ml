@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,15 +23,15 @@
 let clock =
   Lang.add_builtin "clock" ~category:`Liquidsoap
     ~descr:"Decorate a clock with all its methods."
-    [("", Lang_source.ClockValue.base_t, None, None)]
-    Lang_source.ClockValue.t
-    (fun p -> Lang_source.ClockValue.(to_value (of_value (List.assoc "" p))))
+    [("", Lang_clock.ClockValue.base_t, None, None)]
+    Lang_clock.ClockValue.t
+    (fun p -> Lang_clock.ClockValue.(to_value (of_value (List.assoc "" p))))
 
 let _ =
   Lang.add_builtin ~base:clock "active" ~category:`Liquidsoap
     ~descr:"Return the list of clocks currently in use." []
-    (Lang.list_t Lang_source.ClockValue.t) (fun _ ->
-      Lang.list (List.map Lang_source.ClockValue.to_value (Clock.clocks ())))
+    (Lang.list_t Lang_clock.ClockValue.t) (fun _ ->
+      Lang.list (List.map Lang_clock.ClockValue.to_value (Clock.clocks ())))
 
 let _ =
   Lang.add_builtin ~base:clock "create" ~category:`Liquidsoap
@@ -56,7 +56,7 @@ let _ =
            `\"unsynced\"` or `\"passive\"`. Defaults to `\"auto\"`. Defaults \
            to: \"auto\"" );
     ]
-    Lang_source.ClockValue.t
+    Lang_clock.ClockValue.t
     (fun p ->
       let id = Lang.to_valued_option Lang.to_string (List.assoc "id" p) in
       let on_error = Lang.to_option (List.assoc "on_error" p) in
@@ -79,5 +79,5 @@ let _ =
                  "Invalid sync mode! Should be one of: `\"auto\"`, `\"CPU\"`, \
                   `\"unsynced\"` or `\"passive\"`" ))
       in
-      Lang_source.ClockValue.to_value
+      Lang_clock.ClockValue.to_value
         (Clock.create ~stack:(Lang.pos p) ?on_error ?id ~sync ()))

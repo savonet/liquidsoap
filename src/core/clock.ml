@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -112,7 +112,7 @@ type active_params = {
   frame_duration : Liq_time.t;
   max_latency : Liq_time.t;
   last_catchup_log : Liq_time.t Atomic.t;
-  outputs : source Queue.t;
+  outputs : (activation * source) Queue.t;
   active_sources : source WeakQueue.t;
   passive_sources : source WeakQueue.t;
   on_tick : (unit -> unit) Queue.t;
@@ -160,7 +160,7 @@ let meaningful_pending_id pending =
     | el :: _ -> Some el#id
     | _ -> None
 
-let _id { id; pending_activations } =
+let get_id ~pending_activations id =
   match
     ( Unifier.deref id,
       meaningful_pending_id (Queue.elements pending_activations) )
@@ -169,6 +169,7 @@ let _id { id; pending_activations } =
     | None, Some id -> id
     | _ -> "generic"
 
+let _id { id; pending_activations } = get_id ~pending_activations id
 let id c = _id (Unifier.deref c)
 let generate_id = Lang_string.generate_id ~category:"clock"
 
@@ -204,7 +205,11 @@ let _detach x s =
     | `Stopped _ -> ()
     | `Stopping { outputs; active_sources; passive_sources }
     | `Started { outputs; active_sources; passive_sources } ->
-        Queue.filter_out outputs (fun s' -> s == s');
+        Queue.filter_out outputs (fun (a, s') ->
+            if s == s' then (
+              s#sleep a;
+              true)
+            else false);
         WeakQueue.filter_out active_sources (fun s' -> s == s');
         WeakQueue.filter_out passive_sources (fun s' -> s == s')
 
@@ -218,7 +223,8 @@ let active_sources c =
 
 let outputs c =
   match Atomic.get (Unifier.deref c).state with
-    | `Started { outputs } | `Stopping { outputs } -> Queue.elements outputs
+    | `Started { outputs } | `Stopping { outputs } ->
+        List.map snd (Queue.elements outputs)
     | _ -> []
 
 let passive_sources c =
@@ -238,7 +244,7 @@ let sources c =
     | `Stopping { passive_sources; active_sources; outputs } ->
         WeakQueue.elements passive_sources
         @ WeakQueue.elements active_sources
-        @ Queue.elements outputs
+        @ List.map snd (Queue.elements outputs)
     | _ -> []
 
 (* Return the clock effective sync. Stopped clocks can
@@ -256,7 +262,7 @@ let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
 let rec _cleanup ~clock { outputs } =
-  Queue.iter outputs (fun o -> try o#sleep o with _ -> ());
+  Queue.iter outputs (fun (a, o) -> try o#sleep a with _ -> ());
   Queue.iter clock.sub_clocks stop;
   Queue.filter_out clocks (fun c -> Unifier.deref c == clock)
 
@@ -361,7 +367,7 @@ let () =
       Queue.iter clocks (fun c -> if sync c <> `Passive then stop c))
 
 let _animated_sources { outputs; active_sources } =
-  Queue.elements outputs @ WeakQueue.elements active_sources
+  List.map snd (Queue.elements outputs) @ WeakQueue.elements active_sources
 
 let _self_sync ~clock x =
   let self_sync_sources =
@@ -486,8 +492,8 @@ and _activate_pending_sources ~clock x =
          match s#source_type with
            | `Active _ -> WeakQueue.push x.active_sources s
            | `Output _ ->
-               s#wake_up s;
-               Queue.push x.outputs s
+               let a = s#wake_up (s :> source) in
+               Queue.push x.outputs (a, s)
            | `Passive -> WeakQueue.push x.passive_sources s));
   if 0 < pending_sources then (
     let total_sources =
@@ -512,11 +518,13 @@ and _activate_pending_sources ~clock x =
                 | `Active _ -> "active"
                 | `Output _ -> "output"
             in
-            Printf.sprintf "%s (%s)" s#id source_type)
-          (Queue.elements x.outputs
+            Printf.sprintf "%s (%s, activations: [%s])" s#id source_type
+              (String.concat ", " (List.map (fun s -> s#id) s#activations)))
+          (List.map snd (Queue.elements x.outputs)
           @ WeakQueue.elements x.active_sources
           @ WeakQueue.elements x.passive_sources)
       in
+      let ids = List.sort Stdlib.compare ids in
       x.log#important "Current sources: %s" (String.concat ", " ids)))
 
 and _tick ~clock x =
@@ -705,13 +713,15 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id
     ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
+  let id = Unifier.make (Option.map generate_id id) in
+  let pending_activations = Queue.create () in
   let c =
     Unifier.make
       {
-        id = Unifier.make (Option.map generate_id id);
+        id;
         controller = Unifier.make controller;
         stack = Atomic.make stack;
-        pending_activations = Queue.create ();
+        pending_activations;
         sub_clocks = Queue.create ();
         state = Atomic.make (`Stopped sync);
         on_error = on_error_queue;

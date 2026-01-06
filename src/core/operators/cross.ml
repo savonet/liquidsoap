@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -213,22 +213,31 @@ class cross val_source ~end_duration_getter ~override_end_duration
     (* The played source. We _need_ exclusive control on that source,
      * since we are going to pull data from it at a higher rate around
      * track limits. *)
-    val source = s
+    val mutable source = (None, s)
+    method private source = snd source
     method private prepare_source s = s#wake_up (self :> Clock.source)
 
     initializer
       self#on_wake_up (fun () ->
-          source#wake_up (self :> Clock.source);
-          self#reset_analysis)
+          let a, s = source in
+          assert (a = None);
+          source <- (Some (s#wake_up (self :> Clock.source)), s);
+          self#reset_analysis);
+      self#on_sleep (fun () ->
+          let a, s = source in
+          s#sleep (Option.get a);
+          source <- (None, s))
 
     val mutable status
-        : [ `Idle | `Before of Source.source | `After of Source.source ] =
+        : [ `Idle
+          | `Before of Clock.activation * Source.source
+          | `After of Clock.activation * Source.source ] =
       `Idle
 
     method set_status v =
       (match status with
         | `Idle -> ()
-        | `Before s | `After s -> s#sleep (self :> Clock.source));
+        | `Before (a, s) | `After (a, s) -> s#sleep a);
       status <- v
 
     method! child_clock_controller =
@@ -316,36 +325,38 @@ class cross val_source ~end_duration_getter ~override_end_duration
 
     method private prepare_before =
       self#log#info "Buffering end of track...";
-      let before = new consumer ~clock:source#clock gen_before in
+      let before = new consumer ~clock:self#source#clock gen_before in
       Typing.(before#frame_type <: self#frame_type);
-      self#prepare_source before;
-      self#set_status (`Before (before :> Source.source));
+      let a = self#prepare_source before in
+      self#set_status (`Before (a, (before :> Source.source)));
       self#buffer_before ~is_first:true ();
       match status with
-        | `After s | `Before s -> if s#is_ready then Some s else None
+        | `After (_, s) | `Before (_, s) -> if s#is_ready then Some s else None
         | _ -> assert false
 
     method private get_source ~reselect () =
       let reselect = match reselect with `Force -> `Ok | _ -> reselect in
       match status with
-        | `Idle when source#is_ready -> self#prepare_before
+        | `Idle when self#source#is_ready -> self#prepare_before
         | `Idle -> None
         | `Before _ -> (
             self#buffer_before ~is_first:false ();
             match status with
               | `Idle -> assert false
-              | `Before before_source
+              | `Before (_, before_source)
                 when self#can_reselect ~reselect before_source ->
                   Some before_source
               | `Before _ -> None
-              | `After after_source -> Some after_source)
-        | `After after_source when self#can_reselect ~reselect after_source ->
+              | `After (_, after_source) -> Some after_source)
+        | `After (_, after_source) when self#can_reselect ~reselect after_source
+          ->
             Some after_source
         | `After _ -> self#prepare_before
 
     method private buffer_before ~is_first () =
-      if Generator.length gen_before < end_main_duration && source#is_ready then (
-        let buf_frame = self#child_get ~is_first source in
+      if Generator.length gen_before < end_main_duration && self#source#is_ready
+      then (
+        let buf_frame = self#child_get ~is_first self#source in
         self#append `Before buf_frame;
         (* Analyze them *)
         let pcm = AFrame.pcm buf_frame in
@@ -376,9 +387,9 @@ class cross val_source ~end_duration_getter ~override_end_duration
         let expected_start_duration = self#expected_start_duration in
         if
           Generator.length gen_after < expected_start_duration
-          && source#is_ready
+          && self#source#is_ready
         then (
-          let buf_frame = self#child_get ~is_first source in
+          let buf_frame = self#child_get ~is_first self#source in
           self#append `After buf_frame;
           if Generator.length gen_after <= rms_width then (
             let pcm = AFrame.pcm buf_frame in
@@ -466,7 +477,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
             let head_gen =
               Generator.create ~content:head (Generator.content_type gen_before)
             in
-            let s = new consumer ~clock:source#clock head_gen in
+            let s = new consumer ~clock:self#source#clock head_gen in
             s#set_id (self#id ^ "_before_head");
             Typing.(s#frame_type <: self#frame_type);
             Some s)
@@ -475,7 +486,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
         let before =
           new Replay_metadata.replay
             before_metadata
-            (new consumer ~clock:source#clock gen_before)
+            (new consumer ~clock:self#source#clock gen_before)
         in
         Typing.(before#frame_type <: self#frame_type);
         let after_tail =
@@ -486,7 +497,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
             in
             let tail_gen = gen_after in
             gen_after <- head_gen;
-            let s = new consumer ~clock:source#clock tail_gen in
+            let s = new consumer ~clock:self#source#clock tail_gen in
             Typing.(s#frame_type <: self#frame_type);
             s#set_id (self#id ^ "_after_tail");
             Some s)
@@ -495,7 +506,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
         let after =
           new Replay_metadata.replay
             after_metadata
-            (new consumer ~clock:source#clock gen_after)
+            (new consumer ~clock:self#source#clock gen_after)
         in
         Typing.(after#frame_type <: self#frame_type);
         before#set_id (self#id ^ "_before");
@@ -541,29 +552,29 @@ class cross val_source ~end_duration_getter ~override_end_duration
         Typing.(compound#frame_type <: self#frame_type);
         compound
       in
-      self#prepare_source compound;
+      let a = self#prepare_source compound in
       self#reset_analysis;
-      self#set_status (`After compound)
+      self#set_status (`After (a, compound))
 
     method remaining =
       match status with
-        | `Idle -> source#remaining
-        | `Before s -> (
-            match (s#remaining, source#remaining) with
+        | `Idle -> self#source#remaining
+        | `Before (_, s) -> (
+            match (s#remaining, self#source#remaining) with
               | -1, _ | _, -1 -> -1
               | r, r' -> r + r')
-        | `After s -> s#remaining
+        | `After (_, s) -> s#remaining
 
     method effective_source =
       match status with
-        | `Idle -> source#effective_source
-        | `Before s | `After s -> s#effective_source
+        | `Idle -> self#source#effective_source
+        | `Before (_, s) | `After (_, s) -> s#effective_source
 
     method abort_track =
       match status with
-        | `Idle -> source#abort_track
+        | `Idle -> self#source#abort_track
         | `Before s | `After s ->
-            source#abort_track;
+            self#source#abort_track;
             status <- `After s;
             ignore self#prepare_before
   end

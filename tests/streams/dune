@@ -237,17 +237,17 @@
    ./crossfade-plot.liq)))
 
 (rule
- (alias citest)
+ (alias crossfade-plot)
  (action
   (diff crossfade-plot.png crossfade-plot.png.gen)))
 
 (rule
- (alias citest)
+ (alias crossfade-plot)
  (action
   (diff crossfade-plot.old.txt crossfade-plot.old.txt.gen)))
 
 (rule
- (alias citest)
+ (alias crossfade-plot)
  (action
   (diff crossfade-plot.new.txt crossfade-plot.new.txt.gen)))
 
@@ -283,47 +283,47 @@
    ./autocue-plot.liq)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.0.png autocue-plot.0.png.gen)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.0.old.txt autocue-plot.0.old.txt.gen)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.0.new.txt autocue-plot.0.new.txt.gen)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.1.png autocue-plot.1.png.gen)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.1.old.txt autocue-plot.1.old.txt.gen)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.1.new.txt autocue-plot.1.new.txt.gen)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.2.png autocue-plot.2.png.gen)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.2.old.txt autocue-plot.2.old.txt.gen)))
 
 (rule
- (alias citest)
+ (alias autocue-plot)
  (action
   (diff autocue-plot.2.new.txt autocue-plot.2.new.txt.gen)))
 
@@ -539,3 +539,14 @@
    -i
    "sine=frequency=220:duration=1"
    %{target})))
+
+(alias
+ (name plot)
+ (deps
+  (alias crossfade-plot)
+  (alias autocue-plot)))
+
+(alias
+ (name citest)
+ (deps
+  (alias plot)))

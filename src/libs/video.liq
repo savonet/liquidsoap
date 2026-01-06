@@ -207,10 +207,11 @@ end
 # @param s Audio source whose metadata contain cover-art.
 def video.cover(s) =
   last_filename = ref(null)
-  fail = (source.fail() : source)
+  last_metadata = source.methods(s).last_metadata
+  b = (blank() : source)
 
   def next() =
-    m = source.methods((s ?? fail)).last_metadata() ?? []
+    m = last_metadata() ?? []
 
     filename = m["filename"]
 
@@ -223,21 +224,22 @@ def video.cover(s) =
         if file.exists(filename) then file.cover(filename) else "".{mime=""} end
 
       if
-        null.defined(cover)
+        null.defined(cover) and null.get(cover) != ""
       then
         cover = null.get(cover)
-        ext = if cover.mime == "image/png" then ".png" else ".jpg" end
-        f = file.temp("cover", ext)
+        extname =
+          (null.defined(cover.mime) ? file.mime.extension(null.get(cover.mime)) : null ) ?? ".osb"
+        f = file.temp("cover", extname)
         log.debug(
           "Found cover for #{filename}."
         )
         file.write(data=cover, f)
-        request.once(request.create(temporary=true, f))
+        request.once(request.create(temporary=false, f))
       else
         log.debug(
           "No cover for #{filename}."
         )
-        fail
+        b
       end
     else
       null

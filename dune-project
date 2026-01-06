@@ -12,6 +12,7 @@
 
 (version 2.4.1)
 (generate_opam_files true)
+(subst disabled)
 (opam_file_location inside_opam_directory)
 (executables_implicit_empty_intf true)
 
@@ -84,7 +85,7 @@
     (dssi (< 0.1.3))
     (faad (< 0.5.0))
     (fdkaac (< 0.3.1))
-    (ffmpeg (< 1.2.5))
+    (ffmpeg (< 1.2.8))
     (ffmpeg-avutil (< 1.2.5))
     (flac (< 1.0.0))
     (frei0r (< 0.1.0))
