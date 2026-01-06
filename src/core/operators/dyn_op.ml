@@ -28,8 +28,8 @@ type activation_map = {
 module ActivationMap = Weak.Make (struct
   type t = activation_map
 
-  let equal { s } { s = s' } = s#hash == s'#hash
-  let hash { s } = s#hash
+  let equal { s } { s = s' } = s == s'
+  let hash { s } = Oo.id s
 end)
 
 class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
