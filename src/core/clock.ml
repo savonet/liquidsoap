@@ -463,7 +463,6 @@ let started c =
     | `Stopped _ -> false
 
 let wrap_errors clock fn s =
-  check_stopped ();
   try fn s
   with exn when exn <> Has_stopped ->
     let bt = Printexc.get_raw_backtrace () in
@@ -489,6 +488,7 @@ and _activate_pending_sources ~clock x =
   let pending_sources = Queue.length clock.pending_activations in
   Queue.flush_iter clock.pending_activations
     (wrap_errors clock (fun s ->
+         check_stopped ();
          match s#source_type with
            | `Active _ -> WeakQueue.push x.active_sources s
            | `Output _ ->
@@ -535,6 +535,7 @@ and _tick ~clock x =
   let sources = _animated_sources x in
   List.iter
     (wrap_errors clock (fun s ->
+         check_stopped ();
          match s#source_type with
            | `Output s | `Active s -> s#output
            | _ -> assert false))
@@ -606,9 +607,7 @@ and _can_start ?(force = false) clock =
         match s#source_type with `Output _ -> true | _ -> false)
   in
   let can_start =
-    Unifier.deref clock.controller = `None
-    && (not (Atomic.get global_stop))
-    && (force || Atomic.get clocks_started)
+    (not (Atomic.get global_stop)) && (force || Atomic.get clocks_started)
   in
   match (can_start, has_output, Atomic.get clock.state) with
     | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
