@@ -229,7 +229,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       method virtual get_mime_type : string option
     end
 
-  type sources = (string, source) Hashtbl.t
+  type sources = (string, source) Concurrent_hashtbl.t
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
   type source_type = [ `Put | `Post | `Source | `Xaudiocast | `Shout ]
 
@@ -319,11 +319,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     fds : Unix.file_descr list;
   }
 
-  let opened_ports : (int, open_port) Hashtbl.t = Hashtbl.create 1
-  let find_handler = Hashtbl.find opened_ports
+  let opened_ports : (int, open_port) Concurrent_hashtbl.t =
+    Concurrent_hashtbl.create 1
+
+  let find_handler = Concurrent_hashtbl.find opened_ports
 
   let find_source mount port =
-    Hashtbl.find (find_handler port).handler.sources mount
+    Concurrent_hashtbl.find (find_handler port).handler.sources mount
 
   exception Assoc of string
 
@@ -717,19 +719,25 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           in
           let* () = exec_http_auth_check ~args ~login:s#login h headers in
           let* () =
-            if
-              not
-                (List.mem
-                   (Option.value ~default:"" s#get_mime_type)
-                   conf_icy_metadata#get)
-            then (
-              log#info
-                "Returned 405 for '%s': Source format does not support ICY \
-                 metadata update"
-                uri;
-              simple_reply
-                (http_error_page 405 "Method Not Allowed" "Method Not Allowed"))
-            else Duppy.Monad.return ()
+            match s#get_mime_type with
+              | None ->
+                  log#critical
+                    "No mime-type found for source at %s, this should not \
+                     happen!"
+                    uri;
+                  simple_reply
+                    (http_error_page 500 "Internal Server Error"
+                       "Internal Server Error")
+              | Some f when List.mem f conf_icy_metadata#get ->
+                  Duppy.Monad.return ()
+              | Some f ->
+                  log#info
+                    "Returned 405 for '%s': Source format %s does not support \
+                     ICY metadata update"
+                    uri f;
+                  simple_reply
+                    (http_error_page 405 "Method Not Allowed"
+                       "Method Not Allowed")
           in
           Hashtbl.remove args "mount";
           Hashtbl.remove args "mode";
@@ -1134,7 +1142,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
      creates the handlers when they are missing. *)
   let get_handler ~pos ~transport ~icy port =
     try
-      let { handler; fds; transport = t } = Hashtbl.find opened_ports port in
+      let { handler; fds; transport = t } =
+        Concurrent_hashtbl.find opened_ports port
+      in
       if transport#name <> t#name then
         Lang.raise_error ~pos
           ~message:"Port is already opened with a different transport" "http";
@@ -1142,7 +1152,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
        * we need to open a second one. *)
       if List.length fds = 1 && icy then (
         let fds = open_port ~transport ~icy (port + 1) :: fds in
-        Hashtbl.replace opened_ports port { handler; fds; transport })
+        Concurrent_hashtbl.replace opened_ports port { handler; fds; transport })
       else ();
       handler
     with Not_found ->
@@ -1152,8 +1162,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let fds =
         if icy then open_port ~transport ~icy (port + 1) :: fds else fds
       in
-      let handler = { sources = Hashtbl.create 1; http = Atomic.make [] } in
-      Hashtbl.replace opened_ports port { handler; fds; transport };
+      let handler =
+        { sources = Concurrent_hashtbl.create 1; http = Atomic.make [] }
+      in
+      Concurrent_hashtbl.replace opened_ports port { handler; fds; transport };
       handler
 
   (* Add sources... This is tied up to sources lifecycle so
@@ -1161,22 +1173,22 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let add_source ~pos ~transport ~port ~mountpoint ~icy source =
     let sources =
       let handler = get_handler ~pos ~transport ~icy port in
-      if Hashtbl.mem handler.sources mountpoint then
+      if Concurrent_hashtbl.mem handler.sources mountpoint then
         Lang.raise_error ~pos ~message:"Mountpoint is already taken!" "http"
       else ();
       handler.sources
     in
     log#important "Adding mountpoint '%s' on port %i" mountpoint port;
-    Hashtbl.replace sources mountpoint source
+    Concurrent_hashtbl.replace sources mountpoint source
 
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =
-    let { handler; fds; _ } = Hashtbl.find opened_ports port in
-    assert (Hashtbl.mem handler.sources mountpoint);
+    let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
+    assert (Concurrent_hashtbl.mem handler.sources mountpoint);
     log#important "Removing mountpoint '%s' on port %i" mountpoint port;
-    Hashtbl.remove handler.sources mountpoint;
+    Concurrent_hashtbl.remove handler.sources mountpoint;
     if
-      Hashtbl.length handler.sources = 0
+      Concurrent_hashtbl.length handler.sources = 0
       && List.length (Atomic.get handler.http) = 0
     then (
       log#important "Nothing more on port %i: closing sockets." port;
@@ -1185,7 +1197,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Unix.close in_s
       in
       List.iter f fds;
-      Hashtbl.remove opened_ports port)
+      Concurrent_hashtbl.remove opened_ports port)
     else ()
 
   (* Add http_handler... *)
@@ -1202,7 +1214,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (* Remove http_handler. *)
   let remove_http_handler ~port ~verb ~uri () =
     let exec () =
-      let { handler; fds; _ } = Hashtbl.find opened_ports port in
+      let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
       let suri = Lang.descr_of_regexp uri in
       let handlers, removed =
         List.partition
@@ -1214,7 +1226,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           (string_of_verb verb) suri port;
       Atomic.set handler.http handlers;
       if
-        Hashtbl.length handler.sources = 0
+        Concurrent_hashtbl.length handler.sources = 0
         && List.length (Atomic.get handler.http) = 0
       then (
         log#info "Nothing more on port %i: closing sockets." port;
@@ -1223,7 +1235,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Unix.close in_s
         in
         List.iter f fds;
-        Hashtbl.remove opened_ports port)
+        Concurrent_hashtbl.remove opened_ports port)
       else ()
     in
     Server.on_start exec

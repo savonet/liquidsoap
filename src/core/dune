@@ -71,6 +71,7 @@
   compand
   compress
   compress_exp
+  concurrent_hashtbl
   content
   content_audio
   content_pcm_base

@@ -46,7 +46,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     val mutable relay_read = fun _ _ _ -> assert false
 
     val mutable create_decoder = fun _ -> assert false
-    val mutable mime_type = None
+    val mime_type = Atomic.make None
     val mutable dump = None
     val mutable logf = None
     val mutable on_connect = []
@@ -89,7 +89,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         (try Frame.Metadata.find "title" m with _ -> "?");
       Generator.add_metadata self#buffer m
 
-    method get_mime_type = mime_type
+    method get_mime_type = Atomic.get mime_type
 
     method feed =
       self#log#important "Decoding...";
@@ -187,7 +187,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
               (decoder args, buffer)
             in
             create_decoder <- decoder;
-            mime_type <- Some mime
+            Atomic.set mime_type (Some mime)
         | None -> raise Harbor.Unknown_codec
 
     method relay stype (headers : (string * string) list) ?(read = Harbor.read)
