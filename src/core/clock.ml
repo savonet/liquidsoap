@@ -261,19 +261,21 @@ let sync c = _sync (Unifier.deref c)
 let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
-let rec _cleanup ~clock { outputs } =
-  Queue.iter outputs (fun (a, o) -> try o#sleep a with _ -> ());
+let rec has_stopped ~clear_controller ~clock ~c x =
+  Queue.iter x.outputs (fun (a, o) -> try o#sleep a with _ -> ());
   Queue.iter clock.sub_clocks stop;
-  Queue.filter_out clocks (fun c -> Unifier.deref c == clock)
+  Queue.filter_out clocks (fun c -> Unifier.deref c == clock);
+  if clear_controller then Unifier.set clock.controller `None;
+  Atomic.set clock.state (`Stopped x.sync);
+  WeakQueue.push pending_clocks c;
+  x.log#important "Clock stopped"
 
 and stop c =
   let clock = Unifier.deref c in
   match Atomic.get clock.state with
     | `Stopped _ | `Stopping _ -> ()
     | `Started ({ sync = `Passive } as x) ->
-        _cleanup ~clock x;
-        x.log#important "Clock stopped";
-        Atomic.set clock.state (`Stopped `Passive)
+        has_stopped ~clear_controller:false ~clock ~c x
     | `Started x ->
         x.log#important "Clock stopping";
         Atomic.set clock.state (`Stopping x)
@@ -554,7 +556,7 @@ and _tick ~clock x =
   _after_tick ~self_sync x;
   check_stopped ()
 
-and _clock_thread ~clock x =
+and _clock_thread ~clock ~c x =
   let has_sources_to_process () =
     0 < Queue.length clock.pending_activations
     || 0 < Queue.length x.outputs
@@ -579,8 +581,7 @@ and _clock_thread ~clock x =
         [] reasons
     in
     x.log#important "Clock thread has stopped: %s." (String.concat ", " reasons);
-    _cleanup ~clock x;
-    Atomic.set clock.state (`Stopped x.sync)
+    has_stopped ~clear_controller:true ~clock ~c x
   in
   let run () =
     try
@@ -613,7 +614,7 @@ and _can_start ?(force = false) clock =
         `True sync
     | _ -> `False
 
-and _start ?force ~sync clock =
+and _start ?force ~sync ~c clock =
   _set_id clock (_id clock);
   let id = _id clock in
   let sources =
@@ -675,7 +676,7 @@ and _start ?force ~sync clock =
   Queue.iter clock.sub_clocks (fun c -> start ?force c);
   Atomic.set clock.state (`Started x);
   if sync <> `Passive then (
-    let th = _clock_thread ~clock x in
+    let th = _clock_thread ~clock ~c x in
     match _controller with
       | `None ->
           let controller =
@@ -689,7 +690,7 @@ and _start ?force ~sync clock =
 and start ?force c =
   let clock = Unifier.deref c in
   match _can_start ?force clock with
-    | `True sync -> _start ?force ~sync clock
+    | `True sync -> _start ?force ~sync ~c clock
     | `False -> ()
 
 let add_pending_clock =
@@ -700,7 +701,7 @@ let add_pending_clock =
     let clock = Unifier.deref c in
     match _can_start clock with
       | `True sync when sync <> `Passive ->
-          _start ~sync clock;
+          _start ~sync ~c clock;
           Queue.push clocks c
       | _ -> ()
   in
@@ -747,7 +748,7 @@ let start_pending () =
             match _can_start clock with
               | `True `Passive -> ()
               | `True sync ->
-                  _start ~sync clock;
+                  _start ~sync ~c clock;
                   Queue.push clocks c
               | `False -> WeakQueue.push pending_clocks c)
         | _ -> ())
