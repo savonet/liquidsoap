@@ -172,7 +172,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
         (* Output that frame if it has some data *)
         if Frame.position data > 0 then self#send_frame data;
         if Frame.is_partial data then (
-          if not self#fallible then (
+          if self#is_ready && not self#fallible then (
             self#log#critical "Infallible source produced a partial frame!";
             assert false);
           self#log#info "Source ended (no more tracks) stopping output...";
