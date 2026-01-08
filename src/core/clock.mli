@@ -74,7 +74,7 @@ type source =
   ; get_frame : Frame.t >
 
 type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
-type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
+type sync_mode = [ active_sync_mode | `Pending | `Terminating | `Terminated ]
 
 val string_of_sync_mode : sync_mode -> string
 val active_sync_mode_of_string : string -> active_sync_mode

@@ -23,11 +23,12 @@
 include Clock_base
 
 type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
-type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
+type sync_mode = [ active_sync_mode | `Pending | `Terminating | `Terminated ]
 
 let string_of_sync_mode = function
-  | `Stopped -> "stopped"
-  | `Stopping -> "stopping"
+  | `Pending -> "pending"
+  | `Terminating -> "terminating"
+  | `Terminated -> "terminated"
   | `Automatic -> "auto"
   | `CPU -> "cpu"
   | `Unsynced -> "none"
@@ -120,10 +121,13 @@ type active_params = {
   ticks : int Atomic.t;
 }
 
+type terminated = { ticks : int }
+
 type state =
-  [ `Stopping of active_params
+  [ `Pending of active_sync_mode
   | `Started of active_params
-  | `Stopped of active_sync_mode ]
+  | `Terminating of active_params
+  | `Terminated of terminated ]
 
 type clock = {
   id : string option Unifier.t;
@@ -139,9 +143,10 @@ and t = clock Unifier.t
 and controller = [ `None | `Clock of t | `Other of string * < id : string > ]
 
 let string_of_state = function
-  | `Stopping _ -> "stopping"
+  | `Pending _ -> "pending"
   | `Started _ -> "started"
-  | `Stopped _ -> "stopped"
+  | `Terminating _ -> "stopping"
+  | `Terminated _ -> "terminated"
 
 let meaningful_pending_id pending =
   match
@@ -202,8 +207,8 @@ let attach c s =
 let _detach x s =
   Queue.filter_out x.pending_activations (fun s' -> s == s');
   match Atomic.get x.state with
-    | `Stopped _ -> ()
-    | `Stopping { outputs; active_sources; passive_sources }
+    | `Terminated _ | `Pending _ -> ()
+    | `Terminating { outputs; active_sources; passive_sources }
     | `Started { outputs; active_sources; passive_sources } ->
         Queue.filter_out outputs (fun (a, s') ->
             if s == s' then (
@@ -217,19 +222,19 @@ let detach c s = _detach (Unifier.deref c) s
 
 let active_sources c =
   match Atomic.get (Unifier.deref c).state with
-    | `Started { active_sources } | `Stopping { active_sources } ->
+    | `Started { active_sources } | `Terminating { active_sources } ->
         WeakQueue.elements active_sources
     | _ -> []
 
 let outputs c =
   match Atomic.get (Unifier.deref c).state with
-    | `Started { outputs } | `Stopping { outputs } ->
+    | `Started { outputs } | `Terminating { outputs } ->
         List.map snd (Queue.elements outputs)
     | _ -> []
 
 let passive_sources c =
   match Atomic.get (Unifier.deref c).state with
-    | `Started { passive_sources } | `Stopping { passive_sources } ->
+    | `Started { passive_sources } | `Terminating { passive_sources } ->
         WeakQueue.elements passive_sources
     | _ -> []
 
@@ -241,20 +246,21 @@ let sources c =
   @
     match Atomic.get clock.state with
     | `Started { passive_sources; active_sources; outputs }
-    | `Stopping { passive_sources; active_sources; outputs } ->
+    | `Terminating { passive_sources; active_sources; outputs } ->
         WeakQueue.elements passive_sources
         @ WeakQueue.elements active_sources
         @ List.map snd (Queue.elements outputs)
     | _ -> []
 
-(* Return the clock effective sync. Stopped clocks can
-   be unified with any active type clocks so [`Stopped _] returns
-   [`Stopped]. *)
+(* Return the clock effective sync. Pending clocks can
+   be unified with any active type clocks so [`Pending _] returns
+   [`Pending]. *)
 let _sync ?(pending = false) x =
   match Atomic.get x.state with
-    | `Stopped p when pending -> (p :> sync_mode)
-    | `Stopped _ -> `Stopped
-    | `Stopping _ -> `Stopping
+    | `Pending p when pending -> (p :> sync_mode)
+    | `Pending _ -> `Pending
+    | `Terminating _ -> `Terminating
+    | `Terminated _ -> `Terminated
     | `Started { sync } -> (sync :> sync_mode)
 
 let sync c = _sync (Unifier.deref c)
@@ -269,14 +275,14 @@ let rec _cleanup ~clock { outputs } =
 and stop c =
   let clock = Unifier.deref c in
   match Atomic.get clock.state with
-    | `Stopped _ | `Stopping _ -> ()
+    | `Pending _ | `Terminating _ | `Terminated _ -> ()
     | `Started ({ sync = `Passive } as x) ->
         _cleanup ~clock x;
         x.log#important "Clock stopped";
-        Atomic.set clock.state (`Stopped `Passive)
+        Atomic.set clock.state (`Terminated { ticks = Atomic.get x.ticks })
     | `Started x ->
         x.log#important "Clock stopping";
-        Atomic.set clock.state (`Stopping x)
+        Atomic.set clock.state (`Terminating x)
 
 let clocks_started = Atomic.make false
 let global_stop = Atomic.make false
@@ -289,7 +295,7 @@ let _descr clock =
   Printf.sprintf "clock(id=%s,sync=%s%s)" (_id clock)
     (string_of_sync_mode (_sync clock))
     (match Atomic.get clock.state with
-      | `Stopped pending ->
+      | `Pending pending ->
           Printf.sprintf ",pending=%s"
             (string_of_sync_mode (pending :> sync_mode))
       | _ -> "")
@@ -349,11 +355,11 @@ let unify =
             });
     match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
       | true, _, _ -> ()
-      | _, `Stopped s, `Stopped s' when s = s' -> _unify ~pos c c'
-      | _, `Stopped s, _
+      | _, `Pending s, `Pending s' when s = s' -> _unify ~pos c c'
+      | _, `Pending s, _
         when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
           _unify ~pos c c'
-      | _, _, `Stopped s'
+      | _, _, `Pending s'
         when s' = `Automatic || _sync ~pending:true _c = (s' :> sync_mode) ->
           _unify ~pos c' c
       | _ ->
@@ -401,8 +407,9 @@ let _self_sync ~clock x =
 
 let ticks c =
   match Atomic.get (Unifier.deref c).state with
-    | `Stopped _ -> 0
-    | `Stopping { ticks } | `Started { ticks } -> Atomic.get ticks
+    | `Pending _ -> 0
+    | `Terminating { ticks } | `Started { ticks } -> Atomic.get ticks
+    | `Terminated { ticks } -> ticks
 
 let _time { time_implementation; frame_duration; ticks } =
   let module Time = (val time_implementation : Liq_time.T) in
@@ -459,8 +466,9 @@ let _after_tick ~self_sync x =
 
 let started c =
   match Atomic.get (Unifier.deref c).state with
-    | `Stopping _ | `Started _ -> true
-    | `Stopped _ -> false
+    | `Terminating _ | `Started _ -> true
+    | `Pending _ -> false
+    | `Terminated _ -> raise Has_stopped
 
 let wrap_errors clock fn s =
   check_stopped ();
@@ -479,7 +487,7 @@ let wrap_errors clock fn s =
 
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
-    | `Stopping s | `Started s -> s
+    | `Terminating s | `Started s -> s
     | _ when Atomic.get global_stop -> raise Has_stopped
     | s ->
         log#critical "Clock %s has invalid state: %s" (id c) (string_of_state s);
@@ -580,7 +588,7 @@ and _clock_thread ~clock x =
     in
     x.log#important "Clock thread has stopped: %s." (String.concat ", " reasons);
     _cleanup ~clock x;
-    Atomic.set clock.state (`Stopped x.sync)
+    Atomic.set clock.state (`Terminated { ticks = Atomic.get x.ticks })
   in
   let run () =
     try
@@ -609,7 +617,7 @@ and _can_start ?(force = false) clock =
     (not (Atomic.get global_stop)) && (force || Atomic.get clocks_started)
   in
   match (can_start, has_output, Atomic.get clock.state) with
-    | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
+    | true, _, `Pending (`Passive as sync) | true, true, `Pending sync ->
         `True sync
     | _ -> `False
 
@@ -722,7 +730,7 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id
         stack = Atomic.make stack;
         pending_activations;
         sub_clocks = Queue.create ();
-        state = Atomic.make (`Stopped sync);
+        state = Atomic.make (`Pending sync);
         on_error = on_error_queue;
       }
   in
@@ -743,7 +751,7 @@ let start_pending () =
   List.iter
     (fun (c, clock) ->
       match Atomic.get clock.state with
-        | `Stopped _ -> (
+        | `Pending _ -> (
             match _can_start clock with
               | `True `Passive -> ()
               | `True sync ->
