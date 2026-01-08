@@ -100,6 +100,7 @@ and var = {
 
 and invar =
   | Free of var  (** the variable is free *)
+  | Typeof of t Lazy.t
   | Link of variance * t  (** the variable has bee substituted *)
 
 (** A type scheme (i.e. a type with universally quantified variables). *)
@@ -192,7 +193,10 @@ let make ?pos d = { pos; descr = d }
     by instantiations. One should (almost) never work on a non-dereferenced
     type. *)
 let rec deref t =
-  match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
+  match t.descr with
+    | Var { contents = Link (_, t) } -> deref t
+    | Var { contents = Typeof t } -> deref (Lazy.force t)
+    | _ -> t
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
@@ -290,6 +294,8 @@ let var ?(constraints = []) ?(level = max_int) ?pos () =
   make ?pos
     (Var { id = var_id (); contents = Free { name; level; constraints } })
 
+let typeof ?pos v = make ?pos (Var { id = var_id (); contents = Typeof v })
+
 module Fresh = struct
   type mapper = {
     level : int option;
@@ -346,6 +352,12 @@ module Fresh = struct
               map t' )
       | Arrow (args, t) ->
           Arrow (List.map (fun (b, s, t) -> (b, s, map t)) args, map t)
+      | Var { contents = Typeof t } ->
+          Var
+            {
+              id = var_id ();
+              contents = Typeof (Lazy.from_fun (fun () -> map (Lazy.force t)));
+            }
       (* Here we keep all links. While it could be tempting to deref,
          we are using links to compute type supremum in type unification
          so we are better off keeping them. Also, we need to create fresh

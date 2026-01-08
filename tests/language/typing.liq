@@ -230,6 +230,16 @@ def f() =
 
   # Allow float params.
   s = (sine() : source(audio=pcm(5.1)))
+
+  # Test typeof
+  x = {foo=123, gni="aabb", blo={bli=12.3}}
+  v = json.stringify(x)
+  let json.parse (y : typeof x) = v
+  if x != y then test.fail() end
+
+  let json.parse (y : typeof {foo=123, gni="aabb", blo={bli=12.3}}) = v
+  if x != y then test.fail() end
+
   test.pass()
 end
 

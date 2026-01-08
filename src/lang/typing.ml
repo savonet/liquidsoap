@@ -70,7 +70,7 @@ let filter_vars f t =
       | Arrow (p, t) -> aux (List.fold_left (fun l (_, _, t) -> aux l t) l p) t
       | Var { contents = Free var } ->
           if f var && not (List.exists (Var.eq var) l) then var :: l else l
-      | Var { contents = Link _ } -> assert false
+      | Var { contents = Typeof _ } | Var { contents = Link _ } -> assert false
   in
   aux [] t
 
@@ -127,6 +127,7 @@ let occur_check (a : var) =
     | { descr = Var { contents = Free x } } as b ->
         if Type.Var.eq a x then raise (Occur_check (a, b));
         x.level <- min a.level x.level
+    | { descr = Var { contents = Typeof t } } -> occur_check (Lazy.force t)
     | { descr = Var { contents = Link (_, b) } } -> occur_check b
   in
   occur_check
