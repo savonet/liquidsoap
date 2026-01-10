@@ -38,6 +38,10 @@ jobs:
           mkdir -p /tmp/${{ github.run_number }}/core
           chown -R opam /tmp/${{ github.run_number }}/core
           echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
+      - name: Checkout actions
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          sparse-checkout: .github/actions
       - name: Checkout code
         uses: ./.github/actions/checkout-liquidsoap
         with:
