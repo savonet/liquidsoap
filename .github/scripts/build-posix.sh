@@ -42,7 +42,7 @@ echo "::group::Setting up specific dependencies"
 opam update
 opam pin -y add re 1.13.2
 opam upgrade -y posix-socket
-opam install -y --deps-only --with-doc .
+opam install -y --deps-only --with-doc --assume-depexts .
 
 cd /tmp/liquidsoap-full/liquidsoap
 
