@@ -125,7 +125,7 @@ jobs:
         uses: savonet/artifact-upload-docker-action@ba9fb728e1d98b6864c16cd019047706bf9122de
         with:
           name: alpine-${{ matrix.platform }}-packages
-          path: /tmp/${{ github.run_number }}/alpine
+          path: /github/workspace/${{ github.run_number }}/alpine
       - name: Cleanup
         if: ${{ always() }}
         run: |
