@@ -36,9 +36,8 @@ jobs:
       - name: Build JS
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          eval "$(opam config env)"
-          opam update
-          sudo -u opam -E dune build --profile release src/js
+          sudo -u opam -E opam update
+          sudo -u opam -E opam exec -- dune build --profile release src/js
       - name: Upload JS artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
