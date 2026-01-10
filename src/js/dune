@@ -3,6 +3,8 @@
   (flags
    (:standard -w -7-9 -warn-error -33))))
 
+(data_only_dirs .scripts)
+
 (library
  (name liquidsoap_js)
  (public_name liquidsoap-js)
@@ -18,6 +20,20 @@
  (files index.html)
  (section share)
  (package liquidsoap-js))
+
+(rule
+ (target playground.bundle.js)
+ (enabled_if %{bin-available:npm})
+ (deps .scripts/bundle-playground.sh)
+ (action
+  (run sh %{deps} %{target})))
+
+(rule
+ (target playground.bundle.js)
+ (enabled_if
+  (not %{bin-available:npm}))
+ (action
+  (write-file %{target} "console.error('Playground bundle not available - npm was not installed during build');")))
 
 (executable
  (name interactive_js)
@@ -45,3 +61,9 @@
   (glob_files ../libs/*.liq))
  (action
   (run js_of_ocaml build-fs -I . -I ../libs -o %{target} %{deps})))
+
+(rule
+ (alias serve-playground)
+ (deps interactive_js.bc.js index.html playground.bundle.js .scripts/serve-playground.sh)
+ (action
+  (run sh .scripts/serve-playground.sh)))
