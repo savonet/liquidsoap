@@ -81,7 +81,7 @@ We generally try to support the latest LTS release of each OS as well as their m
 | Alpine | `edge` | `.apk` packages, docker images | `x86_64`, `aarch64` | |
 | Windows | N/A | `.zip` archive | Windows 64 | |
 
-### Supported FFmpeg version
+### Supported FFmpeg versions
 
 We support the last two major releases of FFmpeg. Currently, this means versions `7` and `8`.
 
