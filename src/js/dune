@@ -33,7 +33,9 @@
  (enabled_if
   (not %{bin-available:npm}))
  (action
-  (write-file %{target} "console.error('Playground bundle not available - npm was not installed during build');")))
+  (write-file
+   %{target}
+   "console.error('Playground bundle not available - npm was not installed during build');")))
 
 (executable
  (name interactive_js)
@@ -64,6 +66,10 @@
 
 (rule
  (alias serve-playground)
- (deps interactive_js.bc.js index.html playground.bundle.js .scripts/serve-playground.sh)
+ (deps
+  interactive_js.bc.js
+  index.html
+  playground.bundle.js
+  .scripts/serve-playground.sh)
  (action
   (run sh .scripts/serve-playground.sh)))
