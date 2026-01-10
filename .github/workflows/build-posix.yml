@@ -69,12 +69,10 @@ jobs:
         uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          rm -rf doc/content/build.md doc/content/install.md
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ inputs.sha }}
-          sudo -u opam -E git checkout ${{ inputs.sha }}
+        uses: ./.github/actions/checkout-liquidsoap
+        with:
+          sha: ${{ inputs.sha }}
+          cleanup: true
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap

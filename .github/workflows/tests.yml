@@ -39,12 +39,10 @@ jobs:
           chown -R opam /tmp/${{ github.run_number }}/core
           echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
       - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          rm -rf doc/content/build.md doc/content/install.md
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ inputs.sha }}
-          sudo -u opam -E git checkout ${{ inputs.sha }}
+        uses: ./.github/actions/checkout-liquidsoap
+        with:
+          sha: ${{ inputs.sha }}
+          cleanup: true
       - name: Build
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}

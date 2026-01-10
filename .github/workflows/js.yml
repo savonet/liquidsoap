@@ -20,15 +20,10 @@ jobs:
       HOME: /home/opam
     steps:
       - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ inputs.sha }}
-          sudo -u opam -E git checkout ${{ inputs.sha }}
-          mv .git /tmp
-          rm -rf ./*
-          mv /tmp/.git .
-          sudo -u opam -E git reset --hard
+        uses: ./.github/actions/checkout-liquidsoap
+        with:
+          sha: ${{ inputs.sha }}
+          reset-files: true
       - name: Install npm
         run: |
           apt-get update

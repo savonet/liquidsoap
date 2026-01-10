@@ -31,12 +31,11 @@ jobs:
           name: liquidsoap-js-${{ inputs.branch }}
           path: /tmp/${{ github.run_number }}/js-artifacts
       - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          rm -rf doc/content/build.md doc/content/install.md _build/default/src/js
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ inputs.sha }}
-          sudo -u opam -E git checkout ${{ inputs.sha }}
+        uses: ./.github/actions/checkout-liquidsoap
+        with:
+          sha: ${{ inputs.sha }}
+          cleanup: true
+          clean-js: true
       - name: Build doc
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
