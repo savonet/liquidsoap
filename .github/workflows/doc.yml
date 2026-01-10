@@ -36,6 +36,11 @@ jobs:
           sha: ${{ inputs.sha }}
           cleanup: true
           clean-js: true
+      - name: Install doc dependencies
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E opam update
+          sudo -u opam -E opam install -y --deps-only --with-doc .
       - name: Build doc
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
