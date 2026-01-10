@@ -68,6 +68,24 @@ We also provide **rolling releases**. A rolling release is a snapshot of a curre
 
 For both types of releases, we reserve the right to update, delete and add assets to the release at any time. If you are looking for permanent links to release assets, you should grab them from https://github.com/savonet/liquidsoap-release-assets/releases, which reflects all our releases but whose artifacts are never modified/deleted.
 
+### Supported OSes for pre-built binary assets
+
+We provide the pre-built binary assets in the form of native packages (or zip file for windows) and docker images.
+
+We generally try to support the latest LTS release of each OS as well as their most recent release. Here's a table:
+
+| OS | Supported Releases | Binary assets | Architectures | Notes |
+|----|--------------------|---------------|---------------|-------|
+| Debian | stable (currently: `trixie`), testing (currently: `forky`) | `.deb` packages, docker images | `amd64`, `arm64` |`.deb` packages require [deb-multimedia.org](https://www.deb-multimedia.org/) |
+| Ubuntu | LTS (currently: `noble`), latest (currently: `plucky`) | `.deb` packages, docker images | `amd64`, `arm64` | |
+| Alpine | `edge` | `.apk` packages, docker images | `x86_64`, `aarch64` | |
+| Windows | N/A | `.zip` archive | Windows 64 | |
+
+### Supported FFmpeg version
+
+We support the last two major releases of FFmpeg. Currently, this means versions `7` and `8`.
+
+
 ## Tooling
 
 |             |                                                                                                                                        |
