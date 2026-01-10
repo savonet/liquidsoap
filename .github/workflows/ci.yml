@@ -38,7 +38,6 @@ jobs:
       build_platform: ${{ steps.build_details.outputs.build_platform }}
       build_include: ${{ steps.build_details.outputs.build_include }}
       docker_release: ${{ steps.build_details.outputs.docker_release }}
-      s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
@@ -97,10 +96,6 @@ jobs:
       build_include: ${{ needs.build_details.outputs.build_include }}
       ocaml_version: ${{ needs.build_details.outputs.ocaml_version }}
       minimal_exclude_deps: ${{ needs.build_details.outputs.minimal_exclude_deps }}
-      s3_artifact_basepath: ${{ needs.build_details.outputs.s3-artifact-basepath }}
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   build_win32:
     uses: ./.github/workflows/build-win32.yml
