@@ -19,16 +19,16 @@ jobs:
     env:
       HOME: /home/opam
     steps:
-      - name: Checkout actions
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          sparse-checkout: .github/actions
-          clean: false
       - name: Checkout code
-        uses: ./.github/actions/checkout-liquidsoap
-        with:
-          sha: ${{ inputs.sha }}
-          reset-files: true
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
+          sudo -u opam -E git fetch origin ${{ inputs.sha }}
+          sudo -u opam -E git checkout ${{ inputs.sha }}
+          mv .git /tmp
+          rm -rf ./*
+          mv /tmp/.git .
+          sudo -u opam -E git reset --hard
       - name: Install npm
         run: |
           apt-get update
