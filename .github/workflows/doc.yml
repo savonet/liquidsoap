@@ -18,7 +18,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-4
     container:
       image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
-      options: --user opam -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
     steps:
@@ -34,17 +34,17 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md _build/default/src/js
-          git remote set-url origin https://github.com/savonet/liquidsoap.git
-          git fetch origin ${{ inputs.sha }}
-          git checkout ${{ inputs.sha }}
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
+          sudo -u opam -E git fetch origin ${{ inputs.sha }}
+          sudo -u opam -E git checkout ${{ inputs.sha }}
       - name: Build doc
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          ./.github/scripts/add-local-opam-packages.sh
-          ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
-          ./.github/scripts/build-doc.sh
+          sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+          sudo -u opam -E ./.github/scripts/build-doc.sh
           mkdir -p /tmp/${{ github.run_number }}/odoc
           cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
           # Copy JS artifacts after build to avoid dune overwriting them
