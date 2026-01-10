@@ -1,0 +1,290 @@
+name: Docker
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+      is_fork:
+        required: true
+        type: string
+      publish_docker_image:
+        required: true
+        type: string
+      docker_release:
+        required: true
+        type: string
+      build_platform:
+        required: true
+        type: string
+      build_include:
+        required: true
+        type: string
+      ocaml_version:
+        required: true
+        type: string
+      ocaml_docker_release_version:
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USER:
+        required: true
+      DOCKERHUB_PASSWORD:
+        required: true
+
+jobs:
+  build_docker:
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJson(inputs.build_platform) }}
+        ocaml_version: ${{ fromJson(inputs.ocaml_version) }}
+        include: ${{ fromJson(inputs.build_include) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Download all artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: artifacts/${{ inputs.sha }}
+      - name: Get debian package
+        run: |
+          echo "deb-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+        id: debian_package
+      - name: Get debian debug package
+        run: |
+          echo "deb-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+        id: debian_debug_package
+      - name: Login to Docker Hub
+        if: inputs.publish_docker_image == 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to GitHub Container Registry
+        if: inputs.publish_docker_image == 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push docker image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          build-args: |
+            "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
+            "DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}"
+          context: .
+          file: .github/docker/debian.dockerfile
+          tags: |
+            "savonet/liquidsoap-ci-build:${{ inputs.branch }}_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ inputs.branch }}_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+          push: ${{ inputs.publish_docker_image }}
+          provenance: false
+          sbom: false
+
+  build_docker_alpine:
+    runs-on: ${{ matrix.runs-on }}
+    if: inputs.is_fork != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJson(inputs.build_platform) }}
+        ocaml_version: ${{ fromJson(inputs.ocaml_version) }}
+        include: ${{ fromJson(inputs.build_include) }}
+        exclude:
+          - ocaml_version: 5.2.0-ox
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Download all artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: artifacts/${{ inputs.sha }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Get alpine package
+        run: |
+          echo "apk-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
+        id: alpine_package
+      - name: Login to Docker Hub
+        if: inputs.publish_docker_image == 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to GitHub Container Registry
+        if: inputs.publish_docker_image == 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push docker image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          build-args: |
+            "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
+          context: .
+          file: .github/docker/alpine.dockerfile
+          tags: |
+            "savonet/liquidsoap-ci-build:${{ inputs.branch }}_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ inputs.branch }}_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+          push: ${{ inputs.publish_docker_image }}
+          provenance: false
+          sbom: false
+
+  build_docker_minimal:
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJson(inputs.build_platform) }}
+        ocaml_version: ${{ fromJson(inputs.ocaml_version) }}
+        include: ${{ fromJson(inputs.build_include) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Download all artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: artifacts/${{ inputs.sha }}
+      - name: Get debian package
+        run: |
+          echo "deb-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+        id: debian_package
+      - name: Get debian debug package
+        run: |
+          echo "deb-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+        id: debian_debug_package
+      - name: Login to Docker Hub
+        if: inputs.publish_docker_image == 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to GitHub Container Registry
+        if: inputs.publish_docker_image == 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push docker image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          build-args: |
+            "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
+            "DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}"
+          context: .
+          file: .github/docker/debian.dockerfile
+          tags: |
+            "savonet/liquidsoap-ci-build:${{ inputs.branch }}-minimal_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ inputs.branch }}-minimal_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+          push: ${{ inputs.publish_docker_image }}
+          provenance: false
+          sbom: false
+
+  build_docker_alpine_minimal:
+    runs-on: ${{ matrix.runs-on }}
+    if: inputs.is_fork != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJson(inputs.build_platform) }}
+        ocaml_version: ${{ fromJson(inputs.ocaml_version) }}
+        include: ${{ fromJson(inputs.build_include) }}
+        exclude:
+          - ocaml_version: 5.2.0-ox
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Download all artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: artifacts/${{ inputs.sha }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Get alpine package
+        run: |
+          echo "apk-file=$(find artifacts/${{ inputs.sha }} -type f | grep minimal | grep ${{ matrix.ocaml_version }} | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
+        id: alpine_package
+      - name: Login to Docker Hub
+        if: inputs.publish_docker_image == 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to GitHub Container Registry
+        if: inputs.publish_docker_image == 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push docker image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          build-args: |
+            "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
+          context: .
+          file: .github/docker/alpine.dockerfile
+          tags: |
+            "savonet/liquidsoap-ci-build:${{ inputs.branch }}-minimal_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+            "ghcr.io/savonet/liquidsoap-ci-build:${{ inputs.branch }}-minimal_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
+          push: ${{ inputs.publish_docker_image }}
+          provenance: false
+          sbom: false
+
+  build_docker_release:
+    runs-on: depot-ubuntu-24.04-4
+    needs: [build_docker, build_docker_alpine]
+    if: inputs.docker_release == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Push consolidated manifest
+        env:
+          TAG: ${{ inputs.branch }}
+          USER: ${{ secrets.DOCKERHUB_USER }}
+          PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ inputs.sha }}
+          OCAML_DOCKER_RELEASE_VERSION: ocaml${{ inputs.ocaml_docker_release_version }}
+        run: .github/scripts/push-docker.sh
+
+  build_docker_release_minimal:
+    runs-on: depot-ubuntu-24.04-4
+    needs: [build_docker_minimal, build_docker_alpine_minimal]
+    if: inputs.docker_release == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Push consolidated manifest
+        env:
+          TAG: ${{ inputs.branch }}-minimal
+          USER: ${{ secrets.DOCKERHUB_USER }}
+          PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ inputs.sha }}
+          OCAML_DOCKER_RELEASE_VERSION: ocaml${{ inputs.ocaml_docker_release_version }}
+        run: .github/scripts/push-docker.sh ${{ inputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ inputs.sha }}-minimal

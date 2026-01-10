@@ -1,0 +1,48 @@
+name: Build opam
+
+on:
+  workflow_call:
+
+jobs:
+  build_opam:
+    runs-on: depot-ubuntu-24.04-4
+    strategy:
+      fail-fast: false
+      matrix:
+        ocaml-compiler:
+          - 4.14.x
+          - 5.x
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Update packages
+        run: |
+          sudo apt-get update
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@dec6499fef64fc5d7ed43d43a87251b7b1c306f5 # v3.4.8
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          opam-pin: false
+          opam-depext: false
+      - name: Add local packages
+        run: |
+          ./.github/scripts/add-local-opam-packages.sh
+      - name: Install liquidsoap
+        run: |
+          opam install --cli=2.1 --confirm-level=unsafe-yes .
+      - name: Install ocamlformat
+        if: matrix.ocaml-compiler == '4.14.x'
+        run: |
+          opam install ocamlformat=0.28.1
+      - name: Set PY env variable.
+        if: matrix.ocaml-compiler == '4.14.x'
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+      - name: Restore pre-commit cache
+        if: matrix.ocaml-compiler == '4.14.x'
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run pre-commit
+        if: matrix.ocaml-compiler == '4.14.x'
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1

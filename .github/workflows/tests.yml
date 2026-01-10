@@ -1,0 +1,131 @@
+name: Tests
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+      is_fork:
+        required: true
+        type: string
+      save_traces:
+        required: true
+        type: string
+
+jobs:
+  run_tests:
+    runs-on: depot-ubuntu-24.04-4
+    container:
+      image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
+      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ["@citest", "@doctest", "@mediatest"]
+    env:
+      HOME: /home/opam
+    steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
+        id: cpu_cores
+      - name: Enable core dump
+        run: |
+          ulimit -c unlimited
+          mkdir -p /tmp/${{ github.run_number }}/core
+          chown -R opam /tmp/${{ github.run_number }}/core
+          echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
+          sudo -u opam -E git fetch origin ${{ inputs.sha }}
+          sudo -u opam -E git checkout ${{ inputs.sha }}
+      - name: Build
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+          cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
+      - name: Compute stats
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/stats-posix.sh
+      - name: Install additional packages for @doc
+        if: matrix.target == '@doctest'
+        run: |
+          apt-get -y update
+          apt-get -y install frei0r-plugins
+          sudo -u opam -E opam install odoc
+      - name: Install additional packages for @citest
+        if: matrix.target == '@citest'
+        run: |
+          apt-get -y update
+          apt-get -y install gnuplot
+      - name: Run tests
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
+      - name: Finalize metrics
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          mkdir -p "/tmp/${{ github.run_number }}/metrics"
+          chown -R opam "/tmp/${{ github.run_number }}/metrics"
+          sudo -u opam -E ./.github/scripts/export-metrics.sh "${{ inputs.branch }}" "/tmp/${{ github.run_number }}/metrics"
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: inputs.is_fork != 'true' && matrix.target == '@citest'
+        with:
+          name: metrics
+          path: ${{ github.workspace }}/${{ github.run_number }}/metrics
+      - name: Upload metrics
+        if: inputs.is_fork != 'true' && matrix.target == '@citest'
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: metrics
+          publish_dir: ${{ github.workspace }}/${{ github.run_number }}/metrics
+          keep_files: true
+      - name: Save traces
+        if: (success() || failure()) && inputs.save_traces == 'true'
+        run: |
+          mkdir -p /tmp/${{ github.run_number }}/traces/${{ matrix.target }}
+          cd /tmp/liquidsoap-full/liquidsoap
+          find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
+      - name: Upload traces
+        if: (success() || failure()) && inputs.save_traces == 'true'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: traces-${{ matrix.target }}
+          path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
+      - name: Prepare test artifacts
+        if: (success() || failure()) && matrix.target == '@citest'
+        run: |
+          mkdir -p /tmp/${{ github.run_number }}/test-artifacts/tests/streams
+          cd /tmp/liquidsoap-full/liquidsoap
+          cp -f tests/streams/*.txt /tmp/${{ github.run_number }}/test-artifacts/tests/streams
+          cp -f tests/streams/*.png /tmp/${{ github.run_number }}/test-artifacts/tests/streams
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: (success() || failure()) && inputs.is_fork != 'true' && matrix.target == '@citest'
+        with:
+          name: test-artifacts
+          path: ${{ github.workspace }}/${{ github.run_number }}/test-artifacts
+      - name: Export potential core dumps
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: failure()
+        with:
+          name: core-dump-${{ matrix.target }}
+          path: ${{ github.workspace }}/${{ github.run_number }}/core
+      - name: Cleanup
+        if: ${{ always() }}
+        run: |
+          rm -rf /tmp/${{ github.run_number }}/core

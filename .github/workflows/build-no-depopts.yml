@@ -1,0 +1,51 @@
+name: Build without optional dependencies
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+      minimal_exclude_deps:
+        required: true
+        type: string
+
+jobs:
+  build_no_depopts:
+    runs-on: depot-ubuntu-24.04-4
+    container:
+      image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
+      options: --user opam
+    env:
+      HOME: /home/opam
+    steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
+        id: cpu_cores
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          git remote set-url origin https://github.com/savonet/liquidsoap.git
+          git fetch origin ${{ inputs.sha }}
+          git checkout ${{ inputs.sha }}
+      - name: Build
+        run: |
+          echo "::group::Preparing build"
+          cd /tmp/liquidsoap-full
+          git remote set-url origin https://github.com/savonet/liquidsoap-full.git
+          git fetch --recurse-submodules=no
+          git checkout origin/master -- Makefile.git
+          make public
+          git reset --hard
+          git submodule foreach 'git reset --hard'
+          git pull
+          cp PACKAGES.minimal PACKAGES
+          opam update
+          opam pin -yn .
+          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove -y inotify ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ inputs.minimal_exclude_deps }}
+          echo "::endgroup::"
+          opam install -y mem_usage
+          cd liquidsoap
+          ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+        env:
+          LIQ_BUILD_MIN: true

@@ -1,0 +1,75 @@
+name: Documentation
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+    secrets:
+      WEBSITE_TOKEN:
+        required: true
+
+jobs:
+  update_doc:
+    runs-on: depot-ubuntu-24.04-4
+    container:
+      image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    env:
+      HOME: /home/opam
+    steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
+        id: cpu_cores
+      - name: Download JS artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: liquidsoap-js-${{ inputs.branch }}
+          path: /tmp/${{ github.run_number }}/js-artifacts
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md _build/default/src/js
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
+          sudo -u opam -E git fetch origin ${{ inputs.sha }}
+          sudo -u opam -E git checkout ${{ inputs.sha }}
+      - name: Build doc
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+          sudo -u opam -E ./.github/scripts/build-doc.sh
+          mkdir -p /tmp/${{ github.run_number }}/odoc
+          cp -rf _build/default/_doc/_html/* /tmp/${{ github.run_number }}/odoc
+          # Copy JS artifacts after build to avoid dune overwriting them
+          mkdir -p _build/default/src/js
+          cp -f /tmp/${{ github.run_number }}/js-artifacts/* _build/default/src/js/
+          cd /tmp/liquidsoap-full/website
+          make dist
+          mkdir -p /tmp/${{ github.run_number }}/html
+          cp -rf html/* /tmp/${{ github.run_number }}/html
+      - name: Push doc content
+        if: success() && github.repository_owner == 'savonet'
+        uses: crazy-max/ghaction-github-pages@df5cc2bfa78282ded844b354faee141f06b41865 # v4.2.0
+        with:
+          repo: savonet/savonet.github.io
+          target_branch: master
+          build_dir: ${{ github.run_number }}/html
+          fqdn: www.liquidsoap.info
+        env:
+          GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
+      - name: Push odoc content
+        if: success() && github.repository_owner == 'savonet'
+        uses: crazy-max/ghaction-github-pages@df5cc2bfa78282ded844b354faee141f06b41865 # v4.2.0
+        with:
+          repo: savonet/liquidsoap
+          target_branch: gh_pages
+          build_dir: ${{ github.run_number }}/odoc
+        env:
+          GH_PAT: ${{ secrets.WEBSITE_TOKEN }}

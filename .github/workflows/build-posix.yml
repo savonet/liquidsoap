@@ -1,0 +1,165 @@
+name: Build POSIX
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+      is_fork:
+        required: true
+        type: string
+      is_rolling_release:
+        required: true
+        type: string
+      is_release:
+        required: true
+        type: string
+      is_snapshot:
+        required: true
+        type: string
+      build_os:
+        required: true
+        type: string
+      build_platform:
+        required: true
+        type: string
+      build_include:
+        required: true
+        type: string
+      ocaml_version:
+        required: true
+        type: string
+      minimal_exclude_deps:
+        required: true
+        type: string
+      s3_artifact_basepath:
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  build_posix:
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.build_os) }}
+        ocaml_version: ${{ fromJson(inputs.ocaml_version) }}
+        platform: ${{ fromJson(inputs.build_platform) }}
+        include: ${{ fromJson(inputs.build_include) }}
+        exclude:
+          - os: alpine
+            ocaml_version: 5.2.0-ox
+    container:
+      image: savonet/liquidsoap-ci:${{ matrix.os }}-${{ matrix.ocaml_version }}
+      options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    env:
+      HOME: /home/opam
+      IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
+    steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
+        id: cpu_cores
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
+          sudo -u opam -E git fetch origin ${{ inputs.sha }}
+          sudo -u opam -E git checkout ${{ inputs.sha }}
+      - name: Build
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+      - name: Build debian package
+        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
+        id: build_deb
+        env:
+          GITHUB_SHA: ${{ inputs.sha }}
+          BRANCH: ${{ inputs.branch }}
+          DOCKER_TAG: ${{ matrix.os }}-ocaml${{ matrix.ocaml_version }}
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
+          PLATFORM: ${{ matrix.platform }}
+          IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
+          IS_RELEASE: ${{ inputs.is_release }}
+          MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
+          DEB_RELEASE: 1
+        run: |
+          mkdir -p "${LIQ_TMP_DIR}"
+          chown -R opam "${LIQ_TMP_DIR}"
+          chown -R opam "${GITHUB_OUTPUT}"
+          cd /tmp/liquidsoap-full/liquidsoap
+          sudo -u opam -E ./.github/scripts/build-deb.sh
+      - name: Upload debian packages artifacts
+        if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ steps.build_deb.outputs.basename }}
+          path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
+          if-no-files-found: error
+      - name: Build alpine package
+        if: matrix.os == 'alpine'
+        id: build_apk
+        env:
+          BRANCH: ${{ inputs.branch }}
+          ALPINE_TAG: ocaml${{ matrix.ocaml_version }}
+          ARCH: ${{ matrix.platform }}
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
+          ALPINE_ARCH: ${{ matrix.alpine-arch }}
+          IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
+          IS_RELEASE: ${{ inputs.is_release }}
+          MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
+          APK_RELEASE: 0
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          apk add alpine-sdk
+          adduser opam abuild
+          mkdir -p "${LIQ_TMP_DIR}"
+          chown -R opam "${LIQ_TMP_DIR}"
+          chown -R opam "${GITHUB_OUTPUT}"
+          sudo -u opam -E ./.github/scripts/build-apk.sh
+      - name: Upload alpine packages artifacts
+        if: inputs.is_fork != 'true' && matrix.os == 'alpine'
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
+          TARGET: ${{ inputs.s3_artifact_basepath }}
+      - name: Cleanup
+        if: ${{ always() }}
+        run: |
+          rm -rf /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}
+
+  fetch_s3_artifacts:
+    runs-on: depot-ubuntu-24.04-4
+    needs: build_posix
+    steps:
+      - name: Prepare directory
+        run: |
+          rm -rf ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
+          mkdir -p ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
+      - name: Fetch S3 artifacts
+        if: inputs.is_fork != 'true'
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ inputs.s3_artifact_basepath }}
+          TARGET: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
+      - name: Upload S3 artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: inputs.is_fork != 'true'
+        with:
+          name: alpine-packages
+          path: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
