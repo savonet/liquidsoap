@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_flac)
+ (libraries flac liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules liq_flac_decoder flac_encoder))

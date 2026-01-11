@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_speex)
+ (libraries speex speex.decoder liquidsoap_core liquidsoap_ogg)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules liq_speex_decoder speex_encoder))

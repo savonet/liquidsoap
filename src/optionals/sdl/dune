@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_sdl)
+ (libraries liquidsoap_sdl_log_level tsdl-image tsdl-ttf liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules sdlimage_decoder video_text_sdl sdl_out keyboard_sdl sdl_utils))

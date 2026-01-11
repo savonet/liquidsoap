@@ -1,0 +1,38 @@
+(env
+ (release
+  (ocamlopt_flags
+   (:standard -w -9 -alert --deprecated -O2)))
+ (_
+  (flags
+   (:standard -w -9 -alert --deprecated))))
+
+(library
+ (name liquidsoap_builtins)
+ (library_flags -linkall)
+ (preprocess
+  (pps ppx_string))
+ (wrapped false)
+ (libraries liquidsoap_core)
+ (modules
+  builtins_callbacks
+  builtins_clock
+  builtins_cry
+  builtins_files
+  builtins_harbor
+  builtins_http
+  builtins_metadata
+  builtins_mem_usage
+  builtins_process
+  builtins_request
+  builtins_resolvers
+  playlist_basic
+  builtins_runtime
+  builtins_server
+  builtins_settings
+  builtins_socket
+  builtins_source
+  builtins_string_extra
+  builtins_sys
+  builtins_thread
+  builtins_time
+  builtins_track))

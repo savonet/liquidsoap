@@ -1,0 +1,296 @@
+(env
+ (release
+  (ocamlopt_flags
+   (:standard -w -9 -alert --deprecated -O2)))
+ (_
+  (flags
+   (:standard -w -9 -alert --deprecated))))
+
+(copy_files ../config/*.ml)
+
+(library
+ (name liquidsoap_optionals)
+ (library_flags -linkall)
+ (preprocess
+  (pps ppx_string))
+ (wrapped false)
+ (modules
+  alsa_option
+  ao_option
+  bjack_option
+  builtins_optionals
+  camlimages_option
+  dssi_option
+  faad_option
+  fdkaac_option
+  ffmpeg_option
+  flac_option
+  ogg_flac_option
+  frei0r_option
+  gd_option
+  graphics_option
+  inotify_option
+  irc_option
+  jemalloc_option
+  ladspa_option
+  lame_option
+  lilv_option
+  lo_option
+  mad_option
+  memtrace_option
+  ndi_option
+  ogg_option
+  opus_option
+  osc_option
+  oss_option
+  portaudio_option
+  posix_time_option
+  prometheus_option
+  pulseaudio_option
+  samplerate_option
+  sdl_option
+  shine_option
+  soundtouch_option
+  speex_option
+  srt_option
+  ssl_option
+  stereotool_option
+  sqlite3_option
+  theora_option
+  tls_option
+  vorbis_option
+  winsvc_option
+  yaml_option
+  xmlplaylist_option)
+ (libraries
+  liquidsoap_core
+  (select
+   alsa_option.ml
+   from
+   (liquidsoap_alsa -> alsa_option.enabled.ml)
+   (-> alsa_option.disabled.ml))
+  (select
+   ao_option.ml
+   from
+   (liquidsoap_ao -> ao_option.enabled.ml)
+   (-> ao_option.disabled.ml))
+  (select
+   bjack_option.ml
+   from
+   (liquidsoap_bjack -> bjack_option.enabled.ml)
+   (-> bjack_option.disabled.ml))
+  (select
+   camlimages_option.ml
+   from
+   (liquidsoap_camlimages -> camlimages_option.enabled.ml)
+   (-> camlimages_option.disabled.ml))
+  (select
+   dssi_option.ml
+   from
+   (liquidsoap_dssi -> dssi_option.enabled.ml)
+   (-> dssi_option.disabled.ml))
+  (select
+   faad_option.ml
+   from
+   (liquidsoap_faad -> faad_option.enabled.ml)
+   (-> faad_option.disabled.ml))
+  (select
+   fdkaac_option.ml
+   from
+   (liquidsoap_fdkaac -> fdkaac_option.enabled.ml)
+   (-> fdkaac_option.disabled.ml))
+  (select
+   ffmpeg_option.ml
+   from
+   (liquidsoap_ffmpeg -> ffmpeg_option.enabled.ml)
+   (-> ffmpeg_option.disabled.ml))
+  (select
+   flac_option.ml
+   from
+   (liquidsoap_flac -> flac_option.enabled.ml)
+   (-> flac_option.disabled.ml))
+  (select
+   ogg_flac_option.ml
+   from
+   (liquidsoap_ogg_flac -> ogg_flac_option.enabled.ml)
+   (-> ogg_flac_option.disabled.ml))
+  (select
+   frei0r_option.ml
+   from
+   (liquidsoap_frei0r -> frei0r_option.enabled.ml)
+   (-> frei0r_option.disabled.ml))
+  (select
+   gd_option.ml
+   from
+   (liquidsoap_gd -> gd_option.enabled.ml)
+   (-> gd_option.disabled.ml))
+  (select
+   graphics_option.ml
+   from
+   (liquidsoap_graphics -> graphics_option.enabled.ml)
+   (-> graphics_option.disabled.ml))
+  (select
+   inotify_option.ml
+   from
+   (inotify -> inotify_option.enabled.ml)
+   (-> inotify_option.disabled.ml))
+  (select
+   irc_option.ml
+   from
+   (liquidsoap_irc -> irc_option.enabled.ml)
+   (-> irc_option.disabled.ml))
+  (select
+   jemalloc_option.ml
+   from
+   (liquidsoap_jemalloc -> jemalloc_option.enabled.ml)
+   (-> jemalloc_option.disabled.ml))
+  (select
+   ladspa_option.ml
+   from
+   (liquidsoap_ladspa -> ladspa_option.enabled.ml)
+   (-> ladspa_option.disabled.ml))
+  (select
+   lame_option.ml
+   from
+   (liquidsoap_lame -> lame_option.enabled.ml)
+   (-> lame_option.disabled.ml))
+  (select
+   lilv_option.ml
+   from
+   (liquidsoap_lilv -> lilv_option.enabled.ml)
+   (-> lilv_option.disabled.ml))
+  (select
+   lo_option.ml
+   from
+   (liquidsoap_lo -> lo_option.enabled.ml)
+   (-> lo_option.disabled.ml))
+  (select
+   mad_option.ml
+   from
+   (liquidsoap_mad -> mad_option.enabled.ml)
+   (-> mad_option.disabled.ml))
+  (select
+   memtrace_option.ml
+   from
+   (memtrace -> memtrace_option.enabled.ml)
+   (-> memtrace_option.disabled.ml))
+  (select
+   ogg_option.ml
+   from
+   (liquidsoap_ogg -> ogg_option.enabled.ml)
+   (-> ogg_option.disabled.ml))
+  (select
+   opus_option.ml
+   from
+   (liquidsoap_opus -> opus_option.enabled.ml)
+   (-> opus_option.disabled.ml))
+  (select
+   osc_option.ml
+   from
+   (liquidsoap_osc -> osc_option.enabled.ml)
+   (-> osc_option.disabled.ml))
+  (select
+   oss_option.ml
+   from
+   (liquidsoap_oss -> oss_option.enabled.ml)
+   (-> oss_option.disabled.ml))
+  (select
+   portaudio_option.ml
+   from
+   (liquidsoap_portaudio -> portaudio_option.enabled.ml)
+   (-> portaudio_option.disabled.ml))
+  (select
+   ndi_option.ml
+   from
+   (liquidsoap_ndi -> ndi_option.enabled.ml)
+   (-> ndi_option.disabled.ml))
+  (select
+   posix_time_option.ml
+   from
+   (liquidsoap_posix_time -> posix_time_option.enabled.ml)
+   (-> posix_time_option.disabled.ml))
+  (select
+   prometheus_option.ml
+   from
+   (liquidsoap_prometheus -> prometheus_option.enabled.ml)
+   (-> prometheus_option.disabled.ml))
+  (select
+   pulseaudio_option.ml
+   from
+   (liquidsoap_pulseaudio -> pulseaudio_option.enabled.ml)
+   (-> pulseaudio_option.disabled.ml))
+  (select
+   samplerate_option.ml
+   from
+   (liquidsoap_samplerate -> samplerate_option.enabled.ml)
+   (-> samplerate_option.disabled.ml))
+  (select
+   sdl_option.ml
+   from
+   (liquidsoap_sdl -> sdl_option.enabled.ml)
+   (-> sdl_option.disabled.ml))
+  (select
+   shine_option.ml
+   from
+   (liquidsoap_shine -> shine_option.enabled.ml)
+   (-> shine_option.disabled.ml))
+  (select
+   soundtouch_option.ml
+   from
+   (liquidsoap_soundtouch -> soundtouch_option.enabled.ml)
+   (-> soundtouch_option.disabled.ml))
+  (select
+   speex_option.ml
+   from
+   (liquidsoap_speex -> speex_option.enabled.ml)
+   (-> speex_option.disabled.ml))
+  (select
+   srt_option.ml
+   from
+   (liquidsoap_srt -> srt_option.enabled.ml)
+   (-> srt_option.disabled.ml))
+  (select
+   ssl_option.ml
+   from
+   (liquidsoap_ssl -> ssl_option.enabled.ml)
+   (-> ssl_option.disabled.ml))
+  (select
+   stereotool_option.ml
+   from
+   (liquidsoap_stereotool -> stereotool_option.enabled.ml)
+   (-> stereotool_option.disabled.ml))
+  (select
+   sqlite3_option.ml
+   from
+   (liquidsoap_sqlite -> sqlite3_option.enabled.ml)
+   (-> sqlite3_option.disabled.ml))
+  (select
+   theora_option.ml
+   from
+   (liquidsoap_theora -> theora_option.enabled.ml)
+   (-> theora_option.disabled.ml))
+  (select
+   tls_option.ml
+   from
+   (liquidsoap_tls -> tls_option.enabled.ml)
+   (-> tls_option.disabled.ml))
+  (select
+   vorbis_option.ml
+   from
+   (liquidsoap_vorbis -> vorbis_option.enabled.ml)
+   (-> vorbis_option.disabled.ml))
+  (select
+   winsvc_option.ml
+   from
+   (winsvc -> winsvc_option.enabled.ml)
+   (-> winsvc_option.disabled.ml))
+  (select
+   yaml_option.ml
+   from
+   (liquidsoap_yaml -> yaml_option.enabled.ml)
+   (-> yaml_option.disabled.ml))
+  (select
+   xmlplaylist_option.ml
+   from
+   (liquidsoap_xmlplaylist -> xmlplaylist_option.enabled.ml)
+   (-> xmlplaylist_option.disabled.ml))))

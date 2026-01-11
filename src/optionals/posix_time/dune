@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_posix_time)
+ (libraries posix-time2 liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules liq_posix_time))

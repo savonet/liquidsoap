@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_theora)
+ (libraries theora theora.decoder liquidsoap_core liquidsoap_ogg)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules liq_theora_decoder theora_encoder))

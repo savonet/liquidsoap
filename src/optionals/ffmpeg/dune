@@ -1,0 +1,41 @@
+(library
+ (name liquidsoap_ffmpeg)
+ (libraries
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  ffmpeg-avfilter
+  ffmpeg-avdevice
+  ffmpeg-swscale
+  ffmpeg-swresample
+  ffmpeg-av
+  liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules
+  builtins_ffmpeg_base
+  builtins_ffmpeg_bitstream_filters
+  builtins_ffmpeg_decoder
+  builtins_ffmpeg_filters
+  builtins_ffmpeg_filter_parse
+  builtins_ffmpeg_encoder
+  ffmpeg_avfilter_utils
+  ffmpeg_audio_converter
+  ffmpeg_content_base
+  ffmpeg_copy_content
+  ffmpeg_copy_decoder
+  ffmpeg_copy_encoder
+  ffmpeg_decoder
+  ffmpeg_decoder_common
+  ffmpeg_image_decoder
+  ffmpeg_encoder
+  ffmpeg_encoder_common
+  ffmpeg_filter_io
+  ffmpeg_internal_decoder
+  ffmpeg_internal_encoder
+  ffmpeg_io
+  ffmpeg_raw_content
+  ffmpeg_raw_decoder
+  ffmpeg_utils
+  ffmpeg_video_converter
+  lang_ffmpeg))

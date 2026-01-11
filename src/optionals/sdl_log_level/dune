@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_sdl_log_level)
+ (libraries tsdl)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules sdl_log_level))

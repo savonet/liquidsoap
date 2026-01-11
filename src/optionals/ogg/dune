@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_ogg)
+ (libraries ogg ogg.decoder liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules ogg_muxer ogg_encoder liq_ogg_decoder))

@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_soundtouch)
+ (libraries soundtouch liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules soundtouch_op st_bpm))

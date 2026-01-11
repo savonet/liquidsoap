@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_vorbis)
+ (libraries vorbis vorbis.decoder liquidsoap_core liquidsoap_ogg)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules liq_vorbis_decoder vorbis_encoder vorbisduration))

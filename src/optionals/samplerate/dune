@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_samplerate)
+ (libraries samplerate liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules libsamplerate_converter))

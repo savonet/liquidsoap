@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_jemalloc)
+ (libraries jemalloc liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_jemalloc))

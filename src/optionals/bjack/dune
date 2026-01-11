@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_bjack)
+ (libraries bjack liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules bjack_in bjack_out))

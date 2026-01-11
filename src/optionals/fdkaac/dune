@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_fdkaac)
+ (libraries fdkaac liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules fdkaac_encoder))

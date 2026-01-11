@@ -1,0 +1,7 @@
+(library
+ (name liquidsoap_ssl)
+ (libraries ssl liquidsoap_core liquidsoap_builtins)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules ssl_base builtins_ssl))
