@@ -36,14 +36,6 @@ on:
       minimal_exclude_deps:
         required: true
         type: string
-      s3_artifact_basepath:
-        required: true
-        type: string
-    secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
 
 jobs:
   build_posix:
@@ -129,37 +121,12 @@ jobs:
           chown -R opam "${GITHUB_OUTPUT}"
           sudo -u opam -E ./.github/scripts/build-apk.sh
       - name: Upload alpine packages artifacts
-        if: inputs.is_fork != 'true' && matrix.os == 'alpine'
-        uses: savonet/aws-s3-docker-action@master
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          SOURCE: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
-          TARGET: ${{ inputs.s3_artifact_basepath }}
+        if: matrix.os == 'alpine'
+        uses: savonet/artifact-upload-docker-action@main
+        with:
+          name: alpine-${{ matrix.ocaml_version }}-${{ matrix.platform }}-packages
+          path: /github/workspace/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
       - name: Cleanup
         if: ${{ always() }}
         run: |
           rm -rf /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}
-
-  fetch_s3_artifacts:
-    runs-on: depot-ubuntu-24.04-4
-    needs: build_posix
-    steps:
-      - name: Prepare directory
-        run: |
-          rm -rf ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
-          mkdir -p ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
-      - name: Fetch S3 artifacts
-        if: inputs.is_fork != 'true'
-        uses: savonet/aws-s3-docker-action@master
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          SOURCE: ${{ inputs.s3_artifact_basepath }}
-          TARGET: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
-      - name: Upload S3 artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: inputs.is_fork != 'true'
-        with:
-          name: alpine-packages
-          path: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
