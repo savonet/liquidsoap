@@ -124,7 +124,7 @@ jobs:
         if: matrix.os == 'alpine'
         uses: savonet/artifact-upload-docker-action@main
         with:
-          name: alpine-${{ matrix.platform }}-packages
+          name: alpine-${{ matrix.ocaml_version }}-${{ matrix.platform }}-packages
           path: /github/workspace/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
       - name: Cleanup
         if: ${{ always() }}
