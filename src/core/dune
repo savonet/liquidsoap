@@ -1,14 +1,4 @@
-(env
- (release
-  (ocamlopt_flags
-   (:standard -w -9 -alert --deprecated -O2)))
- (_
-  (flags
-   (:standard -w -9 -alert --deprecated))))
-
 (include_subdirs unqualified)
-
-(copy_files ../config/liquidsoap_paths.*.ml)
 
 (rule
  (target liquidsoap_paths.ml)
@@ -37,12 +27,7 @@
   uri
   metadata
   mem_usage
-  magic-mime
-  (select
-   file_watcher.ml
-   from
-   (inotify -> file_watcher.inotify.ml)
-   (-> file_watcher.mtime.ml)))
+  magic-mime)
  (foreign_stubs
   (language c)
   (names unix_c defer_c content_pcm_c lufs_c))

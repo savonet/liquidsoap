@@ -1,13 +1,3 @@
-(env
- (release
-  (ocamlopt_flags
-   (:standard -w -9 -alert --deprecated -O2)))
- (_
-  (flags
-   (:standard -w -9 -alert --deprecated))))
-
-(copy_files ../config/*.ml)
-
 (library
  (name liquidsoap_optionals)
  (library_flags -linkall)
@@ -16,6 +6,7 @@
  (wrapped false)
  (libraries
   liquidsoap_core
+  liquidsoap_file_watcher
   (select
    alsa_option.ml
    from

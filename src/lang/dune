@@ -1,11 +1,3 @@
-(env
- (release
-  (ocamlopt_flags
-   (:standard -O2)))
- (dev
-  (flags
-   (:standard -w -9))))
-
 (include_subdirs unqualified)
 
 (generate_sites_module
