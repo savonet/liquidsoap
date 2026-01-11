@@ -122,7 +122,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/build-apk.sh
       - name: Upload alpine packages artifacts
         if: matrix.os == 'alpine'
-        uses: savonet/artifact-upload-docker-action@ba9fb728e1d98b6864c16cd019047706bf9122de
+        uses: savonet/artifact-upload-docker-action@main
         with:
           name: alpine-${{ matrix.platform }}-packages
           path: /github/workspace/${{ github.run_number }}/alpine
