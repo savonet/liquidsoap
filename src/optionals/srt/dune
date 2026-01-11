@@ -3,5 +3,4 @@
  (libraries srt liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules builtins_srt srt_io))
+ (optional))

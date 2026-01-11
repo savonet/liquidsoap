@@ -3,5 +3,4 @@
  (libraries pulseaudio liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules pulseaudio_io))
+ (optional))

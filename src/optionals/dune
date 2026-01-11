@@ -14,54 +14,6 @@
  (preprocess
   (pps ppx_string))
  (wrapped false)
- (modules
-  alsa_option
-  ao_option
-  bjack_option
-  builtins_optionals
-  camlimages_option
-  dssi_option
-  faad_option
-  fdkaac_option
-  ffmpeg_option
-  flac_option
-  ogg_flac_option
-  frei0r_option
-  gd_option
-  graphics_option
-  inotify_option
-  irc_option
-  jemalloc_option
-  ladspa_option
-  lame_option
-  lilv_option
-  lo_option
-  mad_option
-  memtrace_option
-  ndi_option
-  ogg_option
-  opus_option
-  osc_option
-  oss_option
-  portaudio_option
-  posix_time_option
-  prometheus_option
-  pulseaudio_option
-  samplerate_option
-  sdl_option
-  shine_option
-  soundtouch_option
-  speex_option
-  srt_option
-  ssl_option
-  stereotool_option
-  sqlite3_option
-  theora_option
-  tls_option
-  vorbis_option
-  winsvc_option
-  yaml_option
-  xmlplaylist_option)
  (libraries
   liquidsoap_core
   (select

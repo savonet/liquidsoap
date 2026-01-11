@@ -3,5 +3,4 @@
  (libraries faad liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules aac_decoder))
+ (optional))

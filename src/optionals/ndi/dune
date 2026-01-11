@@ -3,5 +3,4 @@
  (libraries ndi liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules ndi_out))
+ (optional))

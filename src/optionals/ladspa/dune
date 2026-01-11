@@ -3,5 +3,4 @@
  (libraries ladspa liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules ladspa_op))
+ (optional))

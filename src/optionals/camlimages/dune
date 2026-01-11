@@ -3,5 +3,4 @@
  (libraries camlimages.all_formats liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules camlimages_decoder))
+ (optional))

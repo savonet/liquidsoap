@@ -3,5 +3,4 @@
  (libraries mad liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules mad_decoder))
+ (optional))

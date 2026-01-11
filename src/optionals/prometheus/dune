@@ -3,5 +3,4 @@
  (libraries cohttp-lwt-unix prometheus-app liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules liq_prometheus builtins_prometheus))
+ (optional))

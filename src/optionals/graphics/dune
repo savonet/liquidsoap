@@ -3,5 +3,4 @@
  (libraries graphics liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules graphics_out))
+ (optional))

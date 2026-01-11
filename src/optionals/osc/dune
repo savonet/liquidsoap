@@ -3,5 +3,4 @@
  (libraries osc-unix liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules builtins_osc))
+ (optional))

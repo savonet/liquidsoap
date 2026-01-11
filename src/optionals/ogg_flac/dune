@@ -6,5 +6,4 @@
  (optional)
  (foreign_stubs
   (language c)
-  (names ogg_flac_encoder_stubs))
- (modules liq_flac_ogg_decoder ogg_flac_encoder ogg_flac_duration))
+  (names ogg_flac_encoder_stubs)))

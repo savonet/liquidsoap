@@ -3,5 +3,4 @@
  (libraries portaudio liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules portaudio_io))
+ (optional))

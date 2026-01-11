@@ -3,5 +3,4 @@
  (libraries shine liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules shine_encoder))
+ (optional))

@@ -9,5 +9,4 @@
   liquidsoap_builtins)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules builtins_tls))
+ (optional))

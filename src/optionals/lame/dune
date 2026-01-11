@@ -3,5 +3,4 @@
  (libraries lame liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules lame_encoder))
+ (optional))

@@ -3,5 +3,4 @@
  (libraries dssi liquidsoap_ladspa liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules dssi_op))
+ (optional))

@@ -8,5 +8,4 @@
  (optional)
  (foreign_stubs
   (language c)
-  (names oss_io_c))
- (modules oss_io))
+  (names oss_io_c)))

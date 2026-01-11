@@ -3,5 +3,4 @@
  (libraries gd liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (optional)
- (modules video_text_gd))
+ (optional))
