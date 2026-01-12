@@ -86,7 +86,6 @@
   dune-site
   fileutils
   re
-  str
   unix
   menhirLib
   xml-light))
