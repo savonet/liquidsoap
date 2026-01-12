@@ -23,7 +23,6 @@
     (mm (>= 0.8.6))
     (re (and (>= 1.11.0) (< 1.14.0)))
     curl
-    (cry (>= 1.0.3))
     (camomile (>= 2.0.0))
     uri
     menhirLib
