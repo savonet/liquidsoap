@@ -5,9 +5,8 @@
   liquidsoap_core
   unix
   (select
-   file_watcher.ml
+   liq_file_watcher.ml
    from
-   (inotify -> file_watcher.inotify.ml)
-   (-> file_watcher.mtime.ml)))
- (library_flags -linkall)
+   (inotify -> liq_file_watcher.inotify.ml)
+   (-> liq_file_watcher.mtime.ml)))
  (wrapped false))

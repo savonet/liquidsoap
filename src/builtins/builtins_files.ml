@@ -462,7 +462,9 @@ let _ =
           let bt = Printexc.get_raw_backtrace () in
           Lang.raise_as_runtime ~bt ~kind:"file" exn
       in
-      let unwatch = File_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f in
+      let unwatch =
+        Liq_file_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f
+      in
       Lang.meth Lang.unit
         [
           ( "unwatch",

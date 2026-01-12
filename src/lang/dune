@@ -89,12 +89,7 @@
   str
   unix
   menhirLib
-  xml-light
-  (select
-   liqmemtrace.ml
-   from
-   (memtrace -> liqmemtrace.memtrace.ml)
-   (-> liqmemtrace.disabled.ml)))
+  xml-light)
  (modules
   build_config
   builtins_bool
@@ -130,7 +125,6 @@
   lang_regexp
   lang_string
   lexer
-  liqmemtrace
   methods
   modules
   parsed_term

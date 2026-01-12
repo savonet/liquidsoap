@@ -6,7 +6,6 @@
  (wrapped false)
  (libraries
   liquidsoap_core
-  liquidsoap_file_watcher
   (select
    alsa_option.ml
    from

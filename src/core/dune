@@ -19,6 +19,7 @@
   liquidsoap-lang
   liquidsoap-lang.console
   liquidsoap-lang.stdlib
+  liquidsoap_memtrace
   menhirLib
   camomile.lib
   curl

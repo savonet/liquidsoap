@@ -5,6 +5,7 @@ include Liquidsoap_paths
 let git_snapshot = git_sha <> None
 let requests_max_id = 50
 let requests_table_size = 50
+let () = Liq_memtrace.install ()
 
 let () =
   Liquidsoap_lang.Cache.user_dir_override :=
