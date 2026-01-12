@@ -1,0 +1,3 @@
+(library
+ (name liquidsoap_build_tools)
+ (wrapped false))

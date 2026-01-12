@@ -11,5 +11,4 @@
    runner.ml
    from
    (winsvc -> runner.winsvc.ml)
-   (-> runner.default.ml)))
- (modules main build_config runner))
+   (-> runner.default.ml))))

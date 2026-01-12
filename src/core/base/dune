@@ -1,3 +1,11 @@
+(env
+ (release
+  (ocamlopt_flags
+   (:standard -w -9 -alert --deprecated -O2)))
+ (_
+  (flags
+   (:standard -w -9 -alert --deprecated))))
+
 (include_subdirs unqualified)
 
 (rule

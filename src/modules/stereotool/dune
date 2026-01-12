@@ -1,5 +1,4 @@
 (library
  (optional)
- (name ndi)
- (modules ndi)
+ (name stereotool)
  (libraries ctypes ctypes.foreign))
