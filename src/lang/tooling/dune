@@ -9,5 +9,4 @@
 (library
  (name liquidsoap_tooling)
  (public_name liquidsoap-lang.tooling)
- (modules parsed_json)
  (libraries sedlex liquidsoap_lang))
