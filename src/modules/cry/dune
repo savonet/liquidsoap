@@ -1,0 +1,8 @@
+(library
+ (name cry)
+ (libraries bytes unix)
+ (foreign_stubs
+  (language c)
+  (names cry_stubs))
+ (synopsis
+  "OCaml client for the various icecast & shoutcast source protocols"))
