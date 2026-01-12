@@ -1,5 +1,0 @@
-(library
- (optional)
- (name ndi)
- (modules ndi)
- (libraries ctypes ctypes.foreign))

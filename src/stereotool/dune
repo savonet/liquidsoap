@@ -1,5 +1,0 @@
-(library
- (optional)
- (name stereotool)
- (modules stereotool)
- (libraries ctypes ctypes.foreign))

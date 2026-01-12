@@ -26,7 +26,6 @@
     (cry (>= 1.0.3))
     (camomile (>= 2.0.0))
     uri
-    fileutils
     menhirLib
     (mem_usage (>= 0.1.1))
     (metadata (>= 0.3.0))

@@ -1,0 +1,6 @@
+(library
+ (name liquidsoap_opus)
+ (libraries opus opus.decoder liquidsoap_core liquidsoap_ogg)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional))

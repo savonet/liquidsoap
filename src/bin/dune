@@ -3,8 +3,7 @@
  (public_name liquidsoap)
  (package liquidsoap)
  (link_flags -cclib %{env:LIQ_LDFLAGS=})
- (libraries liquidsoap_runtime)
- (modules liquidsoap))
+ (libraries liquidsoap_runtime))
 
 (rule
  (target liquidsoap-macos-instruments.exe)

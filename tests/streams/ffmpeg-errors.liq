@@ -7,7 +7,7 @@ def f() =
       "Avutil.Error(No such file or directory)"
     )
     let [..._, {filename}] = e.trace
-    test.equal(filename, "src/core/io/ffmpeg_io.ml")
+    test.equal(filename, "src/core/optionals/ffmpeg/ffmpeg_io.ml")
     test.pass()
   end
 

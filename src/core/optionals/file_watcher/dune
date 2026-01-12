@@ -1,0 +1,12 @@
+(library
+ (name liquidsoap_file_watcher)
+ (libraries
+  liquidsoap-lang
+  liquidsoap_core
+  unix
+  (select
+   liq_file_watcher.ml
+   from
+   (inotify -> liq_file_watcher.inotify.ml)
+   (-> liq_file_watcher.mtime.ml)))
+ (wrapped false))

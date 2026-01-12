@@ -1,0 +1,41 @@
+(env
+ (release
+  (ocamlopt_flags
+   (:standard -w -9 -alert --deprecated -O2)))
+ (_
+  (flags
+   (:standard -w -9 -alert --deprecated))))
+
+(include_subdirs unqualified)
+
+(rule
+ (target liquidsoap_paths.ml)
+ (action
+  (copy liquidsoap_paths.%{env:LIQUIDSOAP_BUILD_TARGET=default}.ml %{target})))
+
+(library
+ (name liquidsoap_core)
+ (preprocess
+  (pps ppx_string))
+ (libraries
+  mm
+  cron
+  dtools
+  dune-build-info
+  duppy
+  liquidsoap-lang
+  liquidsoap_memtrace
+  menhirLib
+  camomile.lib
+  curl
+  cry
+  re
+  uri
+  metadata
+  mem_usage
+  magic-mime)
+ (foreign_stubs
+  (language c)
+  (names unix_c defer_c content_pcm_c lufs_c))
+ (wrapped false)
+ (library_flags -linkall))

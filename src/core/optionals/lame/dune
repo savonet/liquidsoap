@@ -1,0 +1,6 @@
+(library
+ (name liquidsoap_lame)
+ (libraries lame liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional))

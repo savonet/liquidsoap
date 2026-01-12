@@ -1,0 +1,11 @@
+(library
+ (name liquidsoap_oss)
+ (libraries liquidsoap_core)
+ (enabled_if
+  (= "linux" %{system}))
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (foreign_stubs
+  (language c)
+  (names oss_io_c)))

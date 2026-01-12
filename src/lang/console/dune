@@ -1,0 +1,4 @@
+(library
+ (name console)
+ (public_name liquidsoap-lang.console)
+ (libraries unix))

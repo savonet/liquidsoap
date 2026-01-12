@@ -1,0 +1,14 @@
+(library
+ (name liquidsoap_runtime)
+ (preprocess
+  (pps ppx_string))
+ (libraries
+  liquidsoap_core
+  liquidsoap_optionals
+  liquidsoap_builtins
+  liquidsoap_tooling
+  (select
+   runner.ml
+   from
+   (winsvc -> runner.winsvc.ml)
+   (-> runner.default.ml))))

@@ -1,0 +1,6 @@
+(library
+ (name liquidsoap_frei0r)
+ (libraries frei0r liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional))

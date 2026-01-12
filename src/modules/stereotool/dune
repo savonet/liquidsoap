@@ -1,0 +1,4 @@
+(library
+ (optional)
+ (name stereotool)
+ (libraries ctypes ctypes.foreign))

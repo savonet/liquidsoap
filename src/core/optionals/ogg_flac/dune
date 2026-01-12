@@ -1,0 +1,9 @@
+(library
+ (name liquidsoap_ogg_flac)
+ (libraries flac.ogg flac.decoder liquidsoap_core liquidsoap_ogg)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (foreign_stubs
+  (language c)
+  (names ogg_flac_encoder_stubs)))
