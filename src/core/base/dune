@@ -23,10 +23,7 @@
   dtools
   dune-build-info
   duppy
-  fileutils
   liquidsoap-lang
-  liquidsoap-lang.console
-  liquidsoap-lang.stdlib
   liquidsoap_memtrace
   menhirLib
   camomile.lib
