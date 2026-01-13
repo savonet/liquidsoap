@@ -138,9 +138,18 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   in
   let codec =
     try Avcodec.Audio.find_encoder_by_name codec
-    with e ->
+    with e -> (
+      let bt = Printexc.get_raw_backtrace () in
       log#severe "Cannot find encoder %s: %s." codec (Printexc.to_string e);
-      raise e
+      match e with
+        | Avutil.Error `Encoder_not_found ->
+            raise
+              (Lang_encoder.raise_error ~pos
+                 (Printf.sprintf
+                    "Cannot find %%ffmpeg encoder %s. Make sure that ffmpeg is \
+                     compiled with it!"
+                    codec))
+        | _ -> Printexc.raise_with_backtrace e bt)
   in
 
   let target_samplerate = Lazy.force params.Ffmpeg_format.samplerate in
