@@ -20,50 +20,53 @@
 
  *****************************************************************************)
 
-module Queue = struct
-  type 'a t = { m : Mutex.t; mutable l : 'a List.t }
+(* Atomic queues with slow lock for mutable operations. *)
 
-  let create () = { m = Mutex.create (); l = [] }
-  let apply q fn = Mutex_utils.mutexify q.m fn q
-  let is_empty q = apply q (function { l = [] } -> true | _ -> false)
-  let push q v = apply q (fun q -> q.l <- q.l @ [v])
-  let append q v = apply q (fun q -> q.l <- v :: q.l)
+module Queue = struct
+  type 'a t = { m : Mutex.t; l : 'a List.t Atomic.t }
+
+  let create () = { m = Mutex.create (); l = Atomic.make [] }
+  let mutate q fn = Mutex_utils.mutexify q.m fn q
+  let get q fn = fn (Atomic.get q.l)
+  let is_empty q = get q (function [] -> true | _ -> false)
+  let push q v = mutate q (fun q -> Atomic.set q.l (Atomic.get q.l @ [v]))
+  let append q v = mutate q (fun q -> Atomic.set q.l (v :: Atomic.get q.l))
 
   let pop_opt q =
-    apply q (function
-      | { l = el :: rest } ->
-          q.l <- rest;
-          Some el
-      | _ -> None)
+    mutate q (fun q ->
+        match Atomic.get q.l with
+          | el :: rest ->
+              Atomic.set q.l rest;
+              Some el
+          | _ -> None)
 
-  let peek_opt q = apply q (function { l = el :: _ } -> Some el | _ -> None)
-
-  let flush_elements q =
-    apply q (fun q ->
-        let l = q.l in
-        q.l <- [];
-        l)
+  let peek_opt q = get q (function el :: _ -> Some el | _ -> None)
+  let flush_elements q = mutate q (fun q -> Atomic.exchange q.l [])
 
   let pop q =
-    apply q (function
-      | { l = el :: rest } ->
-          q.l <- rest;
-          el
-      | _ -> raise Not_found)
+    mutate q (fun q ->
+        match Atomic.get q.l with
+          | el :: rest ->
+              Atomic.set q.l rest;
+              el
+          | _ -> raise Not_found)
 
-  let peek q = apply q (function { l = el :: _ } -> el | _ -> raise Not_found)
+  let peek q = get q (function el :: _ -> el | _ -> raise Not_found)
   let flush_iter q fn = List.iter fn (flush_elements q)
 
   let flush_fold q fn ret =
     let flush_fold_f ret el = fn el ret in
     List.fold_left flush_fold_f ret (flush_elements q)
 
-  let elements q = apply q (fun { l } -> l)
+  let elements q = Atomic.get q.l
   let exists q fn = List.exists fn (elements q)
   let length q = List.length (elements q)
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
-  let filter q fn = apply q (fun q -> q.l <- List.filter fn q.l)
+
+  let filter q fn =
+    mutate q (fun q -> Atomic.set q.l (List.filter fn (Atomic.get q.l)))
+
   let filter_out q fn = filter q (fun el -> not (fn el))
 end
 
@@ -130,9 +133,9 @@ module WeakQueue = struct
               | Some p when fn p -> ()
               | _ -> Weak.set el i None
           done)
-        q.l
+        (Atomic.get q.l)
     in
-    apply q filter_f
+    mutate q filter_f
 
   let filter_out q fn = filter q (fun el -> not (fn el))
 end
