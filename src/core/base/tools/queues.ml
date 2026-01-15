@@ -77,28 +77,41 @@ module WeakQueue = struct
   let mutate q fn = Mutex_utils.mutexify q.m fn q
   let get q fn = fn (Atomic.get q.a)
 
+  let rec count_live arr len i acc =
+    if i >= len then acc
+    else count_live arr len (i + 1) (if Weak.check arr i then acc + 1 else acc)
+
+  let rec copy_live src dst len i j =
+    if i >= len then ()
+    else (
+      match Weak.get src i with
+        | Some el ->
+            Weak.set dst j (Some el);
+            copy_live src dst len (i + 1) (j + 1)
+        | None -> copy_live src dst len (i + 1) j)
+
+  let compact_and_push arr v =
+    let len = Weak.length arr in
+    let live_count = count_live arr len 0 0 in
+    let new_arr = Weak.create (live_count + 1) in
+    if live_count = len then Weak.blit arr 0 new_arr 0 len
+    else copy_live arr new_arr len 0 0;
+    Weak.set new_arr live_count (Some v);
+    new_arr
+
   let push q v =
     mutate q (fun q ->
         let arr = Atomic.get q.a in
         let len = Weak.length arr in
-        let rec count_live i acc =
-          if i >= len then acc
-          else count_live (i + 1) (if Weak.check arr i then acc + 1 else acc)
+        let new_arr =
+          if (len + 1) mod 100 = 0 then compact_and_push arr v
+          else begin
+            let new_arr = Weak.create (len + 1) in
+            Weak.blit arr 0 new_arr 0 len;
+            Weak.set new_arr len (Some v);
+            new_arr
+          end
         in
-        let live_count = count_live 0 0 in
-        let new_arr = Weak.create (live_count + 1) in
-        if live_count = len then Weak.blit arr 0 new_arr 0 len
-        else begin
-          let j = ref 0 in
-          for i = 0 to len - 1 do
-            match Weak.get arr i with
-              | Some el ->
-                  Weak.set new_arr !j (Some el);
-                  incr j
-              | None -> ()
-          done
-        end;
-        Weak.set new_arr live_count (Some v);
         Atomic.set q.a new_arr)
 
   let exists q fn =
