@@ -1,5 +1,10 @@
 # 2.4.2 (unreleased)
 
+## Changed:
+
+- Batch calls to `thread.when` to preserve performances,
+  warn when using `thread.when` too intensively (#4832)
+
 ---
 
 # 2.4.1 (2025-01-10)
