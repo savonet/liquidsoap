@@ -45,9 +45,35 @@ def thread.when.add_to_batch(~every, check) =
     tasks := [check, ...tasks()]
   else
     tasks = ref([check])
+    errors = ref([])
+    def exec_task(fn) =
+      try
+        fn()
+      catch err do
+        errors := [err, ...errors()]
+      end
+    end
     def check_tasks() =
       current_tasks = tasks()
-      list.iter(fun (fn) -> fn(), current_tasks)
+      list.iter(exec_task, current_tasks)
+      current_errors = errors()
+
+      errors := []
+
+      if
+        current_errors != []
+      then
+        errors_list =
+          string.concat(
+            separator=", ",
+            list.map(string, current_errors)
+          )
+        log.critical(
+          label="thread.when",
+          "Error(s) while executing batched `thread.when`: #{errors_list}"
+        )
+      end
+
       every
     end
     thread.run.recurrent(fast=true, delay=0., on_error=null, check_tasks)
