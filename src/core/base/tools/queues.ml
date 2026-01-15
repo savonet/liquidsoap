@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-(* Atomic queues with slow lock for mutable operations. Queues are not order-preserving. *)
+(* Atomic queues with slow lock for mutable operations. Queues are order-preserving. *)
 
 module Queue = struct
   type 'a t = { m : Mutex.t; l : 'a List.t Atomic.t }
@@ -29,7 +29,7 @@ module Queue = struct
   let mutate q fn = Mutex_utils.mutexify q.m fn q
   let get q fn = fn (Atomic.get q.l)
   let is_empty q = get q (function [] -> true | _ -> false)
-  let push q v = mutate q (fun q -> Atomic.set q.l (v :: Atomic.get q.l))
+  let push q v = mutate q (fun q -> Atomic.set q.l (Atomic.get q.l @ [v]))
   let append q v = mutate q (fun q -> Atomic.set q.l (v :: Atomic.get q.l))
 
   let pop_opt q =
@@ -81,18 +81,25 @@ module WeakQueue = struct
     mutate q (fun q ->
         let arr = Atomic.get q.a in
         let len = Weak.length arr in
-        let rec find_slot i =
-          if i >= len then None
-          else if not (Weak.check arr i) then Some i
-          else find_slot (i + 1)
+        let rec count_live i acc =
+          if i >= len then acc
+          else count_live (i + 1) (if Weak.check arr i then acc + 1 else acc)
         in
-        match find_slot 0 with
-          | Some i -> Weak.set arr i (Some v)
-          | None ->
-              let new_arr = Weak.create (len + 1) in
-              Weak.blit arr 0 new_arr 0 len;
-              Weak.set new_arr len (Some v);
-              Atomic.set q.a new_arr)
+        let live_count = count_live 0 0 in
+        let new_arr = Weak.create (live_count + 1) in
+        if live_count = len then Weak.blit arr 0 new_arr 0 len
+        else begin
+          let j = ref 0 in
+          for i = 0 to len - 1 do
+            match Weak.get arr i with
+              | Some el ->
+                  Weak.set new_arr !j (Some el);
+                  incr j
+              | None -> ()
+          done
+        end;
+        Weak.set new_arr live_count (Some v);
+        Atomic.set q.a new_arr)
 
   let exists q fn =
     get q (fun arr ->
@@ -141,7 +148,7 @@ module WeakQueue = struct
     get q (fun arr ->
         let len = Weak.length arr in
         let rec loop i acc =
-          if i >= len then acc
+          if i >= len then List.rev acc
           else
             loop (i + 1)
               (match Weak.get arr i with Some el -> el :: acc | None -> acc)
@@ -152,7 +159,7 @@ module WeakQueue = struct
     let arr = mutate q (fun q -> Atomic.exchange q.a (Weak.create 0)) in
     let len = Weak.length arr in
     let rec loop i acc =
-      if i >= len then acc
+      if i >= len then List.rev acc
       else
         loop (i + 1)
           (match Weak.get arr i with Some el -> el :: acc | None -> acc)
