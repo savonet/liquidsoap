@@ -20,12 +20,26 @@
 
  *****************************************************************************)
 
+type source_entry = { id : string; activations : string list }
+
 type clock_entry = {
   name : string;
-  outputs : string list;
-  active : string list;
-  passive : string list;
+  outputs : source_entry list;
+  active : source_entry list;
+  passive : source_entry list;
   sub_clocks : clock_entry list;
 }
 
 val format_clock : ?max_width:int -> clock_entry -> string
+
+type dump_entry = {
+  clock_name : string;
+  ticks : int;
+  self_sync : bool;
+  outputs : source_entry list;
+  active : source_entry list;
+  passive : source_entry list;
+  sub_clocks : dump_entry list;
+}
+
+val format_dump : ?max_width:int -> dump_entry list -> string

@@ -85,14 +85,16 @@ type on_frame =
 let source_log = Log.make ["source"]
 let finalise s = source_log#info "Source %s is collected." s#id
 
+(*
 let check_sleep ~activations ~s =
  fun src ->
   if List.memq src (WeakQueue.elements activations) then (
     (s#log : Log.t)#critical
-      "Unbalanced activations! %s was cleaned-up without calling #sleep for \
-       %s! Please report to the developers."
-      s#id src#id;
+      "Unbalanced activations! %s was cleaned-up without calling #sleep on %s! \
+       Please report to the developers."
+      src#id s#id;
     s#sleep src)
+  *)
 
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
@@ -295,7 +297,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           method id = src#id
         end
       in
+      (*
       Gc.finalise (check_sleep ~activations ~s:self) activation;
+      *)
       WeakQueue.push activations activation;
       if Atomic.compare_and_set is_up `False `True then (
         try
