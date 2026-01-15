@@ -29,7 +29,7 @@ module Queue = struct
   let mutate q fn = Mutex_utils.mutexify q.m fn q
   let get q fn = fn (Atomic.get q.l)
   let is_empty q = get q (function [] -> true | _ -> false)
-  let push q v = mutate q (fun q -> Atomic.set q.l (Atomic.get q.l @ [v]))
+  let push q v = mutate q (fun q -> Atomic.set q.l (v :: Atomic.get q.l))
   let append q v = mutate q (fun q -> Atomic.set q.l (v :: Atomic.get q.l))
 
   let pop_opt q =
