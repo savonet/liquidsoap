@@ -109,6 +109,7 @@ let format_clock ?(max_width = 100) entry =
 type dump_entry = {
   clock_name : string;
   ticks : int;
+  time : float;
   self_sync : bool;
   outputs : source_entry list;
   active : source_entry list;
@@ -161,8 +162,9 @@ let format_dump ?(max_width = 100) entries =
                subs)
       else ""
     in
-    Printf.sprintf "%s%s%s (ticks: %d, self_sync: %b)\n%s\n%s\n%s%s" prefix
-      connector entry.clock_name entry.ticks entry.self_sync
+    Printf.sprintf
+      "%s%s%s (ticks: %d, time: %.02fs, self_sync: %b)\n%s\n%s\n%s%s" prefix
+      connector entry.clock_name entry.ticks entry.time entry.self_sync
       (format_field ~is_last:false "outputs" entry.outputs)
       (format_field ~is_last:false "active sources" entry.active)
       (format_field ~is_last:(not has_subs) "passive sources" entry.passive)
