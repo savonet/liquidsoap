@@ -1,5 +1,19 @@
 
 (executable
+ (name clock_utils_test)
+ (modules clock_utils_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias clock_utils_test)
+ (package liquidsoap)
+ (deps
+  
+  (:clock_utils_test clock_utils_test.exe))
+ (action (run %{clock_utils_test} )))
+
+
+(executable
  (name content_test)
  (modules content_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -351,6 +365,7 @@
 (alias
   (name citest)
   (deps
+    (alias clock_utils_test)
     (alias content_test)
     (alias decoder_test)
     (alias ffmpeg_quality)

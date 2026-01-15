@@ -479,6 +479,33 @@ let wrap_errors clock fn s =
       Queue.iter clock.on_error (fun fn -> fn exn bt)
     else Printexc.raise_with_backtrace exn bt
 
+let pretty_sources ~clock x =
+  let rec build_entry clock x =
+    let sub_clocks =
+      List.filter_map
+        (fun sub ->
+          let sub_clock = Unifier.deref sub in
+          match Atomic.get sub_clock.state with
+            | `Started sub_x | `Stopping sub_x ->
+                Some (build_entry sub_clock sub_x)
+            | _ -> None)
+        (Queue.elements clock.sub_clocks)
+    in
+    let src s =
+      Clock_utils.
+        { id = s#id; activations = List.map (fun a -> a#id) s#activations }
+    in
+    Clock_utils.
+      {
+        name = _id clock;
+        outputs = List.map (fun (_, s) -> src s) (Queue.elements x.outputs);
+        active = List.map src (WeakQueue.elements x.active_sources);
+        passive = List.map src (WeakQueue.elements x.passive_sources);
+        sub_clocks;
+      }
+  in
+  Clock_utils.format_clock (build_entry clock x)
+
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
@@ -511,23 +538,7 @@ and _activate_pending_sources ~clock x =
         "There are currently %d sources, possible source leak! Please check \
          that you don't have a loop creating multiple sources."
         total_sources;
-      let ids =
-        List.map
-          (fun s ->
-            let source_type =
-              match s#source_type with
-                | `Passive -> "passive"
-                | `Active _ -> "active"
-                | `Output _ -> "output"
-            in
-            Printf.sprintf "%s (%s, activations: [%s])" s#id source_type
-              (String.concat ", " (List.map (fun s -> s#id) s#activations)))
-          (List.map snd (Queue.elements x.outputs)
-          @ WeakQueue.elements x.active_sources
-          @ WeakQueue.elements x.passive_sources)
-      in
-      let ids = List.sort Stdlib.compare ids in
-      x.log#important "Current sources: %s" (String.concat ", " ids)))
+      x.log#important "Current sources:\n%s" (pretty_sources ~clock x)))
 
 and _tick ~clock x =
   let sub_clocks =
@@ -805,41 +816,21 @@ let sub_clocks c =
   Queue.elements clock.sub_clocks
 
 let dump () =
-  let rec clock_description ~prefix ~is_last c =
-    let connector = if is_last then "└── " else "├── " in
-    let child_prefix = prefix ^ if is_last then "    " else "│   " in
-    let source_ids sources =
-      String.concat ", " (List.map (fun s -> s#id) sources)
+  let rec build_entry c =
+    let src s =
+      Clock_utils.
+        { id = s#id; activations = List.map (fun a -> a#id) s#activations }
     in
-    let output_descriptions = source_ids (outputs c) in
-    let active_source_descriptions = source_ids (active_sources c) in
-    let passive_source_descriptions = source_ids (passive_sources c) in
-    let subs = sub_clocks c in
-    let len = List.length subs in
-    let sub_clocks_descriptions =
-      List.mapi
-        (fun i sub ->
-          clock_description ~prefix:child_prefix ~is_last:(i = len - 1) sub)
-        subs
-    in
-    let sub_clocks_str =
-      if subs <> [] then "\n" ^ String.concat "\n" sub_clocks_descriptions
-      else ""
-    in
-    Printf.sprintf
-      "%s%s%s (ticks: %d, self_sync: %b)\n\
-       %s├── outputs: %s\n\
-       %s├── active sources: %s\n\
-       %s└── passive sources: %s%s"
-      prefix connector (id c) (ticks c) (self_sync c) child_prefix
-      output_descriptions child_prefix active_source_descriptions child_prefix
-      passive_source_descriptions sub_clocks_str
+    let sources ss = List.map src ss in
+    Clock_utils.
+      {
+        clock_name = id c;
+        ticks = ticks c;
+        self_sync = self_sync c;
+        outputs = sources (outputs c);
+        active = sources (active_sources c);
+        passive = sources (passive_sources c);
+        sub_clocks = List.map build_entry (sub_clocks c);
+      }
   in
-  let all_clocks = clocks () in
-  let len = List.length all_clocks in
-  let descriptions =
-    List.mapi
-      (fun i c -> clock_description ~prefix:"" ~is_last:(i = len - 1) c)
-      all_clocks
-  in
-  String.concat "\n" descriptions
+  Clock_utils.format_dump (List.map build_entry (clocks ()))

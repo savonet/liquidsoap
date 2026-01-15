@@ -86,33 +86,6 @@ let _ =
       let l = List.map Lang.to_string l in
       Lang.string (String.concat sep l))
 
-let split ~encoding s =
-  let buf = Buffer.create 1 in
-  let to_string add c =
-    Buffer.clear buf;
-    add buf c;
-    Buffer.contents buf
-  in
-  let get =
-    match encoding with
-      | `Ascii -> fun pos -> (to_string Buffer.add_char (String.get s pos), 1)
-      | `Utf8 ->
-          fun pos ->
-            let d = String.get_utf_8_uchar s pos in
-            if not (Uchar.utf_decode_is_valid d) then
-              failwith "Decoding failed!";
-            ( to_string Buffer.add_utf_8_uchar (Uchar.utf_decode_uchar d),
-              Uchar.utf_decode_length d )
-  in
-  let len = String.length s in
-  let rec f chars pos =
-    if pos = len then List.rev chars
-    else (
-      let char, len = get pos in
-      f (char :: chars) (pos + len))
-  in
-  f [] 0
-
 let default_encoding = ref `Utf8
 
 let encoding_option =
@@ -140,7 +113,7 @@ let _ =
     (fun p ->
       let enc, encoding = get_encoding p in
       let s = Lang.to_string (List.assoc "" p) in
-      try Lang.list (List.map Lang.string (split ~encoding s))
+      try Lang.list (List.map Lang.string (Lang_string.split ~encoding s))
       with _ ->
         Runtime_error.raise ~pos:(Lang.pos p)
           ~message:
@@ -158,7 +131,7 @@ let _ =
     (fun p ->
       let enc, encoding = get_encoding p in
       let s = Lang.to_string (List.assoc "" p) in
-      try Lang.int (List.length (split ~encoding s))
+      try Lang.int (Lang_string.length ~encoding s)
       with _ ->
         Runtime_error.raise ~pos:(Lang.pos p)
           ~message:
@@ -409,7 +382,7 @@ let _ =
               try String.sub string start len with Invalid_argument _ -> "")
           | `Utf8 -> (
               try
-                let chars = split ~encoding string in
+                let chars = Lang_string.split ~encoding string in
                 if List.length chars < len + start then ""
                 else
                   String.concat ""
