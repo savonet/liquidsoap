@@ -563,3 +563,45 @@ let url_decode ?(plus = true) s =
         let k2 = of_hex1 s.[2] in
         String.make 1 (Char.chr ((k1 lsl 4) lor k2))))
     rex s
+
+let split ~encoding s =
+  let buf = Buffer.create 1 in
+  let to_string add c =
+    Buffer.clear buf;
+    add buf c;
+    Buffer.contents buf
+  in
+  let get =
+    match encoding with
+      | `Ascii -> fun pos -> (to_string Buffer.add_char (String.get s pos), 1)
+      | `Utf8 ->
+          fun pos ->
+            let d = String.get_utf_8_uchar s pos in
+            if not (Uchar.utf_decode_is_valid d) then
+              failwith "Decoding failed!";
+            ( to_string Buffer.add_utf_8_uchar (Uchar.utf_decode_uchar d),
+              Uchar.utf_decode_length d )
+  in
+  let len = String.length s in
+  let rec f chars pos =
+    if pos = len then List.rev chars
+    else (
+      let char, len = get pos in
+      f (char :: chars) (pos + len))
+  in
+  f [] 0
+
+let length ~encoding s =
+  match encoding with
+    | `Ascii -> String.length s
+    | `Utf8 ->
+        let len = String.length s in
+        let rec f count pos =
+          if pos = len then count
+          else (
+            let d = String.get_utf_8_uchar s pos in
+            if not (Uchar.utf_decode_is_valid d) then
+              failwith "Decoding failed!";
+            f (count + 1) (pos + Uchar.utf_decode_length d))
+        in
+        f 0 0
