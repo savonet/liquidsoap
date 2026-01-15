@@ -178,25 +178,17 @@ module WeakQueue = struct
 
   let filter q fn =
     mutate q (fun q ->
-        let old_arr = Atomic.get q.a in
-        let old_len = Weak.length old_arr in
-        let rec collect i acc len =
-          if i >= old_len then (acc, len)
+        let arr = Atomic.get q.a in
+        let len = Weak.length arr in
+        let rec loop i =
+          if i >= len then ()
           else (
-            match Weak.get old_arr i with
-              | Some el when fn el -> collect (i + 1) (el :: acc) (len + 1)
-              | _ -> collect (i + 1) acc len)
+            (match Weak.get arr i with
+              | Some el when not (fn el) -> Weak.set arr i None
+              | _ -> ());
+            loop (i + 1))
         in
-        let elements, len = collect 0 [] 0 in
-        let new_arr = Weak.create len in
-        let rec populate i = function
-          | [] -> ()
-          | el :: rest ->
-              Weak.set new_arr i (Some el);
-              populate (i - 1) rest
-        in
-        populate (len - 1) elements;
-        Atomic.set q.a new_arr)
+        loop 0)
 
   let filter_out q fn = filter q (fun el -> not (fn el))
 end
