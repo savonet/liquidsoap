@@ -5,7 +5,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias content_test)
  (package liquidsoap)
  (deps
   
@@ -19,7 +19,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias decoder_test)
  (package liquidsoap)
  (deps
   
@@ -33,7 +33,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias ffmpeg_quality)
  (package liquidsoap)
  (deps
   
@@ -47,7 +47,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias flush_test)
  (package liquidsoap)
  (deps
   
@@ -61,7 +61,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias frame_test)
  (package liquidsoap)
  (deps
   
@@ -75,7 +75,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias generator_test)
  (package liquidsoap)
  (deps
   
@@ -89,7 +89,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias http_test)
  (package liquidsoap)
  (deps
   
@@ -103,7 +103,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias is_url)
  (package liquidsoap)
  (deps
   
@@ -117,7 +117,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias json_test)
  (package liquidsoap)
  (deps
   (:json ./json) (:json5 ./json5) (:big-list-of-naughty-strings ./big-list-of-naughty-strings)
@@ -131,7 +131,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias meth)
  (package liquidsoap)
  (deps
   
@@ -145,7 +145,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias more_types)
  (package liquidsoap)
  (deps
   
@@ -159,7 +159,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias output_encoded_test)
  (package liquidsoap)
  (deps
   
@@ -173,7 +173,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias output_test)
  (package liquidsoap)
  (deps
   
@@ -187,7 +187,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias parsesrt)
  (package liquidsoap)
  (deps
   (:test_srt ./test.srt)
@@ -201,7 +201,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias playlist_basic_test)
  (package liquidsoap)
  (deps
   
@@ -215,7 +215,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias pool_test)
  (package liquidsoap)
  (deps
   
@@ -229,7 +229,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias start_stop_test)
  (package liquidsoap)
  (deps
   
@@ -243,7 +243,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias stream_decoder_test)
  (package liquidsoap)
  (deps
   (:test_wav ./test.wav) (:test_mp3 ./test.mp3)
@@ -257,7 +257,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias string_test)
  (package liquidsoap)
  (deps
   
@@ -271,7 +271,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias strings_test)
  (package liquidsoap)
  (deps
   
@@ -285,7 +285,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias timezone)
  (package liquidsoap)
  (deps
   
@@ -299,7 +299,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias types)
  (package liquidsoap)
  (deps
   
@@ -313,7 +313,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias unifier_test)
  (package liquidsoap)
  (deps
   
@@ -327,7 +327,7 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias utils_test)
  (package liquidsoap)
  (deps
   
@@ -341,10 +341,38 @@
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias version_test)
  (package liquidsoap)
  (deps
   
   (:version_test version_test.exe))
  (action (run %{version_test} )))
 
+(alias
+  (name citest)
+  (deps
+    (alias content_test)
+    (alias decoder_test)
+    (alias ffmpeg_quality)
+    (alias flush_test)
+    (alias frame_test)
+    (alias generator_test)
+    (alias http_test)
+    (alias is_url)
+    (alias json_test)
+    (alias meth)
+    (alias more_types)
+    (alias output_encoded_test)
+    (alias output_test)
+    (alias parsesrt)
+    (alias playlist_basic_test)
+    (alias pool_test)
+    (alias start_stop_test)
+    (alias stream_decoder_test)
+    (alias string_test)
+    (alias strings_test)
+    (alias timezone)
+    (alias types)
+    (alias unifier_test)
+    (alias utils_test)
+    (alias version_test)))

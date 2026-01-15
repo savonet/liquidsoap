@@ -11,6 +11,13 @@ let test_params =
     ("parsesrt", ("(:test_srt ./test.srt)", ["%{test_srt}"]));
   ]
 
+let test_names = ref []
+
+let test_name s =
+  let test_name = Filename.remove_extension s in
+  test_names := Printf.sprintf "(alias %s)" test_name :: !test_names;
+  test_name
+
 let () =
   let location = Sys.getcwd () in
   let tests =
@@ -37,7 +44,7 @@ let () =
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias citest)
+ (alias %s)
  (package liquidsoap)
  (deps
   %s
@@ -45,7 +52,7 @@ let () =
  (action %s%s%s))
 
 |}
-        test test deps test test
+        (test_name test) test test deps test test
         (if List.length args > 1 then "(progn " else "")
         (String.concat " "
            (List.map
@@ -53,3 +60,12 @@ let () =
               args))
         (if List.length args > 1 then ")" else ""))
     tests
+
+let () =
+  Printf.printf
+    {|(alias
+  (name citest)
+  (deps
+    %s))
+|}
+    (String.concat "\n    " (List.sort_uniq Stdlib.compare !test_names))
