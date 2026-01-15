@@ -479,6 +479,31 @@ let wrap_errors clock fn s =
       Queue.iter clock.on_error (fun fn -> fn exn bt)
     else Printexc.raise_with_backtrace exn bt
 
+let pretty_sources ~clock x =
+  let rec build_entry clock x =
+    let sub_clocks =
+      List.filter_map
+        (fun sub ->
+          let sub_clock = Unifier.deref sub in
+          match Atomic.get sub_clock.state with
+            | `Started sub_x | `Stopping sub_x ->
+                Some (build_entry sub_clock sub_x)
+            | _ -> None)
+        (Queue.elements clock.sub_clocks)
+    in
+    Clock_utils.
+      {
+        name = _id clock;
+        outputs =
+          List.map (fun s -> s#id) (List.map snd (Queue.elements x.outputs));
+        active = List.map (fun s -> s#id) (WeakQueue.elements x.active_sources);
+        passive =
+          List.map (fun s -> s#id) (WeakQueue.elements x.passive_sources);
+        sub_clocks;
+      }
+  in
+  Clock_utils.format_clock (build_entry clock x)
+
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
@@ -511,23 +536,7 @@ and _activate_pending_sources ~clock x =
         "There are currently %d sources, possible source leak! Please check \
          that you don't have a loop creating multiple sources."
         total_sources;
-      let ids =
-        List.map
-          (fun s ->
-            let source_type =
-              match s#source_type with
-                | `Passive -> "passive"
-                | `Active _ -> "active"
-                | `Output _ -> "output"
-            in
-            Printf.sprintf "%s (%s, activations: [%s])" s#id source_type
-              (String.concat ", " (List.map (fun s -> s#id) s#activations)))
-          (List.map snd (Queue.elements x.outputs)
-          @ WeakQueue.elements x.active_sources
-          @ WeakQueue.elements x.passive_sources)
-      in
-      let ids = List.sort Stdlib.compare ids in
-      x.log#important "Current sources: %s" (String.concat ", " ids)))
+      x.log#important "Current sources:\n%s" (pretty_sources ~clock x)))
 
 and _tick ~clock x =
   let sub_clocks =
