@@ -61,21 +61,37 @@ let format_clock ?(max_width = 100) entry =
           in
           Some (String.concat "\n" (build_lines [] label_str items))
   in
-  let rec format_entry ~prefix ~bar entry =
+  let rec format_entry ~prefix ~bar ~is_root entry =
     let header = Printf.sprintf "%s%s:" prefix entry.name in
-    let content_prefix = bar ^ "│ " in
-    let format_field label items =
-      format_list label items ~prefix:content_prefix ~bar_prefix:content_prefix
-        ~max_width
+    let has_subs = entry.sub_clocks <> [] in
+    let format_field ~is_last label items =
+      if is_root then (
+        let marker = if is_last && not has_subs then "└── " else "├── " in
+        let bar_cont = if is_last && not has_subs then "    " else "│   " in
+        format_list label items ~prefix:(bar ^ marker)
+          ~bar_prefix:(bar ^ bar_cont) ~max_width)
+      else
+        format_list label items ~prefix:(bar ^ "│ ") ~bar_prefix:(bar ^ "│ ")
+          ~max_width
     in
+    let all_fields =
+      [
+        ("outputs", entry.outputs);
+        ("active ", entry.active);
+        ("passive", entry.passive);
+      ]
+    in
+    let non_empty_fields =
+      List.filter (fun (_, items) -> items <> []) all_fields
+    in
+    let num_fields = List.length non_empty_fields in
     let fields =
-      List.filter_map Fun.id
-        [
-          format_field "outputs" entry.outputs;
-          format_field "active " entry.active;
-          format_field "passive" entry.passive;
-        ]
+      List.mapi
+        (fun i (label, items) ->
+          format_field ~is_last:(i = num_fields - 1) label items)
+        non_empty_fields
     in
+    let fields = List.filter_map Fun.id fields in
     let sub_clock_count = List.length entry.sub_clocks in
     let sub_clocks_str =
       List.mapi
@@ -83,12 +99,12 @@ let format_clock ?(max_width = 100) entry =
           let is_last = i = sub_clock_count - 1 in
           let connector = if is_last then "└─ " else "├─ " in
           let sub_bar = bar ^ if is_last then "   " else "│  " in
-          format_entry ~prefix:(bar ^ connector) ~bar:sub_bar sub)
+          format_entry ~prefix:(bar ^ connector) ~bar:sub_bar ~is_root:false sub)
         entry.sub_clocks
     in
     String.concat "\n" ((header :: fields) @ sub_clocks_str)
   in
-  format_entry ~prefix:"" ~bar:"" entry
+  format_entry ~prefix:"" ~bar:"" ~is_root:true entry
 
 type dump_entry = {
   clock_name : string;
@@ -133,9 +149,10 @@ let format_dump ?(max_width = 100) entries =
         ~bar_prefix:(child_prefix ^ bar) ~label sources ~max_width
     in
     let subs = entry.sub_clocks in
+    let has_subs = subs <> [] in
     let len = List.length subs in
     let sub_clocks_str =
-      if subs <> [] then
+      if has_subs then
         "\n"
         ^ String.concat "\n"
             (List.mapi
@@ -148,7 +165,7 @@ let format_dump ?(max_width = 100) entries =
       connector entry.clock_name entry.ticks entry.self_sync
       (format_field ~is_last:false "outputs" entry.outputs)
       (format_field ~is_last:false "active sources" entry.active)
-      (format_field ~is_last:true "passive sources" entry.passive)
+      (format_field ~is_last:(not has_subs) "passive sources" entry.passive)
       sub_clocks_str
   in
   let len = List.length entries in

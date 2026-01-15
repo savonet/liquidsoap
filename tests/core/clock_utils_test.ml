@@ -23,9 +23,9 @@ let () =
   let result = Clock_utils.format_clock entry in
   let expected =
     {|main_clock:
-│ outputs = [output1 [], output2 []]
-│ active  = [src1 []]
-│ passive = [src2 [], src3 []]|}
+├── outputs = [output1 [], output2 []]
+├── active  = [src1 []]
+└── passive = [src2 [], src3 []]|}
   in
   check "simple clock" result expected;
 
@@ -52,8 +52,8 @@ let () =
   let result = Clock_utils.format_clock entry in
   let expected =
     {|parent:
-│ outputs = [out1 []]
-│ passive = [p1 []]
+├── outputs = [out1 []]
+├── passive = [p1 []]
 └─ child:
    │ outputs = [out2 []]
    │ active  = [a1 []]|}
@@ -85,11 +85,11 @@ let () =
   let result = Clock_utils.format_clock ~max_width:80 entry in
   let expected =
     {|audio.producer:
-│ outputs = [audio.consumer []]
-│ active  = [foo []]
-│ passive = [cross [], metadata_deduplicate [], metadata_map.2 [],
-│            metadata_map.3 [], mksafe [], mksafe.1 [], safe_blank [],
-│            safe_blank.1 [], track_metadata_deduplicate []]|}
+├── outputs = [audio.consumer []]
+├── active  = [foo []]
+└── passive = [cross [], metadata_deduplicate [], metadata_map.2 [],
+               metadata_map.3 [], mksafe [], mksafe.1 [], safe_blank [],
+               safe_blank.1 [], track_metadata_deduplicate []]|}
   in
   check "line wrapping" result expected;
 
@@ -106,7 +106,7 @@ let () =
   in
   let result = Clock_utils.format_clock entry in
   let expected = {|minimal:
-│ passive = [only_passive []]|} in
+└── passive = [only_passive []]|} in
   check "empty lists omitted" result expected;
 
   (* Test with activations *)
@@ -123,9 +123,9 @@ let () =
   let result = Clock_utils.format_clock entry in
   let expected =
     {|with_activations:
-│ outputs = [out1 [switch, fallback]]
-│ active  = [src1 [main]]
-│ passive = [src2 []]|}
+├── outputs = [out1 [switch, fallback]]
+├── active  = [src1 [main]]
+└── passive = [src2 []]|}
   in
   check "with activations" result expected;
 
@@ -180,7 +180,7 @@ let () =
     {|└── parent (ticks: 100, self_sync: false)
     ├── outputs: output []
     ├── active sources:
-    └── passive sources: src1 []
+    ├── passive sources: src1 []
     └── child (ticks: 50, self_sync: true)
         ├── outputs: child_out []
         ├── active sources: child_active []
