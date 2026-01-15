@@ -79,26 +79,20 @@ module WeakQueue = struct
 
   let push q v =
     mutate q (fun q ->
-        let old_arr = Atomic.get q.a in
-        let old_len = Weak.length old_arr in
-        let rec collect i acc len =
-          if i >= old_len then (acc, len)
-          else (
-            match Weak.get old_arr i with
-              | Some el -> collect (i + 1) (el :: acc) (len + 1)
-              | None -> collect (i + 1) acc len)
+        let arr = Atomic.get q.a in
+        let len = Weak.length arr in
+        let rec find_slot i =
+          if i >= len then None
+          else if not (Weak.check arr i) then Some i
+          else find_slot (i + 1)
         in
-        let elements, len = collect 0 [] 0 in
-        let new_arr = Weak.create (len + 1) in
-        let rec populate i = function
-          | [] -> ()
-          | el :: rest ->
-              Weak.set new_arr i (Some el);
-              populate (i - 1) rest
-        in
-        populate (len - 1) elements;
-        Weak.set new_arr len (Some v);
-        Atomic.set q.a new_arr)
+        match find_slot 0 with
+          | Some i -> Weak.set arr i (Some v)
+          | None ->
+              let new_arr = Weak.create (len + 1) in
+              Weak.blit arr 0 new_arr 0 len;
+              Weak.set new_arr len (Some v);
+              Atomic.set q.a new_arr)
 
   let exists q fn =
     get q (fun arr ->
