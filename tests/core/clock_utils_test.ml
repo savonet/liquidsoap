@@ -135,6 +135,7 @@ let () =
       {
         clock_name = "main";
         ticks = 42;
+        time = 1.05;
         self_sync = true;
         outputs = [src "out1" []; src "out2" []];
         active = [src "active1" []];
@@ -144,7 +145,7 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── main (ticks: 42, self_sync: true)
+    {|└── main (ticks: 42, time: 1.05s, self_sync: true)
     ├── outputs: out1 [], out2 []
     ├── active sources: active1 []
     └── passive sources: passive1 [], passive2 []|}
@@ -157,6 +158,7 @@ let () =
       {
         clock_name = "parent";
         ticks = 100;
+        time = 2.50;
         self_sync = false;
         outputs = [src "output" []];
         active = [];
@@ -166,6 +168,7 @@ let () =
             {
               clock_name = "child";
               ticks = 50;
+              time = 1.25;
               self_sync = true;
               outputs = [src "child_out" []];
               active = [src "child_active" []];
@@ -177,11 +180,11 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── parent (ticks: 100, self_sync: false)
+    {|└── parent (ticks: 100, time: 2.50s, self_sync: false)
     ├── outputs: output []
     ├── active sources:
     ├── passive sources: src1 []
-    └── child (ticks: 50, self_sync: true)
+    └── child (ticks: 50, time: 1.25s, self_sync: true)
         ├── outputs: child_out []
         ├── active sources: child_active []
         └── passive sources:|}
@@ -195,6 +198,7 @@ let () =
         {
           clock_name = "clock1";
           ticks = 10;
+          time = 0.25;
           self_sync = false;
           outputs = [src "o1" []];
           active = [src "a1" []];
@@ -204,6 +208,7 @@ let () =
         {
           clock_name = "clock2";
           ticks = 20;
+          time = 0.50;
           self_sync = true;
           outputs = [];
           active = [];
@@ -214,11 +219,11 @@ let () =
   in
   let result = Clock_utils.format_dump entries in
   let expected =
-    {|├── clock1 (ticks: 10, self_sync: false)
+    {|├── clock1 (ticks: 10, time: 0.25s, self_sync: false)
 │   ├── outputs: o1 []
 │   ├── active sources: a1 []
 │   └── passive sources:
-└── clock2 (ticks: 20, self_sync: true)
+└── clock2 (ticks: 20, time: 0.50s, self_sync: true)
     ├── outputs:
     ├── active sources:
     └── passive sources: p1 []|}
@@ -231,6 +236,7 @@ let () =
       {
         clock_name = "main";
         ticks = 100;
+        time = 2.50;
         self_sync = false;
         outputs = [src "output1" []; src "output2" []; src "output3" []];
         active =
@@ -250,16 +256,14 @@ let () =
         sub_clocks = [];
       }
   in
-  let result = Clock_utils.format_dump ~max_width:60 [entry] in
+  let result = Clock_utils.format_dump ~max_width:70 [entry] in
   let expected =
-    {|└── main (ticks: 100, self_sync: false)
+    {|└── main (ticks: 100, time: 2.50s, self_sync: false)
     ├── outputs: output1 [], output2 [], output3 []
-    ├── active sources: active_source_1 [],
-    │                   active_source_2 [],
+    ├── active sources: active_source_1 [], active_source_2 [],
     │                   active_source_3 []
-    └── passive sources: passive1 [], passive2 [],
-                         passive3 [], passive4 [],
-                         passive5 []|}
+    └── passive sources: passive1 [], passive2 [], passive3 [],
+                         passive4 [], passive5 []|}
   in
   check "dump line wrapping" result expected;
 
@@ -269,6 +273,7 @@ let () =
       {
         clock_name = "main";
         ticks = 10;
+        time = 0.25;
         self_sync = false;
         outputs = [src "out1" ["switch"; "fallback"]];
         active = [src "src1" ["main"]];
@@ -278,7 +283,7 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── main (ticks: 10, self_sync: false)
+    {|└── main (ticks: 10, time: 0.25s, self_sync: false)
     ├── outputs: out1 [switch, fallback]
     ├── active sources: src1 [main]
     └── passive sources: src2 []|}

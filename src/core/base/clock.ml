@@ -826,6 +826,7 @@ let dump () =
       {
         clock_name = id c;
         ticks = ticks c;
+        time = Lazy.force Frame.duration *. float (ticks c);
         self_sync = self_sync c;
         outputs = sources (outputs c);
         active = sources (active_sources c);

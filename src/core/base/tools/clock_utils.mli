@@ -35,6 +35,7 @@ val format_clock : ?max_width:int -> clock_entry -> string
 type dump_entry = {
   clock_name : string;
   ticks : int;
+  time : float;
   self_sync : bool;
   outputs : source_entry list;
   active : source_entry list;
