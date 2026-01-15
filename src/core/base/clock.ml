@@ -799,3 +799,47 @@ let clocks () =
   List.sort_uniq
     (fun c c' -> Stdlib.compare (Unifier.deref c) (Unifier.deref c'))
     (WeakQueue.elements pending_clocks @ Queue.elements clocks)
+
+let sub_clocks c =
+  let clock = Unifier.deref c in
+  Queue.elements clock.sub_clocks
+
+let dump () =
+  let rec clock_description ~prefix ~is_last c =
+    let connector = if is_last then "└── " else "├── " in
+    let child_prefix = prefix ^ if is_last then "    " else "│   " in
+    let source_ids sources =
+      String.concat ", " (List.map (fun s -> s#id) sources)
+    in
+    let output_descriptions = source_ids (outputs c) in
+    let active_source_descriptions = source_ids (active_sources c) in
+    let passive_source_descriptions = source_ids (passive_sources c) in
+    let subs = sub_clocks c in
+    let len = List.length subs in
+    let sub_clocks_descriptions =
+      List.mapi
+        (fun i sub ->
+          clock_description ~prefix:child_prefix ~is_last:(i = len - 1) sub)
+        subs
+    in
+    let sub_clocks_str =
+      if subs <> [] then "\n" ^ String.concat "\n" sub_clocks_descriptions
+      else ""
+    in
+    Printf.sprintf
+      "%s%s%s (ticks: %d, self_sync: %b)\n\
+       %s├── outputs: %s\n\
+       %s├── active sources: %s\n\
+       %s└── passive sources: %s%s"
+      prefix connector (id c) (ticks c) (self_sync c) child_prefix
+      output_descriptions child_prefix active_source_descriptions child_prefix
+      passive_source_descriptions sub_clocks_str
+  in
+  let all_clocks = clocks () in
+  let len = List.length all_clocks in
+  let descriptions =
+    List.mapi
+      (fun i c -> clock_description ~prefix:"" ~is_last:(i = len - 1) c)
+      all_clocks
+  in
+  String.concat "\n" descriptions

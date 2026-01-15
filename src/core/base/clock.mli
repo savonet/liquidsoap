@@ -94,6 +94,7 @@ val outputs : t -> source list
 val pending_activations : t -> source list
 val sources : t -> source list
 val clocks : unit -> t list
+val sub_clocks : t -> t list
 val id : t -> string
 val set_id : t -> string -> unit
 val descr : t -> string
@@ -115,3 +116,4 @@ val tick : t -> unit
 val after_tick : t -> (unit -> unit) -> unit
 val time_implementation : unit -> Liq_time.implementation
 val after_eval : unit -> unit
+val dump : unit -> string

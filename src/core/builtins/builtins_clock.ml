@@ -28,10 +28,15 @@ let clock =
     (fun p -> Lang_clock.ClockValue.(to_value (of_value (List.assoc "" p))))
 
 let _ =
+  Lang.add_builtin ~base:clock "dump" ~category:`Liquidsoap
+    ~descr:"Return a string description of the clocks currently being used." []
+    Lang.string_t (fun _ -> Lang.string (Clock.dump ()))
+
+let _ =
   Lang.add_builtin ~base:clock "active" ~category:`Liquidsoap
     ~descr:"Return the list of clocks currently in use." []
-    (Lang.list_t Lang_clock.ClockValue.t) (fun _ ->
-      Lang.list (List.map Lang_clock.ClockValue.to_value (Clock.clocks ())))
+    (Lang.list_t Lang_clock.ClockValue.base_t) (fun _ ->
+      Lang.list (List.map Lang_clock.ClockValue.to_base_value (Clock.clocks ())))
 
 let _ =
   Lang.add_builtin ~base:clock "create" ~category:`Liquidsoap

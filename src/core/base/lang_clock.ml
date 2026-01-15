@@ -83,6 +83,12 @@ module ClockValue = struct
           let get () = Lang.string (Clock.id c) in
           let set v = Clock.set_id c (Lang.to_string v) in
           Lang.reference get set );
+      ( "sub_clocks",
+        Lang.fun_t [] (Lang.list_t base_t),
+        "The list of sub-clocks for this clock.",
+        fun c ->
+          Lang.val_fun [] (fun _ ->
+              Lang.list (List.map to_base_value (Clock.sub_clocks c))) );
       ( "sync",
         Lang.fun_t [] Lang.string_t,
         "The clock's current sync mode. One of: `\"stopped\"`, `\"stopping\"`, \
