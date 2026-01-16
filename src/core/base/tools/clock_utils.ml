@@ -210,19 +210,21 @@ let format_source_graph sources =
     (fun s ->
       List.iter
         (fun parent_name ->
-          if Hashtbl.mem by_name parent_name then (
-            let current =
-              Option.value ~default:[]
-                (Hashtbl.find_opt children_of parent_name)
-            in
-            Hashtbl.replace children_of parent_name (s.source_name :: current))
-          else (
-            let current =
-              Option.value ~default:[]
-                (Hashtbl.find_opt external_children parent_name)
-            in
-            Hashtbl.replace external_children parent_name
-              (s.source_name :: current)))
+          (* Skip self-activations (e.g., outputs activate themselves) *)
+          if parent_name <> s.source_name then
+            if Hashtbl.mem by_name parent_name then (
+              let current =
+                Option.value ~default:[]
+                  (Hashtbl.find_opt children_of parent_name)
+              in
+              Hashtbl.replace children_of parent_name (s.source_name :: current))
+            else (
+              let current =
+                Option.value ~default:[]
+                  (Hashtbl.find_opt external_children parent_name)
+              in
+              Hashtbl.replace external_children parent_name
+                (s.source_name :: current)))
         s.source_activations)
     sources;
   (* Track seen sources *)
@@ -260,18 +262,6 @@ let format_source_graph sources =
             in
             Printf.sprintf "%s%s%s%s" prefix connector label children_str)
   in
-  let format_section title items format_fn =
-    if items = [] then None
-    else (
-      let len = List.length items in
-      let content =
-        String.concat "\n"
-          (List.mapi
-             (fun i item -> format_fn ~is_last:(i = len - 1) item)
-             items)
-      in
-      Some (Printf.sprintf "%s:\n%s" title content))
-  in
   (* Find outputs *)
   let outputs = List.filter (fun s -> s.source_kind = `Output) sources in
   (* Group outputs: those with external activators vs those without *)
@@ -298,19 +288,46 @@ let format_source_graph sources =
         s.source_activations)
     outputs_with_external;
   (* Format outputs section: external activators first, then standalone outputs *)
-  let format_external_with_children ~prefix ~is_last ext_name child_names =
-    let connector = if is_last then "└── " else "├── " in
-    let child_prefix = prefix ^ if is_last then "    " else "│   " in
+  let format_root_external ext_name child_names =
     let children_str =
       let len = List.length child_names in
       String.concat "\n"
         (List.mapi
            (fun i name ->
-             format_source ~prefix:child_prefix ~is_last:(i = len - 1) name)
+             format_source ~prefix:"  " ~is_last:(i = len - 1) name)
            child_names)
     in
-    Printf.sprintf "%s%s%s [external activation]\n%s" prefix connector ext_name
-      children_str
+    Printf.sprintf "· %s [external activation]\n%s" ext_name children_str
+  in
+  let format_root_source name =
+    match Hashtbl.find_opt by_name name with
+      | None -> Printf.sprintf "· %s [not found]" name
+      | Some source ->
+          let label =
+            Printf.sprintf "%s [%s]" source.source_name
+              (string_of_kind source.source_kind)
+          in
+          if Hashtbl.mem seen name then Printf.sprintf "· %s (*)" label
+          else (
+            Hashtbl.add seen name ();
+            let source_children =
+              Option.value ~default:[] (Hashtbl.find_opt children_of name)
+              |> List.rev
+            in
+            let len = List.length source_children in
+            let children_str =
+              if len = 0 then ""
+              else
+                "\n"
+                ^ String.concat "\n"
+                    (List.mapi
+                       (fun i child_name ->
+                         format_source ~prefix:"  "
+                           ~is_last:(i = len - 1)
+                           child_name)
+                       source_children)
+            in
+            Printf.sprintf "· %s%s" label children_str)
   in
   let external_activators =
     Hashtbl.fold (fun k v acc -> (k, List.rev v) :: acc) external_to_outputs []
@@ -319,18 +336,15 @@ let format_source_graph sources =
   let standalone_outputs =
     List.map (fun s -> s.source_name) outputs_without_external
   in
-  let all_output_items =
+  let output_lines =
     List.map
-      (fun (ext, children) -> `External (ext, children))
+      (fun (ext, children) -> format_root_external ext children)
       external_activators
-    @ List.map (fun name -> `Output name) standalone_outputs
+    @ List.map format_root_source standalone_outputs
   in
   let outputs_section =
-    format_section "Outputs" all_output_items (fun ~is_last item ->
-        match item with
-          | `External (ext, children) ->
-              format_external_with_children ~prefix:"" ~is_last ext children
-          | `Output name -> format_source ~prefix:"" ~is_last name)
+    if output_lines = [] then None
+    else Some ("Outputs:\n" ^ String.concat "\n" output_lines)
   in
   (* Find singletons (not visited after printing outputs) *)
   let singletons =

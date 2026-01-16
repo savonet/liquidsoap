@@ -312,10 +312,10 @@ let () =
   let result = Clock_utils.format_source_graph sources in
   let expected =
     {|Outputs:
-└── output.icecast [output]
-    └── encoder [passive]
-        └── audio.producer [passive]
-            └── playlist [passive]|}
+· output.icecast [output]
+  └── encoder [passive]
+      └── audio.producer [passive]
+          └── playlist [passive]|}
   in
   check "source graph simple tree" result expected;
 
@@ -332,11 +332,11 @@ let () =
   let result = Clock_utils.format_source_graph sources in
   let expected =
     {|Outputs:
-├── output.icecast [output]
-│   └── shared_encoder [passive]
-│       └── audio [passive]
-└── output.file [output]
-    └── shared_encoder [passive] (*)|}
+· output.icecast [output]
+  └── shared_encoder [passive]
+      └── audio [passive]
+· output.file [output]
+  └── shared_encoder [passive] (*)|}
   in
   check "source graph shared source" result expected;
 
@@ -354,11 +354,11 @@ let () =
   let result = Clock_utils.format_source_graph sources in
   let expected =
     {|Outputs:
-└── output [output]
-    └── switch [active]
-        ├── playlist1 [passive]
-        ├── playlist2 [passive]
-        └── fallback [passive]|}
+· output [output]
+  └── switch [active]
+      ├── playlist1 [passive]
+      ├── playlist2 [passive]
+      └── fallback [passive]|}
   in
   check "source graph multiple activations" result expected;
 
@@ -374,8 +374,8 @@ let () =
   let result = Clock_utils.format_source_graph sources in
   let expected =
     {|Outputs:
-└── output [output]
-    └── source [passive]
+· output [output]
+  └── source [passive]
 
 Singletons:
 · unused [passive]
@@ -393,9 +393,9 @@ Singletons:
   let result = Clock_utils.format_source_graph sources in
   let expected =
     {|Outputs:
-└── external_clock [external activation]
-    └── output [output]
-        └── encoder [passive]|}
+· external_clock [external activation]
+  └── output [output]
+      └── encoder [passive]|}
   in
   check "source graph with external output activation" result expected;
 
@@ -410,8 +410,8 @@ Singletons:
   let result = Clock_utils.format_source_graph sources in
   let expected =
     {|Outputs:
-└── output [output]
-    └── encoder [passive]
+· output [output]
+  └── encoder [passive]
 
 Singletons:
 · ffmpeg_graph [external activation]
@@ -433,11 +433,11 @@ Singletons:
   let result = Clock_utils.format_source_graph sources in
   let expected =
     {|Outputs:
-├── ext1 [external activation]
-│   └── out1 [output]
-│       └── src1 [passive]
-└── out2 [output]
-    └── src2 [passive]
+· ext1 [external activation]
+  └── out1 [output]
+      └── src1 [passive]
+· out2 [output]
+  └── src2 [passive]
 
 Singletons:
 · ext2 [external activation]
