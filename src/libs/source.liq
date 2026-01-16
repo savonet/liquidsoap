@@ -192,6 +192,15 @@ def ref.source.activation() =
 
   def flush() =
     let (cleanup, current) = current_value()
+    cleanup =
+      if
+        null.defined(current)
+      then
+        cleanup
+      else
+        cleanup()
+        fun () -> ()
+      end
     current_value := (cleanup, null)
     current
   end
