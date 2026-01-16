@@ -223,9 +223,13 @@ let usage () =
       (fun () -> Hashtbl.fold (fun k v l -> (k, v) :: l) commands [])
       ()
   in
-  let compare (x, _) (y, _) = compare x y in
+  let compare (x, _) (y, _) = -compare x y in
   let l = List.sort compare l in
-  List.fold_left (fun s (_, (_, u, _)) -> s ^ Printf.sprintf "\r\n| %s" u) "" l
+  List.fold_left
+    (fun s (_, (_, u, _)) ->
+      let sep = if s = "" then "└─" else "├─" in
+      Printf.sprintf "\r\n%s %s" sep u ^ s)
+    "" l
 
 (** {1 Handling of a client} *)
 

@@ -232,21 +232,21 @@ Last login: Tue Oct  5 11:26:52 2010 from localhost
 help
 Available commands:
 (...)
-| exit
-| help [<command>]
-| list
-| quit
-| request.alive
-| request.all
-| request.metadata <rid>
-| request.on_air
-| request.resolving
-| request.trace <rid>
-| uptime
-| var.get <variable>
-| var.list
-| var.set <variable> = <value>
-| version
+├─ exit
+├─ help [<command>]
+├─ list
+├─ quit
+├─ request.alive
+├─ request.all
+├─ request.metadata <rid>
+├─ request.on_air
+├─ request.resolving
+├─ request.trace <rid>
+├─ uptime
+├─ var.get <variable>
+├─ var.list
+├─ var.set <variable> = <value>
+└─ version
 
 Type "help <command>" for more information.
 END
