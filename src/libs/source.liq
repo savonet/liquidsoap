@@ -182,6 +182,8 @@ let ref.source = ()
 #               a source is set on the reference.
 # @method get Return the currently held source, if any, but keep tracking it.
 # @method defined `true` if a source is currently being tracked.
+# @method clear Clear the currently held source, if any, as well as its
+#               activation.
 def ref.source.activation() =
   current_value = ref((fun () -> (), null))
 
@@ -195,14 +197,14 @@ def ref.source.activation() =
     current
   end
 
-  def clear() =
-    ignore(flush())
-  end
-
   def track(a, s) =
     let (cleanup, _) = current_value()
     cleanup()
     current_value := (a, s)
+  end
+
+  def clear() =
+    track(fun () -> (), null)
   end
 
   def defined() =
@@ -264,7 +266,7 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   s.{
     pending=pending.get,
     set_pending=fun (s) -> pending.track(fun () -> (), s),
-    cancel_pending=pending.track(fun () -> (), null),
+    cancel_pending=pending.clear,
     skip=
       fun (~cancel_pending=true) ->
         begin
