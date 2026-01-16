@@ -290,4 +290,144 @@ let () =
   in
   check "dump with activations" result expected;
 
+  (* Test format_source_graph with simple tree
+     Activations point upward: playlist is activated by audio.producer, etc. *)
+  let gsrc name kind activations =
+    Clock_utils.
+      {
+        source_name = name;
+        source_kind = kind;
+        source_activations = activations;
+      }
+  in
+  let sources =
+    [
+      gsrc "output.icecast" `Output [];
+      gsrc "encoder" `Passive ["output.icecast"];
+      gsrc "audio.producer" `Passive ["encoder"];
+      gsrc "playlist" `Passive ["audio.producer"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+└── output.icecast [output]
+    └── encoder [passive]
+        └── audio.producer [passive]
+            └── playlist [passive]|}
+  in
+  check "source graph simple tree" result expected;
+
+  (* Test format_source_graph with shared source
+     shared_encoder is activated by both outputs *)
+  let sources =
+    [
+      gsrc "output.icecast" `Output [];
+      gsrc "output.file" `Output [];
+      gsrc "shared_encoder" `Passive ["output.icecast"; "output.file"];
+      gsrc "audio" `Passive ["shared_encoder"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+├── output.icecast [output]
+│   └── shared_encoder [passive]
+│       └── audio [passive]
+└── output.file [output]
+    └── shared_encoder [passive] (*)|}
+  in
+  check "source graph shared source" result expected;
+
+  (* Test format_source_graph with multiple activations
+     All playlists are activated by the switch *)
+  let sources =
+    [
+      gsrc "output" `Output [];
+      gsrc "switch" `Active ["output"];
+      gsrc "playlist1" `Passive ["switch"];
+      gsrc "playlist2" `Passive ["switch"];
+      gsrc "fallback" `Passive ["switch"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+└── output [output]
+    └── switch [active]
+        ├── playlist1 [passive]
+        ├── playlist2 [passive]
+        └── fallback [passive]|}
+  in
+  check "source graph multiple activations" result expected;
+
+  (* Test format_source_graph with singletons *)
+  let sources =
+    [
+      gsrc "output" `Output [];
+      gsrc "source" `Passive ["output"];
+      gsrc "unused" `Passive [];
+      gsrc "orphan" `Active [];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+└── output [output]
+    └── source [passive]
+
+Singletons:
+├── unused [passive]
+└── orphan [active]|}
+  in
+  check "source graph with singletons" result expected;
+
+  (* Test format_source_graph with external activations
+     Source claims to be activated by something outside this clock *)
+  let sources =
+    [
+      gsrc "output" `Output [];
+      gsrc "encoder" `Passive ["output"; "other_clock_source"];
+      gsrc "cross_clock" `Active ["ffmpeg_graph"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+└── output [output]
+    └── encoder [passive]
+
+Singletons:
+└── cross_clock [active]
+
+External activations:
+├── cross_clock <- ffmpeg_graph
+└── encoder <- other_clock_source|}
+  in
+  check "source graph with external activations" result expected;
+
+  (* Test format_source_graph with all sections *)
+  let sources =
+    [
+      gsrc "out" `Output [];
+      gsrc "src" `Passive ["out"];
+      gsrc "external_src" `Passive ["other_clock"];
+      gsrc "lonely" `Passive [];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+└── out [output]
+    └── src [passive]
+
+Singletons:
+├── external_src [passive]
+└── lonely [passive]
+
+External activations:
+└── external_src <- other_clock|}
+  in
+  check "source graph all sections" result expected;
+
   Printf.printf "All Clock_utils tests passed!\n%!"
