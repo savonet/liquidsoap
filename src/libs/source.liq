@@ -172,6 +172,46 @@ def source.run(s, ~delay=0., ~every=null, f) =
   s
 end
 
+let ref.source = ()
+
+# Return a source activation reference tracker.
+# @category Liquidsoap
+# @method track Track the give source's activation
+# @method get Get the currently held source if any and set tracked source to null. \
+#             If there was a source, its activation will be cleared the next time
+#             a source is set on the reference.
+# @method peek Return the currently held source, if any, but keep tracking it.
+# @method defined `true` if a source is currently being tracked.
+def ref.source.activation() =
+  current_value = ref((fun () -> (), null))
+
+  def peek() =
+    snd(current_value())
+  end
+
+  def get() =
+    let (cleanup, current) = current_value()
+    current_value := (cleanup, null)
+    current
+  end
+
+  def clear() =
+    ignore(get())
+  end
+
+  def track(a, s) =
+    let (cleanup, _) = current_value()
+    cleanup()
+    current_value := (a, s)
+  end
+
+  def defined() =
+    null.defined(snd(current_value()))
+  end
+
+  {get=get, peek=peek, defined=defined, clear=clear, track=track}
+end
+
 # Append an extra track to every track. Set the metadata ‘liq_append’ to
 # `false` to inhibit appending on one track.
 # @category Source / Track processing
@@ -181,35 +221,19 @@ end
 # @flag extra
 def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   last_meta = ref(null)
-  pending = ref(null)
-
-  let pending.set =
-    fun (v) ->
-      begin
-        current = pending()
-        if
-          null.defined(pending())
-        then
-          let (cleanup, _) = null.get(current)
-
-          # Give it some time to cleanup
-          thread.run(delay=0.1, cleanup)
-        end
-        pending := v
-      end
+  pending = ref.source.activation()
 
   def next() =
-    p = pending()
-    pending := null
+    p = pending.get()
     last_meta := null
 
-    if null.defined(p) then snd(null.get(p)) else (s : source) end
+    if null.defined(p) then null.get(p) else (s : source) end
   end
 
   d =
     source.dynamic(
       track_sensitive=true,
-      merge={merge and null.defined(pending)},
+      merge={merge and pending.defined()},
       next
     )
 
@@ -221,14 +245,14 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
         m["liq_append"] == "false"
       then
         last_meta := null
-        pending := null
+        pending.clear()
       elsif
         last_meta() != m
       then
         last_meta := m
         s = f(m)
         a = d.prepare(s)
-        pending := (a, s)
+        pending.track(a, s)
       end
     end
   end
@@ -238,20 +262,13 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
 
   s = fallback(id=id, track_sensitive=false, [d, s])
   s.{
-    pending=
-      # Return the pending source
-      fun () -> null.map(snd, pending()),
-    set_pending=
-      # Set the pending source
-      fun (s) -> pending.set((fun () -> (), s)),
-    cancel_pending=
-      # Cancel any pending appended source.
-      fun () -> pending.set(null),
+    pending=pending.peek,
+    set_pending=fun (s) -> pending.track(fun () -> (), s),
+    cancel_pending=pending.clear,
     skip=
-      # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
       fun (~cancel_pending=true) ->
         begin
-          if cancel_pending then pending.set(null) end
+          if cancel_pending then pending.clear() end
           s.skip()
         end
   }

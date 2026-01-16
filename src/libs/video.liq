@@ -673,30 +673,9 @@ def video.slideshow(
   l = ref(l)
   n = ref(-1)
 
-  next_source = ref(null)
+  next_source = ref.source.activation()
 
-  let next_source.set =
-    fun (v) ->
-      begin
-        current = next_source()
-        if
-          null.defined(current)
-        then
-          let (cleanup, _) = null.get(current)
-
-          # Give it some time to cleanup
-          thread.run(delay=0.1, cleanup)
-        end
-        next_source := v
-      end
-
-  def next() =
-    s = null.map(snd, next_source())
-    next_source := null
-    s
-  end
-
-  s = source.dynamic(next)
+  s = source.dynamic(next_source.get)
 
   def current() =
     list.nth(l(), n())
@@ -710,7 +689,7 @@ def video.slideshow(
       n := n'
       new_source = request.once(request.create(current()))
       a = s.prepare(new_source)
-      next_source := (a, new_source)
+      next_source.track(a, new_source)
     end
   end
 
