@@ -20,64 +20,24 @@
 
  *****************************************************************************)
 
-type activation_map = {
-  s : Clock.source;
-  mutable activations : Clock.activation list;
-}
-
-module ActivationMap = Weak.Make (struct
-  type t = activation_map
-
-  let equal { s } { s = s' } = s == s'
-  let hash { s } = Oo.id s
-end)
-
 class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
   object (self)
     inherit Source.source ~name:"source.dynamic" ()
     inherit Source.generate_from_multiple_sources ~merge ~track_sensitive ()
     method fallible = not infallible
-    val mutable activation_maps = ActivationMap.create 0
-    val activation_m = Mutex.create ()
 
     method prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
-      let a = s#wake_up (self :> Clock.source) in
-      Mutex_utils.mutexify activation_m
-        (fun () ->
-          try
-            let map =
-              ActivationMap.find activation_maps
-                { s :> Clock.source; activations = [] }
-            in
-            map.activations <- a :: map.activations
-          with Not_found ->
-            let map = { s :> Clock.source; activations = [a] } in
-            Gc.finalise_last (fun () -> ignore (Sys.opaque_identity map)) s;
-            ActivationMap.add activation_maps map)
-        ()
+      s#wake_up (self :> Clock.source)
 
-    method take_down s =
-      Mutex_utils.mutexify activation_m
-        (fun () ->
-          try
-            let map =
-              ActivationMap.find activation_maps
-                { s :> Clock.source; activations = [] }
-            in
-            List.iter (fun a -> s#sleep a) map.activations;
-            ActivationMap.remove activation_maps map
-          with Not_found -> ())
-        ()
-
-    val current_source : Source.source option Atomic.t = Atomic.make None
-    method current_source = Atomic.get current_source
+    val current_source = Atomic.make None
+    method current_source = Option.map snd (Atomic.get current_source)
 
     initializer
       self#on_wake_up (fun () ->
           match (self#current_source, init) with
-            | None, Some s -> ignore (self#switch s)
+            | None, Some s -> ignore (self#switch ~activation:None s)
             | _ -> ())
 
     method private no_source id =
@@ -95,41 +55,52 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
           "failure";
       None
 
-    method private switch s =
+    method private switch ~activation s =
       self#log#info "Switching to source %s" s#id;
-      self#prepare s;
-      Atomic.set current_source (Some s);
+      let a = match activation with None -> self#prepare s | Some a -> a in
+      Atomic.set current_source (Some (a, s));
       if s#is_ready then Some s else self#no_source (Some s#id)
 
-    method private exchange s =
-      match self#current_source with
-        | Some s' when s == s' -> Some s
-        | Some s' ->
-            let ret = self#switch s in
-            self#take_down s';
+    method private exchange ~activation s =
+      match Atomic.get current_source with
+        | Some (a', s') when s == s' ->
+            (match activation with Some a when a != a' -> s#sleep a | _ -> ());
+            Some s
+        | Some (a', s') ->
+            let ret = self#switch ~activation s in
+            s'#sleep a';
             ret
-        | None -> self#switch s
+        | None -> self#switch ~activation s
 
     method private get_next reselect =
       self#mutexify
         (fun () ->
-          let s =
-            Lang.apply next_fn [] |> Lang.to_option |> Option.map Lang.to_source
+          let v = Lang.to_option (Lang.apply next_fn []) in
+          let v =
+            Option.map
+              (fun v ->
+                let meth, v = Lang.split_meths v in
+                let a =
+                  Option.map Lang_source.Activation_val.of_value
+                    (List.assoc_opt "activation" meth)
+                in
+                (a, Lang.to_source v))
+              v
           in
-          match (s, self#current_source) with
+          match (v, self#current_source) with
             | None, Some s
               when self#can_reselect
                      ~reselect:(match reselect with `Force -> `Ok | v -> v)
                      s ->
                 Some s
-            | Some s, Some s' when s == s' ->
+            | Some (_, s), Some s' when s == s' ->
                 if
                   self#can_reselect
                     ~reselect:(match reselect with `Force -> `Ok | v -> v)
                     s
                 then Some s
                 else self#no_source None
-            | Some s, _ -> self#exchange s
+            | Some (activation, s), _ -> self#exchange ~activation s
             | _ -> self#no_source None)
         ()
 
@@ -144,7 +115,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       self#on_wake_up (fun () -> ignore (self#get_source ~reselect:`Force ()));
       self#on_sleep (fun () ->
           match Atomic.exchange current_source None with
-            | Some s -> self#take_down s
+            | Some (a, s) -> s#sleep a
             | None -> ())
 
     method remaining =
@@ -170,6 +141,15 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
 
 let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let source_t =
+    Lang.optional_method_t (Lang.source_t frame_t)
+      [
+        ( "activation",
+          ([], Lang_source.Activation_val.t),
+          "Optional activation if the source has been previously activated for \
+           this dynamic source" );
+      ]
+  in
   Lang.add_operator ~base:Muxer.source "dynamic"
     [
       ( "init",
@@ -195,7 +175,7 @@ let _ =
         Some (Lang.bool false),
         Some "Set or return `true` to merge subsequent tracks." );
       ( "",
-        Lang.fun_t [] (Lang.nullable_t (Lang.source_t frame_t)),
+        Lang.fun_t [] (Lang.nullable_t source_t),
         None,
         Some
           "Function returning the source to be used, `null` means keep current \
@@ -223,16 +203,29 @@ let _ =
         {
           name = "prepare";
           scheme =
-            ([], Lang.fun_t [(false, "", Lang.source_t frame_t)] Lang.unit_t);
-          descr = "Prepare a source that will be returned later.";
+            ( [],
+              Lang.fun_t
+                [(false, "", Lang.source_t frame_t)]
+                (Lang.method_t (Lang.source_t frame_t)
+                   [
+                     ( "activation",
+                       ([], Lang_source.Activation_val.t),
+                       "Source activation" );
+                   ]) );
+          descr =
+            "Prepare a source that will be returned later. Returned source has \
+             new activation attached to it and should be used to submit to the \
+             source later.";
           value =
             (fun s ->
               Lang.val_fun
                 [("", "x", None)]
                 (fun p ->
-                  let child = List.assoc "x" p |> Lang.to_source in
-                  s#prepare child;
-                  Lang.unit));
+                  let v = List.assoc "x" p in
+                  let child = Lang.to_source v in
+                  let a = s#prepare child in
+                  Lang.meth v
+                    [("activation", Lang_source.Activation_val.to_value a)]));
         };
       ]
     (fun p ->

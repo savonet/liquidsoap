@@ -689,7 +689,7 @@ def video.slideshow(
     then
       n := n'
       new_source = request.once(request.create(current()))
-      s.prepare(new_source)
+      new_source = s.prepare(new_source)
       next_source := new_source
     end
   end

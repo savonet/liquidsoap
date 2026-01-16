@@ -458,7 +458,7 @@ def request.player(~simultaneous=true) =
 
     def play(r) =
       r = request.once(r)
-      s.prepare(r)
+      r = s.prepare(r)
       next_source := r
     end
 

@@ -56,6 +56,20 @@ let metadata m = metadata_list (Frame.Metadata.to_list m)
 let metadata_track_t = Format_type.metadata
 let track_marks_t = Format_type.track_marks
 
+module Activation_val = Liquidsoap_lang.Lang_core.MkCustom (struct
+  type content = Clock.activation
+
+  let name = "activation"
+  let to_string a = Printf.sprintf "<activation(id=%s>" a#id
+
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos
+      ~message:(Printf.sprintf "Activations cannot be represented as json")
+      "json"
+
+  let compare a1 a2 = Stdlib.compare a1#id a2#id
+end)
+
 module Source_val = Liquidsoap_lang.Lang_core.MkCustom (struct
   type content = Source.source
 

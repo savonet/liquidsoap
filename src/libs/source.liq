@@ -212,7 +212,7 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
       then
         last_meta := m
         s = f(m)
-        d.prepare(s)
+        s = d.prepare(s)
         pending := s
       end
     end
