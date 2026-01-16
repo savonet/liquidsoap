@@ -85,7 +85,6 @@ type on_frame =
 let source_log = Log.make ["source"]
 let finalise s = source_log#info "Source %s is collected." s#id
 
-(*
 let check_sleep ~activations ~s =
  fun src ->
   if List.memq src (WeakQueue.elements activations) then (
@@ -94,7 +93,6 @@ let check_sleep ~activations ~s =
        Please report to the developers."
       src#id s#id;
     s#sleep src)
-  *)
 
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
@@ -297,9 +295,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           method id = src#id
         end
       in
-      (*
       Gc.finalise (check_sleep ~activations ~s:self) activation;
-      *)
       WeakQueue.push activations activation;
       if Atomic.compare_and_set is_up `False `True then (
         try
@@ -334,7 +330,17 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep (src : Clock.activation) =
-      WeakQueue.filter_out activations (fun s -> s == src);
+      if not (WeakQueue.exists activations (fun a -> a == src)) then (
+        let bt = Printexc.get_callstack 10 in
+        Runtime_error.raise
+          ~pos:(match self#pos with Some p -> [p] | None -> [])
+          ~bt
+          ~message:
+            (Printf.sprintf
+               "Invalid call to sleep on %s: no such activation %s!" self#id
+               src#id)
+          "source");
+      WeakQueue.filter_out activations (fun a -> a == src);
       match
         ( WeakQueue.length activations,
           Clock.started self#clock,

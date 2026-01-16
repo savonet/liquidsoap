@@ -33,9 +33,9 @@ let conf_assume_autocue =
     "Assume autocue when all 4 cue in/out and fade in/out metadata override \
      are present."
 
-class consumer ~clock buffer =
+class consumer ~name ~clock buffer =
   object (self)
-    inherit Source.source ~clock ~name:"cross.buffer" ()
+    inherit Source.source ~clock ~name ()
     method fallible = true
     method private can_generate_frame = 0 < Generator.length buffer
 
@@ -325,7 +325,11 @@ class cross val_source ~end_duration_getter ~override_end_duration
 
     method private prepare_before =
       self#log#info "Buffering end of track...";
-      let before = new consumer ~clock:self#source#clock gen_before in
+      let before =
+        new consumer
+          ~name:(Printf.sprintf "%s.eos_buffer" self#id)
+          ~clock:self#source#clock gen_before
+      in
       Typing.(before#frame_type <: self#frame_type);
       let a = self#prepare_source before in
       self#set_status (`Before (a, (before :> Source.source)));
@@ -477,7 +481,11 @@ class cross val_source ~end_duration_getter ~override_end_duration
             let head_gen =
               Generator.create ~content:head (Generator.content_type gen_before)
             in
-            let s = new consumer ~clock:self#source#clock head_gen in
+            let s =
+              new consumer
+                ~name:(Printf.sprintf "%s.head_buffer" self#id)
+                ~clock:self#source#clock head_gen
+            in
             s#set_id (self#id ^ "_before_head");
             Typing.(s#frame_type <: self#frame_type);
             Some s)
@@ -486,7 +494,9 @@ class cross val_source ~end_duration_getter ~override_end_duration
         let before =
           new Replay_metadata.replay
             before_metadata
-            (new consumer ~clock:self#source#clock gen_before)
+            (new consumer
+               ~name:(Printf.sprintf "%s.before_buffer" self#id)
+               ~clock:self#source#clock gen_before)
         in
         Typing.(before#frame_type <: self#frame_type);
         let after_tail =
@@ -497,7 +507,11 @@ class cross val_source ~end_duration_getter ~override_end_duration
             in
             let tail_gen = gen_after in
             gen_after <- head_gen;
-            let s = new consumer ~clock:self#source#clock tail_gen in
+            let s =
+              new consumer
+                ~name:(Printf.sprintf "%s.tail_buffer" self#id)
+                ~clock:self#source#clock tail_gen
+            in
             Typing.(s#frame_type <: self#frame_type);
             s#set_id (self#id ^ "_after_tail");
             Some s)
@@ -506,7 +520,9 @@ class cross val_source ~end_duration_getter ~override_end_duration
         let after =
           new Replay_metadata.replay
             after_metadata
-            (new consumer ~clock:self#source#clock gen_after)
+            (new consumer
+               ~name:(Printf.sprintf "%s.after_buffer" self#id)
+               ~clock:self#source#clock gen_after)
         in
         Typing.(after#frame_type <: self#frame_type);
         before#set_id (self#id ^ "_before");
