@@ -61,14 +61,14 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       Atomic.set current_source (Some (a, s));
       if s#is_ready then Some s else self#no_source (Some s#id)
 
-    method private exchange (a, s) =
+    method private exchange ~activation s =
       match Atomic.get current_source with
         | Some (_, s') when s == s' -> Some s
         | Some (a', s') ->
-            let ret = self#switch ~activation:a s in
+            let ret = self#switch ~activation s in
             s'#sleep a';
             ret
-        | None -> self#switch ~activation:a s
+        | None -> self#switch ~activation s
 
     method private get_next reselect =
       self#mutexify
@@ -98,7 +98,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
                     s
                 then Some s
                 else self#no_source None
-            | Some v, _ -> self#exchange v
+            | Some (activation, s), _ -> self#exchange ~activation s
             | _ -> self#no_source None)
         ()
 
