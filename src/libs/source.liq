@@ -264,7 +264,7 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   s.{
     pending=pending.get,
     set_pending=fun (s) -> pending.track(fun () -> (), s),
-    cancel_pending=pending.clear,
+    cancel_pending=pending.track(fun () -> (), null),
     skip=
       fun (~cancel_pending=true) ->
         begin
