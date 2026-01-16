@@ -204,7 +204,12 @@ let _ =
             ( [],
               Lang.fun_t
                 [(false, "", Lang.source_t frame_t)]
-                Lang_source.Activation_val.t );
+                (Lang.method_t (Lang.source_t frame_t)
+                   [
+                     ( "activation",
+                       ([], Lang_source.Activation_val.t),
+                       "Source activation" );
+                   ]) );
           descr =
             "Prepare a source that will be returned later. Returns a cleanup \
              function to call when the source is not needed anymore.";
@@ -213,9 +218,11 @@ let _ =
               Lang.val_fun
                 [("", "x", None)]
                 (fun p ->
-                  let child = List.assoc "x" p |> Lang.to_source in
+                  let v = List.assoc "x" p in
+                  let child = Lang.to_source v in
                   let a = s#prepare child in
-                  Lang_source.Activation_val.to_value a));
+                  Lang.meth v
+                    [("activation", Lang_source.Activation_val.to_value a)]));
         };
       ]
     (fun p ->

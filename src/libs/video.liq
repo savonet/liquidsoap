@@ -228,12 +228,7 @@ def video.cover(s) =
       then
         cover = null.get(cover)
         extname =
-          (
-            null.defined(cover.mime)
-            ? file.mime.extension(null.get(cover.mime)) : null
-          )
-            ??
-              ".osb"
+          (null.defined(cover.mime) ? file.mime.extension(null.get(cover.mime)) : null ) ?? ".osb"
         f = file.temp("cover", extname)
         log.debug(
           "Found cover for #{filename}."
@@ -673,9 +668,15 @@ def video.slideshow(
   l = ref(l)
   n = ref(-1)
 
-  next_source = ref.source.activation()
+  next_source = ref(null)
 
-  s = source.dynamic(next_source.flush)
+  def next() =
+    s = next_source()
+    next_source := null
+    s
+  end
+
+  s = source.dynamic(next)
 
   def current() =
     list.nth(l(), n())
@@ -688,8 +689,8 @@ def video.slideshow(
     then
       n := n'
       new_source = request.once(request.create(current()))
-      a = s.prepare(new_source)
-      next_source.track(a, new_source)
+      new_source = s.prepare(new_source)
+      next_source := new_source
     end
   end
 
