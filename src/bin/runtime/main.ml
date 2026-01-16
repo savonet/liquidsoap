@@ -216,6 +216,8 @@ let format_doc s =
   in
   String.concat "\n" s
 
+let dump_delay = ref 0.1
+
 let options =
   ref
     ([
@@ -253,6 +255,9 @@ let options =
        ( ["--no-external-plugins"],
          Arg.Clear Startup.register_external_plugins,
          "Disable external plugins." );
+       ( ["--dump-delay"],
+         Arg.Set_float dump_delay,
+         "Set the script's run time before dumping clocks or sources." );
        ( ["--describe-sources"],
          Arg.Unit
            (fun () ->
@@ -262,8 +267,15 @@ let options =
                  ignore
                    (Thread.create
                       (fun () ->
-                        Unix.sleepf 0.1;
-                        Printf.printf "%s\n" (Clock.dump_all_sources ());
+                        Printf.printf
+                          "Running the script for %.02fs.. ⚠️ This can get \
+                           stuck! ⚠️\n\
+                           %!"
+                          !dump_delay;
+                        Unix.sleepf !dump_delay;
+                        Printf.printf "Sources dump:%s\n\n"
+                          (Clock.dump_all_sources ());
+                        Printf.printf "Shutting down..\n%!";
                         Clock.global_stop ();
                         Tutils.shutdown 0)
                       ()))),
@@ -278,8 +290,14 @@ let options =
                  ignore
                    (Thread.create
                       (fun () ->
-                        Unix.sleepf 0.1;
-                        Printf.printf "%s\n" (Clock.dump ());
+                        Printf.printf
+                          "Running the script for %.02fs.. ⚠️  This can get \
+                           stuck! ⚠️ \n\
+                           %!"
+                          !dump_delay;
+                        Unix.sleepf !dump_delay;
+                        Printf.printf "Clocks dump:%s\n\n" (Clock.dump ());
+                        Printf.printf "Shutting down..\n%!";
                         Clock.global_stop ();
                         Tutils.shutdown 0)
                       ()))),
