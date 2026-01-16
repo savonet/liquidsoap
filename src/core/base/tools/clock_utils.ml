@@ -304,7 +304,7 @@ let format_source_graph sources =
              format_source ~prefix:child_prefix ~is_last:(i = len - 1) name)
            child_names)
     in
-    Printf.sprintf "%s%s%s [external]\n%s" prefix connector ext_name
+    Printf.sprintf "%s%s%s [external activation]\n%s" prefix connector ext_name
       children_str
   in
   let external_activators =
@@ -370,7 +370,7 @@ let format_source_graph sources =
              format_source ~prefix:"  " ~is_last:(i = len - 1) name)
            child_names)
     in
-    Printf.sprintf "· %s [external]\n%s" ext_name children_str
+    Printf.sprintf "· %s [external activation]\n%s" ext_name children_str
   in
   let singleton_lines =
     List.map
