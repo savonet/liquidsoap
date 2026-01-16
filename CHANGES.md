@@ -1,12 +1,24 @@
 # 2.4.2 (unreleased)
 
+## New:
+
+- Added pretty-print of clocks and source graphs!
+  Use via `--describe-<clocks/sources>` in the command
+  line or `clocks.dump` and `clocks.dump_sources` on
+  telnet/server! (#4837, #4836)
+
 ## Changed:
 
 - Batch calls to `thread.when` to preserve performances,
   warn when using `thread.when` too intensively (#4832)
+- Added pretty-print of telnet `help` list of commands.
+  This might break compatibility with automated telnet
+  readers! (Remember: telnet is a user-facing API, not designed
+  for machine consumption!).
 
 ## Fixed:
 
+- Fixed sources leaks in `source.dynamic` (#4835)
 - Optimized `Queues` implementation: fast, atomic access,
   slow, mutex-protected mutation (#4831)
 
