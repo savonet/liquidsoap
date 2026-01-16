@@ -102,6 +102,7 @@ val sync : t -> sync_mode
 val start : ?force:bool -> t -> unit
 val started : t -> bool
 val stop : t -> unit
+val global_stop : unit -> unit
 val set_stack : t -> Liquidsoap_lang.Pos.t list -> unit
 val self_sync : t -> bool
 val time : t -> float
@@ -118,3 +119,4 @@ val time_implementation : unit -> Liq_time.implementation
 val after_eval : unit -> unit
 val dump : unit -> string
 val dump_sources : t -> string
+val dump_all_sources : unit -> string

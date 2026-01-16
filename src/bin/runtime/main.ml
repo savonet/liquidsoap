@@ -253,6 +253,38 @@ let options =
        ( ["--no-external-plugins"],
          Arg.Clear Startup.register_external_plugins,
          "Disable external plugins." );
+       ( ["--describe-sources"],
+         Arg.Unit
+           (fun () ->
+             Lifecycle.after_script_parse ~name:"Disable logs" (fun () ->
+                 Dtools.Log.conf_stdout#set false);
+             Lifecycle.on_main_loop ~name:"dump sources and exit" (fun () ->
+                 ignore
+                   (Thread.create
+                      (fun () ->
+                        Unix.sleepf 0.1;
+                        Printf.printf "%s\n" (Clock.dump_all_sources ());
+                        Clock.global_stop ();
+                        Tutils.shutdown 0)
+                      ()))),
+         "Describe the script's sources and shutdown. This an an EXPERIMENTAL \
+          feature." );
+       ( ["--describe-clocks"],
+         Arg.Unit
+           (fun () ->
+             Lifecycle.after_script_parse ~name:"Disable logs" (fun () ->
+                 Dtools.Log.conf_stdout#set false);
+             Lifecycle.on_main_loop ~name:"dump sources and exit" (fun () ->
+                 ignore
+                   (Thread.create
+                      (fun () ->
+                        Unix.sleepf 0.1;
+                        Printf.printf "%s\n" (Clock.dump ());
+                        Clock.global_stop ();
+                        Tutils.shutdown 0)
+                      ()))),
+         "Describe the script's clocks and shutdown. This an an EXPERIMENTAL \
+          feature." );
        ( ["-q"; "--quiet"],
          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
          "Do not print log messages on standard output." );
