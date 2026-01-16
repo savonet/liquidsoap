@@ -37,7 +37,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     initializer
       self#on_wake_up (fun () ->
           match (self#current_source, init) with
-            | None, Some s -> ignore (self#switch s)
+            | None, Some s -> ignore (self#switch ~activation:None s)
             | _ -> ())
 
     method private no_source id =
@@ -55,41 +55,50 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
           "failure";
       None
 
-    method private switch s =
+    method private switch ~activation s =
       self#log#info "Switching to source %s" s#id;
-      let a = self#prepare s in
+      let a = match activation with None -> self#prepare s | Some a -> a in
       Atomic.set current_source (Some (a, s));
       if s#is_ready then Some s else self#no_source (Some s#id)
 
-    method private exchange s =
+    method private exchange (a, s) =
       match Atomic.get current_source with
         | Some (_, s') when s == s' -> Some s
-        | Some (a, s') ->
-            let ret = self#switch s in
-            s'#sleep a;
+        | Some (a', s') ->
+            let ret = self#switch ~activation:a s in
+            s'#sleep a';
             ret
-        | None -> self#switch s
+        | None -> self#switch ~activation:a s
 
     method private get_next reselect =
       self#mutexify
         (fun () ->
-          let s =
-            Lang.apply next_fn [] |> Lang.to_option |> Option.map Lang.to_source
+          let v = Lang.to_option (Lang.apply next_fn []) in
+          let v =
+            Option.map
+              (fun v ->
+                let meth, v = Lang.split_meths v in
+                let a =
+                  Option.map Lang_source.Activation_val.of_value
+                    (List.assoc_opt "activation" meth)
+                in
+                (a, Lang.to_source v))
+              v
           in
-          match (s, self#current_source) with
+          match (v, self#current_source) with
             | None, Some s
               when self#can_reselect
                      ~reselect:(match reselect with `Force -> `Ok | v -> v)
                      s ->
                 Some s
-            | Some s, Some s' when s == s' ->
+            | Some (_, s), Some s' when s == s' ->
                 if
                   self#can_reselect
                     ~reselect:(match reselect with `Force -> `Ok | v -> v)
                     s
                 then Some s
                 else self#no_source None
-            | Some s, _ -> self#exchange s
+            | Some v, _ -> self#exchange v
             | _ -> self#no_source None)
         ()
 
@@ -130,6 +139,15 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
 
 let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let source_t =
+    Lang.optional_method_t (Lang.source_t frame_t)
+      [
+        ( "activation",
+          ([], Lang_source.Activation_val.t),
+          "Optional activation if the source has been previously activated for \
+           this dynamic source" );
+      ]
+  in
   Lang.add_operator ~base:Muxer.source "dynamic"
     [
       ( "init",
@@ -155,7 +173,7 @@ let _ =
         Some (Lang.bool false),
         Some "Set or return `true` to merge subsequent tracks." );
       ( "",
-        Lang.fun_t [] (Lang.nullable_t (Lang.source_t frame_t)),
+        Lang.fun_t [] (Lang.nullable_t source_t),
         None,
         Some
           "Function returning the source to be used, `null` means keep current \
@@ -186,7 +204,7 @@ let _ =
             ( [],
               Lang.fun_t
                 [(false, "", Lang.source_t frame_t)]
-                (Lang.fun_t [] Lang.unit_t) );
+                Lang_source.Activation_val.t );
           descr =
             "Prepare a source that will be returned later. Returns a cleanup \
              function to call when the source is not needed anymore.";
@@ -197,9 +215,7 @@ let _ =
                 (fun p ->
                   let child = List.assoc "x" p |> Lang.to_source in
                   let a = s#prepare child in
-                  Lang.val_fun [] (fun _ ->
-                      child#sleep a;
-                      Lang.unit)));
+                  Lang_source.Activation_val.to_value a));
         };
       ]
     (fun p ->

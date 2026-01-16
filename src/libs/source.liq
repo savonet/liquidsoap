@@ -177,46 +177,33 @@ let ref.source = ()
 # Return a source activation reference tracker.
 # @category Liquidsoap
 # @method track Track the give source's activation
-# @method flush Get the currently held source if any and set tracked source to null. If there was a source, its activation will be cleared the next time a source is set on the reference.
-#               If there was a source, its activation will be cleared the next time
-#               a source is set on the reference.
+# @method flush Get the currently held source if any and set tracked source to null.
 # @method get Return the currently held source, if any, but keep tracking it.
 # @method defined `true` if a source is currently being tracked.
 # @method clear Clear the currently held source, if any, as well as its activation.
 def ref.source.activation() =
-  current_value = ref((fun () -> (), null))
+  current_value = ref(null)
 
   def get() =
-    snd(current_value())
+    current_value()
   end
 
   def flush() =
-    let (cleanup, current) = current_value()
-    cleanup =
-      if
-        null.defined(current)
-      then
-        cleanup
-      else
-        cleanup()
-        fun () -> ()
-      end
-    current_value := (cleanup, null)
+    current = current_value()
+    current_value := null
     current
   end
 
   def track(a, s) =
-    let (cleanup, _) = current_value()
-    cleanup()
-    current_value := (a, s)
+    current_value := s.{activation=a}
   end
 
   def clear() =
-    track(fun () -> (), null)
+    current_value := null
   end
 
   def defined() =
-    null.defined(snd(current_value()))
+    null.defined(current_value())
   end
 
   {get=get, flush=flush, defined=defined, clear=clear, track=track}
