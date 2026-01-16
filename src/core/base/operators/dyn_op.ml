@@ -63,7 +63,9 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
 
     method private exchange ~activation s =
       match Atomic.get current_source with
-        | Some (_, s') when s == s' -> Some s
+        | Some (a', s') when s == s' ->
+            (match activation with Some a when a != a' -> s#sleep a | _ -> ());
+            Some s
         | Some (a', s') ->
             let ret = self#switch ~activation s in
             s'#sleep a';
