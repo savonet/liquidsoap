@@ -213,8 +213,9 @@ let _ =
                        "Source activation" );
                    ]) );
           descr =
-            "Prepare a source that will be returned later. Returns a cleanup \
-             function to call when the source is not needed anymore.";
+            "Prepare a source that will be returned later. Returned source has \
+             new activation attached to it and should be used to submit to the \
+             source later.";
           value =
             (fun s ->
               Lang.val_fun
