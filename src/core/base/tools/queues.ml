@@ -20,119 +20,189 @@
 
  *****************************************************************************)
 
-module Queue = struct
-  type 'a t = { m : Mutex.t; mutable l : 'a List.t }
+(* Atomic queues with slow lock for mutable operations. Queues are order-preserving. *)
 
-  let create () = { m = Mutex.create (); l = [] }
-  let apply q fn = Mutex_utils.mutexify q.m fn q
-  let is_empty q = apply q (function { l = [] } -> true | _ -> false)
-  let push q v = apply q (fun q -> q.l <- q.l @ [v])
-  let append q v = apply q (fun q -> q.l <- v :: q.l)
+module Queue = struct
+  type 'a t = { m : Mutex.t; l : 'a List.t Atomic.t }
+
+  let create () = { m = Mutex.create (); l = Atomic.make [] }
+  let mutate q fn = Mutex_utils.mutexify q.m fn q
+  let get q fn = fn (Atomic.get q.l)
+  let is_empty q = get q (function [] -> true | _ -> false)
+  let push q v = mutate q (fun q -> Atomic.set q.l (Atomic.get q.l @ [v]))
+  let append q v = mutate q (fun q -> Atomic.set q.l (v :: Atomic.get q.l))
 
   let pop_opt q =
-    apply q (function
-      | { l = el :: rest } ->
-          q.l <- rest;
-          Some el
-      | _ -> None)
+    mutate q (fun q ->
+        match Atomic.get q.l with
+          | el :: rest ->
+              Atomic.set q.l rest;
+              Some el
+          | _ -> None)
 
-  let peek_opt q = apply q (function { l = el :: _ } -> Some el | _ -> None)
-
-  let flush_elements q =
-    apply q (fun q ->
-        let l = q.l in
-        q.l <- [];
-        l)
+  let peek_opt q = get q (function el :: _ -> Some el | _ -> None)
+  let flush_elements q = mutate q (fun q -> Atomic.exchange q.l [])
 
   let pop q =
-    apply q (function
-      | { l = el :: rest } ->
-          q.l <- rest;
-          el
-      | _ -> raise Not_found)
+    mutate q (fun q ->
+        match Atomic.get q.l with
+          | el :: rest ->
+              Atomic.set q.l rest;
+              el
+          | _ -> raise Not_found)
 
-  let peek q = apply q (function { l = el :: _ } -> el | _ -> raise Not_found)
+  let peek q = get q (function el :: _ -> el | _ -> raise Not_found)
   let flush_iter q fn = List.iter fn (flush_elements q)
 
   let flush_fold q fn ret =
     let flush_fold_f ret el = fn el ret in
     List.fold_left flush_fold_f ret (flush_elements q)
 
-  let elements q = apply q (fun { l } -> l)
-  let exists q fn = List.exists fn (elements q)
-  let length q = List.length (elements q)
-  let iter q fn = List.iter fn (elements q)
-  let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
-  let filter q fn = apply q (fun q -> q.l <- List.filter fn q.l)
-  let filter_out q fn = filter q (fun el -> not (fn el))
-end
-
-module WeakQueue = struct
-  include Queue
-
-  type nonrec 'a t = 'a Weak.t t
-
-  let push q v =
-    let w = Weak.create 1 in
-    Weak.set w 0 (Some v);
-    push q w
-
-  let flush_iter q fn =
-    flush_iter q (fun x ->
-        for i = 0 to Weak.length x - 1 do
-          match Weak.get x i with Some v -> fn v | None -> ()
-        done)
-
-  let flush_elements q =
-    let elements = ref [] in
-    flush_iter q (fun el -> elements := el :: !elements);
-    List.rev !elements
-
-  let elements q =
-    let rec elements_f rem =
-      match Queue.pop_opt q with
-        | Some entry ->
-            let len = Weak.length entry in
-            let rec get_weak_entries pos ret =
-              if len <= pos then ret
-              else (
-                let ret =
-                  match Weak.get entry pos with
-                    | Some v -> v :: ret
-                    | None -> ret
-                in
-                get_weak_entries (pos + 1) ret)
-            in
-            elements_f (get_weak_entries 0 rem)
-        | None -> rem
-    in
-    let rem = elements_f [] in
-    let len = List.length rem in
-    if len > 0 then (
-      let entry = Weak.create len in
-      for i = 0 to len - 1 do
-        Weak.set entry i (Some (List.nth rem i))
-      done;
-      Queue.push q entry);
-    rem
-
+  let elements q = Atomic.get q.l
   let exists q fn = List.exists fn (elements q)
   let length q = List.length (elements q)
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
   let filter q fn =
-    let filter_f q =
-      List.iter
-        (fun el ->
-          for i = 0 to Weak.length el - 1 do
-            match Weak.get el i with
-              | Some p when fn p -> ()
-              | _ -> Weak.set el i None
-          done)
-        q.l
+    mutate q (fun q -> Atomic.set q.l (List.filter fn (Atomic.get q.l)))
+
+  let filter_out q fn = filter q (fun el -> not (fn el))
+end
+
+module WeakQueue = struct
+  type 'a t = { m : Mutex.t; a : 'a Weak.t Atomic.t }
+
+  let create () = { m = Mutex.create (); a = Atomic.make (Weak.create 0) }
+  let mutate q fn = Mutex_utils.mutexify q.m fn q
+  let get q fn = fn (Atomic.get q.a)
+
+  let rec count_live arr len i acc =
+    if i >= len then acc
+    else count_live arr len (i + 1) (if Weak.check arr i then acc + 1 else acc)
+
+  let rec copy_live src dst len i j =
+    if i >= len then ()
+    else (
+      match Weak.get src i with
+        | Some el ->
+            Weak.set dst j (Some el);
+            copy_live src dst len (i + 1) (j + 1)
+        | None -> copy_live src dst len (i + 1) j)
+
+  let compact_and_push arr v =
+    let len = Weak.length arr in
+    let live_count = count_live arr len 0 0 in
+    let new_arr = Weak.create (live_count + 1) in
+    if live_count = len then Weak.blit arr 0 new_arr 0 len
+    else copy_live arr new_arr len 0 0;
+    Weak.set new_arr live_count (Some v);
+    new_arr
+
+  let push q v =
+    mutate q (fun q ->
+        let arr = Atomic.get q.a in
+        let len = Weak.length arr in
+        let new_arr =
+          if (len + 1) mod 100 = 0 then compact_and_push arr v
+          else begin
+            let new_arr = Weak.create (len + 1) in
+            Weak.blit arr 0 new_arr 0 len;
+            Weak.set new_arr len (Some v);
+            new_arr
+          end
+        in
+        Atomic.set q.a new_arr)
+
+  let exists q fn =
+    get q (fun arr ->
+        let len = Weak.length arr in
+        let rec loop i =
+          if i >= len then false
+          else (
+            match Weak.get arr i with
+              | Some el when fn el -> true
+              | _ -> loop (i + 1))
+        in
+        loop 0)
+
+  let length q =
+    get q (fun arr ->
+        let len = Weak.length arr in
+        let rec loop i acc =
+          if i >= len then acc
+          else loop (i + 1) (if Weak.check arr i then acc + 1 else acc)
+        in
+        loop 0 0)
+
+  let iter q fn =
+    get q (fun arr ->
+        let len = Weak.length arr in
+        let rec loop i =
+          if i >= len then ()
+          else (
+            (match Weak.get arr i with Some el -> fn el | None -> ());
+            loop (i + 1))
+        in
+        loop 0)
+
+  let fold q fn v =
+    get q (fun arr ->
+        let len = Weak.length arr in
+        let rec loop i acc =
+          if i >= len then acc
+          else
+            loop (i + 1)
+              (match Weak.get arr i with Some el -> fn el acc | None -> acc)
+        in
+        loop 0 v)
+
+  let elements q =
+    get q (fun arr ->
+        let len = Weak.length arr in
+        let rec loop i acc =
+          if i >= len then List.rev acc
+          else
+            loop (i + 1)
+              (match Weak.get arr i with Some el -> el :: acc | None -> acc)
+        in
+        loop 0 [])
+
+  let flush_elements q =
+    let arr = mutate q (fun q -> Atomic.exchange q.a (Weak.create 0)) in
+    let len = Weak.length arr in
+    let rec loop i acc =
+      if i >= len then List.rev acc
+      else
+        loop (i + 1)
+          (match Weak.get arr i with Some el -> el :: acc | None -> acc)
     in
-    apply q filter_f
+    loop 0 []
+
+  let flush_iter q fn =
+    let arr = mutate q (fun q -> Atomic.exchange q.a (Weak.create 0)) in
+    let len = Weak.length arr in
+    let rec loop i =
+      if i >= len then ()
+      else (
+        (match Weak.get arr i with Some el -> fn el | None -> ());
+        loop (i + 1))
+    in
+    loop 0
+
+  let filter q fn =
+    mutate q (fun q ->
+        let arr = Atomic.get q.a in
+        let len = Weak.length arr in
+        let rec loop i =
+          if i >= len then ()
+          else (
+            (match Weak.get arr i with
+              | Some el when not (fn el) -> Weak.set arr i None
+              | _ -> ());
+            loop (i + 1))
+        in
+        loop 0)
 
   let filter_out q fn = filter q (fun el -> not (fn el))
 end

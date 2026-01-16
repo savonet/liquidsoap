@@ -5,6 +5,11 @@
 - Batch calls to `thread.when` to preserve performances,
   warn when using `thread.when` too intensively (#4832)
 
+## Fixed:
+
+- Optimized `Queues` implementation: fast, atomic access,
+  slow, mutex-protected mutation (#4831)
+
 ---
 
 # 2.4.1 (2025-01-10)
