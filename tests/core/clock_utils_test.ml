@@ -382,13 +382,28 @@ Singletons:
   in
   check "source graph with singletons" result expected;
 
-  (* Test format_source_graph with external activations
-     Source claims to be activated by something outside this clock *)
+  (* Test format_source_graph with external activation on output *)
+  let sources =
+    [
+      gsrc "output" `Output ["external_clock"];
+      gsrc "encoder" `Passive ["output"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+└── external_clock [external]
+    └── output [output]
+        └── encoder [passive]|}
+  in
+  check "source graph with external output activation" result expected;
+
+  (* Test format_source_graph with external activation on singleton *)
   let sources =
     [
       gsrc "output" `Output [];
-      gsrc "encoder" `Passive ["output"; "other_clock_source"];
-      gsrc "cross_clock" `Active ["ffmpeg_graph"];
+      gsrc "encoder" `Passive ["output"];
+      gsrc "cross_clock_src" `Passive ["ffmpeg_graph"];
     ]
   in
   let result = Clock_utils.format_source_graph sources in
@@ -398,36 +413,36 @@ Singletons:
     └── encoder [passive]
 
 Singletons:
-└── cross_clock [active]
-
-External activations:
-├── cross_clock <- ffmpeg_graph
-└── encoder <- other_clock_source|}
+└── ffmpeg_graph [external]
+    └── cross_clock_src [passive]|}
   in
-  check "source graph with external activations" result expected;
+  check "source graph with external singleton activation" result expected;
 
-  (* Test format_source_graph with all sections *)
+  (* Test format_source_graph with mixed external and standalone *)
   let sources =
     [
-      gsrc "out" `Output [];
-      gsrc "src" `Passive ["out"];
-      gsrc "external_src" `Passive ["other_clock"];
-      gsrc "lonely" `Passive [];
+      gsrc "out1" `Output ["ext1"];
+      gsrc "out2" `Output [];
+      gsrc "src1" `Passive ["out1"];
+      gsrc "src2" `Passive ["out2"];
+      gsrc "singleton1" `Passive ["ext2"];
+      gsrc "singleton2" `Passive [];
     ]
   in
   let result = Clock_utils.format_source_graph sources in
   let expected =
     {|Outputs:
-└── out [output]
-    └── src [passive]
+├── ext1 [external]
+│   └── out1 [output]
+│       └── src1 [passive]
+└── out2 [output]
+    └── src2 [passive]
 
 Singletons:
-├── external_src [passive]
-└── lonely [passive]
-
-External activations:
-└── external_src <- other_clock|}
+├── ext2 [external]
+│   └── singleton1 [passive]
+└── singleton2 [passive]|}
   in
-  check "source graph all sections" result expected;
+  check "source graph mixed external and standalone" result expected;
 
   Printf.printf "All Clock_utils tests passed!\n%!"
