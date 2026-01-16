@@ -114,95 +114,72 @@ module WeakQueue = struct
         in
         Atomic.set q.a new_arr)
 
-  let exists q fn =
-    get q (fun arr ->
-        let len = Weak.length arr in
-        let rec loop i =
-          if i >= len then false
-          else (
-            match Weak.get arr i with
-              | Some el when fn el -> true
-              | _ -> loop (i + 1))
-        in
-        loop 0)
+  let rec find_fn fn arr len i =
+    if i >= len then false
+    else (
+      match Weak.get arr i with
+        | Some el when fn el -> true
+        | _ -> find_fn fn arr len (i + 1))
 
-  let length q =
-    get q (fun arr ->
-        let len = Weak.length arr in
-        let rec loop i acc =
-          if i >= len then acc
-          else loop (i + 1) (if Weak.check arr i then acc + 1 else acc)
-        in
-        loop 0 0)
+  let exists q fn = get q (fun arr -> find_fn fn arr (Weak.length arr) 0)
+  let length q = get q (fun arr -> count_live arr (Weak.length arr) 0 0)
 
-  let iter q fn =
-    get q (fun arr ->
-        let len = Weak.length arr in
-        let rec loop i =
-          if i >= len then ()
-          else (
-            (match Weak.get arr i with Some el -> fn el | None -> ());
-            loop (i + 1))
-        in
-        loop 0)
+  let rec iter_fn fn arr len i =
+    if i >= len then ()
+    else (
+      (match Weak.get arr i with Some el -> fn el | None -> ());
+      iter_fn fn arr len (i + 1))
 
-  let fold q fn v =
-    get q (fun arr ->
-        let len = Weak.length arr in
-        let rec loop i acc =
-          if i >= len then acc
-          else
-            loop (i + 1)
-              (match Weak.get arr i with Some el -> fn el acc | None -> acc)
-        in
-        loop 0 v)
+  let iter q fn = get q (fun arr -> iter_fn fn arr (Weak.length arr) 0)
 
-  let elements q =
-    get q (fun arr ->
-        let len = Weak.length arr in
-        let rec loop i acc =
-          if i >= len then List.rev acc
-          else
-            loop (i + 1)
-              (match Weak.get arr i with Some el -> el :: acc | None -> acc)
-        in
-        loop 0 [])
+  let rec fold_fn fn arr len i acc =
+    if i >= len then acc
+    else
+      fold_fn fn arr len (i + 1)
+        (match Weak.get arr i with Some el -> fn el acc | None -> acc)
+
+  let fold q fn v = get q (fun arr -> fold_fn fn arr (Weak.length arr) 0 v)
+
+  let rec get_elements arr len i acc =
+    if i >= len then List.rev acc
+    else
+      get_elements arr len (i + 1)
+        (match Weak.get arr i with Some el -> el :: acc | None -> acc)
+
+  let elements q = get q (fun arr -> get_elements arr (Weak.length arr) 0 [])
+
+  let rec flush_elements_fn arr len i acc =
+    if i >= len then List.rev acc
+    else
+      flush_elements_fn arr len (i + 1)
+        (match Weak.get arr i with Some el -> el :: acc | None -> acc)
 
   let flush_elements q =
     let arr = mutate q (fun q -> Atomic.exchange q.a (Weak.create 0)) in
-    let len = Weak.length arr in
-    let rec loop i acc =
-      if i >= len then List.rev acc
-      else
-        loop (i + 1)
-          (match Weak.get arr i with Some el -> el :: acc | None -> acc)
-    in
-    loop 0 []
+    flush_elements_fn arr (Weak.length arr) 0 []
+
+  let rec flush_iter_fn fn arr len i =
+    if i >= len then ()
+    else (
+      (match Weak.get arr i with Some el -> fn el | None -> ());
+      flush_iter_fn fn arr len (i + 1))
 
   let flush_iter q fn =
     let arr = mutate q (fun q -> Atomic.exchange q.a (Weak.create 0)) in
-    let len = Weak.length arr in
-    let rec loop i =
-      if i >= len then ()
-      else (
-        (match Weak.get arr i with Some el -> fn el | None -> ());
-        loop (i + 1))
-    in
-    loop 0
+    flush_iter_fn fn arr (Weak.length arr) 0
+
+  let rec filter_fn fn arr len i =
+    if i >= len then ()
+    else (
+      (match Weak.get arr i with
+        | Some el when not (fn el) -> Weak.set arr i None
+        | _ -> ());
+      filter_fn fn arr len (i + 1))
 
   let filter q fn =
     mutate q (fun q ->
         let arr = Atomic.get q.a in
-        let len = Weak.length arr in
-        let rec loop i =
-          if i >= len then ()
-          else (
-            (match Weak.get arr i with
-              | Some el when not (fn el) -> Weak.set arr i None
-              | _ -> ());
-            loop (i + 1))
-        in
-        loop 0)
+        filter_fn fn arr (Weak.length arr) 0)
 
   let filter_out q fn = filter q (fun el -> not (fn el))
 end
