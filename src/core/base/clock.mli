@@ -117,3 +117,4 @@ val after_tick : t -> (unit -> unit) -> unit
 val time_implementation : unit -> Liq_time.implementation
 val after_eval : unit -> unit
 val dump : unit -> string
+val dump_sources : t -> string

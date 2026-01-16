@@ -145,10 +145,10 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── main (ticks: 42, time: 1.05s, self_sync: true)
-    ├── outputs: out1 [], out2 []
-    ├── active sources: active1 []
-    └── passive sources: passive1 [], passive2 []|}
+    {|· main (ticks: 42, time: 1.05s, self_sync: true)
+  ├── outputs: out1 [], out2 []
+  ├── active sources: active1 []
+  └── passive sources: passive1 [], passive2 []|}
   in
   check "dump single clock" result expected;
 
@@ -180,14 +180,14 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── parent (ticks: 100, time: 2.50s, self_sync: false)
-    ├── outputs: output []
-    ├── active sources:
-    ├── passive sources: src1 []
-    └── child (ticks: 50, time: 1.25s, self_sync: true)
-        ├── outputs: child_out []
-        ├── active sources: child_active []
-        └── passive sources:|}
+    {|· parent (ticks: 100, time: 2.50s, self_sync: false)
+  ├── outputs: output []
+  ├── active sources:
+  ├── passive sources: src1 []
+  └── child (ticks: 50, time: 1.25s, self_sync: true)
+      ├── outputs: child_out []
+      ├── active sources: child_active []
+      └── passive sources:|}
   in
   check "dump nested clocks" result expected;
 
@@ -219,14 +219,15 @@ let () =
   in
   let result = Clock_utils.format_dump entries in
   let expected =
-    {|├── clock1 (ticks: 10, time: 0.25s, self_sync: false)
-│   ├── outputs: o1 []
-│   ├── active sources: a1 []
-│   └── passive sources:
-└── clock2 (ticks: 20, time: 0.50s, self_sync: true)
-    ├── outputs:
-    ├── active sources:
-    └── passive sources: p1 []|}
+    {|· clock1 (ticks: 10, time: 0.25s, self_sync: false)
+  ├── outputs: o1 []
+  ├── active sources: a1 []
+  └── passive sources:
+
+· clock2 (ticks: 20, time: 0.50s, self_sync: true)
+  ├── outputs:
+  ├── active sources:
+  └── passive sources: p1 []|}
   in
   check "dump multiple clocks" result expected;
 
@@ -258,12 +259,12 @@ let () =
   in
   let result = Clock_utils.format_dump ~max_width:70 [entry] in
   let expected =
-    {|└── main (ticks: 100, time: 2.50s, self_sync: false)
-    ├── outputs: output1 [], output2 [], output3 []
-    ├── active sources: active_source_1 [], active_source_2 [],
-    │                   active_source_3 []
-    └── passive sources: passive1 [], passive2 [], passive3 [],
-                         passive4 [], passive5 []|}
+    {|· main (ticks: 100, time: 2.50s, self_sync: false)
+  ├── outputs: output1 [], output2 [], output3 []
+  ├── active sources: active_source_1 [], active_source_2 [],
+  │                   active_source_3 []
+  └── passive sources: passive1 [], passive2 [], passive3 [],
+                       passive4 [], passive5 []|}
   in
   check "dump line wrapping" result expected;
 
@@ -283,11 +284,166 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── main (ticks: 10, time: 0.25s, self_sync: false)
-    ├── outputs: out1 [switch, fallback]
-    ├── active sources: src1 [main]
-    └── passive sources: src2 []|}
+    {|· main (ticks: 10, time: 0.25s, self_sync: false)
+  ├── outputs: out1 [switch, fallback]
+  ├── active sources: src1 [main]
+  └── passive sources: src2 []|}
   in
   check "dump with activations" result expected;
+
+  (* Test format_source_graph with simple tree
+     Activations point upward: playlist is activated by audio.producer, etc. *)
+  let gsrc name kind activations =
+    Clock_utils.
+      {
+        source_name = name;
+        source_kind = kind;
+        source_activations = activations;
+      }
+  in
+  let sources =
+    [
+      gsrc "output.icecast" `Output [];
+      gsrc "encoder" `Passive ["output.icecast"];
+      gsrc "audio.producer" `Passive ["encoder"];
+      gsrc "playlist" `Passive ["audio.producer"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+· output.icecast [output]
+  └── encoder [passive]
+      └── audio.producer [passive]
+          └── playlist [passive]|}
+  in
+  check "source graph simple tree" result expected;
+
+  (* Test format_source_graph with shared source
+     shared_encoder is activated by both outputs *)
+  let sources =
+    [
+      gsrc "output.icecast" `Output [];
+      gsrc "output.file" `Output [];
+      gsrc "shared_encoder" `Passive ["output.icecast"; "output.file"];
+      gsrc "audio" `Passive ["shared_encoder"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+· output.icecast [output]
+  └── shared_encoder [passive]
+      └── audio [passive]
+· output.file [output]
+  └── shared_encoder [passive] (*)|}
+  in
+  check "source graph shared source" result expected;
+
+  (* Test format_source_graph with multiple activations
+     All playlists are activated by the switch *)
+  let sources =
+    [
+      gsrc "output" `Output [];
+      gsrc "switch" `Active ["output"];
+      gsrc "playlist1" `Passive ["switch"];
+      gsrc "playlist2" `Passive ["switch"];
+      gsrc "fallback" `Passive ["switch"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+· output [output]
+  └── switch [active]
+      ├── playlist1 [passive]
+      ├── playlist2 [passive]
+      └── fallback [passive]|}
+  in
+  check "source graph multiple activations" result expected;
+
+  (* Test format_source_graph with singletons *)
+  let sources =
+    [
+      gsrc "output" `Output [];
+      gsrc "source" `Passive ["output"];
+      gsrc "unused" `Passive [];
+      gsrc "orphan" `Active [];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+· output [output]
+  └── source [passive]
+
+Singletons:
+· unused [passive]
+· orphan [active]|}
+  in
+  check "source graph with singletons" result expected;
+
+  (* Test format_source_graph with external activation on output *)
+  let sources =
+    [
+      gsrc "output" `Output ["external_clock"];
+      gsrc "encoder" `Passive ["output"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+· external_clock [external activation]
+  └── output [output]
+      └── encoder [passive]|}
+  in
+  check "source graph with external output activation" result expected;
+
+  (* Test format_source_graph with external activation on singleton *)
+  let sources =
+    [
+      gsrc "output" `Output [];
+      gsrc "encoder" `Passive ["output"];
+      gsrc "cross_clock_src" `Passive ["ffmpeg_graph"];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+· output [output]
+  └── encoder [passive]
+
+Singletons:
+· ffmpeg_graph [external activation]
+  └── cross_clock_src [passive]|}
+  in
+  check "source graph with external singleton activation" result expected;
+
+  (* Test format_source_graph with mixed external and standalone *)
+  let sources =
+    [
+      gsrc "out1" `Output ["ext1"];
+      gsrc "out2" `Output [];
+      gsrc "src1" `Passive ["out1"];
+      gsrc "src2" `Passive ["out2"];
+      gsrc "singleton1" `Passive ["ext2"];
+      gsrc "singleton2" `Passive [];
+    ]
+  in
+  let result = Clock_utils.format_source_graph sources in
+  let expected =
+    {|Outputs:
+· ext1 [external activation]
+  └── out1 [output]
+      └── src1 [passive]
+· out2 [output]
+  └── src2 [passive]
+
+Singletons:
+· ext2 [external activation]
+  └── singleton1 [passive]
+· singleton2 [passive]|}
+  in
+  check "source graph mixed external and standalone" result expected;
 
   Printf.printf "All Clock_utils tests passed!\n%!"

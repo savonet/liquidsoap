@@ -44,3 +44,13 @@ type dump_entry = {
 }
 
 val format_dump : ?max_width:int -> dump_entry list -> string
+
+type source_kind = [ `Output | `Active | `Passive ]
+
+type graph_source = {
+  source_name : string;
+  source_kind : source_kind;
+  source_activations : string list;
+}
+
+val format_source_graph : graph_source list -> string
