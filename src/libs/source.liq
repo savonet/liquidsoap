@@ -183,12 +183,27 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   last_meta = ref(null)
   pending = ref(null)
 
+  let pending.set =
+    fun (v) ->
+      begin
+        current = pending()
+        if
+          null.defined(pending())
+        then
+          let (cleanup, _) = null.get(current)
+
+          # Give it some time to cleanup
+          thread.run(delay=0.1, cleanup)
+        end
+        pending := v
+      end
+
   def next() =
     p = pending()
     pending := null
     last_meta := null
 
-    if null.defined(p) then null.get(p) else (s : source) end
+    if null.defined(p) then snd(null.get(p)) else (s : source) end
   end
 
   d =
@@ -212,8 +227,8 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
       then
         last_meta := m
         s = f(m)
-        d.prepare(s)
-        pending := s
+        a = d.prepare(s)
+        pending := (a, s)
       end
     end
   end
@@ -225,10 +240,10 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   s.{
     pending=
       # Return the pending source
-      fun () -> pending(),
+      fun () -> null.map(snd, pending()),
     set_pending=
       # Set the pending source
-      fun (s) -> pending.set(s),
+      fun (s) -> pending.set((fun () -> (), s)),
     cancel_pending=
       # Cancel any pending appended source.
       fun () -> pending.set(null),

@@ -448,18 +448,33 @@ def request.player(~simultaneous=true) =
   else
     next_source = ref(null)
 
+    let next_source.set =
+      fun (v) ->
+        begin
+          current = next_source()
+          if
+            null.defined(current)
+          then
+            let (cleanup, _) = null.get(current)
+
+            # Give it some time to cleanup
+            thread.run(delay=0.1, cleanup)
+          end
+          next_source := v
+        end
+
     def next() =
       s = next_source()
       next_source := null
       s
     end
 
-    s = source.dynamic(next)
+    s = source.dynamic({null.map(snd, next())})
 
     def play(r) =
       r = request.once(r)
-      s.prepare(r)
-      next_source := r
+      a = s.prepare(r)
+      next_source := (a, r)
     end
 
     s.{play=play, length={1}}

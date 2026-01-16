@@ -228,7 +228,12 @@ def video.cover(s) =
       then
         cover = null.get(cover)
         extname =
-          (null.defined(cover.mime) ? file.mime.extension(null.get(cover.mime)) : null ) ?? ".osb"
+          (
+            null.defined(cover.mime)
+            ? file.mime.extension(null.get(cover.mime)) : null
+          )
+            ??
+              ".osb"
         f = file.temp("cover", extname)
         log.debug(
           "Found cover for #{filename}."
@@ -670,8 +675,23 @@ def video.slideshow(
 
   next_source = ref(null)
 
+  let next_source.set =
+    fun (v) ->
+      begin
+        current = next_source()
+        if
+          null.defined(current)
+        then
+          let (cleanup, _) = null.get(current)
+
+          # Give it some time to cleanup
+          thread.run(delay=0.1, cleanup)
+        end
+        next_source := v
+      end
+
   def next() =
-    s = next_source()
+    s = null.map(snd, next_source())
     next_source := null
     s
   end
@@ -689,8 +709,8 @@ def video.slideshow(
     then
       n := n'
       new_source = request.once(request.create(current()))
-      s.prepare(new_source)
-      next_source := new_source
+      a = s.prepare(new_source)
+      next_source := (a, new_source)
     end
   end
 
