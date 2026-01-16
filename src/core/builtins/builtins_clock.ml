@@ -33,6 +33,13 @@ let _ =
     Lang.string_t (fun _ -> Lang.string (Clock.dump ()))
 
 let _ =
+  Lang.add_builtin ~base:clock "dump_all_sources" ~category:`Liquidsoap
+    ~descr:
+      "Return a string description of all the streaming graph currently being \
+       used." [] Lang.string_t (fun _ ->
+      Lang.string (Clock.dump_all_sources ()))
+
+let _ =
   Lang.add_builtin ~base:clock "active" ~category:`Liquidsoap
     ~descr:"Return the list of clocks currently in use." []
     (Lang.list_t Lang_clock.ClockValue.base_t) (fun _ ->

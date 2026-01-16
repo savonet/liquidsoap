@@ -853,3 +853,20 @@ let dump_sources c =
   in
   let all_sources = sources c in
   Clock_utils.format_source_graph (List.map to_graph_source all_sources)
+
+let dump_all_sources () =
+  let rec dump_clock ~controlled_by c =
+    let sub_dumps =
+      List.map
+        (dump_clock
+           ~controlled_by:(Printf.sprintf " (controlled by %s)" (id c)))
+        (sub_clocks c)
+    in
+    let dumps = dump_sources c :: sub_dumps in
+    let dump = String.concat "\n\n" (List.filter (fun s -> s <> "") dumps) in
+    Printf.sprintf "Clock %s%s:\n%s" (id c) controlled_by dump
+  in
+  let dumps = List.map (dump_clock ~controlled_by:"") (clocks ()) in
+  String.concat "\n\n" (List.filter (fun s -> s <> "") dumps)
+
+let global_stop () = Atomic.set global_stop true

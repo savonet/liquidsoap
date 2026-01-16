@@ -216,6 +216,8 @@ let format_doc s =
   in
   String.concat "\n" s
 
+let dump_delay = ref 0.1
+
 let options =
   ref
     ([
@@ -253,6 +255,54 @@ let options =
        ( ["--no-external-plugins"],
          Arg.Clear Startup.register_external_plugins,
          "Disable external plugins." );
+       ( ["--dump-delay"],
+         Arg.Set_float dump_delay,
+         "Set the script's run time before dumping clocks or sources." );
+       ( ["--describe-sources"],
+         Arg.Unit
+           (fun () ->
+             Lifecycle.after_script_parse ~name:"Disable logs" (fun () ->
+                 Dtools.Log.conf_stdout#set false);
+             Lifecycle.on_main_loop ~name:"dump sources and exit" (fun () ->
+                 ignore
+                   (Thread.create
+                      (fun () ->
+                        Printf.printf
+                          "Running the script for %.02fs.. ⚠️ This can get \
+                           stuck! ⚠️\n\
+                           %!"
+                          !dump_delay;
+                        Unix.sleepf !dump_delay;
+                        Printf.printf "Sources dump:%s\n\n"
+                          (Clock.dump_all_sources ());
+                        Printf.printf "Shutting down..\n%!";
+                        Clock.global_stop ();
+                        Tutils.shutdown 0)
+                      ()))),
+         "Describe the script's sources and shutdown. This an an EXPERIMENTAL \
+          feature." );
+       ( ["--describe-clocks"],
+         Arg.Unit
+           (fun () ->
+             Lifecycle.after_script_parse ~name:"Disable logs" (fun () ->
+                 Dtools.Log.conf_stdout#set false);
+             Lifecycle.on_main_loop ~name:"dump sources and exit" (fun () ->
+                 ignore
+                   (Thread.create
+                      (fun () ->
+                        Printf.printf
+                          "Running the script for %.02fs.. ⚠️  This can get \
+                           stuck! ⚠️ \n\
+                           %!"
+                          !dump_delay;
+                        Unix.sleepf !dump_delay;
+                        Printf.printf "Clocks dump:%s\n\n" (Clock.dump ());
+                        Printf.printf "Shutting down..\n%!";
+                        Clock.global_stop ();
+                        Tutils.shutdown 0)
+                      ()))),
+         "Describe the script's clocks and shutdown. This an an EXPERIMENTAL \
+          feature." );
        ( ["-q"; "--quiet"],
          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
          "Do not print log messages on standard output." );

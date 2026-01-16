@@ -59,29 +59,5 @@ server.register(
   namespace="clocks",
   description="Dump the source graph for all active clocks",
   "dump_sources",
-  fun (_) ->
-    begin
-      def rec dump_clock(~controlled_by, c) =
-        c = clock(c)
-        let sub_dumps =
-          list.map(
-            fun (c') ->
-              dump_clock(
-                controlled_by=" (controlled by #{c.id()})",
-                c'
-              ),
-            c.sub_clocks()
-          )
-        let dumps = [c.dump(), ...sub_dumps]
-        dump =
-          string.concat(
-            separator="\n\n",
-            list.filter(fun (s) -> s != "", dumps)
-          )
-        "Clock #{c.id()}#{controlled_by}:\n#{dump}"
-      end
-      let dumps =
-        list.map(fun (c) -> dump_clock(controlled_by="", c), clock.active())
-      string.concat(separator="\n\n", list.filter(fun (s) -> s != "", dumps))
-    end
+  fun (_) -> clock.dump_all_sources()
 )
