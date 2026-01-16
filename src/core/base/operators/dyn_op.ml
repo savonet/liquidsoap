@@ -198,7 +198,7 @@ let _ =
                   let child = List.assoc "x" p |> Lang.to_source in
                   let a = s#prepare child in
                   Lang.val_fun [] (fun _ ->
-                      s#sleep a;
+                      child#sleep a;
                       Lang.unit)));
         };
       ]
