@@ -140,9 +140,13 @@ let format_dump ?(max_width = 100) entries =
           in
           String.concat "\n" (build_lines [] label_str items)
   in
-  let rec format_entry ~prefix ~is_last entry =
-    let connector = if is_last then "└── " else "├── " in
-    let child_prefix = prefix ^ if is_last then "    " else "│   " in
+  let rec format_entry ~prefix ~is_last ~is_root entry =
+    let connector =
+      if is_root then "· " else if is_last then "└── " else "├── "
+    in
+    let child_prefix =
+      if is_root then "  " else prefix ^ if is_last then "    " else "│   "
+    in
     let format_field ~is_last label sources =
       let marker = if is_last then "└── " else "├── " in
       let bar = if is_last then "    " else "│   " in
@@ -158,7 +162,9 @@ let format_dump ?(max_width = 100) entries =
         ^ String.concat "\n"
             (List.mapi
                (fun i sub ->
-                 format_entry ~prefix:child_prefix ~is_last:(i = len - 1) sub)
+                 format_entry ~prefix:child_prefix
+                   ~is_last:(i = len - 1)
+                   ~is_root:false sub)
                subs)
       else ""
     in
@@ -170,13 +176,12 @@ let format_dump ?(max_width = 100) entries =
       (format_field ~is_last:(not has_subs) "passive sources" entry.passive)
       sub_clocks_str
   in
-  let len = List.length entries in
   let descriptions =
-    List.mapi
-      (fun i e -> format_entry ~prefix:"" ~is_last:(i = len - 1) e)
+    List.map
+      (fun e -> format_entry ~prefix:"" ~is_last:true ~is_root:true e)
       entries
   in
-  String.concat "\n" descriptions
+  String.concat "\n\n" descriptions
 
 type source_kind = [ `Output | `Active | `Passive ]
 

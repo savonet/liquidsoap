@@ -145,10 +145,10 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── main (ticks: 42, time: 1.05s, self_sync: true)
-    ├── outputs: out1 [], out2 []
-    ├── active sources: active1 []
-    └── passive sources: passive1 [], passive2 []|}
+    {|· main (ticks: 42, time: 1.05s, self_sync: true)
+  ├── outputs: out1 [], out2 []
+  ├── active sources: active1 []
+  └── passive sources: passive1 [], passive2 []|}
   in
   check "dump single clock" result expected;
 
@@ -180,14 +180,14 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── parent (ticks: 100, time: 2.50s, self_sync: false)
-    ├── outputs: output []
-    ├── active sources:
-    ├── passive sources: src1 []
-    └── child (ticks: 50, time: 1.25s, self_sync: true)
-        ├── outputs: child_out []
-        ├── active sources: child_active []
-        └── passive sources:|}
+    {|· parent (ticks: 100, time: 2.50s, self_sync: false)
+  ├── outputs: output []
+  ├── active sources:
+  ├── passive sources: src1 []
+  └── child (ticks: 50, time: 1.25s, self_sync: true)
+      ├── outputs: child_out []
+      ├── active sources: child_active []
+      └── passive sources:|}
   in
   check "dump nested clocks" result expected;
 
@@ -219,14 +219,15 @@ let () =
   in
   let result = Clock_utils.format_dump entries in
   let expected =
-    {|├── clock1 (ticks: 10, time: 0.25s, self_sync: false)
-│   ├── outputs: o1 []
-│   ├── active sources: a1 []
-│   └── passive sources:
-└── clock2 (ticks: 20, time: 0.50s, self_sync: true)
-    ├── outputs:
-    ├── active sources:
-    └── passive sources: p1 []|}
+    {|· clock1 (ticks: 10, time: 0.25s, self_sync: false)
+  ├── outputs: o1 []
+  ├── active sources: a1 []
+  └── passive sources:
+
+· clock2 (ticks: 20, time: 0.50s, self_sync: true)
+  ├── outputs:
+  ├── active sources:
+  └── passive sources: p1 []|}
   in
   check "dump multiple clocks" result expected;
 
@@ -258,12 +259,12 @@ let () =
   in
   let result = Clock_utils.format_dump ~max_width:70 [entry] in
   let expected =
-    {|└── main (ticks: 100, time: 2.50s, self_sync: false)
-    ├── outputs: output1 [], output2 [], output3 []
-    ├── active sources: active_source_1 [], active_source_2 [],
-    │                   active_source_3 []
-    └── passive sources: passive1 [], passive2 [], passive3 [],
-                         passive4 [], passive5 []|}
+    {|· main (ticks: 100, time: 2.50s, self_sync: false)
+  ├── outputs: output1 [], output2 [], output3 []
+  ├── active sources: active_source_1 [], active_source_2 [],
+  │                   active_source_3 []
+  └── passive sources: passive1 [], passive2 [], passive3 [],
+                       passive4 [], passive5 []|}
   in
   check "dump line wrapping" result expected;
 
@@ -283,10 +284,10 @@ let () =
   in
   let result = Clock_utils.format_dump [entry] in
   let expected =
-    {|└── main (ticks: 10, time: 0.25s, self_sync: false)
-    ├── outputs: out1 [switch, fallback]
-    ├── active sources: src1 [main]
-    └── passive sources: src2 []|}
+    {|· main (ticks: 10, time: 0.25s, self_sync: false)
+  ├── outputs: out1 [switch, fallback]
+  ├── active sources: src1 [main]
+  └── passive sources: src2 []|}
   in
   check "dump with activations" result expected;
 
