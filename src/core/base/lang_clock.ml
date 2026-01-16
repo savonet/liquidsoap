@@ -180,6 +180,11 @@ module ClockValue = struct
         Lang.fun_t [] Lang.int_t,
         "The total number of times the clock has ticked.",
         fun c -> Lang.val_fun [] (fun _ -> Lang.int (Clock.ticks c)) );
+      ( "dump",
+        Lang.fun_t [] Lang.string_t,
+        "Dump source graph for the clock.",
+        fun c -> Lang.val_fun [] (fun _ -> Lang.string (Clock.dump_sources c))
+      );
     ]
 
   let t =

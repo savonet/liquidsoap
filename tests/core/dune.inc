@@ -362,6 +362,20 @@
   (:version_test version_test.exe))
  (action (run %{version_test} )))
 
+
+(executable
+ (name weak_queue_test)
+ (modules weak_queue_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias weak_queue_test)
+ (package liquidsoap)
+ (deps
+  
+  (:weak_queue_test weak_queue_test.exe))
+ (action (run %{weak_queue_test} )))
+
 (alias
   (name citest)
   (deps
@@ -390,4 +404,5 @@
     (alias types)
     (alias unifier_test)
     (alias utils_test)
-    (alias version_test)))
+    (alias version_test)
+    (alias weak_queue_test)))

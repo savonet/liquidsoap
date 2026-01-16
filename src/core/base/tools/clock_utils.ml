@@ -140,9 +140,13 @@ let format_dump ?(max_width = 100) entries =
           in
           String.concat "\n" (build_lines [] label_str items)
   in
-  let rec format_entry ~prefix ~is_last entry =
-    let connector = if is_last then "└── " else "├── " in
-    let child_prefix = prefix ^ if is_last then "    " else "│   " in
+  let rec format_entry ~prefix ~is_last ~is_root entry =
+    let connector =
+      if is_root then "· " else if is_last then "└── " else "├── "
+    in
+    let child_prefix =
+      if is_root then "  " else prefix ^ if is_last then "    " else "│   "
+    in
     let format_field ~is_last label sources =
       let marker = if is_last then "└── " else "├── " in
       let bar = if is_last then "    " else "│   " in
@@ -158,7 +162,9 @@ let format_dump ?(max_width = 100) entries =
         ^ String.concat "\n"
             (List.mapi
                (fun i sub ->
-                 format_entry ~prefix:child_prefix ~is_last:(i = len - 1) sub)
+                 format_entry ~prefix:child_prefix
+                   ~is_last:(i = len - 1)
+                   ~is_root:false sub)
                subs)
       else ""
     in
@@ -170,10 +176,234 @@ let format_dump ?(max_width = 100) entries =
       (format_field ~is_last:(not has_subs) "passive sources" entry.passive)
       sub_clocks_str
   in
-  let len = List.length entries in
   let descriptions =
-    List.mapi
-      (fun i e -> format_entry ~prefix:"" ~is_last:(i = len - 1) e)
+    List.map
+      (fun e -> format_entry ~prefix:"" ~is_last:true ~is_root:true e)
       entries
   in
-  String.concat "\n" descriptions
+  String.concat "\n\n" descriptions
+
+type source_kind = [ `Output | `Active | `Passive ]
+
+type graph_source = {
+  source_name : string;
+  source_kind : source_kind;
+  source_activations : string list;
+}
+
+let format_source_graph sources =
+  let string_of_kind = function
+    | `Output -> "output"
+    | `Active -> "active"
+    | `Passive -> "passive"
+  in
+  (* Build lookup table by name *)
+  let by_name = Hashtbl.create (List.length sources) in
+  List.iter (fun s -> Hashtbl.add by_name s.source_name s) sources;
+  (* Build inverted index: for each source, find sources it activates (children)
+     If source S has activations [A1, A2], it means A1 and A2 activate S,
+     so S is a child of A1 and A2. We invert this to get children of each source. *)
+  let children_of = Hashtbl.create (List.length sources) in
+  (* Map from external activator name to list of sources it activates *)
+  let external_children = Hashtbl.create 16 in
+  List.iter
+    (fun s ->
+      List.iter
+        (fun parent_name ->
+          (* Skip self-activations (e.g., outputs activate themselves) *)
+          if parent_name <> s.source_name then
+            if Hashtbl.mem by_name parent_name then (
+              let current =
+                Option.value ~default:[]
+                  (Hashtbl.find_opt children_of parent_name)
+              in
+              Hashtbl.replace children_of parent_name (s.source_name :: current))
+            else (
+              let current =
+                Option.value ~default:[]
+                  (Hashtbl.find_opt external_children parent_name)
+              in
+              Hashtbl.replace external_children parent_name
+                (s.source_name :: current)))
+        s.source_activations)
+    sources;
+  (* Track seen sources *)
+  let seen = Hashtbl.create 16 in
+  let rec format_source ~prefix ~is_last name =
+    let connector = if is_last then "└── " else "├── " in
+    let child_prefix = prefix ^ if is_last then "    " else "│   " in
+    match Hashtbl.find_opt by_name name with
+      | None -> Printf.sprintf "%s%s%s [not found]" prefix connector name
+      | Some source ->
+          let label =
+            Printf.sprintf "%s [%s]" source.source_name
+              (string_of_kind source.source_kind)
+          in
+          if Hashtbl.mem seen name then
+            Printf.sprintf "%s%s%s (*)" prefix connector label
+          else (
+            Hashtbl.add seen name ();
+            let source_children =
+              Option.value ~default:[] (Hashtbl.find_opt children_of name)
+              |> List.rev
+            in
+            let len = List.length source_children in
+            let children_str =
+              if len = 0 then ""
+              else
+                "\n"
+                ^ String.concat "\n"
+                    (List.mapi
+                       (fun i child_name ->
+                         format_source ~prefix:child_prefix
+                           ~is_last:(i = len - 1)
+                           child_name)
+                       source_children)
+            in
+            Printf.sprintf "%s%s%s%s" prefix connector label children_str)
+  in
+  (* Find outputs *)
+  let outputs = List.filter (fun s -> s.source_kind = `Output) sources in
+  (* Group outputs: those with external activators vs those without *)
+  let outputs_with_external, outputs_without_external =
+    List.partition
+      (fun s ->
+        List.exists
+          (fun act -> not (Hashtbl.mem by_name act))
+          s.source_activations)
+      outputs
+  in
+  (* Build map from external activator to outputs it controls *)
+  let external_to_outputs = Hashtbl.create 16 in
+  List.iter
+    (fun s ->
+      List.iter
+        (fun act ->
+          if not (Hashtbl.mem by_name act) then (
+            let current =
+              Option.value ~default:[]
+                (Hashtbl.find_opt external_to_outputs act)
+            in
+            Hashtbl.replace external_to_outputs act (s.source_name :: current)))
+        s.source_activations)
+    outputs_with_external;
+  (* Format outputs section: external activators first, then standalone outputs *)
+  let format_root_external ext_name child_names =
+    let children_str =
+      let len = List.length child_names in
+      String.concat "\n"
+        (List.mapi
+           (fun i name ->
+             format_source ~prefix:"  " ~is_last:(i = len - 1) name)
+           child_names)
+    in
+    Printf.sprintf "· %s [external activation]\n%s" ext_name children_str
+  in
+  let format_root_source name =
+    match Hashtbl.find_opt by_name name with
+      | None -> Printf.sprintf "· %s [not found]" name
+      | Some source ->
+          let label =
+            Printf.sprintf "%s [%s]" source.source_name
+              (string_of_kind source.source_kind)
+          in
+          if Hashtbl.mem seen name then Printf.sprintf "· %s (*)" label
+          else (
+            Hashtbl.add seen name ();
+            let source_children =
+              Option.value ~default:[] (Hashtbl.find_opt children_of name)
+              |> List.rev
+            in
+            let len = List.length source_children in
+            let children_str =
+              if len = 0 then ""
+              else
+                "\n"
+                ^ String.concat "\n"
+                    (List.mapi
+                       (fun i child_name ->
+                         format_source ~prefix:"  "
+                           ~is_last:(i = len - 1)
+                           child_name)
+                       source_children)
+            in
+            Printf.sprintf "· %s%s" label children_str)
+  in
+  let external_activators =
+    Hashtbl.fold (fun k v acc -> (k, List.rev v) :: acc) external_to_outputs []
+    |> List.sort compare
+  in
+  let standalone_outputs =
+    List.map (fun s -> s.source_name) outputs_without_external
+  in
+  let output_lines =
+    List.map
+      (fun (ext, children) -> format_root_external ext children)
+      external_activators
+    @ List.map format_root_source standalone_outputs
+  in
+  let outputs_section =
+    if output_lines = [] then None
+    else Some ("Outputs:\n" ^ String.concat "\n" output_lines)
+  in
+  (* Find singletons (not visited after printing outputs) *)
+  let singletons =
+    List.filter (fun s -> not (Hashtbl.mem seen s.source_name)) sources
+  in
+  (* Group singletons: those with external activators vs those without *)
+  let singletons_with_external, singletons_without_external =
+    List.partition
+      (fun s ->
+        List.exists
+          (fun act -> not (Hashtbl.mem by_name act))
+          s.source_activations)
+      singletons
+  in
+  (* Build map from external activator to singletons it controls *)
+  let external_to_singletons = Hashtbl.create 16 in
+  List.iter
+    (fun s ->
+      List.iter
+        (fun act ->
+          if not (Hashtbl.mem by_name act) then (
+            let current =
+              Option.value ~default:[]
+                (Hashtbl.find_opt external_to_singletons act)
+            in
+            Hashtbl.replace external_to_singletons act (s.source_name :: current)))
+        s.source_activations)
+    singletons_with_external;
+  let external_singleton_activators =
+    Hashtbl.fold
+      (fun k v acc -> (k, List.rev v) :: acc)
+      external_to_singletons []
+    |> List.sort compare
+  in
+  let standalone_singletons = singletons_without_external in
+  let format_singleton_external ext_name child_names =
+    let children_str =
+      let len = List.length child_names in
+      String.concat "\n"
+        (List.mapi
+           (fun i name ->
+             format_source ~prefix:"  " ~is_last:(i = len - 1) name)
+           child_names)
+    in
+    Printf.sprintf "· %s [external activation]\n%s" ext_name children_str
+  in
+  let singleton_lines =
+    List.map
+      (fun (ext, children) -> format_singleton_external ext children)
+      external_singleton_activators
+    @ List.map
+        (fun s ->
+          Printf.sprintf "· %s [%s]" s.source_name
+            (string_of_kind s.source_kind))
+        standalone_singletons
+  in
+  let singletons_section =
+    if singleton_lines = [] then None
+    else Some ("Singletons:\n" ^ String.concat "\n" singleton_lines)
+  in
+  String.concat "\n\n"
+    (List.filter_map Fun.id [outputs_section; singletons_section])

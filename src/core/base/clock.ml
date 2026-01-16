@@ -835,3 +835,21 @@ let dump () =
       }
   in
   Clock_utils.format_dump (List.map build_entry (clocks ()))
+
+let dump_sources c =
+  let to_graph_source s =
+    let source_kind =
+      match s#source_type with
+        | `Output _ -> `Output
+        | `Active _ -> `Active
+        | `Passive -> `Passive
+    in
+    Clock_utils.
+      {
+        source_name = s#id;
+        source_kind;
+        source_activations = List.map (fun a -> a#id) s#activations;
+      }
+  in
+  let all_sources = sources c in
+  Clock_utils.format_source_graph (List.map to_graph_source all_sources)
