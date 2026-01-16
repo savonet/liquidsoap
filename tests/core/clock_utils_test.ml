@@ -377,8 +377,8 @@ let () =
     └── source [passive]
 
 Singletons:
-├── unused [passive]
-└── orphan [active]|}
+· unused [passive]
+· orphan [active]|}
   in
   check "source graph with singletons" result expected;
 
@@ -413,8 +413,8 @@ Singletons:
     └── encoder [passive]
 
 Singletons:
-└── ffmpeg_graph [external]
-    └── cross_clock_src [passive]|}
+· ffmpeg_graph [external]
+  └── cross_clock_src [passive]|}
   in
   check "source graph with external singleton activation" result expected;
 
@@ -439,9 +439,9 @@ Singletons:
     └── src2 [passive]
 
 Singletons:
-├── ext2 [external]
-│   └── singleton1 [passive]
-└── singleton2 [passive]|}
+· ext2 [external]
+  └── singleton1 [passive]
+· singleton2 [passive]|}
   in
   check "source graph mixed external and standalone" result expected;
 

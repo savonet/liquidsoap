@@ -361,21 +361,30 @@ let format_source_graph sources =
     |> List.sort compare
   in
   let standalone_singletons = singletons_without_external in
-  let all_singleton_items =
+  let format_singleton_external ext_name child_names =
+    let children_str =
+      let len = List.length child_names in
+      String.concat "\n"
+        (List.mapi
+           (fun i name ->
+             format_source ~prefix:"  " ~is_last:(i = len - 1) name)
+           child_names)
+    in
+    Printf.sprintf "· %s [external]\n%s" ext_name children_str
+  in
+  let singleton_lines =
     List.map
-      (fun (ext, children) -> `External (ext, children))
+      (fun (ext, children) -> format_singleton_external ext children)
       external_singleton_activators
-    @ List.map (fun s -> `Singleton s) standalone_singletons
+    @ List.map
+        (fun s ->
+          Printf.sprintf "· %s [%s]" s.source_name
+            (string_of_kind s.source_kind))
+        standalone_singletons
   in
   let singletons_section =
-    format_section "Singletons" all_singleton_items (fun ~is_last item ->
-        match item with
-          | `External (ext, children) ->
-              format_external_with_children ~prefix:"" ~is_last ext children
-          | `Singleton source ->
-              let connector = if is_last then "└── " else "├── " in
-              Printf.sprintf "%s%s [%s]" connector source.source_name
-                (string_of_kind source.source_kind))
+    if singleton_lines = [] then None
+    else Some ("Singletons:\n" ^ String.concat "\n" singleton_lines)
   in
   String.concat "\n\n"
     (List.filter_map Fun.id [outputs_section; singletons_section])
