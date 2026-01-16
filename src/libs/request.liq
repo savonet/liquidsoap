@@ -448,7 +448,7 @@ def request.player(~simultaneous=true) =
   else
     next_source = ref.source.activation()
 
-    s = source.dynamic(next_source.get)
+    s = source.dynamic(next_source.flush)
 
     def play(r) =
       r = request.once(r)

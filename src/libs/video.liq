@@ -675,7 +675,7 @@ def video.slideshow(
 
   next_source = ref.source.activation()
 
-  s = source.dynamic(next_source.get)
+  s = source.dynamic(next_source.flush)
 
   def current() =
     list.nth(l(), n())

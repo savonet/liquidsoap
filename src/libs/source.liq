@@ -177,26 +177,26 @@ let ref.source = ()
 # Return a source activation reference tracker.
 # @category Liquidsoap
 # @method track Track the give source's activation
-# @method get Get the currently held source if any and set tracked source to null. \
-#             If there was a source, its activation will be cleared the next time
-#             a source is set on the reference.
-# @method peek Return the currently held source, if any, but keep tracking it.
+# @method flush Get the currently held source if any and set tracked source to null. \
+#               If there was a source, its activation will be cleared the next time
+#               a source is set on the reference.
+# @method get Return the currently held source, if any, but keep tracking it.
 # @method defined `true` if a source is currently being tracked.
 def ref.source.activation() =
   current_value = ref((fun () -> (), null))
 
-  def peek() =
+  def get() =
     snd(current_value())
   end
 
-  def get() =
+  def flush() =
     let (cleanup, current) = current_value()
     current_value := (cleanup, null)
     current
   end
 
   def clear() =
-    ignore(get())
+    ignore(flush())
   end
 
   def track(a, s) =
@@ -209,7 +209,7 @@ def ref.source.activation() =
     null.defined(snd(current_value()))
   end
 
-  {get=get, peek=peek, defined=defined, clear=clear, track=track}
+  {get=get, flush=flush, defined=defined, clear=clear, track=track}
 end
 
 # Append an extra track to every track. Set the metadata ‘liq_append’ to
@@ -224,7 +224,7 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   pending = ref.source.activation()
 
   def next() =
-    p = pending.get()
+    p = pending.flush()
     last_meta := null
 
     if null.defined(p) then null.get(p) else (s : source) end
@@ -262,7 +262,7 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
 
   s = fallback(id=id, track_sensitive=false, [d, s])
   s.{
-    pending=pending.peek,
+    pending=pending.get,
     set_pending=fun (s) -> pending.track(fun () -> (), s),
     cancel_pending=pending.clear,
     skip=
