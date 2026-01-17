@@ -30,7 +30,7 @@ The clock graph also highlights **active sources**. Active sources are always an
 This includes for example:
 
 - `input.harbor`, which must actively pull data from a remote Icecast stream when connected
-- `input.ffmpeg`, which may be active or passive depending on whether it’s reading from a file or a remote URL
+- `input.ffmpeg`, which may be need to be configured to be active or passive depending on whether it’s reading from a file or a remote URL
 
 Understanding which sources are active helps explain background activity you might otherwise miss.
 
