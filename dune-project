@@ -20,6 +20,7 @@
   (name liquidsoap)
    (depends
     (ocaml (>= 4.14))
+    base-bytes
     (mm (>= 0.8.6))
     (re (and (>= 1.11.0) (< 1.14.0)))
     curl
