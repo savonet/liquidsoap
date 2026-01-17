@@ -165,45 +165,6 @@ Outputs:
               └── metadata_map.3 [passive] (*)
 ```
 
-### 🔗 Source graph
-
-```
-· output.icecast (ticks: 3, time: 0.06s, self_sync: false)
-  ├── outputs: output.icecast [output.icecast], output.file [output.file]
-  ├── active sources:
-  ├── passive sources: audio.producer [ffmpeg_encode_audio],
-  │                    ffmpeg_encode_audio [output.icecast, output.file]
-  └── audio.producer (ticks: 6, time: 0.12s, self_sync: false)
-      ├── outputs: audio.consumer [audio.producer, audio.consumer]
-      ├── active sources:
-      ├── passive sources: safe_blank.1 [mksafe.1], safe_blank [mksafe],
-      │                    cross [track_metadata_deduplicate, metadata_deduplicate],
-      │                    track_metadata_deduplicate [metadata_deduplicate],
-      │                    metadata_deduplicate [mksafe, insert_initial_track_mark.6],
-      │                    mksafe [metadata_map.2, metadata_map.3],
-      │                    metadata_map.2 [metadata_map.3],
-      │                    metadata_map.3 [mksafe.1, insert_initial_track_mark.1],
-      │                    mksafe.1 [audio.consumer], insert_initial_track_mark [],
-      │                    insert_initial_track_mark.1 [mksafe.1],
-      │                    insert_initial_track_mark.6 [mksafe]
-      └── cross (ticks: 132, time: 2.64s, self_sync: false)
-          ├── outputs:
-          ├── active sources:
-          └── passive sources: source [switch, switch.1],
-                               audio [switch, switch.1, insert_initial_track_mark.2],
-                               switch [switch.1, insert_initial_track_mark.3],
-                               switch.1 [switch.2, insert_initial_track_mark.4],
-                               request_queue [switch.2],
-                               switch.2 [switch.3, insert_initial_track_mark.5],
-                               request_queue_1 [switch.3], switch.3 [metadata_map, metadata_map.1],
-                               metadata_map [metadata_map.1],
-                               metadata_map.1 [track_amplify, amplify], track_amplify [amplify],
-                               amplify [cross, cross], insert_initial_track_mark.2 [switch],
-                               insert_initial_track_mark.3 [switch.1],
-                               insert_initial_track_mark.4 [switch.2],
-                               insert_initial_track_mark.5 [switch.3], cross.eos_buffer [cross]
-```
-
 These outputs make it easy to see how clocks relate, which sources are active, and how evaluation flows from **top (outputs)** to **bottom (inputs)**.
 
 ## ✅ When to use this feature
