@@ -39,7 +39,7 @@ Understanding which sources are active helps explain background activity you mig
 The **source graph** shows how sources are connected, and — crucially — how they are animated:
 
 - The graph is animated **from top to bottom**
-- The top is usually an output, but it can also be an operator that drives time
+- The top is usually an output, but it can also be a regular source that is animated by an external source such as a `crossfade`.
 
 For example, a `crossfade` or `stretch` operator may accelerate its clock and animate its inputs faster than real time to prepare transitions or resampling.
 
