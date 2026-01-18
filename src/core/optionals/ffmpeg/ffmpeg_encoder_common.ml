@@ -119,8 +119,40 @@ let convert_options opts =
         `String Avutil.Channel_layout.(get_description (find layout))
     | _ -> assert false)
 
-let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
+let styp_header =
+  let write_wb32 value buf =
+    let s = Bytes.create 4 in
+    Bytes.set s 0 (Char.chr ((value lsr 24) land 0xFF));
+    Bytes.set s 1 (Char.chr ((value lsr 16) land 0xFF));
+    Bytes.set s 2 (Char.chr ((value lsr 8) land 0xFF));
+    Bytes.set s 3 (Char.chr (value land 0xFF));
+    Strings.add_bytes buf s
+  in
+
+  let write_fourcc s buf = Strings.add buf s in
+  List.fold_left
+    (fun buf fn -> fn buf)
+    Strings.empty
+    [
+      write_wb32 24;
+      write_fourcc "styp";
+      write_fourcc "msdh";
+      write_wb32 0;
+      write_fourcc "msdh";
+      write_fourcc "msix";
+    ]
+
+type hls_utils = {
+  on_keyframe : (unit -> unit) Atomic.t;
+  keyframes : (Frame.Fields.field * bool Atomic.t) list;
+  is_enabled : bool;
+}
+
+let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
   let buf = Strings.Mutable.empty () in
+  let is_mp4_hls =
+    hls_utils.is_enabled && ffmpeg.Ffmpeg_format.format = Some "mp4"
+  in
   let make () =
     let options = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
     convert_options options;
@@ -128,6 +160,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
       Strings.Mutable.add_subbytes buf str ofs len;
       len
     in
+    let seek = if is_mp4_hls then Some (Strings.Mutable.seek buf) else None in
     let format = mk_format ffmpeg in
     let interleaved =
       match ffmpeg.interleaved with
@@ -145,7 +178,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
                     Lang_encoder.raise_error ~pos
                       (Printf.sprintf
                          "No ffmpeg format could be found for format=%S" fmt));
-            Av.open_output_stream ~interleaved ~opts:options write
+            Av.open_output_stream ~interleaved ~opts:options ?seek write
               (Option.get format)
         | `Url url -> Av.open_output ?format ~interleaved ~opts:options url
     in
@@ -197,9 +230,6 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
       | (width, height) :: [] -> Some (width, height)
       | _ -> None
   in
-  let sent =
-    Frame.Fields.map (fun _ -> ref false) (Atomic.get encoder).streams
-  in
   let init ?id3_enabled ?id3_version () =
     let encoder = Atomic.get encoder in
     match Option.map Av.Format.get_output_name encoder.format with
@@ -246,30 +276,31 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
     let encoder = Atomic.get encoder in
     encoder.insert_id3 ~frame_position ~sample_position m
   in
+  let can_split ~encoder () =
+    let encoded_fields = List.map fst (Frame.Fields.bindings encoder.streams) in
+    List.for_all
+      (fun (field, keyframe) ->
+        if not (List.mem field encoded_fields) then true
+        else Atomic.get keyframe)
+      hls_utils.keyframes
+  in
+  let new_segment data =
+    if is_mp4_hls then Strings.append styp_header data else data
+  in
   let init_encode frame =
     let encoder = Atomic.get encoder in
     match ffmpeg.Ffmpeg_format.format with
-      | Some "mp4" ->
+      | Some "mp4" -> (
           encode ~encoder frame;
-          let frame =
-            Frame.Fields.filter
-              (fun _ c ->
-                not
-                  (Content_timed.Track_marks.is_data c
-                  || Content_timed.Metadata.is_data c))
-              frame
-          in
-          Frame.Fields.iter
-            (fun field c ->
-              match Frame.Fields.find_opt field sent with
-                | None -> ()
-                | Some sent -> sent := !sent || not (Content.is_empty c))
-            frame;
-          if Frame.Fields.exists (fun _ c -> not !c) sent then
-            raise Encoder.Not_enough_data;
           Av.flush encoder.output;
-          let init = Strings.Mutable.flush buf in
-          (Some init, Strings.empty)
+          match Av.tell encoder.output with
+            | Some pos when 0 < pos ->
+                let buf = Strings.Mutable.flush buf in
+                let init = Strings.sub buf 0 pos in
+                ( Some init,
+                  new_segment (Strings.sub buf pos (Strings.length buf - pos))
+                )
+            | _ -> raise Encoder.Not_enough_data)
       | Some "webm" ->
           Av.flush encoder.output;
           let init = Strings.Mutable.flush buf in
@@ -281,20 +312,13 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
   in
   let split_encode frame =
     let encoder = Atomic.get encoder in
-    let encoded_fields = List.map fst (Frame.Fields.bindings encoder.streams) in
-    let can_split () =
-      List.for_all
-        (fun (field, keyframe) ->
-          if not (List.mem field encoded_fields) then true
-          else Atomic.get keyframe)
-        keyframes
-    in
     let flushed =
-      if can_split () then Atomic.make (Some (Strings.Mutable.flush buf))
+      if can_split ~encoder () then
+        Atomic.make (Some (Strings.Mutable.flush buf))
       else (
         let flushed = Atomic.make None in
-        Atomic.set on_keyframe (fun () ->
-            match (can_split (), Atomic.get flushed) with
+        Atomic.set hls_utils.on_keyframe (fun () ->
+            match (can_split ~encoder (), Atomic.get flushed) with
               | true, None ->
                   Atomic.set flushed (Some (Strings.Mutable.flush buf))
               | _ -> ());
@@ -302,12 +326,14 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
     in
     Fun.protect
       (fun () -> encode ~encoder frame)
-      ~finally:(fun () -> Atomic.set on_keyframe (fun () -> ()));
+      ~finally:(fun () -> Atomic.set hls_utils.on_keyframe (fun () -> ()));
     let encoded = Strings.Mutable.flush buf in
     match Atomic.get flushed with
       | Some flushed ->
-          List.iter (fun (_, keyframe) -> Atomic.set keyframe false) keyframes;
-          `Ok (flushed, encoded)
+          List.iter
+            (fun (_, keyframe) -> Atomic.set keyframe false)
+            hls_utils.keyframes;
+          `Ok (flushed, new_segment encoded)
       | None -> `Nope encoded
   in
   let encode frame =
