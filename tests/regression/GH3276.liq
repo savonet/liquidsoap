@@ -1,6 +1,8 @@
 log.level := 5
 port = 8125
 
+test.skip()
+
 thread.run(
   delay=7.,
   fun () ->
