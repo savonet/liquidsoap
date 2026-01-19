@@ -77,7 +77,7 @@ We generally try to support the latest LTS release of each OS as well as their m
 | OS      | Supported Releases                                         | Binary assets                  | Architectures       | Notes                                                                         |
 | ------- | ---------------------------------------------------------- | ------------------------------ | ------------------- | ----------------------------------------------------------------------------- |
 | Debian  | stable (currently: `trixie`), testing (currently: `forky`) | `.deb` packages, docker images | `amd64`, `arm64`    | `.deb` packages require [deb-multimedia.org](https://www.deb-multimedia.org/) |
-| Ubuntu  | LTS (currently: `noble`), latest (currently: `plucky`)     | `.deb` packages, docker images | `amd64`, `arm64`    |                                                                               |
+| Ubuntu  | LTS (currently: `resolute`), latest (currently: `plucky`)  | `.deb` packages, docker images | `amd64`, `arm64`    |                                                                               |
 | Alpine  | `edge`                                                     | `.apk` packages, docker images | `x86_64`, `aarch64` |                                                                               |
 | Windows | N/A                                                        | `.zip` archive                 | Windows 64          |                                                                               |
 
