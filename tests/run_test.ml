@@ -95,8 +95,8 @@ let run_process ~action cmd args =
     | _ ->
         running := false;
         let min, sec = runtime () in
-        Printf.eprintf "%s%s test %s: %s (time: %02dm:%02ds)\n" action
-          error_prefix colorized_test colorized_failed min sec;
+        Printf.eprintf "%s%s test %s: %s (time: %02dm:%02ds)\n" error_prefix
+          action colorized_test colorized_failed min sec;
         print_log ();
         exit 1
 
