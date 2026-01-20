@@ -29,6 +29,8 @@
    restart. *)
 type state = [ `Started | `Stopped | `Idle ]
 
+module Queue = Queues.Queue
+
 (** Base class for sources with start/stop methods. Class ineheriting it should
     declare their own [start]/[stop] method and users should call [#set_start]
 *)
@@ -38,6 +40,7 @@ class virtual base =
     method state = state
     method virtual private start : unit
     method virtual private stop : unit
+    method virtual on_before_streaming_cycle : (unit -> unit) -> unit
     val mutable on_start = []
     val mutable on_stop = []
     method on_start fn = on_start <- on_start @ [fn]
@@ -51,7 +54,9 @@ class virtual base =
             self#start
         | _ -> ()
 
-    method transition_to (s : state) =
+    val pending_transitions = Queue.create ()
+
+    method execute_transition (s : state) =
       match (s, self#state) with
         | `Started, `Stopped | `Started, `Idle ->
             self#start;
@@ -69,6 +74,12 @@ class virtual base =
             List.iter (fun fn -> fn ()) on_stop;
             state <- `Idle
         | `Idle, `Stopped | `Idle, `Idle -> ()
+
+    initializer
+      self#on_before_streaming_cycle (fun () ->
+          Queue.flush_iter pending_transitions self#execute_transition)
+
+    method transition_to s = Queue.push pending_transitions s
   end
 
 class virtual active_source ~name ~fallible ~autostart () =

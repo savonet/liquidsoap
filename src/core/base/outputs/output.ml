@@ -151,8 +151,8 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
                   use an expliciy type annotation!"
                  self#id);
 
-          if not autostart then start_stop#transition_to `Stopped);
-      self#on_sleep (fun () -> start_stop#transition_to `Stopped)
+          if not autostart then start_stop#execute_transition `Stopped);
+      self#on_sleep (fun () -> start_stop#execute_transition `Stopped)
 
     (* The output process *)
     val mutable skip = false
@@ -163,7 +163,8 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           Some (pos, self#add_on_air m))
 
     method output =
-      if self#is_ready && state = `Idle then start_stop#transition_to `Started;
+      if self#is_ready && state = `Idle then
+        start_stop#execute_transition `Started;
       if start_stop#state = `Started then (
         let data =
           if self#is_ready then self#get_frame else self#end_of_track
@@ -176,7 +177,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
             self#log#critical "Infallible source produced a partial frame!";
             assert false);
           self#log#info "Source ended (no more tracks) stopping output...";
-          self#transition_to `Idle);
+          self#execute_transition `Idle);
 
         if skip then (
           self#log#important "Performing user-requested skip";
