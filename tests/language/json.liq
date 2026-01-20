@@ -306,7 +306,6 @@ def f() =
   f(infinity)
   if not null.defined(e()) then test.fail() end
 
-
   test.equal(json.stringify(json.value(123)), "123")
   test.equal(json.stringify(json.value(true)), "true")
 
