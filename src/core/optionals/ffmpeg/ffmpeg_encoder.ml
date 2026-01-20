@@ -37,6 +37,24 @@ let wrap ~hls ffmpeg =
     let on_keyframe = Atomic.make (fun () -> ()) in
     { is_enabled = hls; keyframes; on_keyframe }
   in
+  let ffmpeg =
+    let streams =
+      List.map
+        (function
+          | ( lbl,
+              `Encode
+                ({ Ffmpeg_format.opts } as stream :
+                  Ffmpeg_format.encoded_stream) ) ->
+              let opts = Hashtbl.copy opts in
+              (* We need global headers to be able to pass stream's encoded
+                 content to the muxers and infer other properties.. *)
+              replace_default opts "flags" (`String "+global_header");
+              (lbl, `Encode { stream with Ffmpeg_format.opts })
+          | s -> s)
+        ffmpeg.streams
+    in
+    { ffmpeg with streams }
+  in
   if hls then (
     let ffmpeg =
       let opts = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
