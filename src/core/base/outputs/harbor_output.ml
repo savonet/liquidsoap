@@ -381,6 +381,11 @@ class output p =
 
     val mutable dump = None
     val mutable encoder = None
+    val encoder_m = Mutex.create ()
+
+    method private encoder =
+      Mutex_utils.mutexify encoder_m (fun () -> Option.get encoder) ()
+
     val mutable clients = Queue.create ()
     val clients_m = Mutex.create ()
     val duppy_c = Duppy_c.create ()
@@ -388,7 +393,7 @@ class output p =
     val mutable chunk_len = 0
     val burst_data = Strings.Mutable.empty ()
     val metadata = { metadata = None; metadata_m = Mutex.create () }
-    method encode frame = (Option.get encoder).Encoder.encode frame
+    method encode frame = self#encoder.Encoder.encode frame
     method self_sync = source#self_sync
     val mutable on_connect = []
     method on_connect fn = on_connect <- on_connect @ [fn]
@@ -401,7 +406,7 @@ class output p =
       Mutex_utils.mutexify metadata.metadata_m
         (fun () -> metadata.metadata <- Some m)
         ();
-      (Option.get encoder).Encoder.encode_metadata
+      self#encoder.Encoder.encode_metadata
         (Frame.Metadata.Export.from_metadata ~cover:false m)
 
     method add_client ~protocol ~headers ~uri ~query s =
@@ -427,7 +432,7 @@ class output p =
           data.format icyheader extra_headers
       in
       let buffer =
-        Strings.Mutable.of_strings ((Option.get encoder).Encoder.header ())
+        Strings.Mutable.of_strings (self#encoder.Encoder.header ())
       in
       let close () = try Harbor.close s with _ -> () in
       let rec client =
@@ -560,7 +565,7 @@ class output p =
       else ()
 
     method start =
-      self#mutexify
+      Mutex_utils.mutexify encoder_m
         (fun () ->
           match encoder with
             | Some _ -> ()
@@ -579,7 +584,7 @@ class output p =
         ()
 
     method stop =
-      self#mutexify
+      Mutex_utils.mutexify encoder_m
         (fun () ->
           match encoder with
             | None -> ()
