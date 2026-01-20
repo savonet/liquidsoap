@@ -166,18 +166,10 @@ module Mutable : sig
       needed. Updates position after write. *)
   val add_bytes : t -> bytes -> unit
 
-  (** Add bytes at the current position, bytes will be copied. Note: for this
-      implementation, this is the same as [add_bytes]. *)
-  val unsafe_add_bytes : t -> bytes -> unit
-
   val add_substring : t -> string -> int -> int -> unit
 
   (** Add subbytes at the current position. Extends buffer if needed. *)
   val add_subbytes : t -> bytes -> int -> int -> unit
-
-  (** Add subbytes at the current position. Note: for this implementation, this
-      is the same as [add_subbytes]. *)
-  val unsafe_add_subbytes : t -> bytes -> int -> int -> unit
 
   (** Add a string at the beginning of a buffer. Shifts existing content. *)
   val dda : string -> t -> unit

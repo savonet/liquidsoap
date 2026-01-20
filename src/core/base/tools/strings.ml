@@ -246,9 +246,7 @@ module Mutable = struct
         let new_pos = c.pos + len in
         Atomic.set m.content { c with pos = new_pos; size = max c.size new_pos })
 
-  let unsafe_add_subbytes = add_subbytes
   let add_bytes m b = add_subbytes m b 0 (Bytes.length b)
-  let unsafe_add_bytes = add_bytes
 
   let add_substring m s ofs len =
     add_subbytes m (Bytes.unsafe_of_string s) ofs len
