@@ -44,6 +44,7 @@ object
   method private generate_frame : Frame.t
   method state : Start_stop.state
   method transition_to : Start_stop.state -> unit
+  method execute_transition : Start_stop.state -> unit
   method effective_source : Source.source
   method output : unit
   method on_start : (unit -> unit) -> unit
