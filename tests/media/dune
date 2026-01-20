@@ -117,7 +117,7 @@
    %{target})))
 
 (rule
- (alias mediatest)
+ (alias ffmpeg_copy_concat)
  (package liquidsoap)
  (deps
   first-concat.mp4
@@ -138,7 +138,7 @@
    ffmpeg_copy_concat.liq)))
 
 (rule
- (alias mediatest)
+ (alias ffmpeg_raw_implicit_conversion)
  (package liquidsoap)
  (deps
   all_media_files
@@ -157,7 +157,7 @@
    ffmpeg_raw_implicit_conversion.liq)))
 
 (rule
- (alias mediatest)
+ (alias ffmpeg_complex_filter)
  (package liquidsoap)
  (deps
   all_media_files
@@ -197,7 +197,7 @@
    %{target})))
 
 (rule
- (alias mediatest)
+ (alias ffmpeg_distributed_hls)
  (package liquidsoap)
  (deps
   long-video.mp4
@@ -222,6 +222,28 @@
  (alias mediatest)
  (package liquidsoap)
  (deps
+  long-video.mp4
+  ffmpeg_distributed_hls.liq
+  ffmpeg_distributed_hls_state.json
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg distributed HLS encoding"
+   liquidsoap
+   %{test_liq}
+   ffmpeg_distributed_hls.liq
+   --
+   long-video.mp4)))
+
+(rule
+ (alias ffmpeg_transparency_filter)
+ (package liquidsoap)
+ (deps
   all_media_files
   background.jpg
   logo.png
@@ -240,7 +262,7 @@
    ffmpeg_transparency_filter.liq)))
 
 (rule
- (alias mediatest)
+ (alias ffmpeg_filter_changing_rate)
  (package liquidsoap)
  (deps
   all_media_files
@@ -264,7 +286,7 @@
    ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4)))
 
 (rule
- (alias mediatest)
+ (alias lufs_integrated)
  (package liquidsoap)
  (deps
   all_media_files
@@ -300,7 +322,7 @@
    %{target})))
 
 (rule
- (alias mediatest)
+ (alias image_decoder_duration)
  (package liquidsoap)
  (deps
   test-image.png
@@ -317,3 +339,16 @@
    liquidsoap
    %{test_liq}
    image_decoder_duration.liq)))
+
+(alias
+ (name mediatest)
+ (deps
+  (alias ffmpeg_distributed_hls)
+  (alias ffmpeg_raw_implicit_conversion)
+  (alias ffmpeg_complex_filter)
+  (alias ffmpeg_copy_concat)
+  (alias ffmpeg_hls_mp4)
+  (alias ffmpeg_transparency_filter)
+  (alias ffmpeg_filter_changing_rate)
+  (alias lufs_integrated)
+  (alias image_decoder_duration)))
