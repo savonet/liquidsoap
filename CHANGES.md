@@ -3,6 +3,7 @@
 ## Fixed:
 
 - Fixed `fMP4` HLS support for audio+video streams (#4841)
+- Fixed crash with concurrent `stop`/`start` operations (#4849)
 
 ---
 
