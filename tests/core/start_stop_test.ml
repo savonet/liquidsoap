@@ -5,6 +5,7 @@ class start_stop_test _state start stop =
     method start = start ()
     method stop = stop ()
     method fallible = true
+    method on_before_streaming_cycle fn = fn ()
   end
 
 exception Success
