@@ -147,103 +147,241 @@ let to_string l = Bytes.unsafe_to_string (to_bytes l)
 let substring l o len = to_string (sub l o len)
 
 module Mutable = struct
-  type nonrec t = { mutable strings : t; mutex : Mutex.t }
+  type content = { buffer : bytes; ofs : int; pos : int; size : int }
+  type nonrec t = { content : content Atomic.t; mutex : Mutex.t }
 
-  let of_strings strings = { strings; mutex = Mutex.create () }
+  let initial_size = 1024
+  let mutate m fn = Mutex_utils.mutexify m.mutex fn m
+  let get m fn = fn (Atomic.get m.content)
+
+  let create ?(size = initial_size) () =
+    {
+      content =
+        Atomic.make { buffer = Bytes.create size; ofs = 0; pos = 0; size = 0 };
+      mutex = Mutex.create ();
+    }
+
+  let empty = create
+
+  (* Ensure buffer has enough capacity for writing n bytes at current pos.
+     Compacts the buffer if needed. Returns new content. *)
+  let ensure_capacity c n =
+    let required = c.ofs + c.pos + n in
+    if required > Bytes.length c.buffer then begin
+      let new_capacity =
+        let cap = ref (max (Bytes.length c.buffer) 1) in
+        while !cap < required do
+          cap := !cap + (!cap / 2) + 1
+        done;
+        !cap
+      in
+      let new_buffer = Bytes.create new_capacity in
+      Bytes.blit c.buffer c.ofs new_buffer 0 c.size;
+      { c with buffer = new_buffer; ofs = 0 }
+    end
+    else if c.ofs > 0 && c.ofs + c.pos + n > Bytes.length c.buffer then begin
+      Bytes.blit c.buffer c.ofs c.buffer 0 c.size;
+      { c with ofs = 0 }
+    end
+    else c
+
+  let strings_of_bytes = of_bytes
+
+  let of_bytes b =
+    let len = Bytes.length b in
+    let buffer = Bytes.create (max len initial_size) in
+    Bytes.blit b 0 buffer 0 len;
+    {
+      content = Atomic.make { buffer; ofs = 0; pos = len; size = len };
+      mutex = Mutex.create ();
+    }
+
+  let unsafe_of_bytes b =
+    let len = Bytes.length b in
+    {
+      content = Atomic.make { buffer = b; ofs = 0; pos = len; size = len };
+      mutex = Mutex.create ();
+    }
+
+  let of_string s = of_bytes (Bytes.of_string s)
+
+  let of_strings strings =
+    let len = length strings in
+    let buffer = Bytes.create (max len initial_size) in
+    blit strings buffer 0;
+    {
+      content = Atomic.make { buffer; ofs = 0; pos = len; size = len };
+      mutex = Mutex.create ();
+    }
+
   let of_list l = of_strings (of_list l)
-  let of_string s = of_list [s]
-  let of_bytes b = of_strings (of_bytes b)
-  let unsafe_of_bytes b = of_strings (unsafe_of_bytes b)
-  let empty () = of_strings []
-  let to_strings { strings } = strings
+  let to_bytes m = get m (fun c -> Bytes.sub c.buffer c.ofs c.size)
+  let to_string m = Bytes.unsafe_to_string (to_bytes m)
 
-  let add m s =
-    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- add m.strings s) ()
+  let to_strings m =
+    get m (fun c -> strings_of_bytes (Bytes.sub c.buffer c.ofs c.size))
+
+  let seek m offset whence =
+    mutate m (fun m ->
+        let c = Atomic.get m.content in
+        let new_pos =
+          match whence with
+            | Unix.SEEK_SET -> offset
+            | Unix.SEEK_CUR -> c.pos + offset
+            | Unix.SEEK_END -> c.size + offset
+        in
+        if new_pos < 0 then
+          raise (Invalid_argument "Strings.Mutable.seek: negative position");
+        if new_pos > c.size then
+          raise (Invalid_argument "Strings.Mutable.seek: position past end");
+        Atomic.set m.content { c with pos = new_pos };
+        new_pos)
+
+  let pos m = get m (fun c -> c.pos)
+
+  let add_subbytes m b src_ofs len =
+    mutate m (fun m ->
+        let c = ensure_capacity (Atomic.get m.content) len in
+        Bytes.blit b src_ofs c.buffer (c.ofs + c.pos) len;
+        let new_pos = c.pos + len in
+        Atomic.set m.content { c with pos = new_pos; size = max c.size new_pos })
+
+  let add_bytes m b = add_subbytes m b 0 (Bytes.length b)
 
   let add_substring m s ofs len =
-    Mutex_utils.mutexify m.mutex
-      (fun () -> m.strings <- add_substring m.strings s ofs len)
-      ()
+    add_subbytes m (Bytes.unsafe_of_string s) ofs len
 
-  let add_subbytes m b ofs len =
-    Mutex_utils.mutexify m.mutex
-      (fun () -> m.strings <- add_subbytes m.strings b ofs len)
-      ()
-
-  let unsafe_add_subbytes m b ofs len =
-    Mutex_utils.mutexify m.mutex
-      (fun () -> m.strings <- unsafe_add_subbytes m.strings b ofs len)
-      ()
-
-  let add_bytes t b = add_subbytes t b 0 (Bytes.length b)
-  let unsafe_add_bytes t b = unsafe_add_subbytes t b 0 (Bytes.length b)
+  let add m s = add_substring m s 0 (String.length s)
 
   let dda s m =
-    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- dda s m.strings) ()
+    mutate m (fun m ->
+        let c = Atomic.get m.content in
+        let slen = String.length s in
+        if slen <= c.ofs then begin
+          let new_ofs = c.ofs - slen in
+          Bytes.blit_string s 0 c.buffer new_ofs slen;
+          Atomic.set m.content
+            { c with ofs = new_ofs; size = c.size + slen; pos = c.pos + slen }
+        end
+        else begin
+          let c = ensure_capacity { c with pos = c.size } slen in
+          Bytes.blit c.buffer c.ofs c.buffer (c.ofs + slen) c.size;
+          Bytes.blit_string s 0 c.buffer c.ofs slen;
+          Atomic.set m.content
+            { c with size = c.size + slen; pos = c.pos + slen }
+        end)
 
-  let append_strings m t =
-    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- append m.strings t) ()
+  let append_strings m strings =
+    mutate m (fun m ->
+        let len = length strings in
+        let c = Atomic.get m.content in
+        let c = ensure_capacity { c with pos = c.size } len in
+        blit strings c.buffer (c.ofs + c.size);
+        let new_size = c.size + len in
+        Atomic.set m.content { c with pos = new_size; size = new_size })
 
   let drop m len =
-    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- drop m.strings len) ()
+    mutate m (fun m ->
+        let c = Atomic.get m.content in
+        if len >= c.size then
+          Atomic.set m.content { c with ofs = 0; size = 0; pos = 0 }
+        else
+          Atomic.set m.content
+            {
+              c with
+              ofs = c.ofs + len;
+              size = c.size - len;
+              pos = max 0 (c.pos - len);
+            })
 
   let keep m len =
-    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- keep m.strings len) ()
+    mutate m (fun m ->
+        let c = Atomic.get m.content in
+        if len >= c.size then ()
+        else (
+          let drop_len = c.size - len in
+          Atomic.set m.content
+            { c with ofs = c.ofs + drop_len; size = len; pos = min c.pos len }))
 
   let append m m' =
-    Mutex_utils.mutexify m.mutex
-      (fun () ->
-        Mutex_utils.mutexify m'.mutex
-          (fun () -> m.strings <- append m.strings m'.strings)
-          ())
-      ()
+    mutate m (fun m ->
+        let c' = Atomic.get m'.content in
+        let c = Atomic.get m.content in
+        let c = ensure_capacity { c with pos = c.size } c'.size in
+        Bytes.blit c'.buffer c'.ofs c.buffer (c.ofs + c.size) c'.size;
+        let new_size = c.size + c'.size in
+        Atomic.set m.content { c with pos = new_size; size = new_size })
 
   let iter_view fn m =
-    Mutex_utils.mutexify m.mutex (fun () -> iter_view fn m.strings) ()
+    get m (fun c ->
+        if c.size > 0 then
+          fn (S.of_substring (Bytes.unsafe_to_string c.buffer) c.ofs c.size))
 
-  let iter fn m = Mutex_utils.mutexify m.mutex (fun () -> iter fn m.strings) ()
+  let iter fn m =
+    get m (fun c ->
+        if c.size > 0 then fn (Bytes.unsafe_to_string c.buffer) c.ofs c.size)
 
   let map_view fn m =
-    Mutex_utils.mutexify m.mutex
-      (fun () -> of_strings (map_view fn m.strings))
-      ()
+    get m (fun c ->
+        if c.size = 0 then create ()
+        else begin
+          let view =
+            S.of_substring (Bytes.unsafe_to_string c.buffer) c.ofs c.size
+          in
+          let new_view = fn view in
+          let s, o, l = S.to_substring new_view in
+          of_string (String.sub s o l)
+        end)
 
   let map fn m =
-    Mutex_utils.mutexify m.mutex (fun () -> of_strings (map fn m.strings)) ()
+    get m (fun c ->
+        if c.size = 0 then create ()
+        else begin
+          let s, o, l = fn (Bytes.unsafe_to_string c.buffer) c.ofs c.size in
+          of_string (String.sub s o l)
+        end)
 
   let fold_view fn x0 m =
-    Mutex_utils.mutexify m.mutex (fun () -> fold_view fn x0 m.strings) ()
+    get m (fun c ->
+        if c.size = 0 then x0
+        else
+          fn x0 (S.of_substring (Bytes.unsafe_to_string c.buffer) c.ofs c.size))
 
   let fold fn x0 m =
-    Mutex_utils.mutexify m.mutex (fun () -> fold fn x0 m.strings) ()
+    get m (fun c ->
+        if c.size = 0 then x0
+        else fn x0 (Bytes.unsafe_to_string c.buffer) c.ofs c.size)
 
   let flush m =
-    Mutex_utils.mutexify m.mutex
-      (fun () ->
-        let content = m.strings in
-        m.strings <- [];
-        content)
-      ()
+    mutate m (fun m ->
+        let c = Atomic.get m.content in
+        let result = strings_of_bytes (Bytes.sub c.buffer c.ofs c.size) in
+        Atomic.set m.content { c with ofs = 0; size = 0; pos = 0 };
+        result)
 
-  let is_empty m =
-    Mutex_utils.mutexify m.mutex (fun () -> is_empty m.strings) ()
-
-  let length m = Mutex_utils.mutexify m.mutex (fun () -> length m.strings) ()
-
-  let to_bytes m =
-    Mutex_utils.mutexify m.mutex (fun () -> to_bytes m.strings) ()
-
-  let to_string m =
-    Mutex_utils.mutexify m.mutex (fun () -> to_string m.strings) ()
+  let is_empty m = get m (fun c -> c.size = 0)
+  let length m = get m (fun c -> c.size)
 
   let blit m mo b bo len =
-    Mutex_utils.mutexify m.mutex (fun () -> blit (sub m.strings mo len) b bo) ()
+    get m (fun c ->
+        if mo + len > c.size then
+          raise (Invalid_argument "Strings.Mutable.blit: out of bounds");
+        Bytes.blit c.buffer (c.ofs + mo) b bo len)
 
-  let sub m ofs len =
-    Mutex_utils.mutexify m.mutex
-      (fun () -> of_strings (sub m.strings ofs len))
-      ()
+  let sub m src_ofs len =
+    get m (fun c ->
+        if src_ofs + len > c.size then
+          raise (Invalid_argument "Strings.Mutable.sub: out of bounds");
+        let buffer = Bytes.create (max len initial_size) in
+        Bytes.blit c.buffer (c.ofs + src_ofs) buffer 0 len;
+        {
+          content = Atomic.make { buffer; ofs = 0; pos = len; size = len };
+          mutex = Mutex.create ();
+        })
 
-  let substring m ofs len =
-    Mutex_utils.mutexify m.mutex (fun () -> substring m.strings ofs len) ()
+  let substring m src_ofs len =
+    get m (fun c ->
+        if src_ofs + len > c.size then
+          raise (Invalid_argument "Strings.Mutable.substring: out of bounds");
+        Bytes.sub_string c.buffer (c.ofs + src_ofs) len)
 end

@@ -113,12 +113,16 @@ val append : t -> t -> t
 (** Concatenate a list of buffers. *)
 val concat : t list -> t
 
-(** Mutable and thread-safe variant. *)
+(** Mutable, seekable and thread-safe variant. Uses a single bytes buffer
+    internally with position tracking for seeking. *)
 module Mutable : sig
   type t
 
-  (** The empty buffer. *)
-  val empty : unit -> t
+  (** Create a new empty buffer with optional initial capacity. *)
+  val create : ?size:int -> unit -> t
+
+  (** The empty buffer. Alias for [create ()]. *)
+  val empty : ?size:int -> unit -> t
 
   (** Create a buffer from a string. *)
   val of_string : string -> t
@@ -143,40 +147,45 @@ module Mutable : sig
   (** Concatenation of strings. *)
   val of_list : string list -> t
 
-  (** Add a string at the end of a buffer. *)
+  (** Seek to a position in the buffer. Uses Unix seek_command semantics:
+      - SEEK_SET: absolute position from start
+      - SEEK_CUR: relative to current position
+      - SEEK_END: relative to end (size) of buffer Returns the new absolute
+        position. Raises Invalid_argument if the resulting position would be
+        negative or past the end. *)
+  val seek : t -> int -> Unix.seek_command -> int
+
+  (** Return the current position in the buffer. *)
+  val pos : t -> int
+
+  (** Add a string at the current position. Extends buffer if needed. Updates
+      position after write. *)
   val add : t -> string -> unit
 
-  (** Add bytes at the end of a buffer, bytes will be copied. *)
+  (** Add bytes at the current position, bytes will be copied. Extends buffer if
+      needed. Updates position after write. *)
   val add_bytes : t -> bytes -> unit
-
-  (** Add bytes at the end of a buffer, bytes will not be copied. *)
-  val unsafe_add_bytes : t -> bytes -> unit
 
   val add_substring : t -> string -> int -> int -> unit
 
-  (** Add subbytes at the end of a buffer. *)
+  (** Add subbytes at the current position. Extends buffer if needed. *)
   val add_subbytes : t -> bytes -> int -> int -> unit
 
-  (** Add subbytes at the end of a buffer with copying them. *)
-  val unsafe_add_subbytes : t -> bytes -> int -> int -> unit
-
-  (** Add a string at the beginning of a buffer. *)
+  (** Add a string at the beginning of a buffer. Shifts existing content. *)
   val dda : string -> t -> unit
 
-  (** Iterate a function on all the strings (with given offset and length)
-      contained in the buffer. *)
+  (** Iterate a function on the buffer content (as a single string with offset
+      and length). *)
   val iter : (string -> int -> int -> unit) -> t -> unit
 
   val iter_view : (StringView.t -> unit) -> t -> unit
 
-  (** Fold a function over all the strings (with given offset and length)
-      contained in the buffer. *)
+  (** Fold a function over the buffer content. *)
   val fold : ('a -> string -> int -> int -> 'a) -> 'a -> t -> 'a
 
   val fold_view : ('a -> StringView.t -> 'a) -> 'a -> t -> 'a
 
-  (** Map a function over all the strings (with given offset and length)
-      contained in the buffer. *)
+  (** Map a function over the buffer content. *)
   val map : (string -> int -> int -> string * int * int) -> t -> t
 
   val map_view : (StringView.t -> StringView.t) -> t -> t
@@ -190,21 +199,21 @@ module Mutable : sig
   (** Sub-buffer of a buffer. *)
   val sub : t -> int -> int -> t
 
-  (** Copy a substring. *)
+  (** Copy bytes from buffer at given offset to destination bytes. *)
   val blit : t -> int -> bytes -> int -> int -> unit
 
-  (** Whether the buffer is the empty string. *)
+  (** Whether the buffer is empty (size is 0). *)
   val is_empty : t -> bool
 
-  (** Length of the buffer. *)
+  (** Length of the buffer (total bytes written, not capacity). *)
   val length : t -> int
 
-  (** Append two buffers. *)
+  (** Append the content of another buffer at the end. Sets position to end. *)
   val append : t -> t -> unit
 
-  (** Append strings to the buffer. *)
+  (** Append strings to the buffer at the end. Sets position to end. *)
   val append_strings : t -> buffer -> unit
 
-  (** Empty the buffer and return its content. *)
+  (** Empty the buffer and return its content. Resets position to 0. *)
   val flush : t -> buffer
 end
