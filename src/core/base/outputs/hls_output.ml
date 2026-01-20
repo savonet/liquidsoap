@@ -581,17 +581,7 @@ class hls_output p =
     (mk_streams, mk_streams ())
   in
   let x_version =
-    Lazy.from_fun (fun () ->
-        if
-          List.find_opt
-            (fun s ->
-              match s.current_segment with
-                | Some { init_filename = Some _ } -> true
-                | _ -> false)
-            streams
-          <> None
-        then 7
-        else 3)
+    if List.exists (fun s -> s.extname = "m4s") streams then 7 else 3
   in
   let source_val = Lang.assoc "" 3 p in
   let source = Lang.to_source source_val in
@@ -852,8 +842,7 @@ class hls_output p =
           oc#output_string
             (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n"
                (int_of_float (ceil segment_duration)));
-          oc#output_string
-            (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (Lazy.force x_version));
+          oc#output_string (Printf.sprintf "#EXT-X-VERSION:%d\r\n" x_version);
           oc#output_string
             (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" media_sequence);
           oc#output_string
@@ -901,7 +890,7 @@ class hls_output p =
               "`main_playlist_writer` is `null`: skipping main playlist"
         | Some main_playlist_writer, false -> (
             let main_playlist =
-              main_playlist_writer ~version:(Lazy.force x_version)
+              main_playlist_writer ~version:x_version
                 ~extra_tags:main_playlist_extra_tags ~prefix streams
             in
             match main_playlist with
@@ -1042,8 +1031,9 @@ class hls_output p =
         | None -> s.init_state <- `No_init
         | Some data when not (Strings.is_empty data) ->
             let init_filename =
-              segment_name ~position:init_position ~extname ~duration:0.
-                ~ticks:0 name
+              segment_name ~position:init_position
+                ~extname:(if extname = "m4s" then "mp4" else extname)
+                ~duration:0. ~ticks:0 name
             in
             let oc = self#open_out (fun () -> init_filename) in
             Fun.protect

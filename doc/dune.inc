@@ -127,7 +127,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -259,7 +258,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -391,7 +389,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -523,7 +520,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -655,7 +651,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -787,7 +782,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -919,7 +913,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -1051,7 +1044,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -1183,7 +1175,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -1315,7 +1306,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -1447,7 +1437,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -1579,7 +1568,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -1711,7 +1699,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -1843,7 +1830,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -1975,7 +1961,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -2107,7 +2092,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -2239,7 +2223,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -2371,7 +2354,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -2503,7 +2485,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -2635,7 +2616,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -2767,7 +2747,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -2899,7 +2878,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -3031,7 +3009,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -3163,7 +3140,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -3295,7 +3271,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -3427,7 +3402,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -3559,7 +3533,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -3691,7 +3664,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -3823,7 +3795,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -3955,7 +3926,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -4087,7 +4057,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -4219,7 +4188,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -4351,7 +4319,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -4483,7 +4450,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -4615,7 +4581,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -4747,7 +4712,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -4879,7 +4843,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -5011,7 +4974,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -5143,7 +5105,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -5275,7 +5236,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -5407,7 +5367,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -5539,7 +5498,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -5671,7 +5629,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -5803,7 +5760,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -5935,7 +5891,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -6067,7 +6022,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -6199,7 +6153,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -6331,7 +6284,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -6463,7 +6415,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -6595,7 +6546,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -6727,7 +6677,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -6859,7 +6808,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -6991,7 +6939,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -7123,7 +7070,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -7255,7 +7201,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -7387,7 +7332,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -7519,7 +7463,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -7651,7 +7594,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -7783,7 +7725,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -7915,7 +7856,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -8047,7 +7987,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -8179,7 +8118,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -8311,7 +8249,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -8443,7 +8380,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -8575,7 +8511,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -8707,7 +8642,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -8839,7 +8773,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -8971,7 +8904,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -9103,7 +9035,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -9235,7 +9166,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -9367,7 +9297,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -9499,7 +9428,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -9631,7 +9559,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -9763,7 +9690,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -9895,7 +9821,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -10027,7 +9952,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -10159,7 +10083,6 @@
     content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
@@ -10677,16 +10600,6 @@
     (:test_liq content/liq/hls-metadata.liq)
   )
   (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/hls-metadata.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/hls-mp4.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/hls-mp4.liq))
 )
 
 (rule

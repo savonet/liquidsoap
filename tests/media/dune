@@ -219,6 +219,48 @@
    long-video.mp4)))
 
 (rule
+ (alias ffmpeg_hls_mp4)
+ (package liquidsoap)
+ (deps
+  long-video.mp4
+  ffmpeg_hls_mp4.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg HLS MP4 encoding"
+   liquidsoap
+   %{test_liq}
+   ffmpeg_hls_mp4.liq
+   --
+   long-video.mp4)))
+
+(rule
+ (alias ffmpeg_hls_copy_mp4)
+ (package liquidsoap)
+ (deps
+  long-video.mp4
+  ffmpeg_hls_copy_mp4.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg HLS MP4 encoding"
+   liquidsoap
+   %{test_liq}
+   ffmpeg_hls_copy_mp4.liq
+   --
+   long-video.mp4)))
+
+(rule
  (alias mediatest)
  (package liquidsoap)
  (deps

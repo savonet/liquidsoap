@@ -27,60 +27,71 @@ open Ffmpeg_encoder_common
 let replace_default opts name default =
   Hashtbl.replace opts name (Option.value ~default (Hashtbl.find_opt opts name))
 
+let wrap ~hls ffmpeg =
+  let hls_utils =
+    let keyframes =
+      List.map
+        (fun (field, _) -> (field, Atomic.make false))
+        ffmpeg.Ffmpeg_format.streams
+    in
+    let on_keyframe = Atomic.make (fun () -> ()) in
+    { is_enabled = hls; keyframes; on_keyframe }
+  in
+  let ffmpeg =
+    let streams =
+      List.map
+        (function
+          | ( lbl,
+              `Encode
+                ({ Ffmpeg_format.opts } as stream :
+                  Ffmpeg_format.encoded_stream) ) ->
+              let opts = Hashtbl.copy opts in
+              (* We need global headers to be able to pass stream's encoded
+                 content to the muxers and infer other properties.. *)
+              replace_default opts "flags" (`String "+global_header");
+              (lbl, `Encode { stream with Ffmpeg_format.opts })
+          | s -> s)
+        ffmpeg.streams
+    in
+    { ffmpeg with streams }
+  in
+  if hls then (
+    let ffmpeg =
+      let opts = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
+      (match ffmpeg.Ffmpeg_format.format with
+        | Some "mp4" ->
+            replace_default opts "movflags"
+              (`String "+frag_custom+dash+delay_moov")
+        | _ -> ());
+      let interleaved =
+        match ffmpeg.Ffmpeg_format.interleaved with
+          | `Default -> `False
+          | v -> v
+      in
+      { ffmpeg with Ffmpeg_format.interleaved; opts }
+    in
+    let on_stream_keyframe field =
+      Some
+        (fun () ->
+          let on_keyframe = Atomic.get hls_utils.on_keyframe in
+          on_keyframe ();
+          Atomic.set (List.assoc field hls_utils.keyframes) true)
+    in
+    (ffmpeg, hls_utils, on_stream_keyframe))
+  else (ffmpeg, hls_utils, fun _ -> None)
+
 let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"" (function
     | Encoder.Ffmpeg ffmpeg ->
         Some
           (fun ?(hls = false) ~pos _ ->
-            (* Inject hls params. *)
-            let ffmpeg =
-              if hls then (
-                let opts = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
-                replace_default opts "flush_packets" (`Int 1);
-                (match ffmpeg.Ffmpeg_format.format with
-                  | Some "mp4" ->
-                      replace_default opts "movflags"
-                        (`String "+dash+skip_sidx+skip_trailer+frag_custom");
-                      replace_default opts "frag_duration" (`Int 10)
-                  | _ -> ());
-                let streams =
-                  List.map
-                    (function
-                      | ( lbl,
-                          `Encode
-                            ({ Ffmpeg_format.opts } as stream :
-                              Ffmpeg_format.encoded_stream) ) ->
-                          let opts = Hashtbl.copy opts in
-                          replace_default opts "flags"
-                            (`String "+global_header");
-                          (lbl, `Encode { stream with Ffmpeg_format.opts })
-                      | s -> s)
-                    ffmpeg.Ffmpeg_format.streams
-                in
-                { ffmpeg with Ffmpeg_format.streams; opts })
-              else ffmpeg
-            in
+            let ffmpeg, hls_utils, on_stream_keyframe = wrap ~hls ffmpeg in
             let copy_count =
               List.fold_left
                 (fun cur (_, c) -> match c with `Copy _ -> cur + 1 | _ -> cur)
                 0 ffmpeg.streams
             in
             let get_stream, remove_stream = mk_stream_store copy_count in
-            let keyframes =
-              List.map
-                (fun (field, _) -> (field, Atomic.make false))
-                ffmpeg.streams
-            in
-            let on_keyframe = Atomic.make (fun () -> ()) in
-            let on_stream_keyframe field =
-              if hls then
-                Some
-                  (fun () ->
-                    let on_keyframe = Atomic.get on_keyframe in
-                    on_keyframe ();
-                    Atomic.set (List.assoc field keyframes) true)
-              else None
-            in
             let mk_streams output =
               List.fold_left
                 (fun streams (field, stream) ->
@@ -125,5 +136,5 @@ let () =
                           streams)
                 Frame.Fields.empty ffmpeg.streams
             in
-            encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg)
+            encoder ~pos ~hls_utils ~mk_streams ffmpeg)
     | _ -> None)

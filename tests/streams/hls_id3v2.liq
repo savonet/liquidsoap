@@ -1,9 +1,6 @@
 tmp_dir = file.temp_dir("tmp")
 on_cleanup({file.rmdir(tmp_dir)})
 
-# Too flakey.
-test.skip()
-
 def run_check() =
   to_check =
     ref(

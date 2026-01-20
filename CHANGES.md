@@ -1,3 +1,11 @@
+# 2.4.3 (unreleased)
+
+## Fixed:
+
+- Fixed `fMP4` HLS support for audio+video streams (#4841)
+
+---
+
 # 2.4.2 (2025-01-17)
 
 ## New:
