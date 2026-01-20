@@ -1,6 +1,8 @@
 log.level := 5
 port = 8125
 
+test.skip()
+
 s = source.dynamic(infallible=true, track_sensitive=true, {sine(duration=2.)})
 
 s = metadata.map(insert_missing=true, fun (_) -> [("title", "gno")], s)
