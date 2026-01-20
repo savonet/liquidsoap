@@ -960,6 +960,22 @@
  (action (run %{run_test} GH4819.liq liquidsoap %{test_liq} GH4819.liq)))
   
 (rule
+ (alias GH4840)
+ (package liquidsoap)
+ (deps
+  GH4840.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH4840.liq liquidsoap %{test_liq} GH4840.liq)))
+  
+(rule
  (alias LS268)
  (package liquidsoap)
  (deps
@@ -1533,6 +1549,7 @@
     (alias GH4748)
     (alias GH4819)
     (alias GH4819-bis)
+    (alias GH4840)
     (alias LS268)
     (alias LS354-1)
     (alias LS354-2)
