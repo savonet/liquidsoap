@@ -583,7 +583,7 @@ let get_decoder ~ctype r =
         let open Decoder in
         let initial_pos =
           match get_cue ~r r.cue_in_metadata with
-            | Some cue_in ->
+            | Some cue_in when 0. < cue_in ->
                 r.logger#info "Cueing in to position: %.02f" cue_in;
                 let cue_in = Frame.main_of_seconds cue_in in
                 let seeked = decoder.fseek cue_in in
@@ -592,7 +592,7 @@ let get_decoder ~ctype r =
                     "Initial seek mismatch! Expected: %d, effective: %d" cue_in
                     seeked;
                 seeked
-            | None -> 0
+            | _ -> 0
         in
         match get_cue ~r r.cue_out_metadata with
           | None -> Some decoder
