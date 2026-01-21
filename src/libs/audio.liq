@@ -54,7 +54,7 @@ def amplify(~id=null("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
     tracks.{
       audio=
         track.audio.amplify(
-          id=null("track.amplify"),
+          id=null("track.audio.amplify"),
           %argsof(track.audio.amplify[!id]),
           f,
           tracks.audio
