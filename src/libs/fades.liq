@@ -125,7 +125,7 @@ def mkfade(
     if
       t <= 0.
     then
-      if increasing_fade then 0. else 1. end
+      start
     elsif
       t >= duration
     then
