@@ -237,12 +237,19 @@
    ./crossfade-plot.liq)))
 
 (rule
- (alias plot-gen)
+ (alias genplot)
  (action
-  (progn
-   (diff crossfade-plot.png crossfade-plot.png.gen)
-   (diff crossfade-plot.old.txt crossfade-plot.old.txt.gen)
-   (diff crossfade-plot.new.txt crossfade-plot.new.txt.gen))))
+   (diff crossfade-plot.png crossfade-plot.png.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff crossfade-plot.old.txt crossfade-plot.old.txt.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff crossfade-plot.new.txt crossfade-plot.new.txt.gen)))
 
 (rule
  (alias autocue-plot)
@@ -276,18 +283,49 @@
    ./autocue-plot.liq)))
 
 (rule
- (alias plot-gen)
+ (alias genplot)
  (action
-  (progn
-   (diff autocue-plot.0.png autocue-plot.0.png.gen)
-   (diff autocue-plot.0.old.txt autocue-plot.0.old.txt.gen)
-   (diff autocue-plot.0.new.txt autocue-plot.0.new.txt.gen)
-   (diff autocue-plot.1.png autocue-plot.1.png.gen)
-   (diff autocue-plot.1.old.txt autocue-plot.1.old.txt.gen)
-   (diff autocue-plot.1.new.txt autocue-plot.1.new.txt.gen)
-   (diff autocue-plot.2.png autocue-plot.2.png.gen)
-   (diff autocue-plot.2.old.txt autocue-plot.2.old.txt.gen)
-   (diff autocue-plot.2.new.txt autocue-plot.2.new.txt.gen))))
+   (diff autocue-plot.0.png autocue-plot.0.png.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff autocue-plot.0.old.txt autocue-plot.0.old.txt.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff autocue-plot.0.new.txt autocue-plot.0.new.txt.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff autocue-plot.1.png autocue-plot.1.png.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff autocue-plot.1.old.txt autocue-plot.1.old.txt.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff autocue-plot.1.new.txt autocue-plot.1.new.txt.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff autocue-plot.2.png autocue-plot.2.png.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff autocue-plot.2.old.txt autocue-plot.2.old.txt.gen)))
+
+(rule
+ (alias genplot)
+ (action
+   (diff autocue-plot.2.new.txt autocue-plot.2.new.txt.gen)))
 
 (rule
  (alias icecast_ssl)
