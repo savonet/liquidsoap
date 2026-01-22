@@ -212,7 +212,7 @@
    "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost")))
 
 (rule
- (alias citest)
+ (alias crossfade-plot)
  (package liquidsoap)
  (targets
   crossfade-plot.png.gen
@@ -237,22 +237,15 @@
    ./crossfade-plot.liq)))
 
 (rule
- (alias crossfade-plot)
+ (alias plot-gen)
  (action
-  (diff crossfade-plot.png crossfade-plot.png.gen)))
+  (progn
+   (diff crossfade-plot.png crossfade-plot.png.gen)
+   (diff crossfade-plot.old.txt crossfade-plot.old.txt.gen)
+   (diff crossfade-plot.new.txt crossfade-plot.new.txt.gen))))
 
 (rule
- (alias crossfade-plot)
- (action
-  (diff crossfade-plot.old.txt crossfade-plot.old.txt.gen)))
-
-(rule
- (alias crossfade-plot)
- (action
-  (diff crossfade-plot.new.txt crossfade-plot.new.txt.gen)))
-
-(rule
- (alias citest)
+ (alias autocue-plot)
  (package liquidsoap)
  (targets
   autocue-plot.0.png.gen
@@ -283,52 +276,21 @@
    ./autocue-plot.liq)))
 
 (rule
- (alias autocue-plot)
+ (alias plot-gen)
  (action
-  (diff autocue-plot.0.png autocue-plot.0.png.gen)))
+  (progn
+   (diff autocue-plot.0.png autocue-plot.0.png.gen)
+   (diff autocue-plot.0.old.txt autocue-plot.0.old.txt.gen)
+   (diff autocue-plot.0.new.txt autocue-plot.0.new.txt.gen)
+   (diff autocue-plot.1.png autocue-plot.1.png.gen)
+   (diff autocue-plot.1.old.txt autocue-plot.1.old.txt.gen)
+   (diff autocue-plot.1.new.txt autocue-plot.1.new.txt.gen)
+   (diff autocue-plot.2.png autocue-plot.2.png.gen)
+   (diff autocue-plot.2.old.txt autocue-plot.2.old.txt.gen)
+   (diff autocue-plot.2.new.txt autocue-plot.2.new.txt.gen))))
 
 (rule
- (alias autocue-plot)
- (action
-  (diff autocue-plot.0.old.txt autocue-plot.0.old.txt.gen)))
-
-(rule
- (alias autocue-plot)
- (action
-  (diff autocue-plot.0.new.txt autocue-plot.0.new.txt.gen)))
-
-(rule
- (alias autocue-plot)
- (action
-  (diff autocue-plot.1.png autocue-plot.1.png.gen)))
-
-(rule
- (alias autocue-plot)
- (action
-  (diff autocue-plot.1.old.txt autocue-plot.1.old.txt.gen)))
-
-(rule
- (alias autocue-plot)
- (action
-  (diff autocue-plot.1.new.txt autocue-plot.1.new.txt.gen)))
-
-(rule
- (alias autocue-plot)
- (action
-  (diff autocue-plot.2.png autocue-plot.2.png.gen)))
-
-(rule
- (alias autocue-plot)
- (action
-  (diff autocue-plot.2.old.txt autocue-plot.2.old.txt.gen)))
-
-(rule
- (alias autocue-plot)
- (action
-  (diff autocue-plot.2.new.txt autocue-plot.2.new.txt.gen)))
-
-(rule
- (alias citest)
+ (alias icecast_ssl)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
@@ -351,7 +313,7 @@
    ./icecast_ssl.liq)))
 
 (rule
- (alias citest)
+ (alias icecast_tls)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
@@ -374,7 +336,7 @@
    ./icecast_tls.liq)))
 
 (rule
- (alias citest)
+ (alias icecast_ssl_tls)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
@@ -397,7 +359,7 @@
    ./icecast_ssl_tls.liq)))
 
 (rule
- (alias citest)
+ (alias icecast_tls_ssl)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
@@ -541,12 +503,11 @@
    %{target})))
 
 (alias
- (name plot)
- (deps
-  (alias crossfade-plot)
-  (alias autocue-plot)))
-
-(alias
  (name citest)
  (deps
-  (alias plot)))
+  (alias icecast_ssl)
+  (alias icecast_tls)
+  (alias icecast_ssl_tls)
+  (alias icecast_tls_ssl)
+  (alias crossfade-plot)
+  (alias autocue-plot)))
