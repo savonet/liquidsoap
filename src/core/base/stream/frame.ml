@@ -199,7 +199,9 @@ let checksum frame =
               acc
           | field ->
               let field_name = Fields.string_of_field field in
-              let content_checksum = Content.checksum content in
+              (* Copy consolidates the checksum into one single chunk to be
+                 stable on chunked content. *)
+              let content_checksum = Content.(checksum (copy content)) in
               Printf.sprintf "%s=%s" field_name content_checksum :: acc)
       frame []
   in

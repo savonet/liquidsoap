@@ -87,4 +87,34 @@ let () =
         || (c >= 'A' && c <= 'F')))
     checksum
 
+(* Test that checksum is stable for chunked vs consolidated content *)
+let () =
+  let length = Lazy.force Frame.size in
+  let ctype =
+    Frame_type.content_type
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio ()) ()))
+  in
+  (* Create a frame with some audio content *)
+  let frame1 = Frame.create ~length ctype in
+  let audio1 = Frame.audio frame1 in
+  let audio_data = Content.Audio.get_data audio1 in
+  (* Fill with some non-zero values *)
+  if Array.length audio_data > 0 then
+    for i = 0 to Array.length audio_data.(0) - 1 do
+      audio_data.(0).(i) <- Float.of_int i *. 0.001
+    done;
+  let checksum1 = Frame.checksum frame1 in
+  (* Create chunked content by splitting and appending *)
+  let half = length / 2 in
+  let chunk1 = Content.sub audio1 0 half in
+  let chunk2 = Content.sub audio1 half (length - half) in
+  let chunked_audio = Content.append chunk1 chunk2 in
+  (* Create a new frame with chunked audio *)
+  let frame2 = Frame.create ~length ctype in
+  let frame2 = Frame.set frame2 Frame.Fields.audio chunked_audio in
+  let checksum2 = Frame.checksum frame2 in
+  (* Both checksums should be identical because Frame.checksum consolidates *)
+  assert (checksum1 = checksum2)
+
 let () = print_endline "All frame checksum tests passed!"
