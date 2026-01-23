@@ -196,9 +196,57 @@ let source_callbacks =
       arg_t = [];
       register =
         (fun ~params:p s on_frame ->
-          let on_frame () = on_frame [] in
+          let on_frame _ = on_frame [] in
           let before = Lang.to_bool (List.assoc "before" p) in
-          s#on_frame (`Frame { Source.before; on_frame }));
+          if before then s#on_frame (`Before_frame on_frame)
+          else s#on_frame (`After_frame (fun _ -> on_frame ())));
+    };
+    {
+      name = "on_frame_checksum";
+      params =
+        [
+          {
+            name = "before";
+            typ =
+              Lang.(
+                nullable_t (fun_t [(false, "", nullable_t string_t)] unit_t));
+            default = Some Lang.null;
+          };
+        ];
+      descr =
+        "Register callbacks to compute frame checksums for debugging purposes. \
+         This is useful to track frame content changes through the streaming \
+         pipeline. The `before` callback is called before computing the frame \
+         with the checksum of the cached frame (if any, `null` otherwise). The \
+         main callback is called after computing the frame with the checksum \
+         of the generated frame and the remaining cache (if any).";
+      register_deprecated_argument = false;
+      arg_t = [(false, "cache", nullable_t string_t); (false, "", string_t)];
+      register =
+        (fun ~params:p s after_cb ->
+          let before_cb = Lang.to_option (List.assoc "before" p) in
+          Option.iter
+            (fun cb ->
+              s#on_frame
+                (`Before_frame
+                   (fun cache ->
+                     let checksum =
+                       match cache with
+                         | Some frame -> Lang.string (Frame.checksum frame)
+                         | None -> Lang.null
+                     in
+                     ignore (apply cb [("", checksum)]))))
+            before_cb;
+          s#on_frame
+            (`After_frame
+               (fun { Source.frame; cache } ->
+                 let frame_checksum = Lang.string (Frame.checksum frame) in
+                 let cache_checksum =
+                   match cache with
+                     | Some c -> Lang.string (Frame.checksum c)
+                     | None -> Lang.null
+                 in
+                 after_cb [("cache", cache_checksum); ("", frame_checksum)])));
     };
     {
       name = "on_position";

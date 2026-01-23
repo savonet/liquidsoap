@@ -172,3 +172,36 @@ let remove_metadata frame pos =
   Content.Metadata.set_data new_metadata
     (List.filter (fun (p, _) -> p <> pos) (Content.Metadata.get_data metadata));
   Fields.add Fields.metadata new_metadata frame
+
+let conf_checksum = Dtools.Conf.void ~p:(conf#plug "checksum") "Frame checksum"
+
+let conf_checksum_metadata =
+  Dtools.Conf.bool
+    ~p:(conf_checksum#plug "metadata")
+    ~d:false "Include metadata when computing frame checksum"
+
+let conf_checksum_track_marks =
+  Dtools.Conf.bool
+    ~p:(conf_checksum#plug "track_marks")
+    ~d:false "Include track marks when computing frame checksum."
+
+let checksum frame =
+  let field_checksums =
+    Fields.fold
+      (fun field content acc ->
+        match field with
+          | field when field = Fields.metadata && not conf_checksum_metadata#get
+            ->
+              acc
+          | field
+            when field = Fields.track_marks && not conf_checksum_track_marks#get
+            ->
+              acc
+          | field ->
+              let field_name = Fields.string_of_field field in
+              let content_checksum = Content.checksum content in
+              Printf.sprintf "%s=%s" field_name content_checksum :: acc)
+      frame []
+  in
+  let sorted = List.sort String.compare field_checksums in
+  Digest.string (String.concat ";" sorted) |> Digest.to_hex

@@ -192,6 +192,9 @@ val add_all_metadata : t -> (int * metadata) list -> t
 (** Map a function over the frame's metadata. *)
 val map_metadata : t -> (int * metadata -> (int * metadata) option) -> t
 
+(** Compute a checksum of the frame's content for debugging purposes. *)
+val checksum : t -> string
+
 (** {2 Content operations} *)
 
 val string_of_content_type : content_type -> string

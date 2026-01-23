@@ -70,6 +70,20 @@
 
 
 (executable
+ (name frame_checksum_test)
+ (modules frame_checksum_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias frame_checksum_test)
+ (package liquidsoap)
+ (deps
+  
+  (:frame_checksum_test frame_checksum_test.exe))
+ (action (run %{frame_checksum_test} )))
+
+
+(executable
  (name frame_test)
  (modules frame_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -384,6 +398,7 @@
     (alias decoder_test)
     (alias ffmpeg_quality)
     (alias flush_test)
+    (alias frame_checksum_test)
     (alias frame_test)
     (alias generator_test)
     (alias http_test)

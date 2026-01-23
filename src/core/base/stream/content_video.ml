@@ -148,6 +148,29 @@ module Specs = struct
   let kind = `Canvas
   let default_params _ = { width = None; height = None }
   let kind_of_string = function "canvas" -> Some `Canvas | _ -> None
+
+  let checksum d =
+    (* Hash the video frame positions and render each frame to get pixel data *)
+    let frames_info =
+      List.map
+        (fun (pos, img) ->
+          let width = Video.Canvas.Image.width img in
+          let height = Video.Canvas.Image.height img in
+          let rendered = Video.Canvas.Image.render img in
+          let y = Image.YUV420.y rendered in
+          let y_stride = Image.YUV420.y_stride rendered in
+          (* Sample a few pixels from the Y plane for the checksum *)
+          let samples = Buffer.create 256 in
+          let y_len = Bigarray.Array1.dim y in
+          for i = 0 to min 63 (y_len - 1) do
+            let idx = i * y_len / 64 in
+            Buffer.add_uint8 samples y.{idx}
+          done;
+          Printf.sprintf "%d:%dx%d:%d:%s" pos width height y_stride
+            (Buffer.contents samples))
+        d.data
+    in
+    Digest.string (String.concat "|" frames_info) |> Digest.to_hex
 end
 
 include MkContentBase (Specs)

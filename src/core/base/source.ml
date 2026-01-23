@@ -74,13 +74,14 @@ type position_callback = {
   mutable executed : bool;
 }
 
-type frame_callback = { before : bool; on_frame : unit -> unit }
+type after_frame_payload = { frame : Frame.t; cache : Frame.t option }
 
 type on_frame =
   [ `Metadata of Frame.metadata -> unit
   | `Track of Frame.metadata -> unit
   | `Position of position_callback
-  | `Frame of frame_callback ]
+  | `Before_frame of Frame.t option -> unit
+  | `After_frame of after_frame_payload -> unit ]
 
 let source_log = Log.make ["source"]
 let finalise s = source_log#info "Source %s is collected." s#id
@@ -668,13 +669,11 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
       let on_frame = self#mutexify (fun () -> on_frame) () in
-      List.iter
-        (function `Frame { before = true; on_frame } -> on_frame () | _ -> ())
-        on_frame;
+      List.iter (function `Before_frame fn -> fn _cache | _ -> ()) on_frame;
       let buf = self#normalize_video_content self#generate_frame in
       List.iter
         (function
-          | `Frame { before = false; on_frame } -> on_frame () | _ -> ())
+          | `After_frame fn -> fn { frame = buf; cache = _cache } | _ -> ())
         on_frame;
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in

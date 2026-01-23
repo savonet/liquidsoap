@@ -84,13 +84,14 @@ type position_callback = {
   mutable executed : bool;
 }
 
-type frame_callback = { before : bool; on_frame : unit -> unit }
+type after_frame_payload = { frame : Frame.t; cache : Frame.t option }
 
 type on_frame =
   [ `Metadata of Frame.metadata -> unit
   | `Track of Frame.metadata -> unit
   | `Position of position_callback
-  | `Frame of frame_callback ]
+  | `Before_frame of Frame.t option -> unit
+  | `After_frame of after_frame_payload -> unit ]
 
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :

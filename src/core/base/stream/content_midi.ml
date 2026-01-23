@@ -60,6 +60,29 @@ module Specs = struct
     match (label, value) with
       | "channels", c -> Some { channels = int_of_string c }
       | _ | (exception _) -> None
+
+  let checksum d =
+    (* Hash MIDI data: number of channels and events per channel *)
+    let channels = MIDI.Multitrack.channels d in
+    let duration = MIDI.Multitrack.duration d in
+    let channel_info =
+      Array.to_list
+        (Array.mapi
+           (fun i track ->
+             let events = MIDI.data track in
+             let event_hash =
+               List.fold_left
+                 (fun acc (time, evt) ->
+                   Printf.sprintf "%s;%d:%d" acc time (Hashtbl.hash evt))
+                 "" events
+             in
+             Printf.sprintf "%d:%s" i event_hash)
+           d)
+    in
+    Digest.string
+      (Printf.sprintf "%d:%d:%s" channels duration
+         (String.concat "|" channel_info))
+    |> Digest.to_hex
 end
 
 include MkContentBase (Specs)

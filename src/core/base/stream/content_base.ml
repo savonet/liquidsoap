@@ -65,6 +65,7 @@ module type ContentSpecs = sig
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
+  val checksum : data -> string
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -169,6 +170,7 @@ type data_handler = {
   _length : data -> int;
   is_empty : data -> bool;
   copy : data -> data;
+  checksum : data -> string;
   format : data -> format;
   append : data -> data -> data;
 }
@@ -180,6 +182,7 @@ let dummy_handler =
     _length = (fun _ -> raise Invalid);
     is_empty = (fun _ -> raise Invalid);
     copy = (fun _ -> raise Invalid);
+    checksum = (fun _ -> raise Invalid);
     format = (fun _ -> raise Invalid);
     append = (fun _ _ -> raise Invalid);
   }
@@ -199,6 +202,7 @@ let is_empty c = (get_data_handler c).is_empty c
 let length c = (get_data_handler c)._length c
 let append c c' = (get_data_handler c).append c c'
 let copy c = (get_data_handler c).copy c
+let checksum c = (get_data_handler c).checksum c
 let format c = (get_data_handler c).format c
 let kind p = (get_format_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
@@ -424,6 +428,21 @@ module MkContentBase (C : ContentSpecs) :
         truncate = (fun d len -> to_content (truncate (of_content d) len));
         is_empty = (fun d -> is_empty (of_content d));
         copy = (fun d -> to_content (copy (of_content d)));
+        checksum =
+          (fun d ->
+            let d = of_content d in
+            let checksums =
+              List.map
+                (fun { data; offset; length } ->
+                  let length =
+                    match length with
+                      | Some len -> len
+                      | None -> max 0 (C.length data - offset)
+                  in
+                  Printf.sprintf "%d:%d:%s" offset length (C.checksum data))
+                d.chunks
+            in
+            Digest.string (String.concat "|" checksums) |> Digest.to_hex);
         format = (fun d -> lift_params (params (of_content d)));
         _length = (fun d -> length (of_content d));
         append;

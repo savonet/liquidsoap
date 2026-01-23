@@ -98,6 +98,14 @@ module Metadata_specs = struct
   let parse_param _ _ = Some ()
   let merge _ _ = ()
   let copy = copy ~copy:(fun x -> x)
+
+  let checksum d =
+    let entries =
+      List.map
+        (fun (pos, m) -> Printf.sprintf "%d:%s" pos (Metadata_base.to_string m))
+        d.data
+    in
+    Digest.string (String.concat "|" entries) |> Digest.to_hex
 end
 
 module Metadata = struct
@@ -141,6 +149,10 @@ module Track_marks_specs = struct
   let parse_param _ _ = Some ()
   let merge _ _ = ()
   let copy = copy ~copy:(fun () -> ())
+
+  let checksum d =
+    let positions = List.map (fun (pos, ()) -> string_of_int pos) d.data in
+    Digest.string (String.concat "|" positions) |> Digest.to_hex
 end
 
 module Track_marks = struct
