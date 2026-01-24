@@ -26,7 +26,7 @@
  (action (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
   
 (rule
- (alias comments)
+ (alias casting)
  (package liquidsoap)
  (deps
   casting.liq
@@ -39,7 +39,7 @@
  (action (run %{run_test} casting.liq liquidsoap %{test_liq} casting.liq)))
   
 (rule
- (alias citest)
+ (alias comments)
  (package liquidsoap)
  (deps
   comments.liq
@@ -640,6 +640,7 @@
   (deps
     (alias argsof)
     (alias bool)
+    (alias casting)
     (alias comments)
     (alias conversions)
     (alias cron)
