@@ -1,6 +1,6 @@
 
 (rule
- (alias citest)
+ (alias argsof)
  (package liquidsoap)
  (deps
   argsof.liq
@@ -13,7 +13,7 @@
  (action (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
   
 (rule
- (alias citest)
+ (alias bool)
  (package liquidsoap)
  (deps
   bool.liq
@@ -26,7 +26,7 @@
  (action (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
   
 (rule
- (alias citest)
+ (alias comments)
  (package liquidsoap)
  (deps
   comments.liq
@@ -39,7 +39,7 @@
  (action (run %{run_test} comments.liq liquidsoap %{test_liq} comments.liq)))
   
 (rule
- (alias citest)
+ (alias conversions)
  (package liquidsoap)
  (deps
   conversions.liq
@@ -52,7 +52,7 @@
  (action (run %{run_test} conversions.liq liquidsoap %{test_liq} conversions.liq)))
   
 (rule
- (alias citest)
+ (alias cron)
  (package liquidsoap)
  (deps
   cron.liq
@@ -65,7 +65,7 @@
  (action (run %{run_test} cron.liq liquidsoap %{test_liq} cron.liq)))
   
 (rule
- (alias citest)
+ (alias cue_test)
  (package liquidsoap)
  (deps
   cue_test.liq
@@ -78,7 +78,7 @@
  (action (run %{run_test} cue_test.liq liquidsoap %{test_liq} cue_test.liq)))
   
 (rule
- (alias citest)
+ (alias doc)
  (package liquidsoap)
  (deps
   doc.liq
@@ -91,7 +91,7 @@
  (action (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
   
 (rule
- (alias citest)
+ (alias encoders)
  (package liquidsoap)
  (deps
   encoders.liq
@@ -104,7 +104,7 @@
  (action (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
   
 (rule
- (alias citest)
+ (alias error)
  (package liquidsoap)
  (deps
   error.liq
@@ -117,7 +117,7 @@
  (action (run %{run_test} error.liq liquidsoap %{test_liq} error.liq)))
   
 (rule
- (alias citest)
+ (alias eval)
  (package liquidsoap)
  (deps
   eval.liq
@@ -130,7 +130,7 @@
  (action (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
   
 (rule
- (alias citest)
+ (alias file)
  (package liquidsoap)
  (deps
   file.liq
@@ -143,7 +143,7 @@
  (action (run %{run_test} file.liq liquidsoap %{test_liq} file.liq)))
   
 (rule
- (alias citest)
+ (alias file.watch)
  (package liquidsoap)
  (deps
   file.watch.liq
@@ -156,7 +156,7 @@
  (action (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
   
 (rule
- (alias citest)
+ (alias file.watch2)
  (package liquidsoap)
  (deps
   file.watch2.liq
@@ -169,7 +169,7 @@
  (action (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
   
 (rule
- (alias citest)
+ (alias file_protocol)
  (package liquidsoap)
  (deps
   file_protocol.liq
@@ -182,7 +182,7 @@
  (action (run %{run_test} file_protocol.liq liquidsoap %{test_liq} file_protocol.liq)))
   
 (rule
- (alias citest)
+ (alias functions)
  (package liquidsoap)
  (deps
   functions.liq
@@ -195,7 +195,7 @@
  (action (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
   
 (rule
- (alias citest)
+ (alias getter)
  (package liquidsoap)
  (deps
   getter.liq
@@ -208,7 +208,7 @@
  (action (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
   
 (rule
- (alias citest)
+ (alias interactive)
  (package liquidsoap)
  (deps
   interactive.liq
@@ -221,7 +221,7 @@
  (action (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
   
 (rule
- (alias citest)
+ (alias json)
  (package liquidsoap)
  (deps
   json.liq
@@ -234,7 +234,7 @@
  (action (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
   
 (rule
- (alias citest)
+ (alias list)
  (package liquidsoap)
  (deps
   list.liq
@@ -247,7 +247,7 @@
  (action (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
   
 (rule
- (alias citest)
+ (alias loop)
  (package liquidsoap)
  (deps
   loop.liq
@@ -260,7 +260,7 @@
  (action (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
   
 (rule
- (alias citest)
+ (alias math)
  (package liquidsoap)
  (deps
   math.liq
@@ -273,7 +273,7 @@
  (action (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
   
 (rule
- (alias citest)
+ (alias mem_usage)
  (package liquidsoap)
  (deps
   mem_usage.liq
@@ -286,7 +286,7 @@
  (action (run %{run_test} mem_usage.liq liquidsoap %{test_liq} mem_usage.liq)))
   
 (rule
- (alias citest)
+ (alias metadata)
  (package liquidsoap)
  (deps
   metadata.liq
@@ -299,7 +299,7 @@
  (action (run %{run_test} metadata.liq liquidsoap %{test_liq} metadata.liq)))
   
 (rule
- (alias citest)
+ (alias metrics)
  (package liquidsoap)
  (deps
   metrics.liq
@@ -312,7 +312,7 @@
  (action (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
   
 (rule
- (alias citest)
+ (alias null)
  (package liquidsoap)
  (deps
   null.liq
@@ -325,7 +325,7 @@
  (action (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
   
 (rule
- (alias citest)
+ (alias number)
  (package liquidsoap)
  (deps
   number.liq
@@ -338,7 +338,7 @@
  (action (run %{run_test} number.liq liquidsoap %{test_liq} number.liq)))
   
 (rule
- (alias citest)
+ (alias osc)
  (package liquidsoap)
  (deps
   osc.liq
@@ -351,7 +351,7 @@
  (action (run %{run_test} osc.liq liquidsoap %{test_liq} osc.liq)))
   
 (rule
- (alias citest)
+ (alias pattern)
  (package liquidsoap)
  (deps
   pattern.liq
@@ -364,7 +364,7 @@
  (action (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
   
 (rule
- (alias citest)
+ (alias pp)
  (package liquidsoap)
  (deps
   pp.liq
@@ -377,7 +377,7 @@
  (action (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
   
 (rule
- (alias citest)
+ (alias predicate)
  (package liquidsoap)
  (deps
   predicate.liq
@@ -390,7 +390,7 @@
  (action (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
   
 (rule
- (alias citest)
+ (alias process)
  (package liquidsoap)
  (deps
   process.liq
@@ -403,7 +403,7 @@
  (action (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
   
 (rule
- (alias citest)
+ (alias rec)
  (package liquidsoap)
  (deps
   rec.liq
@@ -416,7 +416,7 @@
  (action (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
   
 (rule
- (alias citest)
+ (alias record)
  (package liquidsoap)
  (deps
   record.liq
@@ -429,7 +429,7 @@
  (action (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
   
 (rule
- (alias citest)
+ (alias ref)
  (package liquidsoap)
  (deps
   ref.liq
@@ -442,7 +442,7 @@
  (action (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
   
 (rule
- (alias citest)
+ (alias regexp)
  (package liquidsoap)
  (deps
   regexp.liq
@@ -455,7 +455,7 @@
  (action (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
   
 (rule
- (alias citest)
+ (alias replaygain)
  (package liquidsoap)
  (deps
   replaygain.liq
@@ -468,7 +468,7 @@
  (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
   
 (rule
- (alias citest)
+ (alias socket)
  (package liquidsoap)
  (deps
   socket.liq
@@ -481,7 +481,7 @@
  (action (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
   
 (rule
- (alias citest)
+ (alias sqlite)
  (package liquidsoap)
  (deps
   sqlite.liq
@@ -494,7 +494,7 @@
  (action (run %{run_test} sqlite.liq liquidsoap %{test_liq} sqlite.liq)))
   
 (rule
- (alias citest)
+ (alias stdlib)
  (package liquidsoap)
  (deps
   stdlib.liq
@@ -507,7 +507,7 @@
  (action (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
   
 (rule
- (alias citest)
+ (alias string)
  (package liquidsoap)
  (deps
   string.liq
@@ -520,7 +520,7 @@
  (action (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
   
 (rule
- (alias citest)
+ (alias thread)
  (package liquidsoap)
  (deps
   thread.liq
@@ -533,7 +533,7 @@
  (action (run %{run_test} thread.liq liquidsoap %{test_liq} thread.liq)))
   
 (rule
- (alias citest)
+ (alias time)
  (package liquidsoap)
  (deps
   time.liq
@@ -546,7 +546,7 @@
  (action (run %{run_test} time.liq liquidsoap %{test_liq} time.liq)))
   
 (rule
- (alias citest)
+ (alias type_errors)
  (package liquidsoap)
  (deps
   type_errors.liq
@@ -559,7 +559,7 @@
  (action (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq)))
   
 (rule
- (alias citest)
+ (alias typing)
  (package liquidsoap)
  (deps
   typing.liq
@@ -572,7 +572,7 @@
  (action (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
   
 (rule
- (alias citest)
+ (alias url)
  (package liquidsoap)
  (deps
   url.liq
@@ -585,7 +585,7 @@
  (action (run %{run_test} url.liq liquidsoap %{test_liq} url.liq)))
   
 (rule
- (alias citest)
+ (alias various)
  (package liquidsoap)
  (deps
   various.liq
@@ -598,7 +598,7 @@
  (action (run %{run_test} various.liq liquidsoap %{test_liq} various.liq)))
   
 (rule
- (alias citest)
+ (alias xml_test)
  (package liquidsoap)
  (deps
   xml_test.liq
@@ -611,7 +611,7 @@
  (action (run %{run_test} xml_test.liq liquidsoap %{test_liq} xml_test.liq)))
   
 (rule
- (alias citest)
+ (alias yaml)
  (package liquidsoap)
  (deps
   yaml.liq
@@ -622,4 +622,54 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} yaml.liq liquidsoap %{test_liq} yaml.liq)))
-  
+  (alias
+  (name citest)
+  (deps
+    (alias argsof)
+    (alias bool)
+    (alias comments)
+    (alias conversions)
+    (alias cron)
+    (alias cue_test)
+    (alias doc)
+    (alias encoders)
+    (alias error)
+    (alias eval)
+    (alias file)
+    (alias file.watch)
+    (alias file.watch2)
+    (alias file_protocol)
+    (alias functions)
+    (alias getter)
+    (alias interactive)
+    (alias json)
+    (alias list)
+    (alias loop)
+    (alias math)
+    (alias mem_usage)
+    (alias metadata)
+    (alias metrics)
+    (alias null)
+    (alias number)
+    (alias osc)
+    (alias pattern)
+    (alias pp)
+    (alias predicate)
+    (alias process)
+    (alias rec)
+    (alias record)
+    (alias ref)
+    (alias regexp)
+    (alias replaygain)
+    (alias socket)
+    (alias sqlite)
+    (alias stdlib)
+    (alias string)
+    (alias thread)
+    (alias time)
+    (alias type_errors)
+    (alias typing)
+    (alias url)
+    (alias various)
+    (alias xml_test)
+    (alias yaml)))
