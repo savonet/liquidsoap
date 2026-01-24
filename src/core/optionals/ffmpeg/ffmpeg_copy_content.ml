@@ -167,6 +167,22 @@ module Specs = struct
   let blit = blit ~copy:copy_packet
   let copy = copy ~copy:copy_packet
   let default_params _ = None
+
+  let checksum d =
+    let packets_data =
+      List.map
+        (fun (pos, { stream_idx; time_base; packet }) ->
+          let pkt_bytes =
+            match packet with
+              | `Audio p -> Avcodec.Packet.to_bytes p
+              | `Video p -> Avcodec.Packet.to_bytes p
+          in
+          Printf.sprintf "%d:%Ld:%d/%d:%s" pos stream_idx time_base.Avutil.num
+            time_base.Avutil.den
+            (Digest.bytes pkt_bytes |> Digest.to_hex))
+        d.data
+    in
+    Digest.string (String.concat "|" packets_data) |> Digest.to_hex
 end
 
 include Content.MkContent (Specs)

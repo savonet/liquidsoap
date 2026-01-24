@@ -58,6 +58,17 @@ module AudioSpecs = struct
 
   type data = (params, audio frame) content
 
+  let checksum d =
+    let frames_data =
+      List.map
+        (fun (pos, { stream_idx; time_base; frame }) ->
+          Printf.sprintf "%d:%Ld:%d/%d:%s" pos stream_idx time_base.Avutil.num
+            time_base.Avutil.den
+            (Ffmpeg_frame_checksum.checksum_of_audio_frame frame))
+        d.data
+    in
+    Digest.string (String.concat "|" frames_data) |> Digest.to_hex
+
   let name = "ffmpeg.raw.audio"
 
   let frame_params { frame } =
@@ -176,6 +187,17 @@ module VideoSpecs = struct
   }
 
   type data = (params, video frame) content
+
+  let checksum d =
+    let frames_data =
+      List.map
+        (fun (pos, { stream_idx; time_base; frame }) ->
+          Printf.sprintf "%d:%Ld:%d/%d:%s" pos stream_idx time_base.Avutil.num
+            time_base.Avutil.den
+            (Ffmpeg_frame_checksum.checksum_of_video_frame frame))
+        d.data
+    in
+    Digest.string (String.concat "|" frames_data) |> Digest.to_hex
 
   let name = "ffmpeg.raw.video"
 

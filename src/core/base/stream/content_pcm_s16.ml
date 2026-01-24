@@ -37,6 +37,21 @@ module Specs = struct
   let string_of_kind = function `Pcm_s16 -> "pcm_s16"
   let copy = copy ~fmt:Bigarray.int16_signed
   let make = make ~fmt:Bigarray.int16_signed
+
+  let checksum d =
+    let len =
+      Array.fold_left (fun acc c -> acc + (Bigarray.Array1.dim c * 2)) 0 d
+    in
+    let buf = Bytes.create len in
+    let pos = ref 0 in
+    Array.iter
+      (fun c ->
+        for i = 0 to Bigarray.Array1.dim c - 1 do
+          Bytes.set_int16_le buf !pos c.{i};
+          pos := !pos + 2
+        done)
+      d;
+    Digest.bytes buf |> Digest.to_hex
 end
 
 include MkContentBase (Specs)

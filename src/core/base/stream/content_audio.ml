@@ -96,6 +96,22 @@ module Specs = struct
 
   let length d = main_of_audio (Audio.length d)
   let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
+
+  let checksum d =
+    let len =
+      Array.fold_left (fun acc c -> acc + (Audio.Mono.length c * 8)) 0 d
+    in
+    let buf = Bytes.create len in
+    let pos = ref 0 in
+    Array.iter
+      (fun c ->
+        for i = 0 to Audio.Mono.length c - 1 do
+          let bits = Int64.bits_of_float c.(i) in
+          Bytes.set_int64_le buf !pos bits;
+          pos := !pos + 8
+        done)
+      d;
+    Digest.bytes buf |> Digest.to_hex
 end
 
 include MkContentBase (Specs)

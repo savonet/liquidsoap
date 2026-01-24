@@ -46,6 +46,7 @@ module type ContentSpecs = sig
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
+  val checksum : data -> string
 
   (** Params *)
 
@@ -105,6 +106,7 @@ val make : ?length:int -> format -> data
 val sub : data -> int -> int -> data
 val truncate : data -> int -> data
 val copy : data -> data
+val checksum : data -> string
 val length : data -> int
 val append : data -> data -> data
 val is_empty : data -> bool

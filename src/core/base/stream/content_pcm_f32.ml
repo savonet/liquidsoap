@@ -37,6 +37,22 @@ module Specs = struct
   let string_of_kind = function `Pcm_f32 -> "pcm_f32"
   let copy = copy ~fmt:Bigarray.float32
   let make = make ~fmt:Bigarray.float32
+
+  let checksum d =
+    let len =
+      Array.fold_left (fun acc c -> acc + (Bigarray.Array1.dim c * 4)) 0 d
+    in
+    let buf = Bytes.create len in
+    let pos = ref 0 in
+    Array.iter
+      (fun c ->
+        for i = 0 to Bigarray.Array1.dim c - 1 do
+          let bits = Int32.bits_of_float c.{i} in
+          Bytes.set_int32_le buf !pos bits;
+          pos := !pos + 4
+        done)
+      d;
+    Digest.bytes buf |> Digest.to_hex
 end
 
 include MkContentBase (Specs)
