@@ -192,6 +192,10 @@ let rec sup ~pos a b =
       | Nullable a, Nullable b -> mk (Nullable (sup a b))
       | Nullable a, _ -> mk (Nullable (sup a b))
       | _, Nullable b -> mk (Nullable (sup a b))
+      (* We implicitly convert it to float so we need to make sure to
+         be more restrictive when mixing the two types and use int
+         everywhere. *)
+      | Int, Float | Float, Int -> mk Int
       | List { t = a }, List { t = b } ->
           mk (List { t = sup a b; json_repr = `Tuple })
       | Arrow (p, a), Arrow (q, b) ->
@@ -375,7 +379,7 @@ and ( <: ) a b =
     match (a.descr, b.descr) with
       | a, b when a == b -> ()
       (* a <: b means that [a] can be used every time [b] type is expected.
-         We do implicity int to float conversions when needed so this is acceptable. *)
+         We do implicit int to float conversions when needed so this is acceptable. *)
       | Int, Float -> ()
       | Var { contents = Free v }, Var { contents = Free v' } when Var.eq v v'
         ->
