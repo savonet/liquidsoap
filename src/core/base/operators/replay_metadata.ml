@@ -24,9 +24,9 @@ open Source
 
 (** Insert metadata at the beginning if none is set. Currently used by the
     switch classes. *)
-class replay meta src =
+class replay ?(name = "replay_metadata") meta src =
   object
-    inherit operator ~name:"replay_metadata" [src]
+    inherit operator ~name [src]
     val mutable first = true
     method fallible = src#fallible
     method private can_generate_frame = src#is_ready

@@ -327,7 +327,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
       self#log#info "Buffering end of track...";
       let before =
         new consumer
-          ~name:(Printf.sprintf "%s.eos_buffer" self#id)
+          ~name:(Printf.sprintf "%s.pre_buffer" self#id)
           ~clock:self#source#clock gen_before
       in
       Typing.(before#frame_type <: self#frame_type);
@@ -486,13 +486,13 @@ class cross val_source ~end_duration_getter ~override_end_duration
                 ~name:(Printf.sprintf "%s.head_buffer" self#id)
                 ~clock:self#source#clock head_gen
             in
-            s#set_id (self#id ^ "_before_head");
             Typing.(s#frame_type <: self#frame_type);
             Some s)
           else None
         in
         let before =
           new Replay_metadata.replay
+            ~name:(Printf.sprintf "%s.before_metadata" self#id)
             before_metadata
             (new consumer
                ~name:(Printf.sprintf "%s.before_buffer" self#id)
@@ -513,20 +513,18 @@ class cross val_source ~end_duration_getter ~override_end_duration
                 ~clock:self#source#clock tail_gen
             in
             Typing.(s#frame_type <: self#frame_type);
-            s#set_id (self#id ^ "_after_tail");
             Some s)
           else None
         in
         let after =
           new Replay_metadata.replay
+            ~name:(Printf.sprintf "%s.after_metadata" self#id)
             after_metadata
             (new consumer
                ~name:(Printf.sprintf "%s.after_buffer" self#id)
                ~clock:self#source#clock gen_after)
         in
         Typing.(after#frame_type <: self#frame_type);
-        before#set_id (self#id ^ "_before");
-        after#set_id (self#id ^ "_after");
         self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)" db_before
           db_after
           (Frame.seconds_of_main buffered_before)
@@ -557,10 +555,14 @@ class cross val_source ~end_duration_getter ~override_end_duration
           match (before_head, after_tail) with
             | None, None -> (compound :> Source.source)
             | Some s, None ->
-                (new Sequence.sequence ~merge:true [s; compound]
+                (new Sequence.sequence
+                   ~name:(Printf.sprintf "%s.before_head" self#id)
+                   ~merge:true [s; compound]
                   :> Source.source)
             | None, Some s ->
-                (new Sequence.sequence ~single_track:false [compound; s]
+                (new Sequence.sequence
+                   ~name:(Printf.sprintf "%s.after_tail" self#id)
+                   ~single_track:false [compound; s]
                   :> Source.source)
             | Some _, Some _ -> assert false
         in
