@@ -328,7 +328,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
       let before =
         new consumer
           ~name:(Printf.sprintf "%s.pre_buffer" self#id)
-          ~clock:self#source#clock gen_before
+          ~clock:self#clock gen_before
       in
       Typing.(before#frame_type <: self#frame_type);
       let a = self#prepare_source before in
@@ -484,7 +484,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
             let s =
               new consumer
                 ~name:(Printf.sprintf "%s.head_buffer" self#id)
-                ~clock:self#source#clock head_gen
+                ~clock:self#clock head_gen
             in
             Typing.(s#frame_type <: self#frame_type);
             Some s)
@@ -496,7 +496,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
             before_metadata
             (new consumer
                ~name:(Printf.sprintf "%s.before_buffer" self#id)
-               ~clock:self#source#clock gen_before)
+               ~clock:self#clock gen_before)
         in
         Typing.(before#frame_type <: self#frame_type);
         let after_tail =
@@ -510,7 +510,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
             let s =
               new consumer
                 ~name:(Printf.sprintf "%s.tail_buffer" self#id)
-                ~clock:self#source#clock tail_gen
+                ~clock:self#clock tail_gen
             in
             Typing.(s#frame_type <: self#frame_type);
             Some s)
@@ -522,7 +522,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
             after_metadata
             (new consumer
                ~name:(Printf.sprintf "%s.after_buffer" self#id)
-               ~clock:self#source#clock gen_after)
+               ~clock:self#clock gen_after)
         in
         Typing.(after#frame_type <: self#frame_type);
         self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)" db_before
@@ -566,7 +566,6 @@ class cross val_source ~end_duration_getter ~override_end_duration
                   :> Source.source)
             | Some _, Some _ -> assert false
         in
-        Clock.unify ~pos:self#pos compound#clock s#clock;
         Typing.(compound#frame_type <: self#frame_type);
         compound
       in
