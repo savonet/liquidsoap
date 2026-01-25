@@ -939,8 +939,10 @@ let mk_streams ~ctype ~decode_first_metadata container =
     let latest_metadata = ref None in
     fun ~buffer data ->
       let m = Av.get_metadata stream in
+      Av.set_metadata stream [];
       if
-        ((not !is_first) || decode_first_metadata) && Some m <> !latest_metadata
+        ((not !is_first) || decode_first_metadata)
+        && Some m <> !latest_metadata && m <> []
       then (
         is_first := false;
         latest_metadata := Some m;
