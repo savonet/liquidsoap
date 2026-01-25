@@ -192,7 +192,7 @@ let rec sup ~pos a b =
       | Nullable a, Nullable b -> mk (Nullable (sup a b))
       | Nullable a, _ -> mk (Nullable (sup a b))
       | _, Nullable b -> mk (Nullable (sup a b))
-      (* We implicitly convert it to float so we need to make sure to
+      (* We implicitly convert int to float so we need to make sure to
          be more restrictive when mixing the two types and use int
          everywhere. *)
       | Int, Float | Float, Int -> mk Int
