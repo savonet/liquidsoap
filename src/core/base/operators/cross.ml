@@ -590,9 +590,13 @@ class cross val_source ~end_duration_getter ~override_end_duration
     method abort_track =
       match status with
         | `Idle -> self#source#abort_track
-        | `Before s | `After s ->
+        | `Before _ | `After _ ->
+            (* Clean up the current transition before starting a new one.
+               This prevents frame duplication when abort_track is called
+               during an active transition (e.g., manual skip). *)
+            self#set_status `Idle;
+            self#reset_analysis;
             self#source#abort_track;
-            status <- `After s;
             ignore self#prepare_before
   end
 
