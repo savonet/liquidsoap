@@ -1,5 +1,9 @@
 # 2.4.3 (unreleased)
 
+## Changed:
+
+- Allow implicit casting of an integer as a float (#2887).
+
 ## Fixed:
 
 - Fixed `fMP4` HLS support for audio+video streams (#4841)
