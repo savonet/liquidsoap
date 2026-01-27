@@ -295,3 +295,42 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
   d = source.dynamic(track_sensitive=true, next)
   fallback(id=id, track_sensitive=true, [d, s])
 end
+
+# Call a callback on each subtitle in the source.
+# @category Source / Track processing
+# @param f Callback function called on each subtitle.
+# @argsof track.on_subtitle
+def on_subtitle(
+  ~id=null("on_subtitle"),
+  %argsof(track.on_subtitle[!id]),
+  f,
+  s
+) =
+  let {subtitles, ...tracks} = source.tracks(s)
+  source(
+    id=id,
+    tracks.{
+      subtitles=track.on_subtitle(%argsof(track.on_subtitle[!id]), f, subtitles)
+    }
+  )
+end
+
+# Map a function over each subtitle in the source.
+# @category Source / Track processing
+# @param f Callback function called on each subtitle. Returns transformed subtitle or null to filter out.
+# @argsof track.subtitles.map
+def subtitles.map(
+  ~id=null("subtitles.map"),
+  %argsof(track.subtitles.map[!id]),
+  f,
+  s
+) =
+  let {subtitles, ...tracks} = source.tracks(s)
+  source(
+    id=id,
+    tracks.{
+      subtitles=
+        track.subtitles.map(%argsof(track.subtitles.map[!id]), f, subtitles)
+    }
+  )
+end

@@ -46,13 +46,11 @@ let () =
       file_extensions = (fun () -> Some srt_file_extensions#get);
       mime_types = (fun () -> Some srt_mime_types#get);
       file_type =
-        (fun ~metadata:_ ~ctype fname ->
+        (fun ~metadata:_ ~ctype:_ fname ->
           if Srt_parser.check_file fname then
             Some
-              (Frame.Fields.make
-                 ?audio:(Frame.Fields.find_opt Frame.Fields.audio ctype)
-                 ?video:(Frame.Fields.find_opt Frame.Fields.video ctype)
-                 ())
+              (Frame.Fields.add Frame.Fields.subtitles Subtitle_content.format
+                 (Frame.Fields.make ()))
           else None);
       file_decoder =
         Some
@@ -61,38 +59,51 @@ let () =
             let srt =
               List.map
                 (fun ((t1, t2), s) ->
-                  [
-                    (Srt_parser.seconds_of_time t1, s);
-                    (Srt_parser.seconds_of_time t2, "");
-                  ])
+                  let pos =
+                    Frame.main_of_seconds (Srt_parser.seconds_of_time t1)
+                  in
+                  let end_ticks =
+                    Frame.main_of_seconds (Srt_parser.seconds_of_time t2)
+                  in
+                  let subtitle : Subtitle_content.subtitle =
+                    {
+                      start_time = 0;
+                      end_time = end_ticks - pos;
+                      text = s;
+                      format = `Text;
+                      forced = false;
+                    }
+                  in
+                  (pos, subtitle))
                 srt
-              |> List.flatten
-            in
-            let srt =
-              List.map (fun (t, s) -> (Frame.main_of_seconds t, s)) srt
             in
             let srt = List.to_seq srt |> Queue.of_seq in
             let t = ref 0 in
             let remaining _ = -1 in
             let fread length =
-              let rec fill frame =
-                if Queue.is_empty srt then frame
-                else (
-                  let sub_t, sub = Queue.peek srt in
-                  let r = sub_t - !t in
-                  assert (r >= 0);
-                  if r < length then (
-                    ignore (Queue.take srt);
-                    let frame =
-                      Frame.add_metadata frame r
-                        (Frame.Metadata.from_list [("subtitle", sub)])
-                    in
-                    fill frame)
-                  else frame)
-              in
-              let frame = fill (Frame.create ~length ctype) in
-              t := !t + length;
-              frame
+              if Queue.is_empty srt then Frame.create ~length:0 ctype
+              else (
+                let rec fill acc =
+                  if Queue.is_empty srt then acc
+                  else (
+                    let sub_t, sub = Queue.peek srt in
+                    let r = sub_t - !t in
+                    assert (r >= 0);
+                    if r < length then (
+                      ignore (Queue.take srt);
+                      fill ((r, sub) :: acc))
+                    else acc)
+                in
+                let subtitles = List.rev (fill []) in
+                let frame = Frame.create ~length ctype in
+                let frame =
+                  if subtitles <> [] then (
+                    let data = Subtitle_content.lift_data ~length subtitles in
+                    Frame.set frame Frame.Fields.subtitles data)
+                  else frame
+                in
+                t := !t + length;
+                frame)
             in
             Decoder.
               {

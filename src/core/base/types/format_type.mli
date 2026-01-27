@@ -39,6 +39,7 @@ val audio_mono : ?pcm_kind:Content_base.kind -> unit -> Type.t
 val audio_stereo : ?pcm_kind:Content_base.kind -> unit -> Type.t
 val audio_n : ?pcm_kind:Content_base.kind -> int -> Type.t
 val video : unit -> Type.t
+val subtitle : unit -> Type.t
 val midi : unit -> Type.t
 val midi_n : int -> Type.t
 val track_marks : Type.t
