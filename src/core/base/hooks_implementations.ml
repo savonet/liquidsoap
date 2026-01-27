@@ -11,6 +11,9 @@ let rec deep_demeth t =
     | Type.{ descr = Nullable t } -> deep_demeth t
     | t -> t
 
+let is_nullable t =
+  match Type.demeth t with Type.{ descr = Nullable _ } -> true | _ -> false
+
 let track_demeth t =
   Type.map_meths t (fun ({ Type.scheme = vars, typ } as m) ->
       { m with scheme = (vars, Type.demeth typ) })
@@ -57,13 +60,14 @@ let eval_check ~env:_ ~tm v =
       match field with
         | _ when field = Frame.Fields.metadata -> ()
         | _ when field = Frame.Fields.track_marks -> ()
-        | _ ->
+        | _ -> (
             let ty = Type.fresh (deep_demeth tm.Term.t) in
             let frame_t =
               Frame_type.make (Lang.univ_t ())
                 (Frame.Fields.add field ty Frame.Fields.empty)
             in
-            Typing.(source#frame_type <: frame_t)))
+            try Typing.(source#frame_type <: frame_t)
+            with _ when is_nullable tm.Term.t -> ())))
 
 let render_string = function
   | `Verbatim s -> s

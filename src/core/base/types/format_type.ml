@@ -317,6 +317,7 @@ let () =
   Type.register_type (Content_base.string_of_kind Content_video.kind) (fun () ->
       Type.make (Type.Custom (kind_handler (Content_video.kind, Type.var ()))))
 
+let subtitle () = Type.make (descr (`Format Subtitle_content.format))
 let midi () = Type.make (descr (`Kind Content_midi.kind))
 
 let () =
