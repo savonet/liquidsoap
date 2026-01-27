@@ -5,6 +5,7 @@ Since the `2.0.x` release cycle, liquidsoap integrates a tight support of ffmpeg
 - [Decoders](#decoders)
 - [Encoders](#encoders)
 - [Filters](#filters)
+- [Subtitles](#subtitles)
 - [Bitstream filters](#bitstream-filters)
 - [Encoded data tweaks](#encoded-data-tweaks)
 - [Examples](#examples)
@@ -143,6 +144,10 @@ See detailed [ffmpeg encoders](ffmpeg_encoder.html) article.
 ## Filters
 
 See detailed [ffmpeg filters](ffmpeg_filters.html) article.
+
+## Subtitles
+
+See detailed [ffmpeg subtitles](ffmpeg_subtitles.html) article.
 
 ## Bitstream filters
 

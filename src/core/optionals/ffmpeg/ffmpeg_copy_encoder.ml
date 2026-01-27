@@ -27,6 +27,8 @@ open Ffmpeg_encoder_common
 
 let log = Log.make ["ffmpeg"; "copy"; "encoder"]
 
+type stream_head = [ `None | `Pending_start of int64 * int | `Started of int64 ]
+
 let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
     output =
   let stream = ref None in
@@ -83,6 +85,7 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
   let waiting_for_keyframe = ref false in
   let last_dts = ref None in
   let last_position = ref 0L in
+  let stream_head : stream_head ref = ref `None in
 
   (* [true] if we should process new packets for this stream *)
   let check_stream ~packet stream_idx =
@@ -105,8 +108,19 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
     else !stream_started || !current_stream.ready
   in
 
-  let begin_stream ~dts idx =
-    let offset = Option.value ~default:0L dts in
+  let begin_stream ~pos ~dts idx =
+    (* We want to offset the first dts so that the next stream start
+       at exactly the same dts as the last stream ended. We have to account
+       for the first packet dts as well as any empty data preceding it for
+       sparse streams. *)
+    let stream_head_len =
+      match !stream_head with
+        | `Pending_start (i, len) when i = idx -> Int64.of_int len
+        | _ -> 0L
+    in
+    let stream_head_len = Int64.(add (of_int pos) stream_head_len) in
+    stream_head := `Started idx;
+    let offset = Int64.sub (Option.value ~default:0L dts) stream_head_len in
     let last_start = Int64.sub !last_position offset in
     (* Mark the stream as ready if it was waiting for keyframes. *)
     current_stream := get_stream ~last_start ~ready:!waiting_for_keyframe idx;
@@ -133,14 +147,14 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
       | _ -> true
   in
 
-  let push ~time_base ~stream ~idx packet =
+  let push ~pos ~time_base ~stream ~idx packet =
     let to_main = to_main_time_base ~time_base in
     let pts = Option.map to_main (Avcodec.Packet.get_pts packet) in
     let dts = Option.map to_main (Avcodec.Packet.get_dts packet) in
     let duration = Option.map to_main (Avcodec.Packet.get_duration packet) in
 
     if check_dts dts then (
-      if not !stream_started then begin_stream ~dts idx;
+      if not !stream_started then begin_stream ~pos ~dts idx;
 
       let pts = adjust_ts pts in
       let dts = adjust_ts dts in
@@ -173,9 +187,9 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
       Av.write_packet stream main_time_base packet)
   in
 
-  let process ~packet ~stream_idx ~time_base stream =
+  let process ~pos ~packet ~stream_idx ~time_base stream =
     if check_stream ~packet stream_idx then
-      push ~time_base ~stream ~idx:stream_idx packet
+      push ~pos ~time_base ~stream ~idx:stream_idx packet
   in
 
   let encode frame =
@@ -184,20 +198,26 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
       let d = Ffmpeg_copy_content.get_data frame_content in
       List.iter
         (fun chunk_data ->
-          let { Ffmpeg_content_base.data; stream_idx; time_base; _ } =
+          let { Ffmpeg_content_base.data; stream_idx; time_base; length } =
             chunk_data
           in
-          List.iter
-            (fun (_, packet) ->
-              match (packet, !stream) with
-                | `Audio packet, Some (`Audio stream) ->
-                    process ~packet ~stream_idx ~time_base stream
-                | `Video packet, Some (`Video stream) ->
-                    process ~packet ~stream_idx ~time_base stream
-                | `Subtitle packet, Some (`Subtitle stream) ->
-                    process ~packet ~stream_idx ~time_base stream
-                | _ -> assert false)
-            data)
+          match (data, !stream_head) with
+            | [], `Started idx when idx = stream_idx -> ()
+            | [], `Pending_start (idx, len) when idx = stream_idx ->
+                stream_head := `Pending_start (stream_idx, len + length)
+            | [], _ -> stream_head := `Pending_start (stream_idx, length)
+            | data, _ ->
+                List.iter
+                  (fun (pos, packet) ->
+                    match (packet, !stream) with
+                      | `Audio packet, Some (`Audio stream) ->
+                          process ~pos ~packet ~stream_idx ~time_base stream
+                      | `Video packet, Some (`Video stream) ->
+                          process ~pos ~packet ~stream_idx ~time_base stream
+                      | `Subtitle packet, Some (`Subtitle stream) ->
+                          process ~pos ~packet ~stream_idx ~time_base stream
+                      | _ -> assert false)
+                  data)
         d.Ffmpeg_content_base.chunks)
   in
 

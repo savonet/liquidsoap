@@ -23,7 +23,7 @@
 open Value
 
 type decode_type = [ `Raw | `Internal ]
-type content_type = [ `Audio | `Video ]
+type content_type = [ `Audio | `Video | `Subtitle ]
 
 type encoder_params =
   decode_type * content_type * (string * Liquidsoap_lang.Value.t) list
@@ -107,23 +107,25 @@ let has_content ~to_static_string name p =
 
 (* The following conventions are used to
    infer media type from an encoder:
-   - encoder has "audio" or "video" in its name,
-     e.g. dolby_audio, video_1 etc.
-   - encoder has "audio_content" or "video_content" in its arguments:
-     %track(audio_content, ...) or %track(video_content, ...)
+   - encoder has "audio", "video" or "subtitle" in its name,
+     e.g. dolby_audio, video_1, subtitle_2 etc.
+   - encoder has "audio_content", "video_content" or "subtitle_content" in its arguments:
+     %track(audio_content, ...) or %track(video_content, ...) or %track(subtitle_content, ...)
    - encoder has a static codec string, e.g.
      %track(codec="libmp3lame") *)
 let stream_media_type ~to_pos ~to_static_string name args =
   let raise pos =
     Lang_encoder.raise_error ~pos
       {|Unable to find a track media content type. Please use one of the available convention:
-- Use `"audio"` or `"video"` in the track name, e.g. `%dolby_audio`
-- Add `audio_content` or `video_content` to the track parameters, e.g. `%track(audio_content)`
+- Use `"audio"`, `"video"` or `"subtitle"` in the track name, e.g. `%dolby_audio`
+- Add `audio_content`, `video_content` or `subtitle_content` to the track parameters, e.g. `%track(audio_content)`
 - Use a static codec string, e.g. `%track(codec="libmp3lame")`|}
   in
   match (name, args) with
     | _ when has_content ~to_static_string "audio_content" args -> `Audio
     | _ when has_content ~to_static_string "video_content" args -> `Video
+    | _ when has_content ~to_static_string "subtitle_content" args -> `Subtitle
+    | _ when Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "subtitle") name -> `Subtitle
     | _ when Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "audio") name -> `Audio
     | _ when Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "video") name -> `Video
     | _ -> (
@@ -137,7 +139,12 @@ let stream_media_type ~to_pos ~to_static_string name args =
                 try
                   ignore (Avcodec.Video.find_encoder_by_name (Option.get codec));
                   `Video
-                with _ -> raise (to_pos t)))
+                with _ -> (
+                  try
+                    ignore
+                      (Avcodec.Subtitle.find_encoder_by_name (Option.get codec));
+                    `Subtitle
+                  with _ -> raise (to_pos t))))
           | None -> raise None)
 
 let copy_param = function
@@ -234,7 +241,8 @@ let type_of_encoder =
                                     Ffmpeg_raw_content.Audio.kind
                               | `Video ->
                                   Content.default_format
-                                    Ffmpeg_raw_content.Video.kind)))
+                                    Ffmpeg_raw_content.Video.kind
+                              | `Subtitle -> Subtitle_content.format)))
                 | `Internal ->
                     Type.make
                       (Format_type.descr
@@ -262,7 +270,8 @@ let type_of_encoder =
                                   in
                                   Frame_base.format_of_channels ~pcm_kind
                                     channels
-                              | `Video -> Content.(default_format Video.kind))))
+                              | `Video -> Content.(default_format Video.kind)
+                              | `Subtitle -> Subtitle_content.format)))
             in
             let field = Frame.Fields.register field in
             Frame.Fields.add field format content_type
@@ -458,6 +467,26 @@ let ffmpeg_gen params =
         parse_video_args ~opts options args
   in
 
+  let default_text_to_ass i text =
+    Printf.sprintf "%d,0,Default,,0,0,0,,%s" i text
+  in
+
+  let default_subtitle = Ffmpeg_format.{ text_to_ass = default_text_to_ass } in
+
+  let rec parse_subtitle_args ~opts options args =
+    match args with
+      | [] -> options
+      | ("text_to_ass", f) :: args ->
+          let text_to_ass i text =
+            Lang.to_string
+              (Lang.apply f [("", Lang.int i); ("", Lang.string text)])
+          in
+          parse_subtitle_args ~opts { Ffmpeg_format.text_to_ass } args
+      | arg :: args ->
+          parse_opts opts arg;
+          parse_subtitle_args ~opts options args
+  in
+
   let parse_stream ~content_type args =
     let opts = Hashtbl.create 0 in
     let codec = Option.map to_string (List.assoc_opt "codec" args) in
@@ -468,6 +497,9 @@ let ffmpeg_gen params =
       | `Video ->
           let options = parse_video_args ~opts default_video args in
           (codec, `Video options, opts)
+      | `Subtitle ->
+          let options = parse_subtitle_args ~opts default_subtitle args in
+          (codec, `Subtitle options, opts)
   in
 
   List.fold_left

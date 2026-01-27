@@ -472,6 +472,71 @@
    %{test_liq}
    image_decoder_duration.liq)))
 
+; Fetch DVD bitmap subtitle test file from FFmpeg FATE samples
+
+(rule
+ (alias bitmap_subtitle_to_video)
+ (target fate-suite-filter-242_4.mkv)
+ (action
+  (run
+   rsync
+   -avL
+   rsync://fate-suite.ffmpeg.org/fate-suite/filter/242_4.mkv
+   %{target})))
+
+(rule
+ (alias bitmap_subtitle_to_video)
+ (package liquidsoap)
+ (target bitmap_subtitle_to_video_output.mp4)
+ (deps
+  fate-suite-filter-242_4.mkv
+  bitmap_subtitle_to_video.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Bitmap subtitle to video conversion"
+   liquidsoap
+   %{test_liq}
+   bitmap_subtitle_to_video.liq
+   --
+   fate-suite-filter-242_4.mkv)))
+
+; Extract a frame at 4.00s from the encoded output for visual comparison
+
+(rule
+ (alias bitmap_subtitle_to_video)
+ (deps bitmap_subtitle_to_video_output.mp4)
+ (target bitmap_subtitle_to_video_output.gen.jpg)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -ss
+   4.00
+   -i
+   bitmap_subtitle_to_video_output.mp4
+   -frames:v
+   1
+   -q:v
+   2
+   %{target})))
+
+; Compare generated image with reference, promote if changed
+
+(rule
+ (alias bitmap_subtitle_to_video)
+ (action
+  (diff
+   bitmap_subtitle_to_video_output.jpg
+   bitmap_subtitle_to_video_output.gen.jpg)))
+
 (alias
  (name mediatest)
  (deps
@@ -485,4 +550,5 @@
   (alias ffmpeg_filter_changing_rate)
   (alias ffmpeg_filter_array_args)
   (alias lufs_integrated)
-  (alias image_decoder_duration)))
+  (alias image_decoder_duration)
+  (alias bitmap_subtitle_to_video)))

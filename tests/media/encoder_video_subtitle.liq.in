@@ -1,0 +1,87 @@
+
+log.level.set(4)
+
+file = "@FILE@"
+
+let {video} = source.tracks(video.testsrc.ffmpeg(duration=16.))
+let {subtitles = s} = source.tracks(single("test-subtitle.srt"))
+
+s = source({video=video, subtitles=s})
+
+s = once(s)
+
+clock.assign_new(sync="none",[s])
+
+done = ref(false)
+
+def on_close(filename) =
+  if
+    not done()
+  then
+    done := true
+
+    ojson =
+      process.read(
+        "ffprobe -v quiet -print_format json -show_streams -count_packets #{
+          process.quote(filename)
+        }"
+      )
+
+    let json.parse (parsed :
+      {
+        streams: [
+          {
+            codec_type: string,
+            nb_read_packets: string,
+            duration?: string,
+            tags?: { DURATION: string }
+          }
+        ]
+      }
+    ) = ojson
+
+    video_stream =
+      list.find(
+        (fun (stream) -> stream.codec_type == "video"),
+        parsed.streams
+      )
+
+    subtitle_stream =
+      list.find(
+        (fun (stream) -> stream.codec_type == "subtitle"),
+        parsed.streams
+      )
+
+    def duration(s) =
+      if null.defined(s?.duration) then float_of_string(null.get(s?.duration))
+      elsif null.defined(s?.tags) then
+        matches = r/^([\d]+):([\d]+):(.+)/.exec(null.get(s?.tags).DURATION)
+        hours = float_of_string(list.assoc(1, matches))
+        minutes = float_of_string(list.assoc(2, matches))
+        seconds = float_of_string(list.assoc(3, matches))
+        hours*60.*60. + minutes*60. + seconds
+      else
+        0.
+      end
+    end
+
+    if
+      (duration(video_stream) >= 10.
+    or
+      int_of_string(video_stream.nb_read_packets) > 0)
+    and
+      (duration(subtitle_stream) >= 10.
+    or
+      int_of_string(subtitle_stream.nb_read_packets) > 0)
+    then
+      test.pass()
+    else
+      test.fail()
+    end
+  end
+end
+
+output.file(
+  fallible=true,on_close=on_close,
+  reopen_on_error=fun (_) -> begin test.fail(); null end,
+  @FORMAT@,file,s)
