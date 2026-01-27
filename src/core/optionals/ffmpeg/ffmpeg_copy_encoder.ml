@@ -63,6 +63,8 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
           let s = mk_stream params in
           Av.set_avg_frame_rate s avg_frame_rate;
           stream := Some (`Video (mk_stream params))
+      | `Subtitle { Ffmpeg_copy_content.params; _ } ->
+          stream := Some (`Subtitle (mk_stream params))
   in
 
   let codec_attr () = !codec_attr in
@@ -188,6 +190,8 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
             | `Audio packet, Some (`Audio stream) ->
                 process ~packet ~stream_idx ~time_base stream
             | `Video packet, Some (`Video stream) ->
+                process ~packet ~stream_idx ~time_base stream
+            | `Subtitle packet, Some (`Subtitle stream) ->
                 process ~packet ~stream_idx ~time_base stream
             | _ -> assert false)
         data)

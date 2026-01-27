@@ -39,3 +39,13 @@ val mk_video_decoder :
   buffer:Decoder.buffer ->
   Avutil.video Avcodec.Packet.t ->
   unit
+
+val mk_subtitle_decoder :
+  stream_idx:int64 ->
+  format:Content_base.Contents.format ->
+  stream:(Avutil.input, Avutil.subtitle, [ `Packet ]) Av.stream ->
+  field:int ->
+  Avutil.subtitle Avcodec.params ->
+  buffer:Decoder.buffer ->
+  Avutil.subtitle Avcodec.Packet.t ->
+  unit

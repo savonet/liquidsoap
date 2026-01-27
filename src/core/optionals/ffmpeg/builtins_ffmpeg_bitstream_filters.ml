@@ -250,7 +250,9 @@ let register_filters () =
                                params;
                              }
                          in
-                         let get_params = function
+                         let get_params :
+                             Ffmpeg_copy_content.params_payload ->
+                             Avutil.video Avcodec.params = function
                            | `Video { Ffmpeg_copy_content.params } -> params
                            | _ -> assert false
                          in

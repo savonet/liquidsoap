@@ -165,6 +165,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                    | `Audio_packet (stream, _) -> get_metadata stream
                    | `Video_frame (stream, _) -> get_metadata stream
                    | `Video_packet (stream, _) -> get_metadata stream
+                   | `Subtitle_packet (stream, _) -> get_metadata stream
                    | `Data_packet _ -> [])
                streams
                (Av.get_input_metadata input))
