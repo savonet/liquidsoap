@@ -300,6 +300,110 @@
 
 
 (rule
+  (alias encoder_audio_subtitle)
+  (package liquidsoap)
+  (target @ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='subrip']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_audio_subtitle.liq.in)
+    test-subtitle.srt)
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%subtitle(codec=\"subrip\"))" audio_subtitle "@ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='subrip']].mkv"))))
+
+
+(rule
+  (alias encoder_audio_subtitle)
+  (package liquidsoap)
+  (target @ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='ass']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_audio_subtitle.liq.in)
+    test-subtitle.srt)
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%subtitle(codec=\"ass\"))" audio_subtitle "@ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='ass']].mkv"))))
+
+
+(rule
+  (alias encoder_video_subtitle)
+  (package liquidsoap)
+  (target @ffmpeg[format='matroska',@video[codec='libx264'],@subtitle[codec='subrip']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_video_subtitle.liq.in)
+    test-subtitle.srt)
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"matroska\",%video(codec=\"libx264\"),%subtitle(codec=\"subrip\"))" video_subtitle "@ffmpeg[format='matroska',@video[codec='libx264'],@subtitle[codec='subrip']].mkv"))))
+
+
+(rule
+  (alias encoder_video_subtitle)
+  (package liquidsoap)
+  (target @ffmpeg[format='matroska',@video[codec='libx264',b='500k'],@subtitle[codec='ass']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_video_subtitle.liq.in)
+    test-subtitle.srt)
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"matroska\",%video(codec=\"libx264\",b=\"500k\"),%subtitle(codec=\"ass\"))" video_subtitle "@ffmpeg[format='matroska',@video[codec='libx264',b='500k'],@subtitle[codec='ass']].mkv"))))
+
+
+(rule
+  (alias encoder_video_subtitle)
+  (package liquidsoap)
+  (target @ffmpeg[format='webm',@video[codec='libvpx'],@subtitle[codec='webvtt']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_video_subtitle.liq.in)
+    test-subtitle.srt)
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"webm\",%video(codec=\"libvpx\"),%subtitle(codec=\"webvtt\"))" video_subtitle "@ffmpeg[format='webm',@video[codec='libvpx'],@subtitle[codec='webvtt']].webm"))))
+
+
+(rule
+  (alias encoder_audio_video_subtitle)
+  (package liquidsoap)
+  (target @ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='subrip']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_audio_video_subtitle.liq.in)
+    test-subtitle.srt)
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%video(codec=\"libx264\"),%subtitle(codec=\"subrip\"))" audio_video_subtitle "@ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='subrip']].mkv"))))
+
+
+(rule
+  (alias encoder_audio_video_subtitle)
+  (package liquidsoap)
+  (target @ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitle[codec='ass']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_audio_video_subtitle.liq.in)
+    test-subtitle.srt)
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\",b=\"128k\"),%video(codec=\"libx264\"),%subtitle(codec=\"ass\"))" audio_video_subtitle "@ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitle[codec='ass']].mkv"))))
+
+
+(rule
+  (alias encoder_audio_video_subtitle)
+  (package liquidsoap)
+  (target @ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='mov_text']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_audio_video_subtitle.liq.in)
+    test-subtitle.srt)
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"),%video(codec=\"libx264\"),%subtitle(codec=\"mov_text\"))" audio_video_subtitle "@ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='mov_text']].mp4"))))
+
+
+(rule
  (alias mediatest)
  (package liquidsoap)
  (target @fdkaac[aot='mpeg4_aac_lc',channels=1].aac)
@@ -675,6 +779,126 @@
 
 
 (rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='subrip']].mkv)
+ (deps
+  (:encoder @ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='subrip']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%subtitle(codec=\"subrip\"))")))
+
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='ass']].mkv)
+ (deps
+  (:encoder @ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='ass']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%subtitle(codec=\"ass\"))")))
+
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='matroska',@video[codec='libx264'],@subtitle[codec='subrip']].mkv)
+ (deps
+  (:encoder @ffmpeg[format='matroska',@video[codec='libx264'],@subtitle[codec='subrip']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"matroska\",%video(codec=\"libx264\"),%subtitle(codec=\"subrip\"))")))
+
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='matroska',@video[codec='libx264',b='500k'],@subtitle[codec='ass']].mkv)
+ (deps
+  (:encoder @ffmpeg[format='matroska',@video[codec='libx264',b='500k'],@subtitle[codec='ass']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"matroska\",%video(codec=\"libx264\",b=\"500k\"),%subtitle(codec=\"ass\"))")))
+
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='webm',@video[codec='libvpx'],@subtitle[codec='webvtt']].webm)
+ (deps
+  (:encoder @ffmpeg[format='webm',@video[codec='libvpx'],@subtitle[codec='webvtt']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"webm\",%video(codec=\"libvpx\"),%subtitle(codec=\"webvtt\"))")))
+
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='subrip']].mkv)
+ (deps
+  (:encoder @ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='subrip']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%video(codec=\"libx264\"),%subtitle(codec=\"subrip\"))")))
+
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitle[codec='ass']].mkv)
+ (deps
+  (:encoder @ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitle[codec='ass']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\",b=\"128k\"),%video(codec=\"libx264\"),%subtitle(codec=\"ass\"))")))
+
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='mov_text']].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='mov_text']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"),%video(codec=\"libx264\"),%subtitle(codec=\"mov_text\"))")))
+
+
+(rule
   (alias mediatest)
   (package liquidsoap)
   (target all_media_files)
@@ -703,7 +927,15 @@
 @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4
 @ffmpeg[format='mp4',@video[codec='libx264']].mp4
-@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4)
+@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4
+@ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='subrip']].mkv
+@ffmpeg[format='matroska',@audio[codec='aac'],@subtitle[codec='ass']].mkv
+@ffmpeg[format='matroska',@video[codec='libx264'],@subtitle[codec='subrip']].mkv
+@ffmpeg[format='matroska',@video[codec='libx264',b='500k'],@subtitle[codec='ass']].mkv
+@ffmpeg[format='webm',@video[codec='libvpx'],@subtitle[codec='webvtt']].webm
+@ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='subrip']].mkv
+@ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitle[codec='ass']].mkv
+@ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitle[codec='mov_text']].mp4)
   (action (run touch %{target})))
 
 
@@ -2236,13 +2468,80 @@
  (action
   (run %{run_test} "pcm_f32_decode.liq" liquidsoap %{test_liq} pcm_f32_decode.liq -- "")))
 
+
+(rule
+ (alias subtitle_concat)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  subtitle_concat.liq
+  test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "subtitle_concat.liq" liquidsoap %{test_liq} subtitle_concat.liq -- "")))
+
+
+(rule
+ (alias subtitle_multi)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  subtitle_multi.liq
+  test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "subtitle_multi.liq" liquidsoap %{test_liq} subtitle_multi.liq -- "")))
+
+
+(rule
+ (alias subtitle_copy_encode)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  subtitle_copy_encode.liq
+  test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "subtitle_copy_encode.liq" liquidsoap %{test_liq} subtitle_copy_encode.liq -- "")))
+
+
+(rule
+ (alias subtitle_reencode)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  subtitle_reencode.liq
+  test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "subtitle_reencode.liq" liquidsoap %{test_liq} subtitle_reencode.liq -- "")))
+
 (alias
   (name mediatest)
   (deps
     (alias encoder_audio_only)
+    (alias encoder_audio_subtitle)
     (alias encoder_audio_video)
+    (alias encoder_audio_video_subtitle)
     (alias encoder_multitrack)
     (alias encoder_video_only)
+    (alias encoder_video_subtitle)
     (alias ffmpeg_add_text)
     (alias ffmpeg_audio_decoder)
     (alias ffmpeg_bitstream_filter)
@@ -2263,4 +2562,8 @@
     (alias pcm_f32_decode)
     (alias pcm_s16_decode)
     (alias stereo)
+    (alias subtitle_concat)
+    (alias subtitle_copy_encode)
+    (alias subtitle_multi)
+    (alias subtitle_reencode)
     (alias video_size)))

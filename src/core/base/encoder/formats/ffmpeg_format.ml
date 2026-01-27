@@ -52,7 +52,12 @@ type video_options = {
   hwaccel_pixel_format : string option;
 }
 
-type options = [ `Audio of audio_options | `Video of video_options ]
+type subtitle_options = { text_to_ass : int -> string -> string }
+
+type options =
+  [ `Audio of audio_options
+  | `Video of video_options
+  | `Subtitle of subtitle_options ]
 
 type encoded_stream = {
   mode : [ `Raw | `Internal ];
@@ -155,6 +160,24 @@ let to_string m =
               Printf.sprintf "%s(%s%s)" name
                 (if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "audio") name then ""
                  else "audio_content,")
+                (string_of_options stream_opts)
+              :: opts
+          | `Encode { codec; options = `Subtitle _; opts = stream_opts } ->
+              let stream_opts =
+                Hashtbl.fold
+                  (fun lbl v h ->
+                    Hashtbl.replace h lbl (v :> [ `Var of string | opt_val ]);
+                    h)
+                  stream_opts (Hashtbl.create 10)
+              in
+              ignore
+                (Option.map
+                   (fun codec ->
+                     Hashtbl.replace stream_opts "codec" (`String codec))
+                   codec);
+              Printf.sprintf "%s(%s%s)" name
+                (if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "subtitle") name then ""
+                 else "subtitle_content,")
                 (string_of_options stream_opts)
               :: opts)
       opts m.streams

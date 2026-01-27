@@ -39,3 +39,11 @@ val mk_video_decoder :
   buffer:Decoder.buffer ->
   [ `Frame of Avutil.video Avutil.Frame.t | `Flush ] ->
   unit
+
+val mk_subtitle_decoder :
+  stream:(Avutil.input, Avutil.subtitle, [ `Frame ]) Av.stream ->
+  field:Frame.field ->
+  Avutil.subtitle Avcodec.params ->
+  buffer:Decoder.buffer ->
+  Avutil.subtitle Avutil.Frame.t ->
+  unit

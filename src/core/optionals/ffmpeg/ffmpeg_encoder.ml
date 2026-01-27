@@ -133,6 +133,18 @@ let () =
                           (Ffmpeg_internal_encoder.mk_video ~pos
                              ~on_keyframe:(on_stream_keyframe field) ~mode
                              ~params ~options ~codec ~field output)
+                          streams
+                    | `Encode
+                        Ffmpeg_format.
+                          {
+                            mode = _;
+                            codec = Some codec;
+                            options = `Subtitle params;
+                            opts = options;
+                          } ->
+                        Frame.Fields.add field
+                          (Ffmpeg_internal_encoder.mk_subtitle ~pos ~params
+                             ~options ~codec ~field output)
                           streams)
                 Frame.Fields.empty ffmpeg.streams
             in

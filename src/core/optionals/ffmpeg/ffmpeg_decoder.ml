@@ -48,6 +48,11 @@ module Streams = Map.Make (struct
   let compare = Stdlib.compare
 end)
 
+let subtitle_codec_is_text params =
+  match Avcodec.descriptor params with
+    | Some { Avcodec.properties; _ } -> List.mem `Text_sub properties
+    | None -> false
+
 (** Configuration keys for ffmpeg. *)
 let mime_types =
   Dtools.Conf.list
@@ -743,7 +748,7 @@ let get_type ~ctype ~format ~url container =
       (0, descriptions)
       (Av.get_data_streams container)
   in
-  if audio_streams = [] && video_streams = [] then
+  if audio_streams = [] && video_streams = [] && subtitle_streams = [] then
     failwith "No valid stream found in container.";
   let content_type =
     List.fold_left
@@ -804,6 +809,10 @@ let get_type ~ctype ~format ~url container =
                       (Some
                          (`Subtitle { Ffmpeg_copy_content.time_base; params }))));
               Frame.Fields.add field format content_type
+          | Some format
+            when Subtitle_content.is_kind (Content.kind format)
+                 && subtitle_codec_is_text params ->
+              Frame.Fields.add field Subtitle_content.format content_type
           | _ -> content_type)
       content_type subtitle_streams
   in
@@ -908,12 +917,18 @@ let mk_decoder ~streams ~target_position container =
         match v with `Subtitle_packet (s, _) -> s :: cur | _ -> cur)
       streams []
   in
+  let subtitle_frame =
+    Streams.fold
+      (fun _ v cur ->
+        match v with `Subtitle_frame (s, _) -> s :: cur | _ -> cur)
+      streams []
+  in
   fun buffer ->
     let rec f () =
       try
         let data =
           Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
-            ~data_packet ~subtitle_packet container
+            ~data_packet ~subtitle_packet ~subtitle_frame container
         in
         match data with
           | `Audio_frame (i, frame) -> (
@@ -976,7 +991,12 @@ let mk_decoder ~streams ~target_position container =
                       s
                       (Avcodec.Packet.get_pts packet)
                 | _ -> f ())
-          | _ -> ()
+          | `Subtitle_frame (i, frame) -> (
+              match Streams.find_opt i streams with
+                | Some (`Subtitle_frame (_s, decode)) ->
+                    decode ~buffer frame;
+                    f ()
+                | _ -> f ())
       with
         | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> f ()
         | Avutil.Error `Exit | Avutil.Error `Eof ->
@@ -1143,6 +1163,26 @@ let mk_streams ~ctype ~decode_first_metadata container =
   let streams, _ =
     List.fold_left
       (fun (streams, pos) (idx, stream, params) ->
+        let field = Frame.Fields.subtitles_n pos in
+        match Frame.Fields.find_opt field ctype with
+          | Some format
+            when Subtitle_content.is_kind (Content.kind format)
+                 && subtitle_codec_is_text params ->
+              ( Streams.add idx
+                  (`Subtitle_frame
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_internal_decoder.mk_subtitle_decoder ~stream
+                            ~field params) ))
+                  streams,
+                pos + 1 )
+          | _ -> (streams, pos + 1))
+      (streams, 0)
+      (Av.get_subtitle_streams container)
+  in
+  let streams, _ =
+    List.fold_left
+      (fun (streams, pos) (idx, stream, params) ->
         try
           if Avcodec.Unknown.get_params_id params = `Timed_id3 then
             ( Streams.add idx
@@ -1252,6 +1292,7 @@ let create_decoder ~ctype ~metadata fname =
               decoder ~buffer packet
             in
             `Subtitle_packet (stream, decoder)
+        | `Subtitle_frame (stream, decoder) -> `Subtitle_frame (stream, decoder)
         | `Data_packet (stream, decoder) -> `Data_packet (stream, decoder))
       streams
   in

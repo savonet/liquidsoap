@@ -11,4 +11,5 @@ clock.assign_new(sync="none",[s])
 
 output.file(
   fallible=true,on_close=fun (_) -> test.pass(),
+  reopen_on_error=fun (_) -> begin test.fail(); null end,
   @FORMAT@,file,s)

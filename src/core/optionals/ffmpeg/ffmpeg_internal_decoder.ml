@@ -177,3 +177,36 @@ let mk_video_decoder ~width ~height ~stream ~field codec =
     | `Frame frame ->
         Ffmpeg_avfilter_utils.Fps.convert converter frame (cb ~buffer)
     | `Flush -> Ffmpeg_avfilter_utils.Fps.eof converter (cb ~buffer)
+
+let subtitle_time_base = 1000.
+
+let mk_subtitle_decoder ~stream ~field _params =
+  Ffmpeg_decoder_common.set_subtitle_stream_decoder stream;
+  fun ~buffer frame ->
+    try
+      let content = Avutil.Subtitle.get_content frame in
+      let start_time =
+        Frame.main_of_seconds
+          (float_of_int content.start_display_time /. subtitle_time_base)
+      in
+      let end_time =
+        Frame.main_of_seconds
+          (float_of_int content.end_display_time /. subtitle_time_base)
+      in
+      List.iter
+        (fun (rect : Avutil.Subtitle.rectangle) ->
+          let text, format, forced =
+            match rect.rect_type with
+              | `Ass -> (rect.ass, `Ass, List.mem `Forced rect.flags)
+              | `Text -> (rect.text, `Text, List.mem `Forced rect.flags)
+              | _ -> ("", `Text, false)
+          in
+          if text <> "" then (
+            let subtitle : Subtitle_content.subtitle =
+              { start_time; end_time; text; format; forced }
+            in
+            let data = Subtitle_content.lift_data [(0, subtitle)] in
+            Generator.put buffer.Decoder.generator field data))
+        content.rectangles
+    with exn ->
+      log#info "Failed to decode subtitle frame: %s" (Printexc.to_string exn)
