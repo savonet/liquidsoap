@@ -177,3 +177,64 @@ let mk_video_decoder ~width ~height ~stream ~field codec =
     | `Frame frame ->
         Ffmpeg_avfilter_utils.Fps.convert converter frame (cb ~buffer)
     | `Flush -> Ffmpeg_avfilter_utils.Fps.eof converter (cb ~buffer)
+
+let mk_subtitle_decoder ~stream ~field =
+  Ffmpeg_decoder_common.set_subtitle_stream_decoder stream;
+  let main_of_subtitle_time time =
+    Frame.main_of_seconds (float time /. 1000.)
+  in
+  let duration_converter =
+    Ffmpeg_utils.Duration.init ~mode:`PTS ~src:(Avutil.time_base ())
+      ~convert_ts:true
+      ~get_duration:(fun _ -> None)
+      ~get_ts:(fun (frame, _) -> Avutil.Subtitle.get_pts frame)
+      ~set_ts:(fun _ _ -> ())
+      ()
+  in
+  let process_frame ~buffer frame =
+    let content = Avutil.Subtitle.get_content frame in
+    let subtitles =
+      List.filter_map
+        (fun (rect : Avutil.Subtitle.rectangle) ->
+          match rect.rect_type with
+            | (`Ass | `Text) as format ->
+                Some
+                  {
+                    Subtitle_content.start_time =
+                      main_of_subtitle_time content.start_display_time;
+                    end_time = main_of_subtitle_time content.end_display_time;
+                    text =
+                      (match format with
+                        | `Ass -> rect.ass
+                        | `Text -> rect.text);
+                    format;
+                    forced = List.mem `Forced rect.flags;
+                  }
+            | _ -> None)
+        content.rectangles
+    in
+    match Ffmpeg_utils.Duration.push duration_converter (frame, subtitles) with
+      | None -> ()
+      | Some (length, items) ->
+          let items =
+            List.concat_map
+              (fun (pos, (_, subs)) -> List.map (fun sub -> (pos, sub)) subs)
+              items
+          in
+          let data = Subtitle_content.lift_data ~length items in
+          Generator.put buffer.Decoder.generator field data
+  in
+  let flush ~buffer =
+    match Ffmpeg_utils.Duration.flush duration_converter with
+      | _, [] -> ()
+      | length, items ->
+          let data =
+            Subtitle_content.lift_data ~length
+              (List.concat_map
+                 (fun (pos, (_, subs)) -> List.map (fun sub -> (pos, sub)) subs)
+                 items)
+          in
+          Generator.put buffer.Decoder.generator field data
+  in
+  fun ~buffer -> function
+    | `Flush -> flush ~buffer | `Frame frame -> process_frame ~buffer frame
