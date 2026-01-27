@@ -58,6 +58,7 @@ module Fields = struct
   let video = register "video"
   let data = register "data"
   let midi = register "midi"
+  let subtitle = register "subtitle"
 
   let audio_n = function
     | 0 -> audio
@@ -70,6 +71,10 @@ module Fields = struct
   let data_n = function
     | 0 -> data
     | n -> register (Printf.sprintf "data_%d" (n + 1))
+
+  let subtitle_n = function
+    | 0 -> subtitle
+    | n -> register (Printf.sprintf "subtitle_%d" (n + 1))
 
   let make =
     let audio_f = audio in

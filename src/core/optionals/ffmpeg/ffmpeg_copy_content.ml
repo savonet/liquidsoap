@@ -36,14 +36,25 @@ let conf_ffmpeg_copy_relaxed =
     "If `true`, relax content compatibility, e.g. allow audio tracks with \
      different samplerate or video tracks with different resolution."
 
-type packet = [ `Audio of audio Packet.t | `Video of video Packet.t ]
+type packet =
+  [ `Audio of audio Packet.t
+  | `Video of video Packet.t
+  | `Subtitle of subtitle Packet.t ]
 
 type video_params = {
   avg_frame_rate : Avutil.rational option;
   params : video Avcodec.params;
 }
 
-type params_payload = [ `Audio of audio Avcodec.params | `Video of video_params ]
+type subtitle_params = {
+  time_base : Avutil.rational;
+  params : subtitle Avcodec.params;
+}
+
+type params_payload =
+  [ `Audio of audio Avcodec.params
+  | `Video of video_params
+  | `Subtitle of subtitle_params ]
 
 type packet_payload = {
   stream_idx : Int64.t;
@@ -110,7 +121,14 @@ module Specs = struct
                        ( "pixel_format",
                          Option.value ~default:"none" (Pixel_format.to_string p)
                        );
-                     ])))
+                     ])
+           | Some (`Subtitle { time_base; params }) ->
+               [
+                 ( "codec",
+                   Printf.sprintf "%S"
+                     (Subtitle.string_of_id (Subtitle.get_params_id params)) );
+                 ("time_base", string_of_rational time_base);
+               ]))
 
   let compatible_aspect_radio p p' =
     match (p, p') with
@@ -137,6 +155,9 @@ module Specs = struct
          (Video.get_sample_aspect_ratio p')
     && Video.get_pixel_format p = Video.get_pixel_format p'
 
+  let compatible_subtitle (p : subtitle_params) (p' : subtitle_params) =
+    Subtitle.get_params_id p.params = Subtitle.get_params_id p'.params
+
   let compatible p p' =
     match (p, p') with
       | None, _ | _, None -> true
@@ -147,6 +168,8 @@ module Specs = struct
           Some (`Video { avg_frame_rate = r'; params = p' }) ) ->
           Video.get_params_id p = Video.get_params_id p'
           && (conf_ffmpeg_copy_relaxed#get || compatible_video (r, p) (r', p'))
+      | Some (`Subtitle p), Some (`Subtitle p') ->
+          conf_ffmpeg_copy_relaxed#get || compatible_subtitle p p'
       | _ -> false
 
   let merge p p' =
@@ -161,7 +184,8 @@ module Specs = struct
       packet =
         (match p.packet with
           | `Audio p -> `Audio (Avcodec.Packet.dup p)
-          | `Video p -> `Video (Avcodec.Packet.dup p));
+          | `Video p -> `Video (Avcodec.Packet.dup p)
+          | `Subtitle p -> `Subtitle (Avcodec.Packet.dup p));
     }
 
   let blit = blit ~copy:copy_packet
@@ -176,6 +200,7 @@ module Specs = struct
             match packet with
               | `Audio p -> Avcodec.Packet.to_bytes p
               | `Video p -> Avcodec.Packet.to_bytes p
+              | `Subtitle p -> Avcodec.Packet.to_bytes p
           in
           Printf.sprintf "%d:%Ld:%d/%d:%s" pos stream_idx time_base.Avutil.num
             time_base.Avutil.den

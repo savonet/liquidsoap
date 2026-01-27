@@ -86,3 +86,16 @@ let mk_video_decoder ~stream_idx ~format ~stream ~field params =
     ~stream_time_base
     ~put_data:(fun g c -> Generator.put g field c)
     params
+
+let mk_subtitle_decoder ~stream_idx ~format ~stream ~field params =
+  Ffmpeg_decoder_common.set_subtitle_stream_decoder stream;
+  let stream_time_base = Av.get_time_base stream in
+  let params =
+    `Subtitle { Ffmpeg_copy_content.time_base = stream_time_base; params }
+  in
+  ignore (Content.merge format (Ffmpeg_copy_content.lift_params (Some params)));
+  mk_decoder ~stream_idx
+    ~mk_packet:(fun p -> `Subtitle p)
+    ~stream_time_base
+    ~put_data:(fun g c -> Generator.put g field c)
+    params

@@ -197,6 +197,57 @@
    %{target})))
 
 (rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps test-subtitle.srt)
+ (target video-with-subtitle.mkv)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=d=30:s=1280x720:r=24,format=yuv420p"
+   -f
+   lavfi
+   -i
+   "sine=f=440:b=4"
+   -i
+   test-subtitle.srt
+   -c:v
+   mpeg4
+   -c:a
+   aac
+   -c:s
+   srt
+   -shortest
+   %{target})))
+
+(rule
+ (alias ffmpeg_copy_subtitle)
+ (package liquidsoap)
+ (deps
+  video-with-subtitle.mkv
+  ffmpeg_copy_subtitle.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg copy subtitle"
+   liquidsoap
+   %{test_liq}
+   ffmpeg_copy_subtitle.liq
+   --
+   video-with-subtitle.mkv)))
+
+(rule
  (alias ffmpeg_distributed_hls)
  (package liquidsoap)
  (deps
@@ -389,6 +440,7 @@
   (alias ffmpeg_raw_implicit_conversion)
   (alias ffmpeg_complex_filter)
   (alias ffmpeg_copy_concat)
+  (alias ffmpeg_copy_subtitle)
   (alias ffmpeg_hls_mp4)
   (alias ffmpeg_transparency_filter)
   (alias ffmpeg_filter_changing_rate)

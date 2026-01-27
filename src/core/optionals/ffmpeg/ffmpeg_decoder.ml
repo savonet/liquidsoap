@@ -692,11 +692,37 @@ let get_type ~ctype ~format ~url container =
       ([], descriptions)
       (Av.get_video_streams container)
   in
+  let subtitle_streams, descriptions =
+    List.fold_left
+      (fun (subtitle_streams, descriptions) (_, stream, params) ->
+        try
+          let field = Frame.Fields.subtitle_n (List.length subtitle_streams) in
+          let codec_name =
+            Avcodec.Subtitle.string_of_id
+              (Avcodec.Subtitle.get_params_id params)
+          in
+          let description =
+            Printf.sprintf "%s: {codec: %s, subtitle}"
+              (Frame.Fields.string_of_field field)
+              codec_name
+          in
+          ( subtitle_streams @ [(field, Av.get_time_base stream, params)],
+            descriptions @ [description] )
+        with Avutil.Error _ as exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Failed to get subtitle stream info: %s"
+               (Printexc.to_string exn));
+          (subtitle_streams, descriptions))
+      ([], descriptions)
+      (Av.get_subtitle_streams container)
+  in
   let _, descriptions =
     List.fold_left
       (fun (n, descriptions) (_, _, params) ->
         try
-          let field = Frame.Fields.data_n n in
+          let field = Frame.Fields.data_n (n + List.length subtitle_streams) in
           let codec_name =
             Avcodec.Unknown.string_of_id (Avcodec.Unknown.get_params_id params)
           in
@@ -766,6 +792,20 @@ let get_type ~ctype ~format ~url container =
                 content_type
           | _ -> content_type)
       content_type video_streams
+  in
+  let content_type =
+    List.fold_left
+      (fun content_type (field, time_base, params) ->
+        match Frame.Fields.find_opt field ctype with
+          | Some format when Ffmpeg_copy_content.is_format format ->
+              ignore
+                (Content.merge format
+                   (Ffmpeg_copy_content.lift_params
+                      (Some
+                         (`Subtitle { Ffmpeg_copy_content.time_base; params }))));
+              Frame.Fields.add field format content_type
+          | _ -> content_type)
+      content_type subtitle_streams
   in
   log#important "FFmpeg recognizes %s as %s" uri
     (String.concat ", " descriptions);
@@ -862,12 +902,18 @@ let mk_decoder ~streams ~target_position container =
       (fun _ v cur -> match v with `Data_packet (s, _) -> s :: cur | _ -> cur)
       streams []
   in
+  let subtitle_packet =
+    Streams.fold
+      (fun _ v cur ->
+        match v with `Subtitle_packet (s, _) -> s :: cur | _ -> cur)
+      streams []
+  in
   fun buffer ->
     let rec f () =
       try
         let data =
           Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
-            ~data_packet container
+            ~data_packet ~subtitle_packet container
         in
         match data with
           | `Audio_frame (i, frame) -> (
@@ -911,6 +957,17 @@ let mk_decoder ~streams ~target_position container =
           | `Data_packet (i, packet) -> (
               match Streams.find_opt i streams with
                 | Some (`Data_packet (s, decode)) ->
+                    check_pts
+                      ~ts:
+                        (Option.value ~default:0L
+                           (Avcodec.Packet.get_dts packet))
+                      ~decode:(fun () -> decode ~buffer packet)
+                      s
+                      (Avcodec.Packet.get_pts packet)
+                | _ -> f ())
+          | `Subtitle_packet (i, packet) -> (
+              match Streams.find_opt i streams with
+                | Some (`Subtitle_packet (s, decode)) ->
                     check_pts
                       ~ts:
                         (Option.value ~default:0L
@@ -1068,6 +1125,24 @@ let mk_streams ~ctype ~decode_first_metadata container =
   let streams, _ =
     List.fold_left
       (fun (streams, pos) (idx, stream, params) ->
+        let field = Frame.Fields.subtitle_n pos in
+        match Frame.Fields.find_opt field ctype with
+          | Some format when Ffmpeg_copy_content.is_format format ->
+              ( Streams.add idx
+                  (`Subtitle_packet
+                     ( stream,
+                       check_metadata stream
+                         (Ffmpeg_copy_decoder.mk_subtitle_decoder ~stream_idx
+                            ~format ~field ~stream params) ))
+                  streams,
+                pos + 1 )
+          | _ -> (streams, pos + 1))
+      (streams, 0)
+      (Av.get_subtitle_streams container)
+  in
+  let streams, _ =
+    List.fold_left
+      (fun (streams, pos) (idx, stream, params) ->
         try
           if Avcodec.Unknown.get_params_id params = `Timed_id3 then
             ( Streams.add idx
@@ -1169,6 +1244,14 @@ let create_decoder ~ctype ~metadata fname =
               decoder ~buffer frame
             in
             `Video_frame (stream, decoder)
+        | `Subtitle_packet (stream, decoder) ->
+            let decoder ~buffer packet =
+              set_remaining stream
+                ~pts:(Avcodec.Packet.get_pts packet)
+                ~duration:(Avcodec.Packet.get_duration packet);
+              decoder ~buffer packet
+            in
+            `Subtitle_packet (stream, decoder)
         | `Data_packet (stream, decoder) -> `Data_packet (stream, decoder))
       streams
   in

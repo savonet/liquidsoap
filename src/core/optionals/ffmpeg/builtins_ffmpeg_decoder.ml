@@ -284,7 +284,8 @@ let decode_video_frame ~field ~mode generator =
     let current_params = ref None in
     let current_decoder = ref None in
 
-    let mk_decoder ~params ~stream_idx ~time_base =
+    let mk_decoder ~(params : Ffmpeg_copy_content.video_params) ~stream_idx
+        ~time_base =
       let codec_id =
         Avcodec.Video.get_params_id params.Ffmpeg_copy_content.params
       in
