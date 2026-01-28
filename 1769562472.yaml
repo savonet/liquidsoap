@@ -1,0 +1,127 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.417478084564
+  unit: "s"
+  time: 1769562260.63
+  min: 0.0
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.857134103775
+  unit: "s"
+  time: 1769562261.48
+  min: 0.0
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.44282507896
+  unit: "s"
+  time: 1769562262.93
+  min: 0.0
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 3.06648993492
+  unit: "s"
+  time: 1769562265.99
+  min: 0.0
+
+- name: "Memory usage: process private memory"
+  category: "memory"
+  value: 64.59375
+  unit: "MiB"
+  time: 1769562296.21
+  min: 0.0
+
+- name: "Memory usage: process swapped memory"
+  category: "memory"
+  value: 0.0
+  unit: "MiB"
+  time: 1769562296.21
+  min: 0.0
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 136.67578125
+  unit: "MiB"
+  time: 1769562296.21
+  min: 0.0
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 1052.6484375
+  unit: "MiB"
+  time: 1769562296.21
+  min: 0.0
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 15662.2851562
+  unit: "MiB"
+  time: 1769562296.21
+  min: 0.0
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 19758.28125
+  unit: "MiB"
+  time: 1769562296.21
+  min: 0.0
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 14226.1601562
+  unit: "MiB"
+  time: 1769562296.21
+  min: 0.0
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 14226.4101562
+  unit: "MiB"
+  time: 1769562296.21
+  min: 0.0
+
+- name: "functions"
+  category: "language"
+  value: 1758.0
+  unit: "functions"
+  time: 1769562296.79
+
+- name: "protocols"
+  category: "language"
+  value: 24.0
+  unit: "protocols"
+  time: 1769562296.79
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.50954198837
+  unit: "s"
+  time: 1769562366.63
+  min: 0.0
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 12.5452129841
+  unit: "s"
+  time: 1769562455.01
+  min: 0.0
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 17.0016069412
+  unit: "s"
+  time: 1769562472.02
+  min: 0.0
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 573.06640625
+  unit: "Mio"
+  time: 1769562472.7
+  min: 0.0
+
+- commit: 53181533241f38cca77ac4b75457c00dd56760f7
+  branch: subtitle-content
+  time: 1769562472
