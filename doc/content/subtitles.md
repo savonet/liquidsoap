@@ -31,8 +31,7 @@ You can react to subtitle events using `track.on_subtitle` (track-level) or `on_
 
 ```liquidsoap
 s = on_subtitle(fun (sub) ->
-  print("Subtitle at #{sub.absolute_start_time}s: #{sub.text}")
-end, s)
+  print("Subtitle at #{sub.absolute_start_time}s: #{sub.text}"), s)
 ```
 
 The callback receives a record with:
