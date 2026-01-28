@@ -51,6 +51,7 @@ let () =
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)

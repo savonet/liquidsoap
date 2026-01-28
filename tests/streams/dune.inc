@@ -22,6 +22,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -51,6 +52,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -80,6 +82,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -109,6 +112,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -138,6 +142,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -167,6 +172,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -196,6 +202,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -225,6 +232,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -254,6 +262,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -283,6 +292,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -312,6 +322,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -341,6 +352,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -370,6 +382,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -399,6 +412,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -428,6 +442,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -457,6 +472,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -486,6 +502,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -515,6 +532,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -544,6 +562,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -573,6 +592,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -602,6 +622,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -631,6 +652,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -660,6 +682,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -689,6 +712,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -718,6 +742,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -747,6 +772,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -776,6 +802,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -805,6 +832,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -834,6 +862,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -863,6 +892,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -892,6 +922,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -921,6 +952,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -950,6 +982,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -979,6 +1012,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1008,6 +1042,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1037,6 +1072,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1066,6 +1102,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1095,6 +1132,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1124,6 +1162,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1153,6 +1192,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1182,6 +1222,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1211,6 +1252,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1240,6 +1282,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1269,6 +1312,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1298,6 +1342,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1327,6 +1372,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1356,6 +1402,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1385,6 +1432,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1414,6 +1462,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1443,6 +1492,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1472,6 +1522,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1501,6 +1552,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1530,6 +1582,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1559,6 +1612,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1588,6 +1642,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1617,6 +1672,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1646,6 +1702,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1675,6 +1732,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1704,6 +1762,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1733,6 +1792,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1762,6 +1822,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1791,6 +1852,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1820,6 +1882,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1849,6 +1912,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1878,6 +1942,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1907,6 +1972,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1936,6 +2002,7 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1965,11 +2032,132 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} stretch-clock-propagation.liq liquidsoap %{test_liq} stretch-clock-propagation.liq)))
+  
+(rule
+ (alias test_on_subtitle)
+ (package liquidsoap)
+ (deps
+  test_on_subtitle.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} test_on_subtitle.liq liquidsoap %{test_liq} test_on_subtitle.liq)))
+  
+(rule
+ (alias test_subtitles_insert)
+ (package liquidsoap)
+ (deps
+  test_subtitles_insert.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} test_subtitles_insert.liq liquidsoap %{test_liq} test_subtitles_insert.liq)))
+  
+(rule
+ (alias test_subtitles_map)
+ (package liquidsoap)
+ (deps
+  test_subtitles_map.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} test_subtitles_map.liq liquidsoap %{test_liq} test_subtitles_map.liq)))
+  
+(rule
+ (alias test_subtitles_track_insert)
+ (package liquidsoap)
+ (deps
+  test_subtitles_track_insert.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} test_subtitles_track_insert.liq liquidsoap %{test_liq} test_subtitles_track_insert.liq)))
   (alias
   (name citest)
   (deps
@@ -2040,4 +2228,8 @@
     (alias srt_multiple_outputs)
     (alias srt_passphrase)
     (alias srt_raw_pcm)
-    (alias stretch-clock-propagation)))
+    (alias stretch-clock-propagation)
+    (alias test_on_subtitle)
+    (alias test_subtitles_insert)
+    (alias test_subtitles_map)
+    (alias test_subtitles_track_insert)))
