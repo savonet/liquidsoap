@@ -46,6 +46,66 @@ The callback receives a record with:
 - `format`: `"ass"` or `"text"`
 - `forced`: Whether this is a forced subtitle
 
+## Transforming subtitles
+
+Use `track.subtitles.map` (track-level) or `subtitles.map` (source-level) to transform or filter subtitles:
+
+```liquidsoap
+s = subtitles.map(fun (sub) ->
+  if sub.text == "" then
+    # Remove empty subtitles
+    null
+  else
+    # Modify the text
+    {text="[#{sub.format}] #{sub.text}"}
+  end
+end, s)
+```
+
+The callback receives the same record as `on_subtitle` and returns:
+
+- A record with optional fields `text`, `format`, `forced` to update specific properties
+- An empty record `{}` to keep the subtitle unchanged
+- `null` to remove the subtitle
+
+Only fields that are returned will be updated:
+
+```liquidsoap
+s = subtitles.map(fun (sub) ->
+  # Only change format, keep text and forced unchanged
+  {format="ass"}
+end, s)
+```
+
+## Inserting subtitles
+
+Use `track.subtitles.insert` (track-level) or `subtitles.insert` (source-level) to dynamically insert subtitles. The operator returns a track/source with an `insert_subtitle` method:
+
+```liquidsoap
+s = subtitles.insert(s)
+
+# Insert a subtitle after 1 second
+thread.run(delay=1., {
+  s.insert_subtitle({
+    duration=5.0,
+    text="Hello, world!",
+    format="text",
+    forced=false
+  })
+})
+```
+
+The `insert_subtitle` method takes a record with:
+
+- `duration`: Duration in seconds
+- `text`: Subtitle text content
+- `format`: `"ass"` or `"text"`
+- `forced`: Whether this is a forced subtitle
+
+The subtitle will be inserted at the current playback position with `start_time=0` and `end_time` set to the specified duration.
+
+If the source doesn't have a subtitle track, `subtitles.insert` will create one.
+
 ## Multiple subtitle tracks
 
 Multiple subtitle tracks can be combined in a single source:
