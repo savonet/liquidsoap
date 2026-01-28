@@ -334,3 +334,22 @@ def subtitles.map(
     }
   )
 end
+
+# Allow inserting subtitles into the source.
+# subtitles track is created is the source does
+# not have one.
+# @category Source / Track processing
+# @argsof track.subtitles.insert
+def subtitles.insert(
+  ~id=null("subtitles.insert"),
+  %argsof(track.subtitles.insert[!id]),
+  s
+) =
+  tracks = source.tracks(s)
+  subtitles = tracks?.subtitles
+  let subtitles =
+    track.subtitles.insert(%argsof(track.subtitles.insert[!id]), subtitles)
+  source(id=id, tracks.{subtitles=subtitles}).{
+    insert_subtitle=subtitles.insert_subtitle
+  }
+end

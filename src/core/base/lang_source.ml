@@ -613,6 +613,9 @@ let add_value_flag v flag =
     | Value.Float _ | Value.String _ | Value.Bool _ | Value.Null _ -> ()
     | v -> Value.add_flag v flag
 
+let is_nullable t =
+  match Type.deref t with Type.{ descr = Nullable _ } -> true | _ -> false
+
 (** Ensure that the frame contents of all the sources occurring in the value
     agree with [t]. *)
 let check_content v t =
@@ -631,11 +634,11 @@ let check_content v t =
               field <> Frame.Fields.track_marks
               && field <> Frame.Fields.metadata
             then (
-              let t =
+              let typ =
                 Frame_type.make (Type.var ())
                   (Frame.Fields.add field t Frame.Fields.empty)
               in
-              check s#frame_type t)
+              try check s#frame_type typ with _ when is_nullable t -> ())
         | _ when Lang_encoder.V.is_value v ->
             let content_t =
               Encoder.type_of_format (Lang_encoder.V.of_value v)
