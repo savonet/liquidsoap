@@ -34,30 +34,43 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_packet ~put_data params =
     Ffmpeg_utils.Duration.init ~mode:`DTS ~src:stream_time_base
       ~convert_ts:false ~get_ts:Packet.get_dts ~set_ts:Packet.set_dts ()
   in
-  fun ~buffer packet ->
-    try
-      let flags = Packet.get_flags packet in
-      if List.mem `Corrupt flags then (
-        log#important "Corrupted packet in stream!";
-        raise Corrupt);
-      let packets = Ffmpeg_utils.Duration.push duration_converter packet in
-      if packets = None then raise Empty;
-      let length, packets = Option.get packets in
-      let data =
-        List.map
-          (fun (pos, packet) ->
-            ( pos,
-              {
-                Ffmpeg_copy_content.packet = mk_packet packet;
-                time_base = stream_time_base;
-                stream_idx;
-              } ))
-          packets
-      in
-      let data = { Content.Video.params = Some params; data; length } in
-      let data = Ffmpeg_copy_content.lift_data data in
-      put_data buffer.Decoder.generator data
-    with Empty | Corrupt (* Might want to change that later. *) -> ()
+  let output_packets ~buffer length packets =
+    let data =
+      List.map
+        (fun (pos, packet) ->
+          ( pos,
+            {
+              Ffmpeg_copy_content.packet = mk_packet packet;
+              time_base = stream_time_base;
+              stream_idx;
+            } ))
+        packets
+    in
+    let data = { Content.Video.params = Some params; data; length } in
+    let data = Ffmpeg_copy_content.lift_data data in
+    put_data buffer.Decoder.generator data
+  in
+  let process_packet ~buffer packet =
+    let flags = Packet.get_flags packet in
+    if List.mem `Corrupt flags then (
+      log#important "Corrupted packet in stream!";
+      raise Corrupt);
+    let packets = Ffmpeg_utils.Duration.push duration_converter packet in
+    if packets = None then raise Empty;
+    let length, packets = Option.get packets in
+    output_packets ~buffer length packets
+  in
+  let flush ~buffer =
+    let packets = Ffmpeg_utils.Duration.flush duration_converter in
+    if packets <> [] then
+      (* Use a minimal length of 1 for remaining packets at EOF *)
+      output_packets ~buffer 1 packets
+  in
+  fun ~buffer -> function
+    | `Flush -> flush ~buffer
+    | `Packet packet -> (
+        try process_packet ~buffer packet
+        with Empty | Corrupt (* Might want to change that later. *) -> ())
 
 let mk_audio_decoder ~stream_idx ~format ~field ~stream params =
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;
