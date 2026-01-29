@@ -549,3 +549,90 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     bitrate;
     video_size;
   }
+
+let mk_subtitle ~pos ~params ~options ~codec ~field output =
+  let codec =
+    try Avcodec.Subtitle.find_encoder_by_name codec
+    with e ->
+      log#severe "Cannot find subtitle encoder %s: %s." codec
+        (Printexc.to_string e);
+      raise e
+  in
+
+  let time_base = Avutil.Subtitle.time_base () in
+  let opts = Hashtbl.copy options in
+
+  let stream = Av.new_subtitle_stream ~time_base ~opts ~codec output in
+
+  let options = Hashtbl.copy options in
+  Hashtbl.filter_map_inplace
+    (fun l v -> if Hashtbl.mem opts l then Some v else None)
+    options;
+
+  if Hashtbl.length options > 0 then
+    Lang_encoder.raise_error ~pos
+      (Printf.sprintf "Unrecognized options: %s"
+         (Ffmpeg_format.string_of_options options));
+
+  let codec_attr () = Av.codec_attr stream in
+  let bitrate () = Av.bitrate stream in
+  let video_size () = None in
+
+  let rect_count = ref 0 in
+  let pts_offset = ref 0 in
+
+  let encode frame =
+    let len = Frame.position frame in
+    if len > 0 then (
+      let content = Frame.get frame field in
+      let subtitles = Subtitle_content.get_data content in
+      List.iter
+        (fun (pos, (sub : Subtitle_content.subtitle)) ->
+          if 0 <= pos && pos < len then (
+            let start_display_time =
+              int_of_float (Frame.seconds_of_main sub.start_time *. 1000.)
+            in
+            let end_display_time =
+              int_of_float (Frame.seconds_of_main sub.end_time *. 1000.)
+            in
+            let pts_offset = Frame.seconds_of_main (!pts_offset + pos) in
+            let pts =
+              Int64.of_float
+                (pts_offset *. float_of_int time_base.den
+               /. float_of_int time_base.num)
+            in
+            let flags = if sub.forced then [`Forced] else [] in
+            let ass =
+              match sub.format with
+                | `Ass -> sub.text
+                | `Text -> params.Ffmpeg_format.text_to_ass !rect_count sub.text
+            in
+            incr rect_count;
+            let rectangle : Avutil.Subtitle.rectangle =
+              { pict = None; flags; rect_type = `Ass; text = ""; ass }
+            in
+            let subtitle_content : Avutil.Subtitle.content =
+              {
+                format = 0;
+                start_display_time;
+                end_display_time;
+                rectangles = [rectangle];
+                pts;
+              }
+            in
+            let subtitle_frame =
+              Avutil.Subtitle.create_frame subtitle_content
+            in
+            Av.write_frame stream subtitle_frame))
+        subtitles;
+      pts_offset := !pts_offset + len)
+  in
+
+  {
+    Ffmpeg_encoder_common.mk_stream;
+    encode;
+    flush = (fun () -> ());
+    codec_attr;
+    bitrate;
+    video_size;
+  }

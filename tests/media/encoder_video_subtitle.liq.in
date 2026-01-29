@@ -3,9 +3,10 @@ log.level.set(4)
 
 file = "@FILE@"
 
-let {audio} = source.tracks(sine(duration=10.))
-let {video} = source.tracks(video.testsrc.ffmpeg(duration=10.))
-s = source({audio=audio, video=video})
+let {video} = source.tracks(video.testsrc.ffmpeg(duration=16.))
+let {subtitle = m} = source.tracks((single("test-subtitle.srt"):source(audio=none,video=none,subtitle=subtitle(text))))
+
+s = source({video=video, subtitle=m})
 
 s = once(s)
 
