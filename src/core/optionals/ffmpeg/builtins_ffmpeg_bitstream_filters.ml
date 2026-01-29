@@ -110,7 +110,7 @@ let flush (type a) ~put_data ~(mk_params : a mk_params)
         Avcodec.BitstreamFilter.send_eof h.filter;
         flush_filter ~put_data ~mk_params ~mk_packet h;
         process ~put_data ~mk_params ~mk_packet h
-          (0, Ffmpeg_utils.Duration.flush h.duration_converter)
+          (Ffmpeg_utils.Duration.flush h.duration_converter)
 
 let on_data (type a)
     ~(get_handler :
@@ -143,7 +143,8 @@ let mk_handler (type a) ~stream_idx ~time_base
     time_base;
     duration_converter =
       Ffmpeg_utils.Duration.init ~mode:`DTS ~src:time_base ~convert_ts:false
-        ~get_ts:Avcodec.Packet.get_dts ~set_ts:Avcodec.Packet.set_dts ();
+        ~get_ts:Avcodec.Packet.get_dts ~set_ts:Avcodec.Packet.set_dts
+        ~get_duration:Avcodec.Packet.get_duration ();
   }
 
 let handler_getters (type a) ~(mk_params : a mk_params)

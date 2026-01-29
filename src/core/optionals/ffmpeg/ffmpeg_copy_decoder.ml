@@ -32,7 +32,8 @@ exception Empty
 let mk_decoder ~stream_idx ~stream_time_base ~mk_packet ~put_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~mode:`DTS ~src:stream_time_base
-      ~convert_ts:false ~get_ts:Packet.get_dts ~set_ts:Packet.set_dts ()
+      ~convert_ts:false ~get_ts:Packet.get_dts ~set_ts:Packet.set_dts
+      ~get_duration:Packet.get_duration ()
   in
   let output_packets ~buffer length packets =
     let data =
@@ -61,10 +62,8 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_packet ~put_data params =
     output_packets ~buffer length packets
   in
   let flush ~buffer =
-    let packets = Ffmpeg_utils.Duration.flush duration_converter in
-    if packets <> [] then
-      (* Use a minimal length of 1 for remaining packets at EOF *)
-      output_packets ~buffer 1 packets
+    let length, packets = Ffmpeg_utils.Duration.flush duration_converter in
+    if packets <> [] then output_packets ~buffer length packets
   in
   fun ~buffer -> function
     | `Flush -> flush ~buffer
