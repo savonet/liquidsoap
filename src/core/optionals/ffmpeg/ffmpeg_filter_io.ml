@@ -68,7 +68,8 @@ class virtual ['a] duration_converter =
               let converter =
                 Ffmpeg_utils.Duration.init ~offset ?last_ts ~mode:`PTS
                   ~src:time_base ~convert_ts ~get_ts:Avutil.Frame.pts
-                  ~set_ts:Avutil.Frame.set_pts ()
+                  ~set_ts:Avutil.Frame.set_pts
+                  ~get_duration:Avutil.Frame.duration ()
               in
               duration_converter <-
                 Some { idx = stream_idx; time_base; converter };

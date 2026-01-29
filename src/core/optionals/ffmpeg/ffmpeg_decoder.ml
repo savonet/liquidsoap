@@ -789,7 +789,10 @@ let mk_eof streams buffer =
     (fun _ -> function
       | `Audio_frame (_, decoder) -> decoder ~buffer `Flush
       | `Video_frame (_, decoder) -> decoder ~buffer `Flush
-      | _ -> ())
+      | `Audio_packet (_, decoder) -> decoder ~buffer `Flush
+      | `Video_packet (_, decoder) -> decoder ~buffer `Flush
+      | `Subtitle_packet (_, decoder) -> decoder ~buffer `Flush
+      | `Data_packet _ -> ())
     streams;
   Generator.add_track_mark buffer.Decoder.generator
 
@@ -886,7 +889,7 @@ let mk_decoder ~streams ~target_position container =
                       ~ts:
                         (Option.value ~default:0L
                            (Avcodec.Packet.get_dts packet))
-                      ~decode:(fun () -> decode ~buffer packet)
+                      ~decode:(fun () -> decode ~buffer (`Packet packet))
                       s
                       (Avcodec.Packet.get_pts packet)
                 | _ -> f ())
@@ -905,7 +908,7 @@ let mk_decoder ~streams ~target_position container =
                       ~ts:
                         (Option.value ~default:0L
                            (Avcodec.Packet.get_dts packet))
-                      ~decode:(fun () -> decode ~buffer packet)
+                      ~decode:(fun () -> decode ~buffer (`Packet packet))
                       s
                       (Avcodec.Packet.get_pts packet)
                 | _ -> f ())
@@ -1131,9 +1134,12 @@ let create_decoder ~ctype ~metadata fname =
       (function
         | `Audio_packet (stream, decoder) ->
             let decoder ~buffer packet =
-              set_remaining stream
-                ~pts:(Avcodec.Packet.get_pts packet)
-                ~duration:(Avcodec.Packet.get_duration packet);
+              (match packet with
+                | `Packet packet ->
+                    set_remaining stream
+                      ~pts:(Avcodec.Packet.get_pts packet)
+                      ~duration:(Avcodec.Packet.get_duration packet)
+                | _ -> ());
               decoder ~buffer packet
             in
             `Audio_packet (stream, decoder)
@@ -1149,9 +1155,12 @@ let create_decoder ~ctype ~metadata fname =
             `Audio_frame (stream, decoder)
         | `Video_packet (stream, decoder) ->
             let decoder ~buffer packet =
-              set_remaining stream
-                ~pts:(Avcodec.Packet.get_pts packet)
-                ~duration:(Avcodec.Packet.get_duration packet);
+              (match packet with
+                | `Packet packet ->
+                    set_remaining stream
+                      ~pts:(Avcodec.Packet.get_pts packet)
+                      ~duration:(Avcodec.Packet.get_duration packet)
+                | _ -> ());
               decoder ~buffer packet
             in
             `Video_packet (stream, decoder)

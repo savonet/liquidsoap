@@ -279,6 +279,7 @@ module Duration = struct
     convert_ts : bool;
     get_ts : 'a -> int64 option;
     set_ts : 'a -> int64 option -> unit;
+    get_duration : 'a -> int64 option;
     src : Avutil.rational;
     dst : Avutil.rational;
     offset : int64;
@@ -286,12 +287,14 @@ module Duration = struct
     mutable packets : (int * 'a) list;
   }
 
-  let init ?(offset = 0L) ?last_ts ~mode ~src ~convert_ts ~get_ts ~set_ts () =
+  let init ?(offset = 0L) ?last_ts ~mode ~src ~convert_ts ~get_ts ~set_ts
+      ~get_duration () =
     {
       mode;
       convert_ts;
       get_ts;
       set_ts;
+      get_duration;
       src;
       dst = liq_main_ticks_time_base ();
       offset;
@@ -335,7 +338,18 @@ module Duration = struct
       t.packets <- packets @ [(0, packet)];
       None)
 
-  let flush { packets } = packets
+  let flush { packets; get_duration; src; dst } =
+    let max_duration =
+      List.fold_left
+        (fun acc (_, packet) ->
+          match get_duration packet with
+            | Some d ->
+                let d = Int64.to_int (convert_time_base ~src ~dst d) in
+                max acc d
+            | None -> acc)
+        1 packets
+    in
+    (max_duration, packets)
 end
 
 let find_pixel_format codec =

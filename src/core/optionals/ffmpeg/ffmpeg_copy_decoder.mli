@@ -27,7 +27,7 @@ val mk_audio_decoder :
   stream:(Avutil.input, Avutil.audio, [ `Packet ]) Av.stream ->
   Avutil.audio Avcodec.params ->
   buffer:Decoder.buffer ->
-  Avutil.audio Avcodec.Packet.t ->
+  [ `Packet of Avutil.audio Avcodec.Packet.t | `Flush ] ->
   unit
 
 val mk_video_decoder :
@@ -37,5 +37,5 @@ val mk_video_decoder :
   field:int ->
   Avutil.video Avcodec.params ->
   buffer:Decoder.buffer ->
-  Avutil.video Avcodec.Packet.t ->
+  [ `Packet of Avutil.video Avcodec.Packet.t | `Flush ] ->
   unit
