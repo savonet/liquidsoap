@@ -70,10 +70,11 @@ module Duration : sig
     convert_ts:bool ->
     get_ts:('a -> int64 option) ->
     set_ts:('a -> int64 option -> unit) ->
+    get_duration:('a -> int64 option) ->
     unit ->
     'a t
 
   val last_ts : 'a t -> int64 option
   val push : 'a t -> 'a -> (int * (int * 'a) list) option
-  val flush : 'a t -> (int * 'a) list
+  val flush : 'a t -> int * (int * 'a) list
 end

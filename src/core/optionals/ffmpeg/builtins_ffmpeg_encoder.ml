@@ -83,7 +83,8 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
           let duration_converter =
             Ffmpeg_utils.Duration.init ~mode:`DTS ~src:encoder_time_base
               ~convert_ts:false ~get_ts:Avcodec.Packet.get_dts
-              ~set_ts:Avcodec.Packet.set_dts ()
+              ~set_ts:Avcodec.Packet.set_dts
+              ~get_duration:Avcodec.Packet.get_duration ()
           in
 
           let params = Some (`Audio (Avcodec.params encoder)) in
@@ -139,7 +140,8 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
           let duration_converter =
             Ffmpeg_utils.Duration.init ~mode:`PTS ~src:target_time_base
               ~convert_ts:false ~get_ts:Avutil.Frame.pts
-              ~set_ts:Avutil.Frame.set_pts ()
+              ~set_ts:Avutil.Frame.set_pts ~get_duration:Avutil.Frame.duration
+              ()
           in
           ( target_sample_format,
             None,
@@ -282,7 +284,8 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
           let duration_converter =
             Ffmpeg_utils.Duration.init ~mode:`DTS ~src:encoder_time_base
               ~convert_ts:false ~get_ts:Avcodec.Packet.get_dts
-              ~set_ts:Avcodec.Packet.set_dts ()
+              ~set_ts:Avcodec.Packet.set_dts
+              ~get_duration:Avcodec.Packet.get_duration ()
           in
 
           let write_packet packet =
@@ -337,7 +340,8 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
           let duration_converter =
             Ffmpeg_utils.Duration.init ~mode:`PTS ~src:time_base
               ~convert_ts:false ~get_ts:Avutil.Frame.pts
-              ~set_ts:Avutil.Frame.set_pts ()
+              ~set_ts:Avutil.Frame.set_pts ~get_duration:Avutil.Frame.duration
+              ()
           in
 
           function
