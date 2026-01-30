@@ -1,0 +1,2 @@
+#!/bin/sh
+dune exec ./media_receiver.exe -- "$@"
