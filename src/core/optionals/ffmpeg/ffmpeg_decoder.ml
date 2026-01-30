@@ -696,7 +696,7 @@ let get_type ~ctype ~format ~url container =
     List.fold_left
       (fun (subtitle_streams, descriptions) (_, stream, params) ->
         try
-          let field = Frame.Fields.subtitle_n (List.length subtitle_streams) in
+          let field = Frame.Fields.subtitles_n (List.length subtitle_streams) in
           let codec_name =
             Avcodec.Subtitle.string_of_id
               (Avcodec.Subtitle.get_params_id params)
@@ -1128,7 +1128,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
   let streams, _ =
     List.fold_left
       (fun (streams, pos) (idx, stream, params) ->
-        let field = Frame.Fields.subtitle_n pos in
+        let field = Frame.Fields.subtitles_n pos in
         match Frame.Fields.find_opt field ctype with
           | Some format when Ffmpeg_copy_content.is_format format ->
               ( Streams.add idx

@@ -87,7 +87,7 @@ end
 output.file(
   fallible=true,
   on_close=on_close,
-  %ffmpeg(format = "mkv", %audio.copy, %video.copy, %subtitle.copy),
+  %ffmpeg(format = "mkv", %audio.copy, %video.copy, %subtitles.copy),
   out,
   s
 )
