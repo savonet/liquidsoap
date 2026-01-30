@@ -3,7 +3,10 @@ log.level.set(4)
 
 file = "@FILE@"
 
-s = sine(duration=10.)
+let {audio} = source.tracks(sine(duration=16.))
+let {subtitles = s} = source.tracks(single("test-subtitle.srt"))
+
+s = source({audio=audio, subtitles=s})
 
 s = once(s)
 
@@ -43,6 +46,12 @@ def on_close(filename) =
         parsed.streams
       )
 
+    subtitle_stream =
+      list.find(
+        (fun (stream) -> stream.codec_type == "subtitle"),
+        parsed.streams
+      )
+
     def duration(s) =
       if null.defined(s?.duration) then float_of_string(null.get(s?.duration))
       elsif null.defined(s?.tags) then
@@ -57,9 +66,13 @@ def on_close(filename) =
     end
 
     if
-      duration(audio_stream) >= 10.
+      (duration(audio_stream) >= 10.
     or
-      int_of_string(audio_stream.nb_read_packets) > 0
+      int_of_string(audio_stream.nb_read_packets) > 0)
+    and
+      (duration(subtitle_stream) >= 10.
+    or
+      int_of_string(subtitle_stream.nb_read_packets) > 0)
     then
       test.pass()
     else

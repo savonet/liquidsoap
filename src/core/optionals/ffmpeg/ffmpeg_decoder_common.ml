@@ -112,7 +112,7 @@ let set_video_stream_decoder (type a)
     ~get_codec:Avcodec.Video.find_decoder_by_name stream
 
 let set_subtitle_stream_decoder (type a)
-    (stream : (Avutil.input, Avutil.subtitle, a) Av.stream) =
+    (stream : (Avutil.input, [ `Subtitle ], a) Av.stream) =
   set_stream_decoder
     ~get_name:(fun p -> Avcodec.Subtitle.(string_of_id (get_params_id p)))
     ~get_codec:Avcodec.Subtitle.find_decoder_by_name stream
