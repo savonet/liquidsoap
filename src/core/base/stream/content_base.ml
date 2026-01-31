@@ -62,6 +62,7 @@ module type ContentSpecs = sig
 
   val name : string
   val make : ?length:int -> params -> data
+  val is_sparse : bool
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
@@ -167,6 +168,7 @@ let parse_param kind label value =
 type data_handler = {
   sub : data -> int -> int -> data;
   truncate : data -> int -> data;
+  is_sparse : bool;
   _length : data -> int;
   is_empty : data -> bool;
   copy : data -> data;
@@ -179,6 +181,7 @@ let dummy_handler =
   {
     sub = (fun _ _ _ -> raise Invalid);
     truncate = (fun _ _ -> raise Invalid);
+    is_sparse = false;
     _length = (fun _ -> raise Invalid);
     is_empty = (fun _ -> raise Invalid);
     copy = (fun _ -> raise Invalid);
@@ -197,6 +200,7 @@ let register_data_handler t h =
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ?length k = (get_format_handler k).make length
 let sub d = (get_data_handler d).sub d
+let is_sparse d = (get_data_handler d).is_sparse
 let truncate d = (get_data_handler d).truncate d
 let is_empty c = (get_data_handler c).is_empty c
 let length c = (get_data_handler c)._length c
@@ -427,6 +431,7 @@ module MkContentBase (C : ContentSpecs) :
         sub = (fun d ofs len -> to_content (sub (of_content d) ofs len));
         truncate = (fun d len -> to_content (truncate (of_content d) len));
         is_empty = (fun d -> is_empty (of_content d));
+        is_sparse = C.is_sparse;
         copy = (fun d -> to_content (copy (of_content d)));
         checksum =
           (fun d ->
