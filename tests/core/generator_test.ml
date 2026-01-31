@@ -104,3 +104,48 @@ let () =
     Generator.put buffer Frame.Fields.audio (Content.make ~length:250 video);
     assert false
   with Content.Invalid -> ()
+
+(* Test optional fields parameter to Generator.length *)
+let () =
+  let buffer =
+    Generator.create ~max_length:1000 (Frame.Fields.make ~audio ~video ())
+  in
+  Generator.put buffer Frame.Fields.audio (Content.make ~length:500 audio);
+  Generator.put buffer Frame.Fields.video (Content.make ~length:250 video);
+
+  (* Default length: min of all media fields = min(500, 250) = 250 *)
+  assert (Generator.length buffer = 250);
+
+  (* Length considering only audio *)
+  assert (Generator.length ~fields:[Frame.Fields.audio] buffer = 500);
+
+  (* Length considering only video *)
+  assert (Generator.length ~fields:[Frame.Fields.video] buffer = 250);
+
+  (* Length considering both audio and video: min(500, 250) = 250 *)
+  assert (
+    Generator.length ~fields:[Frame.Fields.audio; Frame.Fields.video] buffer
+    = 250);
+
+  (* Length with empty fields list returns 0 *)
+  assert (Generator.length ~fields:[] buffer = 0);
+
+  (* Length with metadata field (always max_int) *)
+  assert (Generator.length ~fields:[Frame.Fields.metadata] buffer = max_int);
+
+  (* Length with metadata and audio: min(max_int, 500) = 500 *)
+  assert (
+    Generator.length ~fields:[Frame.Fields.metadata; Frame.Fields.audio] buffer
+    = 500);
+
+  (* After slicing, lengths should update accordingly *)
+  let _ = Generator.slice buffer 100 in
+
+  (* Default: min(400, 150) = 150 *)
+  assert (Generator.length buffer = 150);
+
+  (* Only audio after slice *)
+  assert (Generator.length ~fields:[Frame.Fields.audio] buffer = 400);
+
+  (* Only video after slice *)
+  assert (Generator.length ~fields:[Frame.Fields.video] buffer = 150)
