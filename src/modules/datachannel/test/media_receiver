@@ -1,2 +1,2 @@
 #!/bin/sh
-dune exec ./media_receiver.exe -- "$@"
+LD_PRELOAD=/home/smimram/build/libdatachannel/build/libdatachannel.so dune exec ./media_receiver.exe -- "$@"
