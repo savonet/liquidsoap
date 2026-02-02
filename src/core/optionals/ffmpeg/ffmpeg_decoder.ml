@@ -816,7 +816,7 @@ let get_type ~ctype ~format ~url container =
 let seek ~target_position ~container ticks =
   let tpos = Frame.seconds_of_main ticks in
   log#debug "Setting target position to %f" tpos;
-  target_position := Some tpos;
+  target_position := Some ticks;
   let ts = Int64.of_float (tpos *. 1000.) in
   let frame_duration = Lazy.force Frame.duration in
   let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
@@ -837,37 +837,43 @@ let mk_eof streams buffer =
 
 let mk_decoder ~streams ~target_position container =
   let streams_seen = Hashtbl.create 0 in
-  let position ~pts stream =
-    let { Avutil.num; den } = Av.get_time_base stream in
-    Int64.to_float pts *. float num /. float den
+  let position =
+    let liq_main_ticks_time_base = Ffmpeg_utils.liq_main_ticks_time_base () in
+    let to_ticks ~time_base ts =
+      Ffmpeg_utils.convert_time_base ~src:time_base
+        ~dst:liq_main_ticks_time_base ts
+    in
+    fun ~pts time_base -> Int64.to_int (to_ticks ~time_base pts)
+  in
+  let max_interleave_duration =
+    Frame.main_of_seconds Ffmpeg_decoder_common.conf_max_interleave_duration#get
   in
   let decodable = ref [] in
   let push (position, ts, decode) =
     decodable :=
       (position, ts, decode)
       :: List.filter
-           (fun (p, _, _) ->
-             Float.abs (p -. position)
-             <= Ffmpeg_decoder_common.conf_max_interleave_duration#get)
+           (fun (p, _, _) -> abs (p - position) <= max_interleave_duration)
            !decodable
   in
   let flush position =
     let d =
       List.sort (fun (_, p, _) (_, p', _) -> Int64.compare p p') !decodable
     in
-    let min_position =
-      position -. Ffmpeg_decoder_common.conf_max_interleave_delta#get
-    in
+    let min_position = position - max_interleave_duration in
     List.iter (fun (p, _, decode) -> if min_position <= p then decode ()) d;
     decodable := []
   in
-  let check_pts ~decode ~ts stream pts =
-    match (pts, !target_position) with
-      | Some pts, Some target_position ->
-          if target_position <= position ~pts stream then decode ()
-      | Some pts, None ->
+  let check_pts (type a) (type b) ~decode ~ts
+      (stream : (Avutil.input, a, b) Av.stream) pts =
+    let position =
+      Option.map (fun pts -> position ~pts (Av.get_time_base stream)) pts
+    in
+    match (position, !target_position) with
+      | Some position, Some target_position ->
+          if target_position <= position then decode ()
+      | Some position, None ->
           Hashtbl.replace streams_seen (Hashtbl.hash stream) true;
-          let position = position ~pts stream in
           if Hashtbl.length streams_seen = Streams.cardinal streams then (
             flush position;
             decode ())
