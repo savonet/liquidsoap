@@ -57,10 +57,7 @@ val set_field : t -> Frame_base.field -> Content.data -> unit
 
 (* Length of content for the given field. *)
 val field_length : t -> Frame_base.field -> int
-
-(* Get the length of the generator. By default, all fields are considered
-   except metadata and track marks. *)
-val length : ?pick:(Frame.Fields.field -> Content.data -> bool) -> t -> int
+val length : t -> int
 val buffered_length : t -> int
 
 (* Remaining time before the next track mark or -1 if no

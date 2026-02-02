@@ -38,7 +38,6 @@ module Specs = struct
 
   let name = "subtitle"
   let kind = `Subtitle
-  let is_sparse = true
   let string_of_kind _ = "subtitles"
   let kind_of_string = function "subtitles" -> Some `Subtitle | _ -> None
   let string_of_params () = ""

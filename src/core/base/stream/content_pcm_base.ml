@@ -27,7 +27,6 @@ type params = Content_audio.Specs.params
 let string_of_params = Content_audio.Specs.string_of_params
 let merge = Content_audio.Specs.merge
 let compatible = Content_audio.Specs.compatible
-let is_sparse = false
 
 let blit src src_pos dst dst_pos len =
   let ( ! ) = audio_of_main in

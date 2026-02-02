@@ -64,20 +64,19 @@ let set_max_length gen max_length = Atomic.set gen.max_length max_length
 let field_length { content } field =
   Content.length (Frame_base.Fields.find field (Atomic.get content))
 
-let media_content
-    ?(pick =
-      fun f _ ->
-        f <> Frame_base.Fields.metadata && f <> Frame_base.Fields.track_marks)
-    { content } =
-  Frame_base.Fields.filter pick (Atomic.get content)
+let media_content { content } =
+  Frame_base.Fields.filter
+    (fun f _ ->
+      f <> Frame_base.Fields.metadata && f <> Frame_base.Fields.track_marks)
+    (Atomic.get content)
 
-let length ?pick gen =
+let length gen =
   Option.value ~default:0
     (Frame_base.Fields.fold
        (fun _ c -> function
          | None -> Some (Content.length c)
          | Some l' -> Some (min (Content.length c) l'))
-       (media_content ?pick gen) None)
+       (media_content gen) None)
 
 let _length = length
 
