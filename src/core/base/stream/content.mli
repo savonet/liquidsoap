@@ -43,7 +43,6 @@ module type ContentSpecs = sig
 
   (* Length is in main ticks. *)
   val make : ?length:int -> params -> data
-  val is_sparse : bool
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
@@ -111,7 +110,6 @@ val checksum : data -> string
 val length : data -> int
 val append : data -> data -> data
 val is_empty : data -> bool
-val is_sparse : data -> bool
 
 (** Format *)
 

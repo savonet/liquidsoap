@@ -32,7 +32,6 @@ module Base = struct
 
   let make ?(length = 0) params = { length; params; data = [] }
   let length { length } = length
-  let is_sparse = false
 
   let blit :
       'a 'b.

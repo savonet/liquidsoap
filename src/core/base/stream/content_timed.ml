@@ -40,7 +40,6 @@ module Specs = struct
 
   let clear d = d.data <- []
   let is_empty { data } = data = []
-  let is_sparse = true
 
   (* Make sure content is unique per position, keeping the last
      entry for each position. *)
