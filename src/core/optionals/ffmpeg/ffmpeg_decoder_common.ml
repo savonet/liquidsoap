@@ -22,6 +22,11 @@
 
 (** Decode and read metadata using ffmpeg. *)
 
+type 'a sparse_decoder = {
+  decoder : buffer:Decoder.buffer -> 'a -> unit;
+  advance : buffer:Decoder.buffer -> int -> unit;
+}
+
 let log = Log.make ["decoder"; "ffmpeg"]
 
 let conf_ffmpeg_decoder =

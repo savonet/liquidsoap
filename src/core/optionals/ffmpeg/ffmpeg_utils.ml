@@ -372,3 +372,38 @@ let find_pixel_format codec =
 let pixel_format codec = function
   | Some p -> Avutil.Pixel_format.of_string p
   | None -> find_pixel_format codec
+
+let mk_subtitle_decoder ~output ~process () =
+  let current_position = ref None in
+  let advance ~buffer position =
+    match !current_position with
+      | None ->
+          output ?data:None ~buffer ~length:position ();
+          current_position := Some (position, None)
+      | Some (p, _) when position <= p -> ()
+      | Some (p, data) ->
+          let data = Option.map snd data in
+          output ?data ~buffer ~length:(position - p) ();
+          current_position := Some (position, None)
+  in
+  let process ~buffer subtitle =
+    let position, duration, content = process subtitle in
+    match !current_position with
+      | Some (old_position, _) when position <= old_position -> ()
+      | Some (old_position, data) ->
+          let data = Option.map snd data in
+          output ?data ~buffer ~length:(position - old_position) ();
+          current_position := Some (position, Some (duration, content))
+      | None -> current_position := Some (position, Some (duration, content))
+  in
+  let flush buffer =
+    match !current_position with
+      | Some (_, Some (length, content)) ->
+          output ?data:(Some content) ~buffer ~length ()
+      | _ -> ()
+  in
+  let decoder ~buffer = function
+    | `Flush -> flush buffer
+    | `Subtitle subtitle -> process ~buffer subtitle
+  in
+  { Ffmpeg_decoder_common.decoder; advance }

@@ -157,10 +157,10 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let get_metadata () =
           normalize_metadata
             (Ffmpeg_decoder.Streams.fold
-               (fun _ stream m ->
+               (fun _ s m ->
                  m
                  @
-                   match stream with
+                   match s.Ffmpeg_decoder.decoder with
                    | `Audio_frame (stream, _) -> get_metadata stream
                    | `Audio_packet (stream, _) -> get_metadata stream
                    | `Video_frame (stream, _) -> get_metadata stream
