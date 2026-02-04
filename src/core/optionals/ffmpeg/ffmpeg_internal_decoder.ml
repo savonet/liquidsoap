@@ -144,7 +144,7 @@ let mk_video_decoder ~width ~height ~stream ~field codec =
     in
     let scaler =
       Scaler.create [] width height pixel_format aw ah
-        (Ffmpeg_utils.liq_frame_pixel_format ())
+        Ffmpeg_utils.liq_frame_pixel_format
     in
     fun frame : Video.Canvas.Image.t ->
       let img =

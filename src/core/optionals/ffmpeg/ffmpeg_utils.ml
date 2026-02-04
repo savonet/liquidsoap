@@ -99,7 +99,8 @@ let liq_video_sample_time_base () =
 let liq_frame_time_base () =
   { Avutil.num = Lazy.force Frame.size; den = Lazy.force Frame.main_rate }
 
-let liq_frame_pixel_format () = `Yuv420p
+let liq_frame_pixel_format = `Yuv420p
+let liq_frame_pixel_format_with_alpha = `Yuva420p
 
 let pack_image f =
   let y, u, v = Image.YUV420.data f in
@@ -353,7 +354,6 @@ module Duration = struct
 end
 
 let find_pixel_format codec =
-  let liq_frame_pixel_format = liq_frame_pixel_format () in
   let formats = Avcodec.Video.get_supported_pixel_formats codec in
   if List.mem liq_frame_pixel_format formats then liq_frame_pixel_format
   else (

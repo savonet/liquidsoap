@@ -62,9 +62,7 @@ let decode_image fname =
       in
       let width = Avcodec.Video.get_width codec in
       let height = Avcodec.Video.get_height codec in
-      (* Hardcoding this instead of using Ffmpeg_utils.liq_frame_pixel_format () in
-         order to have alpha channel. *)
-      let out_pixel_format = `Yuva420p in
+      let out_pixel_format = Ffmpeg_utils.liq_frame_pixel_format_with_alpha in
       let scaler =
         Scaler.create [] width height pixel_format width height out_pixel_format
       in

@@ -216,8 +216,7 @@ let decode_video_frame ~field ~mode generator =
         Some (width, height, pixel_format, time_base, pixel_aspect, stream_idx);
       let scaler =
         InternalScaler.create [] width height pixel_format internal_width
-          internal_height
-          (Ffmpeg_utils.liq_frame_pixel_format ())
+          internal_height Ffmpeg_utils.liq_frame_pixel_format
       in
       let fps_converter =
         Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base

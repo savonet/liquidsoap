@@ -465,8 +465,8 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     let src_height = Lazy.force Frame.video_height in
     let scaler =
       InternalScaler.create [flag] src_width src_height
-        (Ffmpeg_utils.liq_frame_pixel_format ())
-        target_width target_height target_pixel_format
+        Ffmpeg_utils.liq_frame_pixel_format target_width target_height
+        target_pixel_format
     in
     let nb_frames = ref 0L in
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in

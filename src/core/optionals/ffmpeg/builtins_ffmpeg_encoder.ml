@@ -215,8 +215,8 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
     scaler :=
       Some
         (InternalScaler.create [flag] internal_width internal_height
-           (Ffmpeg_utils.liq_frame_pixel_format ())
-           target_width target_height target_pixel_format)
+           Ffmpeg_utils.liq_frame_pixel_format target_width target_height
+           target_pixel_format)
   in
 
   let fps_converter = ref None in
@@ -312,7 +312,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
           | `Frame frame -> Avcodec.encode encoder write_packet frame
           | `Flush -> Avcodec.flush_encoder encoder write_packet)
       | `Raw -> (
-          let target_pixel_format = Ffmpeg_utils.liq_frame_pixel_format () in
+          let target_pixel_format = Ffmpeg_utils.liq_frame_pixel_format in
 
           mk_scaler ~target_pixel_format;
           mk_fps_converter ~target_pixel_format;

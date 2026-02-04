@@ -57,7 +57,7 @@ let format_of frame =
           | P.YUV444 -> `Yuv444p
           | P.YUV411 -> `Yuv411p
           | P.YUV410 -> `Yuv410p
-          | P.YUVJ420 -> Ffmpeg_utils.liq_frame_pixel_format ()
+          | P.YUVJ420 -> Ffmpeg_utils.liq_frame_pixel_format
           | P.YUVJ422 -> `Yuvj422p
           | P.YUVJ444 -> `Yuvj444p)
 
