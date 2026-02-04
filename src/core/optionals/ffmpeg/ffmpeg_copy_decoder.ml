@@ -106,8 +106,42 @@ let mk_subtitle_decoder ~stream_idx ~format ~stream ~field params =
     `Subtitle { Ffmpeg_copy_content.time_base = stream_time_base; params }
   in
   ignore (Content.merge format (Ffmpeg_copy_content.lift_params (Some params)));
-  mk_decoder ~stream_idx
-    ~mk_packet:(fun p -> `Subtitle p)
-    ~stream_time_base
-    ~put_data:(fun g c -> Generator.put g field c)
-    params
+  let liq_main_ticks_time_base = Ffmpeg_utils.liq_main_ticks_time_base () in
+  let to_ticks ts =
+    Int64.to_int
+      (Ffmpeg_utils.convert_time_base ~src:stream_time_base
+         ~dst:liq_main_ticks_time_base ts)
+  in
+  let output ?(data = []) ~buffer ~length () =
+    let data =
+      List.map
+        (fun packet ->
+          ( 0,
+            {
+              Ffmpeg_copy_content.packet = `Subtitle packet;
+              time_base = stream_time_base;
+              stream_idx;
+            } ))
+        data
+    in
+    let data = { Content.Video.params = Some params; data; length } in
+    let data = Ffmpeg_copy_content.lift_data data in
+    Generator.put buffer.Decoder.generator field data
+  in
+  let process packet =
+    let flags = Packet.get_flags packet in
+    let packets =
+      if List.mem `Corrupt flags then (
+        log#important "Corrupted packet in stream!";
+        [])
+      else [packet]
+    in
+    let pos =
+      to_ticks (Option.value ~default:0L (Avcodec.Packet.get_pts packet))
+    in
+    let duration =
+      to_ticks (Option.value ~default:1L (Avcodec.Packet.get_duration packet))
+    in
+    (pos, duration, packets)
+  in
+  Ffmpeg_utils.mk_subtitle_decoder ~output ~process ()

@@ -46,6 +46,5 @@ val mk_subtitle_decoder :
   stream:(Avutil.input, Avutil.subtitle, [ `Packet ]) Av.stream ->
   field:int ->
   Avutil.subtitle Avcodec.params ->
-  buffer:Decoder.buffer ->
-  [ `Packet of Avutil.subtitle Avcodec.Packet.t | `Flush ] ->
-  unit
+  [ `Subtitle of Avutil.subtitle Avcodec.Packet.t | `Flush ]
+  Ffmpeg_decoder_common.sparse_decoder

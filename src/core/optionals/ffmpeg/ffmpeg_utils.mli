@@ -79,3 +79,9 @@ module Duration : sig
   val push : 'a t -> 'a -> (int * (int * 'a) list) option
   val flush : 'a t -> int * (int * 'a) list
 end
+
+val mk_subtitle_decoder :
+  output:(?data:'a -> buffer:Decoder.buffer -> length:int -> unit -> unit) ->
+  process:('b -> int * int * 'a) ->
+  unit ->
+  [ `Flush | `Subtitle of 'b ] Ffmpeg_decoder_common.sparse_decoder
