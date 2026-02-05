@@ -109,43 +109,45 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
     initializer self#on_wake_up (fun () -> Atomic.set is_up true)
     initializer self#on_sleep (fun () -> Atomic.set is_up false)
 
-    method virtual raw_ffmpeg_frames
-        : Content.data -> 'a Ffmpeg_raw_content.frame list
+    method virtual raw_ffmpeg_content
+        : Content.data ->
+          (int64 * Avutil.rational * (int * 'a Avutil.frame) list) option
 
     method send_frame memo =
       let content = Frame.get memo field in
-      let frames = self#raw_ffmpeg_frames content in
-      (match frames with
-        | { Ffmpeg_raw_content.frame } :: _ -> init frame
-        | _ -> ());
-      List.iter
-        (fun { Ffmpeg_raw_content.frame; time_base; stream_idx } ->
-          match
-            self#convert_duration ~convert_ts:true ~stream_idx ~time_base frame
-          with
-            | None -> ()
-            | Some (_, frames) ->
-                List.iteri
-                  (fun pos (_, frame) ->
-                    if pos = 0 then (
-                      let metadata =
-                        if pass_metadata then (
-                          (* Pass only one metadata. *)
-                            match Frame.get_all_metadata memo with
-                            | (_, m) :: _ -> Frame.Metadata.to_list m
-                            | _ -> [])
-                        else []
-                      in
-                      let metadata =
-                        if Frame.has_track_marks memo then
-                          (track_mark_metadata, "1") :: metadata
-                        else metadata
-                      in
-                      if metadata <> [] then
-                        Avutil.Frame.set_metadata frame metadata;
-                      input (`Frame frame)))
-                  frames)
-        frames
+      match self#raw_ffmpeg_content content with
+        | None -> ()
+        | Some (stream_idx, time_base, frames) ->
+            (match frames with (_, frame) :: _ -> init frame | _ -> ());
+            List.iter
+              (fun (_, frame) ->
+                match
+                  self#convert_duration ~convert_ts:true ~stream_idx ~time_base
+                    frame
+                with
+                  | None -> ()
+                  | Some (_, frames) ->
+                      List.iteri
+                        (fun pos (_, frame) ->
+                          if pos = 0 then (
+                            let metadata =
+                              if pass_metadata then (
+                                (* Pass only one metadata. *)
+                                  match Frame.get_all_metadata memo with
+                                  | (_, m) :: _ -> Frame.Metadata.to_list m
+                                  | _ -> [])
+                              else []
+                            in
+                            let metadata =
+                              if Frame.has_track_marks memo then
+                                (track_mark_metadata, "1") :: metadata
+                              else metadata
+                            in
+                            if metadata <> [] then
+                              Avutil.Frame.set_metadata frame metadata;
+                            input (`Frame frame)))
+                        frames)
+              frames
   end
 
 (** From the script perspective, the operator sending data to a filter graph is
@@ -154,16 +156,34 @@ class audio_output ~pass_metadata ~name ~frame_t ~field source =
   object
     inherit [[ `Audio ]] base_output ~pass_metadata ~name ~frame_t ~field source
 
-    method raw_ffmpeg_frames content =
-      List.map snd Ffmpeg_raw_content.((Audio.get_data content).AudioSpecs.data)
+    method raw_ffmpeg_content content =
+      let c = Ffmpeg_raw_content.Audio.get_data content in
+      match c.Ffmpeg_content_base.chunks with
+        | [] -> None
+        | d :: _ ->
+            if d.Ffmpeg_content_base.data = [] then None
+            else
+              Some
+                ( d.Ffmpeg_content_base.stream_idx,
+                  d.Ffmpeg_content_base.time_base,
+                  d.Ffmpeg_content_base.data )
   end
 
 class video_output ~pass_metadata ~name ~frame_t ~field source =
   object
     inherit [[ `Video ]] base_output ~pass_metadata ~name ~frame_t ~field source
 
-    method raw_ffmpeg_frames content =
-      List.map snd Ffmpeg_raw_content.((Video.get_data content).VideoSpecs.data)
+    method raw_ffmpeg_content content =
+      let c = Ffmpeg_raw_content.Video.get_data content in
+      match c.Ffmpeg_content_base.chunks with
+        | [] -> None
+        | d :: _ ->
+            if d.Ffmpeg_content_base.data = [] then None
+            else
+              Some
+                ( d.Ffmpeg_content_base.stream_idx,
+                  d.Ffmpeg_content_base.time_base,
+                  d.Ffmpeg_content_base.data )
   end
 
 class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
@@ -178,10 +198,8 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
     method remaining = Generator.remaining self#buffer
     method abort_track = ()
     method virtual buffer : Generator.t
-
-    method virtual put_data
-        : length:int -> (int * 'a Ffmpeg_raw_content.frame) list -> unit
-
+    method private stream_idx = stream_idx
+    method virtual put_data : length:int -> (int * 'a Avutil.frame) list -> unit
     val mutable output = None
 
     method private metadata_timestamps ~time_base frame =
@@ -230,7 +248,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
                              (m @ self#metadata_timestamps ~time_base frame));
                         if List.mem_assoc track_mark_metadata metadata then
                           Generator.add_track_mark ~pos self#buffer));
-                    (pos, { Ffmpeg_raw_content.time_base; stream_idx; frame }))
+                    (pos, frame))
                   frames
               in
               self#put_data ~length frames
@@ -310,8 +328,12 @@ class audio_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
       | [] -> ()
       | (_, frame) :: _ as data ->
           let params = Ffmpeg_raw_content.AudioSpecs.frame_params frame in
-          let content =
-            { Ffmpeg_raw_content.AudioSpecs.params; data; length }
+          let time_base = Avfilter.(time_base (Option.get output).context) in
+          let d : Avutil.audio Avutil.frame Ffmpeg_content_base.data =
+            { length; stream_idx = self#stream_idx; time_base; data }
+          in
+          let content : Ffmpeg_raw_content.AudioSpecs.data =
+            { params; chunks = [d] }
           in
           Generator.put self#buffer field
             (Ffmpeg_raw_content.Audio.lift_data content)
@@ -350,8 +372,12 @@ class video_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
       | [] -> ()
       | (_, frame) :: _ as data ->
           let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
-          let content =
-            { Ffmpeg_raw_content.VideoSpecs.params; data; length }
+          let time_base = Avfilter.(time_base (Option.get output).context) in
+          let d : Avutil.video Avutil.frame Ffmpeg_content_base.data =
+            { length; stream_idx = self#stream_idx; time_base; data }
+          in
+          let content : Ffmpeg_raw_content.VideoSpecs.data =
+            { params; chunks = [d] }
           in
           Generator.put self#buffer field
             (Ffmpeg_raw_content.Video.lift_data content)

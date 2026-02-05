@@ -96,31 +96,31 @@ let decode_audio_frame ~field ~mode generator =
 
     function
     | `Frame frame ->
-        let data, params =
-          match Ffmpeg_copy_content.get_data frame with
-            | { Content.Video.data; params = Some (`Audio params) } ->
-                (data, params)
-            | _ -> assert false
-        in
-        let data =
-          List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
+        let content = Ffmpeg_copy_content.get_data frame in
+        let params = Ffmpeg_content_base.params content in
+        let audio_params =
+          match params with Some (`Audio p) -> p | _ -> assert false
         in
         List.iter
-          (function
-            | ( _,
-                {
-                  Ffmpeg_copy_content.packet = `Audio packet;
-                  stream_idx;
-                  time_base;
-                } ) ->
-                let converter, decoder =
-                  get_converter ~time_base ~stream_idx params
-                in
-                Avcodec.decode decoder
-                  (fun frame -> converter (`Frame frame))
-                  packet
-            | _ -> assert false)
-          data
+          (fun chunk_data ->
+            let { Ffmpeg_content_base.data; stream_idx; time_base; _ } =
+              chunk_data
+            in
+            let data =
+              List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
+            in
+            List.iter
+              (function
+                | _, `Audio packet ->
+                    let converter, decoder =
+                      get_converter ~time_base ~stream_idx audio_params
+                    in
+                    Avcodec.decode decoder
+                      (fun frame -> converter (`Frame frame))
+                      packet
+                | _ -> assert false)
+              data)
+          content.chunks
     | `Flush ->
         ignore
           (Option.map
@@ -165,41 +165,33 @@ let decode_audio_frame ~field ~mode generator =
 
     function
     | `Frame frame ->
-        let { Content.Video.data; params } =
-          Ffmpeg_raw_content.Audio.get_data frame
-        in
-        let data =
-          List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
-        in
+        let content = Ffmpeg_raw_content.Audio.get_data frame in
+        let params = Ffmpeg_content_base.params content in
         List.iter
-          (fun (_, { Ffmpeg_raw_content.frame; time_base; stream_idx; _ }) ->
-            (get_converter ~time_base ~stream_idx params) (`Frame frame))
-          data
+          (fun chunk_data ->
+            let { Ffmpeg_content_base.data; time_base; stream_idx; _ } =
+              chunk_data
+            in
+            let data =
+              List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
+            in
+            List.iter
+              (fun (_, frame) ->
+                (get_converter ~time_base ~stream_idx params) (`Frame frame))
+              data)
+          content.chunks
     | `Flush -> (
         match !current_converter with None -> () | Some (c, _, _) -> c `Flush)
   in
 
-  let convert :
-      'a 'b.
-      get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
-      decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
-      [ `Frame of Frame.t | `Flush ] ->
-      unit =
-   fun ~get_data ~decoder -> function
-     | `Frame frame ->
-         let frame = Frame.get frame field in
-         let { Content.Video.data; _ } = get_data frame in
-         if data = [] then () else decoder (`Frame frame)
-     | `Flush -> decoder `Flush
+  let convert ~decoder = function
+    | `Frame frame -> decoder (`Frame (Frame.get frame field))
+    | `Flush -> decoder `Flush
   in
 
   match mode with
-    | `Decode ->
-        convert ~get_data:Ffmpeg_copy_content.get_data
-          ~decoder:(mk_copy_decoder ())
-    | `Raw ->
-        convert ~get_data:Ffmpeg_raw_content.Audio.get_data
-          ~decoder:(mk_raw_decoder ())
+    | `Decode -> convert ~decoder:(mk_copy_decoder ())
+    | `Raw -> convert ~decoder:(mk_raw_decoder ())
 
 let decode_video_frame ~field ~mode generator =
   let internal_width = Lazy.force Frame.video_width in
@@ -286,12 +278,12 @@ let decode_video_frame ~field ~mode generator =
     let mk_decoder ~(params : Ffmpeg_copy_content.video_params) ~stream_idx
         ~time_base =
       let codec_id =
-        Avcodec.Video.get_params_id params.Ffmpeg_copy_content.params
+        Avcodec.Video.get_params_id params.Ffmpeg_copy_content.codec_params
       in
       let codec = Avcodec.Video.find_decoder codec_id in
       let decoder =
-        Avcodec.Video.create_decoder ~params:params.Ffmpeg_copy_content.params
-          codec
+        Avcodec.Video.create_decoder
+          ~params:params.Ffmpeg_copy_content.codec_params codec
       in
       current_decoder := Some decoder;
       current_stream_idx := Some stream_idx;
@@ -320,29 +312,32 @@ let decode_video_frame ~field ~mode generator =
     in
     function
     | `Frame frame ->
-        let data, params =
-          match Ffmpeg_copy_content.get_data frame with
-            | { Content.Video.data; params = Some (`Video params) } ->
-                (data, params)
-            | _ -> assert false
-        in
-        let data =
-          List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
+        let content = Ffmpeg_copy_content.get_data frame in
+        let params = Ffmpeg_content_base.params content in
+        let video_params =
+          match params with Some (`Video p) -> p | _ -> assert false
         in
         List.iter
-          (function
-            | ( _,
-                {
-                  Ffmpeg_copy_content.packet = `Video packet;
-                  stream_idx;
-                  time_base;
-                } ) ->
-                let decoder = get_decoder ~params ~time_base ~stream_idx in
-                Avcodec.decode decoder
-                  (fun frame -> convert ~time_base ~stream_idx (`Frame frame))
-                  packet
-            | _ -> assert false)
-          data
+          (fun chunk_data ->
+            let { Ffmpeg_content_base.data; stream_idx; time_base; _ } =
+              chunk_data
+            in
+            let data =
+              List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
+            in
+            List.iter
+              (function
+                | _, `Video packet ->
+                    let decoder =
+                      get_decoder ~params:video_params ~time_base ~stream_idx
+                    in
+                    Avcodec.decode decoder
+                      (fun frame ->
+                        convert ~time_base ~stream_idx (`Frame frame))
+                      packet
+                | _ -> assert false)
+              data)
+          content.chunks
     | `Flush ->
         ignore
           (Option.map
@@ -368,17 +363,21 @@ let decode_video_frame ~field ~mode generator =
     let last_params = ref None in
     function
     | `Frame frame ->
-        let { Content.Video.data; _ } =
-          Ffmpeg_raw_content.Video.get_data frame
-        in
-        let data =
-          List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
-        in
+        let content = Ffmpeg_raw_content.Video.get_data frame in
         List.iter
-          (fun (_, { Ffmpeg_raw_content.frame; stream_idx; time_base }) ->
-            last_params := Some (time_base, stream_idx);
-            convert ~time_base ~stream_idx (`Frame frame))
-          data
+          (fun chunk_data ->
+            let { Ffmpeg_content_base.data; stream_idx; time_base; _ } =
+              chunk_data
+            in
+            let data =
+              List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
+            in
+            List.iter
+              (fun (_, frame) ->
+                last_params := Some (time_base, stream_idx);
+                convert ~time_base ~stream_idx (`Frame frame))
+              data)
+          content.chunks
     | `Flush ->
         ignore
           (Option.map
@@ -387,27 +386,14 @@ let decode_video_frame ~field ~mode generator =
              !last_params)
   in
 
-  let convert :
-      'a 'b.
-      get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
-      decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
-      [ `Frame of Frame.t | `Flush ] ->
-      unit =
-   fun ~get_data ~decoder -> function
-     | `Frame frame ->
-         let frame = Frame.get frame field in
-         let { Content.Video.data; _ } = get_data frame in
-         if data = [] then () else decoder (`Frame frame)
-     | `Flush -> decoder `Flush
+  let convert ~decoder = function
+    | `Frame frame -> decoder (`Frame (Frame.get frame field))
+    | `Flush -> decoder `Flush
   in
 
   match mode with
-    | `Decode ->
-        convert ~get_data:Ffmpeg_copy_content.get_data
-          ~decoder:(mk_copy_decoder ())
-    | `Raw ->
-        convert ~get_data:Ffmpeg_raw_content.Video.get_data
-          ~decoder:(mk_raw_decoder ())
+    | `Decode -> convert ~decoder:(mk_copy_decoder ())
+    | `Raw -> convert ~decoder:(mk_raw_decoder ())
 
 let mk_decoder mode =
   let input_frame_t =

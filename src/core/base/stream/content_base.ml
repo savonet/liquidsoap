@@ -187,7 +187,7 @@ let dummy_handler =
     append = (fun _ _ -> raise Invalid);
   }
 
-let data_handlers = Array.make 12 dummy_handler
+let data_handlers = Array.make 16 dummy_handler
 
 let register_data_handler t h =
   if Array.length data_handlers - 1 < t then

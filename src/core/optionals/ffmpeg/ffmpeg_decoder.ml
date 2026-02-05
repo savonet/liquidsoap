@@ -807,7 +807,11 @@ let get_type ~ctype ~format ~url container =
                 (Content.merge format
                    (Ffmpeg_copy_content.lift_params
                       (Some
-                         (`Video { Ffmpeg_copy_content.avg_frame_rate; params }))));
+                         (`Video
+                            {
+                              Ffmpeg_copy_content.avg_frame_rate;
+                              codec_params = params;
+                            }))));
               Frame.Fields.add field format content_type
           | p, Some format when Ffmpeg_raw_content.Video.is_format format ->
               ignore
@@ -831,7 +835,11 @@ let get_type ~ctype ~format ~url container =
                 (Content.merge format
                    (Ffmpeg_copy_content.lift_params
                       (Some
-                         (`Subtitle { Ffmpeg_copy_content.time_base; params }))));
+                         (`Subtitle
+                            {
+                              Ffmpeg_copy_content.time_base;
+                              codec_params = params;
+                            }))));
               Frame.Fields.add field format content_type
           | _ -> content_type)
       content_type subtitle_streams

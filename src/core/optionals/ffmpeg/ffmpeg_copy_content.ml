@@ -22,7 +22,6 @@
 
 open Avutil
 open Avcodec
-include Content_video.Base
 
 let conf_ffmpeg_copy =
   Dtools.Conf.void
@@ -43,31 +42,25 @@ type packet =
 
 type video_params = {
   avg_frame_rate : Avutil.rational option;
-  params : video Avcodec.params;
+  codec_params : video Avcodec.params;
 }
 
 type subtitle_params = {
   time_base : Avutil.rational;
-  params : subtitle Avcodec.params;
+  codec_params : subtitle Avcodec.params;
 }
 
-type params_payload =
+type codec_params =
   [ `Audio of audio Avcodec.params
   | `Video of video_params
   | `Subtitle of subtitle_params ]
 
-type packet_payload = {
-  stream_idx : Int64.t;
-  time_base : Avutil.rational;
-  packet : packet;
-}
+type content = (codec_params option, packet) Ffmpeg_content_base.content
 
 module Specs = struct
-  include Content_video.Base
-
   type kind = [ `Copy ]
-  type params = params_payload option
-  type data = (params, packet_payload) content
+  type params = codec_params option
+  type nonrec data = content
 
   let name = "ffmpeg.copy"
   let kind = `Copy
@@ -76,45 +69,48 @@ module Specs = struct
   let string_of_kind = function `Copy -> "ffmpeg.copy"
   let kind_of_string = function "ffmpeg.copy" -> Some `Copy | _ -> None
 
-  let string_of_params params =
+  let string_of_params p =
     String.concat ","
       (List.map
          (fun (k, v) -> Printf.sprintf "%s=%s" k v)
-         (match params with
+         (match p with
            | None -> []
-           | Some (`Audio params) ->
+           | Some (`Audio audio_params) ->
                [
                  ( "codec",
                    Printf.sprintf "%S"
-                     (Audio.string_of_id (Audio.get_params_id params)) );
+                     (Audio.string_of_id (Audio.get_params_id audio_params)) );
                  ( "channel_layout",
                    Printf.sprintf "%S"
                      (Channel_layout.get_description
-                        (Audio.get_channel_layout params)) );
+                        (Audio.get_channel_layout audio_params)) );
                  ( "sample_format",
                    Printf.sprintf "%s"
                      (match
-                        Sample_format.get_name (Audio.get_sample_format params)
+                        Sample_format.get_name
+                          (Audio.get_sample_format audio_params)
                       with
                        | None -> "none"
                        | Some p -> p) );
-                 ("sample_rate", string_of_int (Audio.get_sample_rate params));
+                 ( "sample_rate",
+                   string_of_int (Audio.get_sample_rate audio_params) );
                ]
-           | Some (`Video { avg_frame_rate; params }) -> (
+           | Some (`Video { avg_frame_rate; codec_params }) -> (
                [
                  ( "codec",
                    Printf.sprintf "%S"
-                     (Video.string_of_id (Video.get_params_id params)) );
-                 ("width", string_of_int (Video.get_width params));
-                 ("height", string_of_int (Video.get_height params));
+                     (Video.string_of_id (Video.get_params_id codec_params)) );
+                 ("width", string_of_int (Video.get_width codec_params));
+                 ("height", string_of_int (Video.get_height codec_params));
                  ( "aspect_ratio",
-                   string_of_rational (Video.get_sample_aspect_ratio params) );
+                   string_of_rational
+                     (Video.get_sample_aspect_ratio codec_params) );
                ]
                @ (match avg_frame_rate with
                  | Some r -> [("framerate", Avutil.string_of_rational r)]
                  | None -> [])
                @
-                 match Video.get_pixel_format params with
+                 match Video.get_pixel_format codec_params with
                  | None -> []
                  | Some p ->
                      [
@@ -122,15 +118,16 @@ module Specs = struct
                          Option.value ~default:"none" (Pixel_format.to_string p)
                        );
                      ])
-           | Some (`Subtitle { time_base; params }) ->
+           | Some (`Subtitle { time_base; codec_params }) ->
                [
                  ( "codec",
                    Printf.sprintf "%S"
-                     (Subtitle.string_of_id (Subtitle.get_params_id params)) );
+                     (Subtitle.string_of_id
+                        (Subtitle.get_params_id codec_params)) );
                  ("time_base", string_of_rational time_base);
                ]))
 
-  let compatible_aspect_radio p p' =
+  let compatible_aspect_ratio p p' =
     match (p, p') with
       (* 0/1 aspect_ratio means undefined and is usually
          assumed to be 1 so we match it with 1/1. *)
@@ -150,13 +147,14 @@ module Specs = struct
     r = r'
     && Video.get_width p = Video.get_width p'
     && Video.get_height p = Video.get_height p'
-    && compatible_aspect_radio
+    && compatible_aspect_ratio
          (Video.get_sample_aspect_ratio p)
          (Video.get_sample_aspect_ratio p')
     && Video.get_pixel_format p = Video.get_pixel_format p'
 
   let compatible_subtitle (p : subtitle_params) (p' : subtitle_params) =
-    Subtitle.get_params_id p.params = Subtitle.get_params_id p'.params
+    Subtitle.get_params_id p.codec_params
+    = Subtitle.get_params_id p'.codec_params
 
   let compatible p p' =
     match (p, p') with
@@ -164,8 +162,8 @@ module Specs = struct
       | Some (`Audio p), Some (`Audio p') ->
           Audio.get_params_id p = Audio.get_params_id p'
           && (conf_ffmpeg_copy_relaxed#get || compatible_audio p p')
-      | ( Some (`Video { avg_frame_rate = r; params = p }),
-          Some (`Video { avg_frame_rate = r'; params = p' }) ) ->
+      | ( Some (`Video { avg_frame_rate = r; codec_params = p }),
+          Some (`Video { avg_frame_rate = r'; codec_params = p' }) ) ->
           Video.get_params_id p = Video.get_params_id p'
           && (conf_ffmpeg_copy_relaxed#get || compatible_video (r, p) (r', p'))
       | Some (`Subtitle p), Some (`Subtitle p') ->
@@ -178,36 +176,43 @@ module Specs = struct
       | p, p' when compatible p p' -> p
       | _ -> failwith "Incompatible format!"
 
-  let copy_packet (p : packet_payload) =
-    {
-      p with
-      packet =
-        (match p.packet with
-          | `Audio p -> `Audio (Avcodec.Packet.dup p)
-          | `Video p -> `Video (Avcodec.Packet.dup p)
-          | `Subtitle p -> `Subtitle (Avcodec.Packet.dup p));
-    }
+  let length = Ffmpeg_content_base.length
+  let params = Ffmpeg_content_base.params
 
-  let blit = blit ~copy:copy_packet
-  let copy = copy ~copy:copy_packet
+  let copy_packet = function
+    | `Audio p -> `Audio (Avcodec.Packet.dup p)
+    | `Video p -> `Video (Avcodec.Packet.dup p)
+    | `Subtitle p -> `Subtitle (Avcodec.Packet.dup p)
+
+  let blit (src : data) src_pos (dst : data) dst_pos len =
+    Ffmpeg_content_base.blit ~copy:copy_packet src src_pos dst dst_pos len
+
+  let copy (src : data) : data = Ffmpeg_content_base.copy ~copy:copy_packet src
   let default_params _ = None
+  let make ?length:_ params : data = Ffmpeg_content_base.make params
 
-  let checksum d =
-    let packets_data =
+  let checksum (d : data) =
+    let chunk_checksums =
       List.map
-        (fun (pos, { stream_idx; time_base; packet }) ->
-          let pkt_bytes =
-            match packet with
-              | `Audio p -> Avcodec.Packet.to_bytes p
-              | `Video p -> Avcodec.Packet.to_bytes p
-              | `Subtitle p -> Avcodec.Packet.to_bytes p
+        (fun (data : packet Ffmpeg_content_base.data) ->
+          let packets_data =
+            List.map
+              (fun (pos, packet) ->
+                let pkt_bytes =
+                  match packet with
+                    | `Audio p -> Avcodec.Packet.to_bytes p
+                    | `Video p -> Avcodec.Packet.to_bytes p
+                    | `Subtitle p -> Avcodec.Packet.to_bytes p
+                in
+                Printf.sprintf "%d:%Ld:%d/%d:%s" pos data.stream_idx
+                  data.time_base.Avutil.num data.time_base.Avutil.den
+                  (Digest.bytes pkt_bytes |> Digest.to_hex))
+              data.data
           in
-          Printf.sprintf "%d:%Ld:%d/%d:%s" pos stream_idx time_base.Avutil.num
-            time_base.Avutil.den
-            (Digest.bytes pkt_bytes |> Digest.to_hex))
-        d.data
+          String.concat "|" packets_data)
+        d.chunks
     in
-    Digest.string (String.concat "|" packets_data) |> Digest.to_hex
+    Digest.string (String.concat "||" chunk_checksums) |> Digest.to_hex
 end
 
 include Content.MkContent (Specs)

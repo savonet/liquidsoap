@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Rawright 2003-2026 Savonet team
+  Copyright 2003-2026 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,25 +22,10 @@
 
 open Avutil
 
-type 'a frame = {
-  stream_idx : Int64.t;
-  time_base : Avutil.rational;
-  frame : 'a Avutil.frame;
-}
-
 module BaseSpecs = struct
-  include Content_video.Base
-
   type kind = [ `Raw ]
 
   let kind = `Raw
-
-  (* No frame copy for now. *)
-  let blit = fill
-
-  let copy : 'a. ('a, 'b) content -> ('a, 'b) content =
-   fun src -> copy ~copy:(fun x -> x) src
-
   let internal_content_type = None
 end
 
@@ -56,22 +41,37 @@ module AudioSpecs = struct
     sample_rate : int option;
   }
 
-  type data = (params, audio frame) content
+  type data = (params, audio frame) Ffmpeg_content_base.content
 
-  let checksum d =
-    let frames_data =
+  (* No frame copy for now. *)
+  let blit (src : data) src_pos (dst : data) dst_pos len =
+    Ffmpeg_content_base.blit ~copy:(fun x -> x) src src_pos dst dst_pos len
+
+  let copy (src : data) : data = Ffmpeg_content_base.copy ~copy:(fun x -> x) src
+  let length = Ffmpeg_content_base.length
+  let params = Ffmpeg_content_base.params
+  let make ?length:_ params : data = Ffmpeg_content_base.make params
+
+  let checksum (d : data) =
+    let chunk_checksums =
       List.map
-        (fun (pos, { stream_idx; time_base; frame }) ->
-          Printf.sprintf "%d:%Ld:%d/%d:%s" pos stream_idx time_base.Avutil.num
-            time_base.Avutil.den
-            (Ffmpeg_frame_checksum.checksum_of_audio_frame frame))
-        d.data
+        (fun (data : audio frame Ffmpeg_content_base.data) ->
+          let frames_data =
+            List.map
+              (fun (pos, frame) ->
+                Printf.sprintf "%d:%Ld:%d/%d:%s" pos data.stream_idx
+                  data.time_base.Avutil.num data.time_base.Avutil.den
+                  (Ffmpeg_frame_checksum.checksum_of_audio_frame frame))
+              data.data
+          in
+          String.concat "|" frames_data)
+        d.chunks
     in
-    Digest.string (String.concat "|" frames_data) |> Digest.to_hex
+    Digest.string (String.concat "||" chunk_checksums) |> Digest.to_hex
 
   let name = "ffmpeg.raw.audio"
 
-  let frame_params { frame } =
+  let frame_params frame =
     {
       channel_layout = Some (Audio.frame_get_channel_layout frame);
       sample_format = Some (Audio.frame_get_sample_format frame);
@@ -186,22 +186,37 @@ module VideoSpecs = struct
     pixel_aspect : Avutil.rational option;
   }
 
-  type data = (params, video frame) content
+  type data = (params, video frame) Ffmpeg_content_base.content
 
-  let checksum d =
-    let frames_data =
+  (* No frame copy for now. *)
+  let blit (src : data) src_pos (dst : data) dst_pos len =
+    Ffmpeg_content_base.blit ~copy:(fun x -> x) src src_pos dst dst_pos len
+
+  let copy (src : data) : data = Ffmpeg_content_base.copy ~copy:(fun x -> x) src
+  let length = Ffmpeg_content_base.length
+  let params = Ffmpeg_content_base.params
+  let make ?length:_ params : data = Ffmpeg_content_base.make params
+
+  let checksum (d : data) =
+    let chunk_checksums =
       List.map
-        (fun (pos, { stream_idx; time_base; frame }) ->
-          Printf.sprintf "%d:%Ld:%d/%d:%s" pos stream_idx time_base.Avutil.num
-            time_base.Avutil.den
-            (Ffmpeg_frame_checksum.checksum_of_video_frame frame))
-        d.data
+        (fun (data : video frame Ffmpeg_content_base.data) ->
+          let frames_data =
+            List.map
+              (fun (pos, frame) ->
+                Printf.sprintf "%d:%Ld:%d/%d:%s" pos data.stream_idx
+                  data.time_base.Avutil.num data.time_base.Avutil.den
+                  (Ffmpeg_frame_checksum.checksum_of_video_frame frame))
+              data.data
+          in
+          String.concat "|" frames_data)
+        d.chunks
     in
-    Digest.string (String.concat "|" frames_data) |> Digest.to_hex
+    Digest.string (String.concat "||" chunk_checksums) |> Digest.to_hex
 
   let name = "ffmpeg.raw.video"
 
-  let frame_params { frame } =
+  let frame_params frame =
     {
       width = Some (Video.frame_get_width frame);
       height = Some (Video.frame_get_height frame);
