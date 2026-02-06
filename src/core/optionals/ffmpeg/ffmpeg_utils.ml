@@ -394,7 +394,10 @@ let mk_subtitle_decoder ~output ~process () =
           let data = Option.map snd data in
           output ?data ~buffer ~length:(position - old_position) ();
           current_position := Some (position, Some (duration, content))
-      | None -> current_position := Some (position, Some (duration, content))
+      | None ->
+          (* Output initial silence if the first subtitle doesn't start at 0 *)
+          if position > 0 then output ?data:None ~buffer ~length:position ();
+          current_position := Some (position, Some (duration, content))
   in
   let flush buffer =
     match !current_position with

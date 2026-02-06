@@ -522,10 +522,7 @@ let mk_decoder ~filename ~remaining ~buffer decoder =
       0
   in
 
-  let fclose () =
-    decoder.eof buffer;
-    decoder.close ()
-  in
+  let fclose () = decoder.close () in
 
   let fread size =
     if not !decoding_done then (
@@ -540,6 +537,7 @@ let mk_decoder ~filename ~remaining ~buffer decoder =
              (Lang_string.quote_string filename)
              (Printexc.to_string e));
         decoding_done := true;
+        decoder.eof buffer;
         if conf_debug#get then raise e);
 
     Generator.slice buffer.generator size

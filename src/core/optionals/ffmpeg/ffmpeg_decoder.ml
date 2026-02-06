@@ -872,8 +872,10 @@ let mk_eof streams buffer =
         | `Audio_packet (_, decoder) -> decoder ~buffer `Flush
         | `Video_packet (_, decoder) -> decoder ~buffer `Flush
         | `Subtitle_packet (_, decoder) -> decoder ~buffer `Flush
+        | `Subtitle_frame (_, decoder) -> decoder ~buffer `Flush
         | `Data_packet _ -> ())
-    streams
+    streams;
+  Generator.add_track_mark buffer.Decoder.generator
 
 let mk_update_position () =
   let liq_main_ticks_time_base = Ffmpeg_utils.liq_main_ticks_time_base () in
@@ -1091,12 +1093,9 @@ let mk_decoder ~streams ~target_position container =
                 | _ -> f ())
       with
         | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> f ()
-        | Avutil.Error `Exit | Avutil.Error `Eof ->
-            Generator.add_track_mark buffer.Decoder.generator;
-            raise End_of_file
+        | Avutil.Error `Exit | Avutil.Error `Eof -> raise End_of_file
         | exn ->
             let bt = Printexc.get_raw_backtrace () in
-            Generator.add_track_mark buffer.Decoder.generator;
             Printexc.raise_with_backtrace exn bt
     in
     f ()
