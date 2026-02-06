@@ -872,7 +872,6 @@ let mk_eof streams buffer =
         | `Audio_packet (_, decoder) -> decoder ~buffer `Flush
         | `Video_packet (_, decoder) -> decoder ~buffer `Flush
         | `Subtitle_packet (_, decoder) -> decoder ~buffer `Flush
-        | `Subtitle_frame (_, decoder) -> decoder ~buffer `Flush
         | `Data_packet _ -> ())
     streams;
   Generator.add_track_mark buffer.Decoder.generator
