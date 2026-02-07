@@ -1,5 +1,11 @@
 # 2.4.3 (unreleased)
 
+## Changed:
+
+- Make sure script fails on `on_close` errors in `output.file` to prevent
+  fatal errors from being ignored. Use `reopen_on_error` to ignore errors
+  from the callback.
+
 ## Fixed:
 
 - Fixed `fMP4` HLS support for audio+video streams (#4841)

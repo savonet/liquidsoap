@@ -540,7 +540,10 @@ class file_output_using_encoder ?clock ~format_val p =
 
     method! close_encoder =
       let ret = base#close_encoder in
-      (try on_close (Option.get (Atomic.get current_filename)) with _ -> ());
+      (try on_close (Option.get (Atomic.get current_filename))
+       with exn ->
+         let bt = Printexc.get_raw_backtrace () in
+         self#reopen_on_error ~bt exn);
       Atomic.set current_filename None;
       ret
 
