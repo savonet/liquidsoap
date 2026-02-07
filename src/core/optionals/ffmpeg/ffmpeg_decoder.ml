@@ -790,7 +790,8 @@ let mk_eof streams buffer =
       | `Audio_frame (_, decoder) -> decoder ~buffer `Flush
       | `Video_frame (_, decoder) -> decoder ~buffer `Flush
       | _ -> ())
-    streams
+    streams;
+  Generator.add_track_mark buffer.Decoder.generator
 
 let mk_decoder ~streams ~target_position container =
   let streams_seen = Hashtbl.create 0 in
@@ -922,12 +923,9 @@ let mk_decoder ~streams ~target_position container =
           | _ -> ()
       with
         | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> f ()
-        | Avutil.Error `Exit | Avutil.Error `Eof ->
-            Generator.add_track_mark buffer.Decoder.generator;
-            raise End_of_file
+        | Avutil.Error `Exit | Avutil.Error `Eof -> raise End_of_file
         | exn ->
             let bt = Printexc.get_raw_backtrace () in
-            Generator.add_track_mark buffer.Decoder.generator;
             Printexc.raise_with_backtrace exn bt
     in
     f ()
