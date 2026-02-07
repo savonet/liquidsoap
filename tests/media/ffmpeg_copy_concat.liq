@@ -28,14 +28,7 @@ def on_close(filename) =
 
     let json.parse {streams = [{duration}]} = ojson
 
-    # Actual time is 59.93..
-    if
-      int(float_of_string(duration)) == 59
-    then
-      test.pass()
-    else
-      test.fail()
-    end
+    if float_of_string(duration) == 60.00 then test.pass() else test.fail() end
   end
 end
 
