@@ -99,19 +99,21 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
             match Ffmpeg_utils.Duration.push duration_converter packet with
               | Some (length, packets) ->
                   let data =
-                    List.map
-                      (fun (pos, packet) ->
-                        ( pos,
-                          {
-                            Ffmpeg_copy_content.packet = `Audio packet;
-                            time_base = encoder_time_base;
-                            stream_idx = source_idx.idx;
-                          } ))
-                      packets
+                    List.map (fun (pos, packet) -> (pos, `Audio packet)) packets
                   in
-                  let data = { Content.Video.params; data; length } in
-                  let data = Ffmpeg_copy_content.lift_data data in
-                  Generator.put generator field data
+                  let d : Ffmpeg_copy_content.packet Ffmpeg_content_base.data =
+                    {
+                      length;
+                      stream_idx = source_idx.idx;
+                      time_base = encoder_time_base;
+                      data;
+                    }
+                  in
+                  let content : Ffmpeg_copy_content.content =
+                    { params; chunks = [d] }
+                  in
+                  Generator.put generator field
+                    (Ffmpeg_copy_content.lift_data content)
               | None -> ()
           in
 
@@ -150,19 +152,22 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                 match Ffmpeg_utils.Duration.push duration_converter frame with
                   | Some (length, frames) ->
                       let data =
-                        List.map
-                          (fun (pos, frame) ->
-                            ( pos,
-                              {
-                                Ffmpeg_raw_content.time_base = target_time_base;
-                                stream_idx = source_idx.idx;
-                                frame;
-                              } ))
-                          frames
+                        List.map (fun (pos, frame) -> (pos, frame)) frames
                       in
-                      let data = { Content.Video.params; data; length } in
-                      let data = Ffmpeg_raw_content.Audio.lift_data data in
-                      Generator.put generator field data
+                      let d : Avutil.audio Avutil.frame Ffmpeg_content_base.data
+                          =
+                        {
+                          length;
+                          stream_idx = source_idx.idx;
+                          time_base = target_time_base;
+                          data;
+                        }
+                      in
+                      let content : Ffmpeg_raw_content.AudioSpecs.data =
+                        { params; chunks = [d] }
+                      in
+                      Generator.put generator field
+                        (Ffmpeg_raw_content.Audio.lift_data content)
                   | None -> ())
             | `Flush -> () ))
   in
@@ -269,7 +274,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
               (`Video
                  {
                    Ffmpeg_copy_content.avg_frame_rate = Some target_frame_rate;
-                   params = Avcodec.params encoder;
+                   codec_params = Avcodec.params encoder;
                  })
           in
           let effective_t =
@@ -292,19 +297,21 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
             match Ffmpeg_utils.Duration.push duration_converter packet with
               | Some (length, packets) ->
                   let data =
-                    List.map
-                      (fun (pos, packet) ->
-                        ( pos,
-                          {
-                            Ffmpeg_copy_content.packet = `Video packet;
-                            time_base = encoder_time_base;
-                            stream_idx = source_idx.idx;
-                          } ))
-                      packets
+                    List.map (fun (pos, packet) -> (pos, `Video packet)) packets
                   in
-                  let data = { Content.Video.params; data; length } in
-                  let data = Ffmpeg_copy_content.lift_data data in
-                  Generator.put generator field data
+                  let d : Ffmpeg_copy_content.packet Ffmpeg_content_base.data =
+                    {
+                      length;
+                      stream_idx = source_idx.idx;
+                      time_base = encoder_time_base;
+                      data;
+                    }
+                  in
+                  let content : Ffmpeg_copy_content.content =
+                    { params; chunks = [d] }
+                  in
+                  Generator.put generator field
+                    (Ffmpeg_copy_content.lift_data content)
               | None -> ()
           in
 
@@ -349,19 +356,16 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
               match Ffmpeg_utils.Duration.push duration_converter frame with
                 | Some (length, frames) ->
                     let data =
-                      List.map
-                        (fun (pos, frame) ->
-                          ( pos,
-                            {
-                              Ffmpeg_raw_content.time_base;
-                              stream_idx = source_idx.idx;
-                              frame;
-                            } ))
-                        frames
+                      List.map (fun (pos, frame) -> (pos, frame)) frames
                     in
-                    let data = { Content.Video.params; data; length } in
-                    let data = Ffmpeg_raw_content.Video.lift_data data in
-                    Generator.put generator field data
+                    let d : Avutil.video Avutil.frame Ffmpeg_content_base.data =
+                      { length; stream_idx = source_idx.idx; time_base; data }
+                    in
+                    let content : Ffmpeg_raw_content.VideoSpecs.data =
+                      { params; chunks = [d] }
+                    in
+                    Generator.put generator field
+                      (Ffmpeg_raw_content.Video.lift_data content)
                 | None -> ())
           | `Flush -> ())
   in

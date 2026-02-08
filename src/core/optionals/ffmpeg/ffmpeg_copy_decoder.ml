@@ -37,19 +37,15 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_packet ~put_data params =
   in
   let output_packets ~buffer length packets =
     let data =
-      List.map
-        (fun (pos, packet) ->
-          ( pos,
-            {
-              Ffmpeg_copy_content.packet = mk_packet packet;
-              time_base = stream_time_base;
-              stream_idx;
-            } ))
-        packets
+      List.map (fun (pos, packet) -> (pos, mk_packet packet)) packets
     in
-    let data = { Content.Video.params = Some params; data; length } in
-    let data = Ffmpeg_copy_content.lift_data data in
-    put_data buffer.Decoder.generator data
+    let d : Ffmpeg_copy_content.packet Ffmpeg_content_base.data =
+      { length; stream_idx; time_base = stream_time_base; data }
+    in
+    let content : Ffmpeg_copy_content.content =
+      { params = Some params; chunks = [d] }
+    in
+    put_data buffer.Decoder.generator (Ffmpeg_copy_content.lift_data content)
   in
   let process_packet ~buffer packet =
     let flags = Packet.get_flags packet in
@@ -88,7 +84,7 @@ let mk_video_decoder ~stream_idx ~format ~stream ~field params =
     `Video
       {
         Ffmpeg_copy_content.avg_frame_rate = Av.get_avg_frame_rate stream;
-        params;
+        codec_params = params;
       }
   in
   ignore (Content.merge format (Ffmpeg_copy_content.lift_params (Some params)));
@@ -103,7 +99,11 @@ let mk_subtitle_decoder ~stream_idx ~format ~stream ~field params =
   Ffmpeg_decoder_common.set_subtitle_stream_decoder stream;
   let stream_time_base = Av.get_time_base stream in
   let params =
-    `Subtitle { Ffmpeg_copy_content.time_base = stream_time_base; params }
+    `Subtitle
+      {
+        Ffmpeg_copy_content.time_base = stream_time_base;
+        codec_params = params;
+      }
   in
   ignore (Content.merge format (Ffmpeg_copy_content.lift_params (Some params)));
   let liq_main_ticks_time_base = Ffmpeg_utils.liq_main_ticks_time_base () in
@@ -113,20 +113,15 @@ let mk_subtitle_decoder ~stream_idx ~format ~stream ~field params =
          ~dst:liq_main_ticks_time_base ts)
   in
   let output ?(data = []) ~buffer ~length () =
-    let data =
-      List.map
-        (fun packet ->
-          ( 0,
-            {
-              Ffmpeg_copy_content.packet = `Subtitle packet;
-              time_base = stream_time_base;
-              stream_idx;
-            } ))
-        data
+    let data = List.map (fun packet -> (0, `Subtitle packet)) data in
+    let d : Ffmpeg_copy_content.packet Ffmpeg_content_base.data =
+      { length; stream_idx; time_base = stream_time_base; data }
     in
-    let data = { Content.Video.params = Some params; data; length } in
-    let data = Ffmpeg_copy_content.lift_data data in
-    Generator.put buffer.Decoder.generator field data
+    let content : Ffmpeg_copy_content.content =
+      { params = Some params; chunks = [d] }
+    in
+    Generator.put buffer.Decoder.generator field
+      (Ffmpeg_copy_content.lift_data content)
   in
   let process packet =
     let flags = Packet.get_flags packet in

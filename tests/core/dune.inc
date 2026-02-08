@@ -42,6 +42,34 @@
 
 
 (executable
+ (name ffmpeg_content_base_test)
+ (modules ffmpeg_content_base_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias ffmpeg_content_base_test)
+ (package liquidsoap)
+ (deps
+  
+  (:ffmpeg_content_base_test ffmpeg_content_base_test.exe))
+ (action (run %{ffmpeg_content_base_test} )))
+
+
+(executable
+ (name ffmpeg_dummy_content_test)
+ (modules ffmpeg_dummy_content_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias ffmpeg_dummy_content_test)
+ (package liquidsoap)
+ (deps
+  
+  (:ffmpeg_dummy_content_test ffmpeg_dummy_content_test.exe))
+ (action (run %{ffmpeg_dummy_content_test} )))
+
+
+(executable
  (name ffmpeg_quality)
  (modules ffmpeg_quality)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -396,6 +424,8 @@
     (alias clock_utils_test)
     (alias content_test)
     (alias decoder_test)
+    (alias ffmpeg_content_base_test)
+    (alias ffmpeg_dummy_content_test)
     (alias ffmpeg_quality)
     (alias flush_test)
     (alias frame_checksum_test)

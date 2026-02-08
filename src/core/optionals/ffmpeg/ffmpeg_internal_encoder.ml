@@ -221,13 +221,16 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       resampler frame
     in
     fun frame ->
-      let frames =
-        Ffmpeg_raw_content.Audio.(get_data (Frame.get frame field))
-          .Content.Video.data
-      in
+      let content = Ffmpeg_raw_content.Audio.get_data (Frame.get frame field) in
       let len = Frame.position frame in
-      let frames = List.filter (fun (pos, _) -> 0 <= pos && pos < len) frames in
-      List.map (fun (_, { Ffmpeg_raw_content.frame }) -> resample frame) frames
+      List.concat_map
+        (fun chunk_data ->
+          let frames = chunk_data.Ffmpeg_content_base.data in
+          let frames =
+            List.filter (fun (pos, _) -> 0 <= pos && pos < len) frames
+          in
+          List.map (fun (_, frame) -> resample frame) frames)
+        content.chunks
   in
 
   let converter =
@@ -523,13 +526,18 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     in
     fun frame ->
       let len = Frame.position frame in
-      let { Ffmpeg_raw_content.VideoSpecs.data } =
-        Ffmpeg_raw_content.Video.get_data (Frame.get frame field)
-      in
+      let content = Ffmpeg_raw_content.Video.get_data (Frame.get frame field) in
       List.iter
-        (fun (pos, { Ffmpeg_raw_content.time_base; frame; stream_idx }) ->
-          if 0 <= pos && pos < len then cb ~stream_idx ~time_base (scale frame))
-        data
+        (fun chunk_data ->
+          let { Ffmpeg_content_base.data; time_base; stream_idx; _ } =
+            chunk_data
+          in
+          List.iter
+            (fun (pos, frame) ->
+              if 0 <= pos && pos < len then
+                cb ~stream_idx ~time_base (scale frame))
+            data)
+        content.chunks
   in
 
   let converter =

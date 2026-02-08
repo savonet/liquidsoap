@@ -33,8 +33,8 @@ type 'a handler = {
   duration_converter : 'a Avcodec.Packet.t Ffmpeg_utils.Duration.t;
 }
 
-type 'a get_params = Ffmpeg_copy_content.params_payload -> 'a Avcodec.params
-type 'a mk_params = 'a Avcodec.params -> Ffmpeg_copy_content.params_payload
+type 'a get_params = Ffmpeg_copy_content.codec_params -> 'a Avcodec.params
+type 'a mk_params = 'a Avcodec.params -> Ffmpeg_copy_content.codec_params
 type 'a get_packet = Ffmpeg_copy_content.packet -> 'a Avcodec.Packet.t
 type 'a mk_packet = 'a Avcodec.Packet.t -> Ffmpeg_copy_content.packet
 
@@ -71,22 +71,14 @@ let modes name (codecs : Avcodec.id list) =
 let process (type a) ~put_data ~(mk_params : a mk_params)
     ~(mk_packet : a mk_packet) ({ time_base; params; stream_idx } : a handler)
     ((length, packets) : int * (int * a Avcodec.Packet.t) list) =
-  let data =
-    List.map
-      (fun (pos, packet) ->
-        ( pos,
-          {
-            Ffmpeg_copy_content.packet = mk_packet packet;
-            time_base;
-            stream_idx;
-          } ))
-      packets
+  let data = List.map (fun (pos, packet) -> (pos, mk_packet packet)) packets in
+  let d : Ffmpeg_copy_content.packet Ffmpeg_content_base.data =
+    { length; stream_idx; time_base; data }
   in
-  let data =
-    { Ffmpeg_copy_content.params = Some (mk_params params); data; length }
+  let content : Ffmpeg_copy_content.content =
+    { params = Some (mk_params params); chunks = [d] }
   in
-  let data = Ffmpeg_copy_content.lift_data data in
-  put_data data
+  put_data (Ffmpeg_copy_content.lift_data content)
 
 let flush_filter ~put_data ~mk_params ~mk_packet handler =
   let rec f () =
@@ -120,17 +112,21 @@ let on_data (type a)
        a Avcodec.params ->
        a handler) ~put_data ~(get_params : a get_params)
     ~(get_packet : a get_packet) ~(mk_params : a mk_params)
-    ~(mk_packet : a mk_packet)
-    ({ Ffmpeg_copy_content.params; data } : Ffmpeg_copy_content.data) =
+    ~(mk_packet : a mk_packet) (content : Ffmpeg_copy_content.content) =
+  let params = Ffmpeg_content_base.params content in
   List.iter
-    (fun (_, { Ffmpeg_copy_content.stream_idx; time_base; packet }) ->
-      let handler =
-        get_handler ~put_data ~stream_idx ~time_base
-          (get_params (Option.get params))
-      in
-      Avcodec.BitstreamFilter.send_packet handler.filter (get_packet packet);
-      flush_filter ~put_data ~mk_packet ~mk_params handler)
-    data
+    (fun chunk_data ->
+      let { Ffmpeg_content_base.data; stream_idx; time_base; _ } = chunk_data in
+      List.iter
+        (fun (_, packet) ->
+          let handler =
+            get_handler ~put_data ~stream_idx ~time_base
+              (get_params (Option.get params))
+          in
+          Avcodec.BitstreamFilter.send_packet handler.filter (get_packet packet);
+          flush_filter ~put_data ~mk_packet ~mk_params handler)
+        data)
+    content.chunks
 
 let mk_filter ~opts ~filter = Avcodec.BitstreamFilter.init ~opts filter
 
@@ -248,13 +244,14 @@ let register_filters () =
                            `Video
                              {
                                Ffmpeg_copy_content.avg_frame_rate = None;
-                               params;
+                               codec_params = params;
                              }
                          in
                          let get_params :
-                             Ffmpeg_copy_content.params_payload ->
+                             Ffmpeg_copy_content.codec_params ->
                              Avutil.video Avcodec.params = function
-                           | `Video { Ffmpeg_copy_content.params } -> params
+                           | `Video { Ffmpeg_copy_content.codec_params; _ } ->
+                               codec_params
                            | _ -> assert false
                          in
                          let current_handler, get_handler, clear_handler =
