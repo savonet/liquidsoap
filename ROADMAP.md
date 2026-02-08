@@ -16,7 +16,7 @@
 ### From lioquidshop 5:
 
 - ~~Better handling over core module erasure~~
-- Switch stream callbacks to async first
+- ~~Switch stream callbacks to async first~~
 - ~~Add variable with current liq script name.~~
 
 ### Maybe TODO:
