@@ -6,7 +6,11 @@ settings.frame.video.height := 480
 fname = argv(default="", 1)
 out = "bitmap_subtitle_to_video_output.mp4"
 
-s = single(fallible=true, fname)
+s =
+  single(
+    fallible=true,
+    "annotate:ffmpeg_options='fflags=\"+bitexact\"':#{fname}"
+  )
 s = once(s)
 
 let {audio = a, video = v, subtitles = sub} = source.tracks(s)
@@ -59,7 +63,11 @@ output.file(
       test.fail()
       null
     end,
-  %ffmpeg(%audio(codec = "aac"), %video(codec = "libx264")),
+  %ffmpeg(
+    fflags = "+bitexact",
+    %audio(codec = "aac"),
+    %video(codec = "libx264")
+  ),
   out,
   s
 )
