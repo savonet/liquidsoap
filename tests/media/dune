@@ -538,6 +538,7 @@
    bitmap_subtitle_to_video_output.gen.jpg)))
 
 ; Test custom text_to_ass function for subtitle encoding
+
 (rule
  (alias subtitle_text_to_ass)
  (package liquidsoap)

@@ -56,6 +56,14 @@ let () =
         Some
           (fun ~metadata:_ ~ctype fname ->
             let srt = Srt_parser.parse_file fname in
+            (* Track the end time of the last subtitle *)
+            let file_end_time =
+              List.fold_left
+                (fun acc ((_, t2), _) ->
+                  max acc
+                    (Frame.main_of_seconds (Srt_parser.seconds_of_time t2)))
+                0 srt
+            in
             let srt =
               List.map
                 (fun ((t1, t2), s) ->
@@ -81,7 +89,8 @@ let () =
             let t = ref 0 in
             let remaining _ = -1 in
             let fread length =
-              if Queue.is_empty srt then Frame.create ~length:0 ctype
+              (* File ends when we've reached the end time of the last subtitle *)
+              if !t >= file_end_time then Frame.create ~length:0 ctype
               else (
                 let rec fill acc =
                   if Queue.is_empty srt then acc
