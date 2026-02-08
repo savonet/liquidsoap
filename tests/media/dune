@@ -526,6 +526,7 @@
    1
    -q:v
    2
+   -bitexact
    %{target})))
 
 ; Compare generated image with reference, promote if changed
