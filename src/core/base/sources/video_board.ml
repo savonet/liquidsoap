@@ -202,15 +202,14 @@ let _ =
       let height =
         List.assoc "height" p |> Lang.to_option |> Option.map Lang.to_int
       in
+      let video_width, video_height = Frame.video_dimensions () in
       let width =
-        match width with
-          | Some width -> width
-          | None -> Lazy.force Frame.video_width
+        match width with Some width -> width | None -> Lazy.force video_width
       in
       let height =
         match height with
           | Some height -> height
-          | None -> Lazy.force Frame.video_height
+          | None -> Lazy.force video_height
       in
       let img = Video.YUV420.create width height in
       Printf.printf "image: %dx%d\nx%!" width height;

@@ -332,8 +332,9 @@ let register_plugin fname =
     (Lang.add_operator ~base:video_frei0r name liq_params ~return_t
        ~category:`Video ~flags:[`Extra] ~descr (fun p ->
          let instance =
-           let width = Lazy.force Frame.video_width in
-           let height = Lazy.force Frame.video_height in
+           let video_width, video_height = Frame.video_dimensions () in
+           let width = Lazy.force video_width in
+           let height = Lazy.force video_height in
            Frei0r.create plugin width height
          in
          let f v = List.assoc v p in

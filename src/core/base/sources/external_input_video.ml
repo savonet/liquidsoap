@@ -122,8 +122,9 @@ let _ =
                 let src = of_string data in
                 let in_width = Video.Image.width src in
                 let in_height = Video.Image.height src in
-                let out_width = Lazy.force Frame.video_width in
-                let out_height = Lazy.force Frame.video_height in
+                let video_width, video_height = Frame.video_dimensions () in
+                let out_width = Lazy.force video_width in
+                let out_height = Lazy.force video_height in
                 if
                   out_width = in_width && out_height = in_height
                   && video_format = `I420
@@ -220,8 +221,9 @@ let _ =
     ~return_t
     (fun p ->
       let command = Lang.to_string_getter (List.assoc "" p) in
-      let width = Lazy.force Frame.video_width in
-      let height = Lazy.force Frame.video_height in
+      let video_width, video_height = Frame.video_dimensions () in
+      let width = Lazy.force video_width in
+      let height = Lazy.force video_height in
       let buflen = width * height * 3 in
       let buf = Bytes.create buflen in
       let on_data ~buffer reader =

@@ -540,6 +540,49 @@
    "sine=frequency=220:duration=1"
    %{target})))
 
+(rule
+ (alias citest)
+ (target nola_test_size.mp4)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=2:size=504x504:rate=25"
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=2"
+   -c:v
+   libx264
+   -c:a
+   aac
+   -shortest
+   %{target})))
+
+(rule
+ (alias video_size_autodetect)
+ (package liquidsoap)
+ (deps
+  nola_test_size.mp4
+  video_size_autodetect.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Video size auto-detection"
+   liquidsoap
+   %{test_liq}
+   video_size_autodetect.liq)))
+
 (alias
  (name citest)
  (deps
@@ -548,4 +591,5 @@
   (alias icecast_ssl_tls)
   (alias icecast_tls_ssl)
   (alias crossfade-plot)
-  (alias autocue-plot)))
+  (alias autocue-plot)
+  (alias video_size_autodetect)))

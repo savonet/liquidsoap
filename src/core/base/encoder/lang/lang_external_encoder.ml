@@ -69,7 +69,7 @@ let make params =
         | `Labelled ("video", Value.Bool { value = b; _ }) ->
             let w, h =
               match f.External_encoder_format.video with
-                | None -> (Frame.video_width, Frame.video_height)
+                | None -> Frame.video_dimensions ()
                 | Some (w, h) -> (w, h)
             in
             {
@@ -79,7 +79,7 @@ let make params =
         | `Labelled ("width", Int { value = w; _ }) ->
             let _, h =
               match f.External_encoder_format.video with
-                | None -> (Frame.video_width, Frame.video_height)
+                | None -> Frame.video_dimensions ()
                 | Some (w, h) -> (w, h)
             in
             let w = Lazy.from_val w in
@@ -87,7 +87,7 @@ let make params =
         | `Labelled ("height", Int { value = h }) ->
             let w, _ =
               match f.External_encoder_format.video with
-                | None -> (Frame.video_width, Frame.video_height)
+                | None -> Frame.video_dimensions ()
                 | Some (w, h) -> (w, h)
             in
             let h = Lazy.from_val h in

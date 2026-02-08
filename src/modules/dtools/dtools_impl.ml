@@ -44,6 +44,7 @@ module Conf = struct
     ; get_d : 'a option
     ; set : 'a -> unit
     ; get : 'a
+    ; is_set : bool
     ; validate : ('a -> bool) -> unit
     ; on_change : ('a -> unit) -> unit >
 
@@ -156,6 +157,7 @@ module Conf = struct
         value := Some v;
         List.iter (fun fn -> fn v) listeners
 
+      method is_set : bool = !value <> None
       method validate (fn : 'a -> bool) : unit = validators <- fn :: validators
       method on_change (fn : 'a -> unit) : unit = listeners <- fn :: listeners
     end

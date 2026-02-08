@@ -95,8 +95,9 @@ module Specs = struct
       ]
 
   let make ?(length = 0) params =
-    let width = !!(Option.value ~default:video_width params.width) in
-    let height = !!(Option.value ~default:video_height params.height) in
+    let default_width, default_height = video_dimensions () in
+    let width = !!(Option.value ~default:default_width params.width) in
+    let height = !!(Option.value ~default:default_height params.height) in
     let interval = main_of_video 1 in
     let img = Video.Canvas.Image.create width height in
     let data =
@@ -179,12 +180,9 @@ let kind = lift_kind `Canvas
 
 let dimensions_of_format p =
   let p = get_params p in
-  let width =
-    Lazy.force (Option.value ~default:Frame_settings.video_width p.width)
-  in
-  let height =
-    Lazy.force (Option.value ~default:Frame_settings.video_height p.height)
-  in
+  let default_width, default_height = Frame_settings.video_dimensions () in
+  let width = Lazy.force (Option.value ~default:default_width p.width) in
+  let height = Lazy.force (Option.value ~default:default_height p.height) in
   (width, height)
 
 let lift_canvas ?(offset = 0) ?length data =

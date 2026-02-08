@@ -89,15 +89,14 @@ module Video = struct
   }
 
   let make_generator params =
+    let default_width, default_height = Frame_settings.video_dimensions () in
     let width =
       Lazy.force
-        (Option.value ~default:Frame_settings.video_width
-           params.Content_video.Specs.width)
+        (Option.value ~default:default_width params.Content_video.Specs.width)
     in
     let height =
       Lazy.force
-        (Option.value ~default:Frame_settings.video_height
-           params.Content_video.Specs.height)
+        (Option.value ~default:default_height params.Content_video.Specs.height)
     in
     {
       params =

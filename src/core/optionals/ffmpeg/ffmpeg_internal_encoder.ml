@@ -464,8 +464,9 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   in
 
   let internal_converter cb =
-    let src_width = Lazy.force Frame.video_width in
-    let src_height = Lazy.force Frame.video_height in
+    let video_width, video_height = Frame.video_dimensions () in
+    let src_width = Lazy.force video_width in
+    let src_height = Lazy.force video_height in
     let scaler =
       InternalScaler.create [flag] src_width src_height
         Ffmpeg_utils.liq_frame_pixel_format target_width target_height

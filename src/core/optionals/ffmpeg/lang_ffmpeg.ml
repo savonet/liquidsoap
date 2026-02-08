@@ -308,11 +308,12 @@ let ffmpeg_gen params =
     }
   in
 
+  let video_width, video_height = Frame.video_dimensions () in
   let default_video =
     {
       Ffmpeg_format.framerate = Frame.video_rate;
-      width = Frame.video_width;
-      height = Frame.video_height;
+      width = video_width;
+      height = video_height;
       pixel_format = None;
       hwaccel = `Auto;
       hwaccel_device = None;

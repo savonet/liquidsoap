@@ -23,14 +23,15 @@
 open Value
 
 let make params =
+  let video_width, video_height = Frame.video_dimensions () in
   let defaults =
     {
       (* We use a hardcoded value in order not to force the evaluation of the
          number of channels too early, see #933. *)
       Avi_format.channels = 2;
       samplerate = Frame.audio_rate;
-      width = Frame.video_width;
-      height = Frame.video_height;
+      width = video_width;
+      height = video_height;
     }
   in
   let avi =

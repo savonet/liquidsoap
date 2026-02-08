@@ -457,6 +457,7 @@ let mk_buffer ~ctype generator =
     with Not_found ->
       let handler =
         if Frame.Fields.mem field ctype then (
+          let video_width, video_height = Frame.video_dimensions () in
           let video_resample = Decoder_utils.video_resample () in
           let video_scale =
             let width, height =
@@ -465,7 +466,7 @@ let mk_buffer ~ctype generator =
                   (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
               with Content.Invalid ->
                 (* We might have encoded contents *)
-                (Lazy.force Frame.video_width, Lazy.force Frame.video_height)
+                (Lazy.force video_width, Lazy.force video_height)
             in
             Decoder_utils.video_scale ~width ~height ()
           in
@@ -474,8 +475,8 @@ let mk_buffer ~ctype generator =
           in
           let params =
             {
-              Content.Video.width = Some Frame.video_width;
-              height = Some Frame.video_height;
+              Content.Video.width = Some video_width;
+              height = Some video_height;
             }
           in
           let interval = Frame.main_of_video 1 in

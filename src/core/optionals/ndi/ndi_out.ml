@@ -39,8 +39,9 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
   ~format source start =
   let sample_rate = Lazy.force Frame.audio_rate in
   let frame_rate = Lazy.force Frame.video_rate in
-  let video_height = Lazy.force Frame.video_height in
-  let video_width = Lazy.force Frame.video_width in
+  let video_width, video_height = Frame.video_dimensions () in
+  let video_height = Lazy.force video_height in
+  let video_width = Lazy.force video_width in
   (* Timecode is in increment of 100 ns *)
   let timecode_base =
     Int64.div 10_000_000L (Int64.of_int (Lazy.force Frame.main_rate))

@@ -78,6 +78,11 @@ video.frame.height := 240
 video.frame.rate := 25
 ```
 
+By default, video dimensions are automatically detected from the first decoded
+video file. This behavior can be disabled by setting
+`settings.video.detect_dimensions` to `false` or by explicitly setting
+`video.frame.width` or `video.frame.height`.
+
 ## Checking stream contents
 
 Checking the consistency of use of stream contents is done as part

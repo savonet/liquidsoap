@@ -597,15 +597,14 @@ let _ =
         List.assoc "height" p |> Lang.to_option |> Option.map Lang.to_int
       in
       let s = List.assoc "" p |> Lang.to_source in
+      let video_width, video_height = Frame.video_dimensions () in
       let width =
-        match width with
-          | Some width -> width
-          | None -> Lazy.force Frame.video_width
+        match width with Some width -> width | None -> Lazy.force video_width
       in
       let height =
         match height with
           | Some height -> height
-          | None -> Lazy.force Frame.video_height
+          | None -> Lazy.force video_height
       in
       new effect_map ~name:"video.viewport" s (fun buf ->
           Video.Canvas.Image.viewport ~x ~y width height buf))
