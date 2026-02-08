@@ -8,8 +8,10 @@ let log_files = ref []
 let cleanup () =
   List.iter (fun logfile -> try Unix.unlink logfile with _ -> ()) !log_files
 
+let is_github_actions = Sys.getenv_opt "GITHUB_ACTIONS" <> None
+
 let warning_prefix, error_prefix =
-  if Sys.getenv_opt "GITHUB_ACTIONS" <> None then
+  if is_github_actions then
     ( Printf.sprintf "::warning file=%s,title=Test skipped::" test,
       Printf.sprintf "::error file=%s,title=Test failed::" test )
   else ("", "")
@@ -23,28 +25,33 @@ let colorized_failed = Console.colorize [`red; `bold] "[failed]"
 
 let run_process ~action cmd args =
   let start_time = Unix.time () in
-  let logfile = Filename.temp_file "test" test in
-  log_files := logfile :: !log_files;
-  let stdin = Unix.openfile stdin_file [Unix.O_RDWR] 0o644 in
-  let stdout = Unix.openfile logfile [Unix.O_RDWR; Unix.O_TRUNC] 0o644 in
+  let stdin, stdout, print_log =
+    if is_github_actions then (Unix.stdin, Unix.stdout, fun () -> ())
+    else (
+      let logfile = Filename.temp_file "test" test in
+      log_files := logfile :: !log_files;
+      let stdin = Unix.openfile stdin_file [Unix.O_RDWR] 0o644 in
+      let stdout = Unix.openfile logfile [Unix.O_RDWR; Unix.O_TRUNC] 0o644 in
 
-  let print_log () =
-    try
-      Unix.close stdout;
-      let buffer_size = 1024 in
-      let buffer = Bytes.create buffer_size in
-      let fd = Unix.openfile logfile [Unix.O_RDONLY] 0 in
-      let rec loop () =
-        match Unix.read fd buffer 0 buffer_size with
-          | 0 -> ()
-          | _ ->
-              Printf.eprintf "%s" (Bytes.unsafe_to_string buffer);
-              loop ()
+      let print_log () =
+        try
+          Unix.close stdout;
+          let buffer_size = 1024 in
+          let buffer = Bytes.create buffer_size in
+          let fd = Unix.openfile logfile [Unix.O_RDONLY] 0 in
+          let rec loop () =
+            match Unix.read fd buffer 0 buffer_size with
+              | 0 -> ()
+              | _ ->
+                  Printf.eprintf "%s" (Bytes.unsafe_to_string buffer);
+                  loop ()
+          in
+          loop ();
+          print_newline ();
+          Unix.close fd
+        with _ -> ()
       in
-      loop ();
-      print_newline ();
-      Unix.close fd
-    with _ -> ()
+      (stdin, stdout, print_log))
   in
 
   let runtime () =
@@ -75,6 +82,7 @@ let run_process ~action cmd args =
          on_timeout ())
        ());
 
+  if is_github_actions then Printf.printf "::group::%s\n" test;
   let pid = Unix.create_process cmd args stdin stdout stdout in
   running := true;
   pid_ref := Some pid;
@@ -86,11 +94,13 @@ let run_process ~action cmd args =
         Printf.eprintf "%s test %s: %s (time: %02dm:%02ds)\n" action
           colorized_test colorized_ok min sec;
         if Sys.getenv_opt "LIQ_VERBOSE_TEST" <> None then print_log ();
+        if is_github_actions then Printf.printf "::endgroup::\n";
         cleanup ()
     | _, Unix.WEXITED 123 ->
         running := false;
         Printf.eprintf "%s%s test %s: %s\n" warning_prefix action colorized_test
           colorized_skipped;
+        if is_github_actions then Printf.printf "::endgroup::\n";
         exit 0
     | _ ->
         running := false;
@@ -98,6 +108,7 @@ let run_process ~action cmd args =
         Printf.eprintf "%s%s test %s: %s (time: %02dm:%02ds)\n" error_prefix
           action colorized_test colorized_failed min sec;
         print_log ();
+        if is_github_actions then Printf.printf "::endgroup::\n";
         exit 1
 
 let run () =
