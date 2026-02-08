@@ -43,10 +43,7 @@ opam install . --deps-only
 dune build
 
 # Run tests
-dune runtest
-
-# Build and run
-dune exec -- liquidsoap --help
+dune build @citest @mediatest
 
 # Interactive mode (REPL) - useful for testing expressions
 dune exec -- liquidsoap --interactive
