@@ -274,8 +274,7 @@ dune exec -- liquidsoap -c 'my_function(...)'
 4. **Run the test suite**:
 
 ```bash
-dune runtest tests/language
-dune runtest tests/streams
+dune build @citest @mediatest
 ```
 
 ### "I want to add an FFmpeg feature"
