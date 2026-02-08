@@ -537,6 +537,26 @@
    bitmap_subtitle_to_video_output.jpg
    bitmap_subtitle_to_video_output.gen.jpg)))
 
+; Test custom text_to_ass function for subtitle encoding
+(rule
+ (alias subtitle_text_to_ass)
+ (package liquidsoap)
+ (deps
+  test-subtitle.srt
+  subtitle_text_to_ass.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Custom text_to_ass function"
+   liquidsoap
+   %{test_liq}
+   subtitle_text_to_ass.liq)))
+
 (alias
  (name mediatest)
  (deps
@@ -551,4 +571,5 @@
   (alias ffmpeg_filter_array_args)
   (alias lufs_integrated)
   (alias image_decoder_duration)
-  (alias bitmap_subtitle_to_video)))
+  (alias bitmap_subtitle_to_video)
+  (alias subtitle_text_to_ass)))

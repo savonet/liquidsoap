@@ -27,7 +27,7 @@ def print_subtitle(
   if
     7 == count()
   then
-    if absolute_start_time == 17.02 then test.pass() else test.fail() end
+    if absolute_start_time == 19.00 then test.pass() else test.fail() end
   end
 end
 
