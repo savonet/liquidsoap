@@ -511,7 +511,7 @@
 (rule
  (alias bitmap_subtitle_to_video)
  (deps bitmap_subtitle_to_video_output.mp4)
- (target bitmap_subtitle_to_video_output.gen.jpg)
+ (target bitmap_subtitle_to_video_output.gen.png)
  (action
   (run
    ffmpeg
@@ -522,10 +522,12 @@
    4.00
    -i
    bitmap_subtitle_to_video_output.mp4
+   -vf
+   format=monob
    -frames:v
    1
-   -q:v
-   2
+   -compression
+   100
    -bitexact
    %{target})))
 
@@ -535,8 +537,8 @@
  (alias bitmap_subtitle_to_video)
  (action
   (diff
-   bitmap_subtitle_to_video_output.jpg
-   bitmap_subtitle_to_video_output.gen.jpg)))
+   bitmap_subtitle_to_video_output.png
+   bitmap_subtitle_to_video_output.gen.png)))
 
 ; Test custom text_to_ass function for subtitle encoding
 

@@ -13,10 +13,9 @@ s =
   )
 s = once(s)
 
-let {audio = a, video = v, subtitles = sub} = source.tracks(s)
+let {audio = a, subtitles = sub} = source.tracks(s)
 
-# Convert bitmap subtitles to video by overlaying on the video track
-s = source({audio=a, video=track.video.add([v, sub])})
+s = source({audio=a, video=sub})
 
 clock.assign_new(id="test", sync="none", [s])
 
