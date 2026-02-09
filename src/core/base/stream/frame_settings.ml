@@ -90,6 +90,20 @@ let conf_video_width =
 let conf_video_height =
   Conf.int ~p:(conf_video#plug "height") ~d:720 "Image height"
 
+let conf_video_detect_dimensions =
+  Conf.bool
+    ~p:(conf_video#plug "detect_dimensions")
+    ~d:true "Automatically detect video dimensions"
+    ~comments:
+      [
+        "When enabled, video dimensions are set from the first decoded video \
+         file.";
+        "Discarded if `video.frame.width` or `video.frame.height` is set \
+         explicitly.";
+        "May not work if the video dimensions need to be known before decoding \
+         (e.g. with some inline video operators).";
+      ]
+
 (* MIDI *)
 let conf_midi = Conf.void ~p:(conf#plug "midi") "MIDI parameters"
 
@@ -137,8 +151,38 @@ let default_video_enabled =
   delayed_conf ~to_string:string_of_bool conf_video_default
 
 let midi_channels = delayed_conf ~to_string:string_of_int conf_midi_channels
-let video_width = delayed_conf ~to_string:string_of_int conf_video_width
-let video_height = delayed_conf ~to_string:string_of_int conf_video_height
+
+type ideal_size = { width : int; height : int; source : string }
+
+(** Get video dimensions as a pair of lazy values. Forcing one forces the other.
+    If [~ideal_size] is provided and the dimensions haven't been explicitly set
+    by the user or forced yet, use the ideal dimensions as the default. This
+    allows auto-detection from the first decoded video file. *)
+let video_dimensions =
+  (* We don't want to use delayed config here because those are evaluated too early. *)
+  let dimensions =
+    lazy
+      (assert !lazy_config_eval;
+       let w = conf_video_width#get in
+       let h = conf_video_height#get in
+       (w, h))
+  in
+  fun ?ideal_size () ->
+    (match ideal_size with
+      | Some { width; height; source }
+        when conf_video_detect_dimensions#get
+             && (not (Lazy.is_val dimensions))
+             && (not conf_video_width#is_set)
+             && not conf_video_height#is_set ->
+          log#important "Auto-detected video dimensions: %dx%d (source: %s)."
+            width height source;
+          conf_video_width#set width;
+          conf_video_height#set height
+      | _ -> ());
+    let width = lazy (fst (Lazy.force dimensions)) in
+    let height = lazy (snd (Lazy.force dimensions)) in
+    (width, height)
+
 let audio_rate = delayed_conf ~to_string:string_of_int conf_audio_samplerate
 let video_rate = delayed_conf ~to_string:string_of_int conf_video_framerate
 
@@ -208,8 +252,13 @@ let size =
       let video = !!video_rate in
       let main = !!main_rate in
       log#important "Using %dHz audio, %dHz video, %dHz main." audio video main;
-      log#important "Video frame size set to: %dx%d" conf_video_width#get
-        conf_video_height#get;
+      log#important "Default video frame size: %dx%d%s." conf_video_width#get
+        conf_video_height#get
+        (if
+           conf_video_detect_dimensions#get
+           && not (conf_video_width#is_set && conf_video_height#is_set)
+         then " (auto-detection enabled)"
+         else "");
       try
         let size = main_of_audio conf_audio_size#get in
         log#important

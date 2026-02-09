@@ -198,8 +198,9 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
     generator =
   let internal_fps = Lazy.force Frame.video_rate in
   let internal_time_base = { Avutil.num = 1; den = internal_fps } in
-  let internal_width = Lazy.force Frame.video_width in
-  let internal_height = Lazy.force Frame.video_height in
+  let video_width, video_height = Frame.video_dimensions () in
+  let internal_width = Lazy.force video_width in
+  let internal_height = Lazy.force video_height in
 
   let target_fps = Lazy.force format.Ffmpeg_format.framerate in
   let target_frame_rate = { Avutil.num = target_fps; den = 1 } in

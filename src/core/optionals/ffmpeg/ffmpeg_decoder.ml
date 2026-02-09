@@ -1227,6 +1227,18 @@ let mk_streams ~ctype ~decode_first_metadata container =
                   streams,
                 pos + 1 )
           | Some format when Content.Video.is_format format ->
+              (* Set ideal video dimensions from source file *)
+              let src_width = Avcodec.Video.get_width params in
+              let src_height = Avcodec.Video.get_height params in
+              let ideal_size =
+                Frame.
+                  {
+                    width = src_width;
+                    height = src_height;
+                    source = "ffmpeg decoder";
+                  }
+              in
+              ignore (Frame.video_dimensions ~ideal_size ());
               let width, height = Content.Video.dimensions_of_format format in
               ( add_stream ~sparse:`False idx stream
                   (`Video_frame

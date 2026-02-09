@@ -25,14 +25,15 @@ open Value
 let type_of_encoder _ = Encoder.video_type ()
 
 let make params =
+  let video_width, video_height = Frame.video_dimensions () in
   let defaults =
     {
       Theora_format.bitrate_control = Theora_format.Quality 40;
       fill = None;
-      width = Frame.video_width;
-      height = Frame.video_height;
-      picture_width = Frame.video_width;
-      picture_height = Frame.video_height;
+      width = video_width;
+      height = video_height;
+      picture_width = video_width;
+      picture_height = video_height;
       picture_x = 0;
       picture_y = 0;
       aspect_numerator = 1;

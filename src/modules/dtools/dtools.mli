@@ -56,6 +56,7 @@ module Conf : sig
     ; get_d : 'a option
     ; set : 'a -> unit
     ; get : 'a
+    ; is_set : bool
     ; validate : ('a -> bool) -> unit
     ; on_change : ('a -> unit) -> unit >
 

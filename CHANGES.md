@@ -1,5 +1,11 @@
 # 2.4.3 (unreleased)
 
+## New:
+
+- Video dimensions (`video.frame.width`/`height`) are now automatically detected
+  from the first decoded video file. This can be disabled by setting `settings.video.detect_dimensions`
+  to `false` or by explicitly setting the video dimensions.
+
 ## Changed:
 
 - Make sure script fails on `on_close` errors in `output.file` to prevent

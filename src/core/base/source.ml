@@ -414,14 +414,19 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       self#on_after_streaming_cycle (fun () ->
           self#iter_watchers (fun w -> w.after_streaming_cycle ()))
 
+    method private cache =
+      match _cache with None -> self#empty_frame | Some c -> c
+
+    method private cache_pos =
+      match _cache with None -> 0 | Some c -> Frame.position c
+
     (* This is the implementation of the main streaming logic. *)
     method private before_streaming_cycle =
       match Atomic.get streaming_state with
         | `Pending ->
             List.iter (fun fn -> fn ()) on_before_streaming_cycle;
             consumed <- 0;
-            let cache = Option.value ~default:self#empty_frame _cache in
-            let cache_pos = Frame.position cache in
+            let cache_pos = self#cache_pos in
             let size = Lazy.force Frame.size in
             let can_generate_frame = self#can_generate_frame in
             if cache_pos > 0 || can_generate_frame then
@@ -430,8 +435,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                    (fun () ->
                      let buf =
                        if can_generate_frame && cache_pos < size then
-                         Frame.append cache self#instrumented_generate_frame
-                       else cache
+                         Frame.append self#cache
+                           self#instrumented_generate_frame
+                       else self#cache
                      in
                      let buf_pos = Frame.position buf in
                      let buf =
@@ -450,8 +456,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private after_streaming_cycle =
       (match (Atomic.get streaming_state, consumed) with
         | `Done buf, n when n < Frame.position buf ->
-            let cache = Option.value ~default:self#empty_frame _cache in
-            _cache <- Some (Frame.append (Frame.after buf n) cache)
+            _cache <- Some (Frame.append (Frame.after buf n) self#cache)
         | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
       Atomic.set streaming_state `Pending

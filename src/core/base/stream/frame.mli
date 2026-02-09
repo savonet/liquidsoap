@@ -218,11 +218,13 @@ val default_video_enabled : bool Lazy.t
 (** Default number of MIDI channels. *)
 val midi_channels : int Lazy.t
 
-(** Width of video images. *)
-val video_width : int Lazy.t
+(** Ideal video size for auto-detection. *)
+type ideal_size = { width : int; height : int; source : string }
 
-(** Height of video images. *)
-val video_height : int Lazy.t
+(** Get video dimensions as a pair of lazy values. Forcing one forces the other.
+    If [~ideal_size] is provided and the dimensions haven't been explicitly set
+    by the user or forced yet, use the ideal dimensions as the default. *)
+val video_dimensions : ?ideal_size:ideal_size -> unit -> int Lazy.t * int Lazy.t
 
 (** Rate of audio (in samples per second). *)
 val audio_rate : int Lazy.t
