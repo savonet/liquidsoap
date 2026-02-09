@@ -1,4 +1,3 @@
-
 (rule
  (alias argsof)
  (package liquidsoap)
@@ -10,8 +9,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
-  
+ (action
+  (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
+
 (rule
  (alias bool)
  (package liquidsoap)
@@ -23,8 +23,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
-  
+ (action
+  (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
+
 (rule
  (alias comments)
  (package liquidsoap)
@@ -36,8 +37,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} comments.liq liquidsoap %{test_liq} comments.liq)))
-  
+ (action
+  (run %{run_test} comments.liq liquidsoap %{test_liq} comments.liq)))
+
 (rule
  (alias conversions)
  (package liquidsoap)
@@ -49,8 +51,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} conversions.liq liquidsoap %{test_liq} conversions.liq)))
-  
+ (action
+  (run %{run_test} conversions.liq liquidsoap %{test_liq} conversions.liq)))
+
 (rule
  (alias cron)
  (package liquidsoap)
@@ -62,8 +65,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} cron.liq liquidsoap %{test_liq} cron.liq)))
-  
+ (action
+  (run %{run_test} cron.liq liquidsoap %{test_liq} cron.liq)))
+
 (rule
  (alias cue_test)
  (package liquidsoap)
@@ -75,8 +79,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} cue_test.liq liquidsoap %{test_liq} cue_test.liq)))
-  
+ (action
+  (run %{run_test} cue_test.liq liquidsoap %{test_liq} cue_test.liq)))
+
 (rule
  (alias doc)
  (package liquidsoap)
@@ -88,8 +93,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
-  
+ (action
+  (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
+
 (rule
  (alias encoders)
  (package liquidsoap)
@@ -101,8 +107,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
-  
+ (action
+  (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
+
 (rule
  (alias error)
  (package liquidsoap)
@@ -114,8 +121,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} error.liq liquidsoap %{test_liq} error.liq)))
-  
+ (action
+  (run %{run_test} error.liq liquidsoap %{test_liq} error.liq)))
+
 (rule
  (alias eval)
  (package liquidsoap)
@@ -127,8 +135,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
-  
+ (action
+  (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
+
 (rule
  (alias file)
  (package liquidsoap)
@@ -140,8 +149,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file.liq liquidsoap %{test_liq} file.liq)))
-  
+ (action
+  (run %{run_test} file.liq liquidsoap %{test_liq} file.liq)))
+
 (rule
  (alias file.watch)
  (package liquidsoap)
@@ -153,8 +163,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
-  
+ (action
+  (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
+
 (rule
  (alias file.watch2)
  (package liquidsoap)
@@ -166,8 +177,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
-  
+ (action
+  (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
+
 (rule
  (alias file_protocol)
  (package liquidsoap)
@@ -179,8 +191,14 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file_protocol.liq liquidsoap %{test_liq} file_protocol.liq)))
-  
+ (action
+  (run
+   %{run_test}
+   file_protocol.liq
+   liquidsoap
+   %{test_liq}
+   file_protocol.liq)))
+
 (rule
  (alias functions)
  (package liquidsoap)
@@ -192,8 +210,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
-  
+ (action
+  (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
+
 (rule
  (alias getter)
  (package liquidsoap)
@@ -205,8 +224,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
-  
+ (action
+  (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
+
 (rule
  (alias interactive)
  (package liquidsoap)
@@ -218,8 +238,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
-  
+ (action
+  (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
+
 (rule
  (alias json)
  (package liquidsoap)
@@ -231,8 +252,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
-  
+ (action
+  (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
+
 (rule
  (alias list)
  (package liquidsoap)
@@ -244,8 +266,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
-  
+ (action
+  (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
+
 (rule
  (alias loop)
  (package liquidsoap)
@@ -257,8 +280,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
-  
+ (action
+  (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
+
 (rule
  (alias math)
  (package liquidsoap)
@@ -270,8 +294,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
-  
+ (action
+  (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
+
 (rule
  (alias mem_usage)
  (package liquidsoap)
@@ -283,8 +308,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} mem_usage.liq liquidsoap %{test_liq} mem_usage.liq)))
-  
+ (action
+  (run %{run_test} mem_usage.liq liquidsoap %{test_liq} mem_usage.liq)))
+
 (rule
  (alias metadata)
  (package liquidsoap)
@@ -296,8 +322,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} metadata.liq liquidsoap %{test_liq} metadata.liq)))
-  
+ (action
+  (run %{run_test} metadata.liq liquidsoap %{test_liq} metadata.liq)))
+
 (rule
  (alias metrics)
  (package liquidsoap)
@@ -309,8 +336,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
-  
+ (action
+  (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
+
 (rule
  (alias null)
  (package liquidsoap)
@@ -322,8 +350,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
-  
+ (action
+  (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
+
 (rule
  (alias number)
  (package liquidsoap)
@@ -335,8 +364,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} number.liq liquidsoap %{test_liq} number.liq)))
-  
+ (action
+  (run %{run_test} number.liq liquidsoap %{test_liq} number.liq)))
+
 (rule
  (alias osc)
  (package liquidsoap)
@@ -348,8 +378,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} osc.liq liquidsoap %{test_liq} osc.liq)))
-  
+ (action
+  (run %{run_test} osc.liq liquidsoap %{test_liq} osc.liq)))
+
 (rule
  (alias pattern)
  (package liquidsoap)
@@ -361,8 +392,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
-  
+ (action
+  (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
+
 (rule
  (alias pp)
  (package liquidsoap)
@@ -374,8 +406,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
-  
+ (action
+  (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
+
 (rule
  (alias predicate)
  (package liquidsoap)
@@ -387,8 +420,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
-  
+ (action
+  (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
+
 (rule
  (alias process)
  (package liquidsoap)
@@ -400,8 +434,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
-  
+ (action
+  (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
+
 (rule
  (alias rec)
  (package liquidsoap)
@@ -413,8 +448,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
-  
+ (action
+  (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
+
 (rule
  (alias record)
  (package liquidsoap)
@@ -426,8 +462,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
-  
+ (action
+  (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
+
 (rule
  (alias ref)
  (package liquidsoap)
@@ -439,8 +476,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
-  
+ (action
+  (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
+
 (rule
  (alias regexp)
  (package liquidsoap)
@@ -452,8 +490,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
-  
+ (action
+  (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
+
 (rule
  (alias replaygain)
  (package liquidsoap)
@@ -465,8 +504,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
-  
+ (action
+  (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
+
 (rule
  (alias socket)
  (package liquidsoap)
@@ -478,8 +518,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
-  
+ (action
+  (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
+
 (rule
  (alias sqlite)
  (package liquidsoap)
@@ -491,8 +532,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} sqlite.liq liquidsoap %{test_liq} sqlite.liq)))
-  
+ (action
+  (run %{run_test} sqlite.liq liquidsoap %{test_liq} sqlite.liq)))
+
 (rule
  (alias stdlib)
  (package liquidsoap)
@@ -504,8 +546,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
-  
+ (action
+  (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
+
 (rule
  (alias string)
  (package liquidsoap)
@@ -517,8 +560,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
-  
+ (action
+  (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
+
 (rule
  (alias thread)
  (package liquidsoap)
@@ -530,8 +574,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} thread.liq liquidsoap %{test_liq} thread.liq)))
-  
+ (action
+  (run %{run_test} thread.liq liquidsoap %{test_liq} thread.liq)))
+
 (rule
  (alias time)
  (package liquidsoap)
@@ -543,8 +588,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} time.liq liquidsoap %{test_liq} time.liq)))
-  
+ (action
+  (run %{run_test} time.liq liquidsoap %{test_liq} time.liq)))
+
 (rule
  (alias type_errors)
  (package liquidsoap)
@@ -556,8 +602,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq)))
-  
+ (action
+  (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq)))
+
 (rule
  (alias typing)
  (package liquidsoap)
@@ -569,8 +616,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
-  
+ (action
+  (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
+
 (rule
  (alias url)
  (package liquidsoap)
@@ -582,8 +630,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} url.liq liquidsoap %{test_liq} url.liq)))
-  
+ (action
+  (run %{run_test} url.liq liquidsoap %{test_liq} url.liq)))
+
 (rule
  (alias various)
  (package liquidsoap)
@@ -595,8 +644,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} various.liq liquidsoap %{test_liq} various.liq)))
-  
+ (action
+  (run %{run_test} various.liq liquidsoap %{test_liq} various.liq)))
+
 (rule
  (alias xml_test)
  (package liquidsoap)
@@ -608,8 +658,9 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} xml_test.liq liquidsoap %{test_liq} xml_test.liq)))
-  
+ (action
+  (run %{run_test} xml_test.liq liquidsoap %{test_liq} xml_test.liq)))
+
 (rule
  (alias yaml)
  (package liquidsoap)
@@ -621,55 +672,57 @@
   crontab_test_cases.json
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} yaml.liq liquidsoap %{test_liq} yaml.liq)))
-  (alias
-  (name citest)
-  (deps
-    (alias argsof)
-    (alias bool)
-    (alias comments)
-    (alias conversions)
-    (alias cron)
-    (alias cue_test)
-    (alias doc)
-    (alias encoders)
-    (alias error)
-    (alias eval)
-    (alias file)
-    (alias file.watch)
-    (alias file.watch2)
-    (alias file_protocol)
-    (alias functions)
-    (alias getter)
-    (alias interactive)
-    (alias json)
-    (alias list)
-    (alias loop)
-    (alias math)
-    (alias mem_usage)
-    (alias metadata)
-    (alias metrics)
-    (alias null)
-    (alias number)
-    (alias osc)
-    (alias pattern)
-    (alias pp)
-    (alias predicate)
-    (alias process)
-    (alias rec)
-    (alias record)
-    (alias ref)
-    (alias regexp)
-    (alias replaygain)
-    (alias socket)
-    (alias sqlite)
-    (alias stdlib)
-    (alias string)
-    (alias thread)
-    (alias time)
-    (alias type_errors)
-    (alias typing)
-    (alias url)
-    (alias various)
-    (alias xml_test)
-    (alias yaml)))
+ (action
+  (run %{run_test} yaml.liq liquidsoap %{test_liq} yaml.liq)))
+
+(alias
+ (name citest)
+ (deps
+  (alias argsof)
+  (alias bool)
+  (alias comments)
+  (alias conversions)
+  (alias cron)
+  (alias cue_test)
+  (alias doc)
+  (alias encoders)
+  (alias error)
+  (alias eval)
+  (alias file)
+  (alias file.watch)
+  (alias file.watch2)
+  (alias file_protocol)
+  (alias functions)
+  (alias getter)
+  (alias interactive)
+  (alias json)
+  (alias list)
+  (alias loop)
+  (alias math)
+  (alias mem_usage)
+  (alias metadata)
+  (alias metrics)
+  (alias null)
+  (alias number)
+  (alias osc)
+  (alias pattern)
+  (alias pp)
+  (alias predicate)
+  (alias process)
+  (alias rec)
+  (alias record)
+  (alias ref)
+  (alias regexp)
+  (alias replaygain)
+  (alias socket)
+  (alias sqlite)
+  (alias stdlib)
+  (alias string)
+  (alias thread)
+  (alias time)
+  (alias type_errors)
+  (alias typing)
+  (alias url)
+  (alias various)
+  (alias xml_test)
+  (alias yaml)))

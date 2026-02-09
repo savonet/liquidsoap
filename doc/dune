@@ -27,14 +27,16 @@
   (source_tree ../src/libs)
   (source_tree .))
  (action
-  (with-stdout-to
-   dune.inc.gen
-   (run ./gen_dune.exe))))
+  (progn
+   (with-stdout-to
+    dune.inc.gen
+    (run ./gen_dune.exe))
+   (format-dune-file dune.inc.gen dune.inc.gen.formatted))))
 
 (rule
  (alias gendune)
  (action
-  (diff dune.inc dune.inc.gen)))
+  (diff dune.inc dune.inc.gen.formatted)))
 
 (rule
  (alias doc)

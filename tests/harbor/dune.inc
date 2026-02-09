@@ -1,4 +1,3 @@
-
 (rule
  (alias citest)
  (package liquidsoap)
@@ -9,8 +8,9 @@
   (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} http.liq liquidsoap %{test_liq} http.liq)))
-  
+ (action
+  (run %{run_test} http.liq liquidsoap %{test_liq} http.liq)))
+
 (rule
  (alias citest)
  (package liquidsoap)
@@ -21,8 +21,9 @@
   (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} http2.liq liquidsoap %{test_liq} http2.liq)))
-  
+ (action
+  (run %{run_test} http2.liq liquidsoap %{test_liq} http2.liq)))
+
 (rule
  (alias citest)
  (package liquidsoap)
@@ -33,8 +34,9 @@
   (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} http3.liq liquidsoap %{test_liq} http3.liq)))
-  
+ (action
+  (run %{run_test} http3.liq liquidsoap %{test_liq} http3.liq)))
+
 (rule
  (alias citest)
  (package liquidsoap)
@@ -45,8 +47,9 @@
   (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} post.liq liquidsoap %{test_liq} post.liq)))
-  
+ (action
+  (run %{run_test} post.liq liquidsoap %{test_liq} post.liq)))
+
 (rule
  (alias citest)
  (package liquidsoap)
@@ -57,5 +60,5 @@
   (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} put.liq liquidsoap %{test_liq} put.liq)))
-  
+ (action
+  (run %{run_test} put.liq liquidsoap %{test_liq} put.liq)))
