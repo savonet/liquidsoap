@@ -8,6 +8,7 @@
 
 ## Fixed:
 
+- Make active `stereotool` really be active.. (#4882)
 - Fixed `fMP4` HLS support for audio+video streams (#4841)
 - Fixed crossfade clocks inconsistencies leading to weird caching audio glitches (#4851)
 - Fixed crash with concurrent `stop`/`start` operations (#4849)

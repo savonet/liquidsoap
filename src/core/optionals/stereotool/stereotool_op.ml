@@ -95,9 +95,11 @@ class stereotool ~field ~handler source =
   end
 
 class active_stereotool ~field ~handler source =
-  object
+  object (self)
     inherit base ~field ~handler source
-    inherit Source.operator ~name:"stereotool" [source]
+    inherit Source.active_operator ~name:"stereotool" [source]
+    method reset = ()
+    method output = if self#is_ready then ignore self#get_frame
   end
 
 let _ =
@@ -234,7 +236,7 @@ let _ =
                 "eval");
       let field, src = Lang.to_track (List.assoc "" p) in
       let source =
-        if active then new active_stereotool ~field ~handler src
-        else new stereotool ~field ~handler src
+        if active then (new active_stereotool ~field ~handler src :> stereotool)
+        else (new stereotool ~field ~handler src :> stereotool)
       in
       (field, source))
