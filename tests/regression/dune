@@ -67,3 +67,39 @@
    -i
    "sine=frequency=1000:duration=10"
    %{target})))
+
+(rule
+ (target Stereo_Tool_Generic_plugin.zip)
+ (action
+  (run
+   curl
+   -L
+   -o
+   %{target}
+   https://download.thimeo.com/Stereo_Tool_Generic_plugin.zip)))
+
+(rule
+ (target libStereoTool_64.dylib)
+ (deps Stereo_Tool_Generic_plugin.zip)
+ (enabled_if
+  (= %{system} macosx))
+ (action
+  (progn
+   (with-accepted-exit-codes
+    (or 0 1)
+    (run unzip -o %{deps}))
+   (bash
+    "cp libStereoTool_*/lib/macOS/Universal/64/libStereoTool_64.dylib %{target}"))))
+
+(rule
+ (target libStereoTool_intel64.so)
+ (deps Stereo_Tool_Generic_plugin.zip)
+ (enabled_if
+  (= %{system} linux))
+ (action
+  (progn
+   (with-accepted-exit-codes
+    (or 0 1)
+    (run unzip -o %{deps}))
+   (bash
+    "cp libStereoTool_*/lib/Linux/IntelAMD/64/libStereoTool_intel64.so %{target}"))))
