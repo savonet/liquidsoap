@@ -30,19 +30,6 @@
  (alias comments)
  (package liquidsoap)
  (deps
-  casting.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  crontab_test_cases.json
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} casting.liq liquidsoap %{test_liq} casting.liq)))
-  
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
   comments.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -239,6 +226,25 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
+
+(rule
+ (alias implicit_float_casting)
+ (package liquidsoap)
+ (deps
+  implicit_float_casting.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   implicit_float_casting.liq
+   liquidsoap
+   %{test_liq}
+   implicit_float_casting.liq)))
 
 (rule
  (alias interactive)
@@ -707,6 +713,7 @@
   (alias file_protocol)
   (alias functions)
   (alias getter)
+  (alias implicit_float_casting)
   (alias interactive)
   (alias json)
   (alias list)
