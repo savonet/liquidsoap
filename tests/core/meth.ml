@@ -34,12 +34,12 @@ let () =
 (* Test subtyping. *)
 let () =
   (* Make sure unifying variables sees top-level methods:
-     We do: t = ('a).{ f : int } <: t' = int.{ ff : int, f : float }
+     We do: t = ('a).{ f : int } <: t' = int.{ ff : int, f : string }
      and make sure that this fails. *)
   let t = Type.var () in
   let t = Type.meth "f" ([], Type.make Type.Int) t in
   let t' = Type.make Type.Int in
-  let t' = Type.meth "f" ([], Type.make Type.Float) t' in
+  let t' = Type.meth "f" ([], Type.make Type.String) t' in
   let t' = Type.meth "ff" ([], Type.make Type.Int) t' in
   assert (
     try

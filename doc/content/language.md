@@ -74,6 +74,9 @@ so that `3` and `3.` are not the same thing: the former is an integer and the
 latter is a float. This is a source of errors for beginners, but is necessary for
 typing to work well.
 
+Since version 2.x of Liquidsoap, you can use an integer where a float is
+expected, for instance you can type `sin(3)` instead of `sin(3.)`.
+
 ### Strings
 
 Strings are written between double or single quotes,

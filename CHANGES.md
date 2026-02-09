@@ -11,6 +11,7 @@
 - Make sure script fails on `on_close` errors in `output.file` to prevent
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
   from the callback.
+- Allow implicit casting of an integer as a float (#2887).
 
 ## Fixed:
 
