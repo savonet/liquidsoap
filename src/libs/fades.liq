@@ -123,7 +123,7 @@ def mkfade(
 
     t = source.time(s) - start_time() - delay
     if
-      t <= 0.
+      0. < duration and t <= 0.
     then
       start
     elsif
