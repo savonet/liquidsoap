@@ -115,7 +115,10 @@ let type_of_format f =
                   ->
                     Type.make
                       (Format_type.descr
-                         (`Format Content.(default_format Video.kind))))
+                         (`Format Content.(default_format Video.kind)))
+                | `Encode { Ffmpeg_format.options = `Subtitle _; _ } ->
+                    Type.make
+                      (Format_type.descr (`Format Subtitle_content.format)))
               ctype)
           Frame.Fields.empty m.streams
     | FdkAacEnc m -> audio_type m.Fdkaac_format.channels

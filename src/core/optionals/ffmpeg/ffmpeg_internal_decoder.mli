@@ -39,3 +39,17 @@ val mk_video_decoder :
   buffer:Decoder.buffer ->
   [ `Frame of Avutil.video Avutil.Frame.t | `Flush ] ->
   unit
+
+val mk_text_subtitle_decoder :
+  stream:(Avutil.input, [ `Subtitle ], [ `Frame ]) Av.stream ->
+  field:Frame.field ->
+  [ `Subtitle of Avutil.Subtitle.frame | `Flush ]
+  Ffmpeg_decoder_common.sparse_decoder
+
+val mk_bitmap_subtitle_decoder :
+  stream:(Avutil.input, [ `Subtitle ], [ `Frame ]) Av.stream ->
+  field:Frame.field ->
+  width:int ->
+  height:int ->
+  [ `Subtitle of Avutil.Subtitle.frame | `Flush ]
+  Ffmpeg_decoder_common.sparse_decoder

@@ -26,13 +26,18 @@ let audio_video_decoding_tests =
 
 let standalone_tests =
   [
-    "multitrack.liq";
-    "ffmpeg_inline_encode_decode.liq";
-    "ffmpeg_inline_encode_decode_audio.liq";
-    "ffmpeg_inline_encode_decode_video.liq";
-    "ffmpeg_raw_hls.liq";
-    "pcm_s16_decode.liq";
-    "pcm_f32_decode.liq";
+    ("multitrack.liq", []);
+    ("ffmpeg_inline_encode_decode.liq", []);
+    ("ffmpeg_inline_encode_decode_audio.liq", []);
+    ("ffmpeg_inline_encode_decode_video.liq", []);
+    ("ffmpeg_raw_hls.liq", []);
+    ("pcm_s16_decode.liq", []);
+    ("pcm_f32_decode.liq", []);
+    ("subtitle_concat.liq", ["test-subtitle.srt"]);
+    ("subtitle_concat_copy.liq", ["test-subtitle.srt"]);
+    ("subtitle_multi.liq", ["test-subtitle.srt"]);
+    ("subtitle_copy_encode.liq", ["test-subtitle.srt"]);
+    ("subtitle_reencode.liq", ["test-subtitle.srt"]);
   ]
 
 let audio_formats =
@@ -73,8 +78,30 @@ let multitrack_formats =
     {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%audio_2(codec="aac",channels=1),%video(codec="libx264"),%video_2(codec="libx264")).mp4|};
   ]
 
+let audio_subtitle_formats =
+  [
+    {|%ffmpeg(format="matroska",%audio(codec="aac"),%subtitles(codec="subrip")).mkv|};
+    {|%ffmpeg(format="matroska",%audio(codec="aac"),%subtitles(codec="ass")).mkv|};
+  ]
+
+let video_subtitle_formats =
+  [
+    {|%ffmpeg(format="matroska",%video(codec="libx264"),%subtitles(codec="subrip")).mkv|};
+    {|%ffmpeg(format="matroska",%video(codec="libx264",b="500k"),%subtitles(codec="ass")).mkv|};
+    {|%ffmpeg(format="webm",%video(codec="libvpx"),%subtitles(codec="webvtt")).webm|};
+  ]
+
+let audio_video_subtitle_formats =
+  [
+    {|%ffmpeg(format="matroska",%audio(codec="aac"),%video(codec="libx264"),%subtitles(codec="subrip")).mkv|};
+    {|%ffmpeg(format="matroska",%audio(codec="aac",b="128k"),%video(codec="libx264"),%subtitles(codec="ass")).mkv|};
+    {|%ffmpeg(format="mp4",%audio(codec="aac"),%video(codec="libx264"),%subtitles(codec="mov_text")).mp4|};
+  ]
+
 let formats =
   audio_formats @ audio_video_formats @ video_formats @ multitrack_formats
+  @ audio_subtitle_formats @ video_subtitle_formats
+  @ audio_video_subtitle_formats
 
 let encoder_format format =
   match List.rev (String.split_on_char '.' format) with
@@ -99,7 +126,10 @@ let mediatest (type a) : (a, unit, string, string) format4 -> a =
       mediatests := Printf.sprintf "(alias %s)" s :: !mediatests;
       s)
 
-let mk_encoder source format =
+let mk_encoder ?(deps = []) source format =
+  let extra_deps =
+    match deps with [] -> "" | l -> "\n    " ^ String.concat "\n    " l
+  in
   Printf.printf
     {|
 (rule
@@ -108,14 +138,14 @@ let mk_encoder source format =
   (target %s)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
-    (:encoder_in ./encoder_%s.liq.in))
+    (:encoder_in ./encoder_%s.liq.in)%s)
   (action
     (with-stdout-to %%{target}
       (run %%{mk_encoder_test} %S %s %S))))
 
 |}
     (mediatest "encoder_%s" source)
-    (encoder_script format) source (encoder_format format) source
+    (encoder_script format) source extra_deps (encoder_format format) source
     (escaped_format format)
 
 let mk_encoded_file format =
@@ -143,6 +173,16 @@ let () =
   List.iter (mk_encoder "video_only") video_formats;
   List.iter (mk_encoder "audio_video") audio_video_formats;
   List.iter (mk_encoder "multitrack") multitrack_formats;
+  let subtitle_deps = ["test-subtitle.srt"] in
+  List.iter
+    (mk_encoder ~deps:subtitle_deps "audio_subtitle")
+    audio_subtitle_formats;
+  List.iter
+    (mk_encoder ~deps:subtitle_deps "video_subtitle")
+    video_subtitle_formats;
+  List.iter
+    (mk_encoder ~deps:subtitle_deps "audio_video_subtitle")
+    audio_video_subtitle_formats;
   List.iter mk_encoded_file formats;
   Printf.printf
     {|
@@ -157,7 +197,10 @@ let () =
 |}
     (String.concat "\n" (List.map escaped_format formats))
 
-let file_test ~label ~test fname =
+let file_test ?(deps = []) ~label ~test fname =
+  let extra_deps =
+    match deps with [] -> "" | l -> "\n  " ^ String.concat "\n  " l
+  in
   Printf.printf
     {|
 (rule
@@ -165,7 +208,7 @@ let file_test ~label ~test fname =
  (package liquidsoap)
  (deps
   all_media_files
-  %s
+  %s%s
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -176,7 +219,7 @@ let file_test ~label ~test fname =
 
 |}
     (mediatest "%s" (Filename.remove_extension test))
-    test label test fname
+    test extra_deps label test fname
 
 let () =
   List.iter
@@ -208,7 +251,10 @@ let () =
         audio_video_decoding_tests)
     audio_video_formats
 
-let () = List.iter (fun test -> file_test ~label:test ~test "") standalone_tests
+let () =
+  List.iter
+    (fun (test, deps) -> file_test ~deps ~label:test ~test "")
+    standalone_tests
 
 let () =
   Printf.printf

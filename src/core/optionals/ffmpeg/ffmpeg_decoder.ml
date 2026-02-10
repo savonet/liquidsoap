@@ -42,6 +42,11 @@ let parse_timed_id3 content =
       let metadata = Printf.sprintf "ID3\004\000%s" content in
       Metadata.Reader.with_string Metadata.ID3.parse metadata)
 
+let subtitle_codec_is_text params =
+  match Avcodec.descriptor params with
+    | Some { Avcodec.properties; _ } -> List.mem `Text_sub properties
+    | None -> false
+
 module Streams = Map.Make (struct
   type t = int
 
@@ -841,6 +846,14 @@ let get_type ~ctype ~format ~url container =
                               codec_params = params;
                             }))));
               Frame.Fields.add field format content_type
+          | Some format
+            when Subtitle_content.is_format format
+                 && subtitle_codec_is_text params ->
+              Frame.Fields.add field Subtitle_content.format content_type
+          | Some _ ->
+              Frame.Fields.add field
+                Content.(default_format Video.kind)
+                content_type
           | _ -> content_type)
       content_type subtitle_streams
   in
@@ -880,6 +893,7 @@ let mk_eof streams buffer =
         | `Audio_packet (_, decoder) -> decoder ~buffer `Flush
         | `Video_packet (_, decoder) -> decoder ~buffer `Flush
         | `Subtitle_packet (_, decoder) -> decoder ~buffer `Flush
+        | `Subtitle_frame (_, decoder) -> decoder ~buffer `Flush
         | `Data_packet _ -> ())
     streams;
   Generator.add_track_mark buffer.Decoder.generator
@@ -1028,12 +1042,18 @@ let mk_decoder ~streams ~target_position container =
         match s.decoder with `Subtitle_packet (s, _) -> s :: cur | _ -> cur)
       streams []
   in
+  let subtitle_frame =
+    Streams.fold
+      (fun _ s cur ->
+        match s.decoder with `Subtitle_frame (s, _) -> s :: cur | _ -> cur)
+      streams []
+  in
   fun buffer ->
     let rec f () =
       try
         let data =
           Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
-            ~data_packet ~subtitle_packet container
+            ~data_packet ~subtitle_packet ~subtitle_frame container
         in
         match data with
           | `Audio_frame (i, frame) -> (
@@ -1086,7 +1106,18 @@ let mk_decoder ~streams ~target_position container =
                       ~stream
                       (Avcodec.Packet.get_pts packet)
                 | _ -> f ())
-          | `Subtitle_frame _ -> assert false
+          | `Subtitle_frame (i, frame) -> (
+              match Streams.find_opt i streams with
+                | Some ({ decoder = `Subtitle_frame (_, decode); _ } as stream)
+                  ->
+                    check_position ~buffer
+                      ~ts:
+                        (Option.value ~default:0L
+                           (Avutil.Subtitle.get_pts frame))
+                      ~decode:(fun () -> decode ~buffer (`Subtitle frame))
+                      ~stream
+                      (Avutil.Subtitle.get_pts frame)
+                | _ -> f ())
           | `Data_packet (i, packet) -> (
               match Streams.find_opt i streams with
                 | Some ({ decoder = `Data_packet (_, decode); _ } as stream) ->
@@ -1272,6 +1303,33 @@ let mk_streams ~ctype ~decode_first_metadata container =
   in
   let streams, _ =
     List.fold_left
+      (fun (streams, pos) (idx, stream, _) ->
+        let field = Frame.Fields.subtitles_n pos in
+        match Frame.Fields.find_opt field ctype with
+          | Some format when Subtitle_content.is_format format ->
+              let { Ffmpeg_decoder_common.decoder; advance } =
+                Ffmpeg_internal_decoder.mk_text_subtitle_decoder ~stream ~field
+              in
+              ( add_stream ~sparse:(`True advance) idx stream
+                  (`Subtitle_frame (stream, decoder))
+                  streams,
+                pos + 1 )
+          | Some format when Content.Video.is_format format ->
+              let width, height = Content.Video.dimensions_of_format format in
+              let { Ffmpeg_decoder_common.decoder; advance } =
+                Ffmpeg_internal_decoder.mk_bitmap_subtitle_decoder ~stream
+                  ~field ~width ~height
+              in
+              ( add_stream ~sparse:(`True advance) idx stream
+                  (`Subtitle_frame (stream, decoder))
+                  streams,
+                pos + 1 )
+          | _ -> (streams, pos + 1))
+      (streams, 0)
+      (Av.get_subtitle_streams container)
+  in
+  let streams, _ =
+    List.fold_left
       (fun (streams, pos) (idx, stream, params) ->
         try
           if Avcodec.Unknown.get_params_id params = `Timed_id3 then
@@ -1385,6 +1443,8 @@ let create_decoder ~ctype ~metadata fname =
               `Video_frame (stream, decoder)
           | `Subtitle_packet (stream, decoder) ->
               `Subtitle_packet (stream, decoder)
+          | `Subtitle_frame (stream, decoder) ->
+              `Subtitle_frame (stream, decoder)
           | `Data_packet (stream, decoder) -> `Data_packet (stream, decoder)
       in
       s.decoder <- decoder)
