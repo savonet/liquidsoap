@@ -9,7 +9,7 @@
 (homepage "https://github.com/savonet/liquidsoap")
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
 (maintenance_intent "(latest)")
-(version 2.4.3)
+(version 2.5.0)
 
 (generate_opam_files true)
 (subst disabled)

@@ -1,4 +1,4 @@
-# 2.4.3 (unreleased)
+# 2.5.0 (unreleased)
 
 ## New:
 
@@ -12,15 +12,6 @@
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
   from the callback.
 - Allow implicit casting of an integer as a float (#2887).
-
-## Fixed:
-
-- Make active `stereotool` really be active.. (#4882)
-- Fixed `fMP4` HLS support for audio+video streams (#4841)
-- Fixed crossfade clocks inconsistencies leading to weird caching audio glitches (#4851)
-- Fixed crash with concurrent `stop`/`start` operations (#4849)
-- Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
-  decoder (#4848)
 
 ---
 
