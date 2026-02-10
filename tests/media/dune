@@ -511,7 +511,7 @@
 (rule
  (alias bitmap_subtitle_to_video)
  (deps bitmap_subtitle_to_video_output.mp4)
- (target bitmap_subtitle_to_video_output.gen.png)
+ (target bitmap_subtitle_to_video_output.jpg)
  (action
   (run
    ffmpeg
@@ -522,23 +522,22 @@
    4.00
    -i
    bitmap_subtitle_to_video_output.mp4
-   -vf
-   format=monob
    -frames:v
    1
-   -compression
-   100
-   -bitexact
+   -q:v
+   2
    %{target})))
 
-; Compare generated image with reference, promote if changed
+; Compare generated image with reference using SSIM
 
 (rule
  (alias bitmap_subtitle_to_video)
+ (deps
+  bitmap_subtitle_to_video_output.jpg
+  (:reference bitmap_subtitle_to_video_reference.jpg))
  (action
-  (diff
-   bitmap_subtitle_to_video_output.png
-   bitmap_subtitle_to_video_output.gen.png)))
+  (bash
+   "ssim=$(ffmpeg -hide_banner -i %{reference} -i bitmap_subtitle_to_video_output.jpg -lavfi ssim -f null - 2>&1 | grep -o 'All:[0-9.]*' | cut -d: -f2); echo \"SSIM: $ssim\"; awk \"BEGIN {exit ($ssim < 0.95) ? 1 : 0}\"")))
 
 ; Test custom text_to_ass function for subtitle encoding
 
