@@ -181,9 +181,10 @@ This is useful when:
 ### Basic example
 
 ```liquidsoap
-# Set video dimensions to match the source (DVD is typically 720x480 or 720x576)
-settings.frame.video.width := 720
-settings.frame.video.height := 480
+# Optional: set video dimensions to match the source (DVD is typically 720x480 or 720x576)
+# This is only needed in cases where video frame size auto-detection does not work.
+# settings.frame.video.width := 720
+# settings.frame.video.height := 480
 
 s = single("movie_with_dvd_subs.mkv")
 s = once(s)

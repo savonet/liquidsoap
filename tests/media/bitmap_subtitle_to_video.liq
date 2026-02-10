@@ -1,8 +1,5 @@
 log.level.set(4)
 
-settings.frame.video.width := 720
-settings.frame.video.height := 480
-
 fname = argv(default="", 1)
 out = "bitmap_subtitle_to_video_output.mp4"
 
