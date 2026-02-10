@@ -321,7 +321,9 @@ let playlist_parse =
 
 let _ =
   Lang.add_builtin "seconds_of_main" ~category:`Liquidsoap
-    ~descr:"Convert a number of main ticks in seconds."
+    ~descr:
+      "Convert a number of main ticks to seconds. Sub-second precision is \
+       available as the fractional part (64-bit float)."
     [("", Lang.int_t, None, None)]
     Lang.float_t
     (fun p ->
