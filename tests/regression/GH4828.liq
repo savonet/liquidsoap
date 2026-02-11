@@ -1,12 +1,12 @@
 log.level := 4
 
-expected_checksum = "3a96c65415d5b3ed0fd44c20e5b41c78"
+expected_checksum = "5122ca63495343bed07dfa27b900d79d"
 
 settings.frame.checksum.metadata := true
 settings.frame.checksum.track_marks := true
 
 sha_file = file.temp(cleanup=true, "cross-crack-sha", ".txt")
-audio_file = "#{test.assets_dir}/GH4828.mp3"
+audio_file = "#{test.assets_dir}/GH4828.flac"
 
 s = single("annotate:liq_cue_in=0.0,liq_cue_out=16.7:#{audio_file}")
 
