@@ -15,6 +15,9 @@ on:
       save_traces:
         required: true
         type: string
+    secrets:
+      LIQUIDSOAP_TEST_REPO_TOKEN:
+        required: true
 
 jobs:
   run_tests:
@@ -71,6 +74,7 @@ jobs:
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
+          LIQUIDSOAP_TEST_REPO_TOKEN: ${{ secrets.LIQUIDSOAP_TEST_REPO_TOKEN }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}

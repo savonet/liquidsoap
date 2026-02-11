@@ -2,6 +2,7 @@ log.level := 4
 settings.init.force_start := true
 
 test = ()
+let test.assets_dir = "#{path.dirname(liquidsoap.script.path)}/liquidsoap-test-assets"
 let test.done = ref(false)
 
 runtime.gc.set(runtime.gc.get().{space_overhead=20, allocation_policy=2})

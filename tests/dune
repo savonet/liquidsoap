@@ -7,3 +7,25 @@
  (name run_test)
  (modules run_test)
  (libraries liquidsoap-lang.console unix threads))
+
+(rule
+ (target liquidsoap-test-assets)
+ (enabled_if
+  (<> %{env:LIQUIDSOAP_TEST_REPO_TOKEN=} ""))
+ (action
+  (run
+   git
+   clone
+   https://x-access-token:%{env:LIQUIDSOAP_TEST_REPO_TOKEN=}@github.com/savonet/liquidsoap-test-assets.git
+   liquidsoap-test-assets)))
+
+(rule
+ (target liquidsoap-test-assets)
+ (enabled_if
+  (= %{env:LIQUIDSOAP_TEST_REPO_TOKEN=} ""))
+ (action
+  (run
+   git
+   clone
+   git@github.com:savonet/liquidsoap-test-assets.git
+   liquidsoap-test-assets)))
