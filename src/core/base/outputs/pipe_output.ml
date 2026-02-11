@@ -340,7 +340,7 @@ class virtual piped_output ?clock ~name p =
 
     method cleanup_pipe =
       if self#is_open then (
-        base#send self#close_encoder;
+        (try base#send self#close_encoder with _ -> ());
         self#close_pipe)
 
     val mutable on_reopen = []
