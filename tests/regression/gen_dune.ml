@@ -27,6 +27,7 @@ let () =
  (deps
   %s
   ../media/all_media_files
+  ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
   ../streams/file1.mp3

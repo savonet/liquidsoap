@@ -80,6 +80,8 @@ jobs:
       branch: ${{ needs.build_details.outputs.branch }}
       is_fork: ${{ needs.build_details.outputs.is_fork }}
       save_traces: ${{ needs.build_details.outputs.save_traces }}
+    secrets:
+      LIQUIDSOAP_TEST_REPO_TOKEN: ${{ secrets.LIQUIDSOAP_TEST_REPO_TOKEN }}
 
   build_posix:
     uses: ./.github/workflows/build-posix.yml
