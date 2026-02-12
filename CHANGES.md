@@ -2,6 +2,10 @@
 
 ## New:
 
+- Added subtitles support as a dedicated content type. Includes native SRT decoding,
+  FFmpeg subtitle encoding/decoding (`%subtitle`), passthrough for bitmap subtitles
+  (`%subtitle.copy`), callbacks (`on_subtitle`), transformations (`subtitles.map`),
+  and dynamic insertion (`subtitles.insert`) (#4860, #4861, #4862).
 - Video dimensions (`video.frame.width`/`height`) are now automatically detected
   from the first decoded video file. This can be disabled by setting `settings.video.detect_dimensions`
   to `false` or by explicitly setting the video dimensions.
