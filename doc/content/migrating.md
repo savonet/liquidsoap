@@ -27,7 +27,7 @@ To disable this behavior, either set `settings.video.detect_dimensions` to `fals
 
 Integers can now be implicitly converted to floats when a float is expected. This makes numerical code easier to write:
 
-```{.liquidsoap include="liq/implicit-float-ok.liq"}
+```{.liquidsoap include="implicit-float-ok.liq"}
 
 ```
 
