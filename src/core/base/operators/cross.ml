@@ -398,13 +398,44 @@ class cross val_source ~end_duration_getter ~override_end_duration
         | Some None ->
             self#log#important "Invalid non-float value for `liq_fade_out`: %s"
               (Frame.Metadata.find "liq_fade_out" before_metadata)
-        | Some (Some fade_out) ->
+        | Some (Some fade_out) when fade_out < cross_duration ->
             let fade_out = min cross_duration fade_out in
             let fade_out_delay = max (cross_duration -. fade_out) 0. in
+            self#log#info
+              "Adding %.02f `liq_fade_out_delay` to make sure `fade.out` ends \
+               at the end of the buffered data."
+              fade_out;
             self#append_before_metadata "liq_fade_out"
               (string_of_float fade_out);
             self#append_before_metadata "liq_fade_out_delay"
               (string_of_float fade_out_delay)
+        | Some (Some fade_out) when cross_duration < fade_out ->
+            self#log#info
+              "Dropping %.02f from `liq_fade_out` to match the buffered data."
+              (cross_duration -. fade_out);
+            self#append_before_metadata "liq_fade_out"
+              (string_of_float cross_duration)
+        | Some (Some fade_out) -> assert (cross_duration = fade_out)
+
+    method private fade_in_adjustements cross_duration =
+      let after_metadata =
+        Option.value ~default:Frame.Metadata.empty after_metadata
+      in
+      match
+        Option.map float_of_string_opt
+          (Frame.Metadata.find_opt "liq_fade_in" after_metadata)
+      with
+        | None -> ()
+        | Some None ->
+            self#log#important "Invalid non-float value for `liq_fade_in`: %s"
+              (Frame.Metadata.find "liq_fade_in" after_metadata)
+        | Some (Some fade_in) when cross_duration < fade_in ->
+            self#log#info
+              "Dropping %.02f from `liq_fade_in` to match the buffered data."
+              (cross_duration -. fade_in);
+            self#append_after_metadata "liq_fade_in"
+              (string_of_float cross_duration)
+        | _ -> ()
 
     (* Sum up analysis and build the transition *)
     method private create_after =
@@ -419,7 +450,9 @@ class cross val_source ~end_duration_getter ~override_end_duration
         Audio.dB_of_lin
           (sqrt (rms_before /. float rmsi_before /. float self#audio_channels))
       in
-      self#fade_out_adjustements (Frame.seconds_of_main buffered);
+      let buffered_seconds = Frame.seconds_of_main buffered in
+      self#fade_out_adjustements buffered_seconds;
+      self#fade_in_adjustements buffered_seconds;
       let compound =
         let metadata = function None -> Frame.Metadata.empty | Some m -> m in
         let before_metadata = metadata before_metadata in
