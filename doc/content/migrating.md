@@ -48,6 +48,14 @@ def f(b) = if b then 1. else 2 end end
 
 In these cases, the type checker cannot safely reconcile the mixed `int` and `float` types. Use explicit float literals (`1.`, `2.`, etc.) when you encounter these situations.
 
+### Metadata in `add` operators
+
+The `add` operator (and related track-level `track.audio.add` and `track.video.add` operators) now relays metadata from **all** sources being summed, not just the first one.
+
+Previously, only metadata from the first source effectively added was relayed. This was a long-standing behavior that could be surprising when mixing multiple sources with distinct metadata.
+
+If you were relying on the old behavior of only getting metadata from the first source, you may need to filter or prioritize metadata manually using `metadata.map`.
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation
