@@ -40,8 +40,8 @@ class consumer ~name ~clock buffer =
 
 (** [rms_width] is in samples. [cross_length] is in ticks (like #remaining
     estimations) and must be at least one frame. *)
-class cross val_source ~override_duration ~duration_getter
-  ~override_max_duration ~persist_override ~rms_width transition =
+class cross val_source ~override_duration ~duration_getter ~persist_override
+  ~rms_width transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
@@ -62,8 +62,6 @@ class cross val_source ~override_duration ~duration_getter
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
     val mutable duration_getter = duration_getter
-    val mutable max_duration = None
-    val mutable max_main_duration = None
     val mutable main_duration = 0
     method cross_duration = Frame.seconds_of_main main_duration
 
@@ -75,39 +73,19 @@ class cross val_source ~override_duration ~duration_getter
       main_duration <-
         (if _main_duration < 0 then (
            self#log#important
-             "Cannot set crossfade start duration to negative value %f!"
-             duration;
+             "Cannot set crossfade duration to negative value %f!" duration;
            frame_size
            (* Accept zero as simplify disabled crossfade. Set to frame_size. *))
          else if _main_duration = 0 then frame_size
            (* For any non-zero too short value, warn the user. *)
          else if _main_duration < frame_size then (
            self#log#important
-             "Cannot set crossfade start duration to less than the frame size!";
+             "Cannot set crossfade duration to less than the frame size!";
            frame_size)
-         else _main_duration);
-
-      max_main_duration <-
-        (match max_duration with
-          | None -> None
-          | Some max_duration ->
-              let _max_main_duration = Frame.main_of_seconds max_duration in
-              if _max_main_duration < 0 then (
-                self#log#important
-                  "Cannot set crossfade max start duration to negative value \
-                   %f!"
-                  max_duration;
-                None)
-              else if _max_main_duration < frame_size then (
-                self#log#important
-                  "Cannot set crossfade max start duration to less than the \
-                   frame size!";
-                None)
-              else Some _max_main_duration)
+         else _main_duration)
 
     method reset_duration =
       duration_getter <- original_duration_getter;
-      max_duration <- None;
       self#set_main_duration
 
     initializer self#reset_duration
@@ -197,22 +175,11 @@ class cross val_source ~override_duration ~duration_getter
               duration_getter <- (fun () -> l);
               self#set_main_duration
             with _ -> ()));
-      (match Frame.Metadata.find_opt override_max_duration m with
-        | None -> ()
-        | Some v -> (
-            try
-              self#log#info
-                "Overriding crossfade max start duration from metadata %s"
-                override_max_duration;
-              let l = float_of_string v in
-              max_duration <- Some l
-            with _ -> ()));
       match Frame.Metadata.find_opt override_duration m with
         | None -> ()
         | Some v -> (
             try
-              self#log#info
-                "Overriding crossfade start duration from metadata %s"
+              self#log#info "Overriding crossfade duration from metadata %s"
                 override_duration;
               let l = float_of_string v in
               duration_getter <- (fun () -> l);
@@ -286,20 +253,10 @@ class cross val_source ~override_duration ~duration_getter
           self#analyze_after)
         else self#buffer_before ~is_first:false ())
 
-    method private expected_duration =
-      let max_main_duration =
-        Option.value ~default:main_duration max_main_duration
-      in
-      if main_duration < Generator.length gen_before then
-        min (Generator.length gen_before) max_main_duration
-      else main_duration
-
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
       let rec f ~is_first () =
-        let expected_duration = self#expected_duration in
-        if
-          Generator.length gen_after < expected_duration && self#source#is_ready
+        if Generator.length gen_after < main_duration && self#source#is_ready
         then (
           let buf_frame = self#child_get ~is_first self#source in
           self#append `After buf_frame;
@@ -551,13 +508,6 @@ let _ =
         Some
           "Metadata field which, if present and containing a float, overrides \
            the 'duration' parameter for current track." );
-      ( "override_max_duration",
-        Lang.string_t,
-        Some (Lang.string "liq_cross_max_duration"),
-        Some
-          "Metadata field which, if present and containing a float, informs \
-           the crossfade of the maximum duration. When not present, it is \
-           assumed to be `0.`." );
       ( "persist_override",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -599,9 +549,6 @@ let _ =
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
-      let override_max_duration =
-        Lang.to_string (List.assoc "override_max_duration" p)
-      in
       let persist_override = Lang.to_bool (List.assoc "persist_override" p) in
       let rms_width = Lang.to_float (List.assoc "width" p) in
       let rms_width = Frame.audio_of_seconds rms_width in
@@ -609,4 +556,4 @@ let _ =
       let source = Lang.assoc "" 2 p in
       new cross
         source transition ~duration_getter ~rms_width ~override_duration
-        ~override_max_duration ~persist_override)
+        ~persist_override)
