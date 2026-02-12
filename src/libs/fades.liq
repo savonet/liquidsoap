@@ -860,8 +860,7 @@ def replaces cross(%argsof(cross), ~deduplicate=true, transition, s) =
     dedup.{
       buffered=s.buffered,
       duration=s.duration,
-      start_duration=s.start_duration,
-      end_duration=s.end_duration
+      cross_duration=s.cross_duration
     }
   end
 end
@@ -869,22 +868,12 @@ end
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Fade
-# @argsof cross[id,start_duration,end_duration,duration,override_start_duration,override_end_duration,override_duration,persist_override,width]
+# @argsof cross[id,duration,override_duration,persist_override,width]
 # @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
 #                      removes duplicate metadata from the returned source.
 # @param s             The input source.
 def crossfade(
-  %argsof(cross[
-    id,
-    start_duration,
-    end_duration,
-    duration,
-    override_start_duration,
-    override_end_duration,
-    override_duration,
-    persist_override,
-    width]
-  ),
+  %argsof(cross[id,duration,override_duration,persist_override,width]),
   ~fade_in=3.,
   ~fade_out=3.,
   ~deduplicate=true,
@@ -927,17 +916,7 @@ def crossfade(
   end
 
   cross(
-    %argsof(cross[
-      id,
-      start_duration,
-      end_duration,
-      duration,
-      override_start_duration,
-      override_end_duration,
-      override_duration,
-      persist_override,
-      width]
-    ),
+    %argsof(cross[id,duration,override_duration,persist_override,width]),
     deduplicate=deduplicate,
     transition,
     s
