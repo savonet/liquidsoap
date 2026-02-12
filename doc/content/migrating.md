@@ -15,6 +15,39 @@ close to production. Streaming issues can build up over time. We do our best to
 release the most stable possible code but problems can arise from many reasons
 so, always best to first to a trial run before putting things to production!
 
+## From 2.4.x to 2.5.x
+
+### Automatic video dimensions detection
+
+Video dimensions (`video.frame.width`/`height`) are now automatically detected from the first decoded video file. This means you no longer need to manually set dimensions in most cases.
+
+To disable this behavior, either set `settings.video.detect_dimensions` to `false` or explicitly set the video dimensions yourself.
+
+### Implicit integer to float casting
+
+Integers can now be implicitly converted to floats when a float is expected. This makes numerical code easier to write:
+
+```{.liquidsoap include="liq/implicit-float-ok.liq"}
+
+```
+
+Previously, you would need to explicitly use `5.` or `float_of_int(5)`.
+
+**Limitations:** This conversion only works when the type checker can safely determine that a float is expected. There are inherent limitations to where this can be applied. The following cases do **not** work:
+
+```liquidsoap
+# if-then-else with mixed types - ERROR
+x = if true then 1. else 2 end
+
+# List with mixed int and float - ERROR
+l = [1., 2, 3.]
+
+# Function returning mixed types - ERROR
+def f(b) = if b then 1. else 2 end end
+```
+
+In these cases, the type checker cannot safely reconcile the mixed `int` and `float` types. Use explicit float literals (`1.`, `2.`, etc.) when you encounter these situations.
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation

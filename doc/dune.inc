@@ -153,6 +153,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -292,6 +293,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -431,6 +433,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -570,6 +573,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -709,6 +713,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -848,6 +853,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -987,6 +993,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1126,6 +1133,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1265,6 +1273,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1404,6 +1413,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1543,6 +1553,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1682,6 +1693,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1821,6 +1833,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1960,6 +1973,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2099,6 +2113,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2238,6 +2253,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2377,6 +2393,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2516,6 +2533,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2655,6 +2673,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2794,6 +2813,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2933,6 +2953,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3072,6 +3093,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3211,6 +3233,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3350,6 +3373,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3489,6 +3513,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3628,6 +3653,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3767,6 +3793,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3906,6 +3933,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4045,6 +4073,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4184,6 +4213,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4323,6 +4353,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4462,6 +4493,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4601,6 +4633,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4740,6 +4773,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4879,6 +4913,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5018,6 +5053,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5157,6 +5193,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5296,6 +5333,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5435,6 +5473,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5574,6 +5613,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5713,6 +5753,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5852,6 +5893,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5991,6 +6033,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6130,6 +6173,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6269,6 +6313,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6408,6 +6453,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6547,6 +6593,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6686,6 +6733,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6825,6 +6873,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6964,6 +7013,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7103,6 +7153,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7242,6 +7293,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7381,6 +7433,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7520,6 +7573,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7659,6 +7713,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7798,6 +7853,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7937,6 +7993,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8076,6 +8133,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8215,6 +8273,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8354,6 +8413,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8493,6 +8553,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8632,6 +8693,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8771,6 +8833,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8910,6 +8973,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9049,6 +9113,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9188,6 +9253,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9327,6 +9393,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9466,6 +9533,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9605,6 +9673,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9744,6 +9813,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9883,6 +9953,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10022,6 +10093,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10161,6 +10233,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10300,6 +10373,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10439,6 +10513,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10578,6 +10653,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10717,6 +10793,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10856,6 +10933,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10995,6 +11073,7 @@
   content/liq/hls-metadata.liq
   content/liq/http-input.liq
   content/liq/icy-update.liq
+  content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -11674,6 +11753,19 @@
    --check
    --no-fallible-check
    content/liq/icy-update.liq)))
+
+(rule
+ (alias doctest)
+ (package liquidsoap)
+ (deps
+  (source_tree ../src/libs)
+  (:test_liq content/liq/implicit-float-ok.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/implicit-float-ok.liq)))
 
 (rule
  (alias doctest)
