@@ -12,6 +12,7 @@
 
 ## Changed:
 
+- Add metadata from all sources/tracks in `add` operators.
 - Make sure script fails on `on_close` errors in `output.file` to prevent
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
   from the callback.

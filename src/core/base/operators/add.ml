@@ -88,28 +88,15 @@ class virtual base ~name tracks =
         | [s] -> s#effective_source
         | _ -> (self :> Source.source)
 
-    (* For backward compatibility: set metadata from the first
-       track effectively summed. *)
     method private set_metadata buf =
-      match
-        List.fold_left
-          (fun cur { fields; data = source } ->
-            List.fold_left
-              (fun cur { position; _ } ->
-                match cur with
-                  | None -> Some (source, position)
-                  | Some (_, pos) when position < pos -> Some (source, position)
-                  | _ -> cur)
-              cur fields)
-          None self#tracks_ready
-      with
-        | None -> buf
-        | Some (source, _) ->
-            let metadata =
-              Content.Metadata.get_data
-                (Frame.Fields.find Frame.Fields.metadata source#get_frame)
-            in
-            Frame.add_all_metadata buf metadata
+      let metadata =
+        List.concat_map
+          (fun { data = source } ->
+            Content.Metadata.get_data
+              (Frame.Fields.find Frame.Fields.metadata source#get_frame))
+          self#tracks_ready
+      in
+      Frame.add_all_metadata buf metadata
   end
 
 (** Add/mix several sources together. If [renorm], renormalize the PCM channels.
@@ -357,8 +344,8 @@ let _ =
             coefficients if we are not normalizing." )
     :: add_proto)
     ~descr:
-      "Mix sources, with optional normalization. Only relay metadata from the \
-       first available source. Track marks are dropped from all sources."
+      "Mix sources, with optional normalization. Metadata are relayed from all \
+       sources. Track marks are dropped from all sources."
     ~return_t:frame_t
     (fun p ->
       let sources_val = List.assoc "" p in

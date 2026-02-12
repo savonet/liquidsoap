@@ -491,12 +491,9 @@ class cross val_source ~end_duration_getter ~override_end_duration
           else None
         in
         let before =
-          new Replay_metadata.replay
-            ~name:(Printf.sprintf "%s.before_metadata" self#id)
-            before_metadata
-            (new consumer
-               ~name:(Printf.sprintf "%s.before_buffer" self#id)
-               ~clock:self#clock gen_before)
+          new consumer
+            ~name:(Printf.sprintf "%s.before_buffer" self#id)
+            ~clock:self#clock gen_before
         in
         Typing.(before#frame_type <: self#frame_type);
         let after_tail =
