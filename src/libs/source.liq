@@ -113,7 +113,16 @@ end
 # @category Source / Track processing
 # @param s The input source.
 def once(~id=null("once"), s) =
-  sequence(id=id, [(s : source), source.fail()])
+  fail = source.fail()
+  s_ref = ref(s)
+  def next() =
+    s = s_ref()
+    if source.methods(s).is_ready() then s_ref := fail end
+    s
+  end
+  d = source.dynamic(id=id, track_sensitive=true, next)
+  d.on_wake_up(synchronous=true, fun () -> s_ref.set(d.prepare(s)))
+  d
 end
 
 # Skip track when detecting a blank.
