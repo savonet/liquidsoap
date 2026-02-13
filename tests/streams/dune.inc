@@ -97,78 +97,6 @@
   (run %{run_test} autostart.liq liquidsoap %{test_liq} autostart.liq)))
 
 (rule
- (alias cross-override-end)
- (package liquidsoap)
- (deps
-  cross-override-end.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   cross-override-end.liq
-   liquidsoap
-   %{test_liq}
-   cross-override-end.liq)))
-
-(rule
- (alias cross-override-start)
- (package liquidsoap)
- (deps
-  cross-override-start.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   cross-override-start.liq
-   liquidsoap
-   %{test_liq}
-   cross-override-start.liq)))
-
-(rule
  (alias cross-override)
  (package liquidsoap)
  (deps
@@ -205,42 +133,6 @@
    cross-override.liq)))
 
 (rule
- (alias cross-persist-end-override)
- (package liquidsoap)
- (deps
-  cross-persist-end-override.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   cross-persist-end-override.liq
-   liquidsoap
-   %{test_liq}
-   cross-persist-end-override.liq)))
-
-(rule
  (alias cross-persist-override)
  (package liquidsoap)
  (deps
@@ -275,42 +167,6 @@
    liquidsoap
    %{test_liq}
    cross-persist-override.liq)))
-
-(rule
- (alias cross-persist-start-override)
- (package liquidsoap)
- (deps
-  cross-persist-start-override.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   cross-persist-start-override.liq
-   liquidsoap
-   %{test_liq}
-   cross-persist-start-override.liq)))
 
 (rule
  (alias cross)
@@ -2546,11 +2402,7 @@
   (alias autostart)
   (alias cross)
   (alias cross-override)
-  (alias cross-override-end)
-  (alias cross-override-start)
-  (alias cross-persist-end-override)
   (alias cross-persist-override)
-  (alias cross-persist-start-override)
   (alias crossfade)
   (alias crossfade2)
   (alias ctype1)
