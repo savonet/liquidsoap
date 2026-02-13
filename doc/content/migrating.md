@@ -56,6 +56,33 @@ Previously, only metadata from the first source effectively added was relayed. T
 
 If you were relying on the old behavior of only getting metadata from the first source, you may need to filter or prioritize metadata manually using `metadata.map`.
 
+### Crossfade simplification
+
+The `cross` and `crossfade` operators have been simplified. The separate `start_duration` and `end_duration` parameters have been replaced by a single unified `duration` parameter. The crossfade now buffers the same duration from both ending and starting tracks.
+
+**If you use autocue** (via `enable_autocue_metadata()` or external autocue implementations like those used in AzuraCast): No changes are required. Everything should work as before.
+
+**If you don't use autocue**: The transition will now be computed using the same duration for both tracks. If you were previously using different `start_duration` and `end_duration` values, you'll need to adjust your script to use a single `duration` value.
+
+The following changes were made:
+
+| Old                                         | New                               |
+| ------------------------------------------- | --------------------------------- |
+| `start_duration` parameter                  | Removed, use `duration`           |
+| `end_duration` parameter                    | Removed, use `duration`           |
+| `override_start_duration` parameter         | Removed, use `override_duration`  |
+| `override_end_duration` parameter           | Removed, use `override_duration`  |
+| `liq_cross_start_duration` metadata         | Removed, use `liq_cross_duration` |
+| `liq_cross_end_duration` metadata           | Removed, use `liq_cross_duration` |
+| `s.start_duration()` method                 | Removed, use `s.cross_duration()` |
+| `s.end_duration()` method                   | Removed, use `s.cross_duration()` |
+| `assume_autocue` parameter                  | Removed                           |
+| `settings.crossfade.assume_autocue` setting | Removed                           |
+
+The `add` operator now relays metadata from all sources being summed (see above). To prevent metadata from the ending track from being surfaced in crossfade transitions, they have been removed from the source passed to the transition. Instead, they are passed explicitly via the transition arguments. In the transition function, use `ending.metadata` and `starting.metadata` to access the metadata from each track.
+
+Also, remember that the `add` operator removes all track marks.
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation

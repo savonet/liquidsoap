@@ -12,7 +12,12 @@
 
 ## Changed:
 
-- Add metadata from all sources/tracks in `add` operators.
+- Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
+  with a single unified `duration` parameter. Removed autocue-specific code and
+  `assume_autocue` setting. Metadata overrides `liq_cross_start_duration` and
+  `liq_cross_end_duration` replaced by `liq_cross_duration`. Methods `start_duration()`
+  and `end_duration()` replaced by `cross_duration()` (#4893).
+- Add metadata from all sources/tracks in `add` operators (#4892).
 - Make sure script fails on `on_close` errors in `output.file` to prevent
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
   from the callback.
