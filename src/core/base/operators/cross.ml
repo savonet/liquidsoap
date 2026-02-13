@@ -23,16 +23,6 @@
 open Mm
 open Source
 
-let conf =
-  Dtools.Conf.void ~p:(Configure.conf#plug "crossfade") "Crossfade settings"
-
-let conf_assume_autocue =
-  Dtools.Conf.bool
-    ~p:(conf#plug "assume_autocue")
-    ~d:false
-    "Assume autocue when all 4 cue in/out and fade in/out metadata override \
-     are present."
-
 class consumer ~name ~clock buffer =
   object (self)
     inherit Source.source ~clock ~name ()
@@ -50,13 +40,10 @@ class consumer ~name ~clock buffer =
 
 (** [rms_width] is in samples. [cross_length] is in ticks (like #remaining
     estimations) and must be at least one frame. *)
-class cross val_source ~end_duration_getter ~override_end_duration
-  ~override_duration ~start_duration_getter ~override_start_duration
-  ~override_max_start_duration ~persist_override ~rms_width ~assume_autocue
-  transition =
+class cross val_source ~override_duration ~duration_getter ~persist_override
+  ~rms_width transition =
   let s = Lang.to_source val_source in
-  let original_end_duration_getter = end_duration_getter in
-  let original_start_duration_getter = start_duration_getter in
+  let original_duration_getter = duration_getter in
   object (self)
     inherit source ~name:"cross" ()
 
@@ -74,81 +61,32 @@ class cross val_source ~end_duration_getter ~override_end_duration
      * sources but we do not have a static way of knowing it at the moment.
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
-    val mutable end_duration_getter = end_duration_getter
-    val mutable start_duration_getter = start_duration_getter
-    val mutable max_start_duration = None
-    val mutable end_main_duration = 0
-    val mutable max_start_main_duration = None
-    val mutable start_main_duration = 0
-    method end_duration = Frame.seconds_of_main end_main_duration
-    method start_duration = Frame.seconds_of_main start_main_duration
+    val mutable duration_getter = duration_getter
+    val mutable main_duration = 0
+    method cross_duration = Frame.seconds_of_main main_duration
 
-    method set_end_main_duration =
-      let end_duration = end_duration_getter () in
-      let _end_main_duration = Frame.main_of_seconds end_duration in
+    method set_main_duration =
+      let duration = duration_getter () in
+      let _main_duration = Frame.main_of_seconds duration in
       let frame_size = Lazy.force Frame.size in
 
-      end_main_duration <-
-        (if _end_main_duration < 0 then (
+      main_duration <-
+        (if _main_duration < 0 then (
            self#log#important
-             "Cannot set crossfade end duration to negative value %f!"
-             end_duration;
+             "Cannot set crossfade duration to negative value %f!" duration;
            frame_size
            (* Accept zero as simplify disabled crossfade. Set to frame_size. *))
-         else if _end_main_duration = 0 then frame_size
+         else if _main_duration = 0 then frame_size
            (* For any non-zero too short value, warn the user. *)
-         else if _end_main_duration < frame_size then (
+         else if _main_duration < frame_size then (
            self#log#important
-             "Cannot set crossfade end duration to less than the frame size!";
+             "Cannot set crossfade duration to less than the frame size!";
            frame_size)
-         else _end_main_duration)
-
-    method set_start_main_duration =
-      let start_duration = start_duration_getter () in
-      let _start_main_duration = Frame.main_of_seconds start_duration in
-      let frame_size = Lazy.force Frame.size in
-
-      start_main_duration <-
-        (if _start_main_duration < 0 then (
-           self#log#important
-             "Cannot set crossfade start duration to negative value %f!"
-             start_duration;
-           frame_size
-           (* Accept zero as simplify disabled crossfade. Set to frame_size. *))
-         else if _start_main_duration = 0 then frame_size
-           (* For any non-zero too short value, warn the user. *)
-         else if _start_main_duration < frame_size then (
-           self#log#important
-             "Cannot set crossfade start duration to less than the frame size!";
-           frame_size)
-         else _start_main_duration);
-
-      max_start_main_duration <-
-        (match max_start_duration with
-          | None -> None
-          | Some max_start_duration ->
-              let _max_start_main_duration =
-                Frame.main_of_seconds max_start_duration
-              in
-              if _max_start_main_duration < 0 then (
-                self#log#important
-                  "Cannot set crossfade max start duration to negative value \
-                   %f!"
-                  max_start_duration;
-                None)
-              else if _max_start_main_duration < frame_size then (
-                self#log#important
-                  "Cannot set crossfade max start duration to less than the \
-                   frame size!";
-                None)
-              else Some _max_start_main_duration)
+         else _main_duration)
 
     method reset_duration =
-      end_duration_getter <- original_end_duration_getter;
-      start_duration_getter <- original_start_duration_getter;
-      max_start_duration <- None;
-      self#set_end_main_duration;
-      self#set_start_main_duration
+      duration_getter <- original_duration_getter;
+      self#set_main_duration
 
     initializer self#reset_duration
 
@@ -169,34 +107,6 @@ class cross val_source ~end_duration_getter ~override_end_duration
     val mutable rms_after = 0.
     val mutable rmsi_after = 0
     val mutable after_metadata = None
-
-    method private autocue_enabled mode =
-      let metadata, set_metadata =
-        match mode with
-          | `Before -> (before_metadata, fun m -> before_metadata <- Some m)
-          | `After -> (after_metadata, fun m -> after_metadata <- Some m)
-      in
-      match metadata with
-        | Some h -> (
-            let has_metadata =
-              List.for_all
-                (fun v -> Frame.Metadata.mem v h)
-                ["liq_cue_in"; "liq_cue_out"; "liq_fade_in"; "liq_fade_out"]
-            in
-            let has_marker = Frame.Metadata.mem "liq_autocue" h in
-            match (has_marker, has_metadata, assume_autocue) with
-              | true, true, _ -> true
-              | true, false, _ ->
-                  self#log#critical
-                    "`\"liq_autocue\"` metadata is present but some of the cue \
-                     in/out and fade in/out metadata are missing!";
-                  false
-              | false, true, true ->
-                  self#log#info "Assuming autocue";
-                  set_metadata (Frame.Metadata.add "liq_autocue" "assumed" h);
-                  true
-              | _ -> false)
-        | None -> false
 
     method private reset_analysis =
       gen_before <- Generator.create self#content_type;
@@ -259,55 +169,21 @@ class cross val_source ~end_duration_getter ~override_end_duration
         | None -> ()
         | Some v -> (
             try
-              self#log#info
-                "Overriding crossfade start and end duration from metadata %s"
+              self#log#info "Overriding crossfade duration from metadata %s"
                 override_duration;
               let l = float_of_string v in
-              end_duration_getter <- (fun () -> l);
-              start_duration_getter <- (fun () -> l);
-              self#set_end_main_duration;
-              self#set_start_main_duration
+              duration_getter <- (fun () -> l);
+              self#set_main_duration
             with _ -> ()));
-      (match Frame.Metadata.find_opt override_end_duration m with
+      match Frame.Metadata.find_opt override_duration m with
         | None -> ()
         | Some v -> (
             try
-              self#log#info "Overriding crossfade end duration from metadata %s"
-                override_end_duration;
+              self#log#info "Overriding crossfade duration from metadata %s"
+                override_duration;
               let l = float_of_string v in
-              end_duration_getter <- (fun () -> l);
-              self#set_end_main_duration
-            with _ -> ()));
-      (match Frame.Metadata.find_opt override_end_duration m with
-        | None -> ()
-        | Some v -> (
-            try
-              self#log#info "Overriding crossfade end duration from metadata %s"
-                override_end_duration;
-              let l = float_of_string v in
-              end_duration_getter <- (fun () -> l);
-              self#set_end_main_duration
-            with _ -> ()));
-      (match Frame.Metadata.find_opt override_max_start_duration m with
-        | None -> ()
-        | Some v -> (
-            try
-              self#log#info
-                "Overriding crossfade max start duration from metadata %s"
-                override_max_start_duration;
-              let l = float_of_string v in
-              max_start_duration <- Some l
-            with _ -> ()));
-      match Frame.Metadata.find_opt override_start_duration m with
-        | None -> ()
-        | Some v -> (
-            try
-              self#log#info
-                "Overriding crossfade start duration from metadata %s"
-                override_start_duration;
-              let l = float_of_string v in
-              start_duration_getter <- (fun () -> l);
-              self#set_start_main_duration
+              duration_getter <- (fun () -> l);
+              self#set_main_duration
             with _ -> ())
 
     initializer self#on_frame (`Metadata self#process_override_metadata)
@@ -358,7 +234,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
         | `After _ -> self#prepare_before
 
     method private buffer_before ~is_first () =
-      if Generator.length gen_before < end_main_duration && self#source#is_ready
+      if Generator.length gen_before < main_duration && self#source#is_ready
       then (
         let buf_frame = self#child_get ~is_first self#source in
         self#append `Before buf_frame;
@@ -377,21 +253,10 @@ class cross val_source ~end_duration_getter ~override_end_duration
           self#analyze_after)
         else self#buffer_before ~is_first:false ())
 
-    method private expected_start_duration =
-      let max_start_main_duration =
-        Option.value ~default:start_main_duration max_start_main_duration
-      in
-      if start_main_duration < Generator.length gen_before then
-        min (Generator.length gen_before) max_start_main_duration
-      else start_main_duration
-
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
       let rec f ~is_first () =
-        let expected_start_duration = self#expected_start_duration in
-        if
-          Generator.length gen_after < expected_start_duration
-          && self#source#is_ready
+        if Generator.length gen_after < main_duration && self#source#is_ready
         then (
           let buf_frame = self#child_get ~is_first self#source in
           self#append `After buf_frame;
@@ -425,37 +290,59 @@ class cross val_source ~end_duration_getter ~override_end_duration
           (Frame.Metadata.add lbl value
              (Option.value ~default:Frame.Metadata.empty after_metadata))
 
-    method private autocue_adjustements ~before_autocue ~after_autocue
-        ~buffered_before ~buffered_after () =
+    method private fade_out_adjustements cross_duration =
       let before_metadata =
         Option.value ~default:Frame.Metadata.empty before_metadata
       in
-      let extra_cross_duration = buffered_before - buffered_after in
-      if after_autocue then
-        if before_autocue && 0 < extra_cross_duration then (
-          let new_cross_duration = buffered_before - extra_cross_duration in
-          Generator.keep gen_before new_cross_duration;
-          let new_cross_duration = Frame.seconds_of_main new_cross_duration in
-          let extra_cross_duration =
-            Frame.seconds_of_main extra_cross_duration
-          in
-          self#log#info
-            "Shortening ending track by %.2f to match the starting track's \
-             buffer."
-            extra_cross_duration;
-          let fade_out =
-            float_of_string (Frame.Metadata.find "liq_fade_out" before_metadata)
-          in
-          let fade_out = min new_cross_duration fade_out in
-          let fade_out_delay = max (new_cross_duration -. fade_out) 0. in
-          self#append_before_metadata "liq_fade_out" (string_of_float fade_out);
-          self#append_before_metadata "liq_fade_out_delay"
-            (string_of_float fade_out_delay))
+      match
+        Option.map float_of_string_opt
+          (Frame.Metadata.find_opt "liq_fade_out" before_metadata)
+      with
+        | None -> ()
+        | Some None ->
+            self#log#important "Invalid non-float value for `liq_fade_out`: %s"
+              (Frame.Metadata.find "liq_fade_out" before_metadata)
+        | Some (Some fade_out) when fade_out < cross_duration ->
+            let fade_out = min cross_duration fade_out in
+            let fade_out_delay = max (cross_duration -. fade_out) 0. in
+            self#log#info
+              "Adding %.02f `liq_fade_out_delay` to make sure `fade.out` ends \
+               at the end of the buffered data."
+              fade_out;
+            self#append_before_metadata "liq_fade_out"
+              (string_of_float fade_out);
+            self#append_before_metadata "liq_fade_out_delay"
+              (string_of_float fade_out_delay)
+        | Some (Some fade_out) when cross_duration < fade_out ->
+            self#log#info
+              "Dropping %.02f from `liq_fade_out` to match the buffered data."
+              (cross_duration -. fade_out);
+            self#append_before_metadata "liq_fade_out"
+              (string_of_float cross_duration)
+        | Some (Some fade_out) -> assert (cross_duration = fade_out)
+
+    method private fade_in_adjustements cross_duration =
+      let after_metadata =
+        Option.value ~default:Frame.Metadata.empty after_metadata
+      in
+      match
+        Option.map float_of_string_opt
+          (Frame.Metadata.find_opt "liq_fade_in" after_metadata)
+      with
+        | None -> ()
+        | Some None ->
+            self#log#important "Invalid non-float value for `liq_fade_in`: %s"
+              (Frame.Metadata.find "liq_fade_in" after_metadata)
+        | Some (Some fade_in) when cross_duration < fade_in ->
+            self#log#info
+              "Dropping %.02f from `liq_fade_in` to match the buffered data."
+              (cross_duration -. fade_in);
+            self#append_after_metadata "liq_fade_in"
+              (string_of_float cross_duration)
+        | _ -> ()
 
     (* Sum up analysis and build the transition *)
     method private create_after =
-      let before_autocue = self#autocue_enabled `Before in
-      let after_autocue = self#autocue_enabled `After in
       let buffered_before = Generator.length gen_before in
       let buffered_after = Generator.length gen_after in
       let buffered = min buffered_before buffered_after in
@@ -467,14 +354,15 @@ class cross val_source ~end_duration_getter ~override_end_duration
         Audio.dB_of_lin
           (sqrt (rms_before /. float rmsi_before /. float self#audio_channels))
       in
-      self#autocue_adjustements ~before_autocue ~after_autocue ~buffered_before
-        ~buffered_after ();
+      let buffered_seconds = Frame.seconds_of_main buffered in
+      self#fade_out_adjustements buffered_seconds;
+      self#fade_in_adjustements buffered_seconds;
       let compound =
         let metadata = function None -> Frame.Metadata.empty | Some m -> m in
         let before_metadata = metadata before_metadata in
         let after_metadata = metadata after_metadata in
         let before_head =
-          if (not after_autocue) && buffered < buffered_before then (
+          if buffered < buffered_before then (
             let head =
               Generator.slice gen_before (buffered_before - buffered)
             in
@@ -497,7 +385,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
         in
         Typing.(before#frame_type <: self#frame_type);
         let after_tail =
-          if (not after_autocue) && buffered < buffered_after then (
+          if buffered < buffered_after then (
             let head = Generator.slice gen_after buffered in
             let head_gen =
               Generator.create ~content:head (Generator.content_type gen_after)
@@ -608,50 +496,12 @@ let _ =
   in
   Lang.add_operator "cross"
     [
-      ( "start_duration",
-        Lang.nullable_t (Lang.getter_t Lang.float_t),
-        Some Lang.null,
-        Some
-          "Duration (in seconds) of buffered data from the start of each track \
-           that is used to compute the transition between tracks." );
-      ( "end_duration",
-        Lang.nullable_t (Lang.getter_t Lang.float_t),
-        Some Lang.null,
-        Some
-          "Duration (in seconds) of buffered data from the end of each track \
-           that is used to compute the transition between tracks." );
       ( "duration",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 5.),
         Some
           "Duration (in seconds) of buffered data from the end and start of \
            each track that is used to compute the transition between tracks." );
-      ( "assume_autocue",
-        Lang.nullable_t Lang.bool_t,
-        Some Lang.null,
-        Some
-          "Assume that a track has autocue enabled when all four cue in/out \
-           and fade in/out override metadata are present. Defaults to \
-           `settings.crossfade.assume_autocue` when `null`." );
-      ( "override_start_duration",
-        Lang.string_t,
-        Some (Lang.string "liq_cross_start_duration"),
-        Some
-          "Metadata field which, if present and containing a float, overrides \
-           the 'start_duration' parameter for current track." );
-      ( "override_max_start_duration",
-        Lang.string_t,
-        Some (Lang.string "liq_cross_max_start_duration"),
-        Some
-          "Metadata field which, if present and containing a float, informs \
-           the crossfade of the maximum start duration. When not present, it \
-           is assumed to be `0.`." );
-      ( "override_end_duration",
-        Lang.string_t,
-        Some (Lang.string "liq_cross_end_duration"),
-        Some
-          "Metadata field which, if present and containing a float, overrides \
-           the 'end_duration' parameter for current track." );
       ( "override_duration",
         Lang.string_t,
         Some (Lang.string "liq_cross_duration"),
@@ -682,18 +532,11 @@ let _ =
     ~meth:
       [
         {
-          name = "start_duration";
+          name = "cross_duration";
           scheme = Lang.([], fun_t [] float_t);
-          descr = "Get the current crossfade start duration.";
+          descr = "Get the current crossfade duration.";
           value =
-            (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#start_duration));
-        };
-        {
-          name = "end_duration";
-          scheme = Lang.([], fun_t [] float_t);
-          descr = "Get the current crossfade end duration.";
-          value =
-            (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#end_duration));
+            (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#cross_duration));
         };
       ]
     ~descr:
@@ -702,35 +545,7 @@ let _ =
        depending on the relative power of the signal before and after the end \
        of track."
     (fun p ->
-      let assume_autocue =
-        Lang.to_valued_option Lang.to_bool (List.assoc "assume_autocue" p)
-      in
-      let assume_autocue =
-        Option.value ~default:conf_assume_autocue#get assume_autocue
-      in
-      let start_duration_getter =
-        Lang.to_valued_option Lang.to_float_getter
-          (List.assoc "start_duration" p)
-      in
-      let end_duration_getter =
-        Lang.to_valued_option Lang.to_float_getter (List.assoc "end_duration" p)
-      in
       let duration_getter = Lang.to_float_getter (List.assoc "duration" p) in
-      let start_duration_getter =
-        Option.value ~default:duration_getter start_duration_getter
-      in
-      let end_duration_getter =
-        Option.value ~default:duration_getter end_duration_getter
-      in
-      let override_start_duration =
-        Lang.to_string (List.assoc "override_start_duration" p)
-      in
-      let override_max_start_duration =
-        Lang.to_string (List.assoc "override_max_start_duration" p)
-      in
-      let override_end_duration =
-        Lang.to_string (List.assoc "override_end_duration" p)
-      in
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
@@ -740,7 +555,5 @@ let _ =
       let transition = Lang.assoc "" 1 p in
       let source = Lang.assoc "" 2 p in
       new cross
-        source transition ~start_duration_getter ~end_duration_getter ~rms_width
-        ~override_start_duration ~override_max_start_duration
-        ~override_end_duration ~override_duration ~persist_override
-        ~assume_autocue)
+        source transition ~duration_getter ~rms_width ~override_duration
+        ~persist_override)

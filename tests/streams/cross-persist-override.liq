@@ -44,16 +44,14 @@ def on_metadata(m) =
     track_count() == 2
   then
     if m["source"] != "b" then test.fail() end
-    if s.start_duration() != 1.1 then test.fail() end
-    if s.end_duration() != 1.1 then test.fail() end
+    if s.cross_duration() != 1.1 then test.fail() end
   end
 
   if
     track_count() == 3
   then
     if m["source"] != "c" then test.fail() end
-    if s.start_duration() != 1.1 then test.fail() end
-    if s.end_duration() != 1.1 then test.fail() end
+    if s.cross_duration() != 1.1 then test.fail() end
     success := true
   end
 end
