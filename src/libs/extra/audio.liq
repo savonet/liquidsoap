@@ -594,3 +594,33 @@ def output.file.dash(
   )
 end
 %endif
+
+# Return a source with a `set_volume` method.
+# This method takes the same arguments as `mkfade`
+# and updates the source volume with a corresponding
+# fade curve
+# @category Source / Audio processing
+# @flag extra
+# @param ~id Force the value of the source ID.
+def smooth_volume(~id=null("smooth_volume"), s) =
+  last_volume = ref(1.)
+  volume_ref = ref(fun () -> 1.)
+
+  def volume() =
+    fn = volume_ref()
+    fn()
+  end
+
+  def set_volume(%argsof(mkfade[!start,!stop,!delay,!on_done]), v) =
+    volume_ref :=
+      mkfade(
+        %argsof(mkfade[!start,!stop,!delay,!on_done]),
+        start=last_volume(),
+        stop=v,
+        s
+      )
+    last_volume := v
+  end
+
+  amplify(id=id, volume, s).{set_volume=set_volume}
+end
