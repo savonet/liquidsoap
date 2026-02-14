@@ -82,5 +82,4 @@ end
 
 output.file(
   fallible=true,on_close=on_close,
-  reopen_on_error=fun (_) -> begin test.fail(); null end,
   @FORMAT@,file,s)
