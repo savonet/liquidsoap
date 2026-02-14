@@ -114,14 +114,13 @@ end
 # @param s The input source.
 def once(~id=null("once"), s) =
   fail = source.fail()
-  s_ref = ref(s)
-  def next() =
-    s = s_ref()
-    if source.methods(s).is_ready() then s_ref := fail end
-    s
-  end
-  d = source.dynamic(id=id, track_sensitive=true, next)
-  d.on_wake_up(synchronous=true, fun () -> s_ref.set(d.prepare(s)))
+  s_ref = ref(source.methods(s))
+  d = source.dynamic(id=id, track_sensitive=true, s_ref)
+  d.on_wake_up(
+    synchronous=true,
+    fun () -> s_ref.set(source.methods(d.prepare(s)))
+  )
+  d.on_track(synchronous=true, fun (_) -> s_ref.set(fail))
   d
 end
 
