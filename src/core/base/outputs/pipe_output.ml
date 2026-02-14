@@ -54,7 +54,9 @@ class virtual base ?clock ~source:source_val ~name p =
         ?clock ~infallible ~register_telnet ~autostart ~export_cover_metadata
           ~output_kind:"output.file" ~name source_val
 
-    val mutable encoder = None
+    val mutable encoder : [ `None | `Pending | `Created of Encoder.encoder ] =
+      `None
+
     val mutable current_metadata = None
     method virtual start : unit
     method virtual stop : unit
@@ -62,39 +64,51 @@ class virtual base ?clock ~source:source_val ~name p =
     method virtual private encoder_factory
         : string -> Frame.Metadata.Export.t -> Encoder.encoder
 
-    method create_encoder =
-      let enc = self#encoder_factory self#id in
-      let meta =
-        match current_metadata with
-          | Some m -> m
-          | None -> Frame.Metadata.Export.empty
-      in
-      encoder <- Some (enc meta)
+    method create_encoder = encoder <- `Pending
+
+    method get_encoder =
+      match encoder with
+        | `None -> None
+        | `Pending ->
+            let enc = self#encoder_factory self#id in
+            let meta =
+              match current_metadata with
+                | Some m -> m
+                | None -> Frame.Metadata.Export.empty
+            in
+            let enc = enc meta in
+            encoder <- `Created enc;
+            Some enc
+        | `Created enc -> Some enc
 
     (* Make sure to call stop on the encoder to close any open
        connection. *)
     method close_encoder =
-      match encoder with
-        | None -> Strings.empty
-        | Some enc ->
-            let flushed = try enc.Encoder.stop () with _ -> Strings.empty in
-            encoder <- None;
-            flushed
+      let flushed =
+        match encoder with
+          | `None | `Pending -> Strings.empty
+          | `Created enc -> ( try enc.Encoder.stop () with _ -> Strings.empty)
+      in
+      encoder <- `None;
+      flushed
 
     method! reset = ()
 
     method encode frame =
-      match encoder with
-        | None -> Strings.empty
-        | Some encoder -> encoder.Encoder.encode frame
+      if 0 < Frame.position frame then (
+        match self#get_encoder with
+          | None -> Strings.empty
+          | Some encoder -> encoder.Encoder.encode frame)
+      else Strings.empty
 
     method virtual write_pipe : string -> int -> int -> unit
     method send b = Strings.iter self#write_pipe b
 
     method encode_metadata m =
-      match encoder with
-        | None -> ()
-        | Some encoder -> encoder.Encoder.encode_metadata m
+      if not (Frame.Metadata.Export.is_empty m) then (
+        match self#get_encoder with
+          | None -> ()
+          | Some encoder -> encoder.Encoder.encode_metadata m)
   end
 
 (** url output: discard encoded data, try to restart on encoding error (can be
@@ -177,7 +191,7 @@ class url_output p =
     method! on_start fn = on_start <- fn :: on_start
 
     method connect =
-      match encoder with
+      match self#get_encoder with
         | None when self#can_connect -> (
             try
               self#create_encoder;
@@ -192,7 +206,7 @@ class url_output p =
 
     method! encode frame =
       try
-        match encoder with
+        match self#get_encoder with
           | None when self#can_connect ->
               self#connect;
               base#encode frame
