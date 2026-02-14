@@ -116,10 +116,6 @@ def once(~id=null("once"), s) =
   fail = source.fail()
   s_ref = ref(source.methods(s))
   d = source.dynamic(id=id, track_sensitive=true, s_ref)
-  d.on_wake_up(
-    synchronous=true,
-    fun () -> s_ref.set(source.methods(d.prepare(s)))
-  )
   d.on_track(synchronous=true, fun (_) -> s_ref.set(fail))
   d
 end
