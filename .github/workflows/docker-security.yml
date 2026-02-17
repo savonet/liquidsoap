@@ -17,14 +17,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image:
-          - savonet/liquidsoap:latest
-          - savonet/liquidsoap:latest-minimal
+        version:
+          - v2.4.2
+          - v2.4.2-minimal
     steps:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # 0.34.0
         with:
-          image-ref: ${{ matrix.image }}
+          image-ref: savonet/liquidsoap:${{ matrix.version }}
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
