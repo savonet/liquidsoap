@@ -2,9 +2,13 @@
 
 (include dune.inc)
 
+(library
+ (name test_media_formats)
+ (modules test_media_formats))
+
 (executable
  (name gen_dune)
- (libraries liquidsoap_build_tools)
+ (libraries liquidsoap_build_tools test_media_formats)
  (modules gen_dune))
 
 (rule
@@ -143,7 +147,7 @@
  (alias ffmpeg_raw_implicit_conversion)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_implicit_conversion.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -162,7 +166,7 @@
  (alias ffmpeg_complex_filter)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_complex_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -339,7 +343,7 @@
  (alias ffmpeg_transparency_filter)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   background.jpg
   logo.png
   ffmpeg_transparency_filter.liq
@@ -360,7 +364,7 @@
  (alias ffmpeg_filter_changing_rate)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   background.jpg
   logo.png
   ffmpeg_filter_changing_rate.liq
@@ -384,7 +388,7 @@
  (alias lufs_integrated)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   lufs_integrated.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)

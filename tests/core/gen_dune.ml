@@ -11,6 +11,8 @@ let test_params =
     ("parsesrt", ("(:test_srt ./test.srt)", ["%{test_srt}"]));
   ]
 
+(* Tests with custom rules that are not auto-generated *)
+let skip_tests = ["ffmpeg_stream_description_test"]
 let test_names = ref []
 
 let test_name s =
@@ -24,8 +26,12 @@ let () =
     List.sort Stdlib.compare
       (List.filter_map
          (fun f ->
-           if f <> "gen_dune.ml" && Filename.extension f = ".ml" then
-             Some (Filename.remove_extension f)
+           let name = Filename.remove_extension f in
+           if
+             f <> "gen_dune.ml"
+             && Filename.extension f = ".ml"
+             && not (List.mem name skip_tests)
+           then Some name
            else None)
          (Build_tools.read_files ~location ""))
   in

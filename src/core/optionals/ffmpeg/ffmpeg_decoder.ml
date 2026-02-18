@@ -42,11 +42,6 @@ let parse_timed_id3 content =
       let metadata = Printf.sprintf "ID3\004\000%s" content in
       Metadata.Reader.with_string Metadata.ID3.parse metadata)
 
-let subtitle_codec_is_text params =
-  match Avcodec.descriptor params with
-    | Some { Avcodec.properties; _ } -> List.mem `Text_sub properties
-    | None -> false
-
 module Streams = Map.Make (struct
   type t = int
 
@@ -654,214 +649,11 @@ let () =
       resolver = get_tags;
     }
 
-(* Get the type of an input container. *)
-let get_type ~ctype ~format ~url container =
-  let uri = Lang_string.quote_string url in
-  log#important "Requested content-type for %s%s: %s"
-    (match format with
-      | Some f ->
-          Printf.sprintf "format: %s, uri: "
-            (Lang_string.quote_string (Av.Format.get_input_name f))
-      | None -> "")
-    uri
-    (Frame.string_of_content_type ctype);
-  let audio_streams, descriptions =
-    List.fold_left
-      (fun (audio_streams, descriptions) (_, _, params) ->
-        try
-          let field = Frame.Fields.audio_n (List.length audio_streams) in
-          let channels = Avcodec.Audio.get_nb_channels params in
-          let samplerate = Avcodec.Audio.get_sample_rate params in
-          let codec_name =
-            Avcodec.Audio.string_of_id (Avcodec.Audio.get_params_id params)
-          in
-          let description =
-            Printf.sprintf "%s: {codec: %s, %dHz, %d channel(s)}"
-              (Frame.Fields.string_of_field field)
-              codec_name samplerate channels
-          in
-          ((field, params) :: audio_streams, description :: descriptions)
-        with Avutil.Error _ as exn ->
-          let bt = Printexc.get_raw_backtrace () in
-          Utils.log_exception ~log
-            ~bt:(Printexc.raw_backtrace_to_string bt)
-            (Printf.sprintf "Failed to get an audio stream info: %s"
-               (Printexc.to_string exn));
-          (audio_streams, descriptions))
-      ([], [])
-      (Av.get_audio_streams container)
+let get_type ?format ~ctype ~url container =
+  let result =
+    Ffmpeg_stream_description.get_type ?format ~ctype ~url container
   in
-  let video_streams, descriptions =
-    List.fold_left
-      (fun (video_streams, descriptions) (_, stream, params) ->
-        try
-          let field = Frame.Fields.video_n (List.length video_streams) in
-          let width = Avcodec.Video.get_width params in
-          let height = Avcodec.Video.get_height params in
-          let pixel_format =
-            match Avcodec.Video.get_pixel_format params with
-              | None -> "unknown"
-              | Some f -> (
-                  match Avutil.Pixel_format.to_string f with
-                    | None -> "none"
-                    | Some s -> s)
-          in
-          let codec_name =
-            Avcodec.Video.string_of_id (Avcodec.Video.get_params_id params)
-          in
-          let description =
-            Printf.sprintf "%s: {codec: %s, %dx%d, %s}"
-              (Frame.Fields.string_of_field field)
-              codec_name width height pixel_format
-          in
-          ( video_streams @ [(field, Av.get_avg_frame_rate stream, params)],
-            descriptions @ [description] )
-        with Avutil.Error _ as exn ->
-          let bt = Printexc.get_raw_backtrace () in
-          Utils.log_exception ~log
-            ~bt:(Printexc.raw_backtrace_to_string bt)
-            (Printf.sprintf "Failed to get video stream info: %s"
-               (Printexc.to_string exn));
-          (video_streams, descriptions))
-      ([], descriptions)
-      (Av.get_video_streams container)
-  in
-  let subtitle_streams, descriptions =
-    List.fold_left
-      (fun (subtitle_streams, descriptions) (_, stream, params) ->
-        try
-          let field = Frame.Fields.subtitles_n (List.length subtitle_streams) in
-          let codec_name =
-            Avcodec.Subtitle.string_of_id
-              (Avcodec.Subtitle.get_params_id params)
-          in
-          let description =
-            Printf.sprintf "%s: {codec: %s, subtitle}"
-              (Frame.Fields.string_of_field field)
-              codec_name
-          in
-          ( subtitle_streams @ [(field, Av.get_time_base stream, params)],
-            descriptions @ [description] )
-        with Avutil.Error _ as exn ->
-          let bt = Printexc.get_raw_backtrace () in
-          Utils.log_exception ~log
-            ~bt:(Printexc.raw_backtrace_to_string bt)
-            (Printf.sprintf "Failed to get subtitle stream info: %s"
-               (Printexc.to_string exn));
-          (subtitle_streams, descriptions))
-      ([], descriptions)
-      (Av.get_subtitle_streams container)
-  in
-  let _, descriptions =
-    List.fold_left
-      (fun (n, descriptions) (_, _, params) ->
-        try
-          let field = Frame.Fields.data_n (n + List.length subtitle_streams) in
-          let codec_name =
-            Avcodec.Unknown.string_of_id (Avcodec.Unknown.get_params_id params)
-          in
-          ( n + 1,
-            descriptions
-            @ [
-                Printf.sprintf "%s: {codec: %s}"
-                  (Frame.Fields.string_of_field field)
-                  codec_name;
-              ] )
-        with Avutil.Error _ as exn ->
-          let bt = Printexc.get_raw_backtrace () in
-          Utils.log_exception ~log
-            ~bt:(Printexc.raw_backtrace_to_string bt)
-            (Printf.sprintf "Failed to get stream info: %s"
-               (Printexc.to_string exn));
-          (n, descriptions))
-      (0, descriptions)
-      (Av.get_data_streams container)
-  in
-  if audio_streams = [] && video_streams = [] && subtitle_streams = [] then
-    failwith "No valid stream found in container.";
-  let content_type =
-    List.fold_left
-      (fun content_type (field, params) ->
-        match (params, Frame.Fields.find_opt field ctype) with
-          | p, Some format when Ffmpeg_copy_content.is_format format ->
-              ignore
-                (Content.merge format
-                   (Ffmpeg_copy_content.lift_params (Some (`Audio p))));
-              Frame.Fields.add field format content_type
-          | p, Some format when Ffmpeg_raw_content.Audio.is_format format ->
-              let dst_format =
-                Ffmpeg_raw_content.(Audio.lift_params (AudioSpecs.mk_params p))
-              in
-              (try ignore (Content.merge format dst_format)
-               with _ when Content.compatible format dst_format -> ());
-              Frame.Fields.add field dst_format content_type
-          | p, Some format ->
-              Frame.Fields.add field
-                (Frame_base.format_of_channels ~pcm_kind:(Content.kind format)
-                   (Avcodec.Audio.get_nb_channels p))
-                content_type
-          | _ -> content_type)
-      Frame.Fields.empty audio_streams
-  in
-  let content_type =
-    List.fold_left
-      (fun content_type (field, avg_frame_rate, params) ->
-        match (params, Frame.Fields.find_opt field ctype) with
-          | params, Some format when Ffmpeg_copy_content.is_format format ->
-              ignore
-                (Content.merge format
-                   (Ffmpeg_copy_content.lift_params
-                      (Some
-                         (`Video
-                            {
-                              Ffmpeg_copy_content.avg_frame_rate;
-                              codec_params = params;
-                            }))));
-              Frame.Fields.add field format content_type
-          | p, Some format when Ffmpeg_raw_content.Video.is_format format ->
-              ignore
-                (Content.merge format
-                   Ffmpeg_raw_content.(
-                     Video.lift_params (VideoSpecs.mk_params p)));
-              Frame.Fields.add field format content_type
-          | _, Some _ ->
-              Frame.Fields.add field
-                Content.(default_format Video.kind)
-                content_type
-          | _ -> content_type)
-      content_type video_streams
-  in
-  let content_type =
-    List.fold_left
-      (fun content_type (field, time_base, params) ->
-        match Frame.Fields.find_opt field ctype with
-          | Some format when Ffmpeg_copy_content.is_format format ->
-              ignore
-                (Content.merge format
-                   (Ffmpeg_copy_content.lift_params
-                      (Some
-                         (`Subtitle
-                            {
-                              Ffmpeg_copy_content.time_base;
-                              codec_params = params;
-                            }))));
-              Frame.Fields.add field format content_type
-          | Some format
-            when Subtitle_content.is_format format
-                 && subtitle_codec_is_text params ->
-              Frame.Fields.add field Subtitle_content.format content_type
-          | Some _ ->
-              Frame.Fields.add field
-                Content.(default_format Video.kind)
-                content_type
-          | _ -> content_type)
-      content_type subtitle_streams
-  in
-  log#important "FFmpeg recognizes %s as %s" uri
-    (String.concat ", " descriptions);
-  log#important "Decoded content-type for %s: %s" uri
-    (Frame.string_of_content_type content_type);
-  content_type
+  result.content_type
 
 let reset_streams streams =
   Streams.iter
@@ -1527,7 +1319,7 @@ let get_file_type ~metadata ~ctype filename =
         let container = Av.open_input ?format ~opts filename in
         Fun.protect
           ~finally:(fun () -> Av.close container)
-          (fun () -> get_type ~format ~ctype ~url:filename container)
+          (fun () -> get_type ?format ~ctype ~url:filename container)
 
 let () =
   Plug.register Decoder.decoders "ffmpeg"

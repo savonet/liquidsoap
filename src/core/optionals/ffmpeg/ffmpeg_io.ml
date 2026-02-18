@@ -133,7 +133,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             (Printf.sprintf "Unrecognized options: %s"
                (Ffmpeg_format.string_of_options opts));
         let content_type =
-          Ffmpeg_decoder.get_type ~format ~ctype:self#content_type ~url input
+          Ffmpeg_decoder.get_type ?format ~ctype:self#content_type ~url input
         in
         if not (Decoder.can_decode_type content_type self#content_type) then
           failwith

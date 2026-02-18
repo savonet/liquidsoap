@@ -78,3 +78,31 @@
     --depth
     1
     https://github.com/minimaxir/big-list-of-naughty-strings.git))))
+
+(executable
+ (name ffmpeg_stream_description_test)
+ (modules ffmpeg_stream_description_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  test_media_formats))
+
+(rule
+ (alias ffmpeg_stream_description_test)
+ (package liquidsoap)
+ (deps
+  (alias ../media/all_media_files)
+  (:test ffmpeg_stream_description_test.exe))
+ (target all_media_file_descriptions.json.gen)
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{test} ../media))))
+
+(rule
+ (alias ffmpeg_stream_description_test)
+ (action
+  (diff
+   all_media_file_descriptions.json
+   all_media_file_descriptions.json.gen)))
