@@ -1241,10 +1241,8 @@
    --
    "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"),%video(codec=\"libx264\"),%subtitles(codec=\"mov_text\"))")))
 
-(rule
- (alias mediatest)
- (package liquidsoap)
- (target all_media_files)
+(alias
+ (name all_media_files)
  (deps
   @fdkaac[aot='mpeg4_aac_lc',channels=1].aac
   @fdkaac[channels=2].aac
@@ -1278,15 +1276,13 @@
   @ffmpeg[format='webm',@video[codec='libvpx'],@subtitles[codec='webvtt']].webm
   @ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='subrip']].mkv
   @ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitles[codec='ass']].mkv
-  @ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='mov_text']].mp4)
- (action
-  (run touch %{target})))
+  @ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='mov_text']].mp4))
 
 (rule
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1307,7 +1303,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1328,7 +1324,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1349,7 +1345,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1370,7 +1366,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1391,7 +1387,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1412,7 +1408,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1433,7 +1429,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1454,7 +1450,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1475,7 +1471,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1496,7 +1492,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1517,7 +1513,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1538,7 +1534,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1559,7 +1555,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1580,7 +1576,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1601,7 +1597,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1622,7 +1618,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1643,7 +1639,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1664,7 +1660,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1685,7 +1681,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1706,7 +1702,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1727,7 +1723,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1748,7 +1744,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1769,7 +1765,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1790,7 +1786,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1811,7 +1807,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1832,7 +1828,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1853,7 +1849,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1874,7 +1870,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1895,7 +1891,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1916,7 +1912,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1937,7 +1933,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1958,7 +1954,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1979,7 +1975,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2000,7 +1996,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2021,7 +2017,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2042,7 +2038,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2063,7 +2059,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2084,7 +2080,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2105,7 +2101,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2126,7 +2122,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2147,7 +2143,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2168,7 +2164,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2189,7 +2185,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2210,7 +2206,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2231,7 +2227,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2252,7 +2248,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2273,7 +2269,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2294,7 +2290,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2315,7 +2311,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2336,7 +2332,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2357,7 +2353,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2378,7 +2374,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2399,7 +2395,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2420,7 +2416,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2441,7 +2437,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2462,7 +2458,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2483,7 +2479,7 @@
  (alias mono)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2504,7 +2500,7 @@
  (alias stereo)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2525,7 +2521,7 @@
  (alias ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2546,7 +2542,7 @@
  (alias ffmpeg_video_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_video_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2567,7 +2563,7 @@
  (alias video_size)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   video_size.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2588,7 +2584,7 @@
  (alias ffmpeg_video_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_video_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2609,7 +2605,7 @@
  (alias video_size)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   video_size.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2630,7 +2626,7 @@
  (alias ffmpeg_video_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_video_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2651,7 +2647,7 @@
  (alias video_size)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   video_size.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2672,7 +2668,7 @@
  (alias ffmpeg_video_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_video_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2693,7 +2689,7 @@
  (alias video_size)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   video_size.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2714,7 +2710,7 @@
  (alias ffmpeg_add_text)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_add_text.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2735,7 +2731,7 @@
  (alias ffmpeg_copy_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2756,7 +2752,7 @@
  (alias ffmpeg_copy_and_encode_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_copy_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2777,7 +2773,7 @@
  (alias ffmpeg_filter)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2798,7 +2794,7 @@
  (alias ffmpeg_filter_parse)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_filter_parse.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2819,7 +2815,7 @@
  (alias ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_bitstream_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2840,7 +2836,7 @@
  (alias ffmpeg_raw_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2861,7 +2857,7 @@
  (alias ffmpeg_raw_and_encode_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2882,7 +2878,7 @@
  (alias ffmpeg_raw_and_copy_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_and_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2903,7 +2899,7 @@
  (alias ffmpeg_add_text)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_add_text.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2924,7 +2920,7 @@
  (alias ffmpeg_copy_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2945,7 +2941,7 @@
  (alias ffmpeg_copy_and_encode_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_copy_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2966,7 +2962,7 @@
  (alias ffmpeg_filter)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2987,7 +2983,7 @@
  (alias ffmpeg_filter_parse)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_filter_parse.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3008,7 +3004,7 @@
  (alias ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_bitstream_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3029,7 +3025,7 @@
  (alias ffmpeg_raw_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3050,7 +3046,7 @@
  (alias ffmpeg_raw_and_encode_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3071,7 +3067,7 @@
  (alias ffmpeg_raw_and_copy_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_and_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3092,7 +3088,7 @@
  (alias ffmpeg_add_text)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_add_text.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3113,7 +3109,7 @@
  (alias ffmpeg_copy_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3134,7 +3130,7 @@
  (alias ffmpeg_copy_and_encode_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_copy_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3155,7 +3151,7 @@
  (alias ffmpeg_filter)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3176,7 +3172,7 @@
  (alias ffmpeg_filter_parse)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_filter_parse.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3197,7 +3193,7 @@
  (alias ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_bitstream_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3218,7 +3214,7 @@
  (alias ffmpeg_raw_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3239,7 +3235,7 @@
  (alias ffmpeg_raw_and_encode_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3260,7 +3256,7 @@
  (alias ffmpeg_raw_and_copy_decoder)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_and_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3281,7 +3277,7 @@
  (alias multitrack)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   multitrack.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3302,7 +3298,7 @@
  (alias ffmpeg_inline_encode_decode)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_inline_encode_decode.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3323,7 +3319,7 @@
  (alias ffmpeg_inline_encode_decode_audio)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_inline_encode_decode_audio.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3344,7 +3340,7 @@
  (alias ffmpeg_inline_encode_decode_video)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_inline_encode_decode_video.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3365,7 +3361,7 @@
  (alias ffmpeg_raw_hls)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   ffmpeg_raw_hls.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3386,7 +3382,7 @@
  (alias pcm_s16_decode)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   pcm_s16_decode.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3407,7 +3403,7 @@
  (alias pcm_f32_decode)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   pcm_f32_decode.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -3428,7 +3424,7 @@
  (alias subtitle_concat)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   subtitle_concat.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
@@ -3450,7 +3446,7 @@
  (alias subtitle_concat_copy)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   subtitle_concat_copy.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
@@ -3472,7 +3468,7 @@
  (alias subtitle_multi)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   subtitle_multi.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
@@ -3494,7 +3490,7 @@
  (alias subtitle_copy_encode)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   subtitle_copy_encode.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
@@ -3516,7 +3512,7 @@
  (alias subtitle_reencode)
  (package liquidsoap)
  (deps
-  all_media_files
+  (alias all_media_files)
   subtitle_reencode.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe

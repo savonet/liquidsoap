@@ -26,7 +26,7 @@ let () =
  (package liquidsoap)
  (deps
   %s
-  ../media/all_media_files
+  (alias ../media/all_media_files)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
