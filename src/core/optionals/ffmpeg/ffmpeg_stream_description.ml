@@ -41,8 +41,12 @@ let format_of_major_brand = function
   | _ -> None
 
 let get_specific_format container format_name =
-  if String.contains format_name ',' then (
-    let metadata = Av.get_input_metadata container in
+  let metadata = Av.get_input_metadata container in
+  if String.starts_with ~prefix:"matroska" format_name then (
+    match List.assoc_opt "profile" metadata with
+      | Some profile -> profile
+      | None -> format_name)
+  else if String.starts_with ~prefix:"mov" format_name then (
     match List.assoc_opt "major_brand" metadata with
       | Some brand -> (
           match format_of_major_brand brand with

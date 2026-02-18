@@ -1,618 +1,2612 @@
 {
   "@fdkaac[aot='mpeg4_aac_lc',channels=1].aac": {
-    "format": "aac",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 1,
-          "channel_layout": "mono"
+    "decode": {
+      "format": "aac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "aac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "aac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "aac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    }
   },
   "@fdkaac[channels=2].aac": {
-    "format": "aac",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "aac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "aac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "aac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "aac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@shine[channels=1].mp3": {
-    "format": "mp3",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "mp3",
-          "samplerate": 44100,
-          "channels": 1,
-          "channel_layout": "mono"
+    "decode": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    }
   },
   "@shine[channels=2].mp3": {
-    "format": "mp3",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "mp3",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@flac[stereo].flac": {
-    "format": "flac",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "flac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "flac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "flac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "flac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "flac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@flac[mono].flac": {
-    "format": "flac",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "flac",
-          "samplerate": 44100,
-          "channels": 1,
-          "channel_layout": "mono"
+    "decode": {
+      "format": "flac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "flac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "flac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "flac",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    }
   },
   "@wav[stereo].wav": {
-    "format": "wav",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "pcm_s16le",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "2 channels"
+    "decode": {
+      "format": "wav",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "pcm_s16le",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "2 channels"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "wav",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "pcm_s16le",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "2 channels"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "wav",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "pcm_s16le",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "2 channels"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "wav",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "pcm_s16le",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "2 channels"
+          }
+        }
+      ]
+    }
   },
   "@wav[mono].wav": {
-    "format": "wav",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "pcm_s16le",
-          "samplerate": 44100,
-          "channels": 1,
-          "channel_layout": "1 channels"
+    "decode": {
+      "format": "wav",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "pcm_s16le",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "1 channels"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "wav",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "pcm_s16le",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "1 channels"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "wav",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "pcm_s16le",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "1 channels"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "wav",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "pcm_s16le",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "1 channels"
+          }
+        }
+      ]
+    }
   },
   "@mp3[mono].mp3": {
-    "format": "mp3",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "mp3",
-          "samplerate": 44100,
-          "channels": 1,
-          "channel_layout": "mono"
+    "decode": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    }
   },
   "@mp3[stereo].mp3": {
-    "format": "mp3",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "mp3",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp3",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "mp3",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@ogg[@vorbis[mono]].ogg": {
-    "format": "ogg",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "vorbis",
-          "samplerate": 44100,
-          "channels": 1,
-          "channel_layout": "mono"
+    "decode": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "vorbis",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "vorbis",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "vorbis",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "vorbis",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    }
   },
   "@ogg[@vorbis[stereo]].ogg": {
-    "format": "ogg",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "vorbis",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "vorbis",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "vorbis",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "vorbis",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "vorbis",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@ogg[@flac[mono]].ogg": {
-    "format": "ogg",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "flac",
-          "samplerate": 44100,
-          "channels": 1,
-          "channel_layout": "mono"
+    "decode": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    }
   },
   "@ogg[@flac[stereo]].ogg": {
-    "format": "ogg",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "flac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "flac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@ogg[@opus[mono]].ogg": {
-    "format": "ogg",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "opus",
-          "samplerate": 48000,
-          "channels": 1,
-          "channel_layout": "mono"
+    "decode": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "opus",
+            "samplerate": 48000,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "opus",
+            "samplerate": 48000,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "opus",
+            "samplerate": 48000,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "opus",
+            "samplerate": 48000,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    }
   },
   "@ogg[@opus[stereo]].ogg": {
-    "format": "ogg",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "opus",
-          "samplerate": 48000,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "opus",
+            "samplerate": 48000,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "opus",
+            "samplerate": 48000,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "opus",
+            "samplerate": 48000,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "ogg",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "opus",
+            "samplerate": 48000,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 48000,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 48000,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 48000,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 48000,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 48000,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[codec='aac']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 1,
-          "channel_layout": "mono"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      },
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      }
-    ]
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        },
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 1,
+            "channel_layout": "mono"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      },
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      }
-    ]
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 12, "den": 1 }
+          }
         }
-      },
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 12, "den": 1 }
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 12, "den": 1 }
+          }
         }
-      }
-    ]
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 12, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 12, "den": 1 }
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@video[codec='libx264']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      },
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      }
-    ]
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='matroska',@audio[codec='aac'],@subtitles[codec='subrip']].mkv": {
-    "format": "matroska,webm",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": false,
+          "params": { "type": "subtitle", "codec": "subrip" }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": true,
+          "params": { "type": "subtitle", "codec": "subrip" }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='matroska',@audio[codec='aac'],@subtitles[codec='ass']].mkv": {
-    "format": "matroska,webm",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": false,
+          "params": { "type": "subtitle", "codec": "ass" }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": true,
+          "params": { "type": "subtitle", "codec": "ass" }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='matroska',@video[codec='libx264'],@subtitles[codec='subrip']].mkv": {
-    "format": "matroska,webm",
-    "streams": [
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+    "decode": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": false,
+          "params": { "type": "subtitle", "codec": "subrip" }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": true,
+          "params": { "type": "subtitle", "codec": "subrip" }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='matroska',@video[codec='libx264',b='500k'],@subtitles[codec='ass']].mkv": {
-    "format": "matroska,webm",
-    "streams": [
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+    "decode": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": false,
+          "params": { "type": "subtitle", "codec": "ass" }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": true,
+          "params": { "type": "subtitle", "codec": "ass" }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='webm',@video[codec='libvpx'],@subtitles[codec='webvtt']].webm": {
-    "format": "matroska,webm",
-    "streams": [
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "vp8",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+    "decode": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "vp8",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": false,
+          "params": { "type": "subtitle", "codec": "webvtt" }
         }
-      }
-    ]
+      ]
+    },
+    "audio_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "vp8",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "video_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "vp8",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "vp8",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": true,
+          "params": { "type": "subtitle", "codec": "webvtt" }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='subrip']].mkv": {
-    "format": "matroska,webm",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": false,
+          "params": { "type": "subtitle", "codec": "subrip" }
         }
-      },
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+      ]
+    },
+    "audio_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      }
-    ]
+      ]
+    },
+    "video_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": true,
+          "params": { "type": "subtitle", "codec": "subrip" }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitles[codec='ass']].mkv": {
-    "format": "matroska,webm",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": false,
+          "params": { "type": "subtitle", "codec": "ass" }
         }
-      },
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+      ]
+    },
+    "audio_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      }
-    ]
+      ]
+    },
+    "video_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "matroska,webm",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": true,
+          "params": { "type": "subtitle", "codec": "ass" }
+        }
+      ]
+    }
   },
   "@ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='mov_text']].mp4": {
-    "format": "mp4",
-    "streams": [
-      {
-        "field": "audio",
-        "copy": false,
-        "params": {
-          "type": "audio",
-          "codec": "aac",
-          "samplerate": 44100,
-          "channels": 2,
-          "channel_layout": "stereo"
+    "decode": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": false,
+          "params": { "type": "subtitle", "codec": "mov_text" }
         }
-      },
-      {
-        "field": "video",
-        "copy": false,
-        "params": {
-          "type": "video",
-          "codec": "h264",
-          "width": 1280,
-          "height": 720,
-          "pixel_format": "yuv420p",
-          "frame_rate": { "num": 25, "den": 1 }
+      ]
+    },
+    "audio_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": true,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
         }
-      }
-    ]
+      ]
+    },
+    "video_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": true,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        }
+      ]
+    },
+    "subtitle_copy": {
+      "format": "mp4",
+      "streams": [
+        {
+          "field": "audio",
+          "copy": false,
+          "params": {
+            "type": "audio",
+            "codec": "aac",
+            "samplerate": 44100,
+            "channels": 2,
+            "channel_layout": "stereo"
+          }
+        },
+        {
+          "field": "video",
+          "copy": false,
+          "params": {
+            "type": "video",
+            "codec": "h264",
+            "width": 1280,
+            "height": 720,
+            "pixel_format": "yuv420p",
+            "frame_rate": { "num": 25, "den": 1 }
+          }
+        },
+        {
+          "field": "subtitles",
+          "copy": true,
+          "params": { "type": "subtitle", "codec": "mov_text" }
+        }
+      ]
+    }
   }
 }
