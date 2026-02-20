@@ -349,43 +349,6 @@
 (rule
  (alias mediatest)
  (package liquidsoap)
- (target test-audio.wav)
- (action
-  (run
-   ffmpeg
-   -hide_banner
-   -loglevel
-   error
-   -f
-   lavfi
-   -i
-   "sine=frequency=440:duration=5"
-   %{target})))
-
-(rule
- (alias ffmpeg_filter_array_args)
- (package liquidsoap)
- (deps
-  test-audio.wav
-  ffmpeg_filter_array_args.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/lib)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   "FFmpeg filter with array arguments"
-   liquidsoap
-   %{test_liq}
-   ffmpeg_filter_array_args.liq
-   --
-   test-audio.wav)))
-
-(rule
- (alias mediatest)
- (package liquidsoap)
  (deps long-video.mp4)
  (target test-image.png)
  (action
@@ -429,6 +392,5 @@
   (alias ffmpeg_hls_mp4)
   (alias ffmpeg_transparency_filter)
   (alias ffmpeg_filter_changing_rate)
-  (alias ffmpeg_filter_array_args)
   (alias lufs_integrated)
   (alias image_decoder_duration)))

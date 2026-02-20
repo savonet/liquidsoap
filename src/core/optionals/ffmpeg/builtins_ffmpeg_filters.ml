@@ -167,113 +167,6 @@ let uniq_name =
 
 exception No_value_for_option
 
-(* GADT to encode the relationship between ground types and their converters *)
-type 'a ground_opt_utils = {
-  lang_type : Lang.t;
-  to_string : 'a -> string;
-  from_value : Lang.value -> 'a;
-}
-
-type ground_opt_descr =
-  | Ground_opt :
-      'a ground_opt_utils * 'a Avutil.Options.entry
-      -> ground_opt_descr
-
-let get_ground_converter : Avutil.Options.ground -> ground_opt_descr = function
-  | `Int s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.int_t;
-            to_string = string_of_int;
-            from_value = Lang.to_int;
-          },
-          s )
-  | `Flags s | `Int64 s | `UInt64 s | `Duration s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.int_t;
-            to_string = Int64.to_string;
-            from_value = (fun v -> Int64.of_int (Lang.to_int v));
-          },
-          s )
-  | `Float s | `Double s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.float_t;
-            to_string = string_of_float;
-            from_value = Lang.to_float;
-          },
-          s )
-  | `Rational s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string =
-              (fun { Avutil.num; den } -> Printf.sprintf "%i/%i" num den);
-            from_value =
-              (fun v ->
-                let x = Lang.to_string v in
-                match String.split_on_char '/' x with
-                  | [num; den] ->
-                      {
-                        Avutil.num = int_of_string num;
-                        den = int_of_string den;
-                      }
-                  | _ -> assert false);
-          },
-          s )
-  | `Bool s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.bool_t;
-            to_string = string_of_bool;
-            from_value = Lang.to_bool;
-          },
-          s )
-  | `String s | `Binary s | `Dict s | `Image_size s | `Video_rate s | `Color s
-    ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string = (fun x -> x);
-            from_value = Lang.to_string;
-          },
-          s )
-  | `Pixel_fmt s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string =
-              (fun p ->
-                match Avutil.Pixel_format.to_string p with
-                  | None -> "none"
-                  | Some p -> p);
-            from_value =
-              (fun v -> Avutil.Pixel_format.of_string (Lang.to_string v));
-          },
-          s )
-  | `Sample_fmt s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string =
-              (fun p ->
-                match Avutil.Sample_format.get_name p with
-                  | None -> "none"
-                  | Some p -> p);
-            from_value = (fun v -> Avutil.Sample_format.find (Lang.to_string v));
-          },
-          s )
-  | `Channel_layout s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string = Avutil.Channel_layout.get_description;
-            from_value =
-              (fun v -> Avutil.Channel_layout.find (Lang.to_string v));
-          },
-          s )
-
 let mk_options options =
   Avutil.Options.(
     let mk_opt ~t ~to_string ~from_value name help { default; min; max; values }
@@ -374,62 +267,70 @@ let mk_options options =
       (opt, getter)
     in
     let mk_opt (p, getter) { name; help; spec } =
-      let mk_opt_outer = mk_opt in
       let mk_opt ~t ~to_string ~from_value spec =
-        let opt, get = mk_opt_outer ~t ~to_string ~from_value name help spec in
+        let opt, get = mk_opt ~t ~to_string ~from_value name help spec in
         let getter p l = get p (getter p l) in
         (opt :: p, getter)
       in
       match spec with
-        | #Avutil.Options.ground as g ->
-            let (Ground_opt (conv, s)) = get_ground_converter g in
-            mk_opt ~t:conv.lang_type ~to_string:conv.to_string
-              ~from_value:conv.from_value s
-        | `Array g ->
-            let (Ground_opt (conv, _)) = get_ground_converter g in
-            let ground_t = conv.lang_type in
-            let ground_to_string = conv.to_string in
-            let ground_from_value = conv.from_value in
-            let t = Lang.list_t ground_t in
-            let array_to_string values =
-              String.concat ", " (List.map ground_to_string values)
+        | `Int s ->
+            mk_opt ~t:Lang.int_t ~to_string:string_of_int
+              ~from_value:Lang.to_int s
+        | `Flags s | `Int64 s | `UInt64 s | `Duration s ->
+            mk_opt ~t:Lang.int_t ~to_string:Int64.to_string
+              ~from_value:(fun v -> Int64.of_int (Lang.to_int v))
+              s
+        | `Float s | `Double s ->
+            mk_opt ~t:Lang.float_t ~to_string:string_of_float
+              ~from_value:Lang.to_float s
+        | `Rational s ->
+            let to_string { Avutil.num; den } =
+              Printf.sprintf "%i/%i" num den
             in
-            let array_from_value v =
-              List.map ground_from_value (Lang.to_list v)
+            let from_value v =
+              let x = Lang.to_string v in
+              match String.split_on_char '/' x with
+                | [num; den] ->
+                    { Avutil.num = int_of_string num; den = int_of_string den }
+                | _ -> assert false
             in
-            let dummy_spec =
-              {
-                Avutil.Options.default = None;
-                min = None;
-                max = None;
-                values = [];
-              }
-            in
-            let opt, _base_getter =
-              mk_opt_outer ~t ~to_string:array_to_string
-                ~from_value:array_from_value name help dummy_spec
-            in
-            let new_getter p l =
-              try
-                let v = List.assoc name p in
-                let v =
-                  match Lang.to_option v with
-                    | None -> raise No_value_for_option
-                    | Some v -> v
-                in
-                let values =
-                  try array_from_value v
-                  with _ -> raise (Error.Invalid_value (v, "Invalid value"))
-                in
-                let array_args =
-                  List.map
-                    (fun value -> `String (ground_to_string value))
-                    values
-                in
-                `Pair (name, `Array array_args) :: getter p l
-              with No_value_for_option -> getter p l
-            in
-            (opt :: p, new_getter)
+            mk_opt ~t:Lang.string_t ~to_string ~from_value s
+        | `Bool s ->
+            mk_opt ~t:Lang.bool_t ~to_string:string_of_bool
+              ~from_value:Lang.to_bool s
+        | `String s
+        | `Binary s
+        | `Dict s
+        | `Image_size s
+        | `Video_rate s
+        | `Color s ->
+            mk_opt ~t:Lang.string_t
+              ~to_string:(fun x -> x)
+              ~from_value:Lang.to_string s
+        | `Pixel_fmt s ->
+            mk_opt ~t:Lang.string_t
+              ~to_string:(fun p ->
+                match Avutil.Pixel_format.to_string p with
+                  | None -> "none"
+                  | Some p -> p)
+              ~from_value:(fun v ->
+                Avutil.Pixel_format.of_string (Lang.to_string v))
+              s
+        | `Sample_fmt s ->
+            mk_opt ~t:Lang.string_t
+              ~to_string:(fun p ->
+                match Avutil.Sample_format.get_name p with
+                  | None -> "none"
+                  | Some p -> p)
+              ~from_value:(fun v ->
+                Avutil.Sample_format.find (Lang.to_string v))
+              s
+        | `Channel_layout s ->
+            mk_opt ~t:Lang.string_t
+              ~to_string:Avutil.Channel_layout.get_description
+              ~from_value:(fun v ->
+                Avutil.Channel_layout.find (Lang.to_string v))
+              s
     in
     List.fold_left mk_opt ([], fun _ x -> x) (Avutil.Options.opts options))
 
@@ -515,37 +416,30 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                   List.nth inputs idx)
                 else Lang.assoc "" (idx + ofs + 1) p
               in
-              let link ~of_value ~mode ~ofs idx input =
-                let output = get_input ~mode ~ofs idx in
-                let pos =
-                  match Liquidsoap_lang.Value.pos output with
-                    | None -> []
-                    | Some p -> [p]
-                in
-                let output =
-                  match of_value output with
-                    | `Output output -> Lazy.force output
-                    | _ -> assert false
-                in
-                try link output input
-                with exn ->
-                  Lang.raise_error ~pos
-                    ~message:
-                      (Printf.sprintf
-                         "Error while connecting filter elements %s to %s: %s"
-                         (Avfilter.filter_name input)
-                         (Avfilter.filter_name output)
-                         (Printexc.to_string exn))
-                    "ffmpeg.filter"
-              in
               Queue.push graph.init
                 (Lazy.from_fun (fun () ->
                      List.iteri
-                       (link ~of_value:Audio.of_value ~mode:`Audio ~ofs:0)
+                       (fun idx input ->
+                         let output =
+                           match
+                             Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx)
+                           with
+                             | `Output output -> Lazy.force output
+                             | _ -> assert false
+                         in
+                         link output input)
                        filter.io.inputs.audio;
                      List.iteri
-                       (link ~of_value:Video.of_value ~mode:`Video
-                          ~ofs:audio_inputs_c)
+                       (fun idx input ->
+                         let output =
+                           match
+                             Video.of_value
+                               (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
+                           with
+                             | `Output output -> output
+                             | _ -> assert false
+                         in
+                         link (Lazy.force output) input)
                        filter.io.inputs.video));
               input_set := true;
               Lang.unit) );

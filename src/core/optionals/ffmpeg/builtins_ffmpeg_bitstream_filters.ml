@@ -211,17 +211,7 @@ let register_filters () =
                (fun p ->
                  let source = List.assoc "" p in
 
-                 let args =
-                   List.fold_left
-                     (fun args -> function
-                       | `Pair (_, #Avutil.value) as v -> v :: args
-                       | _ ->
-                           log#important "Invalid bitstream filter option!";
-                           args)
-                     [] (args_parser p [])
-                 in
-
-                 let filter_opts = args_of_args args in
+                 let filter_opts = args_of_args (args_parser p []) in
 
                  let flush, process =
                    match mode with
