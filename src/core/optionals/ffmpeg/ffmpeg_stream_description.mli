@@ -23,6 +23,7 @@
 type audio_params = {
   codec_name : string;
   codec_params : Avutil.audio Avcodec.params;
+  time_base : Avutil.rational;
   samplerate : int;
   channels : int;
   channel_layout : string;
@@ -31,6 +32,7 @@ type audio_params = {
 type video_params = {
   codec_name : string;
   codec_params : Avutil.video Avcodec.params;
+  time_base : Avutil.rational;
   width : int;
   height : int;
   pixel_format : string;
@@ -40,6 +42,7 @@ type video_params = {
 type subtitle_params = {
   codec_name : string;
   codec_params : Avutil.subtitle Avcodec.params;
+  time_base : Avutil.rational;
 }
 
 type data_params = {
@@ -53,37 +56,14 @@ type stream_params =
   | `Subtitle of subtitle_params
   | `Data of data_params ]
 
-type stream = {
-  field : Frame.Fields.field;
-  params : stream_params;
-  copy : bool;
-}
-
+type stream = { field : Frame.Fields.field; params : stream_params }
 type container = { format : string option; streams : stream list }
 
-type result = {
-  content_type : Frame.content_type;
-  container : container;
-  description : string;
-}
-
-val audio_params_of_codec_params : Avutil.audio Avcodec.params -> audio_params
-
-val video_params_of_codec_params :
-  frame_rate:Avutil.rational option ->
-  Avutil.video Avcodec.params ->
-  video_params
-
-val subtitle_params_of_codec_params :
-  Avutil.subtitle Avcodec.params -> subtitle_params
-
-val data_params_of_codec_params : [ `Data ] Avcodec.params -> data_params
-
-val get_type :
+val container :
   ?format:(Avutil.input, _) Avutil.format ->
-  ctype:Frame.content_type ->
   url:string ->
   Avutil.input Avutil.container ->
-  result
+  container
 
-val json_of_container : container -> Json.t
+val describe : container -> string
+val get_type : ctype:Frame.content_type -> container -> Frame.content_type
