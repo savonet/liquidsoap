@@ -1,5 +1,10 @@
 # 2.4.3 (unreleased)
 
+## Changed:
+
+- DEPRECATED telnet/server `request.on_air` command is enabled when
+  `settings.request.deprecated_on_air_metadata` is `true`.
+
 ## Fixed:
 
 - Make active `stereotool` really be active.. (#4882)

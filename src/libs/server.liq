@@ -61,3 +61,39 @@ server.register(
   "dump_sources",
   fun (_) -> clock.dump_all_sources()
 )
+
+on_start(
+  fun () ->
+    begin
+      if
+        settings.request.deprecated_on_air_metadata()
+      then
+        server.register(
+          namespace="request",
+          description="Return all the requests currently on_air (DEPRECATED)!",
+          "on_air",
+          fun (_) ->
+            string.concat(
+              separator=" ",
+              list.map(
+                string,
+                list.sort(
+                  fun (a, b) -> a - b,
+                  list.filter_map(
+                    fun (r) ->
+                      if
+                        list.assoc.mem("on_air", request.metadata(r))
+                      then
+                        request.id(r)
+                      else
+                        null
+                      end,
+                    request.all()
+                  )
+                )
+              )
+            )
+        )
+      end
+    end
+)
