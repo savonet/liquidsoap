@@ -22,8 +22,6 @@
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
   from the callback.
 - Allow implicit casting of an integer as a float (#2887).
-- DEPRECATED telnet/server `request.on_air` command is enabled when
-  `settings.request.deprecated_on_air_metadata` is `true`.
 
 ## Fixed:
 
