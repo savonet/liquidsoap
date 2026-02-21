@@ -22,6 +22,19 @@
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
   from the callback.
 - Allow implicit casting of an integer as a float (#2887).
+- DEPRECATED telnet/server `request.on_air` command is enabled when
+  `settings.request.deprecated_on_air_metadata` is `true`.
+
+## Fixed:
+
+- Make active `stereotool` really be active.. (#4882)
+- Fixed `fMP4` HLS support for audio+video streams (#4841)
+- Fixed crossfade clocks inconsistencies leading to weird caching audio glitches (#4851)
+- Fixed first frame of new track getting lost when crossfading with `fade.in` duration is set to `0.` (#4887)
+- Fixed crash with concurrent `stop`/`start` operations (#4849)
+- Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
+  decoder (#4848)
+- Make sure `output.file` does not create files without data (#4899)
 
 ---
 
