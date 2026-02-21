@@ -158,26 +158,38 @@ end
 # @param ~priority Resolver priority. Default is low to avoid overriding media tags.
 # @param ~mime_types Restrict to these MIME types (or `null` for any).
 # @param ~file_extensions Restrict to these file extensions (or `null` for any).
-# @param ~populate_standard Also export a few standard keys (`title`, `year`, `genre`) when missing.
+# @param ~standardize Also export a few standard keys (`title`, `year`, `genre`) when missing.
 def enable_nfo_metadata(
   ~priority={0},
   ~mime_types=null,
   ~file_extensions=null,
-  ~populate_standard=false
+  ~standardize=false
 ) =
-  def resolver(~metadata:_, file_name) =
+  def resolver(~metadata, file_name) =
     nfo_file = path.remove_extension(file_name) ^ ".nfo"
     md = file.nfo.metadata(nfo_file)
     if
-      populate_standard
+      standardize
     then
       extra = ref([])
       title = list.assoc.nullable("nfo.title", md)
-      if null.defined(title) then extra := ("title", null.get(title))::extra() end
+      if
+        null.defined(title) and not list.assoc.mem("title", metadata)
+      then
+        extra := ("title", null.get(title))::extra()
+      end
       year = list.assoc.nullable("nfo.year", md)
-      if null.defined(year) then extra := ("year", null.get(year))::extra() end
+      if
+        null.defined(year) and not list.assoc.mem("year", metadata)
+      then
+        extra := ("year", null.get(year))::extra()
+      end
       genre = list.assoc.nullable("nfo.genre", md)
-      if null.defined(genre) then extra := ("genre", null.get(genre))::extra() end
+      if
+        null.defined(genre) and not list.assoc.mem("genre", metadata)
+      then
+        extra := ("genre", null.get(genre))::extra()
+      end
       [...md, ...list.rev(extra())]
     else
       md
