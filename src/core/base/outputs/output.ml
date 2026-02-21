@@ -96,6 +96,9 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
             start_stop#transition_to `Stopped;
             "Done")
           ~descr:"Stop the output.";
+        self#register_command "status"
+          (fun _ -> if start_stop#state = `Started then "on" else "off")
+          ~descr:"Stop the output.";
         self#register_command "skip"
           (fun _ ->
             self#skip;
