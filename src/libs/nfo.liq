@@ -7,6 +7,7 @@
 let file.nfo = ()
 
 # Accumulate values by key.
+# @flag hidden
 def file.nfo._accum_add(k, v, acc) =
   if
     list.assoc.mem(k, acc)
@@ -18,6 +19,7 @@ def file.nfo._accum_add(k, v, acc) =
   end
 end
 
+# @flag hidden
 def file.nfo._join(vs) =
   string.concat(separator=";", list.rev(vs))
 end
@@ -40,8 +42,8 @@ def file.nfo.metadata(nfo_file) =
   then
     []
   else
-    s = file.contents(nfo_file)
     try
+      s = file.contents(nfo_file)
       let xml.parse (doc :
         (
           string
@@ -158,42 +160,14 @@ end
 # @param ~priority Resolver priority. Default is low to avoid overriding media tags.
 # @param ~mime_types Restrict to these MIME types (or `null` for any).
 # @param ~file_extensions Restrict to these file extensions (or `null` for any).
-# @param ~standardize Also export a few standard keys (`title`, `year`, `genre`) when missing.
 def enable_nfo_metadata(
   ~priority={0},
   ~mime_types=null,
-  ~file_extensions=null,
-  ~standardize=false
+  ~file_extensions=null
 ) =
-  def resolver(~metadata, file_name) =
+  def resolver(~metadata:_, file_name) =
     nfo_file = path.remove_extension(file_name) ^ ".nfo"
-    md = file.nfo.metadata(nfo_file)
-    if
-      standardize
-    then
-      extra = ref([])
-      title = list.assoc.nullable("nfo.title", md)
-      if
-        null.defined(title) and not list.assoc.mem("title", metadata)
-      then
-        extra := ("title", null.get(title))::extra()
-      end
-      year = list.assoc.nullable("nfo.year", md)
-      if
-        null.defined(year) and not list.assoc.mem("year", metadata)
-      then
-        extra := ("year", null.get(year))::extra()
-      end
-      genre = list.assoc.nullable("nfo.genre", md)
-      if
-        null.defined(genre) and not list.assoc.mem("genre", metadata)
-      then
-        extra := ("genre", null.get(genre))::extra()
-      end
-      [...md, ...list.rev(extra())]
-    else
-      md
-    end
+    file.nfo.metadata(nfo_file)
   end
 
   decoder.metadata.add(

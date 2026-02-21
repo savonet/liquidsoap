@@ -29,7 +29,7 @@ def f() =
   test.equal(list.assoc("nfo.genre", nfo_md), "Action;Drama")
   test.equal(list.assoc("nfo.uniqueid.imdb", nfo_md), "tt1234567;tt7654321")
 
-  enable_nfo_metadata(file_extensions=["mp3"], standardize=true)
+  enable_nfo_metadata(file_extensions=["mp3"])
 
   m = file.metadata(media)
 
@@ -40,11 +40,7 @@ def f() =
   test.equal(list.assoc("nfo.genre", m), "Action;Drama")
   test.equal(list.assoc("nfo.uniqueid.imdb", m), "tt1234567;tt7654321")
   test.equal(list.assoc("nfo.uniqueid.tmdb", m), "98765")
-
-  # Populated standard keys
   test.equal(list.assoc("title", m), "Test Title")
-  test.equal(list.assoc("year", m), "2024")
-  test.equal(list.assoc("genre", m), "Action;Drama")
   test.pass()
 end
 
