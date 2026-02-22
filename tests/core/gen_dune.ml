@@ -12,7 +12,7 @@ let test_params =
   ]
 
 (* Tests with custom rules that are not auto-generated *)
-let skip_tests = ["ffmpeg_stream_description_test"]
+let skip_tests = ["ffmpeg_stream_description_test"; "ffmpeg_get_type_test"]
 let test_names = ref []
 
 let test_name s =

@@ -650,10 +650,11 @@ let () =
     }
 
 let get_type ?format ~ctype ~url container =
-  let result =
-    Ffmpeg_stream_description.get_type ?format ~ctype ~url container
-  in
-  result.content_type
+  let c = Ffmpeg_stream_description.container ?format ~url container in
+  let description = Ffmpeg_stream_description.describe c in
+  let uri = Lang_string.quote_string url in
+  log#important "FFmpeg recognizes %s as %s" uri description;
+  Ffmpeg_stream_description.get_type ~ctype c
 
 let reset_streams streams =
   Streams.iter
