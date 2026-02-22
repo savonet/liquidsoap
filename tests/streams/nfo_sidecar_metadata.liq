@@ -38,12 +38,14 @@ def f() =
 
   nfo_md_custom =
     file.nfo.metadata(
-      extra_rules=[
-        (
-          "YeAr",
-          fun (_, txt) -> [("year", txt), ("release_year", txt)]
-        )
-      ],
+      rules=file.nfo.rules(
+        extra_rules=[
+          (
+            "YeAr",
+            fun (_, txt) -> [("year", txt), ("release_year", txt)]
+          )
+        ]
+      ),
       nfo_file
     )
   test.equal(list.assoc("nfo.release_year", nfo_md_custom), "2024")

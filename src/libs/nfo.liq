@@ -107,6 +107,26 @@ let file.nfo._tag_rules =
   # Shape: [(tag_name, (node, text) -> [(key, value)])].
   [("uniqueid", file.nfo._uniqueid_rule)]
 
+# Build a tag rule table for `.nfo` parsing.
+#
+# Returned rule tables can be reused across multiple calls to `file.nfo.metadata`.
+#
+# @category File
+# @param ~extra_rules Additional tag rules (prepended to built-ins).
+def file.nfo.rules(~extra_rules=[]) =
+  extra_rules =
+    list.map(
+      fun (r) ->
+        begin
+          let (tag, rule_fn) = r
+          (file.nfo._normalize_tag(tag), rule_fn)
+        end,
+      extra_rules
+    )
+
+  [...extra_rules, ...file.nfo._tag_rules]
+end
+
 # Extract metadata from an `.nfo` file.
 #
 # Returned metadata keys are namespaced under `nfo.*`.
@@ -126,26 +146,14 @@ let file.nfo._tag_rules =
 # - Deprecated Kodi `<id>` is exported as `nfo.id`.
 #
 # @category File
-# @param ~extra_rules Additional tag rules (prepended to built-ins).
+# @param ~rules Tag rules. Use `file.nfo.rules(...)` to build them.
 # @param nfo_file Path to the `.nfo` file.
-def file.nfo.metadata(~extra_rules=[], nfo_file) =
+def file.nfo.metadata(~rules=file.nfo._tag_rules, nfo_file) =
   if
     not (file.exists(nfo_file))
   then
     []
   else
-    extra_rules =
-      list.map(
-        fun (r) ->
-          begin
-            let (tag, rule_fn) = r
-            (file.nfo._normalize_tag(tag), rule_fn)
-          end,
-        extra_rules
-      )
-
-    rules = [...extra_rules, ...file.nfo._tag_rules]
-
     try
       s = file.contents(nfo_file)
       let xml.parse ((root_name, root) :
@@ -240,9 +248,11 @@ def enable_nfo_metadata(
   ~file_extensions=null,
   ~extra_rules=[]
 ) =
+  rules = file.nfo.rules(extra_rules=extra_rules)
+
   def resolver(~metadata:_, file_name) =
     nfo_file = path.remove_extension(file_name) ^ ".nfo"
-    file.nfo.metadata(extra_rules=extra_rules, nfo_file)
+    file.nfo.metadata(rules=rules, nfo_file)
   end
 
   decoder.metadata.add(
