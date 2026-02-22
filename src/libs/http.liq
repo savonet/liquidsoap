@@ -1030,3 +1030,12 @@ def http.headers.extname(headers) =
     null
   end
 end
+
+# @docof input.harbor.dynamic.regexp
+# @argsof input.harbor.dynamic.regexp
+def replaces input.harbor.dynamic(%argsof(input.harbor.dynamic.regexp), path) =
+  input.harbor.dynamic.regexp(
+    %argsof(input.harbor.dynamic.regexp),
+    harbor.http.regexp_of_path(path)
+  )
+end

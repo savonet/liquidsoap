@@ -5,6 +5,7 @@ val conf_init : Dtools.Conf.ut
 val conf_debug : bool Dtools.Conf.t
 val conf_debug_errors : bool Dtools.Conf.t
 val conf_default_font : string Dtools.Conf.t
+val conf_force_start : bool Dtools.Conf.t
 
 (** String describing the OS *)
 val host : string
