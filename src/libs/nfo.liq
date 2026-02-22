@@ -148,7 +148,7 @@ end
 # @category File
 # @param ~rules Tag rules. Use `file.nfo.rules(...)` to build them.
 # @param nfo_file Path to the `.nfo` file.
-def file.nfo.metadata(~rules=file.nfo._tag_rules, nfo_file) =
+def file.nfo.metadata(~rules=file.nfo.rules(), nfo_file) =
   if
     not (file.exists(nfo_file))
   then
@@ -242,13 +242,20 @@ end
 # @param ~mime_types Restrict to these MIME types (or `null` for any).
 # @param ~file_extensions Restrict to these file extensions (or `null` for any).
 # @param ~extra_rules Additional tag rules (prepended to built-ins).
+# @param ~rules Pre-built tag rule table (overrides `extra_rules`).
 def enable_nfo_metadata(
   ~priority={0},
   ~mime_types=null,
   ~file_extensions=null,
-  ~extra_rules=[]
+  ~extra_rules=[],
+  ~rules=null
 ) =
-  rules = file.nfo.rules(extra_rules=extra_rules)
+  rules =
+    null.case(
+      rules,
+      {file.nfo.rules(extra_rules=extra_rules)},
+      fun (r) -> r
+    )
 
   def resolver(~metadata:_, file_name) =
     nfo_file = path.remove_extension(file_name) ^ ".nfo"
