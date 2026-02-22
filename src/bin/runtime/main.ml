@@ -43,14 +43,6 @@ let () =
 (* Are we streaming? *)
 let run_streams = ref true
 
-(* Should we start even without active sources? *)
-let force_start =
-  Dtools.Conf.bool
-    ~p:(Dtools.Init.conf#plug "force_start")
-    ~d:false "Start liquidsoap even without any active source"
-    ~comments:
-      ["This should be reserved for advanced dynamic uses of liquidsoap."]
-
 (* Should we allow to run as root? *)
 let allow_root =
   Dtools.Conf.bool
@@ -310,7 +302,7 @@ let options =
          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set true),
          "Print log messages on standard output." );
        ( ["-f"; "--force-start"],
-         Arg.Unit (fun () -> force_start#set true),
+         Arg.Unit (fun () -> Configure.conf_force_start#set true),
          "For advanced dynamic uses: force liquidsoap to start even when no \
           active source is initially defined." );
        ( ["--debug"],
@@ -718,7 +710,7 @@ let () =
       if
         (not !interactive)
         && List.length (Clock.clocks ()) = 0
-        && not force_start#get
+        && not Configure.conf_force_start#get
       then (
         final_cleanup ();
         Printf.printf "No output defined, nothing to do.\n";

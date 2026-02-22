@@ -29,6 +29,13 @@ let ( let* ) = Duppy.Monad.bind
 
 module type Monad_t = module type of Monad with module Io := Monad.Io
 
+type login_args = {
+  socket : Http.socket;
+  uri : string;
+  user : string;
+  password : string;
+}
+
 module type Transport_t = sig
   type socket = Http.socket
 
@@ -112,11 +119,7 @@ module type T = sig
   (* Http Server *)
 
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
-
-  type reply =
-    | Close of (unit -> string)
-    | Relay of string * (unit -> unit)
-    | Custom
+  type reply = Close of (unit -> string) | Relay of string | Custom
 
   type http_handler =
     protocol:string ->
@@ -149,42 +152,54 @@ module type T = sig
 
   (* Source input *)
 
+  type relay_info = {
+    uri : string;
+    groups : (string * string) list;
+    stype : string;
+    headers : (string * string) list;
+    read : (socket -> bytes -> int -> int -> int) option;
+    socket : socket;
+  }
+
   class virtual source : object
     inherit Source.source
-
-    method virtual relay :
-      string ->
-      (string * string) list ->
-      ?read:(socket -> bytes -> int -> int -> int) ->
-      socket ->
-      unit
-
+    method virtual relay : relay_info -> unit
     method virtual encode_metadata : Frame.metadata -> unit
-    method virtual login : string * (socket:socket -> string -> string -> bool)
+    method virtual login : string * (login_args -> bool)
     method virtual icy_charset : string option
     method virtual meta_charset : string option
     method virtual get_mime_type : string option
   end
 
+  type source_handler = {
+    relay : relay_info -> unit;
+    login : string * (login_args -> bool);
+    icy_charset : string option;
+    meta_charset : string option;
+    mutable encode_metadata : Frame.metadata -> unit;
+    get_mime_type : unit -> string option;
+  }
+
   val http_auth_check :
     ?query:(string * string) list ->
-    login:string * (socket:socket -> string -> string -> bool) ->
+    uri:string ->
+    login:string * (login_args -> bool) ->
     socket ->
     (string * string) list ->
     (unit, reply) Duppy.Monad.t
 
-  val relayed : string -> (unit -> unit) -> ('a, reply) Duppy.Monad.t
+  val relayed : string -> ('a, reply) Duppy.Monad.t
 
   val add_source :
     pos:Liquidsoap_lang.Pos.t list ->
     transport:Http.transport ->
     port:int ->
-    mountpoint:string ->
+    mountpoint:Lang.regexp ->
     icy:bool ->
-    source ->
+    source_handler ->
     unit
 
-  val remove_source : port:int -> mountpoint:string -> unit -> unit
+  val remove_source : port:int -> mountpoint:Lang.regexp -> unit -> unit
 end
 
 module Make (T : Transport_t) : T with type socket = T.socket = struct
@@ -208,28 +223,36 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (** Raised when source needs to retry read. *)
   exception Retry
 
+  type relay_info = {
+    uri : string;
+    groups : (string * string) list;
+    stype : string;
+    headers : (string * string) list;
+    read : (socket -> bytes -> int -> int -> int) option;
+    socket : socket;
+  }
+
   class virtual source =
     object
       inherit Source.source ~name:"input.harbor" ()
-
-      method virtual relay
-          : string ->
-            (string * string) list ->
-            ?read:(socket -> bytes -> int -> int -> int) ->
-            socket ->
-            unit
-
+      method virtual relay : relay_info -> unit
       method virtual encode_metadata : Frame.metadata -> unit
-
-      method virtual login
-          : string * (socket:socket -> string -> string -> bool)
-
+      method virtual login : string * (login_args -> bool)
       method virtual icy_charset : string option
       method virtual meta_charset : string option
       method virtual get_mime_type : string option
     end
 
-  type sources = (string, source) Concurrent_hashtbl.t
+  type source_handler = {
+    relay : relay_info -> unit;
+    login : string * (login_args -> bool);
+    icy_charset : string option;
+    meta_charset : string option;
+    mutable encode_metadata : Frame.metadata -> unit;
+    get_mime_type : unit -> string option;
+  }
+
+  type sources = (Lang.regexp * source_handler) list Atomic.t
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
   type source_type = [ `Put | `Post | `Source | `Xaudiocast | `Shout ]
 
@@ -286,10 +309,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     | `Xaudiocast_uri uri -> Printf.sprintf "X-AUDIOCAST (%s)" uri
     | `Websocket -> "WEBSOCKET"
 
-  type reply =
-    | Close of (unit -> string)
-    | Relay of string * (unit -> unit)
-    | Custom
+  type reply = Close of (unit -> string) | Relay of string | Custom
 
   let mk_simple s =
     let ret = Atomic.make s in
@@ -297,7 +317,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let simple_reply s = Duppy.Monad.raise (Close (mk_simple s))
   let reply s = Duppy.Monad.raise (Close s)
-  let relayed s f = Duppy.Monad.raise (Relay (s, f))
+  let relayed s = Duppy.Monad.raise (Relay s)
   let custom () = Duppy.Monad.raise Custom
 
   type http_handler =
@@ -325,7 +345,25 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let find_handler = Concurrent_hashtbl.find opened_ports
 
   let find_source mount port =
-    Concurrent_hashtbl.find (find_handler port).handler.sources mount
+    let sources = Atomic.get (find_handler port).handler.sources in
+    let rec find = function
+      | [] -> raise Not_found
+      | (regex, handler) :: rest -> (
+          let rex = regex.Liquidsoap_lang.Builtins_regexp.regexp in
+          try
+            let sub = Re.Pcre.exec ~rex mount in
+            let names = Re.Pcre.names rex in
+            let groups =
+              Array.fold_left
+                (fun acc name ->
+                  try (name, Re.Pcre.get_named_substring rex name sub) :: acc
+                  with Not_found -> acc)
+                [] names
+            in
+            (handler, groups)
+          with Not_found -> find rest)
+    in
+    find sources
 
   exception Assoc of string
 
@@ -354,6 +392,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
        xml:lang=\"en\"><head><title>Liquidsoap source \
        harbor</title></head><body><p>" ^ msg ^ "</p></body></html>"
 
+  let mount_taken_error () =
+    simple_reply
+      (http_error_page 403
+         "Mountpoint already taken\r\n\
+          WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
+         "Mountpoint in use")
+
   (* The error numbers are specified here:
      http://tools.ietf.org/html/rfc6455#section-7.4.1 *)
   let websocket_error n msg = Websocket.to_string (`Close (Some (n, msg)))
@@ -363,7 +408,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       try Liq_http.parse_auth r
       with Not_found -> { Liq_http.user = ""; password = r }
     in
-    let* s =
+    let* s, _ =
       try Duppy.Monad.return (find_source "/" (port - 1))
       with Not_found ->
         log#info "ICY error: no / mountpoint";
@@ -371,10 +416,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     (* Authentication can be blocking. *)
     Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-      (let user, auth_f = s#login in
+      (let user, auth_f = s.login in
        let user = if requested_user = "" then user else requested_user in
-       if auth_f ~socket:h.Duppy.Monad.Io.socket user password then
-         Duppy.Monad.return (`Shout, "/", `Icy)
+       if auth_f { socket = h.Duppy.Monad.Io.socket; uri = "/"; user; password }
+       then Duppy.Monad.return (`Shout, "/", `Icy)
        else (
          log#info "ICY error: invalid password";
          simple_reply "Invalid password\r\n\r\n"))
@@ -422,16 +467,23 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       display_headers;
     headers
 
-  let auth_check ~auth_f socket user pass =
+  let auth_check ~auth_f ({ user; password; _ } as args) =
     (* OK *)
     if conf_pass_verbose#get then
-      log#info "Requested username: %s, password: %s." user pass
+      log#info "Requested username: %s, password: %s." user password
     else ();
-    if not (auth_f ~socket user pass) then raise Not_authenticated else ();
-    log#info "Client logged in.";
-    Duppy.Monad.return ()
+    try
+      if not (auth_f args) then raise Not_authenticated else ();
+      log#info "Client logged in.";
+      Duppy.Monad.return ()
+    with
+    | Runtime_error.Runtime_error { kind; _ }
+    when kind = "error.icecast.server.mount_taken"
+    ->
+      log#info "Returned 403: Mount taken";
+      mount_taken_error ()
 
-  let http_auth_check ?query ~login socket headers =
+  let http_auth_check ?query ~uri ~login socket headers =
     (* 401 error model *)
     let http_reply s =
       simple_reply
@@ -466,7 +518,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 (user, List.assoc "pass" query)
             | _ -> raise Not_found)
       in
-      auth_check ~auth_f socket user pass
+      auth_check ~auth_f { socket; uri; user; password = pass }
     with
       | Not_authenticated ->
           log#info "Returned 401: wrong auth.";
@@ -475,7 +527,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           log#info "Returned 401: bad authentication.";
           http_reply "No login / password supplied."
 
-  let exec_http_auth_check ?args ~login h headers =
+  let exec_http_auth_check ?args ~uri ~login h headers =
     let query =
       Option.map
         (fun query ->
@@ -483,7 +535,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         args
     in
     Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-      (http_auth_check ?query ~login h.Duppy.Monad.Io.socket headers)
+      (http_auth_check ?query ~uri ~login h.Duppy.Monad.Io.socket headers)
 
   (* We do not implement anything with this handler for now. *)
   let handle_asterisk_options_request ~hprotocol:_ ~headers:_ _ =
@@ -496,7 +548,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
     (* ICY request are on port+1 *)
     let source_port = if smethod = `Shout then port - 1 else port in
-    let* s =
+    let* s, groups =
       try Duppy.Monad.return (find_source uri source_port)
       with Not_found ->
         log#info "Request failed: no mountpoint '%s'!" uri;
@@ -507,7 +559,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       if
         (* ICY and Xaudiocast auth check was done before.. *)
         not auth
-      then exec_http_auth_check ~login:s#login h headers
+      then exec_http_auth_check ~uri ~login:s.login h headers
       else Duppy.Monad.return ()
     in
     try
@@ -547,7 +599,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Some read)
         else None
       in
-      let f () = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
+      s.relay
+        { stype; headers; read; groups; uri; socket = h.Duppy.Monad.Io.socket };
       log#info "Adding source on mountpoint %S with type %S." uri stype;
       log#debug "Relaying %s." (string_of_protocol hprotocol);
       let protocol =
@@ -557,15 +610,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           | `Http_11 -> "HTTP/1.1"
           | _ -> assert false
       in
-      relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol) f
+      relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol)
     with
       | Mount_taken ->
           log#info "Returned 403: Mount taken";
-          simple_reply
-            (http_error_page 403
-               "Mountpoint already taken\r\n\
-                WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
-               "Mountpoint in use")
+          mount_taken_error ()
       | Not_found ->
           log#info "Returned 404 for '%s'." uri;
           simple_reply
@@ -576,7 +625,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             (http_error_page 501 "Not Implemented"
                "This stream's format is not recognized.")
       | e ->
-          log#info "Returned 500 for '%s': %s" uri (Printexc.to_string e);
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log ~bt
+            (Printf.sprintf "Returned 500 for '%s': %s" uri
+               (Printexc.to_string e));
           simple_reply
             (http_error_page 500 "Internal Server Error"
                "The server could not handle your request.")
@@ -632,15 +684,17 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     log#info "Mime type: %s" stype;
     log#info "Mount point: %s" huri;
-    let* source =
+    let* source, groups =
       try Duppy.Monad.return (find_source huri port)
       with Not_found ->
         log#info "Request failed: no mountpoint '%s'!" huri;
         simple_reply (websocket_error 1011 "This mountpoint isn't available.")
     in
-    let _, auth_f = source#login in
+    let _, auth_f = source.login in
     let* () =
-      try auth_check ~auth_f h.Duppy.Monad.Io.socket user password
+      try
+        auth_check ~auth_f
+          { socket = h.Duppy.Monad.Io.socket; uri = huri; user; password }
       with Not_authenticated ->
         log#info "Authentication failed!";
         simple_reply (websocket_error 1011 "Authentication failed.")
@@ -656,7 +710,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   let data = Option.get data in
                   let m = List.map (fun (l, v) -> (l, json_string_of v)) data in
                   let m = Frame.Metadata.from_list m in
-                  source#encode_metadata m;
+                  source.encode_metadata m;
                   raise Retry
               | _ -> raise Retry)
         | `Close _ -> raise Websocket_closed
@@ -669,8 +723,16 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       Utils.buffer_drop binary_data len;
       len
     in
-    let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
-    relayed "" f
+    source.relay
+      {
+        uri = huri;
+        groups;
+        stype;
+        headers;
+        read = Some read;
+        socket = h.Duppy.Monad.Io.socket;
+      };
+    relayed ""
 
   exception Handled of (http_verb * (string * string) list * http_handler)
 
@@ -713,13 +775,15 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let mount = try Hashtbl.find args "mount" with Not_found -> "/" in
           log#info "Request to update metadata for mount %s on port %i" mount
             port;
-          let* s =
+          let* s, _ =
             try Duppy.Monad.return (find_source mount port)
             with Not_found -> ans_400 ~uri "Source is not available"
           in
-          let* () = exec_http_auth_check ~args ~login:s#login h headers in
           let* () =
-            match s#get_mime_type with
+            exec_http_auth_check ~args ~uri:mount ~login:s.login h headers
+          in
+          let* () =
+            match s.get_mime_type () with
               | None ->
                   log#critical
                     "No mime-type found for source at %s, this should not \
@@ -747,7 +811,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               Hashtbl.remove args "charset";
               Some enc
             with Not_found ->
-              (if icy then s#icy_charset else s#meta_charset)
+              (if icy then s.icy_charset else s.meta_charset)
               |> Option.map Charset.of_string
           in
           (* Recode tags.. *)
@@ -765,7 +829,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             if add then Frame.Metadata.add (g x) (g y) m else m
           in
           let args = Hashtbl.fold f args Frame.Metadata.empty in
-          s#encode_metadata args;
+          s.encode_metadata args;
           simple_reply
             (Printf.sprintf
                "HTTP/1.0 200 OK\r\n\r\nUpdated metadatas for mount %s" mount)
@@ -906,8 +970,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               | _ -> fun _ -> ""
           in
           Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-            (handler ~protocol ~meth ~headers ~data
-               ~socket:h.Duppy.Monad.Io.socket ~query base_uri)
+            (handler ~protocol ~meth ~headers ~data ~socket ~query base_uri)
       | e ->
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
@@ -962,7 +1025,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           | `Xaudiocast_uri uri ->
               let password = huri in
               (* We check authentication here *)
-              let* s =
+              let* s, _ =
                 try Duppy.Monad.return (find_source uri port)
                 with Not_found ->
                   log#info "Request failed: no mountpoint '%s'!" uri;
@@ -976,10 +1039,16 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   (* ICY = true means that authentication has already
                      happened *)
                   `Maybe_blocking h
-                (let valid_user, auth_f = s#login in
+                (let valid_user, auth_f = s.login in
                  if
                    not
-                     (auth_f ~socket:h.Duppy.Monad.Io.socket valid_user password)
+                     (auth_f
+                        {
+                          socket = h.Duppy.Monad.Io.socket;
+                          uri;
+                          user = valid_user;
+                          password;
+                        })
                  then simple_reply "Invalid password!"
                  else Duppy.Monad.return (true, uri, `Xaudiocast))
           | _ -> Duppy.Monad.return (false, huri, smethod)
@@ -1070,7 +1139,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let s, exec =
             match r with
               | Custom -> ("", fun () -> ())
-              | Relay (s, exec) -> (s, exec)
+              | Relay s -> (s, fun () -> ())
               | Close fn ->
                   let s = fn () in
                   let exec =
@@ -1162,34 +1231,34 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       let fds =
         if icy then open_port ~transport ~icy (port + 1) :: fds else fds
       in
-      let handler =
-        { sources = Concurrent_hashtbl.create 1; http = Atomic.make [] }
-      in
+      let handler = { sources = Atomic.make []; http = Atomic.make [] } in
       Concurrent_hashtbl.replace opened_ports port { handler; fds; transport };
       handler
 
   (* Add sources... This is tied up to sources lifecycle so
      no need to prevent early start *)
   let add_source ~pos ~transport ~port ~mountpoint ~icy source =
-    let sources =
-      let handler = get_handler ~pos ~transport ~icy port in
-      if Concurrent_hashtbl.mem handler.sources mountpoint then
-        Lang.raise_error ~pos ~message:"Mountpoint is already taken!" "http"
-      else ();
-      handler.sources
-    in
-    log#important "Adding mountpoint '%s' on port %i" mountpoint port;
-    Concurrent_hashtbl.replace sources mountpoint source
+    let handler = get_handler ~pos ~transport ~icy port in
+    let smount = Lang.descr_of_regexp mountpoint in
+    let current = Atomic.get handler.sources in
+    if List.exists (fun (r, _) -> Lang.descr_of_regexp r = smount) current then
+      Lang.raise_error ~pos ~message:"Mountpoint is already taken!" "http"
+    else ();
+    log#important "Adding mountpoint '%s' on port %i" smount port;
+    Atomic.set handler.sources ((mountpoint, source) :: current)
 
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =
     let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
-    assert (Concurrent_hashtbl.mem handler.sources mountpoint);
-    log#important "Removing mountpoint '%s' on port %i" mountpoint port;
-    Concurrent_hashtbl.remove handler.sources mountpoint;
-    if
-      Concurrent_hashtbl.length handler.sources = 0
-      && List.length (Atomic.get handler.http) = 0
+    let smount = Lang.descr_of_regexp mountpoint in
+    let current = Atomic.get handler.sources in
+    assert (List.exists (fun (r, _) -> Lang.descr_of_regexp r = smount) current);
+    log#important "Removing mountpoint '%s' on port %i" smount port;
+    let filtered =
+      List.filter (fun (r, _) -> Lang.descr_of_regexp r <> smount) current
+    in
+    Atomic.set handler.sources filtered;
+    if List.length filtered = 0 && List.length (Atomic.get handler.http) = 0
     then (
       log#important "Nothing more on port %i: closing sockets." port;
       let f in_s =
@@ -1226,7 +1295,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           (string_of_verb verb) suri port;
       Atomic.set handler.http handlers;
       if
-        Concurrent_hashtbl.length handler.sources = 0
+        List.length (Atomic.get handler.sources) = 0
         && List.length (Atomic.get handler.http) = 0
       then (
         log#info "Nothing more on port %i: closing sockets." port;

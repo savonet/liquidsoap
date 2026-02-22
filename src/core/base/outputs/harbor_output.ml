@@ -340,7 +340,7 @@ class output p =
       (Unix.getpeername s)
   in
   let auth_function = List.assoc "auth" p |> Lang.to_option in
-  let login ~socket user password =
+  let login { Harbor.socket; uri = _; user; password } =
     let address = address_resolver socket in
     let user, password =
       let f = Charset.convert in
@@ -494,8 +494,8 @@ class output p =
            then (
              let default_user = Option.value default_user ~default:"" in
              Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-               (Harbor.http_auth_check ~query ~login:(default_user, login) s
-                  headers))
+               (Harbor.http_auth_check ~query ~uri ~login:(default_user, login)
+                  s headers))
            else Duppy.Monad.return ())
           (function
             | Harbor.Close s ->
@@ -504,13 +504,11 @@ class output p =
                 Harbor.reply s
             | _ -> assert false)
       in
+      self#log#info "Client %s connected" ip;
+      Mutex_utils.mutexify clients_m (fun () -> Queue.push client clients) ();
+      List.iter (fun fn -> fn ~headers ~uri ~protocol ip) on_connect;
       Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-        (Harbor.relayed reply (fun () ->
-             self#log#info "Client %s connected" ip;
-             Mutex_utils.mutexify clients_m
-               (fun () -> Queue.push client clients)
-               ();
-             List.iter (fun fn -> fn ~headers ~uri ~protocol ip) on_connect))
+        (Harbor.relayed reply)
 
     method send b =
       let slen = Strings.length b in
