@@ -17,6 +17,8 @@ def f() =
       <uniqueid type="tmdb" default="true">98765</uniqueid>
       <uniqueid type="IMDB" default="false">tt1234567</uniqueid>
       <uniqueid type=" imdb ">tt7654321</uniqueid>
+      <uniqueid>home001</uniqueid>
+      <uniqueid type="default">home002</uniqueid>
       <actor>
         <name>Someone</name>
       </actor>
@@ -30,6 +32,7 @@ def f() =
   test.equal(list.assoc("nfo.genre", nfo_md), "Action;Drama;Comedy")
   test.equal(list.assoc("nfo.uniqueid.tmdb", nfo_md), "98765")
   test.equal(list.assoc("nfo.uniqueid.imdb", nfo_md), "tt1234567;tt7654321")
+  test.equal(list.assoc("nfo.uniqueid.untyped", nfo_md), "home001;home002")
   test.equal(list.assoc("nfo.uniqueid.default", nfo_md), "98765")
   test.equal(list.assoc("nfo.uniqueid.default.type", nfo_md), "tmdb")
 
@@ -56,6 +59,7 @@ def f() =
   test.equal(list.assoc("nfo.genre", m), "Action;Drama;Comedy")
   test.equal(list.assoc("nfo.uniqueid.imdb", m), "tt1234567;tt7654321")
   test.equal(list.assoc("nfo.uniqueid.tmdb", m), "98765")
+  test.equal(list.assoc("nfo.uniqueid.untyped", m), "home001;home002")
   test.equal(list.assoc("nfo.uniqueid.default", m), "98765")
   test.equal(list.assoc("nfo.uniqueid.default.type", m), "tmdb")
   test.equal(list.assoc("title", m), "Test Title")

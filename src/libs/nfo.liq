@@ -76,8 +76,8 @@ def file.nfo._uniqueid_rule(node, txt) =
 
   def without_type() =
     is_default
-    ? [("uniqueid.default", txt), ("uniqueid", txt)]
-    : [("uniqueid", txt)]
+    ? [("uniqueid.default", txt), ("uniqueid.untyped", txt)]
+    : [("uniqueid.untyped", txt)]
   end
 
   def with_type(t) =
@@ -92,7 +92,8 @@ def file.nfo._uniqueid_rule(node, txt) =
   null.case(
     typ,
     {without_type()},
-    fun (t) -> t == "" ? without_type() : with_type(t)
+    fun (t) ->
+      (t == "" or t == "default") ? without_type() : with_type(t)
   )
 end
 
@@ -114,8 +115,10 @@ let file.nfo._tag_rules =
 # - If `default="true"`, the ID is also exported as `nfo.uniqueid.default=VALUE` and
 #   the type as `nfo.uniqueid.default.type=X`.
 #   If multiple IDs are marked default, values are joined with `;`.
+# - Typeless `<uniqueid>` (or `type="default"`) is exported as `nfo.uniqueid.untyped=VALUE`.
 # - Repeated tags are joined with `;` (in order of appearance).
 # - Tag names and unique ID types are lowercased; namespace prefixes are ignored.
+# - Deprecated Kodi `<id>` is exported as `nfo.id`.
 #
 # @category File
 # @param ~extra_rules Additional tag rules (prepended to built-ins).
