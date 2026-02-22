@@ -63,52 +63,44 @@ def file.nfo._child_text(children) =
 end
 
 # @flag hidden
+def file.nfo._uniqueid_rule(node, txt) =
+  typ = list.assoc.nullable("type", node.xml_params)
+  typ = null.map(fun (t) -> string.case(string.trim(t)), typ)
+
+  is_default =
+    null.case(
+      list.assoc.nullable("default", node.xml_params),
+      {false},
+      fun (d) -> string.case(string.trim(d)) == "true"
+    )
+
+  def without_type() =
+    is_default
+    ? [("uniqueid.default", txt), ("uniqueid", txt)]
+    : [("uniqueid", txt)]
+  end
+
+  def with_type(t) =
+    kvs = [("uniqueid." ^ t, txt)]
+    if is_default then
+      [("uniqueid.default", txt), ("uniqueid.default.type", t), ...kvs]
+    else
+      kvs
+    end
+  end
+
+  null.case(
+    typ,
+    {without_type()},
+    fun (t) -> t == "" ? without_type() : with_type(t)
+  )
+end
+
+# @flag hidden
 let file.nfo._tag_rules =
   # Dispatch table for tags needing special handling.
   # Shape: [(tag_name, (node, text) -> [(key, value)])].
-  [
-    (
-      "uniqueid",
-      fun (node, txt) ->
-        begin
-          typ = list.assoc.nullable("type", node.xml_params)
-          typ =
-            null.map(
-              fun (t) ->
-                begin
-                  t = string.case(string.trim(t))
-                  t == "" ? null : t
-                end,
-              typ
-            )
-
-          is_default =
-            null.case(
-              list.assoc.nullable("default", node.xml_params),
-              {false},
-              fun (d) -> string.case(string.trim(d)) == "true"
-            )
-
-          null.case(
-            typ,
-            {
-              is_default
-              ? [("uniqueid.default", txt), ("uniqueid", txt)]
-              : [("uniqueid", txt)]
-            },
-            fun (t) ->
-              begin
-                kvs = [("uniqueid." ^ t, txt)]
-                if is_default then
-                  [("uniqueid.default", txt), ("uniqueid.default.type", t), ...kvs]
-                else
-                  kvs
-                end
-              end
-          )
-        end
-    )
-  ]
+  [("uniqueid", file.nfo._uniqueid_rule)]
 
 # Extract metadata from an `.nfo` file.
 #
@@ -121,12 +113,14 @@ let file.nfo._tag_rules =
 # - `<uniqueid type="X">VALUE</uniqueid>` is exported as `nfo.uniqueid.X=VALUE`.
 # - If `default="true"`, the ID is also exported as `nfo.uniqueid.default=VALUE` and
 #   the type as `nfo.uniqueid.default.type=X`.
+#   If multiple IDs are marked default, values are joined with `;`.
 # - Repeated tags are joined with `;` (in order of appearance).
 # - Tag names and unique ID types are lowercased; namespace prefixes are ignored.
 #
 # @category File
+# @param ~extra_rules Additional tag rules (prepended to built-ins).
 # @param nfo_file Path to the `.nfo` file.
-def file.nfo.metadata(nfo_file) =
+def file.nfo.metadata(~extra_rules=[], nfo_file) =
   if
     not (file.exists(nfo_file))
   then
@@ -157,6 +151,18 @@ def file.nfo.metadata(nfo_file) =
 
       root_name = file.nfo._normalize_tag(root_name)
 
+      extra_rules =
+        list.map(
+          fun (r) ->
+            begin
+              let (tag, rule_fn) = r
+              (file.nfo._normalize_tag(tag), rule_fn)
+            end,
+          extra_rules
+        )
+
+      rules = [...extra_rules, ...file.nfo._tag_rules]
+
       def collect(fields, child) =
         let (name, node) = child
         name = file.nfo._normalize_tag(name)
@@ -166,7 +172,7 @@ def file.nfo.metadata(nfo_file) =
           fields
         else
           txt = null.get(txt)
-          rule = list.assoc.nullable(name, file.nfo._tag_rules)
+          rule = list.assoc.nullable(name, rules)
 
           kvs =
             null.case(rule, {[(name, txt)]}, fun (rule_fn) -> rule_fn(node, txt))
@@ -194,7 +200,7 @@ def file.nfo.metadata(nfo_file) =
 
       [("nfo.root", root_name), ...fields_md]
     catch e do
-      log.info(
+      log.important(
         label="file.nfo.metadata",
         "Failed to parse nfo file #{string.quote(nfo_file)}: #{e.kind}: #{
           e.message
@@ -213,14 +219,16 @@ end
 # @param ~priority Resolver priority. Default is low to avoid overriding media tags.
 # @param ~mime_types Restrict to these MIME types (or `null` for any).
 # @param ~file_extensions Restrict to these file extensions (or `null` for any).
+# @param ~extra_rules Additional tag rules (prepended to built-ins).
 def enable_nfo_metadata(
   ~priority={0},
   ~mime_types=null,
-  ~file_extensions=null
+  ~file_extensions=null,
+  ~extra_rules=[]
 ) =
   def resolver(~metadata:_, file_name) =
     nfo_file = path.remove_extension(file_name) ^ ".nfo"
-    file.nfo.metadata(nfo_file)
+    file.nfo.metadata(extra_rules=extra_rules, nfo_file)
   end
 
   decoder.metadata.add(

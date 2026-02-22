@@ -33,6 +33,18 @@ def f() =
   test.equal(list.assoc("nfo.uniqueid.default", nfo_md), "98765")
   test.equal(list.assoc("nfo.uniqueid.default.type", nfo_md), "tmdb")
 
+  nfo_md_custom =
+    file.nfo.metadata(
+      extra_rules=[
+        (
+          "YeAr",
+          fun (_, txt) -> [("year", txt), ("release_year", txt)]
+        )
+      ],
+      nfo_file
+    )
+  test.equal(list.assoc("nfo.release_year", nfo_md_custom), "2024")
+
   enable_nfo_metadata(file_extensions=["mp3"])
 
   m = file.metadata(media)
