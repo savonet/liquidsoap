@@ -33,30 +33,47 @@ end
 
 # @flag hidden
 def file.nfo._child_text(children) =
-  def rec aux(children) =
-    list.case(
-      children,
-      null,
-      fun (child, rest) ->
+  texts =
+    list.filter_map(
+      fun (child) ->
         begin
           let (name, node) = child
           if name != "xml_text" then
-            aux(rest)
+            null
           else
             txt = node.xml_text
             if not null.defined(txt) then
-              aux(rest)
+              null
             else
               txt = string.trim(null.get(txt))
-              txt == "" ? aux(rest) : txt
+              txt == "" ? null : txt
             end
+          end
+        end,
+      children
+    )
+
+  list.case(texts, null, fun (txt, _) -> txt)
+end
+
+# @flag hidden
+let file.nfo._tag_rules =
+  [
+    (
+      "uniqueid",
+      fun (node, txt) ->
+        begin
+          typ = list.assoc.nullable("type", node.xml_params)
+          typ = null.map(fun (t) -> string.case(string.trim(t)), typ)
+
+          if null.defined(typ) and null.get(typ) != "" then
+            [("uniqueid." ^ null.get(typ), txt)]
+          else
+            [("uniqueid", txt)]
           end
         end
     )
-  end
-
-  aux(children)
-end
+  ]
 
 # Extract metadata from an `.nfo` file.
 #
@@ -102,35 +119,37 @@ def file.nfo.metadata(nfo_file) =
 
       root_name = string.case(root_name)
 
-      def collect(acc, child) =
-        let (fields, uniqueids) = acc
+      def collect(fields, child) =
         let (name, node) = child
         name = string.case(name)
         txt = file.nfo._child_text(node.xml_children)
 
-        if
-          not null.defined(txt)
-        then
-          (fields, uniqueids)
+        if not null.defined(txt) then
+          fields
         else
           txt = null.get(txt)
+          rule = list.assoc.nullable(name, file.nfo._tag_rules)
 
-          if name == "uniqueid" then
-            typ = list.assoc.nullable("type", node.xml_params)
-            typ = null.map(fun (t) -> string.case(string.trim(t)), typ)
-            if null.defined(typ) and null.get(typ) != "" then
-              (fields, file.nfo._accum_add(null.get(typ), txt, uniqueids))
+          kvs =
+            if null.defined(rule) then
+              begin
+                rule_fn = null.get(rule)
+                rule_fn(node, txt)
+              end
             else
-              (file.nfo._accum_add(name, txt, fields), uniqueids)
+              [(name, txt)]
             end
-          else
-            (file.nfo._accum_add(name, txt, fields), uniqueids)
+
+          def add(fields, kv) =
+            let (k, v) = kv
+            file.nfo._accum_add(k, v, fields)
           end
+
+          list.fold(add, fields, kvs)
         end
       end
 
-      let (fields_by_key, uniqueids_by_type) =
-        list.fold(collect, ([], []), root.xml_children)
+      fields_by_key = list.fold(collect, [], root.xml_children)
 
       def emit(prefix, kv) =
         let (k, vs) = kv
@@ -138,10 +157,8 @@ def file.nfo.metadata(nfo_file) =
       end
 
       fields_md = list.map(fun (kv) -> emit("nfo.", kv), fields_by_key)
-      uniqueids_md =
-        list.map(fun (kv) -> emit("nfo.uniqueid.", kv), uniqueids_by_type)
 
-      [("nfo.root", root_name), ...fields_md, ...uniqueids_md]
+      [("nfo.root", root_name), ...fields_md]
     catch e do
       log.debug(
         label="file.nfo.metadata",
