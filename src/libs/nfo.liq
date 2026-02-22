@@ -6,6 +6,14 @@
 # @category File
 let file.nfo = ()
 
+# @flag hidden
+def file.nfo._normalize_tag(name) =
+  name = string.trim(name)
+  # Strip XML namespace prefix, if any (e.g. "x:title" -> "title").
+  name = r/^[^:]*:/.replace(fun (_) -> "", name)
+  string.case(name)
+end
+
 # Accumulate values by key.
 # @flag hidden
 def file.nfo._accum_add(key, value, acc) =
@@ -41,13 +49,8 @@ def file.nfo._child_text(children) =
           if name != "xml_text" then
             null
           else
-            txt = node.xml_text
-            if not null.defined(txt) then
-              null
-            else
-              txt = string.trim(null.get(txt))
-              txt == "" ? null : txt
-            end
+            txt = string.trim(node.xml_text)
+            txt == "" ? null : txt
           end
         end,
       children
@@ -85,6 +88,7 @@ let file.nfo._tag_rules =
 # Special case:
 # - `<uniqueid type="X">VALUE</uniqueid>` is exported as `nfo.uniqueid.X=VALUE`.
 # - Repeated tags are joined with `;` (in order of appearance).
+# - Tag names and unique ID types are lowercased; namespace prefixes are ignored.
 #
 # @category File
 # @param nfo_file Path to the `.nfo` file.
@@ -109,7 +113,7 @@ def file.nfo.metadata(nfo_file) =
                   *
                   {
                     xml_params: [(string * string)],
-                    xml_children: [(string * {xml_text: string?})]
+                    xml_children: [(string * {xml_text: string})]
                   }
                 )
               ]
@@ -117,11 +121,11 @@ def file.nfo.metadata(nfo_file) =
         )
       ) = s
 
-      root_name = string.case(root_name)
+      root_name = file.nfo._normalize_tag(root_name)
 
       def collect(fields, child) =
         let (name, node) = child
-        name = string.case(name)
+        name = file.nfo._normalize_tag(name)
         txt = file.nfo._child_text(node.xml_children)
 
         if not null.defined(txt) then
