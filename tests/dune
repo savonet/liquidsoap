@@ -24,8 +24,5 @@
  (enabled_if
   (= %{env:LIQUIDSOAP_TEST_REPO_TOKEN=} ""))
  (action
-  (run
-   git
-   clone
-   git@github.com:savonet/liquidsoap-test-assets.git
-   liquidsoap-test-assets)))
+  (bash
+   "git clone git@github.com:savonet/liquidsoap-test-assets.git liquidsoap-test-assets || mkdir -p liquidsoap-test-assets")))

@@ -6,7 +6,7 @@ settings.frame.checksum.metadata := true
 settings.frame.checksum.track_marks := true
 
 sha_file = file.temp(cleanup=true, "cross-crack-sha", ".txt")
-audio_file = "#{test.assets_dir}/GH4828.flac"
+audio_file = "#{test.assets_dir()}/GH4828.flac"
 
 s = single("annotate:liq_cue_in=0.0,liq_cue_out=16.7:#{audio_file}")
 
