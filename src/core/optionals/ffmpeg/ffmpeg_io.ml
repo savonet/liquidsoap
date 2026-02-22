@@ -52,6 +52,7 @@ exception Stopped
 type container = {
   input : Avutil.input Avutil.container;
   decoder : Decoder.buffer -> unit;
+  positions : (unit -> int option) list;
   buffer : Decoder.buffer;
   get_metadata : unit -> (string * string) list;
   closed : bool Atomic.t;
@@ -89,6 +90,20 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       match Atomic.get source_status with `Connected _ -> true | _ -> false
 
     method can_generate_frame = super#started && self#is_connected
+
+    method! seek pos =
+      match Atomic.get source_status with
+        | `Connected (_, container) -> (
+            match
+              List.find_map (fun position -> position ()) container.positions
+            with
+              | None -> 0
+              | Some current_position ->
+                  let tpos = Frame.seconds_of_main (pos + current_position) in
+                  let ts = Int64.of_float (tpos *. 1000.) in
+                  Av.seek ~fmt:`Millisecond ~ts container.input;
+                  pos)
+        | _ -> 0
 
     method private get_self_sync =
       match self_sync () with Some v -> v | None -> false
@@ -182,7 +197,15 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let m = self#on_connect_metadata_map input in
         List.iter (fun fn -> fn m) on_connect;
         Generator.add_track_mark self#buffer;
-        let container = { input; decoder; buffer; get_metadata; closed } in
+        let positions =
+          Ffmpeg_decoder.Streams.fold
+            (fun _ s positions ->
+              (fun () -> s.Ffmpeg_decoder.position) :: positions)
+            streams []
+        in
+        let container =
+          { input; decoder; positions; buffer; get_metadata; closed }
+        in
         Atomic.set source_status (`Connected (url, container));
         -1.
       with
