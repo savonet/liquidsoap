@@ -2,7 +2,6 @@ log.level := 4
 settings.init.force_start := true
 
 test = ()
-let test.assets_dir = "#{path.dirname(liquidsoap.script.path)}/liquidsoap-test-assets"
 let test.done = ref(false)
 
 runtime.gc.set(runtime.gc.get().{space_overhead=20, allocation_policy=2})
@@ -42,6 +41,18 @@ def test.skip() =
     "Test skipped.."
   )
   exit(123)
+end
+
+def test.assets_dir() =
+  d = "#{path.dirname(liquidsoap.script.path)}/liquidsoap-test-assets"
+  if
+    file.ls(d) == []
+  then
+    test.skip()
+    ""
+  else
+    d
+  end
 end
 
 # Check that files are never repeated in source s, possibly by rounds. The

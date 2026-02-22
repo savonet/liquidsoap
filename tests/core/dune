@@ -88,6 +88,24 @@
   liquidsoap_ffmpeg
   test_media_formats))
 
+(executable
+ (name ffmpeg_get_type_test)
+ (modules ffmpeg_get_type_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  test_media_formats))
+
+(rule
+ (alias ffmpeg_get_type_test)
+ (package liquidsoap)
+ (deps
+  (alias ../media/all_media_files)
+  (:test ffmpeg_get_type_test.exe))
+ (action
+  (run %{test} ../media)))
+
 (rule
  (alias ffmpeg_stream_description_test)
  (package liquidsoap)

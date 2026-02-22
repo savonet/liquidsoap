@@ -17,7 +17,7 @@ on:
         type: string
     secrets:
       LIQUIDSOAP_TEST_REPO_TOKEN:
-        required: true
+        required: false
 
 jobs:
   run_tests:
