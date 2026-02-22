@@ -242,7 +242,7 @@ end
 # @param ~mime_types Restrict to these MIME types (or `null` for any).
 # @param ~file_extensions Restrict to these file extensions (or `null` for any).
 # @param ~extra_rules Additional tag rules (prepended to built-ins).
-# @param ~rules Pre-built tag rule table (overrides `extra_rules`).
+# @param ~rules Pre-built tag rule table. When provided, `extra_rules` is ignored.
 def enable_nfo_metadata(
   ~priority={0},
   ~mime_types=null,
