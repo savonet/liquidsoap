@@ -58,7 +58,7 @@ jobs:
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
     steps:
       - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
+        uses: savonet/github-actions-cpu-cores-docker@f72bcfaa219a2f60deaf8b26d0707b1d9c67d274 # v1
         id: cpu_cores
       - name: Checkout code
         run: |
