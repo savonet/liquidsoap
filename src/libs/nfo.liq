@@ -82,10 +82,29 @@ let file.nfo._tag_rules =
               typ
             )
 
+          is_default =
+            null.case(
+              list.assoc.nullable("default", node.xml_params),
+              {false},
+              fun (d) -> string.case(string.trim(d)) == "true"
+            )
+
           null.case(
             typ,
-            {[ ("uniqueid", txt) ]},
-            fun (t) -> [("uniqueid." ^ t, txt)]
+            {
+              is_default
+              ? [("uniqueid.default", txt), ("uniqueid", txt)]
+              : [("uniqueid", txt)]
+            },
+            fun (t) ->
+              begin
+                kvs = [("uniqueid." ^ t, txt)]
+                if is_default then
+                  [("uniqueid.default", txt), ("uniqueid.default.type", t), ...kvs]
+                else
+                  kvs
+                end
+              end
           )
         end
     )
@@ -100,6 +119,8 @@ let file.nfo._tag_rules =
 #
 # Special case:
 # - `<uniqueid type="X">VALUE</uniqueid>` is exported as `nfo.uniqueid.X=VALUE`.
+# - If `default="true"`, the ID is also exported as `nfo.uniqueid.default=VALUE` and
+#   the type as `nfo.uniqueid.default.type=X`.
 # - Repeated tags are joined with `;` (in order of appearance).
 # - Tag names and unique ID types are lowercased; namespace prefixes are ignored.
 #

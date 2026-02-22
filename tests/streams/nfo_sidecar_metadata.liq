@@ -7,27 +7,31 @@ def f() =
 
   nfo_file = path.remove_extension(media) ^ ".nfo"
   nfo =
-    '<movie>
-      <title>  Robot Movie  </title>
-      <year>2024</year>
+    '<kodi:Movie xmlns:kodi="urn:kodi">
+      <kodi:Title>  Robot Movie  </kodi:Title>
+      <YEAR>2024</YEAR>
       <plot>A test plot.</plot>
       <genre>Action</genre>
       <genre>Drama</genre>
-      <uniqueid type="IMDB">tt1234567</uniqueid>
-      <uniqueid type="imdb">tt7654321</uniqueid>
-      <uniqueid type="tmdb">98765</uniqueid>
+      <kodi:genre>Comedy</kodi:genre>
+      <uniqueid type="tmdb" default="true">98765</uniqueid>
+      <uniqueid type="IMDB" default="false">tt1234567</uniqueid>
+      <uniqueid type=" imdb ">tt7654321</uniqueid>
       <actor>
         <name>Someone</name>
       </actor>
-    </movie>'
+    </kodi:Movie>'
 
   file.write(data=nfo, nfo_file)
 
   nfo_md = file.nfo.metadata(nfo_file)
   test.equal(list.assoc("nfo.root", nfo_md), "movie")
   test.equal(list.assoc("nfo.title", nfo_md), "Robot Movie")
-  test.equal(list.assoc("nfo.genre", nfo_md), "Action;Drama")
+  test.equal(list.assoc("nfo.genre", nfo_md), "Action;Drama;Comedy")
+  test.equal(list.assoc("nfo.uniqueid.tmdb", nfo_md), "98765")
   test.equal(list.assoc("nfo.uniqueid.imdb", nfo_md), "tt1234567;tt7654321")
+  test.equal(list.assoc("nfo.uniqueid.default", nfo_md), "98765")
+  test.equal(list.assoc("nfo.uniqueid.default.type", nfo_md), "tmdb")
 
   enable_nfo_metadata(file_extensions=["mp3"])
 
@@ -37,9 +41,11 @@ def f() =
   test.equal(list.assoc("nfo.title", m), "Robot Movie")
   test.equal(list.assoc("nfo.year", m), "2024")
   test.equal(list.assoc("nfo.plot", m), "A test plot.")
-  test.equal(list.assoc("nfo.genre", m), "Action;Drama")
+  test.equal(list.assoc("nfo.genre", m), "Action;Drama;Comedy")
   test.equal(list.assoc("nfo.uniqueid.imdb", m), "tt1234567;tt7654321")
   test.equal(list.assoc("nfo.uniqueid.tmdb", m), "98765")
+  test.equal(list.assoc("nfo.uniqueid.default", m), "98765")
+  test.equal(list.assoc("nfo.uniqueid.default.type", m), "tmdb")
   test.equal(list.assoc("title", m), "Test Title")
   test.pass()
 end
