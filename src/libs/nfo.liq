@@ -8,20 +8,54 @@ let file.nfo = ()
 
 # Accumulate values by key.
 # @flag hidden
-def file.nfo._accum_add(k, v, acc) =
-  if
-    list.assoc.mem(k, acc)
-  then
-    vs = list.assoc(k, acc)
-    (k, v::vs)::list.assoc.remove(k, acc)
-  else
-    (k, [v])::acc
+def file.nfo._accum_add(key, value, acc) =
+  # Values are stored in reverse order for cheap cons.
+  def rec aux(acc) =
+    list.case(
+      acc,
+      [(key, [value])],
+      fun (kv, rest) ->
+        if fst(kv) == key then
+          (key, value::snd(kv))::rest
+        else
+          kv::aux(rest)
+        end
+    )
   end
+
+  aux(acc)
 end
 
 # @flag hidden
 def file.nfo._join(vs) =
   string.concat(separator=";", list.rev(vs))
+end
+
+# @flag hidden
+def file.nfo._child_text(children) =
+  def rec aux(children) =
+    list.case(
+      children,
+      null,
+      fun (child, rest) ->
+        begin
+          let (name, node) = child
+          if name != "xml_text" then
+            aux(rest)
+          else
+            txt = node.xml_text
+            if not null.defined(txt) then
+              aux(rest)
+            else
+              txt = string.trim(null.get(txt))
+              txt == "" ? aux(rest) : txt
+            end
+          end
+        end
+    )
+  end
+
+  aux(children)
 end
 
 # Extract metadata from an `.nfo` file.
@@ -33,6 +67,7 @@ end
 #
 # Special case:
 # - `<uniqueid type="X">VALUE</uniqueid>` is exported as `nfo.uniqueid.X=VALUE`.
+# - Repeated tags are joined with `;` (in order of appearance).
 #
 # @category File
 # @param nfo_file Path to the `.nfo` file.
@@ -44,7 +79,7 @@ def file.nfo.metadata(nfo_file) =
   else
     try
       s = file.contents(nfo_file)
-      let xml.parse (doc :
+      let xml.parse ((root_name, root) :
         (
           string
           *
@@ -65,87 +100,54 @@ def file.nfo.metadata(nfo_file) =
         )
       ) = s
 
-      root_name = string.case(fst(doc))
-      root = snd(doc)
+      root_name = string.case(root_name)
 
-      fields = ref([])
-      uniqueids = ref([])
+      def collect(acc, child) =
+        let (fields, uniqueids) = acc
+        let (name, node) = child
+        name = string.case(name)
+        txt = file.nfo._child_text(node.xml_children)
 
-      def add_field(k, v) =
-        k = string.case(k)
-        v = string.trim(v)
-        if v != "" then fields := file.nfo._accum_add(k, v, fields()) end
-      end
-
-      def add_uniqueid(typ, v) =
-        typ = string.case(string.trim(typ))
-        v = string.trim(v)
-        if v != "" and typ != "" then
-          uniqueids := file.nfo._accum_add(typ, v, uniqueids())
-        end
-      end
-
-      def child_text(node) =
-        texts =
-          list.filter_map(
-            fun (el) ->
-              begin
-                k = fst(el)
-                v = snd(el)
-                v = if string.case(k) == "xml_text" then v.xml_text else null end
-                if null.defined(v) then
-                  v = string.trim(null.get(v))
-                  if v != "" then v else null end
-                else
-                  null
-                end
-              end,
-            node.xml_children
-          )
-
-        list.case(texts, null, fun (x, _) -> x)
-      end
-
-      def handle_child(child) =
-        name = fst(child)
-        node = snd(child)
-        txt = child_text(node)
-        if null.defined(txt) then
+        if
+          not null.defined(txt)
+        then
+          (fields, uniqueids)
+        else
           txt = null.get(txt)
-          if string.case(name) == "uniqueid" then
-            uid_type = list.assoc.nullable("type", node.xml_params)
-            if null.defined(uid_type) then
-              add_uniqueid(null.get(uid_type), txt)
+
+          if name == "uniqueid" then
+            typ = list.assoc.nullable("type", node.xml_params)
+            typ = null.map(fun (t) -> string.case(string.trim(t)), typ)
+            if null.defined(typ) and null.get(typ) != "" then
+              (fields, file.nfo._accum_add(null.get(typ), txt, uniqueids))
             else
-              add_field(name, txt)
+              (file.nfo._accum_add(name, txt, fields), uniqueids)
             end
           else
-            add_field(name, txt)
+            (file.nfo._accum_add(name, txt, fields), uniqueids)
           end
         end
       end
 
-      list.iter(handle_child, root.xml_children)
+      let (fields_by_key, uniqueids_by_type) =
+        list.fold(collect, ([], []), root.xml_children)
 
-      md = ref([("nfo.root", root_name)])
-
-      def emit(kv) =
+      def emit(prefix, kv) =
         let (k, vs) = kv
-        md := ("nfo." ^ k, file.nfo._join(vs))::md()
+        (prefix ^ k, file.nfo._join(vs))
       end
 
-      def emit_uid(kv) =
-        let (typ, vs) = kv
-        md := ("nfo.uniqueid." ^ typ, file.nfo._join(vs))::md()
-      end
+      fields_md = list.map(fun (kv) -> emit("nfo.", kv), fields_by_key)
+      uniqueids_md =
+        list.map(fun (kv) -> emit("nfo.uniqueid.", kv), uniqueids_by_type)
 
-      list.iter(emit, fields())
-      list.iter(emit_uid, uniqueids())
-      list.rev(md())
+      [("nfo.root", root_name), ...fields_md, ...uniqueids_md]
     catch e do
       log.debug(
-        label="nfo",
-        "Failed to parse nfo file #{nfo_file}: #{e.kind}: #{e.message}"
+        label="file.nfo.metadata",
+        "Failed to parse nfo file #{string.quote(nfo_file)}: #{e.kind}: #{
+          e.message
+        }"
       )
       []
     end
