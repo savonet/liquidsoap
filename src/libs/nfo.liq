@@ -75,12 +75,14 @@ def file.nfo._uniqueid_rule(node, txt) =
     )
 
   def without_type() =
+    # Missing or invalid `type` (legacy / malformed input).
     is_default
     ? [("uniqueid.default", txt), ("uniqueid.untyped", txt)]
     : [("uniqueid.untyped", txt)]
   end
 
   def with_type(t) =
+    # Standard case: typed ID.
     kvs = [("uniqueid." ^ t, txt)]
     if is_default then
       [("uniqueid.default", txt), ("uniqueid.default.type", t), ...kvs]
@@ -93,6 +95,8 @@ def file.nfo._uniqueid_rule(node, txt) =
     typ,
     {without_type()},
     fun (t) ->
+      # Some scrapers incorrectly emit `type="default"`. Kodi warns against it,
+      # so we treat it as untyped.
       (t == "" or t == "default") ? without_type() : with_type(t)
   )
 end
@@ -115,7 +119,8 @@ let file.nfo._tag_rules =
 # - If `default="true"`, the ID is also exported as `nfo.uniqueid.default=VALUE` and
 #   the type as `nfo.uniqueid.default.type=X`.
 #   If multiple IDs are marked default, values are joined with `;`.
-# - Typeless `<uniqueid>` (or `type="default"`) is exported as `nfo.uniqueid.untyped=VALUE`.
+# - Typeless `<uniqueid>` (or `type="default"`, a scraper quirk) is exported as
+#   `nfo.uniqueid.untyped=VALUE`.
 # - Repeated tags are joined with `;` (in order of appearance).
 # - Tag names and unique ID types are lowercased; namespace prefixes are ignored.
 # - Deprecated Kodi `<id>` is exported as `nfo.id`.
@@ -129,6 +134,18 @@ def file.nfo.metadata(~extra_rules=[], nfo_file) =
   then
     []
   else
+    extra_rules =
+      list.map(
+        fun (r) ->
+          begin
+            let (tag, rule_fn) = r
+            (file.nfo._normalize_tag(tag), rule_fn)
+          end,
+        extra_rules
+      )
+
+    rules = [...extra_rules, ...file.nfo._tag_rules]
+
     try
       s = file.contents(nfo_file)
       let xml.parse ((root_name, root) :
@@ -154,39 +171,33 @@ def file.nfo.metadata(~extra_rules=[], nfo_file) =
 
       root_name = file.nfo._normalize_tag(root_name)
 
-      extra_rules =
-        list.map(
-          fun (r) ->
-            begin
-              let (tag, rule_fn) = r
-              (file.nfo._normalize_tag(tag), rule_fn)
-            end,
-          extra_rules
-        )
-
-      rules = [...extra_rules, ...file.nfo._tag_rules]
-
       def collect(fields, child) =
         let (name, node) = child
         name = file.nfo._normalize_tag(name)
         txt = file.nfo._child_text(node.xml_children)
 
-        if not null.defined(txt) then
-          fields
-        else
-          txt = null.get(txt)
-          rule = list.assoc.nullable(name, rules)
+        null.case(
+          txt,
+          {fields},
+          fun (txt) ->
+            begin
+              rule = list.assoc.nullable(name, rules)
 
-          kvs =
-            null.case(rule, {[(name, txt)]}, fun (rule_fn) -> rule_fn(node, txt))
+              kvs =
+                null.case(
+                  rule,
+                  {[(name, txt)]},
+                  fun (rule_fn) -> rule_fn(node, txt)
+                )
 
-          def add(fields, kv) =
-            let (k, v) = kv
-            file.nfo._accum_add(k, v, fields)
-          end
+              def add(fields, kv) =
+                let (k, v) = kv
+                file.nfo._accum_add(k, v, fields)
+              end
 
-          list.fold(add, fields, kvs)
-        end
+              list.fold(add, fields, kvs)
+            end
+        )
       end
 
       fields_by_key = list.fold(collect, [], root.xml_children)
