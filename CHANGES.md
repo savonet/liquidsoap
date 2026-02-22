@@ -9,6 +9,8 @@
 - Video dimensions (`video.frame.width`/`height`) are now automatically detected
   from the first decoded video file. This can be disabled by setting `settings.video.detect_dimensions`
   to `false` or by explicitly setting the video dimensions.
+- Added support for XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`,
+  `file.nfo.metadata`) (#4910).
 
 ## Changed:
 

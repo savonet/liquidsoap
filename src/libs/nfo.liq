@@ -4,6 +4,7 @@
 # metadata resolver through `enable_nfo_metadata(...)`.
 
 # @category File
+# @flag hidden
 let file.nfo = ()
 
 # @flag hidden
@@ -20,92 +21,27 @@ end
 def file.nfo._accum_add(key, value, acc) =
   # Values are stored in reverse order for cheap cons.
   # Assoc-list update is O(n) in distinct keys (NFOs are typically small).
-  def rec aux(acc) =
-    list.case(
-      acc,
-      [(key, [value])],
-      fun (kv, rest) ->
-        if fst(kv) == key then
-          (key, value::snd(kv))::rest
-        else
-          kv::aux(rest)
-        end
-    )
-  end
-
-  aux(acc)
-end
-
-# @flag hidden
-def file.nfo._join(vs) =
-  string.concat(separator=";", list.rev(vs))
-end
-
-# @flag hidden
-def file.nfo._child_text(children) =
-  # Return the first non-empty trimmed text node, if any.
-  texts =
-    list.filter_map(
-      fun (child) ->
+  let (rev, found) =
+    list.fold(
+      fun (st, kv) ->
         begin
-          let (name, node) = child
-          if name != "xml_text" then
-            null
+          let (rev, found) = st
+          if fst(kv) == key then
+            ([(key, value::snd(kv)), ...rev], true)
           else
-            txt = string.trim(node.xml_text)
-            txt == "" ? null : txt
+            ([kv, ...rev], found)
           end
         end,
-      children
+      ([], false),
+      acc
     )
 
-  list.case(texts, null, fun (txt, _) -> txt)
-end
-
-# @flag hidden
-def file.nfo._uniqueid_rule(node, txt) =
-  typ = list.assoc.nullable("type", node.xml_params)
-  typ = null.map(fun (t) -> string.case(string.trim(t)), typ)
-
-  is_default =
-    null.case(
-      list.assoc.nullable("default", node.xml_params),
-      {false},
-      fun (d) -> string.case(string.trim(d)) == "true"
-    )
-
-  def without_type() =
-    # Missing or invalid `type` (legacy / malformed input).
-    is_default
-    ? [("uniqueid.default", txt), ("uniqueid.untyped", txt)]
-    : [("uniqueid.untyped", txt)]
+  if found then
+    list.rev(rev)
+  else
+    list.rev([(key, [value]), ...rev])
   end
-
-  def with_type(t) =
-    # Standard case: typed ID.
-    kvs = [("uniqueid." ^ t, txt)]
-    if is_default then
-      [("uniqueid.default", txt), ("uniqueid.default.type", t), ...kvs]
-    else
-      kvs
-    end
-  end
-
-  null.case(
-    typ,
-    {without_type()},
-    fun (t) ->
-      # Some scrapers incorrectly emit `type="default"`. Kodi warns against it,
-      # so we treat it as untyped.
-      (t == "" or t == "default") ? without_type() : with_type(t)
-  )
 end
-
-# @flag hidden
-let file.nfo._tag_rules =
-  # Dispatch table for tags needing special handling.
-  # Shape: [(tag_name, (node, text) -> [(key, value)])].
-  [("uniqueid", file.nfo._uniqueid_rule)]
 
 # Build a tag rule table for `.nfo` parsing.
 #
@@ -124,7 +60,45 @@ def file.nfo.rules(~extra_rules=[]) =
       extra_rules
     )
 
-  [...extra_rules, ...file.nfo._tag_rules]
+  def uniqueid_rule(node, txt) =
+    typ = list.assoc.nullable("type", node.xml_params)
+    typ = null.map(fun (t) -> string.case(string.trim(t)), typ)
+
+    is_default =
+      null.case(
+        list.assoc.nullable("default", node.xml_params),
+        {false},
+        fun (d) -> string.case(string.trim(d)) == "true"
+      )
+
+    def without_type() =
+      # Missing or invalid `type` (legacy / malformed input).
+      is_default
+      ? [("uniqueid.default", txt), ("uniqueid.untyped", txt)]
+      : [("uniqueid.untyped", txt)]
+    end
+
+    def with_type(t) =
+      # Standard case: typed ID.
+      kvs = [("uniqueid." ^ t, txt)]
+      if is_default then
+        [("uniqueid.default", txt), ("uniqueid.default.type", t), ...kvs]
+      else
+        kvs
+      end
+    end
+
+    null.case(
+      typ,
+      {without_type()},
+      fun (t) ->
+        # Some scrapers incorrectly emit `type="default"`. Kodi warns against it,
+        # so we treat it as untyped.
+        (t == "" or t == "default") ? without_type() : with_type(t)
+    )
+  end
+
+  [...extra_rules, ("uniqueid", uniqueid_rule)]
 end
 
 # Extract metadata from an `.nfo` file.
@@ -143,7 +117,6 @@ end
 #   `nfo.uniqueid.untyped=VALUE`.
 # - Repeated tags are joined with `;` (in order of appearance).
 # - Tag names and unique ID types are lowercased; namespace prefixes are ignored.
-# - Deprecated Kodi `<id>` is exported as `nfo.id`.
 #
 # @category File
 # @param ~rules Tag rules. Use `file.nfo.rules(...)` to build them.
@@ -182,7 +155,22 @@ def file.nfo.metadata(~rules=file.nfo.rules(), nfo_file) =
       def collect(fields, child) =
         let (name, node) = child
         name = file.nfo._normalize_tag(name)
-        txt = file.nfo._child_text(node.xml_children)
+        txts =
+          list.filter_map(
+            fun (child) ->
+              begin
+                let (name, node) = child
+                if name != "xml_text" then
+                  null
+                else
+                  txt = string.trim(node.xml_text)
+                  txt == "" ? null : txt
+                end
+              end,
+            node.xml_children
+          )
+
+        txt = list.case(txts, null, fun (txt, _) -> txt)
 
         null.case(
           txt,
@@ -215,7 +203,7 @@ def file.nfo.metadata(~rules=file.nfo.rules(), nfo_file) =
           fun (kv) ->
             begin
               let (k, vs) = kv
-              ("nfo." ^ k, file.nfo._join(vs))
+              ("nfo." ^ k, string.concat(separator=";", list.rev(vs)))
             end,
           fields_by_key
         )

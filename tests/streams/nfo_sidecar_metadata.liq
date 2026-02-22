@@ -50,6 +50,25 @@ def f() =
     )
   test.equal(list.assoc("nfo.release_year", nfo_md_custom), "2024")
 
+  nfo_md_override =
+    file.nfo.metadata(
+      rules=file.nfo.rules(
+        extra_rules=[
+          (
+            "UniqueID",
+            fun (_, txt) -> [("uniqueid.overridden", txt)]
+          )
+        ]
+      ),
+      nfo_file
+    )
+  test.equal(
+    list.assoc("nfo.uniqueid.overridden", nfo_md_override),
+    "98765;tt1234567;tt7654321;home001;home002"
+  )
+  test.equal(list.assoc.nullable("nfo.uniqueid.tmdb", nfo_md_override), null)
+  test.equal(list.assoc.nullable("nfo.uniqueid.default", nfo_md_override), null)
+
   enable_nfo_metadata(file_extensions=["mp3"])
 
   m = file.metadata(media)
