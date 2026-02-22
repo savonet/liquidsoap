@@ -10,6 +10,7 @@ let file.nfo = ()
 def file.nfo._normalize_tag(name) =
   name = string.trim(name)
   # Strip XML namespace prefix, if any (e.g. "x:title" -> "title").
+  # This also tolerates a leading ":" (malformed XML) by stripping it.
   name = r/^[^:]*:/.replace(fun (_) -> "", name)
   string.case(name)
 end
@@ -18,6 +19,7 @@ end
 # @flag hidden
 def file.nfo._accum_add(key, value, acc) =
   # Values are stored in reverse order for cheap cons.
+  # Assoc-list update is O(n) in distinct keys (NFOs are typically small).
   def rec aux(acc) =
     list.case(
       acc,
@@ -41,6 +43,7 @@ end
 
 # @flag hidden
 def file.nfo._child_text(children) =
+  # Return the first non-empty trimmed text node, if any.
   texts =
     list.filter_map(
       fun (child) ->
@@ -61,19 +64,29 @@ end
 
 # @flag hidden
 let file.nfo._tag_rules =
+  # Dispatch table for tags needing special handling.
+  # Shape: [(tag_name, (node, text) -> [(key, value)])].
   [
     (
       "uniqueid",
       fun (node, txt) ->
         begin
           typ = list.assoc.nullable("type", node.xml_params)
-          typ = null.map(fun (t) -> string.case(string.trim(t)), typ)
+          typ =
+            null.map(
+              fun (t) ->
+                begin
+                  t = string.case(string.trim(t))
+                  t == "" ? null : t
+                end,
+              typ
+            )
 
-          if null.defined(typ) and null.get(typ) != "" then
-            [("uniqueid." ^ null.get(typ), txt)]
-          else
-            [("uniqueid", txt)]
-          end
+          null.case(
+            typ,
+            {[ ("uniqueid", txt) ]},
+            fun (t) -> [("uniqueid." ^ t, txt)]
+          )
         end
     )
   ]
@@ -135,14 +148,7 @@ def file.nfo.metadata(nfo_file) =
           rule = list.assoc.nullable(name, file.nfo._tag_rules)
 
           kvs =
-            if null.defined(rule) then
-              begin
-                rule_fn = null.get(rule)
-                rule_fn(node, txt)
-              end
-            else
-              [(name, txt)]
-            end
+            null.case(rule, {[(name, txt)]}, fun (rule_fn) -> rule_fn(node, txt))
 
           def add(fields, kv) =
             let (k, v) = kv
@@ -155,16 +161,19 @@ def file.nfo.metadata(nfo_file) =
 
       fields_by_key = list.fold(collect, [], root.xml_children)
 
-      def emit(prefix, kv) =
-        let (k, vs) = kv
-        (prefix ^ k, file.nfo._join(vs))
-      end
-
-      fields_md = list.map(fun (kv) -> emit("nfo.", kv), fields_by_key)
+      fields_md =
+        list.map(
+          fun (kv) ->
+            begin
+              let (k, vs) = kv
+              ("nfo." ^ k, file.nfo._join(vs))
+            end,
+          fields_by_key
+        )
 
       [("nfo.root", root_name), ...fields_md]
     catch e do
-      log.debug(
+      log.info(
         label="file.nfo.metadata",
         "Failed to parse nfo file #{string.quote(nfo_file)}: #{e.kind}: #{
           e.message
