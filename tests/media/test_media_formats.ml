@@ -63,6 +63,19 @@ let all =
   @ audio_subtitle_formats @ video_subtitle_formats
   @ audio_video_subtitle_formats
 
+let audio_decoding_test_formats = ["%mp3(stereo).mp3"; "%flac(mono).flac"]
+
+let video_decoding_test_formats =
+  [
+    {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%video(codec="libx264")).mp4|};
+  ]
+
+let audio_video_decoding_test_formats =
+  [
+    {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%video(codec="libx264")).mp4|};
+    {|%ffmpeg(format="mp4",%audio(codec="aac",channels=1),%video(codec="libx264")).mp4|};
+  ]
+
 let escaped_format =
   String.map (function
     | '%' -> '@'
