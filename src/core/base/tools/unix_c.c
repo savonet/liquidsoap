@@ -86,16 +86,6 @@ CAMLprim value liquidsoap_mktime(value _tm) {
   CAMLreturn(caml_copy_double((double)time));
 }
 
-CAMLprim value liquidsoap_get_pagesize() {
-#ifdef _WIN32
-  SYSTEM_INFO systemInfo;
-  GetSystemInfo(&systemInfo);
-  return Val_int(systemInfo.dwPageSize);
-#else
-  return Val_int(getpagesize());
-#endif
-}
-
 CAMLprim value liquidsoap_set_current_thread_name(value _name) {
   CAMLparam1(_name);
 #if defined(_WIN32)

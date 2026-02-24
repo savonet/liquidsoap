@@ -51,9 +51,9 @@ class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
             else on_data ~buffer:self#buffer reader
           in
           let on_stderr =
-            let buf = Bytes.create Utils.pagesize in
+            let buf = Bytes.create Utils.buflen in
             fun puller ->
-              let len = puller buf 0 Utils.pagesize in
+              let len = puller buf 0 Utils.buflen in
               self#log#info "%s" (Bytes.unsafe_to_string (Bytes.sub buf 0 len));
               `Continue
           in

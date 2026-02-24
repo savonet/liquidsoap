@@ -5,6 +5,8 @@
 - DEPRECATED telnet/server `request.on_air` command is enabled when
   `settings.request.deprecated_on_air_metadata` is `true`.
 - Add back missing `"status"` telnet/server command for outputs.
+- Reduced default buffer size throughout the app to improve memory efficiency
+  (#4919)
 
 ## Fixed:
 

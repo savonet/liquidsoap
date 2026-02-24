@@ -136,7 +136,7 @@ let proto frame_t =
         Some "Initial burst of data sent to the client." );
       ( "chunk",
         Lang.int_t,
-        Some (Lang.int Utils.pagesize),
+        Some (Lang.int Utils.buflen),
         Some "Send data to clients using chunks of at least this length." );
       ( "headers",
         Lang.metadata_t,

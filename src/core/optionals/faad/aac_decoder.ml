@@ -58,7 +58,7 @@ let buffered_input input =
   in
   (* Get at most [len] bytes from the buffer, which is refilled from [input] if
      needed. This does not remove data from the buffer. *)
-  let tmplen = Utils.pagesize in
+  let tmplen = Utils.buflen in
   let tmp = Bytes.create tmplen in
   let read buf ofs len =
     let size = Strings.Mutable.length buffer in
@@ -151,7 +151,7 @@ let file_type ~metadata:_ ~ctype:_ filename =
     ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let dec = Faad.create () in
-      let aacbuflen = Utils.pagesize in
+      let aacbuflen = Utils.buflen in
       let aacbuf = Bytes.create aacbuflen in
       let _, rate, channels =
         let n = Unix.read fd aacbuf 0 aacbuflen in

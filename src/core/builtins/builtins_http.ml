@@ -163,7 +163,7 @@ let add_http_request ~base ~stream_body ~descr ~request name =
               ignore (Lang.apply on_body_data [("", v)])),
             fun _ -> assert false ))
         else (
-          let body = Buffer.create 1024 in
+          let body = Buffer.create Utils.buflen in
           ( (fun s -> ignore (Option.map (Buffer.add_string body) s)),
             fun () -> Buffer.contents body ))
       in

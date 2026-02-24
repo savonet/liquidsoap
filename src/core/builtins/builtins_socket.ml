@@ -309,7 +309,7 @@ module Socket_value = struct
         "Read data from a socket. Reading is done when the function returns an \
          empty string `\"\"`.",
         fun socket ->
-          let buflen = Utils.pagesize in
+          let buflen = Utils.buflen in
           let buf = Bytes.create buflen in
           wait_meth ~mode:`Read socket
             (Lang.val_fun
