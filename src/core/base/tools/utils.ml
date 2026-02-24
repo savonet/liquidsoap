@@ -102,7 +102,7 @@ end
 (* Force locale *)
 external force_locale : string -> unit = "liquidsoap_set_locale"
 
-let buflen = 1024
+let buflen = try int_of_string (Sys.getenv "LIQ_BUFLEN") with _ -> 1024
 let () = force_locale "C"
 
 (* Several list utilities *)
