@@ -15,6 +15,7 @@
 - Fixed crash with concurrent `stop`/`start` operations (#4849)
 - Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
   decoder (#4848)
+- Fixed performance regression when initializing `playlist` (#4913)
 - Make sure `output.file` does not create files without data (#4899)
 
 ---
