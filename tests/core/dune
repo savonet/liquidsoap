@@ -124,3 +124,17 @@
   (diff
    all_media_file_descriptions.json
    all_media_file_descriptions.json.gen)))
+
+(executable
+ (name ffprobe_process_test)
+ (modules ffprobe_process_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias ffprobe_process_test)
+ (package liquidsoap)
+ (deps
+  (:media ../media/long-video.mp4)
+  (:test ffprobe_process_test.exe))
+ (action
+  (run %{test} %{media})))
