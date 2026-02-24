@@ -30,7 +30,7 @@ exception Finished of string * bool
 class external_input ~name ~restart ~bufferize ~restart_on_error ~max ~converter
   ?read_header command =
   let abg_max_len = Frame.audio_of_seconds max in
-  let buflen = Utils.pagesize in
+  let buflen = Utils.buflen in
   let buf = Bytes.create buflen in
   let on_data ~buffer reader =
     let ret = reader buf 0 buflen in

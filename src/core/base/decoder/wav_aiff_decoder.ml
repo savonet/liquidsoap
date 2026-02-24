@@ -60,7 +60,7 @@ let create ?header input =
   let header = ref header in
   let main_decoder ~samplerate ~buffer remaining =
     let remaining = ref remaining in
-    let bytes_to_get = Utils.pagesize * 64 in
+    let bytes_to_get = Utils.buflen * 64 in
     let buf = Bytes.create bytes_to_get in
     fun converter ->
       let bytes_to_get =

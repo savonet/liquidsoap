@@ -51,7 +51,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
   let replay_pending = ref [] in
   let next_stop = ref `Nothing in
   let header_read = ref false in
-  let bytes = Bytes.create Utils.pagesize in
+  let bytes = Bytes.create Utils.buflen in
   let source = Lang.to_source source_val in
   object (self)
     inherit source ~name:"pipe" ()
@@ -91,7 +91,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
           ();
         `Reschedule `Non_blocking)
       else (
-        let len = pull bytes 0 Utils.pagesize in
+        let len = pull bytes 0 Utils.buflen in
         let data = converter bytes 0 len in
         let data, ofs, len = resampler ~samplerate data 0 (Audio.length data) in
         let buffered = Generator.length self#buffer in
@@ -187,7 +187,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       try
         let ({ sbuf; next; ofs; len } as chunk) = Queue.peek to_write in
         (* Select documentation: large write may still block.. *)
-        let wlen = min Utils.pagesize len in
+        let wlen = min Utils.buflen len in
         let ret = pusher sbuf ofs wlen in
         if ret = len then (
           let action =
@@ -209,7 +209,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       with Queue.Empty -> `Continue
 
     method private on_stderr reader =
-      let len = reader bytes 0 Utils.pagesize in
+      let len = reader bytes 0 Utils.buflen in
       !log_error (Bytes.unsafe_to_string (Bytes.sub bytes 0 len));
       `Continue
 

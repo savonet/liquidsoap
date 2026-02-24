@@ -88,7 +88,7 @@ exception Sync_error of clock_sync_error
 let () =
   Printexc.register_printer (function
     | Sync_error { name; stack; sync_sources } ->
-        let buf = Buffer.create 1024 in
+        let buf = Buffer.create Utils.buflen in
         let formatter = Format.formatter_of_buffer buf in
         let open Liquidsoap_lang in
         let print_stack = function

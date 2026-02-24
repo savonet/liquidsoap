@@ -174,7 +174,7 @@ let _ =
         Sandbox.cmd ~rw:sandbox_rw ~ro:sandbox_ro ~network:sandbox_network
           cmd_value
       in
-      let buflen = Utils.pagesize in
+      let buflen = Utils.buflen in
       let out_buf = Buffer.create buflen in
       let err_buf = Buffer.create buflen in
       let on_done (timed_out, status) =
@@ -210,9 +210,9 @@ let _ =
         if stdin <> "" then output_string out_ch stdin;
         close_out out_ch;
         let pull buf ch =
-          let tmp = Bytes.create Utils.pagesize in
+          let tmp = Bytes.create Utils.buflen in
           let rec aux () =
-            let n = input ch tmp 0 Utils.pagesize in
+            let n = input ch tmp 0 Utils.buflen in
             if n = 0 then ()
             else (
               Buffer.add_subbytes buf tmp 0 n;

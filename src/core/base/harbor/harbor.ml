@@ -532,7 +532,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       in
       let read =
         if chunked then (
-          let buf = Buffer.create Utils.pagesize in
+          let buf = Buffer.create Utils.buflen in
           let read connection b ofs len =
             if Buffer.length buf < len then (
               let s, len =
@@ -645,7 +645,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         log#info "Authentication failed!";
         simple_reply (websocket_error 1011 "Authentication failed.")
     in
-    let binary_data = Buffer.create Utils.pagesize in
+    let binary_data = Buffer.create Utils.buflen in
     let read_socket socket =
       match websocket_read socket with
         | `Binary buf -> Buffer.add_string binary_data buf
