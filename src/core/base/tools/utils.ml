@@ -102,11 +102,7 @@ end
 (* Force locale *)
 external force_locale : string -> unit = "liquidsoap_set_locale"
 
-(** Get page size. *)
-external pagesize : unit -> int = "liquidsoap_get_pagesize"
-[@@noalloc]
-
-let pagesize = pagesize ()
+let buflen = 1024
 let () = force_locale "C"
 
 (* Several list utilities *)
@@ -133,10 +129,10 @@ let remove_one f l =
     its reported length.. *)
 let read_all filename =
   let channel = open_in filename in
-  let tmp = Bytes.create pagesize in
+  let tmp = Bytes.create buflen in
   let contents = Strings.Mutable.empty () in
   let rec read () =
-    let ret = input channel tmp 0 pagesize in
+    let ret = input channel tmp 0 buflen in
     if ret > 0 then (
       Strings.Mutable.add_subbytes contents tmp 0 ret;
       read ())

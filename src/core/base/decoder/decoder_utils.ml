@@ -47,7 +47,7 @@ type wav_converter = bytes -> int -> int -> Content.Audio.data
 
 let from_iff ~format ~channels ~samplesize =
   let sample_bytes = samplesize / 8 in
-  let buf = Buffer.create Utils.pagesize in
+  let buf = Buffer.create Utils.buflen in
   fun src ofs len ->
     Buffer.add_subbytes buf src ofs len;
     let src = Buffer.contents buf in

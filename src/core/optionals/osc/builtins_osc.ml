@@ -70,10 +70,9 @@ let log = Log.make ["osc.native"]
 
 let start_server () =
   log#info "Starting OSC server";
-  let buflen = 1024 in
   let port = conf_port#get in
   let addr = Unix.ADDR_INET (Unix.inet_addr_any, port) in
-  let s = Osc_unix.Udp.Server.create addr buflen in
+  let s = Osc_unix.Udp.Server.create addr Utils.buflen in
   server := Some s;
   ignore
     (Thread.create

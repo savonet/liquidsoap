@@ -173,7 +173,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
              (List.map (fun (k, v) -> Printf.sprintf "%s: %s" k v) headers))
          headers);
     let accepted = Atomic.make false in
-    let response_headers = Buffer.create 1024 in
+    let response_headers = Buffer.create Utils.buflen in
     connection#set_headerfunction (fun s ->
         if not (Atomic.get accepted) then (
           let code = connection#get_httpcode in

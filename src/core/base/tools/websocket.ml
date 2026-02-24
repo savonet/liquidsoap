@@ -182,7 +182,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
             Bytes.set s i c
           done
       in
-      let buflen = Utils.pagesize in
+      let buflen = Utils.buflen in
       let buf = Buffer.create buflen in
       let rec f pos =
         if pos < length then (
@@ -213,7 +213,7 @@ module Make (T : Transport_t) : Websocket_t with type socket = T.socket = struct
         match frame.Frame.fin with
           | true -> frame.Frame.data
           | false ->
-              let buf = Buffer.create 1024 in
+              let buf = Buffer.create Utils.buflen in
               Buffer.add_string buf frame.Frame.data;
               let rec continuation () =
                 let frame = Frame.read s in

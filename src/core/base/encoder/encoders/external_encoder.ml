@@ -31,7 +31,7 @@ let encoder id ext =
   let is_metadata_restart = ref false in
   let is_stop = ref false in
   let buf = Strings.Mutable.empty () in
-  let bytes = Bytes.create Utils.pagesize in
+  let bytes = Bytes.create Utils.buflen in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
   let restart_decision =
@@ -60,7 +60,7 @@ let encoder id ext =
     else ""
   in
   let on_stderr puller =
-    let len = puller bytes 0 Utils.pagesize in
+    let len = puller bytes 0 Utils.buflen in
     log#debug "stderr: %s" (Bytes.unsafe_to_string (Bytes.sub bytes 0 len));
     `Continue
   in
@@ -93,7 +93,7 @@ let encoder id ext =
   let on_stdout =
     Mutex_utils.mutexify mutex (fun puller ->
         begin
-          let len = puller bytes 0 Utils.pagesize in
+          let len = puller bytes 0 Utils.buflen in
           match len with
             | 0 when !is_stop -> Condition.signal condition
             | _ -> Strings.Mutable.add_subbytes buf bytes 0 len
