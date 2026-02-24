@@ -8,5 +8,8 @@ val audio_subtitle_formats : format list
 val video_subtitle_formats : format list
 val audio_video_subtitle_formats : format list
 val all : format list
+val audio_decoding_test_formats : format list
+val video_decoding_test_formats : format list
+val audio_video_decoding_test_formats : format list
 val escaped_format : format -> string
 val filename : format -> string

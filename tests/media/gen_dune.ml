@@ -51,6 +51,11 @@ let audio_video_subtitle_formats =
   Test_media_formats.audio_video_subtitle_formats
 
 let formats = Test_media_formats.all
+let audio_decoding_test_formats = Test_media_formats.audio_decoding_test_formats
+let video_decoding_test_formats = Test_media_formats.video_decoding_test_formats
+
+let audio_video_decoding_test_formats =
+  Test_media_formats.audio_video_decoding_test_formats
 
 let encoder_format format =
   match List.rev (String.split_on_char '.' format) with
@@ -169,7 +174,7 @@ let () =
         (fun (name, test) ->
           file_test ~label:(name ^ " test for " ^ fname) ~test fname)
         audio_decoding_tests)
-    audio_formats
+    audio_decoding_test_formats
 
 let () =
   List.iter
@@ -179,7 +184,7 @@ let () =
         (fun (name, test) ->
           file_test ~label:(name ^ " test for " ^ fname) ~test fname)
         video_decoding_tests)
-    (video_formats @ audio_video_formats)
+    video_decoding_test_formats
 
 let () =
   List.iter
@@ -189,7 +194,7 @@ let () =
         (fun (name, test) ->
           file_test ~label:(name ^ " test for " ^ fname) ~test fname)
         audio_video_decoding_tests)
-    audio_video_formats
+    audio_video_decoding_test_formats
 
 let () =
   List.iter
