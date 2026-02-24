@@ -21,6 +21,7 @@ depends: [
   "camomile" {>= "2.0.0"}
   "dtools-windows" {>= "0.4.5"}
   "duppy-windows" {>= "0.9.4"}
+  "domain_shims-windows"
   "mm-windows" {>= "0.8.4"}
   "re-windows" {>= "1.11.0"}
   "cry-windows" {>= "1.0.1"}
