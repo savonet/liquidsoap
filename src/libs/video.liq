@@ -228,7 +228,12 @@ def video.cover(s) =
       then
         cover = null.get(cover)
         extname =
-          (null.defined(cover.mime) ? file.mime.extension(null.get(cover.mime)) : null ) ?? ".osb"
+          (
+            null.defined(cover.mime)
+            ? file.mime.extension(null.get(cover.mime)) : null
+          )
+            ??
+              ".osb"
         f = file.temp("cover", extname)
         log.debug(
           "Found cover for #{filename}."
@@ -308,8 +313,12 @@ def output.youtube.live.hls(
     "#{url}?cid=#{key}&copy=0&file=#{fname}"
   end
 
-  def file_upload(fname) =
-    fun () ->
+  def on_file_change({state, path = fname}) =
+    if
+      (state == "created" or state == "updated")
+    and
+      path.basename(fname) != "main.m3u8"
+    then
       try
         ignore(http.post(data=file.read(fname), file_url(path.basename(fname))))
       catch err do
@@ -319,15 +328,6 @@ def output.youtube.live.hls(
           "Error while uploading: #{err}"
         )
       end
-  end
-
-  def on_file_change({state, path = fname}) =
-    if
-      (state == "created" or state == "updated")
-    and
-      path.basename(fname) != "main.m3u8"
-    then
-      thread.run(file_upload(fname))
     end
   end
 
@@ -346,7 +346,7 @@ def output.youtube.live.hls(
       [("live", encoder)],
       s
     )
-  o.on_file_change(synchronous=true, on_file_change)
+  o.on_file_change(synchronous=false, on_file_change)
   o
 end
 

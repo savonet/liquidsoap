@@ -1149,7 +1149,7 @@ def replaces playlist(
     )
 
   s.on_wake_up(
-    synchronous=true,
+    synchronous=false,
     {
       log(
         label=s.id(),
@@ -1221,7 +1221,7 @@ def replaces playlist(
       if null.defined(w) then null.get(w).unwatch() end
     end
 
-    s.on_shutdown(synchronous=true, watcher_shutdown)
+    s.on_shutdown(synchronous=false, watcher_shutdown)
   end
 
   if
