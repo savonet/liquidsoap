@@ -228,7 +228,12 @@ def video.cover(s) =
       then
         cover = null.get(cover)
         extname =
-          (null.defined(cover.mime) ? file.mime.extension(null.get(cover.mime)) : null ) ?? ".osb"
+          (
+            null.defined(cover.mime)
+            ? file.mime.extension(null.get(cover.mime)) : null
+          )
+            ??
+              ".osb"
         f = file.temp("cover", extname)
         log.debug(
           "Found cover for #{filename}."
@@ -327,7 +332,7 @@ def output.youtube.live.hls(
     and
       path.basename(fname) != "main.m3u8"
     then
-      thread.run(file_upload(fname))
+      file_upload(fname)
     end
   end
 
@@ -346,7 +351,7 @@ def output.youtube.live.hls(
       [("live", encoder)],
       s
     )
-  o.on_file_change(synchronous=true, on_file_change)
+  o.on_file_change(synchronous=false, on_file_change)
   o
 end
 

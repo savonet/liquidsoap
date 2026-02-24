@@ -2,7 +2,7 @@
 def replaces request.dynamic(%argsof(request.dynamic), fn) =
   s = request.dynamic(%argsof(request.dynamic), fn)
   s.on_wake_up(
-    synchronous=true,
+    synchronous=false,
     memoize(
       {
         server.register(
@@ -29,7 +29,7 @@ end
 def replaces blank.strip(%argsof(blank.strip), s) =
   s = blank.strip(%argsof(blank.strip), s)
   s.on_wake_up(
-    synchronous=true,
+    synchronous=false,
     memoize(
       {
         server.register(
@@ -49,7 +49,7 @@ end
 def replaces output.external(%argsof(output.external), f, p, s) =
   s = output.external(%argsof(output.external), f, p, s)
   s.on_wake_up(
-    synchronous=true,
+    synchronous=false,
     memoize(
       {
         server.register(
@@ -73,7 +73,7 @@ end
 def replaces input.external.avi(%argsof(input.external.avi), s) =
   s = input.external.avi(%argsof(input.external.avi), s)
   s.on_wake_up(
-    synchronous=true,
+    synchronous=false,
     memoize(
       {
         server.register(
@@ -102,7 +102,7 @@ end
 def replaces input.harbor(%argsof(input.harbor), s) =
   s = input.harbor(%argsof(input.harbor), s)
   s.on_wake_up(
-    synchronous=true,
+    synchronous=false,
     memoize(
       {
         begin
@@ -143,7 +143,7 @@ end
 def replaces input.http(%argsof(input.http), s) =
   s = input.http(%argsof(input.http), s)
   s.on_wake_up(
-    synchronous=true,
+    synchronous=false,
     memoize(
       {
         begin
@@ -221,7 +221,7 @@ end
 def replaces lufs(%argsof(lufs), s) =
   s = lufs(%argsof(lufs), s)
   s.on_wake_up(
-    synchronous=true,
+    synchronous=false,
     memoize(
       {
         server.register(
