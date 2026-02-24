@@ -8,6 +8,7 @@
   ffmpeg-swscale
   ffmpeg-swresample
   ffmpeg-av
+  domain_shims
   liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
