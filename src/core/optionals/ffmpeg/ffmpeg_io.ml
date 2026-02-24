@@ -74,6 +74,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method effective_source = (self :> Source.source)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
+    val pending_operation = Atomic.make `None
 
     val source_status
         : [ `Stopped
@@ -93,16 +94,21 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method! seek pos =
       match Atomic.get source_status with
-        | `Connected (_, container) -> (
-            match
-              List.find_map (fun position -> position ()) container.positions
-            with
-              | None -> 0
-              | Some current_position ->
-                  let tpos = Frame.seconds_of_main (pos + current_position) in
-                  let ts = Int64.of_float (tpos *. 1000.) in
-                  Av.seek ~fmt:`Millisecond ~ts container.input;
-                  pos)
+        | `Connected (_, container) ->
+            Ffmpeg_decoder.seek_wrap ~pending_operation (fun () ->
+                match
+                  List.find_map
+                    (fun position -> position ())
+                    container.positions
+                with
+                  | None -> 0
+                  | Some current_position ->
+                      let tpos =
+                        Frame.seconds_of_main (pos + current_position)
+                      in
+                      let ts = Int64.of_float (tpos *. 1000.) in
+                      Av.seek ~fmt:`Millisecond ~ts container.input;
+                      pos)
         | _ -> 0
 
     method private get_self_sync =
@@ -159,7 +165,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             ~decode_first_metadata:true input
         in
         let decoder =
-          Ffmpeg_decoder.mk_decoder ~streams ~target_position:(ref None) input
+          Ffmpeg_decoder.mk_decoder ~pending_operation ~streams
+            ~target_position:(Atomic.make None) input
         in
         let buffer = Decoder.mk_buffer ~ctype:self#content_type self#buffer in
         (* FFmpeg has memory leaks with chained ogg stream so we manually

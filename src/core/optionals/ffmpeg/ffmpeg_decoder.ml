@@ -665,17 +665,33 @@ let reset_streams streams =
       s.position <- None)
     streams
 
-let seek ~target_position ~streams ~container ticks =
-  let tpos = Frame.seconds_of_main ticks in
-  log#debug "Setting target position to %f" tpos;
-  target_position := Some ticks;
-  let ts = Int64.of_float (tpos *. 1000.) in
-  let frame_duration = Lazy.force Frame.duration in
-  let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
-  let max_ts = ts in
-  Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
-  reset_streams streams;
-  ticks
+let seek_wrap ~pending_operation fn =
+  let m = Mutex.create () in
+  let c = Condition.create () in
+  let rec wait () =
+    if not (Atomic.compare_and_set pending_operation `None (`Seek (m, c))) then (
+      Domain.cpu_relax ();
+      wait ())
+  in
+  wait ();
+  Fun.protect fn ~finally:(fun () ->
+      Mutex.lock m;
+      Condition.signal c;
+      Atomic.set pending_operation `None;
+      Mutex.unlock m)
+
+let seek ~pending_operation ~target_position ~streams ~container ticks =
+  seek_wrap ~pending_operation (fun () ->
+      let tpos = Frame.seconds_of_main ticks in
+      log#debug "Setting target position to %f" tpos;
+      Atomic.set target_position (Some ticks);
+      let ts = Int64.of_float (tpos *. 1000.) in
+      let frame_duration = Lazy.force Frame.duration in
+      let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
+      let max_ts = ts in
+      Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
+      reset_streams streams;
+      ticks)
 
 let mk_eof streams buffer =
   Streams.iter
@@ -759,7 +775,7 @@ let mk_push_flush ~target_position =
       | [] -> ()
       | d ->
           let d =
-            match !target_position with
+            match Atomic.get target_position with
               | None -> d
               | Some target_position ->
                   List.filter (fun (p, _, _) -> target_position <= p) d
@@ -780,7 +796,7 @@ let mk_check_position ~streams ~target_position () =
   let update_position = mk_update_position () in
   fun ~buffer ~decode ~ts ~stream pts ->
     update_position ~buffer ~pts ~streams stream;
-    match (stream.pts, !target_position) with
+    match (stream.pts, Atomic.get target_position) with
       | Some pts, Some target_position when pts < target_position -> ()
       | Some pts, _ ->
           if not stream.seen then stream.seen <- true;
@@ -797,7 +813,7 @@ let mk_check_position ~streams ~target_position () =
              happen.";
           decode ()
 
-let mk_decoder ~streams ~target_position container =
+let mk_decoder ~streams ~target_position ~pending_operation container =
   let check_position = mk_check_position ~streams ~target_position () in
   let audio_frame =
     Streams.fold
@@ -841,95 +857,100 @@ let mk_decoder ~streams ~target_position container =
         match s.decoder with `Subtitle_frame (s, _) -> s :: cur | _ -> cur)
       streams []
   in
+  let rec decode buffer =
+    try
+      let data =
+        Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
+          ~data_packet ~subtitle_packet ~subtitle_frame container
+      in
+      match data with
+        | `Audio_frame (i, frame) -> (
+            match Streams.find_opt i streams with
+              | Some ({ decoder = `Audio_frame (_, decode); _ } as stream) ->
+                  check_position ~buffer
+                    ~ts:(Option.value ~default:0L (Avutil.Frame.pts frame))
+                    ~decode:(fun () -> decode ~buffer (`Frame frame))
+                    ~stream (Avutil.Frame.pts frame)
+              | _ -> decode buffer)
+        | `Audio_packet (i, packet) -> (
+            match Streams.find_opt i streams with
+              | Some ({ decoder = `Audio_packet (_, decode); _ } as stream) ->
+                  check_position ~buffer
+                    ~ts:
+                      (Option.value ~default:0L (Avcodec.Packet.get_dts packet))
+                    ~decode:(fun () -> decode ~buffer (`Packet packet))
+                    ~stream
+                    (Avcodec.Packet.get_pts packet)
+              | _ -> decode buffer)
+        | `Video_frame (i, frame) -> (
+            match Streams.find_opt i streams with
+              | Some ({ decoder = `Video_frame (_, decode); _ } as stream) ->
+                  check_position ~buffer
+                    ~ts:(Option.value ~default:0L (Avutil.Frame.pts frame))
+                    ~decode:(fun () -> decode ~buffer (`Frame frame))
+                    ~stream (Avutil.Frame.pts frame)
+              | _ -> decode buffer)
+        | `Video_packet (i, packet) -> (
+            match Streams.find_opt i streams with
+              | Some ({ decoder = `Video_packet (_, decode); _ } as stream) ->
+                  check_position ~buffer
+                    ~ts:
+                      (Option.value ~default:0L (Avcodec.Packet.get_dts packet))
+                    ~decode:(fun () -> decode ~buffer (`Packet packet))
+                    ~stream
+                    (Avcodec.Packet.get_pts packet)
+              | _ -> decode buffer)
+        | `Subtitle_packet (i, packet) -> (
+            match Streams.find_opt i streams with
+              | Some ({ decoder = `Subtitle_packet (_, decode); _ } as stream)
+                ->
+                  check_position ~buffer
+                    ~ts:
+                      (Option.value ~default:0L (Avcodec.Packet.get_dts packet))
+                    ~decode:(fun () -> decode ~buffer (`Subtitle packet))
+                    ~stream
+                    (Avcodec.Packet.get_pts packet)
+              | _ -> decode buffer)
+        | `Subtitle_frame (i, frame) -> (
+            match Streams.find_opt i streams with
+              | Some ({ decoder = `Subtitle_frame (_, decode); _ } as stream) ->
+                  check_position ~buffer
+                    ~ts:
+                      (Option.value ~default:0L (Avutil.Subtitle.get_pts frame))
+                    ~decode:(fun () -> decode ~buffer (`Subtitle frame))
+                    ~stream
+                    (Avutil.Subtitle.get_pts frame)
+              | _ -> decode buffer)
+        | `Data_packet (i, packet) -> (
+            match Streams.find_opt i streams with
+              | Some ({ decoder = `Data_packet (_, decode); _ } as stream) ->
+                  check_position ~buffer
+                    ~ts:
+                      (Option.value ~default:0L (Avcodec.Packet.get_dts packet))
+                    ~decode:(fun () -> decode ~buffer packet)
+                    ~stream
+                    (Avcodec.Packet.get_pts packet)
+              | _ -> decode buffer)
+    with
+      | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> decode buffer
+      | Avutil.Error `Exit | Avutil.Error `Eof -> raise End_of_file
+      | exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace exn bt
+  in
+  let rec wait () =
+    if not (Atomic.compare_and_set pending_operation `None `Decoding) then (
+      (match Atomic.get pending_operation with
+        | `Seek (m, c) ->
+            Mutex_utils.mutexify m (fun () -> Condition.wait c m) ()
+        | _ -> Domain.cpu_relax ());
+      wait ())
+  in
   fun buffer ->
-    let rec f () =
-      try
-        let data =
-          Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
-            ~data_packet ~subtitle_packet ~subtitle_frame container
-        in
-        match data with
-          | `Audio_frame (i, frame) -> (
-              match Streams.find_opt i streams with
-                | Some ({ decoder = `Audio_frame (_, decode); _ } as stream) ->
-                    check_position ~buffer
-                      ~ts:(Option.value ~default:0L (Avutil.Frame.pts frame))
-                      ~decode:(fun () -> decode ~buffer (`Frame frame))
-                      ~stream (Avutil.Frame.pts frame)
-                | _ -> f ())
-          | `Audio_packet (i, packet) -> (
-              match Streams.find_opt i streams with
-                | Some ({ decoder = `Audio_packet (_, decode); _ } as stream) ->
-                    check_position ~buffer
-                      ~ts:
-                        (Option.value ~default:0L
-                           (Avcodec.Packet.get_dts packet))
-                      ~decode:(fun () -> decode ~buffer (`Packet packet))
-                      ~stream
-                      (Avcodec.Packet.get_pts packet)
-                | _ -> f ())
-          | `Video_frame (i, frame) -> (
-              match Streams.find_opt i streams with
-                | Some ({ decoder = `Video_frame (_, decode); _ } as stream) ->
-                    check_position ~buffer
-                      ~ts:(Option.value ~default:0L (Avutil.Frame.pts frame))
-                      ~decode:(fun () -> decode ~buffer (`Frame frame))
-                      ~stream (Avutil.Frame.pts frame)
-                | _ -> f ())
-          | `Video_packet (i, packet) -> (
-              match Streams.find_opt i streams with
-                | Some ({ decoder = `Video_packet (_, decode); _ } as stream) ->
-                    check_position ~buffer
-                      ~ts:
-                        (Option.value ~default:0L
-                           (Avcodec.Packet.get_dts packet))
-                      ~decode:(fun () -> decode ~buffer (`Packet packet))
-                      ~stream
-                      (Avcodec.Packet.get_pts packet)
-                | _ -> f ())
-          | `Subtitle_packet (i, packet) -> (
-              match Streams.find_opt i streams with
-                | Some ({ decoder = `Subtitle_packet (_, decode); _ } as stream)
-                  ->
-                    check_position ~buffer
-                      ~ts:
-                        (Option.value ~default:0L
-                           (Avcodec.Packet.get_dts packet))
-                      ~decode:(fun () -> decode ~buffer (`Subtitle packet))
-                      ~stream
-                      (Avcodec.Packet.get_pts packet)
-                | _ -> f ())
-          | `Subtitle_frame (i, frame) -> (
-              match Streams.find_opt i streams with
-                | Some ({ decoder = `Subtitle_frame (_, decode); _ } as stream)
-                  ->
-                    check_position ~buffer
-                      ~ts:
-                        (Option.value ~default:0L
-                           (Avutil.Subtitle.get_pts frame))
-                      ~decode:(fun () -> decode ~buffer (`Subtitle frame))
-                      ~stream
-                      (Avutil.Subtitle.get_pts frame)
-                | _ -> f ())
-          | `Data_packet (i, packet) -> (
-              match Streams.find_opt i streams with
-                | Some ({ decoder = `Data_packet (_, decode); _ } as stream) ->
-                    check_position ~buffer
-                      ~ts:
-                        (Option.value ~default:0L
-                           (Avcodec.Packet.get_dts packet))
-                      ~decode:(fun () -> decode ~buffer packet)
-                      ~stream
-                      (Avcodec.Packet.get_pts packet)
-                | _ -> f ())
-      with
-        | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> f ()
-        | Avutil.Error `Exit | Avutil.Error `Eof -> raise End_of_file
-        | exn ->
-            let bt = Printexc.get_raw_backtrace () in
-            Printexc.raise_with_backtrace exn bt
-    in
-    f ()
+    wait ();
+    Fun.protect
+      (fun () -> decode buffer)
+      ~finally:(fun () -> Atomic.set pending_operation `None)
 
 let mk_streams ~ctype ~decode_first_metadata container =
   let check_metadata stream fn =
@@ -1243,7 +1264,8 @@ let create_decoder ~ctype ~metadata fname =
       s.decoder <- decoder)
     streams;
   let close () = Av.close container in
-  let target_position = ref None in
+  let target_position = Atomic.make None in
+  let pending_operation = Atomic.make `None in
   ( {
       Decoder.seek =
         (fun ticks ->
@@ -1253,10 +1275,13 @@ let create_decoder ~ctype ~metadata fname =
                 let target =
                   ticks + Frame.main_of_seconds d - get_remaining ()
                 in
-                match seek ~target_position ~streams ~container target with
+                match
+                  seek ~pending_operation ~target_position ~streams ~container
+                    target
+                with
                   | 0 -> 0
                   | _ -> ticks));
-      decode = mk_decoder ~streams ~target_position container;
+      decode = mk_decoder ~pending_operation ~streams ~target_position container;
       eof = mk_eof streams;
       close;
     },
@@ -1293,11 +1318,12 @@ let create_stream_decoder ~ctype mime input =
            (Ffmpeg_format.string_of_options opts))
       "ffmpeg_decoder";
   let streams = mk_streams ~ctype ~decode_first_metadata:true container in
-  let target_position = ref None in
+  let target_position = Atomic.make None in
+  let pending_operation = Atomic.make `None in
   let close () = Av.close container in
   {
-    Decoder.seek = seek ~target_position ~streams ~container;
-    decode = mk_decoder ~streams ~target_position container;
+    Decoder.seek = seek ~pending_operation ~target_position ~streams ~container;
+    decode = mk_decoder ~pending_operation ~streams ~target_position container;
     eof = mk_eof streams;
     close;
   }
