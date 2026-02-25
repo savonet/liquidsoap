@@ -46,6 +46,26 @@ Things to note:
 - When a tag contains a single ground value (`string`, `bool`, `float` or `integer`), the mapping is from tag name to the corresponding value, with xml attributes attached as methods
 - Tag parameters can be converted to ground values and omitted.
 
+### Custom element names
+
+XML element names often contain characters like hyphens that aren't valid Liquidsoap variable names. You can map them to valid names using the `as` syntax:
+
+```liquidsoap
+s = '<config><listen-socket><port>8000</port></listen-socket></config>'
+
+let xml.parse (config :
+  {
+    config: {
+      "listen-socket" as listen_socket: {port: int}
+    }
+  }
+) = s
+
+print("Port is: #{config.config.listen_socket.port}")
+```
+
+This maps the XML element `listen-socket` to the variable `listen_socket`.
+
 The parsing is driven by the type annotation and is intended to be permissive. For instance, this will work:
 
 ```liquidsoaop
