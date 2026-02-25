@@ -126,6 +126,25 @@ def f() =
 </bla>'
   )
 
+  # Test custom label with "as" syntax for hyphenated element names
+  s2 =
+    '<config>
+<listen-socket><port>8000</port></listen-socket>
+<source-password>hackme</source-password>
+</config>'
+
+  let xml.parse (config :
+    {
+      config: {
+        "listen-socket" as listen_socket: {port: int},
+        "source-password" as source_password: string
+      }
+    }
+  ) = s2
+
+  test.equal(config.config.listen_socket.port, 8000)
+  test.equal(config.config.source_password, "hackme")
+
   test.pass()
 end
 
