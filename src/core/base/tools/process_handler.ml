@@ -27,9 +27,9 @@ type _t = {
   in_pipe : Unix.file_descr;
   out_pipe : Unix.file_descr;
   p : process;
-  mutable priority : Tutils.priority;
-  mutable status : status option;
-  mutable stopped : bool;
+  status : status option Atomic.t;
+  stopped : bool Atomic.t;
+  priority : Tutils.priority Atomic.t;
 }
 
 type t = { mutex : Mutex.t; mutable process : _t option }
@@ -75,7 +75,7 @@ let set_priority t =
   Mutex_utils.mutexify t.mutex (fun priority ->
       match t.process with
         | None -> raise Finished
-        | Some p -> p.priority <- priority)
+        | Some p -> Atomic.set p.priority priority)
 
 let stop_c, kill_c, done_c =
   let fn = Bytes.make 1 in
@@ -103,10 +103,11 @@ let send_stop ~log t =
   Mutex_utils.mutexify t.mutex
     (fun () ->
       let process = get_process t in
-      if not process.stopped then (
-        log "Closing process's stdin";
-        process.stopped <- true;
-        try close_out process.p.stdin with _ -> ()))
+      match Atomic.exchange process.stopped true with
+        | false -> (
+            log "Closing process's stdin";
+            try close_out process.p.stdin with _ -> ())
+        | _ -> ())
     ()
 
 let _kill = function
@@ -131,10 +132,8 @@ let cleanup ~log t =
 
 let pusher fd buf ofs len = Unix.write fd buf ofs len
 
-let puller in_pipe fd buf ofs len =
-  let ret = try Unix.read fd buf ofs len with _ when Sys.win32 -> 0 in
-  if len > 0 && ret = 0 then ignore (Unix.write in_pipe done_c 0 1);
-  ret
+let puller fd buf ofs len =
+  try Unix.read fd buf ofs len with _ when Sys.win32 -> 0
 
 let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     command =
@@ -150,7 +149,14 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     let p = open_process command env in
     let out_pipe, in_pipe = Unix.pipe ~cloexec:true () in
     let process =
-      { in_pipe; out_pipe; p; priority; stopped = false; status = None }
+      {
+        in_pipe;
+        out_pipe;
+        p;
+        priority = Atomic.make priority;
+        stopped = Atomic.make false;
+        status = Atomic.make None;
+      }
     in
     ignore
       (Thread.create
@@ -159,8 +165,9 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
              let _, status = wait p in
              Mutex_utils.mutexify mutex
                (fun () ->
-                 if process.status = None then (
-                   process.status <- Some status;
+                 if Atomic.compare_and_set process.status None (Some status)
+                 then (
+                   (try close_out p.stdin with _ -> ());
                    ignore (Unix.write in_pipe done_c 0 1)))
                ()
            with _ -> ())
@@ -186,7 +193,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         [(stdout, on_stdout); (stderr, on_stderr)]
     in
     let continue_events =
-      if on_stdin <> None && not process.stopped then
+      if on_stdin <> None && not (Atomic.get process.stopped) then
         `Write (Unix.descr_of_out_channel process.p.stdin) :: read_events
       else read_events
     in
@@ -199,12 +206,12 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
             send_stop ~log t;
             read_events
         | `Reschedule p ->
-            process.priority <- p;
+            Atomic.set process.priority p;
             continue_events
         | `Continue -> continue_events
         | `Delay d -> [`Delay d; `Read process.out_pipe]
     in
-    { Duppy.Task.priority = process.priority; events; handler }
+    { Duppy.Task.priority = Atomic.get process.priority; events; handler }
   in
   let restart_decision handler = function
     | true ->
@@ -215,6 +222,55 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         cleanup ~log t;
         []
   in
+  (* Read any remaining data from stdout/stderr pipes. Called when the process
+     exits to ensure we don't miss any output. Keeps reading until select
+     returns no ready pipes or read returns 0. *)
+  let read_remaining_pipes () =
+    let process = get_process t in
+    let stdout = Unix.descr_of_in_channel process.p.stdout in
+    let stderr = Unix.descr_of_in_channel process.p.stderr in
+    let buf = Bytes.create 4096 in
+    let pipes =
+      List.filter_map
+        (fun (fd, callback_opt) ->
+          match callback_opt with
+            | Some callback -> Some (fd, callback)
+            | None -> None)
+        [(stdout, on_stdout); (stderr, on_stderr)]
+    in
+    let rec drain_pipes remaining =
+      if remaining = [] then ()
+      else begin
+        let fds = List.map fst remaining in
+        let ready, _, _ = Unix.select fds [] [] 0.0 in
+        if ready = [] then ()
+        else (
+          let still_open =
+            List.filter
+              (fun (fd, callback) ->
+                if List.mem fd ready then begin
+                  let n =
+                    try Unix.read fd buf 0 (Bytes.length buf)
+                    with _ when Sys.win32 -> 0
+                  in
+                  if n > 0 then begin
+                    ignore
+                      (callback (fun b ofs len ->
+                           let to_copy = min len n in
+                           Bytes.blit buf 0 b ofs to_copy;
+                           to_copy));
+                    true
+                  end
+                  else false
+                end
+                else true)
+              remaining
+          in
+          drain_pipes still_open)
+      end
+    in
+    drain_pipes pipes
+  in
   let on_pipe out_pipe =
     let buf = Bytes.make 1 ' ' in
     let ret = Unix.read out_pipe buf 0 1 in
@@ -222,7 +278,9 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     match buf with
       | buf when buf = stop_c -> `Stop
       | buf when buf = kill_c -> `Kill
-      | buf when buf = done_c -> raise Finished
+      | buf when buf = done_c ->
+          read_remaining_pipes ();
+          raise Finished
       | _ -> assert false
   in
   let rec handler l =
@@ -246,9 +304,8 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           let decisions =
             List.fold_left
               (fun cur -> function
-                | `Read fd when fd = stdout ->
-                    on_stdout (puller process.in_pipe fd) :: cur
-                | `Read fd -> on_stderr (puller process.in_pipe fd) :: cur
+                | `Read fd when fd = stdout -> on_stdout (puller fd) :: cur
+                | `Read fd -> on_stderr (puller fd) :: cur
                 | `Write fd -> on_stdin (pusher fd) :: cur
                 | `Delay _ -> cur)
               [] l
@@ -259,7 +316,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                 | `Kill, _ | _, `Kill -> `Kill
                 | `Stop, _ | _, `Stop -> `Stop
                 | `Reschedule p, cur ->
-                    process.priority <- p;
+                    Atomic.set process.priority p;
                     cur
                 | `Continue, `Continue -> `Continue
                 | `Delay d, `Delay d' -> `Delay (max d d')
@@ -274,11 +331,11 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           silent Unix.close in_pipe;
           silent Unix.close out_pipe;
           let status =
-            match status with
+            match Atomic.get status with
               | Some status ->
                   (* Issue #865: if status is known, we still need
-                        to call Unix.close_process_full to cleanup the
-                        process' pipes. *)
+                     to call Unix.close_process_full to cleanup the
+                     process' pipes. *)
                   silent close_process p;
                   status
               | None -> close_process p
@@ -328,7 +385,7 @@ let really_write ?(offset = 0) ?length data push =
 let on_stdout t fn =
   let process = Mutex_utils.mutexify t.mutex (fun () -> get_process t) () in
   let fd = Unix.descr_of_in_channel process.p.stdout in
-  fn (puller process.in_pipe fd)
+  fn (puller fd)
 
 let on_stdin t fn =
   let process =
@@ -336,7 +393,7 @@ let on_stdin t fn =
       (fun () ->
         match t.process with
           | Some process ->
-              if process.stopped then raise Finished;
+              if Atomic.get process.stopped then raise Finished;
               process
           | None -> raise Finished)
       ()
@@ -347,9 +404,9 @@ let on_stdin t fn =
 let on_stderr t fn =
   let process = Mutex_utils.mutexify t.mutex (fun () -> get_process t) () in
   let fd = Unix.descr_of_in_channel process.p.stderr in
-  fn (puller process.in_pipe fd)
+  fn (puller fd)
 
 let stopped t =
   Mutex_utils.mutexify t.mutex
-    (fun () -> try (get_process t).stopped with Finished -> true)
+    (fun () -> try Atomic.get (get_process t).stopped with Finished -> true)
     ()

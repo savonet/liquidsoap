@@ -18,6 +18,7 @@
 - Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
   decoder (#4848)
 - Fixed performance regression when initializing `playlist` (#4913)
+- Make sure that we read all stdout/stderr before considering a process closed. (#4918)
 - Make sure `output.file` does not create files without data (#4899)
 
 ---

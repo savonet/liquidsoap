@@ -154,6 +154,20 @@
 
 
 (executable
+ (name large_process_stdout_test)
+ (modules large_process_stdout_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias large_process_stdout_test)
+ (package liquidsoap)
+ (deps
+  
+  (:large_process_stdout_test large_process_stdout_test.exe))
+ (action (run %{large_process_stdout_test} )))
+
+
+(executable
  (name meth)
  (modules meth)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -404,6 +418,7 @@
     (alias http_test)
     (alias is_url)
     (alias json_test)
+    (alias large_process_stdout_test)
     (alias meth)
     (alias more_types)
     (alias output_encoded_test)
