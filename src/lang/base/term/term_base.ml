@@ -329,7 +329,9 @@ let check_unused ~throw ~lib tm =
                 Methods.filter (fun n _ -> not (List.mem n l)) tm.methods;
             }
       | `Cast { cast = e } -> check v e
-      | `Invoke { invoked = e } -> check v e
+      | `Invoke { invoked = e; invoke_default } -> (
+          let v = check v e in
+          match invoke_default with Some d -> check v d | None -> v)
       | `Open (a, b) -> check (check v a) b
       | `Seq (a, b) -> check ~toplevel (check v a) b
       | `List l -> List.fold_left (fun x y -> check x y) v l

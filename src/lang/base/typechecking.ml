@@ -279,7 +279,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                   let v_t = Typing.instantiate ~level (vars, v.t) in
                   match typ.Type.descr with
                     | Never -> v_t
-                    | _ ->
+                    | _ -> (
                         (* We want to make sure that: x?.foo types as: { foo?: 'a } *)
                         let typ =
                           match (Type.deref v.t).descr with
@@ -287,7 +287,15 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
                             | _ -> typ
                         in
                         v_t <: typ;
-                        typ)
+                        (* For coalesce: if typ is nullable and default is not,
+                           unwrap the nullable since we have a fallback *)
+                          match
+                            ( (Type.deref typ).Type.descr,
+                              (Type.deref v.t).Type.descr )
+                          with
+                          | Type.Nullable _, Type.Nullable _ -> typ
+                          | Type.Nullable inner, _ -> inner
+                          | _ -> typ))
           in
           base_type >: typ
       | `Open (a, b) ->
