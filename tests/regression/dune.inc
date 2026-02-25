@@ -1312,6 +1312,29 @@
    default_format.liq)))
 
 (rule
+ (alias double-nullable)
+ (package liquidsoap)
+ (deps
+  double-nullable.liq
+  (alias ../media/all_media_files)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   double-nullable.liq
+   liquidsoap
+   %{test_liq}
+   double-nullable.liq)))
+
+(rule
  (alias eval-check-demeth)
  (package liquidsoap)
  (deps
@@ -1885,6 +1908,7 @@
   (alias append-merge)
   (alias append-merge2)
   (alias default_format)
+  (alias double-nullable)
   (alias eval-check-demeth)
   (alias external-encoder)
   (alias fallible_ogg)

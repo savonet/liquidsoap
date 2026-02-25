@@ -185,14 +185,29 @@ module Vars = struct
   let add_list l v = add_seq (List.to_seq l) v
 end
 
-(** Create a type from its value. *)
-let make ?pos d = { pos; descr = d }
+let var_id_atom = Atomic.make (-1)
+let var_id () = Atomic.fetch_and_add var_id_atom 1
 
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
     type. *)
 let rec deref t =
   match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
+
+(** Create a type from its value. *)
+let make ?pos d =
+  match d with
+    | Nullable t -> (
+        let t' = deref t in
+        match t'.descr with
+          (* Avoid double nullable by returning link to inner nullable *)
+          | Nullable _ ->
+              {
+                pos;
+                descr = Var { id = var_id (); contents = Link (`Covariant, t') };
+              }
+          | _ -> { pos; descr = d })
+    | _ -> { pos; descr = d }
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
@@ -281,8 +296,6 @@ let split_meths t =
 let var_name_atom = Atomic.make (-1)
 
 let var_name () = Atomic.fetch_and_add var_name_atom 1
-let var_id_atom = Atomic.make (-1)
-let var_id () = Atomic.fetch_and_add var_id_atom 1
 
 let var ?(constraints = []) ?(level = max_int) ?pos () =
   let constraints = Constraints.of_list constraints in
