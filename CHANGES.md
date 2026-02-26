@@ -7,9 +7,13 @@
 - Add back missing `"status"` telnet/server command for outputs.
 - Reduced default buffer size throughout the app to improve memory efficiency
   (#4919)
+- Refactored XML parsing to be type-driven, support optional fields with
+  custom element name aliases (#4926, #4927)
 
 ## Fixed:
 
+- Fixed `??` operator type inference in conditional branches (#4922)
+- Prevent double nullable types (#4925)
 - Make active `stereotool` really be active.. (#4882)
 - Fixed `fMP4` HLS support for audio+video streams (#4841)
 - Fixed crossfade clocks inconsistencies leading to weird caching audio glitches (#4851)
