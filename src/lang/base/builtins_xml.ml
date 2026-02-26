@@ -62,10 +62,12 @@ let rec check_value v ty =
   in
   let meths =
     List.fold_left
-      (fun checked_meths { Type.meth; json_name; scheme = _, ty } ->
+      (fun checked_meths { Type.meth; json_name; optional; scheme = _, ty } ->
         let lbl = Option.value ~default:meth json_name in
-        let v = List.assoc lbl meths in
-        (meth, check_value v ty) :: checked_meths)
+        match List.assoc_opt lbl meths with
+          | Some v -> (meth, check_value v ty) :: checked_meths
+          | None when optional -> (meth, Lang.null) :: checked_meths
+          | None -> raise Not_found)
       [] typ_meths
   in
   let v = Lang.meth v meths in
