@@ -145,6 +145,18 @@ def f() =
   test.equal(config.config.listen_socket.port, 8000)
   test.equal(config.config.source_password, "hackme")
 
+  # Test optional fields with "as" syntax
+  s3 = '<limits>
+<sources>10</sources>
+</limits>'
+
+  let xml.parse (limits_config :
+    {limits: {sources?: int, "queue-size" as queue_size?: int}}
+  ) = s3
+
+  test.equal(limits_config.limits?.sources, 10)
+  test.equal(limits_config.limits?.queue_size, null())
+
   test.pass()
 end
 
