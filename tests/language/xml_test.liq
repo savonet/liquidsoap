@@ -27,12 +27,12 @@ def f() =
     {
       bla=
         {
-          xml_params=[("param", "1"), ("bla", "true")].{bla=true},
-          ble=123,
-          blu=false,
-          blo=1.23,
+          foo="gni".{xml_params={opt=12.3}},
           bar=(null, "bla".{xml_params=[("option", "aab")]}),
-          foo="gni".{xml_params={opt=12.3}}
+          blo=1.23,
+          blu=false,
+          ble=123,
+          xml_params=[("param", "1"), ("bla", "true")].{bla=true}
         }
     }
   )
@@ -79,37 +79,37 @@ def f() =
     (
       "bla",
       {
+        xml_params=[("param", "1"), ("bla", "true")],
         xml_children=
           [
             (
               "foo",
               {
-                xml_children=[("xml_text", {xml_text="gni"})],
-                xml_params=[("opt", "12.3")]
+                xml_params=[("opt", "12.3")],
+                xml_children=[("xml_text", {xml_text="gni"})]
               }
             ),
-            ("bar", {xml_children=[], xml_params=[]}),
+            ("bar", {xml_params=[], xml_children=[]}),
             (
               "bar",
               {
-                xml_children=[("xml_text", {xml_text="bla"})],
-                xml_params=[("option", "aab")]
+                xml_params=[("option", "aab")],
+                xml_children=[("xml_text", {xml_text="bla"})]
               }
             ),
             (
               "blo",
-              {xml_children=[("xml_text", {xml_text="1.23"})], xml_params=[]}
+              {xml_params=[], xml_children=[("xml_text", {xml_text="1.23"})]}
             ),
             (
               "blu",
-              {xml_children=[("xml_text", {xml_text="false"})], xml_params=[]}
+              {xml_params=[], xml_children=[("xml_text", {xml_text="false"})]}
             ),
             (
               "ble",
-              {xml_children=[("xml_text", {xml_text="123"})], xml_params=[]}
+              {xml_params=[], xml_children=[("xml_text", {xml_text="123"})]}
             )
-          ],
-        xml_params=[("param", "1"), ("bla", "true")]
+          ]
       }
     )
   )
@@ -156,6 +156,24 @@ def f() =
 
   test.equal(limits_config.limits?.sources, 10)
   test.equal(limits_config.limits?.queue_size, null())
+
+  # Test empty elements with string type - should return empty string
+  s3 =
+    '<root><empty></empty><self-closing/><with-child><child/></with-child></root>'
+
+  let xml.parse (empty_test :
+    {
+      root: {
+        empty: string,
+        "self-closing" as self_closing: string,
+        "with-child" as with_child: string
+      }
+    }
+  ) = s3
+
+  test.equal(empty_test.root.empty, "")
+  test.equal(empty_test.root.self_closing, "")
+  test.equal(empty_test.root.with_child, "")
 
   test.pass()
 end
