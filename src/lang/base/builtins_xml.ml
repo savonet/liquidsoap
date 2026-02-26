@@ -1,77 +1,280 @@
-let rec methods_of_xml = function
-  | Xml.PCData s ->
-      ( "xml_text",
-        Lang.meth (Lang.string s) (xml_node ~text:s ~params:[] ~children:[] ())
-      )
-  | Xml.Element (name, params, ([Xml.PCData s] as children)) ->
-      (name, Lang.meth (Lang.string s) (xml_node ~text:s ~params ~children ()))
-  | Xml.Element (name, params, children) ->
-      ( name,
-        Lang.record
-          (Methods.bindings
-             (List.fold_left
-                (fun methods el ->
-                  let name, v = methods_of_xml el in
-                  let v =
-                    match Methods.find_opt name methods with
-                      | None -> v
-                      | Some (Value.Tuple { value = [] } as value) ->
-                          Lang.tuple [value; v]
-                      | Some (Value.Tuple { value }) -> Lang.tuple (value @ [v])
-                      | Some value -> Lang.tuple [value; v]
-                  in
-                  Methods.add name v methods)
-                (Methods.from_list (xml_node ~params ~children ()))
-                children)) )
+let xml_text_content = function
+  | Xml.PCData s -> Some s
+  | Xml.Element (_, _, [Xml.PCData s]) -> Some s
+  | Xml.Element (_, _, []) -> None
+  | _ -> None
 
-and xml_node ?text ~params ~children () =
-  [
-    ("xml_text", match text with None -> Lang.null | Some s -> Lang.string s);
-    ( "xml_params",
-      Lang.meth
-        (Lang.list
-           (List.map
-              (fun (k, v) -> Lang.product (Lang.string k) (Lang.string v))
-              params))
-        (List.map (fun (k, v) -> (k, Lang.string v)) params) );
-    ("xml_children", Lang.list (List.map (fun v -> value_of_xml v) children));
-  ]
+let is_nullable ty =
+  match (Type.deref ty).Type.descr with Type.Nullable _ -> true | _ -> false
 
-and value_of_xml v =
-  let name, methods = methods_of_xml v in
-  Lang.meth (Lang.tuple [Lang.string name; methods]) [(name, methods)]
+let unwrap_nullable ty =
+  match (Type.deref ty).Type.descr with
+    | Type.Nullable ty -> (true, ty)
+    | _ -> (false, ty)
 
-let rec check_value v ty =
-  let typ_meths, ty = Type.split_meths ty in
-  let meths, v = Value.split_meths v in
-  let v =
-    match (v, ty.Type.descr) with
-      | Value.Tuple { value = [] }, Type.Nullable _ -> Lang.null
-      | _, Type.Tuple [] -> Lang.tuple []
-      | Value.Tuple { value }, Type.Tuple l ->
-          Lang.tuple
-            (List.mapi (fun idx v -> check_value v (List.nth l idx)) value)
-      | Value.List { value = l }, Type.List { t = ty } ->
-          Lang.list (List.map (fun v -> check_value v ty) l)
-      | Value.String { value = s }, Type.Int -> Lang.int (int_of_string s)
-      | Value.String { value = s }, Type.Float -> Lang.float (float_of_string s)
-      | Value.String { value = s }, Type.Bool -> Lang.bool (bool_of_string s)
-      | Value.String _, Type.Nullable ty -> check_value v ty
-      | _, Type.Var _ | Value.String _, Type.String -> v
-      | _ -> assert false
+let xml_element_name = function
+  | Xml.PCData _ -> "xml_text"
+  | Xml.Element (name, _, _) -> name
+
+let xml_params = function
+  | Xml.PCData _ -> []
+  | Xml.Element (_, params, _) -> params
+
+let xml_children = function
+  | Xml.PCData _ -> []
+  | Xml.Element (_, _, children) -> children
+
+let rec parse_ground_meths ~typ_meths xml =
+  List.filter_map
+    (fun Type.{ meth; json_name; optional; scheme = _, meth_ty } ->
+      let lbl = Option.value ~default:meth json_name in
+      let nullable_meth = optional || is_nullable meth_ty in
+      if lbl = "xml_params" then
+        Some (meth, parse_xml_params ~ty:meth_ty (xml_params xml))
+      else if lbl = "xml_text" then
+        Some
+          ( meth,
+            match xml_text_content xml with
+              | Some s -> Lang.string s
+              | None when nullable_meth -> Lang.null
+              | None -> Lang.string "" )
+      else None)
+    typ_meths
+
+and value_of_typed_xml ~ty xml =
+  let typ_meths, base_ty = Type.split_meths ty in
+  let nullable, base_ty = unwrap_nullable base_ty in
+  try
+    match (xml, base_ty.Type.descr) with
+      | _, Type.String -> (
+          let meths = parse_ground_meths ~typ_meths xml in
+          match xml_text_content xml with
+            | Some s -> Lang.meth (Lang.string s) meths
+            | None when nullable -> Lang.null
+            | None -> Lang.meth (Lang.string "") meths)
+      | _, Type.Int -> (
+          let meths = parse_ground_meths ~typ_meths xml in
+          match xml_text_content xml with
+            | Some s -> Lang.meth (Lang.int (int_of_string s)) meths
+            | None -> raise Not_found)
+      | _, Type.Float -> (
+          let meths = parse_ground_meths ~typ_meths xml in
+          match xml_text_content xml with
+            | Some s -> Lang.meth (Lang.float (float_of_string s)) meths
+            | None -> raise Not_found)
+      | _, Type.Bool -> (
+          let meths = parse_ground_meths ~typ_meths xml in
+          match xml_text_content xml with
+            | Some s -> Lang.meth (Lang.bool (bool_of_string s)) meths
+            | None -> raise Not_found)
+      | _, Type.Tuple [_name_ty; _props_ty] when typ_meths = [] ->
+          let name = xml_element_name xml in
+          let props_meths, _ = Type.split_meths _props_ty in
+          let props = parse_xml_props ~typ_meths:props_meths xml in
+          Lang.tuple [Lang.string name; props]
+      | _, Type.Tuple [] when typ_meths <> [] -> (
+          (* Check if the element name matches a method in the expected type.
+             If so, wrap the content in that method. *)
+          let name = xml_element_name xml in
+          let matching_meth =
+            List.find_opt
+              (fun Type.{ meth; json_name; _ } ->
+                let lbl = Option.value ~default:meth json_name in
+                lbl = name)
+              typ_meths
+          in
+          match matching_meth with
+            | Some Type.{ meth; scheme = _, meth_ty; _ } ->
+                let typ_meths, base_ty = Type.split_meths meth_ty in
+                let content =
+                  match base_ty.Type.descr with
+                    | Type.Tuple [] when typ_meths <> [] ->
+                        parse_xml_record ~typ_meths xml
+                    | _ -> value_of_typed_xml ~ty:meth_ty xml
+                in
+                Lang.record [(meth, content)]
+            | None -> parse_xml_record ~typ_meths xml)
+      | _, Type.List { t = elem_ty; _ } ->
+          let children = xml_children xml in
+          Lang.list
+            (List.map
+               (fun child -> value_of_typed_xml ~ty:elem_ty child)
+               children)
+      | _, Type.Var _ -> parse_untyped_xml xml
+      | _ -> raise Not_found
+  with _ when nullable -> Lang.null
+
+and parse_xml_record ~typ_meths xml =
+  let params = xml_params xml in
+  let children = xml_children xml in
+  let children_by_name =
+    List.fold_left
+      (fun acc child ->
+        let name = xml_element_name child in
+        let existing = Option.value ~default:[] (List.assoc_opt name acc) in
+        (name, existing @ [child]) :: List.remove_assoc name acc)
+      [] children
   in
   let meths =
-    List.fold_left
-      (fun checked_meths { Type.meth; json_name; optional; scheme = _, ty } ->
+    List.filter_map
+      (fun Type.{ meth; json_name; optional; scheme = _, meth_ty } ->
         let lbl = Option.value ~default:meth json_name in
-        match List.assoc_opt lbl meths with
-          | Some v -> (meth, check_value v ty) :: checked_meths
-          | None when optional -> (meth, Lang.null) :: checked_meths
-          | None -> raise Not_found)
-      [] typ_meths
+        let nullable_meth = optional || is_nullable meth_ty in
+        if lbl = "xml_params" then
+          Some (meth, parse_xml_params ~ty:meth_ty params)
+        else if lbl = "xml_text" then (
+          let text = xml_text_content xml in
+          Some
+            ( meth,
+              match text with
+                | Some s -> Lang.string s
+                | None -> if nullable_meth then Lang.null else Lang.string "" ))
+        else if lbl = "xml_children" then (
+          let _, inner_ty = unwrap_nullable meth_ty in
+          let inner_ty =
+            match (Type.deref inner_ty).Type.descr with
+              | Type.List { t; _ } -> t
+              | _ -> inner_ty
+          in
+          Some
+            ( meth,
+              Lang.list
+                (List.map
+                   (fun child -> value_of_typed_xml ~ty:inner_ty child)
+                   children) ))
+        else (
+          match List.assoc_opt lbl children_by_name with
+            | Some [child] -> Some (meth, value_of_typed_xml ~ty:meth_ty child)
+            | Some children_list ->
+                let _, inner_ty = unwrap_nullable meth_ty in
+                let v =
+                  match (Type.deref inner_ty).Type.descr with
+                    | Type.Tuple expected_tys ->
+                        Lang.tuple
+                          (List.mapi
+                             (fun i child ->
+                               let child_ty =
+                                 if i < List.length expected_tys then
+                                   List.nth expected_tys i
+                                 else inner_ty
+                               in
+                               value_of_typed_xml ~ty:child_ty child)
+                             children_list)
+                    | _ ->
+                        value_of_typed_xml ~ty:meth_ty (List.hd children_list)
+                in
+                Some (meth, v)
+            | None when nullable_meth -> Some (meth, Lang.null)
+            | None -> None))
+      typ_meths
   in
-  let v = Lang.meth v meths in
-  v
+  Lang.record meths
+
+and parse_xml_params ~ty params =
+  let _, ty = unwrap_nullable ty in
+  let typ_meths, base_ty = Type.split_meths ty in
+  match base_ty.Type.descr with
+    | Type.List _ ->
+        let list_value =
+          Lang.list
+            (List.map
+               (fun (k, v) -> Lang.product (Lang.string k) (Lang.string v))
+               params)
+        in
+        if typ_meths <> [] then
+          Lang.meth list_value
+            (List.filter_map
+               (fun Type.{ meth; json_name; optional; scheme = _, meth_ty } ->
+                 let lbl = Option.value ~default:meth json_name in
+                 match List.assoc_opt lbl params with
+                   | Some v -> Some (meth, parse_param_value ~ty:meth_ty v)
+                   | None when optional || is_nullable meth_ty ->
+                       Some (meth, Lang.null)
+                   | None -> None)
+               typ_meths)
+        else list_value
+    | Type.Tuple [] when typ_meths <> [] ->
+        Lang.record
+          (List.filter_map
+             (fun Type.{ meth; json_name; optional; scheme = _, meth_ty } ->
+               let lbl = Option.value ~default:meth json_name in
+               match List.assoc_opt lbl params with
+                 | Some v -> Some (meth, parse_param_value ~ty:meth_ty v)
+                 | None when optional || is_nullable meth_ty ->
+                     Some (meth, Lang.null)
+                 | None -> None)
+             typ_meths)
+    | _ ->
+        Lang.list
+          (List.map
+             (fun (k, v) -> Lang.product (Lang.string k) (Lang.string v))
+             params)
+
+and parse_param_value ~ty v =
+  let _, ty = unwrap_nullable ty in
+  match (Type.deref ty).Type.descr with
+    | Type.Int -> Lang.int (int_of_string v)
+    | Type.Float -> Lang.float (float_of_string v)
+    | Type.Bool -> Lang.bool (bool_of_string v)
+    | _ -> Lang.string v
+
+and parse_xml_props ~typ_meths xml =
+  let meths =
+    List.filter_map
+      (fun Type.{ meth; json_name; optional; scheme = _, meth_ty } ->
+        let lbl = Option.value ~default:meth json_name in
+        let nullable_meth = optional || is_nullable meth_ty in
+        if lbl = "xml_text" then (
+          let text = xml_text_content xml in
+          Some
+            ( meth,
+              match text with
+                | Some s -> Lang.string s
+                | None when nullable_meth -> Lang.null
+                | None -> Lang.string "" ))
+        else if lbl = "xml_params" then
+          Some (meth, parse_xml_params ~ty:meth_ty (xml_params xml))
+        else if lbl = "xml_children" then (
+          let _, inner_ty = unwrap_nullable meth_ty in
+          let elem_ty =
+            match (Type.deref inner_ty).Type.descr with
+              | Type.List { t; _ } -> t
+              | _ -> inner_ty
+          in
+          Some
+            ( meth,
+              Lang.list
+                (List.map
+                   (fun child -> value_of_typed_xml ~ty:elem_ty child)
+                   (xml_children xml)) ))
+        else None)
+      typ_meths
+  in
+  Lang.record meths
+
+and parse_untyped_xml xml =
+  match xml with
+    | Xml.PCData s -> Lang.string s
+    | Xml.Element (name, params, children) ->
+        let params_value =
+          Lang.list
+            (List.map
+               (fun (k, v) -> Lang.product (Lang.string k) (Lang.string v))
+               params)
+        in
+        let children_value = Lang.list (List.map parse_untyped_xml children) in
+        let text =
+          match children with [Xml.PCData s] -> Lang.string s | _ -> Lang.null
+        in
+        let props =
+          Lang.record
+            [
+              ("xml_text", text);
+              ("xml_params", params_value);
+              ("xml_children", children_value);
+            ]
+        in
+        Lang.meth (Lang.tuple [Lang.string name; props]) [(name, props)]
 
 let _ =
   Lang.add_builtin "_internal_xml_parser_" ~category:`String ~flags:[`Hidden]
@@ -87,8 +290,7 @@ let _ =
       let ty = Type.fresh ty in
       try
         let xml = Xml.parse_string s in
-        let value = value_of_xml xml in
-        check_value value ty
+        value_of_typed_xml ~ty xml
       with exn -> (
         let bt = Printexc.get_raw_backtrace () in
         match exn with
