@@ -170,6 +170,7 @@ and type_annotation =
   [ `Named of string
   | `Nullable of type_annotation
   | `List of type_annotation
+  | `Ref of type_annotation
   | `Json_object of type_annotation
   | `Tuple of type_annotation list
   | `Arrow of argument list * type_annotation

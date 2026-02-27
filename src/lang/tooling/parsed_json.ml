@@ -125,6 +125,7 @@ let rec json_of_type_annotation = function
   | `Named n -> type_node ~typ:"named" (`String n)
   | `Nullable t -> type_node ~typ:"nullable" (json_of_type_annotation t)
   | `List t -> type_node ~typ:"list" (json_of_type_annotation t)
+  | `Ref t -> type_node ~typ:"ref" (json_of_type_annotation t)
   | `Json_object t -> type_node ~typ:"json_object" (json_of_type_annotation t)
   | `Tuple l ->
       type_node ~typ:"tuple" (`Tuple (List.map json_of_type_annotation l))

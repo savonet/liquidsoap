@@ -212,6 +212,11 @@ def f() =
   # Nullable type with methods:
   (123.{foo="aabb"} : int?.{ foo: string })
 
+  # Ref type annotation:
+  (ref(123) : ref(int))
+  (ref("foo") : ref(string))
+  (ref(null) : ref(int?))
+
   (() : {})
   (() : unit.{  })
   ({foo=123} : {foo?: int})

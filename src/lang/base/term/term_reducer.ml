@@ -88,6 +88,10 @@ let rec mk_parsed_ty ?pos ~env ~to_term = function
         make
           ?pos:(Option.map Pos.of_lexing_pos pos)
           (List { t = mk_parsed_ty ?pos ~env ~to_term t; json_repr = `Tuple }))
+  | `Ref t ->
+      Ref_type.reference
+        ?pos:(Option.map Pos.of_lexing_pos pos)
+        (mk_parsed_ty ?pos ~env ~to_term t)
   | `Json_object t ->
       Type.(
         make
