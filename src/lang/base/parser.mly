@@ -161,7 +161,6 @@ open Parser_helper
 %type <Term.type_annotation> ty
 %type <string * Term.track_annotation list> ty_content
 %type <Term.track_annotation> ty_content_arg
-%type <string * Term.source_annotation> ty_source
 %type <Term.source_annotation> ty_source_tracks
 %type <Term.type_annotation list> ty_tuple
 %type <Parsed_term.list_el list> varlist
@@ -298,7 +297,9 @@ ty:
   | ty QUESTION_DOT LCUR record_ty RCUR
                                  { `Method (`Nullable $1, $4) }
   | ty DOT LCUR record_ty RCUR   { `Method ($1, $4) }
-  | ty_source                    { `Source $1 }
+  | VARLPAR RPAR                  { mk_named_ty ~pos:$loc $1 None }
+  | VARLPAR ty RPAR               { mk_named_ty ~pos:$loc $1 (Some $2) }
+  | VARLPAR ty_source_tracks RPAR { mk_source_ty ~pos:$loc $1 $2 }
 
 record_ty:
   |                         { [] }
@@ -316,10 +317,6 @@ meth_ty:
        match $2 with
          |"as" ->             { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
-
-ty_source:
-  | VARLPAR RPAR                  { $1, { extensible = false; tracks = [] } }
-  | VARLPAR ty_source_tracks RPAR { $1, $2 }
 
 ty_source_tracks:
   | VAR GETS ty_content { { extensible = false; tracks = [{track_name = $1; track_type = fst $3; track_params = snd $3}] } }

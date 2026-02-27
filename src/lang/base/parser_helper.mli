@@ -70,6 +70,12 @@ val mk_json_assoc_object_ty :
   Parsed_term.type_annotation * string * string * string ->
   Term.type_annotation
 
+val mk_source_ty :
+  pos:pos -> string -> Term.source_annotation -> Term.type_annotation
+
+val mk_named_ty :
+  pos:pos -> string -> Term.type_annotation option -> Term.type_annotation
+
 val mk :
   ?comments:(pos * Parsed_term.comment) list ->
   ?annotations:Parsed_term.term_annotation list ->
