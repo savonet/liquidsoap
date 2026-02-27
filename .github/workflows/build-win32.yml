@@ -59,7 +59,7 @@ jobs:
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ inputs.branch }} "${{ steps.cpu_cores.outputs.count }}" "${{ inputs.is_rolling_release }}" "${{ inputs.is_release }}" ${{ inputs.sha }}
         id: build
       - name: Upload artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ${{ steps.build.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/win32/dist
