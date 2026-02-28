@@ -727,6 +727,8 @@ module Log = struct
     in
     flush (rotate_queue ())
 
+  let flush () = flush_queue ()
+
   let log_thread_fn () =
     let rec f () =
       flush_queue ();

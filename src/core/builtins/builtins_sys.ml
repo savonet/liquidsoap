@@ -168,7 +168,7 @@ let _ =
   Lang.add_builtin ~base:Modules.process "pid" ~category:`System [] Lang.int_t
     ~descr:"Get the process' pid." (fun _ -> Lang.int (Unix.getpid ()))
 
-let _ =
+let log_builtin =
   Lang.add_builtin "log" ~category:`Liquidsoap ~descr:"Log a message."
     [
       ("label", Lang.string_t, Some (Lang.string "lang"), None);
@@ -181,6 +181,12 @@ let _ =
       let label = Lang.to_string (List.assoc "label" p) in
       let level = Lang.to_int (List.assoc "level" p) in
       (Log.make [label])#f level "%s" msg;
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:log_builtin "flush" ~category:`Liquidsoap
+    ~descr:"Flush all pending log messages." [] Lang.unit_t (fun _ ->
+      Dtools.Log.flush ();
       Lang.unit)
 
 let _ =

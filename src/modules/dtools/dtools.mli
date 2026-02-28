@@ -271,6 +271,9 @@ module Log : sig
   (** An atom that stops the logging. *)
   val stop : Init.t
 
+  (** Force flush all pending log entries. *)
+  val flush : unit -> unit
+
   val conf : Conf.ut
   val conf_level : int Conf.t
   val conf_unix_timestamps : bool Conf.t
