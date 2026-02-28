@@ -218,7 +218,7 @@ end
 # @category List
 def list.assoc.nullable(key, l) =
   try
-    list.assoc(key, l)
+    null(list.assoc(key, l))
   catch _ do
     null
   end
