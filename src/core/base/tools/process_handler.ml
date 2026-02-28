@@ -223,53 +223,28 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         []
   in
   (* Read any remaining data from stdout/stderr pipes. Called when the process
-     exits to ensure we don't miss any output. Keeps reading until select
-     returns no ready pipes or read returns 0. *)
+     exits to ensure we don't miss any output. Reads until EOF on each pipe. *)
   let read_remaining_pipes () =
     let process = get_process t in
     let stdout = Unix.descr_of_in_channel process.p.stdout in
     let stderr = Unix.descr_of_in_channel process.p.stderr in
     let buf = Bytes.create 4096 in
-    let pipes =
-      List.filter_map
-        (fun (fd, callback_opt) ->
-          match callback_opt with
-            | Some callback -> Some (fd, callback)
-            | None -> None)
-        [(stdout, on_stdout); (stderr, on_stderr)]
+    let drain_fd fd callback =
+      let rec loop () =
+        let n = try Unix.read fd buf 0 (Bytes.length buf) with _ -> 0 in
+        if n > 0 then begin
+          ignore
+            (callback (fun b ofs len ->
+                 let to_copy = min len n in
+                 Bytes.blit buf 0 b ofs to_copy;
+                 to_copy));
+          loop ()
+        end
+      in
+      loop ()
     in
-    let rec drain_pipes remaining =
-      if remaining = [] then ()
-      else begin
-        let fds = List.map fst remaining in
-        let ready, _, _ = Unix.select fds [] [] 0.0 in
-        if ready = [] then ()
-        else (
-          let still_open =
-            List.filter
-              (fun (fd, callback) ->
-                if List.mem fd ready then begin
-                  let n =
-                    try Unix.read fd buf 0 (Bytes.length buf)
-                    with _ when Sys.win32 -> 0
-                  in
-                  if n > 0 then begin
-                    ignore
-                      (callback (fun b ofs len ->
-                           let to_copy = min len n in
-                           Bytes.blit buf 0 b ofs to_copy;
-                           to_copy));
-                    true
-                  end
-                  else false
-                end
-                else true)
-              remaining
-          in
-          drain_pipes still_open)
-      end
-    in
-    drain_pipes pipes
+    Option.iter (drain_fd stdout) on_stdout;
+    Option.iter (drain_fd stderr) on_stderr
   in
   let on_pipe out_pipe =
     let buf = Bytes.make 1 ' ' in
