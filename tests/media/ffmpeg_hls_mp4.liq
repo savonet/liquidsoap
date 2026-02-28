@@ -27,13 +27,6 @@ def check_stream() =
   then
     is_done := true
 
-    ojson =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          output_dir
-        }/mp4.m3u8"
-      )
-
     let json.parse (parsed :
       {
         streams: [
@@ -46,7 +39,7 @@ def check_stream() =
           }
         ]
       }
-    ) = ojson
+    ) = test.ffprobe("#{output_dir}/mp4.m3u8")
 
     video_stream =
       list.find((fun (stream) -> stream.codec_name == "h264"), parsed.streams)

@@ -24,16 +24,8 @@ def on_close(filename) =
   then
     done := true
 
-    process.run("sync")
-
-    j =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(filename)
-        }"
-      )
-
-    let json.parse (parsed : {streams: ({width: int, height: int} * _)}) = j
+    let json.parse (parsed : {streams: ({width: int, height: int} * _)}) =
+      test.ffprobe(filename)
     let stream = fst(parsed.streams)
     print(
       "Output video size is #{stream.width}x#{stream.height}."

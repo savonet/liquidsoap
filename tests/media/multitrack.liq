@@ -75,15 +75,6 @@ def on_close(filename) =
   test.equal(file_no_meta_seen(), true)
   test.equal(file_track_seen(), 0)
 
-  process.run("sync")
-
-  ojson =
-    process.read(
-      "ffprobe -v quiet -print_format json -show_streams #{
-        process.quote(filename)
-      }"
-    )
-
   let json.parse (parsed :
     {
       streams: [
@@ -96,7 +87,7 @@ def on_close(filename) =
         }
       ]
     }
-  ) = ojson
+  ) = test.ffprobe(filename)
 
   test.equal(list.length(parsed.streams), 3)
 

@@ -31,14 +31,8 @@ def on_close(_) =
   then
     done := true
 
-    j =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(filename)
-        }"
-      )
-
-    let json.parse (parsed : {streams: [{sample_fmt: string?}]}) = j
+    let json.parse (parsed : {streams: [{sample_fmt: string?}]}) =
+      test.ffprobe(filename)
 
     audio_stream = list.hd(parsed.streams)
     sample_fmt = null.get(default="", audio_stream.sample_fmt)

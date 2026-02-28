@@ -16,18 +16,9 @@ done = ref(false)
 
 def on_close(_) =
   def check(out) =
-    process.run("sync")
-
-    j =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(out)
-        }"
-      )
-
     let json.parse (parsed :
       {streams: [{codec_name: string, pix_fmt: string}]}
-    ) = j
+    ) = test.ffprobe(out)
 
     let [stream] = parsed.streams
     stream.codec_name == "h264" and stream.pix_fmt == "yuv420p"

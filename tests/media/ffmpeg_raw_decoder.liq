@@ -16,15 +16,6 @@ def on_close(filename) =
   then
     done := true
 
-    process.run("sync")
-
-    ojson =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(filename)
-        }"
-      )
-
     let json.parse (parsed :
       {
         streams: [
@@ -37,7 +28,7 @@ def on_close(filename) =
           }
         ]
       }
-    ) = ojson
+    ) = test.ffprobe(filename)
 
     video_stream =
       list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)

@@ -24,15 +24,9 @@ def f() =
   s = once(s)
 
   def on_close(_) =
-    j =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams \
-         ffmpeg-naming-convention.mkv"
-      )
-
     let json.parse ({streams = [s1, s2, s3, s4, s5, s6]} :
       {streams: [{codec_type: string, channels?: int}]}
-    ) = j
+    ) = test.ffprobe("ffmpeg-naming-convention.mkv")
 
     test.equal(s1?.channels, 2)
     test.equal(s2?.channels, 1)

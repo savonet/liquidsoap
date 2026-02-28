@@ -31,8 +31,6 @@ Dialogue: 0,0:00:10.00,0:00:12.00,CustomStyle,,0,0,0,,MARKER:Fourth subtitle lin
 Dialogue: 0,0:00:13.00,0:00:15.00,CustomStyle,,0,0,0,,MARKER:Fifth subtitle line"
 
 def on_close(encoded_fname) =
-  process.run("sync")
-
   ass_fname = file.temp("subtitle_text_to_ass", ".ass")
   ignore(
     process.run(

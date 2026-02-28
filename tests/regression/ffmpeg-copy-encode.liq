@@ -8,13 +8,8 @@ def f() =
     )
 
   def on_stop() =
-    j =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams \
-         ffmpeg-copy-encode.mkv"
-      )
-
-    let json.parse ({streams = [s1, s2]} : {streams: [{channels?: int}]}) = j
+    let json.parse ({streams = [s1, s2]} : {streams: [{channels?: int}]}) =
+      test.ffprobe("ffmpeg-copy-encode.mkv")
     if s1?.channels != 2 or s2?.channels != 1 then test.fail() end
     test.pass()
   end

@@ -261,3 +261,19 @@ def on_error(~backtrace, err) =
 end
 
 thread.on_error(null, on_error)
+
+def test.ffprobe(~count_packets=false, filename) =
+  count_packets_flag = count_packets ? "-count_packets " : ""
+  json =
+    process.read(
+      "ffprobe -v quiet -print_format json -show_streams #{count_packets_flag}#{
+        process.quote(filename)
+      }"
+    )
+  log(
+    label="test.ffprobe",
+    level=3,
+    "Processed #{filename}: #{json}"
+  )
+  json
+end

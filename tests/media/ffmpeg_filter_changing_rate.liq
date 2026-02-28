@@ -38,15 +38,6 @@ def on_done(filename) =
   if
     done() and not passed()
   then
-    process.run("sync")
-
-    j =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(filename)
-        }"
-      )
-
     let json.parse (parsed :
       {
         streams: [
@@ -59,7 +50,7 @@ def on_done(filename) =
           }
         ]
       }
-    ) = j
+    ) = test.ffprobe(filename)
 
     video_stream =
       list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)

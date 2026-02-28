@@ -14,15 +14,11 @@ s =
 
 #clock.assign_new(id='test_clock', sync='none', [s])
 def on_close(filename) =
-  ojson =
-    process.read(
-      "ffprobe -v quiet -print_format json -show_streams #{
-        process.quote(filename)
-      }"
-    )
-
   output_format =
-    json.parse(default=[("streams", [[("samplerate", "0")]])], ojson)
+    json.parse(
+      default=[("streams", [[("samplerate", "0")]])],
+      test.ffprobe(filename)
+    )
 
   output_streams = list.assoc(default=[], "streams", output_format)
   params =
