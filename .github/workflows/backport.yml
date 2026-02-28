@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Comment on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const label = context.payload.label.name;
@@ -26,7 +26,7 @@ jobs:
     if: github.event.action == 'closed' && github.event.pull_request.merged == true && contains(toJSON(github.event.pull_request.labels.*.name), 'backport:')
     runs-on: ubuntu-latest
     steps:
-      - uses: tibdex/backport@v2
+      - uses: tibdex/backport@9565281eda0731b1d20c4025c43339fb0a23812e # v2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Matches labels like "backport:v2.4.x-latest"
