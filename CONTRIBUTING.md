@@ -316,6 +316,29 @@ Test locations:
 - Liquidsoap code should follow existing conventions in `src/libs/`
 - Use descriptive names and add documentation comments
 
+## Backporting and Rolling Releases
+
+Liquidsoap maintains stable release branches using the following workflow:
+
+### Branch and Tag Structure
+
+- **Development branch**: `main`
+- **Stable branches**: `v2.4.x-latest`, `v2.3.x-latest`, etc.
+- **Rolling release tags**: `rolling-release-v2.4.x`, `rolling-release-v2.3.x`, etc.
+
+### Backporting PRs
+
+To backport a PR from `main` to a stable branch:
+
+1. Add a label like `backport:v2.4.x-latest` to the PR before merging
+2. When the PR is merged, the backport workflow automatically:
+   - Cherry-picks the changes to the target branch
+   - Creates a new PR for the backport
+
+### Rolling Release Tags
+
+When CI passes on a stable branch (e.g., `v2.4.x-latest`), a corresponding rolling release tag (`rolling-release-v2.4.x`) is automatically created/updated. This tag always points to the latest CI-validated commit on that branch.
+
 ## Getting Help
 
 - GitHub Issues: https://github.com/savonet/liquidsoap/issues
