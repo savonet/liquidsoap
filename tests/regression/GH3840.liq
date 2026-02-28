@@ -14,12 +14,8 @@ clock.assign_new(sync='none', [stream])
 enc = %ffmpeg(%audio.copy, %video.copy)
 
 def on_stop() =
-  j =
-    process.read(
-      "ffprobe -v quiet -print_format json -show_streams #{out_file}"
-    )
-
-  let json.parse ({streams} : {streams: [{codec_name: string}]}) = j
+  let json.parse ({streams} : {streams: [{codec_name: string}]}) =
+    test.ffprobe(out_file)
   if
     not list.exists(fun (s) -> s.codec_name == "mp3", streams)
   then

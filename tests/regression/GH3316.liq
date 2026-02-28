@@ -10,14 +10,8 @@ def on_close(filename) =
   if
     count() <= 3
   then
-    j =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(filename)
-        }"
-      )
-
-    let json.parse (parsed : {streams: [{codec_name: string}]}) = j
+    let json.parse (parsed : {streams: [{codec_name: string}]}) =
+      test.ffprobe(filename)
     if (list.hd(parsed.streams).codec_name != "flac") then test.fail() end
     if count() == 3 then test.pass() end
   end

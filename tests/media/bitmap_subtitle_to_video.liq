@@ -17,17 +17,9 @@ s = source({audio=a, video=track.video.add([v, sub])})
 clock.assign_new(id="test", sync="none", [s])
 
 def on_close(encoded_fname) =
-  process.run("sync")
-
   # Verify the output has audio and video streams (no subtitles - they're burned in)
-  ojson =
-    process.read(
-      "ffprobe -v quiet -print_format json -show_streams #{
-        process.quote(encoded_fname)
-      }"
-    )
-
-  let json.parse (parsed : {streams: [{codec_type: string}]}) = ojson
+  let json.parse (parsed : {streams: [{codec_type: string}]}) =
+    test.ffprobe(encoded_fname)
 
   has_audio = list.exists(fun (s) -> s.codec_type == "audio", parsed.streams)
   has_video = list.exists(fun (s) -> s.codec_type == "video", parsed.streams)

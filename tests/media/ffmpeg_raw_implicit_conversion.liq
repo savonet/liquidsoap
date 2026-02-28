@@ -14,13 +14,6 @@ s = sequence(list.map(fun (fname) -> once(single(fname)), files))
 
 clock.assign_new(sync='none', [s])
 def on_close(filename) =
-  ojson =
-    process.read(
-      "ffprobe -v quiet -print_format json -show_streams #{
-        process.quote(filename)
-      }"
-    )
-
   let json.parse (parsed :
     {
       streams: [
@@ -33,7 +26,7 @@ def on_close(filename) =
         }
       ]
     }
-  ) = ojson
+  ) = test.ffprobe(filename)
 
   audio_stream = list.hd(parsed.streams)
 

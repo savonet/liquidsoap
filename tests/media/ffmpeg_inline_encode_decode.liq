@@ -16,15 +16,6 @@ done = ref(false)
 
 def on_close(_) =
   def check(out) =
-    process.run("sync")
-
-    j =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(out)
-        }"
-      )
-
     let json.parse (parsed :
       {
         streams: [
@@ -37,7 +28,7 @@ def on_close(_) =
           }
         ]
       }
-    ) = j
+    ) = test.ffprobe(out)
 
     video_stream =
       list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)

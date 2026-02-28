@@ -60,13 +60,6 @@ def check_stream() =
         "#{output_dir}/#{name}.m3u8"
       )
 
-      stream = process.quote("#{output_dir}/#{name}.m3u8")
-
-      ojson =
-        process.read(
-          "ffprobe -v quiet -print_format json -show_streams #{stream}"
-        )
-
       let json.parse (parsed :
         {
           streams: [
@@ -78,7 +71,7 @@ def check_stream() =
             }
           ]
         }
-      ) = ojson
+      ) = test.ffprobe("#{output_dir}/#{name}.m3u8")
 
       audio_stream =
         list.find(

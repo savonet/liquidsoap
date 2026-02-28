@@ -17,22 +17,6 @@ def on_close(encoded_fname) =
   then
     done := true
 
-    process.run("sync")
-
-    ijson =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(fname)
-        }"
-      )
-
-    ojson =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(encoded_fname)
-        }"
-      )
-
     let json.parse (iparsed :
       {
         streams: [
@@ -46,7 +30,7 @@ def on_close(encoded_fname) =
           }
         ]
       }
-    ) = ijson
+    ) = test.ffprobe(fname)
 
     let json.parse (oparsed :
       {
@@ -61,7 +45,7 @@ def on_close(encoded_fname) =
           }
         ]
       }
-    ) = ojson
+    ) = test.ffprobe(encoded_fname)
 
     filter = fun (type, l) -> list.filter(fun (s) -> s.codec_type == type, l)
     sort =

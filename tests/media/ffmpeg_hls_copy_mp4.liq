@@ -22,14 +22,8 @@ def check_stream() =
   then
     is_done := true
 
-    ojson =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          output_dir
-        }/mp4.m3u8"
-      )
-
-    let json.parse (parsed : {streams: [{codec_type: string}]}) = ojson
+    let json.parse (parsed : {streams: [{codec_type: string}]}) =
+      test.ffprobe("#{output_dir}/mp4.m3u8")
 
     has_video_stream =
       list.exists(

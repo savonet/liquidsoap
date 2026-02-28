@@ -55,8 +55,6 @@ Fifth subtitle line
 First subtitle line"
 
 def on_close(encoded_fname) =
-  process.run("sync")
-
   srt_fname = file.temp("subtitle_concat", ".srt")
   ignore(
     process.run(

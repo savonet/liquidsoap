@@ -19,14 +19,7 @@ def on_close(filename) =
   then
     done := true
 
-    ojson =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(filename)
-        }"
-      )
-
-    let json.parse {streams = [{duration}]} = ojson
+    let json.parse {streams = [{duration}]} = test.ffprobe(filename)
 
     if float_of_string(duration) == 60.00 then test.pass() else test.fail() end
   end

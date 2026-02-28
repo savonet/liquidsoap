@@ -25,16 +25,12 @@ def on_close (filename) =
   if not done() then
 	  done := true
 
-    process.run("sync")
-
-    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
-
     let json.parse ( parsed: {
       streams: [{
         r_frame_rate: string,
         codec_name: string
       }]
-    }) = j
+    }) = test.ffprobe(filename)
 
     let [stream] = parsed.streams
 

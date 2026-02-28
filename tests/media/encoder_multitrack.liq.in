@@ -22,13 +22,6 @@ def on_close(filename) =
   then
     done := true
 
-    ojson =
-      process.read(
-        "ffprobe -v quiet -print_format json -show_streams -count_packets #{
-          process.quote(filename)
-        }"
-      )
-
     let json.parse (parsed :
       {
         streams: [
@@ -39,7 +32,7 @@ def on_close(filename) =
           }
         ]
       }
-    ) = ojson
+    ) = test.ffprobe(count_packets=true, filename)
 
     def duration(s) =
       if null.defined(s?.duration) then float_of_string(null.get(s?.duration))
