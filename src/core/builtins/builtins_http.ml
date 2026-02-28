@@ -164,7 +164,7 @@ let add_http_request ~base ~stream_body ~descr ~request name =
             fun _ -> assert false ))
         else (
           let body = Buffer.create Utils.buflen in
-          ( (fun s -> ignore (Option.map (Buffer.add_string body) s)),
+          ( (fun s -> Option.iter (Buffer.add_string body) s),
             fun () -> Buffer.contents body ))
       in
       let get_data () =

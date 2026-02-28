@@ -149,7 +149,7 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
         | Some "1.1" -> Curl.HTTP_VERSION_1_1
         | Some "2.0" -> Curl.HTTP_VERSION_2
         | Some v -> fail ~pos (Printf.sprintf "Unsupported http version %s" v));
-    ignore (Option.map connection#set_timeoutms timeout);
+    Option.iter connection#set_timeoutms timeout;
     (match request with
       | `Get -> connection#set_httpget true
       | `Post (len, get_data) ->

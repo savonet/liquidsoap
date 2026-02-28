@@ -85,19 +85,13 @@ let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
   let context =
     Ssl.create_context (Ssl.SSLv23 [@alert "-deprecated"]) Ssl.Server_context
   in
-  let () =
-    ignore (Option.map (Ssl.set_min_protocol_version context) min_protocol)
-  in
-  let () =
-    ignore (Option.map (Ssl.set_max_protocol_version context) max_protocol)
-  in
-  let () =
-    ignore
-      (Option.map
-         (fun password -> Ssl.set_password_callback context (fun _ -> password))
-         password);
-    Ssl.use_certificate context (certificate ()) (key ())
-  in
+  Option.iter (Ssl.set_min_protocol_version context) min_protocol;
+  Option.iter (Ssl.set_max_protocol_version context) max_protocol;
+  Option.iter
+    (fun password -> Ssl.set_password_callback context (fun _ -> password))
+    password;
+  Ssl.use_certificate context (certificate ()) (key ());
+
   object
     method transport = transport
 
@@ -132,12 +126,8 @@ let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
           Ssl.create_context (Ssl.SSLv23 [@alert "-deprecated"])
             Ssl.Client_context
         in
-        let () =
-          ignore (Option.map (Ssl.set_min_protocol_version ctx) min_protocol)
-        in
-        let () =
-          ignore (Option.map (Ssl.set_max_protocol_version ctx) max_protocol)
-        in
+        Option.iter (Ssl.set_min_protocol_version ctx) min_protocol;
+        Option.iter (Ssl.set_max_protocol_version ctx) max_protocol;
         (* TODO: add option.. *)
         Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
         (* Add certificate from transport if passed. *)
