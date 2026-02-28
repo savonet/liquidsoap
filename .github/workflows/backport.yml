@@ -1,0 +1,16 @@
+name: Backport
+
+on:
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  backport:
+    if: github.event.pull_request.merged == true && contains(toJSON(github.event.pull_request.labels.*.name), 'backport:')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: tibdex/backport@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Matches labels like "backport:rolling-release-v2.4.x"
+          label_pattern: "^backport:(.+)$"
