@@ -32,6 +32,7 @@ def test.fail(reason=null) =
   print(
     "Test failed#{reason}"
   )
+  log.flush()
   exit(1)
 end
 
