@@ -1,0 +1,40 @@
+name: Rolling Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches:
+      - "v*-latest"
+
+jobs:
+  tag:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Create rolling release tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          # Extract version: v2.4.x-latest -> v2.4.x
+          VERSION="${BRANCH%-latest}"
+          TAG="rolling-release-${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Delete existing tag if it exists (locally and remotely)
+          git tag -d "$TAG" 2>/dev/null || true
+          git push origin --delete "$TAG" 2>/dev/null || true
+
+          # Create and push new tag
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          echo "Created tag $TAG from branch $BRANCH"
