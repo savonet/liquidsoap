@@ -74,11 +74,7 @@ module type T = sig
   val close : socket -> unit
 
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
-
-  type reply =
-    | Close of (unit -> string)
-    | Relay of string
-    | Custom
+  type reply = Close of (unit -> string) | Relay of string | Custom
 
   type http_handler =
     protocol:string ->
