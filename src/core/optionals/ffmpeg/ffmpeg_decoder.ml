@@ -680,6 +680,18 @@ let seek_wrap ~pending_operation fn =
       Atomic.set pending_operation `None;
       Mutex.unlock m)
 
+let decode_wrap ~pending_operation fn =
+  let rec wait () =
+    if not (Atomic.compare_and_set pending_operation `None `Decoding) then (
+      (match Atomic.get pending_operation with
+        | `Seek (m, c) ->
+            Mutex_utils.mutexify m (fun () -> Condition.wait c m) ()
+        | _ -> Domain.cpu_relax ());
+      wait ())
+  in
+  wait ();
+  Fun.protect fn ~finally:(fun () -> Atomic.set pending_operation `None)
+
 let seek ~pending_operation ~target_position ~streams ~container ticks =
   seek_wrap ~pending_operation (fun () ->
       let tpos = Frame.seconds_of_main ticks in
@@ -938,19 +950,7 @@ let mk_decoder ~streams ~target_position ~pending_operation container =
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace exn bt
   in
-  let rec wait () =
-    if not (Atomic.compare_and_set pending_operation `None `Decoding) then (
-      (match Atomic.get pending_operation with
-        | `Seek (m, c) ->
-            Mutex_utils.mutexify m (fun () -> Condition.wait c m) ()
-        | _ -> Domain.cpu_relax ());
-      wait ())
-  in
-  fun buffer ->
-    wait ();
-    Fun.protect
-      (fun () -> decode buffer)
-      ~finally:(fun () -> Atomic.set pending_operation `None)
+  fun buffer -> decode_wrap ~pending_operation (fun () -> decode buffer)
 
 let mk_streams ~ctype ~decode_first_metadata container =
   let check_metadata stream fn =

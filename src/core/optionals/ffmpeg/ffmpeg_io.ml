@@ -286,10 +286,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       let size = Lazy.force Frame.size in
       try
         let { decoder; buffer; closed } = self#get_connected_container in
-        while Generator.length self#buffer < Lazy.force Frame.size do
-          if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
-          self#mutexify (fun () -> decoder buffer) ()
-        done;
+        Ffmpeg_decoder.decode_wrap ~pending_operation (fun () ->
+            while Generator.length self#buffer < Lazy.force Frame.size do
+              if Atomic.get shutdown || Atomic.get closed then
+                raise Not_connected;
+              self#mutexify (fun () -> decoder buffer) ()
+            done);
         let { get_metadata } = self#get_connected_container in
         let meta = get_metadata () in
         if meta <> [] then (
