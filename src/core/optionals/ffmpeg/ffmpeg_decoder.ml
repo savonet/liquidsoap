@@ -665,35 +665,8 @@ let reset_streams streams =
       s.position <- None)
     streams
 
-let seek_wrap ~pending_operation fn =
-  let m = Mutex.create () in
-  let c = Condition.create () in
-  let rec wait () =
-    if not (Atomic.compare_and_set pending_operation `None (`Seek (m, c))) then (
-      Domain.cpu_relax ();
-      wait ())
-  in
-  wait ();
-  Fun.protect fn ~finally:(fun () ->
-      Mutex.lock m;
-      Condition.signal c;
-      Atomic.set pending_operation `None;
-      Mutex.unlock m)
-
-let decode_wrap ~pending_operation fn =
-  let rec wait () =
-    if not (Atomic.compare_and_set pending_operation `None `Decoding) then (
-      (match Atomic.get pending_operation with
-        | `Seek (m, c) ->
-            Mutex_utils.mutexify m (fun () -> Condition.wait c m) ()
-        | _ -> Domain.cpu_relax ());
-      wait ())
-  in
-  wait ();
-  Fun.protect fn ~finally:(fun () -> Atomic.set pending_operation `None)
-
-let seek ~pending_operation ~target_position ~streams ~container ticks =
-  seek_wrap ~pending_operation (fun () ->
+let seek ~state ~target_position ~streams ~container ticks =
+  Mutex_utils.mutable_lock ~state (fun () ->
       let tpos = Frame.seconds_of_main ticks in
       log#debug "Setting target position to %f" tpos;
       Atomic.set target_position (Some ticks);
@@ -825,7 +798,7 @@ let mk_check_position ~streams ~target_position () =
              happen.";
           decode ()
 
-let mk_decoder ~streams ~target_position ~pending_operation container =
+let mk_decoder ~streams ~target_position ~state container =
   let check_position = mk_check_position ~streams ~target_position () in
   let audio_frame =
     Streams.fold
@@ -950,7 +923,7 @@ let mk_decoder ~streams ~target_position ~pending_operation container =
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace exn bt
   in
-  fun buffer -> decode_wrap ~pending_operation (fun () -> decode buffer)
+  fun buffer -> Mutex_utils.atomic_lock ~state (fun () -> decode buffer)
 
 let mk_streams ~ctype ~decode_first_metadata container =
   let check_metadata stream fn =
@@ -1265,7 +1238,7 @@ let create_decoder ~ctype ~metadata fname =
     streams;
   let close () = Av.close container in
   let target_position = Atomic.make None in
-  let pending_operation = Atomic.make `None in
+  let state = Mutex_utils.mk_state () in
   ( {
       Decoder.seek =
         (fun ticks ->
@@ -1276,12 +1249,11 @@ let create_decoder ~ctype ~metadata fname =
                   ticks + Frame.main_of_seconds d - get_remaining ()
                 in
                 match
-                  seek ~pending_operation ~target_position ~streams ~container
-                    target
+                  seek ~state ~target_position ~streams ~container target
                 with
                   | 0 -> 0
                   | _ -> ticks));
-      decode = mk_decoder ~pending_operation ~streams ~target_position container;
+      decode = mk_decoder ~state ~streams ~target_position container;
       eof = mk_eof streams;
       close;
     },
@@ -1319,11 +1291,11 @@ let create_stream_decoder ~ctype mime input =
       "ffmpeg_decoder";
   let streams = mk_streams ~ctype ~decode_first_metadata:true container in
   let target_position = Atomic.make None in
-  let pending_operation = Atomic.make `None in
+  let state = Mutex_utils.mk_state () in
   let close () = Av.close container in
   {
-    Decoder.seek = seek ~pending_operation ~target_position ~streams ~container;
-    decode = mk_decoder ~pending_operation ~streams ~target_position container;
+    Decoder.seek = seek ~state ~target_position ~streams ~container;
+    decode = mk_decoder ~state ~streams ~target_position container;
     eof = mk_eof streams;
     close;
   }
