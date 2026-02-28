@@ -183,9 +183,7 @@ def icecast.server.parser(path) =
 
   def authentication() =
     c = get_children("authentication")
-    {
-      password=icecast.server.get_child_string(c, "source-password")
-    }
+    {password=icecast.server.get_child_string(c, "source-password")}
   end
 
   def limits() =
@@ -296,9 +294,7 @@ def icecast.server.parser(path) =
       )
     end
 
-    {
-      tls_certificate=icecast.server.get_child_string(c, "tls-certificate")
-    }
+    {tls_certificate=icecast.server.get_child_string(c, "tls-certificate")}
   end
 
   def http_headers() =
@@ -348,10 +344,7 @@ def icecast.server.parser(path) =
         raw_mounts
       )
 
-    {
-      default=default_config,
-      configs=mount_configs
-    }
+    {default=default_config, configs=mount_configs}
   end
 
   {
@@ -563,14 +556,16 @@ def icecast.server.mount_entries() =
   entries = ref([])
 
   def get(mount) =
-    (list.assoc(mount, entries()) : {
-      output: _,
-      source: ref(source?),
-      fallback_mount: string?,
-      fallback: ref(source?),
-      format: ref(_),
-      streams: ref(_)
-    })
+    (list.assoc(mount, entries()) :
+      {
+        output: _,
+        source: ref(source?),
+        fallback_mount: string?,
+        fallback: ref(source?),
+        format: ref(_),
+        streams: ref(_)
+      }
+    )
   end
 
   def has(mount) =
@@ -591,21 +586,16 @@ def icecast.server.mount_entries() =
   end
 
   def find_by_mount(mount) =
-    if
-      list.assoc.mem(mount, entries())
-    then
-      [(mount, get(mount))]
-    else
-      []
-    end
+    if list.assoc.mem(mount, entries()) then [(mount, get(mount))] else [] end
   end
 
   def find_by_fallback_mount(mount) =
     list.filter_map(
       fun ((entry_mount, entry)) ->
         if
-          null.defined(entry.fallback_mount) and
-            null.get(entry.fallback_mount) == mount
+          null.defined(entry.fallback_mount)
+        and
+          null.get(entry.fallback_mount) == mount
         then
           (entry_mount, entry)
         else
@@ -628,7 +618,7 @@ end
 
 # @flag hidden
 def icecast.server.source_manager(
-  ~(name: string),
+  ~(name:string),
   ~port,
   ~transport,
   ~password,
@@ -692,8 +682,9 @@ def icecast.server.source_manager(
     list.iter(
       fun ((_, entry)) ->
         if
-          null.defined(entry.fallback_mount) and
-            null.get(entry.fallback_mount) == mount
+          null.defined(entry.fallback_mount)
+        and
+          null.get(entry.fallback_mount) == mount
         then
           entry.fallback := source
         end,
@@ -705,10 +696,14 @@ def icecast.server.source_manager(
     list.iter(
       fun ((mount, entry)) ->
         if
-          not null.defined(entry.source()) and
-            not null.defined(entry.fallback())
+          not null.defined(entry.source())
+        and
+          not null.defined(entry.fallback())
         then
-          log.info(label=name, "Shutting down output for mount #{mount}")
+          log.info(
+            label=name,
+            "Shutting down output for mount #{mount}"
+          )
           entry.output.shutdown()
           entries.remove(mount)
         end,
@@ -724,46 +719,45 @@ def icecast.server.source_manager(
     mount = if r/^\//.test(mount) then mount else "/#{mount}" end
     mount_config = get_mount_config(mount)
 
-    log.important(label=name, "New source connected on mount #{mount}")
+    log.important(
+      label=name,
+      "New source connected on mount #{mount}"
+    )
 
     if
       entries.has(mount)
     then
       entry = entries.get(mount)
-      log.info(label=name, "Reusing existing output for mount #{mount}")
+      log.info(
+        label=name,
+        "Reusing existing output for mount #{mount}"
+      )
       entry.source := s
       entry.format := format
       entry.streams := streams
     else
-      source_ref = ref((s:source?))
+      source_ref = ref((s : source?))
       fallback_ref = ref(null)
       format_ref = ref(format)
       streams_ref = ref(streams)
       fallback_mount_config = mount_config.fallback_mount
 
       if
-        null.defined(fallback_mount_config) and
-          entries.has(null.get(fallback_mount_config))
+        null.defined(fallback_mount_config)
+      and
+        entries.has(null.get(fallback_mount_config))
       then
         fb_entry = entries.get(null.get(fallback_mount_config))
         fallback_ref := fb_entry.source()
       end
 
-      main_dyn =
-        source.dynamic(
-          id="#{mount}.source",
-          source_ref
-        )
+      main_dyn = source.dynamic(id="#{mount}.source", source_ref)
 
       output_source =
         if
           null.defined(fallback_mount_config)
         then
-          fallback_dyn =
-            source.dynamic(
-              id="#{mount}.fallback",
-              fallback_ref
-            )
+          fallback_dyn = source.dynamic(id="#{mount}.fallback", fallback_ref)
 
           fallback(
             id="#{mount}.selector",
@@ -776,6 +770,16 @@ def icecast.server.source_manager(
 
       http_headers = [...global_headers, ...mount_config.http_headers]
 
+      effective_burst =
+        if
+          null.defined(mount_config.burst_size)
+        then
+          let b = null.get(mount_config.burst_size)
+          if b == 0 then null else b end
+        else
+          burst_size
+        end
+
       o =
         output.harbor(
           id="#{mount}.output",
@@ -785,14 +789,7 @@ def icecast.server.source_manager(
           transport=transport,
           headers=http_headers,
           timeout=client_timeout ?? 30.,
-          burst=
-            if
-              null.defined(mount_config.burst_size)
-            then
-              null.get(mount_config.burst_size)
-            else
-              burst_size
-            end,
+          burst=effective_burst,
           dumpfile=mount_config.dump_file,
           copy_encoder,
           output_source
@@ -831,7 +828,10 @@ def icecast.server.source_manager(
       synchronous=true,
       fun () ->
         begin
-          log.important(label=name, "Source disconnected from mount #{mount}")
+          log.important(
+            label=name,
+            "Source disconnected from mount #{mount}"
+          )
 
           on_shutdown(
             fun () ->
@@ -876,7 +876,10 @@ def icecast.server.source_manager(
     if
       entries.has(mount) and null.defined(entries.get(mount).source())
     then
-      log.important(label=name, "Mountpoint #{mount} already in use, rejecting")
+      log.important(
+        label=name,
+        "Mountpoint #{mount} already in use, rejecting"
+      )
       error.raise(
         error.icecast.server.mount_taken,
         "Mountpoint in use"
@@ -970,10 +973,24 @@ def icecast.server.source_manager(
               fun ((mount, entry)) ->
                 begin
                   source_status =
-                    if null.defined(entry.source()) then "connected" else "disconnected" end
+                    if
+                      null.defined(entry.source())
+                    then
+                      "connected"
+                    else
+                      "disconnected"
+                    end
                   fallback_status =
-                    if null.defined(entry.fallback()) then "connected" else "disconnected" end
-                  "#{mount}: source=#{source_status}, fallback=#{fallback_status}, format=#{entry.format()}, streams=#{entry.streams()}"
+                    if
+                      null.defined(entry.fallback())
+                    then
+                      "connected"
+                    else
+                      "disconnected"
+                    end
+                  "#{mount}: source=#{source_status}, fallback=#{
+                    fallback_status
+                  }, format=#{entry.format()}, streams=#{entry.streams()}"
                 end,
               all_entries
             )
@@ -1049,9 +1066,15 @@ def icecast.server(
   max_clients = parsed.max_clients
   client_timeout = parsed.client_timeout
   source_timeout = parsed.source_timeout
-  # TODO: burst_on_connect
-  ignore(parsed.burst_on_connect)
-  burst_size = parsed.burst_size ?? 65534
+  burst_on_connect = parsed.burst_on_connect
+  burst_size =
+    if
+      null.defined(burst_on_connect) and null.get(burst_on_connect) == 0
+    then
+      null
+    else
+      parsed.burst_size
+    end
   port = if null.defined(parsed.port) then null.get(parsed.port) else port end
   password =
     if

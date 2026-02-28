@@ -136,7 +136,7 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 | `source-timeout`   | Supported     | Timeout in seconds for source connections (float) |
 | `client-timeout`   | Supported     | Timeout in seconds for client connections (float) |
 | `burst-size`       | Supported     | Default burst size for new listeners (bytes)      |
-| `burst-on-connect` | Parsed (TODO) | Whether to burst on connect (not yet used)        |
+| `burst-on-connect` | Supported     | Set to 0 to disable burst entirely                |
 | `queue-size`       | Not used      | Liquidsoap manages queues differently             |
 | `header-timeout`   | Not used      | Liquidsoap handles headers differently            |
 
