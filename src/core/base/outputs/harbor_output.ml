@@ -256,20 +256,19 @@ let proto frame_t =
         Some (Lang.int 8192),
         Some "Interval used to send ICY metadata" );
       ( "auth",
-        Lang.fun_t
-          [
-            (false, "address", Lang.string_t);
-            (false, "", Lang.string_t);
-            (false, "", Lang.string_t);
-          ]
-          Lang.bool_t,
-        Some
-          (Lang.val_fun
-             [("address", "", None); ("", "", None); ("", "", None)]
-             (fun _ -> Lang.bool false)),
+        Lang.nullable_t
+          (Lang.fun_t
+             [
+               (false, "address", Lang.string_t);
+               (false, "", Lang.string_t);
+               (false, "", Lang.string_t);
+             ]
+             Lang.bool_t),
+        Some Lang.null,
         Some
           "Authentication function. `f(~address, login, password)` returns \
-           `true` if the listener should be granted access." );
+           `true` if the listener should be granted access. When `null`, no \
+           authentication is required." );
       ( "buffer",
         Lang.int_t,
         Some (Lang.int (5 * 65535)),
@@ -354,26 +353,31 @@ class output p =
   in
   let port = Lang.to_int (get_param "port") in
   let transport = Lang.to_http_transport (get_param "transport") in
-  let auth_function = get_param "auth" in
-  let resolve_client_address socket =
-    let fd = Harbor.file_descr_of_socket socket in
-    Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
-      (Unix.getpeername fd)
-  in
-  let authenticate socket user password =
-    let address = resolve_client_address socket in
-    let user = Charset.convert user in
-    let password = Charset.convert password in
-    Lang.to_bool
-      (Lang.apply auth_function
-         [
-           ("address", Lang.string address);
-           ("", Lang.string user);
-           ("", Lang.string password);
-         ])
-  in
-  let login { Harbor.socket; uri = _; user; password } =
-    authenticate socket user password
+  let auth_function = Lang.to_option (get_param "auth") in
+  let login =
+    Option.map
+      (fun auth_function ->
+        let resolve_client_address socket =
+          let fd = Harbor.file_descr_of_socket socket in
+          Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
+            (Unix.getpeername fd)
+        in
+        let authenticate socket user password =
+          let address = resolve_client_address socket in
+          let user = Charset.convert user in
+          let password = Charset.convert password in
+          Lang.to_bool
+            (Lang.apply auth_function
+               [
+                 ("address", Lang.string address);
+                 ("", Lang.string user);
+                 ("", Lang.string password);
+               ])
+        in
+        ( "",
+          fun { Harbor.socket; uri = _; user; password } ->
+            authenticate socket user password ))
+      auth_function
   in
   let dumpfile = Lang.to_valued_option Lang.to_string (get_param "dumpfile") in
   let extra_headers =
@@ -650,15 +654,19 @@ class output p =
       in
       self#log#info "New listener connection from %s" client_id;
       let* () =
-        Duppy.Monad.catch
-          (Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-             (Harbor.http_auth_check ~query ~uri:request_uri ~login:("", login)
-                socket headers))
-          (function
-            | Harbor.Close s ->
-                self#log#info "Listener %s failed to authenticate" client_id;
-                Harbor.reply s
-            | _ -> assert false)
+        match login with
+          | Some login ->
+              Duppy.Monad.catch
+                (Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
+                   (Harbor.http_auth_check ~query ~uri:request_uri ~login socket
+                      headers))
+                (function
+                  | Harbor.Close s ->
+                      self#log#info "Listener %s failed to authenticate"
+                        client_id;
+                      Harbor.reply s
+                  | _ -> assert false)
+          | None -> Duppy.Monad.return ()
       in
       let listener =
         create_listener ~id:client_id ~socket ~close ~metadata_interval
