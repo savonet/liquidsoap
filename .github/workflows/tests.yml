@@ -23,7 +23,7 @@ jobs:
   run_tests:
     runs-on: depot-ubuntu-24.04-4
     container:
-      image: savonet/liquidsoap-ci:ubuntu_resolute-5.4.0
+      image: savonet/liquidsoap-ci:debian_trixie-5.4.0
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
