@@ -1148,32 +1148,54 @@ def replaces playlist(
       files()
     )
 
+  is_loading = ref(false)
+  def if_not_reloading(fn) =
+    if
+      not is_loading()
+    then
+      is_loading := true
+      try
+        fn()
+      finally
+        is_loading := false
+      end
+    end
+  end
+
   s.on_wake_up(
     synchronous=false,
     {
-      log(
-        label=s.id(),
-        "Initial load with URI #{playlist_uri()}."
+      if_not_reloading(
+        fun () ->
+          begin
+            log(
+              label=s.id(),
+              "Initial load with URI #{playlist_uri()}."
+            )
+            files := load_playlist()
+            s.reload(empty_queue=true, files())
+          end
       )
-      files := load_playlist()
-      s.reload(empty_queue=true, files())
     }
   )
 
   # The reload function
   def s.reload(~empty_queue=true, ~uri=null) =
-    if
-      failed_loads() < max_fail
-    then
-      if null.defined(uri) then playlist_uri := null.get(uri) end
-      log(
-        label=s.id(),
-        "Reloading playlist with URI #{playlist_uri()}."
-      )
-      files := load_playlist()
-      s.reload(empty_queue=empty_queue, files())
-      on_reload(playlist_uri())
-    end
+    if_not_reloading(
+      fun () ->
+        if
+          failed_loads() < max_fail
+        then
+          if null.defined(uri) then playlist_uri := null.get(uri) end
+          log(
+            label=s.id(),
+            "Reloading playlist with URI #{playlist_uri()}."
+          )
+          files := load_playlist()
+          s.reload(empty_queue=empty_queue, files())
+          on_reload(playlist_uri())
+        end
+    )
   end
 
   reloader_ref := s.reload
