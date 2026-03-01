@@ -29,5 +29,3 @@ jobs:
       - uses: tibdex/backport@9565281eda0731b1d20c4025c43339fb0a23812e # v2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Matches labels like "backport:v2.4.x-latest"
-          label_pattern: "^backport:(.+)$"
