@@ -52,6 +52,8 @@ exception Stopped
 type container = {
   input : Avutil.input Avutil.container;
   decoder : Decoder.buffer -> unit;
+  seek : int -> int;
+  state : Mutex_utils.state;
   positions : (unit -> int option) list;
   buffer : Decoder.buffer;
   get_metadata : unit -> (string * string) list;
@@ -74,7 +76,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method effective_source = (self :> Source.source)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
-    val pending_operation = Atomic.make `None
 
     val source_status
         : [ `Stopped
@@ -94,21 +95,11 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method! seek pos =
       match Atomic.get source_status with
-        | `Connected (_, container) ->
-            Ffmpeg_decoder.seek_wrap ~pending_operation (fun () ->
-                match
-                  List.find_map
-                    (fun position -> position ())
-                    container.positions
-                with
-                  | None -> 0
-                  | Some current_position ->
-                      let tpos =
-                        Frame.seconds_of_main (pos + current_position)
-                      in
-                      let ts = Int64.of_float (tpos *. 1000.) in
-                      Av.seek ~fmt:`Millisecond ~ts container.input;
-                      pos)
+        | `Connected (_, { seek; positions; _ }) -> (
+            match List.find_map (fun position -> position ()) positions with
+              | None -> 0
+              | Some current_position ->
+                  seek (pos + current_position) - current_position)
         | _ -> 0
 
     method private get_self_sync =
@@ -164,9 +155,13 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           Ffmpeg_decoder.mk_streams ~ctype:self#content_type
             ~decode_first_metadata:true input
         in
+        let state = Mutex_utils.mk_state () in
+        let target_position = Atomic.make None in
         let decoder =
-          Ffmpeg_decoder.mk_decoder ~pending_operation ~streams
-            ~target_position:(Atomic.make None) input
+          Ffmpeg_decoder.mk_decoder ~state ~streams ~target_position input
+        in
+        let seek =
+          Ffmpeg_decoder.seek ~state ~target_position ~streams ~container:input
         in
         let buffer = Decoder.mk_buffer ~ctype:self#content_type self#buffer in
         (* FFmpeg has memory leaks with chained ogg stream so we manually
@@ -211,7 +206,16 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             streams []
         in
         let container =
-          { input; decoder; positions; buffer; get_metadata; closed }
+          {
+            input;
+            decoder;
+            seek;
+            state;
+            positions;
+            buffer;
+            get_metadata;
+            closed;
+          }
         in
         Atomic.set source_status (`Connected (url, container));
         -1.
@@ -256,17 +260,15 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       match self#source_status with
         | `Stopping | `Stopped -> ()
         | `Polling | `Starting -> stop_task ()
-        | `Connected (_, { input; closed }) ->
+        | `Connected (_, { input; state; closed }) ->
             Atomic.set closed true;
-            self#mutexify
-              (fun () ->
+            Mutex_utils.mutable_lock ~state (fun () ->
                 try Av.close input
                 with exn ->
                   let bt = Printexc.get_backtrace () in
                   Utils.log_exception ~log:self#log ~bt
                     (Printf.sprintf "Error while disconnecting: %s"
-                       (Printexc.to_string exn)))
-              ();
+                       (Printexc.to_string exn)));
             List.iter (fun fn -> fn ()) on_disconnect;
             stop_task ()
 
@@ -282,14 +284,17 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | `Connected (_, c) -> c
         | _ -> raise Not_connected
 
+    method private decode =
+      let { decoder; buffer; closed; _ } = self#get_connected_container in
+      while Generator.length self#buffer < Lazy.force Frame.size do
+        if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
+        decoder buffer
+      done
+
     method private generate_frame =
       let size = Lazy.force Frame.size in
       try
-        let { decoder; buffer; closed } = self#get_connected_container in
-        while Generator.length self#buffer < Lazy.force Frame.size do
-          if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
-          self#mutexify (fun () -> decoder buffer) ()
-        done;
+        self#decode;
         let { get_metadata } = self#get_connected_container in
         let meta = get_metadata () in
         if meta <> [] then (

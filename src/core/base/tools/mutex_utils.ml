@@ -30,3 +30,43 @@ let[@inline never] mutexify m f x =
     | v ->
         Mutex.unlock m;
         v
+
+type state = {
+  mutex : Mutex.t;
+  condition : Condition.t;
+  lock : [ `Locked | `Mutating | `None ] Atomic.t;
+}
+
+let mk_state () =
+  {
+    mutex = Mutex.create ();
+    condition = Condition.create ();
+    lock = Atomic.make `None;
+  }
+
+let mutable_lock ~state fn =
+  let rec wait () =
+    if not (Atomic.compare_and_set state.lock `None `Mutating) then (
+      Domain.cpu_relax ();
+      wait ())
+  in
+  wait ();
+  Fun.protect fn ~finally:(fun () ->
+      Mutex.lock state.mutex;
+      Condition.signal state.condition;
+      Atomic.set state.lock `None;
+      Mutex.unlock state.mutex)
+
+let atomic_lock ~state fn =
+  let rec wait () =
+    if not (Atomic.compare_and_set state.lock `None `Locked) then (
+      (match Atomic.get state.lock with
+        | `Mutating ->
+            mutexify state.mutex
+              (fun () -> Condition.wait state.condition state.mutex)
+              ()
+        | _ -> Domain.cpu_relax ());
+      wait ())
+  in
+  wait ();
+  Fun.protect fn ~finally:(fun () -> Atomic.set state.lock `None)
