@@ -668,7 +668,7 @@ let reset_streams streams =
 let seek ~state ~target_position ~streams ~container ticks =
   Mutex_utils.mutable_lock ~state (fun () ->
       let tpos = Frame.seconds_of_main ticks in
-      log#debug "Setting target position to %f" tpos;
+      log#important "Setting target position to %f" tpos;
       Atomic.set target_position (Some ticks);
       let ts = Int64.of_float (tpos *. 1000.) in
       let frame_duration = Lazy.force Frame.duration in
