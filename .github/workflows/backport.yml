@@ -6,7 +6,7 @@ on:
 
 jobs:
   notify:
-    if: github.event.action == 'labeled' && startsWith(github.event.label.name, 'backport:')
+    if: github.event.action == 'labeled' && startsWith(github.event.label.name, 'backport ')
     runs-on: ubuntu-latest
     steps:
       - name: Comment on PR
@@ -14,7 +14,7 @@ jobs:
         with:
           script: |
             const label = context.payload.label.name;
-            const branch = label.replace('backport:', '');
+            const branch = label.replace('backport ', '');
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
