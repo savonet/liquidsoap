@@ -50,6 +50,13 @@ end
 
 module Http_transport : Transport_t with type socket = Http.socket
 
+type login_args = {
+  socket : Http.socket;
+  uri : string;
+  user : string;
+  password : string;
+}
+
 module type T = sig
   type socket
 
@@ -67,11 +74,7 @@ module type T = sig
   val close : socket -> unit
 
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
-
-  type reply =
-    | Close of (unit -> string)
-    | Relay of string * (unit -> unit)
-    | Custom
+  type reply = Close of (unit -> string) | Relay of string | Custom
 
   type http_handler =
     protocol:string ->
@@ -102,42 +105,55 @@ module type T = sig
   val remove_http_handler :
     port:int -> verb:http_verb -> uri:Lang.regexp -> unit -> unit
 
+  type relay_info = {
+    uri : string;
+    groups : (string * string) list;
+    stype : string;
+    headers : (string * string) list;
+    read : (socket -> bytes -> int -> int -> int) option;
+    socket : socket;
+  }
+
   class virtual source : object
     inherit Source.source
-
-    method virtual relay :
-      string ->
-      (string * string) list ->
-      ?read:(socket -> bytes -> int -> int -> int) ->
-      socket ->
-      unit
-
+    method virtual relay : relay_info -> unit
     method virtual encode_metadata : Frame.metadata -> unit
-    method virtual login : string * (socket:socket -> string -> string -> bool)
+    method virtual login : string * (login_args -> bool)
     method virtual icy_charset : string option
     method virtual meta_charset : string option
     method virtual get_mime_type : string option
   end
 
+  type source_handler = {
+    relay : relay_info -> unit;
+    login : string * (login_args -> bool);
+    icy_charset : string option;
+    meta_charset : string option;
+    mutable encode_metadata : Frame.metadata -> unit;
+    get_mime_type : unit -> string option;
+  }
+
   val http_auth_check :
     ?query:(string * string) list ->
-    login:string * (socket:socket -> string -> string -> bool) ->
+    uri:string ->
+    login:string * (login_args -> bool) ->
     socket ->
     (string * string) list ->
     (unit, reply) Duppy.Monad.t
 
-  val relayed : string -> (unit -> unit) -> ('a, reply) Duppy.Monad.t
+  val relayed : string -> ('a, reply) Duppy.Monad.t
 
   val add_source :
     pos:Liquidsoap_lang.Pos.t list ->
     transport:Http.transport ->
     port:int ->
-    mountpoint:string ->
+    mountpoint:Liquidsoap_lang.Lang.regexp ->
     icy:bool ->
-    source ->
+    source_handler ->
     unit
 
-  val remove_source : port:int -> mountpoint:string -> unit -> unit
+  val remove_source :
+    port:int -> mountpoint:Liquidsoap_lang.Lang.regexp -> unit -> unit
 end
 
 module Make (T : Transport_t) : T with type socket = T.socket

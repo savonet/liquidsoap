@@ -13,6 +13,14 @@ let () =
   Liquidsoap_lang.Cache.system_dir_override :=
     Liquidsoap_paths.system_cache_override
 
+(* Should we start even without active sources? *)
+let conf_force_start =
+  Dtools.Conf.bool
+    ~p:(Dtools.Init.conf#plug "force_start")
+    ~d:false "Start liquidsoap even without any active source"
+    ~comments:
+      ["This should be reserved for advanced dynamic uses of liquidsoap."]
+
 (** General configuration *)
 let conf = Dtools.Conf.void "Liquidsoap configuration"
 
