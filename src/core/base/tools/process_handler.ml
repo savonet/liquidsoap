@@ -253,9 +253,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     match buf with
       | buf when buf = stop_c -> `Stop
       | buf when buf = kill_c -> `Kill
-      | buf when buf = done_c ->
-          read_remaining_pipes ();
-          raise Finished
+      | buf when buf = done_c -> raise Finished
       | _ -> assert false
   in
   let rec handler l =
@@ -301,6 +299,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
       get_task decision
     with
       | Finished ->
+          read_remaining_pipes ();
           let { in_pipe; out_pipe; p; status } = get_process t in
           let silent f arg = try ignore (f arg) with _ -> () in
           silent Unix.close in_pipe;
