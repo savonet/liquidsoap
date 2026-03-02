@@ -153,3 +153,15 @@ jobs:
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  retry_failed_jobs:
+    runs-on: depot-ubuntu-24.04-4
+    needs: [build_opam, build_posix, build_docker, update_release]
+    if: always() && contains(needs.*.result, 'failure') && fromJSON(github.run_attempt) < 4
+    permissions:
+      actions: write
+    steps:
+      - name: Re-run failed jobs
+        run: gh run rerun ${{ github.run_id }} --failed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
