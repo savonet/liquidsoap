@@ -648,7 +648,7 @@ class hls_output p =
           let b = Bytes.create len in
           let rec f n =
             if n < len then (
-              let r = Unix.read fd b n (len - n) in
+              let r = Unix_utils.read fd b n (len - n) in
               if r <> 0 then f (n + r) else n)
             else n
           in

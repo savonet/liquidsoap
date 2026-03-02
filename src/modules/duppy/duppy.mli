@@ -66,15 +66,6 @@ val create :
   unit ->
   'a scheduler
 
-(** Internal polling function. Uses `Unix.select` on windows and `poll`
-    otherwise. *)
-val poll :
-  Unix.file_descr list ->
-  Unix.file_descr list ->
-  Unix.file_descr list ->
-  float ->
-  Unix.file_descr list * Unix.file_descr list * Unix.file_descr list
-
 (** [queue ~log ~priorities s name]
  * starts a queue, on the scheduler [s] only processing priorities [p]
  * for which [priorities p] returns [true].

@@ -571,7 +571,7 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
   let proc_bytes = ref 0 in
   let read buf ofs len =
     try
-      let i = Unix.read fd buf ofs len in
+      let i = Unix_utils.read fd buf ofs len in
       proc_bytes := !proc_bytes + i;
       i
     with _ -> 0

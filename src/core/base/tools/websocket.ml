@@ -13,9 +13,9 @@ end
 module Unix_transport = struct
   type socket = Unix.file_descr
 
-  let read = Unix.read
+  let read = Unix_utils.read
   let read_retry = Extralib.Unix.read_retry
-  let write = Unix.write
+  let write = Unix_utils.write
 end
 
 module type Websocket_t = sig

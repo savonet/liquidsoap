@@ -242,7 +242,8 @@ let _ =
             let status = ref None in
             let on_stop s =
               status := Some s;
-              begin try ignore (Unix.write in_pipe (Bytes.of_string " ") 0 1)
+              begin try
+                ignore (Unix_utils.write in_pipe (Bytes.of_string " ") 0 1)
               with _ -> ()
               end;
               false
