@@ -7,7 +7,6 @@ on:
       - main
       - "v*-latest"
     tags:
-      - rolling-release-*
       - v[0-9]+.[0-9]+.[0-9]+
       - v[0-9]+.[0-9]+.[0-9]+-*
     paths:
@@ -30,6 +29,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-4
     outputs:
       branch: ${{ steps.build_details.outputs.branch }}
+      release_tag: ${{ steps.build_details.outputs.release_tag }}
       sha: ${{ steps.build_details.outputs.sha }}
       is_release: ${{ steps.build_details.outputs.is_release }}
       is_rolling_release: ${{ steps.build_details.outputs.is_rolling_release }}
@@ -134,7 +134,7 @@ jobs:
     if: needs.build_details.outputs.is_release == 'true'
     with:
       sha: ${{ needs.build_details.outputs.sha }}
-      branch: ${{ needs.build_details.outputs.branch }}
+      branch: ${{ needs.build_details.outputs.release_tag }}
       is_rolling_release: ${{ needs.build_details.outputs.is_rolling_release }}
     secrets:
       LIQUIDSOAP_RELEASE_ASSETS_TOKEN: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
