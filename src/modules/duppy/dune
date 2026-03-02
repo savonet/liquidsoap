@@ -1,6 +1,6 @@
 (library
  (name duppy)
- (libraries unix threads re)
+ (libraries unix threads re unix_utils)
  (foreign_stubs
   (language c)
   (names duppy_stubs))

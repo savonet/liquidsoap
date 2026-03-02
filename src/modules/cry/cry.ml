@@ -119,7 +119,7 @@ let unix_socket transport fd : socket =
       wait_for ?log event d
 
     method write = Unix.write fd
-    method read = Unix.read fd
+    method read = Unix_utils.read fd
     method close = Unix.close fd
   end
 

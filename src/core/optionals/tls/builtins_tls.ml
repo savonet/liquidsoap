@@ -50,7 +50,7 @@ module Liq_tls = struct
 
   let read ~timeout h len =
     Tutils.wait_for (`Read h.fd) timeout;
-    let n = Unix.read h.fd h.buf 0 (min len buf_len) in
+    let n = Unix_utils.read h.fd h.buf 0 (min len buf_len) in
     Bytes.sub_string h.buf 0 n
 
   let read_pending h = function

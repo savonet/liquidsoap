@@ -245,7 +245,7 @@ let process s log =
        * when exceesive wake_up may fill up the
        * pipe's write buffer, causing a wake_up
        * to become blocking.. *)
-      ignore (Unix.read s.out_pipe tmp 0 1024)
+      ignore (Unix_utils.read s.out_pipe tmp 0 1024)
   in
   (* Move ready tasks to the ready list. *)
   let e = { r; w; x; t = 0. } in
@@ -392,7 +392,7 @@ module Async = struct
     let rec task l =
       if List.exists (( = ) (`Read out_pipe)) l then
         (* Consume data from the pipe *)
-        ignore (Unix.read out_pipe tmp 0 1024);
+        ignore (Unix_utils.read out_pipe tmp 0 1024);
       if !stop then begin
         begin try
           (* This interface is purely asynchronous
@@ -466,7 +466,7 @@ module Unix_transport : Transport_t with type t = Unix.file_descr = struct
     (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
   let sock s = s
-  let read = Unix.read
+  let read = Unix_utils.read
   let write = Unix.write
 
   external ba_write : t -> bigarray -> int -> int -> int
@@ -853,7 +853,7 @@ module Monad = struct
         if not !stop then begin
           let tasks = Queue.fold process_mutex [] mutexes in
           Mutex_o.unlock ctl_m;
-          ignore (Unix.read x tmp 0 1024);
+          ignore (Unix_utils.read x tmp 0 1024);
           { Task.priority = Control.priority; events = [`Read x]; handler }
           :: tasks
         end

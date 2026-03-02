@@ -1,0 +1,4 @@
+(library
+ (name unix_utils)
+ (libraries unix)
+ (synopsis "Unix utilities"))

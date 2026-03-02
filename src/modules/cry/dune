@@ -1,6 +1,6 @@
 (library
  (name cry)
- (libraries bytes unix)
+ (libraries bytes unix unix_utils)
  (foreign_stubs
   (language c)
   (names cry_stubs))

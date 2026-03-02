@@ -123,7 +123,7 @@ class input ~self_sync ~start ~fallible dev =
       let fd = Option.get fd in
       let len = 2 * Array.length buf * Audio.Mono.length buf.(0) in
       let s = Bytes.create len in
-      let r = Unix.read fd s 0 len in
+      let r = Unix_utils.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r);
       Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf 0 len;

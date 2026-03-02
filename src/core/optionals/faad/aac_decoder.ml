@@ -154,7 +154,7 @@ let file_type ~metadata:_ ~ctype:_ filename =
       let aacbuflen = Utils.buflen in
       let aacbuf = Bytes.create aacbuflen in
       let _, rate, channels =
-        let n = Unix.read fd aacbuf 0 aacbuflen in
+        let n = Unix_utils.read fd aacbuf 0 aacbuflen in
         Faad.init dec aacbuf 0 n
       in
       log#important "Libfaad recognizes %s as AAC (%dHz,%d channels)."
