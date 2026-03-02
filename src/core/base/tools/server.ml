@@ -438,7 +438,7 @@ let start_telnet () =
   Unix.setsockopt sock Unix.TCP_NODELAY true;
   let rec incoming _ =
     (try
-       let socket, caller = Unix.accept ~cloexec:true sock in
+       let socket, caller = Unix_utils.accept ~cloexec:true sock in
        let ip = Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller in
        log#f conf_log_level#get "New client: %s." ip;
        handle_client socket ip

@@ -20,22 +20,8 @@
 
 (** OCaml low level implementation of the shout source protocol. *)
 
-external poll :
-  Unix.file_descr array ->
-  Unix.file_descr array ->
-  Unix.file_descr array ->
-  float ->
-  Unix.file_descr array * Unix.file_descr array * Unix.file_descr array
-  = "caml_cry_poll"
-
-let poll r w e timeout =
-  let r = Array.of_list r in
-  let w = Array.of_list w in
-  let e = Array.of_list e in
-  let r, w, e = poll r w e timeout in
-  (Array.to_list r, Array.to_list w, Array.to_list e)
-
-let select = match Sys.os_type with "Unix" -> poll | _ -> Unix.select
+let select =
+  match Sys.os_type with "Unix" -> Unix_utils.poll | _ -> Unix_utils.select
 
 type error =
   | Create of exn
@@ -90,10 +76,7 @@ let wait_for ?(log = fun _ -> ()) event timeout =
       | `Both socket -> ([socket], [socket])
   in
   let rec wait t =
-    let r, w, _ =
-      try select r w [] t
-      with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
-    in
+    let r, w, _ = select r w [] t in
     if r = [] && w = [] then (
       let current_time = Unix.gettimeofday () in
       if current_time >= max_time then (

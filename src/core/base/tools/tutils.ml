@@ -152,11 +152,7 @@ let set_done, wait_done =
   let read_done, write_done = Unix.pipe ~cloexec:true () in
   let set_done () = ignore (Unix_utils.write write_done (Bytes.create 1) 0 1) in
   let wait_done () =
-    let rec wait_for_done () =
-      try Utils.select [read_done] [] [] (-1.)
-      with Unix.Unix_error (Unix.EINTR, _, _) -> wait_for_done ()
-    in
-    let r, _, _ = wait_for_done () in
+    let r, _, _ = Utils.select [read_done] [] [] (-1.) in
     assert (r = [read_done])
   in
   (set_done, wait_done)
@@ -333,10 +329,7 @@ let wait_for =
         | `Both socket -> ([socket], [socket])
     in
     let rec wait t =
-      let r, w, _ =
-        try Utils.select (end_r :: r) w [] t
-        with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
-      in
+      let r, w, _ = Utils.select (end_r :: r) w [] t in
       if List.mem end_r r then raise Exit;
       if r = [] && w = [] then (
         let current_time = Unix.gettimeofday () in

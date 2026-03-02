@@ -22,7 +22,7 @@
 
 include Liquidsoap_lang.Utils
 
-let select = if Sys.win32 then Unix.select else Duppy.poll
+let select = if Sys.win32 then Unix_utils.select else Unix_utils.poll
 
 (* Util to log exception and backtrace together
    when log level is set to info and just exception

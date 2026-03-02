@@ -24,25 +24,10 @@ module Pcre = Re.Pcre
 
 type fd = Unix.file_descr
 
-external poll :
-  Unix.file_descr array ->
-  Unix.file_descr array ->
-  Unix.file_descr array ->
-  float ->
-  Unix.file_descr array * Unix.file_descr array * Unix.file_descr array
-  = "caml_poll"
-
-let poll r w e timeout =
-  let r = Array.of_list r in
-  let w = Array.of_list w in
-  let e = Array.of_list e in
-  let r, w, e = poll r w e timeout in
-  (Array.to_list r, Array.to_list w, Array.to_list e)
-
 let select, select_fname =
   match Sys.os_type with
-    | "Unix" -> (poll, "poll")
-    | _ -> (Unix.select, "select")
+    | "Unix" -> (Unix_utils.poll, "poll")
+    | _ -> (Unix_utils.select, "select")
 
 (** [remove f l] is like [List.find f l] but also returns the result of removing
     * the found element from the original list. *)
@@ -207,35 +192,24 @@ let process s log =
   in
   (* Poll for an event. *)
   let r, w, x =
-    let rec f () =
-      try
-        let timeout = if e.t = infinity then -1. else max 0. (e.t -. time ()) in
-        log
-          (Printf.sprintf "Enter %s at %f, timeout %f (%d/%d/%d)." select_fname
-             (time ()) timeout (List.length e.r) (List.length e.w)
-             (List.length e.x));
-        let r, w, x = select e.r e.w e.x timeout in
-        log
-          (Printf.sprintf "Left %s at %f (%d/%d/%d)." select_fname (time ())
-             (List.length r) (List.length w) (List.length x));
-        (r, w, x)
-      with
-        | Unix.Unix_error (Unix.EINTR, _, _) ->
-            (* [EINTR] means that select was interrupted by
-             * a signal before any of the selected events
-             * occurred and before the timeout interval expired.
-             * We catch it and restart.. *)
-            log (Printf.sprintf "Select interrupted at %f." (time ()));
-            f ()
-        | e ->
-            (* Uncaught exception:
-             * 1) Discards all tasks currently in the loop (we do not know which
-             *    socket caused an error).
-             * 2) Re-Raise e *)
-            clear_tasks s;
-            raise e
-    in
-    f ()
+    try
+      let timeout = if e.t = infinity then -1. else max 0. (e.t -. time ()) in
+      log
+        (Printf.sprintf "Enter %s at %f, timeout %f (%d/%d/%d)." select_fname
+           (time ()) timeout (List.length e.r) (List.length e.w)
+           (List.length e.x));
+      let r, w, x = select e.r e.w e.x timeout in
+      log
+        (Printf.sprintf "Left %s at %f (%d/%d/%d)." select_fname (time ())
+           (List.length r) (List.length w) (List.length x));
+      (r, w, x)
+    with e ->
+      (* Uncaught exception:
+       * 1) Discards all tasks currently in the loop (we do not know which
+       *    socket caused an error).
+       * 2) Re-Raise e *)
+      clear_tasks s;
+      raise e
   in
   (* Empty the wake_up pipe if needed. *)
   let () =

@@ -49,7 +49,7 @@ let rec accept ?timeout sock =
   in
   try
     if has_timeout then Unix.set_nonblock sock;
-    let fd, addr = Unix.accept ~cloexec:true sock in
+    let fd, addr = Unix_utils.accept ~cloexec:true sock in
     if has_timeout then (
       Unix.clear_nonblock sock;
       Unix.clear_nonblock fd);

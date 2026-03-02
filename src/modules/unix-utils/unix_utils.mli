@@ -20,12 +20,45 @@
 
  *****************************************************************************)
 
-(** [read fd buf ofs len] reads up to [len] bytes from file descriptor [fd] into
-    buffer [buf] starting at offset [ofs]. Automatically retries on [EINTR]
-    errors, which occur when a signal interrupts the read. *)
-val read : Unix.file_descr -> bytes -> int -> int -> int
+(** EINTR-safe wrappers around Unix I/O calls. Each function retries
+    automatically when interrupted by a signal. *)
 
-(** [write fd buf ofs len] writes up to [len] bytes from buffer [buf] starting
-    at offset [ofs] to file descriptor [fd]. Automatically retries on [EINTR]
-    errors, which occur when a signal interrupts the write. *)
+val poll :
+  Unix.file_descr list ->
+  Unix.file_descr list ->
+  Unix.file_descr list ->
+  float ->
+  Unix.file_descr list * Unix.file_descr list * Unix.file_descr list
+
+val select :
+  Unix.file_descr list ->
+  Unix.file_descr list ->
+  Unix.file_descr list ->
+  float ->
+  Unix.file_descr list * Unix.file_descr list * Unix.file_descr list
+
+val read : Unix.file_descr -> bytes -> int -> int -> int
 val write : Unix.file_descr -> bytes -> int -> int -> int
+val accept : ?cloexec:bool -> Unix.file_descr -> Unix.file_descr * Unix.sockaddr
+val recv : Unix.file_descr -> bytes -> int -> int -> Unix.msg_flag list -> int
+
+val recvfrom :
+  Unix.file_descr ->
+  bytes ->
+  int ->
+  int ->
+  Unix.msg_flag list ->
+  int * Unix.sockaddr
+
+val send : Unix.file_descr -> bytes -> int -> int -> Unix.msg_flag list -> int
+
+val sendto :
+  Unix.file_descr ->
+  bytes ->
+  int ->
+  int ->
+  Unix.msg_flag list ->
+  Unix.sockaddr ->
+  int
+
+val mkdir : string -> Unix.file_perm -> unit

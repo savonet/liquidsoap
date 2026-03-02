@@ -1,4 +1,7 @@
 (library
  (name unix_utils)
- (libraries unix)
+ (libraries unix threads)
+ (foreign_stubs
+  (language c)
+  (names unix_utils_stubs))
  (synopsis "Unix utilities"))
