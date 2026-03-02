@@ -20,18 +20,26 @@ if [ "${IS_FORK}" == "true" ]; then
   IS_FORK=true
 fi
 
-if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\.x || "${BRANCH}" =~ ^v[0-9]\.[0-9]\.[0-9]) ]]; then
-  echo "Branch is release branch"
-  IS_RELEASE=true
+RELEASE_TAG="${BRANCH}"
+IS_ROLLING_RELEASE=
+IS_RELEASE=
+DOCKER_RELEASE=
 
-  echo "Branch has a docker release"
-  DOCKER_RELEASE=true
-else
-  echo "Branch is not release branch"
-  IS_RELEASE=
-
-  echo "Branch does not have a docker release"
-  DOCKER_RELEASE=
+if [[ "${IS_FORK}" != "true" ]]; then
+  if [[ "${BRANCH}" =~ ^v[0-9]+\.[0-9]+\.[a-z0-9]+-latest$ ]]; then
+    echo "Branch is rolling release branch"
+    VERSION="${BRANCH%-latest}"
+    RELEASE_TAG="rolling-release-${VERSION}"
+    IS_ROLLING_RELEASE=true
+    IS_RELEASE=true
+    DOCKER_RELEASE=true
+  elif [[ "${BRANCH}" =~ ^v[0-9]\.[0-9]\.[0-9] ]]; then
+    echo "Branch is release branch"
+    IS_RELEASE=true
+    DOCKER_RELEASE=true
+  else
+    echo "Branch is not release branch"
+  fi
 fi
 
 BUILD_OS='["debian_trixie", "debian_forky", "ubuntu_plucky", "ubuntu_noble", "alpine"]'
@@ -39,13 +47,6 @@ BUILD_PLATFORM='["amd64", "arm64"]'
 BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "depot-ubuntu-24.04-4", "alpine-arch": "x86_64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": "depot-ubuntu-24.04-arm-4", "alpine-arch": "aarch64", "docker-debian-os": "trixie"}]'
 
 SHA=$(git rev-parse --short HEAD)
-
-if [[ "${BRANCH}" =~ "rolling-release-" ]]; then
-  echo "Branch is rolling release"
-  IS_ROLLING_RELEASE=true
-else
-  IS_ROLLING_RELEASE=
-fi
 
 if [ "${IS_FORK}" != "true" ] && [ "${IS_RELEASE}" != "true" ] && [ "${IS_ROLLING_RELEASE}" != "true" ]; then
   echo "Save tests traces"
@@ -72,6 +73,7 @@ OCAML_DOCKER_RELEASE_VERSION="4.14.2"
 
 {
   echo "branch=${BRANCH}"
+  echo "release_tag=${RELEASE_TAG}"
   echo "is_release=${IS_RELEASE}"
   echo "build_os=${BUILD_OS}"
   echo "build_platform=${BUILD_PLATFORM}"
