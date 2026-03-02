@@ -107,7 +107,7 @@ let create ?(on_error = Printexc.raise_with_backtrace) ?(compare = compare) () =
   }
 
 let wake_up s =
-  try ignore (Unix.write s.in_pipe (Bytes.of_string "x") 0 1)
+  try ignore (Unix_utils.write s.in_pipe (Bytes.of_string "x") 0 1)
   with
   | Unix.Unix_error (Unix.EAGAIN, _, _)
   | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
@@ -418,7 +418,7 @@ module Async = struct
     try
       begin match t.fd with
         | Some t -> (
-            try ignore (Unix.write t (Bytes.of_string " ") 0 1)
+            try ignore (Unix_utils.write t (Bytes.of_string " ") 0 1)
             with
             | Unix.Unix_error (Unix.EAGAIN, _, _)
             | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
@@ -437,7 +437,7 @@ module Async = struct
       begin match t.fd with
         | Some c ->
             t.stop := true;
-            ignore (Unix.write c (Bytes.of_string " ") 0 1)
+            ignore (Unix_utils.write c (Bytes.of_string " ") 0 1)
         | None -> raise Stopped
       end;
       t.fd <- None;
@@ -467,7 +467,7 @@ module Unix_transport : Transport_t with type t = Unix.file_descr = struct
 
   let sock s = s
   let read = Unix_utils.read
-  let write = Unix.write
+  let write = Unix_utils.write
 
   external ba_write : t -> bigarray -> int -> int -> int
     = "ocaml_duppy_write_ba"
@@ -802,7 +802,7 @@ module Monad = struct
       let tmp = Bytes.create 1024
       let x, y = Unix.pipe ()
       let stop = ref false
-      let wake_up () = ignore (Unix.write y (Bytes.of_string " ") 0 1)
+      let wake_up () = ignore (Unix_utils.write y (Bytes.of_string " ") 0 1)
       let ctl_m = Mutex_o.create ()
 
       let finalise _ =

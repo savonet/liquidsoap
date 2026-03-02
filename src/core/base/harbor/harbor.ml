@@ -1193,7 +1193,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     then (
       log#important "Nothing more on port %i: closing sockets." port;
       let f in_s =
-        ignore (Unix.write in_s (Bytes.of_string " ") 0 1);
+        ignore (Unix_utils.write in_s (Bytes.of_string " ") 0 1);
         Unix.close in_s
       in
       List.iter f fds;
@@ -1231,7 +1231,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       then (
         log#info "Nothing more on port %i: closing sockets." port;
         let f in_s =
-          ignore (Unix.write in_s (Bytes.of_string " ") 0 1);
+          ignore (Unix_utils.write in_s (Bytes.of_string " ") 0 1);
           Unix.close in_s
         in
         List.iter f fds;

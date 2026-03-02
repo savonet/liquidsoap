@@ -25,3 +25,9 @@
 let rec read fd buf ofs len =
   try Unix.read fd buf ofs len
   with Unix.Unix_error (Unix.EINTR, _, _) -> read fd buf ofs len
+
+(* Wrapper around Unix_utils.write that automatically retries on EINTR.
+   EINTR occurs when a signal is delivered during a blocking write. *)
+let rec write fd buf ofs len =
+  try Unix.write fd buf ofs len
+  with Unix.Unix_error (Unix.EINTR, _, _) -> write fd buf ofs len

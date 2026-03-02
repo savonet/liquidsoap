@@ -24,3 +24,8 @@
     buffer [buf] starting at offset [ofs]. Automatically retries on [EINTR]
     errors, which occur when a signal interrupts the read. *)
 val read : Unix.file_descr -> bytes -> int -> int -> int
+
+(** [write fd buf ofs len] writes up to [len] bytes from buffer [buf] starting
+    at offset [ofs] to file descriptor [fd]. Automatically retries on [EINTR]
+    errors, which occur when a signal interrupts the write. *)
+val write : Unix.file_descr -> bytes -> int -> int -> int

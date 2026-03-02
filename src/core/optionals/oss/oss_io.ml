@@ -79,7 +79,7 @@ class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
       let r = Audio.S16LE.size (Audio.channels buf) len in
       let s = Bytes.create r in
       Audio.S16LE.of_audio buf 0 s 0 len;
-      let w = Unix.write fd s 0 r in
+      let w = Unix_utils.write fd s 0 r in
       assert (w = r)
   end
 

@@ -87,7 +87,7 @@ let stop t =
       match t.process with
         | None -> raise Finished
         | Some { in_pipe } -> (
-            try ignore (Unix.write in_pipe stop_c 0 1) with _ -> ()))
+            try ignore (Unix_utils.write in_pipe stop_c 0 1) with _ -> ()))
     ()
 
 let kill t =
@@ -96,7 +96,7 @@ let kill t =
       match t.process with
         | None -> raise Finished
         | Some { in_pipe } -> (
-            try ignore (Unix.write in_pipe kill_c 0 1) with _ -> ()))
+            try ignore (Unix_utils.write in_pipe kill_c 0 1) with _ -> ()))
     ()
 
 let send_stop ~log t =
@@ -130,7 +130,7 @@ let cleanup ~log t =
       _kill process)
     ()
 
-let pusher fd buf ofs len = Unix.write fd buf ofs len
+let pusher fd buf ofs len = Unix_utils.write fd buf ofs len
 
 let puller fd buf ofs len =
   try Unix_utils.read fd buf ofs len with _ when Sys.win32 -> 0
@@ -168,7 +168,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                  if Atomic.compare_and_set process.status None (Some status)
                  then (
                    (try close_out p.stdin with _ -> ());
-                   ignore (Unix.write in_pipe done_c 0 1)))
+                   ignore (Unix_utils.write in_pipe done_c 0 1)))
                ()
            with _ -> ())
          ());
