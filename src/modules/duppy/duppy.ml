@@ -24,25 +24,10 @@ module Pcre = Re.Pcre
 
 type fd = Unix.file_descr
 
-external poll :
-  Unix.file_descr array ->
-  Unix.file_descr array ->
-  Unix.file_descr array ->
-  float ->
-  Unix.file_descr array * Unix.file_descr array * Unix.file_descr array
-  = "caml_poll"
-
-let poll r w e timeout =
-  let r = Array.of_list r in
-  let w = Array.of_list w in
-  let e = Array.of_list e in
-  let r, w, e = poll r w e timeout in
-  (Array.to_list r, Array.to_list w, Array.to_list e)
-
 let select, select_fname =
   match Sys.os_type with
-    | "Unix" -> (poll, "poll")
-    | _ -> (Unix.select, "select")
+    | "Unix" -> (Unix_utils.poll, "poll")
+    | _ -> (Unix_utils.select, "select")
 
 (** [remove f l] is like [List.find f l] but also returns the result of removing
     * the found element from the original list. *)
@@ -107,7 +92,7 @@ let create ?(on_error = Printexc.raise_with_backtrace) ?(compare = compare) () =
   }
 
 let wake_up s =
-  try ignore (Unix.write s.in_pipe (Bytes.of_string "x") 0 1)
+  try ignore (Unix_utils.write s.in_pipe (Bytes.of_string "x") 0 1)
   with
   | Unix.Unix_error (Unix.EAGAIN, _, _)
   | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
@@ -207,35 +192,24 @@ let process s log =
   in
   (* Poll for an event. *)
   let r, w, x =
-    let rec f () =
-      try
-        let timeout = if e.t = infinity then -1. else max 0. (e.t -. time ()) in
-        log
-          (Printf.sprintf "Enter %s at %f, timeout %f (%d/%d/%d)." select_fname
-             (time ()) timeout (List.length e.r) (List.length e.w)
-             (List.length e.x));
-        let r, w, x = select e.r e.w e.x timeout in
-        log
-          (Printf.sprintf "Left %s at %f (%d/%d/%d)." select_fname (time ())
-             (List.length r) (List.length w) (List.length x));
-        (r, w, x)
-      with
-        | Unix.Unix_error (Unix.EINTR, _, _) ->
-            (* [EINTR] means that select was interrupted by
-             * a signal before any of the selected events
-             * occurred and before the timeout interval expired.
-             * We catch it and restart.. *)
-            log (Printf.sprintf "Select interrupted at %f." (time ()));
-            f ()
-        | e ->
-            (* Uncaught exception:
-             * 1) Discards all tasks currently in the loop (we do not know which
-             *    socket caused an error).
-             * 2) Re-Raise e *)
-            clear_tasks s;
-            raise e
-    in
-    f ()
+    try
+      let timeout = if e.t = infinity then -1. else max 0. (e.t -. time ()) in
+      log
+        (Printf.sprintf "Enter %s at %f, timeout %f (%d/%d/%d)." select_fname
+           (time ()) timeout (List.length e.r) (List.length e.w)
+           (List.length e.x));
+      let r, w, x = select e.r e.w e.x timeout in
+      log
+        (Printf.sprintf "Left %s at %f (%d/%d/%d)." select_fname (time ())
+           (List.length r) (List.length w) (List.length x));
+      (r, w, x)
+    with e ->
+      (* Uncaught exception:
+       * 1) Discards all tasks currently in the loop (we do not know which
+       *    socket caused an error).
+       * 2) Re-Raise e *)
+      clear_tasks s;
+      raise e
   in
   (* Empty the wake_up pipe if needed. *)
   let () =
@@ -245,7 +219,7 @@ let process s log =
        * when exceesive wake_up may fill up the
        * pipe's write buffer, causing a wake_up
        * to become blocking.. *)
-      ignore (Unix.read s.out_pipe tmp 0 1024)
+      ignore (Unix_utils.read s.out_pipe tmp 0 1024)
   in
   (* Move ready tasks to the ready list. *)
   let e = { r; w; x; t = 0. } in
@@ -392,7 +366,7 @@ module Async = struct
     let rec task l =
       if List.exists (( = ) (`Read out_pipe)) l then
         (* Consume data from the pipe *)
-        ignore (Unix.read out_pipe tmp 0 1024);
+        ignore (Unix_utils.read out_pipe tmp 0 1024);
       if !stop then begin
         begin try
           (* This interface is purely asynchronous
@@ -418,7 +392,7 @@ module Async = struct
     try
       begin match t.fd with
         | Some t -> (
-            try ignore (Unix.write t (Bytes.of_string " ") 0 1)
+            try ignore (Unix_utils.write t (Bytes.of_string " ") 0 1)
             with
             | Unix.Unix_error (Unix.EAGAIN, _, _)
             | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
@@ -437,7 +411,7 @@ module Async = struct
       begin match t.fd with
         | Some c ->
             t.stop := true;
-            ignore (Unix.write c (Bytes.of_string " ") 0 1)
+            ignore (Unix_utils.write c (Bytes.of_string " ") 0 1)
         | None -> raise Stopped
       end;
       t.fd <- None;
@@ -466,8 +440,8 @@ module Unix_transport : Transport_t with type t = Unix.file_descr = struct
     (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
   let sock s = s
-  let read = Unix.read
-  let write = Unix.write
+  let read = Unix_utils.read
+  let write = Unix_utils.write
 
   external ba_write : t -> bigarray -> int -> int -> int
     = "ocaml_duppy_write_ba"
@@ -802,7 +776,7 @@ module Monad = struct
       let tmp = Bytes.create 1024
       let x, y = Unix.pipe ()
       let stop = ref false
-      let wake_up () = ignore (Unix.write y (Bytes.of_string " ") 0 1)
+      let wake_up () = ignore (Unix_utils.write y (Bytes.of_string " ") 0 1)
       let ctl_m = Mutex_o.create ()
 
       let finalise _ =
@@ -853,7 +827,7 @@ module Monad = struct
         if not !stop then begin
           let tasks = Queue.fold process_mutex [] mutexes in
           Mutex_o.unlock ctl_m;
-          ignore (Unix.read x tmp 0 1024);
+          ignore (Unix_utils.read x tmp 0 1024);
           { Task.priority = Control.priority; events = [`Read x]; handler }
           :: tasks
         end

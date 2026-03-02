@@ -17,11 +17,10 @@ module Filename = struct
           Printf.sprintf "%s/%s%s%s" dir prefix (rand_digits ()) suffix
         in
         try
-          Unix.mkdir dir mode;
+          Unix_utils.mkdir dir mode;
           dir
         with
           | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
-          | Unix.Unix_error (Unix.EINTR, _, _) -> loop count
           | Unix.Unix_error (e, _, _) ->
               raise_err ("mk_temp_dir: " ^ Unix.error_message e))
     in

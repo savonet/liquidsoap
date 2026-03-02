@@ -55,7 +55,7 @@ let connect () =
     let ans = ref "" in
     let n = ref buflen in
     while !n = buflen do
-      n := Unix.recv socket buf 0 buflen [];
+      n := Unix_utils.recv socket buf 0 buflen [];
       ans := !ans ^ Bytes.sub_string buf 0 !n
     done;
     if conf_debug#get then Printf.printf "R: %s%!" !ans;
@@ -64,7 +64,7 @@ let connect () =
   let write s =
     let len = String.length s in
     if conf_debug#get then Printf.printf "W: %s%!" s;
-    let l = Unix.send socket (Bytes.of_string s) 0 len [] in
+    let l = Unix_utils.send socket (Bytes.of_string s) 0 len [] in
     assert (l = len)
   in
   Unix.connect socket sockaddr;

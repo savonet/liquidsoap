@@ -82,7 +82,9 @@ class output ~register_telnet ~infallible ~autostart ~hostname ~port
             let rec f pos =
               if off + pos < len then (
                 let len = min (len - pos) max_packet_size in
-                let len = Unix.sendto socket msg (off + pos) len [] portaddr in
+                let len =
+                  Unix_utils.sendto socket msg (off + pos) len [] portaddr
+                in
                 f (pos + len))
             in
             f 0);
@@ -167,7 +169,7 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
       (* Read data from the network. *)
       let read buf ofs len =
         wait ();
-        let n, _ = Unix.recvfrom socket buf ofs len [] in
+        let n, _ = Unix_utils.recvfrom socket buf ofs len [] in
         n
       in
       let input = { Decoder.read; tell = None; length = None; lseek = None } in

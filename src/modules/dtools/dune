@@ -2,6 +2,7 @@
  (name dtools)
  (libraries
   str
+  stdlib_utils
   threads
   unix
   (select

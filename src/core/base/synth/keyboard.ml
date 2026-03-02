@@ -90,7 +90,7 @@ class keyboard =
             else (
               let c =
                 let c = Bytes.create 1 in
-                ignore (Unix.read Unix.stdin c 0 1);
+                ignore (Unix_utils.read Unix.stdin c 0 1);
                 Bytes.get c 0
               in
               begin try

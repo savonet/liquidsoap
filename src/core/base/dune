@@ -34,7 +34,8 @@
   uri
   metadata
   mem_usage
-  magic-mime)
+  magic-mime
+  stdlib_utils)
  (foreign_stubs
   (language c)
   (names unix_c defer_c content_pcm_c lufs_c))

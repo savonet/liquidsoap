@@ -150,13 +150,9 @@ let join_all ~set () =
 
 let set_done, wait_done =
   let read_done, write_done = Unix.pipe ~cloexec:true () in
-  let set_done () = ignore (Unix.write write_done (Bytes.create 1) 0 1) in
+  let set_done () = ignore (Unix_utils.write write_done (Bytes.create 1) 0 1) in
   let wait_done () =
-    let rec wait_for_done () =
-      try Utils.select [read_done] [] [] (-1.)
-      with Unix.Unix_error (Unix.EINTR, _, _) -> wait_for_done ()
-    in
-    let r, _, _ = wait_for_done () in
+    let r, _, _ = Utils.select [read_done] [] [] (-1.) in
     assert (r = [read_done])
   in
   (set_done, wait_done)
@@ -322,7 +318,7 @@ type event =
 let wait_for =
   let end_r, end_w = Unix.pipe ~cloexec:true () in
   Lifecycle.before_core_shutdown ~name:"wait_for shutdown" (fun () ->
-      try ignore (Unix.write end_w (Bytes.create 1) 0 1) with _ -> ());
+      try ignore (Unix_utils.write end_w (Bytes.create 1) 0 1) with _ -> ());
   fun ?(log = fun _ -> ()) event timeout ->
     let start_time = Unix.gettimeofday () in
     let max_time = start_time +. timeout in
@@ -333,10 +329,7 @@ let wait_for =
         | `Both socket -> ([socket], [socket])
     in
     let rec wait t =
-      let r, w, _ =
-        try Utils.select (end_r :: r) w [] t
-        with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
-      in
+      let r, w, _ = Utils.select (end_r :: r) w [] t in
       if List.mem end_r r then raise Exit;
       if r = [] && w = [] then (
         let current_time = Unix.gettimeofday () in
@@ -379,7 +372,7 @@ let write_all ?timeout fd b =
     (match timeout with
       | None -> ()
       | Some timeout -> wait_for (`Write fd) timeout);
-    match Unix.write fd b ofs len with
+    match Unix_utils.write fd b ofs len with
       | 0 -> raise End_of_file
       | n when n = len -> ()
       | n -> f (ofs + n) (len - n)

@@ -68,13 +68,6 @@ exception Finished
 (* Used to wrap exception raised in callbacks. *)
 exception Wrapped of exn
 
-(* Wrapper around Unix.read that automatically retries on EINTR.
-   EINTR occurs when a signal is delivered during a blocking read,
-   which is common in process handling where SIGCHLD signals are frequent. *)
-let rec read fd buf ofs len =
-  try Unix.read fd buf ofs len
-  with Unix.Unix_error (Unix.EINTR, _, _) -> read fd buf ofs len
-
 let get_process { process; _ } =
   match process with Some process -> process | None -> raise Finished
 
@@ -94,7 +87,7 @@ let stop t =
       match t.process with
         | None -> raise Finished
         | Some { in_pipe } -> (
-            try ignore (Unix.write in_pipe stop_c 0 1) with _ -> ()))
+            try ignore (Unix_utils.write in_pipe stop_c 0 1) with _ -> ()))
     ()
 
 let kill t =
@@ -103,7 +96,7 @@ let kill t =
       match t.process with
         | None -> raise Finished
         | Some { in_pipe } -> (
-            try ignore (Unix.write in_pipe kill_c 0 1) with _ -> ()))
+            try ignore (Unix_utils.write in_pipe kill_c 0 1) with _ -> ()))
     ()
 
 let send_stop ~log t =
@@ -137,8 +130,10 @@ let cleanup ~log t =
       _kill process)
     ()
 
-let pusher fd buf ofs len = Unix.write fd buf ofs len
-let puller fd buf ofs len = try read fd buf ofs len with _ when Sys.win32 -> 0
+let pusher fd buf ofs len = Unix_utils.write fd buf ofs len
+
+let puller fd buf ofs len =
+  try Unix_utils.read fd buf ofs len with _ when Sys.win32 -> 0
 
 let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     command =
@@ -173,7 +168,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                  if Atomic.compare_and_set process.status None (Some status)
                  then (
                    (try close_out p.stdin with _ -> ());
-                   ignore (Unix.write in_pipe done_c 0 1)))
+                   ignore (Unix_utils.write in_pipe done_c 0 1)))
                ()
            with _ -> ())
          ());
@@ -236,7 +231,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     let buf = Bytes.create 4096 in
     let drain_fd fd callback =
       let rec loop () =
-        let n = try read fd buf 0 (Bytes.length buf) with _ -> 0 in
+        let n = try Unix_utils.read fd buf 0 (Bytes.length buf) with _ -> 0 in
         if n > 0 then begin
           ignore
             (callback (fun b ofs len ->
@@ -253,7 +248,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
   in
   let on_pipe out_pipe =
     let buf = Bytes.make 1 ' ' in
-    let ret = read out_pipe buf 0 1 in
+    let ret = Unix_utils.read out_pipe buf 0 1 in
     if ret <> 1 then assert false;
     match buf with
       | buf when buf = stop_c -> `Stop
