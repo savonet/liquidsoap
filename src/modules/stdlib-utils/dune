@@ -1,7 +1,8 @@
 (library
- (name unix_utils)
+ (name stdlib_utils)
  (libraries unix threads)
+ (wrapped false)
  (foreign_stubs
   (language c)
   (names unix_utils_stubs))
- (synopsis "Unix utilities"))
+ (synopsis "Stdlib utilities"))

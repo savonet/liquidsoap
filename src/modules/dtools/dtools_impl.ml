@@ -446,11 +446,7 @@ module Init = struct
       Mutex.unlock a.mutex;
       raise e
 
-  let rec wait_signal () =
-    try ignore (Thread.wait_signal [Sys.sigterm; Sys.sigint]) with
-      | Unix.Unix_error (Unix.EINTR, _, _) -> ()
-      | Sys_error s when s = "Thread.wait_signal: Interrupted system call" ->
-          wait_signal ()
+  let wait_signal () = Thread_utils.wait_signal [Sys.sigterm; Sys.sigint]
 
   exception StartError of exn
   exception StopError of exn
