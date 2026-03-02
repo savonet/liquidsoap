@@ -162,6 +162,6 @@ jobs:
       actions: write
     steps:
       - name: Re-run failed jobs
-        run: gh run rerun ${{ github.run_id }} --failed
+        run: gh run rerun ${{ github.run_id }} --failed --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
