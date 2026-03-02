@@ -65,6 +65,9 @@ let wait { stdout; stdin; stderr } =
 
 exception Finished
 
+(* Eaised when pipe is done flushing. *)
+exception Pipe_flushed
+
 (* Used to wrap exception raised in callbacks. *)
 exception Wrapped of exn
 
@@ -228,20 +231,18 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     let process = get_process t in
     let stdout = Unix.descr_of_in_channel process.p.stdout in
     let stderr = Unix.descr_of_in_channel process.p.stderr in
-    let buf = Bytes.create 4096 in
+    let last_read = ref 0 in
     let drain_fd fd callback =
       let rec loop () =
-        let n = try Unix_utils.read fd buf 0 (Bytes.length buf) with _ -> 0 in
-        if n > 0 then begin
-          ignore
-            (callback (fun b ofs len ->
-                 let to_copy = min len n in
-                 Bytes.blit buf 0 b ofs to_copy;
-                 to_copy));
-          loop ()
-        end
+        last_read := 0;
+        ignore
+          (callback (fun b ofs len ->
+               last_read := Unix_utils.read fd b ofs len;
+               !last_read));
+        if !last_read = 0 then raise Pipe_flushed;
+        loop ()
       in
-      loop ()
+      try loop () with Pipe_flushed -> ()
     in
     Option.iter (drain_fd stdout) on_stdout;
     Option.iter (drain_fd stderr) on_stderr
