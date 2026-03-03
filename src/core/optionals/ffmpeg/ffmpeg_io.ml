@@ -54,7 +54,6 @@ type container = {
   decoder : Decoder.buffer -> unit;
   seek : int -> int;
   state : Mutex_utils.state;
-  positions : (unit -> int option) list;
   buffer : Decoder.buffer;
   get_metadata : unit -> (string * string) list;
   closed : bool Atomic.t;
@@ -95,11 +94,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method! seek pos =
       match Atomic.get source_status with
-        | `Connected (_, { seek; positions; _ }) -> (
-            match List.find_map (fun position -> position ()) positions with
-              | None -> 0
-              | Some current_position ->
-                  seek (pos + current_position) - current_position)
+        | `Connected (_, { seek; _ }) -> seek pos
         | _ -> 0
 
     method private get_self_sync =
@@ -160,8 +155,21 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let decoder =
           Ffmpeg_decoder.mk_decoder ~state ~streams ~target_position input
         in
-        let seek =
-          Ffmpeg_decoder.seek ~state ~target_position ~streams ~container:input
+        let seek pos =
+          match
+            List.find_map
+              (fun (_, s) ->
+                if s.Ffmpeg_decoder.sparse = `False && s.seen then s.position
+                else None)
+              (Ffmpeg_decoder.Streams.bindings streams)
+          with
+            | None -> 0
+            | Some stream_position ->
+                let pos =
+                  Ffmpeg_decoder.seek ~state ~target_position ~streams
+                    ~container:input (stream_position + pos)
+                in
+                pos - stream_position
         in
         let buffer = Decoder.mk_buffer ~ctype:self#content_type self#buffer in
         (* FFmpeg has memory leaks with chained ogg stream so we manually
@@ -199,23 +207,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let m = self#on_connect_metadata_map input in
         List.iter (fun fn -> fn m) on_connect;
         Generator.add_track_mark self#buffer;
-        let positions =
-          Ffmpeg_decoder.Streams.fold
-            (fun _ s positions ->
-              (fun () -> s.Ffmpeg_decoder.position) :: positions)
-            streams []
-        in
         let container =
-          {
-            input;
-            decoder;
-            seek;
-            state;
-            positions;
-            buffer;
-            get_metadata;
-            closed;
-          }
+          { input; decoder; seek; state; buffer; get_metadata; closed }
         in
         Atomic.set source_status (`Connected (url, container));
         -1.
