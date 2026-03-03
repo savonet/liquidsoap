@@ -52,7 +52,7 @@ type 'a stream = {
   index : int;
   time_base : Avutil.rational;
   sparse : [ `False | `True of buffer:Decoder.buffer -> int -> unit ];
-  mutable decoder : 'a;
+  decoder : 'a;
   mutable seen : bool;
   (* All positions are in main ticks *)
   mutable first_position : int option;
