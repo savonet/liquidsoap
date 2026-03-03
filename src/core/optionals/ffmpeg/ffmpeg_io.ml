@@ -51,6 +51,7 @@ exception Stopped
 
 type container = {
   decoder : Decoder.decoder;
+  remaining : unit -> int;
   buffer : Decoder.buffer;
   get_metadata : unit -> (string * string) list;
   closed : bool Atomic.t;
@@ -69,9 +70,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   object (self)
     inherit Start_stop.active_source ~name ~fallible:true ~autostart () as super
     val connect_task = Atomic.make None
-    method effective_source = (self :> Source.source)
-    method remaining = -1
-    method abort_track = Generator.add_track_mark self#buffer
 
     val source_status
         : [ `Stopped
@@ -82,6 +80,14 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           Atomic.t =
       Atomic.make `Stopped
 
+    method effective_source = (self :> Source.source)
+
+    method remaining =
+      match Atomic.get source_status with
+        | `Connected (_, { remaining }) -> remaining ()
+        | _ -> -1
+
+    method abort_track = Generator.add_track_mark self#buffer
     method source_status = Atomic.get source_status
 
     method private is_connected =
@@ -146,7 +152,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                (Frame.string_of_content_type self#content_type));
         let streams = Atomic.make Ffmpeg_decoder.Streams.empty in
         let streams_process s = Atomic.set streams s in
-        let decoder =
+        let decoder, remaining =
           Ffmpeg_decoder.mk_decoder_record ~ctype:self#content_type
             ~streams_process ~decode_first_metadata:true container
         in
@@ -186,7 +192,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let m = self#on_connect_metadata_map container in
         List.iter (fun fn -> fn m) on_connect;
         Generator.add_track_mark self#buffer;
-        let container = { decoder; buffer; get_metadata; closed } in
+        let container = { decoder; remaining; buffer; get_metadata; closed } in
         Atomic.set source_status (`Connected (url, container));
         -1.
       with
@@ -313,7 +319,7 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~max_buffer ?format
     inherit
       input
         ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~max_buffer
-          ~metadata_filter ?format ~opts ~new_track_on_metadata ~trim_url url
+          ~metadata_filter ?format ~opts ~new_track_on_metadata ~trim_url url as super
 
     method! on_connect_metadata_map input =
       let icy_headers =
@@ -349,6 +355,8 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~max_buffer ?format
       in
       Atomic.set is_icy (icy_headers <> []);
       icy_headers
+
+    method! seek pos = if Atomic.get is_icy then -1 else super#seek pos
   end
 
 let parse_args ~t name p opts =

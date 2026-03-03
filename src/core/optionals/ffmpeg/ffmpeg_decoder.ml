@@ -577,6 +577,10 @@ let parse_file_decoder_args metadata =
     | Some args -> parse_input_args args
     | None -> ([], None)
 
+let get_duration container =
+  let duration = Av.get_input_duration container ~format:`Millisecond in
+  Option.map (fun d -> Int64.to_float d /. 1000.) duration
+
 let dresolver ~metadata file =
   let args, format = parse_file_decoder_args metadata in
   let opts = Hashtbl.create 10 in
@@ -584,9 +588,7 @@ let dresolver ~metadata file =
   let container = Av.open_input ?format ~opts file in
   Fun.protect
     ~finally:(fun () -> Av.close container)
-    (fun () ->
-      let duration = Av.get_input_duration container ~format:`Millisecond in
-      Option.map (fun d -> Int64.to_float d /. 1000.) duration)
+    (fun () -> get_duration container)
 
 let () =
   Plug.register Request.dresolvers "ffmpeg" ~doc:""
@@ -665,8 +667,7 @@ let seek ~state ~target_position ~container ticks =
       let frame_duration = Lazy.force Frame.duration in
       let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
       let max_ts = ts in
-      Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
-      ticks)
+      Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container)
 
 let mk_eof streams buffer =
   Streams.iter
@@ -915,8 +916,23 @@ let mk_decoder ~streams ~target_position ~state container =
   in
   fun buffer -> Mutex_utils.atomic_lock ~state (fun () -> decode buffer)
 
-let mk_streams ~ctype ~decode_first_metadata container =
-  let check_metadata stream fn =
+let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
+  let track_packet ~stream = function
+    | `Packet packet ->
+        set_remaining
+          ~pts:(Avcodec.Packet.get_pts packet)
+          ~duration:(Avcodec.Packet.get_duration packet)
+          ~time_base:(Av.get_time_base stream)
+    | `Flush -> ()
+  in
+  let track_frame ~stream = function
+    | `Frame frame ->
+        set_remaining ~pts:(Avutil.Frame.pts frame)
+          ~duration:(Avutil.Frame.duration frame)
+          ~time_base:(Av.get_time_base stream)
+    | `Flush -> ()
+  in
+  let tracked_stream ~track_data stream fn =
     let is_first = ref true in
     let latest_metadata = ref None in
     fun ~buffer data ->
@@ -930,6 +946,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
         latest_metadata := Some m;
         Generator.add_metadata buffer.Decoder.generator
           (Frame.Metadata.from_list m));
+      track_data ~stream data;
       fn ~buffer data
   in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
@@ -942,7 +959,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
               ( add_stream ~sparse:`False idx stream
                   (`Audio_packet
                      ( stream,
-                       check_metadata stream
+                       tracked_stream ~track_data:track_packet stream
                          (Ffmpeg_copy_decoder.mk_audio_decoder ~stream_idx
                             ~format ~field ~stream params) ))
                   streams,
@@ -960,7 +977,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
               ( add_stream ~sparse:`False idx stream
                   (`Audio_frame
                      ( stream,
-                       check_metadata stream
+                       tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_raw_decoder.mk_audio_decoder ~stream_idx
                             ~format ~stream ~field params) ))
                   streams,
@@ -970,7 +987,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
               ( add_stream ~sparse:`False idx stream
                   (`Audio_frame
                      ( stream,
-                       check_metadata stream
+                       tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
                             ~stream ~field ~pcm_kind:Content.Audio.kind params)
                      ))
@@ -981,7 +998,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
               ( add_stream ~sparse:`False idx stream
                   (`Audio_frame
                      ( stream,
-                       check_metadata stream
+                       tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
                             ~stream ~field ~pcm_kind:Content_pcm_s16.kind params)
                      ))
@@ -992,7 +1009,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
               ( add_stream ~sparse:`False idx stream
                   (`Audio_frame
                      ( stream,
-                       check_metadata stream
+                       tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
                             ~stream ~field ~pcm_kind:Content_pcm_f32.kind params)
                      ))
@@ -1011,7 +1028,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
               ( add_stream ~sparse:`False idx stream
                   (`Video_packet
                      ( stream,
-                       check_metadata stream
+                       tracked_stream ~track_data:track_packet stream
                          (Ffmpeg_copy_decoder.mk_video_decoder ~stream_idx
                             ~format ~field ~stream params) ))
                   streams,
@@ -1029,7 +1046,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
               ( add_stream ~sparse:`False idx stream
                   (`Video_frame
                      ( stream,
-                       check_metadata stream
+                       tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_raw_decoder.mk_video_decoder ~stream_idx
                             ~format ~stream ~field params) ))
                   streams,
@@ -1051,7 +1068,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
               ( add_stream ~sparse:`False idx stream
                   (`Video_frame
                      ( stream,
-                       check_metadata stream
+                       tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_video_decoder ~width
                             ~height ~stream ~field params) ))
                   streams,
@@ -1140,57 +1157,18 @@ let mk_streams ~ctype ~decode_first_metadata container =
 
 let mk_decoder_record ?(streams_process = fun _ -> ()) ~ctype
     ~decode_first_metadata container =
-  let target_position = Atomic.make None in
-  let state = Mutex_utils.mk_state () in
-  let prepare_decoder ~decode_first_metadata () =
-    let streams = mk_streams ~ctype ~decode_first_metadata container in
-    streams_process streams;
-    let decoder = mk_decoder ~state ~streams ~target_position container in
-    let eof = mk_eof streams in
-    (streams, decoder, eof)
-  in
-  let decoder_ref = Atomic.make (prepare_decoder ~decode_first_metadata ()) in
-  let seek pos =
-    let streams, _, _ = Atomic.get decoder_ref in
-    match
-      List.find_map
-        (fun (_, s) -> if s.sparse = `False && s.seen then s.position else None)
-        (Streams.bindings streams)
-    with
-      | None -> 0
-      | Some stream_position ->
-          let pos =
-            seek ~state ~target_position ~container (stream_position + pos)
-          in
-          Atomic.set decoder_ref
-            (prepare_decoder ~decode_first_metadata:true ());
-          pos - stream_position
-  in
-  let decode buffer =
-    let _, decoder, _ = Atomic.get decoder_ref in
-    decoder buffer
-  in
-  let eof buffer =
-    let _, _, eof = Atomic.get decoder_ref in
-    eof buffer
-  in
-  let close () = Av.close container in
-  { Decoder.seek; decode; eof; close }
-
-let create_decoder ~ctype ~metadata fname =
-  let args, format = parse_file_decoder_args metadata in
-  let file_duration = dresolver ~metadata fname in
-  let remaining = Atomic.make file_duration in
-  let set_remaining ~pts ~duration stream =
+  let container_duration = try get_duration container with _ -> None in
+  let remaining = Atomic.make container_duration in
+  let set_remaining ~pts ~duration ~time_base =
     let pts =
       Option.map
         (fun pts -> Int64.add pts (Option.value ~default:0L duration))
         pts
     in
-    match (file_duration, pts) with
+    match (container_duration, pts) with
       | None, _ | Some _, None -> ()
       | Some d, Some pts -> (
-          let { Avutil.num; den } = Av.get_time_base stream in
+          let { Avutil.num; den } = time_base in
           let position =
             Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
           in
@@ -1203,6 +1181,51 @@ let create_decoder ~ctype ~metadata fname =
       | None -> -1
       | Some r -> Frame.main_of_seconds r
   in
+  let position () =
+    Option.map
+      (fun d -> Frame.main_of_seconds d - get_remaining ())
+      container_duration
+  in
+  let target_position = Atomic.make None in
+  let state = Mutex_utils.mk_state () in
+  let prepare_decoder ~decode_first_metadata () =
+    let streams =
+      mk_streams ~ctype ~decode_first_metadata ~set_remaining container
+    in
+    streams_process streams;
+    let decoder = mk_decoder ~state ~streams ~target_position container in
+    let eof = mk_eof streams in
+    (streams, decoder, eof)
+  in
+  let decoder_ref = Atomic.make (prepare_decoder ~decode_first_metadata ()) in
+  let stream_position () =
+    let streams, _, _ = Atomic.get decoder_ref in
+    List.find_map
+      (fun (_, s) -> if s.sparse = `False && s.seen then s.position else None)
+      (Streams.bindings streams)
+  in
+  let seek pos =
+    match (position (), stream_position ()) with
+      | Some current_position, _ | None, Some current_position ->
+          seek ~state ~target_position ~container (current_position + pos);
+          Atomic.set decoder_ref (prepare_decoder ~decode_first_metadata ());
+          Atomic.set remaining None;
+          pos
+      | _ -> 0
+  in
+  let decode buffer =
+    let _, decoder, _ = Atomic.get decoder_ref in
+    decoder buffer
+  in
+  let eof buffer =
+    let _, _, eof = Atomic.get decoder_ref in
+    eof buffer
+  in
+  let close () = Av.close container in
+  ({ Decoder.seek; decode; eof; close }, get_remaining)
+
+let create_decoder ~ctype ~metadata fname =
+  let args, format = parse_file_decoder_args metadata in
   let opts = Hashtbl.create 10 in
   List.iter (fun (k, v) -> Hashtbl.replace opts k v) args;
   let ext = Filename.extension fname in
@@ -1216,67 +1239,7 @@ let create_decoder ~ctype ~metadata fname =
         (Printf.sprintf "Unrecognized options: %s"
            (Ffmpeg_format.string_of_options opts))
       "ffmpeg_decoder";
-  let streams_process streams =
-    Streams.iter
-      (fun _ s ->
-        let decoder =
-          match s.decoder with
-            | `Audio_packet (stream, decoder) ->
-                let decoder ~buffer packet =
-                  (match packet with
-                    | `Packet packet ->
-                        set_remaining stream
-                          ~pts:(Avcodec.Packet.get_pts packet)
-                          ~duration:(Avcodec.Packet.get_duration packet)
-                    | _ -> ());
-                  decoder ~buffer packet
-                in
-                `Audio_packet (stream, decoder)
-            | `Audio_frame (stream, decoder) ->
-                let decoder ~buffer frame =
-                  (match frame with
-                    | `Frame frame ->
-                        set_remaining stream ~pts:(Avutil.Frame.pts frame)
-                          ~duration:(Avutil.Frame.duration frame)
-                    | _ -> ());
-                  decoder ~buffer frame
-                in
-                `Audio_frame (stream, decoder)
-            | `Video_packet (stream, decoder) ->
-                let decoder ~buffer packet =
-                  (match packet with
-                    | `Packet packet ->
-                        set_remaining stream
-                          ~pts:(Avcodec.Packet.get_pts packet)
-                          ~duration:(Avcodec.Packet.get_duration packet)
-                    | _ -> ());
-                  decoder ~buffer packet
-                in
-                `Video_packet (stream, decoder)
-            | `Video_frame (stream, decoder) ->
-                let decoder ~buffer frame =
-                  (match frame with
-                    | `Frame frame ->
-                        set_remaining stream ~pts:(Avutil.Frame.pts frame)
-                          ~duration:(Avutil.Frame.duration frame)
-                    | _ -> ());
-                  decoder ~buffer frame
-                in
-                `Video_frame (stream, decoder)
-            | `Subtitle_packet (stream, decoder) ->
-                `Subtitle_packet (stream, decoder)
-            | `Subtitle_frame (stream, decoder) ->
-                `Subtitle_frame (stream, decoder)
-            | `Data_packet (stream, decoder) -> `Data_packet (stream, decoder)
-        in
-        s.decoder <- decoder)
-      streams
-  in
-  let decoder =
-    mk_decoder_record ~streams_process ~ctype ~decode_first_metadata:false
-      container
-  in
-  (decoder, get_remaining)
+  mk_decoder_record ~ctype ~decode_first_metadata:false container
 
 let create_file_decoder ~metadata ~ctype filename =
   let decoder, remaining = create_decoder ~ctype ~metadata filename in
@@ -1308,7 +1271,7 @@ let create_stream_decoder ~ctype mime input =
         (Printf.sprintf "Unrecognized options: %s"
            (Ffmpeg_format.string_of_options opts))
       "ffmpeg_decoder";
-  mk_decoder_record ~ctype ~decode_first_metadata:true container
+  fst (mk_decoder_record ~ctype ~decode_first_metadata:true container)
 
 let get_file_type ~metadata ~ctype filename =
   (* If file is an image, leave internal decoding to
