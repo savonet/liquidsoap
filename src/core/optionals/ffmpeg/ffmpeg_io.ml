@@ -230,16 +230,16 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       match self#source_status with
         | `Stopping | `Stopped -> ()
         | `Polling | `Starting -> stop_task ()
-        | `Connected (_, { decoder; closed }) -> (
+        | `Connected (_, { decoder; closed }) ->
             Atomic.set closed true;
-            try decoder.close ()
-            with exn ->
-              let bt = Printexc.get_backtrace () in
-              Utils.log_exception ~log:self#log ~bt
-                (Printf.sprintf "Error while disconnecting: %s"
-                   (Printexc.to_string exn));
-              List.iter (fun fn -> fn ()) on_disconnect;
-              stop_task ())
+            (try decoder.close ()
+             with exn ->
+               let bt = Printexc.get_backtrace () in
+               Utils.log_exception ~log:self#log ~bt
+                 (Printf.sprintf "Error while disconnecting: %s"
+                    (Printexc.to_string exn)));
+            List.iter (fun fn -> fn ()) on_disconnect;
+            stop_task ()
 
     method private reconnect =
       match self#source_status with

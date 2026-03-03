@@ -656,16 +656,7 @@ let get_type ?format ~ctype ~url container =
   log#important "FFmpeg recognizes %s as %s" uri description;
   Ffmpeg_stream_description.get_type ~ctype c
 
-let reset_streams streams =
-  Streams.iter
-    (fun _ s ->
-      s.seen <- false;
-      s.first_position <- None;
-      s.pts <- None;
-      s.position <- None)
-    streams
-
-let seek ~state ~target_position ~streams ~container ticks =
+let seek ~state ~target_position ~container ticks =
   Mutex_utils.mutable_lock ~state (fun () ->
       let tpos = Frame.seconds_of_main ticks in
       log#important "Setting target position to %f" tpos;
@@ -675,7 +666,6 @@ let seek ~state ~target_position ~streams ~container ticks =
       let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
       let max_ts = ts in
       Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
-      reset_streams streams;
       ticks)
 
 let mk_eof streams buffer =
@@ -1170,8 +1160,7 @@ let mk_decoder_record ?(streams_process = fun _ -> ()) ~ctype
       | None -> 0
       | Some stream_position ->
           let pos =
-            seek ~state ~target_position ~streams ~container
-              (stream_position + pos)
+            seek ~state ~target_position ~container (stream_position + pos)
           in
           Atomic.set decoder_ref
             (prepare_decoder ~decode_first_metadata:true ());
