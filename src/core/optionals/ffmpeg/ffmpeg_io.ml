@@ -50,11 +50,8 @@ let normalize_metadata =
 exception Stopped
 
 type container = {
-  input : Avutil.input Avutil.container;
-  decoder : Decoder.buffer -> unit;
-  seek : int -> int;
-  state : Mutex_utils.state;
-  positions : (unit -> int option) list;
+  decoder : Decoder.decoder;
+  remaining : unit -> int;
   buffer : Decoder.buffer;
   get_metadata : unit -> (string * string) list;
   closed : bool Atomic.t;
@@ -73,9 +70,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   object (self)
     inherit Start_stop.active_source ~name ~fallible:true ~autostart () as super
     val connect_task = Atomic.make None
-    method effective_source = (self :> Source.source)
-    method remaining = -1
-    method abort_track = Generator.add_track_mark self#buffer
 
     val source_status
         : [ `Stopped
@@ -86,6 +80,14 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           Atomic.t =
       Atomic.make `Stopped
 
+    method effective_source = (self :> Source.source)
+
+    method remaining =
+      match Atomic.get source_status with
+        | `Connected (_, { remaining }) -> remaining ()
+        | _ -> -1
+
+    method abort_track = Generator.add_track_mark self#buffer
     method source_status = Atomic.get source_status
 
     method private is_connected =
@@ -95,11 +97,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method! seek pos =
       match Atomic.get source_status with
-        | `Connected (_, { seek; positions; _ }) -> (
-            match List.find_map (fun position -> position ()) positions with
-              | None -> 0
-              | Some current_position ->
-                  seek (pos + current_position) - current_position)
+        | `Connected (_, { decoder; _ }) -> decoder.Decoder.seek pos
         | _ -> 0
 
     method private get_self_sync =
@@ -135,7 +133,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let opts = Hashtbl.copy opts in
         let url = self#url in
         let closed = Atomic.make false in
-        let input =
+        let container =
           Av.open_input
             ~interrupt:(fun () -> Atomic.get shutdown || Atomic.get closed)
             ?format ~opts url
@@ -145,23 +143,18 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             (Printf.sprintf "Unrecognized options: %s"
                (Ffmpeg_format.string_of_options opts));
         let content_type =
-          Ffmpeg_decoder.get_type ?format ~ctype:self#content_type ~url input
+          Ffmpeg_decoder.get_type ?format ~ctype:self#content_type ~url
+            container
         in
         if not (Decoder.can_decode_type content_type self#content_type) then
           failwith
             (Printf.sprintf "url %S cannot produce content of type %s" url
                (Frame.string_of_content_type self#content_type));
-        let streams =
-          Ffmpeg_decoder.mk_streams ~ctype:self#content_type
-            ~decode_first_metadata:true input
-        in
-        let state = Mutex_utils.mk_state () in
-        let target_position = Atomic.make None in
-        let decoder =
-          Ffmpeg_decoder.mk_decoder ~state ~streams ~target_position input
-        in
-        let seek =
-          Ffmpeg_decoder.seek ~state ~target_position ~streams ~container:input
+        let streams = Atomic.make Ffmpeg_decoder.Streams.empty in
+        let streams_process s = Atomic.set streams s in
+        let decoder, remaining =
+          Ffmpeg_decoder.mk_decoder_record ~ctype:self#content_type
+            ~streams_process ~decode_first_metadata:true container
         in
         let buffer = Decoder.mk_buffer ~ctype:self#content_type self#buffer in
         (* FFmpeg has memory leaks with chained ogg stream so we manually
@@ -185,8 +178,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                    | `Subtitle_packet (stream, _) -> get_metadata stream
                    | `Subtitle_frame (stream, _) -> get_metadata stream
                    | `Data_packet _ -> [])
-               streams
-               (Av.get_input_metadata input))
+               (Atomic.get streams)
+               (Av.get_input_metadata container))
         in
         let last_meta = ref [] in
         let get_metadata () =
@@ -196,27 +189,10 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             m)
           else []
         in
-        let m = self#on_connect_metadata_map input in
+        let m = self#on_connect_metadata_map container in
         List.iter (fun fn -> fn m) on_connect;
         Generator.add_track_mark self#buffer;
-        let positions =
-          Ffmpeg_decoder.Streams.fold
-            (fun _ s positions ->
-              (fun () -> s.Ffmpeg_decoder.position) :: positions)
-            streams []
-        in
-        let container =
-          {
-            input;
-            decoder;
-            seek;
-            state;
-            positions;
-            buffer;
-            get_metadata;
-            closed;
-          }
-        in
+        let container = { decoder; remaining; buffer; get_metadata; closed } in
         Atomic.set source_status (`Connected (url, container));
         -1.
       with
@@ -260,15 +236,14 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       match self#source_status with
         | `Stopping | `Stopped -> ()
         | `Polling | `Starting -> stop_task ()
-        | `Connected (_, { input; state; closed }) ->
+        | `Connected (_, { decoder; closed }) ->
             Atomic.set closed true;
-            Mutex_utils.mutable_lock ~state (fun () ->
-                try Av.close input
-                with exn ->
-                  let bt = Printexc.get_backtrace () in
-                  Utils.log_exception ~log:self#log ~bt
-                    (Printf.sprintf "Error while disconnecting: %s"
-                       (Printexc.to_string exn)));
+            (try decoder.close ()
+             with exn ->
+               let bt = Printexc.get_backtrace () in
+               Utils.log_exception ~log:self#log ~bt
+                 (Printf.sprintf "Error while disconnecting: %s"
+                    (Printexc.to_string exn)));
             List.iter (fun fn -> fn ()) on_disconnect;
             stop_task ()
 
@@ -288,7 +263,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       let { decoder; buffer; closed; _ } = self#get_connected_container in
       while Generator.length self#buffer < Lazy.force Frame.size do
         if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
-        decoder buffer
+        decoder.decode buffer
       done
 
     method private generate_frame =
@@ -344,7 +319,7 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~max_buffer ?format
     inherit
       input
         ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~max_buffer
-          ~metadata_filter ?format ~opts ~new_track_on_metadata ~trim_url url
+          ~metadata_filter ?format ~opts ~new_track_on_metadata ~trim_url url as super
 
     method! on_connect_metadata_map input =
       let icy_headers =
@@ -380,6 +355,8 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~max_buffer ?format
       in
       Atomic.set is_icy (icy_headers <> []);
       icy_headers
+
+    method! seek pos = if Atomic.get is_icy then -1 else super#seek pos
   end
 
 let parse_args ~t name p opts =
