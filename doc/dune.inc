@@ -11148,7 +11148,7 @@
     %{target}))))
 
 (rule
- (alias doctest)
+ (alias append-silence)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11161,7 +11161,7 @@
    content/liq/append-silence.liq)))
 
 (rule
- (alias doctest)
+ (alias archive-cleaner)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11174,7 +11174,7 @@
    content/liq/archive-cleaner.liq)))
 
 (rule
- (alias doctest)
+ (alias basic-radio)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11187,7 +11187,7 @@
    content/liq/basic-radio.liq)))
 
 (rule
- (alias doctest)
+ (alias beets-amplify)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11200,7 +11200,7 @@
    content/liq/beets-amplify.liq)))
 
 (rule
- (alias doctest)
+ (alias beets-protocol-short)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11213,7 +11213,7 @@
    content/liq/beets-protocol-short.liq)))
 
 (rule
- (alias doctest)
+ (alias beets-protocol)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11226,7 +11226,7 @@
    content/liq/beets-protocol.liq)))
 
 (rule
- (alias doctest)
+ (alias beets-source)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11239,7 +11239,7 @@
    content/liq/beets-source.liq)))
 
 (rule
- (alias doctest)
+ (alias blank-detect)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11252,7 +11252,7 @@
    content/liq/blank-detect.liq)))
 
 (rule
- (alias doctest)
+ (alias blank-sorry)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11265,7 +11265,7 @@
    content/liq/blank-sorry.liq)))
 
 (rule
- (alias doctest)
+ (alias complete-case)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11278,7 +11278,7 @@
    content/liq/complete-case.liq)))
 
 (rule
- (alias doctest)
+ (alias cron_add)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11291,7 +11291,7 @@
    content/liq/cron_add.liq)))
 
 (rule
- (alias doctest)
+ (alias cron_id)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11300,7 +11300,7 @@
   (run %{bin:liquidsoap} --check --no-fallible-check content/liq/cron_id.liq)))
 
 (rule
- (alias doctest)
+ (alias cron_id_arg)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11313,7 +11313,7 @@
    content/liq/cron_id_arg.liq)))
 
 (rule
- (alias doctest)
+ (alias cron_remove)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11326,7 +11326,7 @@
    content/liq/cron_remove.liq)))
 
 (rule
- (alias doctest)
+ (alias cross.custom)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11339,7 +11339,7 @@
    content/liq/cross.custom.liq)))
 
 (rule
- (alias doctest)
+ (alias crossfade)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11352,7 +11352,7 @@
    content/liq/crossfade.liq)))
 
 (rule
- (alias doctest)
+ (alias decoder-openmpt)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11365,7 +11365,7 @@
    content/liq/decoder-openmpt.liq)))
 
 (rule
- (alias doctest)
+ (alias dump-hourly)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11378,7 +11378,7 @@
    content/liq/dump-hourly.liq)))
 
 (rule
- (alias doctest)
+ (alias dump-hourly2)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11391,7 +11391,7 @@
    content/liq/dump-hourly2.liq)))
 
 (rule
- (alias doctest)
+ (alias dynamic-source)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11404,7 +11404,7 @@
    content/liq/dynamic-source.liq)))
 
 (rule
- (alias doctest)
+ (alias external-output.file)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11417,7 +11417,7 @@
    content/liq/external-output.file.liq)))
 
 (rule
- (alias doctest)
+ (alias fallback)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11430,7 +11430,7 @@
    content/liq/fallback.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-filter-dynamic-volume)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11443,7 +11443,7 @@
    content/liq/ffmpeg-filter-dynamic-volume.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-filter-flanger-highpass)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11456,7 +11456,7 @@
    content/liq/ffmpeg-filter-flanger-highpass.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-filter-hflip)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11469,7 +11469,7 @@
    content/liq/ffmpeg-filter-hflip.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-filter-hflip2)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11482,7 +11482,7 @@
    content/liq/ffmpeg-filter-hflip2.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-filter-parallel-flanger-highpass)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11495,7 +11495,7 @@
    content/liq/ffmpeg-filter-parallel-flanger-highpass.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-live-switch)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11508,7 +11508,7 @@
    content/liq/ffmpeg-live-switch.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-relay-ondemand)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11521,7 +11521,7 @@
    content/liq/ffmpeg-relay-ondemand.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-relay)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11534,7 +11534,7 @@
    content/liq/ffmpeg-relay.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-shared-encoding-rtmp)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11547,7 +11547,7 @@
    content/liq/ffmpeg-shared-encoding-rtmp.liq)))
 
 (rule
- (alias doctest)
+ (alias ffmpeg-shared-encoding)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11560,7 +11560,7 @@
    content/liq/ffmpeg-shared-encoding.liq)))
 
 (rule
- (alias doctest)
+ (alias fixed-time1)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11573,7 +11573,7 @@
    content/liq/fixed-time1.liq)))
 
 (rule
- (alias doctest)
+ (alias fixed-time2)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11586,7 +11586,7 @@
    content/liq/fixed-time2.liq)))
 
 (rule
- (alias doctest)
+ (alias frame-size)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11599,7 +11599,7 @@
    content/liq/frame-size.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor-auth)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11612,7 +11612,7 @@
    content/liq/harbor-auth.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor-dynamic)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11625,7 +11625,7 @@
    content/liq/harbor-dynamic.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor-insert-metadata)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11638,7 +11638,7 @@
    content/liq/harbor-insert-metadata.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor-metadata)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11651,7 +11651,7 @@
    content/liq/harbor-metadata.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor-redirect)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11664,7 +11664,7 @@
    content/liq/harbor-redirect.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor-simple)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11677,7 +11677,7 @@
    content/liq/harbor-simple.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor-usage)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11690,7 +11690,7 @@
    content/liq/harbor-usage.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor.http.register)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11703,7 +11703,7 @@
    content/liq/harbor.http.register.liq)))
 
 (rule
- (alias doctest)
+ (alias harbor.http.response)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11716,7 +11716,7 @@
    content/liq/harbor.http.response.liq)))
 
 (rule
- (alias doctest)
+ (alias hls-metadata)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11729,7 +11729,7 @@
    content/liq/hls-metadata.liq)))
 
 (rule
- (alias doctest)
+ (alias http-input)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11742,7 +11742,7 @@
    content/liq/http-input.liq)))
 
 (rule
- (alias doctest)
+ (alias icy-update)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11755,7 +11755,7 @@
    content/liq/icy-update.liq)))
 
 (rule
- (alias doctest)
+ (alias implicit-float-ok)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11768,7 +11768,7 @@
    content/liq/implicit-float-ok.liq)))
 
 (rule
- (alias doctest)
+ (alias input.mplayer)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11781,7 +11781,7 @@
    content/liq/input.mplayer.liq)))
 
 (rule
- (alias doctest)
+ (alias jingle-hour)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11794,7 +11794,7 @@
    content/liq/jingle-hour.liq)))
 
 (rule
- (alias doctest)
+ (alias json-ex)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11803,7 +11803,7 @@
   (run %{bin:liquidsoap} --check --no-fallible-check content/liq/json-ex.liq)))
 
 (rule
- (alias doctest)
+ (alias json-stringify)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11816,7 +11816,7 @@
    content/liq/json-stringify.liq)))
 
 (rule
- (alias doctest)
+ (alias json1)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11825,7 +11825,7 @@
   (run %{bin:liquidsoap} --check --no-fallible-check content/liq/json1.liq)))
 
 (rule
- (alias doctest)
+ (alias labeled_arguments)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11838,7 +11838,7 @@
    content/liq/labeled_arguments.liq)))
 
 (rule
- (alias doctest)
+ (alias live-switch)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11851,7 +11851,7 @@
    content/liq/live-switch.liq)))
 
 (rule
- (alias doctest)
+ (alias loudness-correction)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11864,7 +11864,7 @@
    content/liq/loudness-correction.liq)))
 
 (rule
- (alias doctest)
+ (alias medialib-predicate)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11877,7 +11877,7 @@
    content/liq/medialib-predicate.liq)))
 
 (rule
- (alias doctest)
+ (alias medialib)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11890,7 +11890,7 @@
    content/liq/medialib.liq)))
 
 (rule
- (alias doctest)
+ (alias medialib.sqlite)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11903,7 +11903,7 @@
    content/liq/medialib.sqlite.liq)))
 
 (rule
- (alias doctest)
+ (alias multitrack-add-video-track2)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11916,7 +11916,7 @@
    content/liq/multitrack-add-video-track2.liq)))
 
 (rule
- (alias doctest)
+ (alias multitrack-default-video-track)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11929,7 +11929,7 @@
    content/liq/multitrack-default-video-track.liq)))
 
 (rule
- (alias doctest)
+ (alias multitrack2)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11942,7 +11942,7 @@
    content/liq/multitrack2.liq)))
 
 (rule
- (alias doctest)
+ (alias output.file.hls)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11955,7 +11955,7 @@
    content/liq/output.file.hls.liq)))
 
 (rule
- (alias doctest)
+ (alias playlists)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11968,7 +11968,7 @@
    content/liq/playlists.liq)))
 
 (rule
- (alias doctest)
+ (alias prometheus-callback)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11981,7 +11981,7 @@
    content/liq/prometheus-callback.liq)))
 
 (rule
- (alias doctest)
+ (alias prometheus-settings)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -11994,7 +11994,7 @@
    content/liq/prometheus-settings.liq)))
 
 (rule
- (alias doctest)
+ (alias radiopi)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12003,7 +12003,7 @@
   (run %{bin:liquidsoap} --check --no-fallible-check content/liq/radiopi.liq)))
 
 (rule
- (alias doctest)
+ (alias re-encode)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12016,7 +12016,7 @@
    content/liq/re-encode.liq)))
 
 (rule
- (alias doctest)
+ (alias regular)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12025,7 +12025,7 @@
   (run %{bin:liquidsoap} --check --no-fallible-check content/liq/regular.liq)))
 
 (rule
- (alias doctest)
+ (alias replaygain-playlist)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12038,7 +12038,7 @@
    content/liq/replaygain-playlist.liq)))
 
 (rule
- (alias doctest)
+ (alias request.dynamic)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12051,7 +12051,7 @@
    content/liq/request.dynamic.liq)))
 
 (rule
- (alias doctest)
+ (alias rtmp)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12060,7 +12060,7 @@
   (run %{bin:liquidsoap} --check --no-fallible-check content/liq/rtmp.liq)))
 
 (rule
- (alias doctest)
+ (alias samplerate3)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12073,7 +12073,7 @@
    content/liq/samplerate3.liq)))
 
 (rule
- (alias doctest)
+ (alias scheduling)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12086,7 +12086,7 @@
    content/liq/scheduling.liq)))
 
 (rule
- (alias doctest)
+ (alias scheduling_9am)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12099,7 +12099,7 @@
    content/liq/scheduling_9am.liq)))
 
 (rule
- (alias doctest)
+ (alias scheduling_queue)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12112,7 +12112,7 @@
    content/liq/scheduling_queue.liq)))
 
 (rule
- (alias doctest)
+ (alias scheduling_queue_midnight)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12125,7 +12125,7 @@
    content/liq/scheduling_queue_midnight.liq)))
 
 (rule
- (alias doctest)
+ (alias scheduling_simple)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12138,7 +12138,7 @@
    content/liq/scheduling_simple.liq)))
 
 (rule
- (alias doctest)
+ (alias seek-telnet)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12151,7 +12151,7 @@
    content/liq/seek-telnet.liq)))
 
 (rule
- (alias doctest)
+ (alias settings)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12164,7 +12164,7 @@
    content/liq/settings.liq)))
 
 (rule
- (alias doctest)
+ (alias shoutcast)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12177,7 +12177,7 @@
    content/liq/shoutcast.liq)))
 
 (rule
- (alias doctest)
+ (alias single)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12186,7 +12186,7 @@
   (run %{bin:liquidsoap} --check --no-fallible-check content/liq/single.liq)))
 
 (rule
- (alias doctest)
+ (alias source-cue)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12199,7 +12199,7 @@
    content/liq/source-cue.liq)))
 
 (rule
- (alias doctest)
+ (alias space_overhead)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12212,7 +12212,7 @@
    content/liq/space_overhead.liq)))
 
 (rule
- (alias doctest)
+ (alias split-cue)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12225,7 +12225,7 @@
    content/liq/split-cue.liq)))
 
 (rule
- (alias doctest)
+ (alias sqlite)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12234,7 +12234,7 @@
   (run %{bin:liquidsoap} --check --no-fallible-check content/liq/sqlite.liq)))
 
 (rule
- (alias doctest)
+ (alias srt-receiver)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12247,7 +12247,7 @@
    content/liq/srt-receiver.liq)))
 
 (rule
- (alias doctest)
+ (alias srt-sender)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12260,7 +12260,7 @@
    content/liq/srt-sender.liq)))
 
 (rule
- (alias doctest)
+ (alias switch-show)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12273,7 +12273,7 @@
    content/liq/switch-show.liq)))
 
 (rule
- (alias doctest)
+ (alias transcoding)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12286,7 +12286,7 @@
    content/liq/transcoding.liq)))
 
 (rule
- (alias doctest)
+ (alias video-anonymizer)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12299,7 +12299,7 @@
    content/liq/video-anonymizer.liq)))
 
 (rule
- (alias doctest)
+ (alias video-bluescreen)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12312,7 +12312,7 @@
    content/liq/video-bluescreen.liq)))
 
 (rule
- (alias doctest)
+ (alias video-canvas-example)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12325,7 +12325,7 @@
    content/liq/video-canvas-example.liq)))
 
 (rule
- (alias doctest)
+ (alias video-default-canvas)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12338,7 +12338,7 @@
    content/liq/video-default-canvas.liq)))
 
 (rule
- (alias doctest)
+ (alias video-in-video)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12351,7 +12351,7 @@
    content/liq/video-in-video.liq)))
 
 (rule
- (alias doctest)
+ (alias video-logo)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12364,7 +12364,7 @@
    content/liq/video-logo.liq)))
 
 (rule
- (alias doctest)
+ (alias video-osc)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12377,7 +12377,7 @@
    content/liq/video-osc.liq)))
 
 (rule
- (alias doctest)
+ (alias video-simple)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12390,7 +12390,7 @@
    content/liq/video-simple.liq)))
 
 (rule
- (alias doctest)
+ (alias video-static)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12403,7 +12403,7 @@
    content/liq/video-static.liq)))
 
 (rule
- (alias doctest)
+ (alias video-text)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12416,7 +12416,7 @@
    content/liq/video-text.liq)))
 
 (rule
- (alias doctest)
+ (alias video-transition)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12429,7 +12429,7 @@
    content/liq/video-transition.liq)))
 
 (rule
- (alias doctest)
+ (alias video-weather)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12442,7 +12442,7 @@
    content/liq/video-weather.liq)))
 
 (rule
- (alias doctest)
+ (alias video-webcam)
  (package liquidsoap)
  (deps
   (source_tree ../src/libs)
@@ -12564,3 +12564,110 @@
   (video.html as html/video.html)
   (xml.html as html/xml.html)
   (yaml.html as html/yaml.html)))
+
+(alias
+ (name doctest)
+ (deps
+  test-doc-append-silence
+  test-doc-archive-cleaner
+  test-doc-basic-radio
+  test-doc-beets-amplify
+  test-doc-beets-protocol
+  test-doc-beets-protocol-short
+  test-doc-beets-source
+  test-doc-blank-detect
+  test-doc-blank-sorry
+  test-doc-complete-case
+  test-doc-cron_add
+  test-doc-cron_id
+  test-doc-cron_id_arg
+  test-doc-cron_remove
+  test-doc-cross.custom
+  test-doc-crossfade
+  test-doc-decoder-openmpt
+  test-doc-dump-hourly
+  test-doc-dump-hourly2
+  test-doc-dynamic-source
+  test-doc-external-output.file
+  test-doc-fallback
+  test-doc-ffmpeg-filter-dynamic-volume
+  test-doc-ffmpeg-filter-flanger-highpass
+  test-doc-ffmpeg-filter-hflip
+  test-doc-ffmpeg-filter-hflip2
+  test-doc-ffmpeg-filter-parallel-flanger-highpass
+  test-doc-ffmpeg-live-switch
+  test-doc-ffmpeg-relay
+  test-doc-ffmpeg-relay-ondemand
+  test-doc-ffmpeg-shared-encoding
+  test-doc-ffmpeg-shared-encoding-rtmp
+  test-doc-fixed-time1
+  test-doc-fixed-time2
+  test-doc-frame-size
+  test-doc-harbor-auth
+  test-doc-harbor-dynamic
+  test-doc-harbor-insert-metadata
+  test-doc-harbor-metadata
+  test-doc-harbor-redirect
+  test-doc-harbor-simple
+  test-doc-harbor-usage
+  test-doc-harbor.http.register
+  test-doc-harbor.http.response
+  test-doc-hls-metadata
+  test-doc-http-input
+  test-doc-icy-update
+  test-doc-implicit-float-ok
+  test-doc-input.mplayer
+  test-doc-jingle-hour
+  test-doc-json-ex
+  test-doc-json-stringify
+  test-doc-json1
+  test-doc-labeled_arguments
+  test-doc-live-switch
+  test-doc-loudness-correction
+  test-doc-medialib
+  test-doc-medialib-predicate
+  test-doc-medialib.sqlite
+  test-doc-multitrack-add-video-track2
+  test-doc-multitrack-default-video-track
+  test-doc-multitrack2
+  test-doc-output.file.hls
+  test-doc-playlists
+  test-doc-prometheus-callback
+  test-doc-prometheus-settings
+  test-doc-radiopi
+  test-doc-re-encode
+  test-doc-regular
+  test-doc-replaygain-playlist
+  test-doc-request.dynamic
+  test-doc-rtmp
+  test-doc-samplerate3
+  test-doc-scheduling
+  test-doc-scheduling_9am
+  test-doc-scheduling_queue
+  test-doc-scheduling_queue_midnight
+  test-doc-scheduling_simple
+  test-doc-seek-telnet
+  test-doc-settings
+  test-doc-shoutcast
+  test-doc-single
+  test-doc-source-cue
+  test-doc-space_overhead
+  test-doc-split-cue
+  test-doc-sqlite
+  test-doc-srt-receiver
+  test-doc-srt-sender
+  test-doc-switch-show
+  test-doc-transcoding
+  test-doc-video-anonymizer
+  test-doc-video-bluescreen
+  test-doc-video-canvas-example
+  test-doc-video-default-canvas
+  test-doc-video-in-video
+  test-doc-video-logo
+  test-doc-video-osc
+  test-doc-video-simple
+  test-doc-video-static
+  test-doc-video-text
+  test-doc-video-transition
+  test-doc-video-weather
+  test-doc-video-webcam))

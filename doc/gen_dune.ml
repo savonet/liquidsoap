@@ -112,11 +112,15 @@ let mk_generated_rule (file, option, header) =
 |}
     header_deps file file header_action option header_close
 
+let doctests = ref []
+
 let mk_test_rule file =
+  let test_name = Filename.(remove_extension (basename file)) in
+  doctests := ("test-doc-" ^ test_name) :: !doctests;
   Printf.printf
     {|
 (rule
-  (alias doctest)
+  (alias %s)
   (package liquidsoap)
   (deps
     (source_tree ../src/libs)
@@ -125,7 +129,7 @@ let mk_test_rule file =
   (action (run %%{bin:liquidsoap} --check --no-fallible-check %s))
 )
 |}
-    file file
+    test_name file file
 
 let mk_html_install f =
   Printf.sprintf {|    (%s as html/%s)|} (mk_html f) (mk_html f)
@@ -182,3 +186,12 @@ let () =
 )
 |}
     files
+
+let () =
+  Printf.printf
+    {|(alias
+  (name doctest)
+  (deps
+    %s))
+|}
+    (String.concat "\n    " (List.sort_uniq Stdlib.compare !doctests))
