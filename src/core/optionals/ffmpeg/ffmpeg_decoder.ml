@@ -917,12 +917,12 @@ let mk_decoder ~streams ~target_position ~state container =
   let last_meta = ref None in
   fun buffer ->
     Mutex_utils.atomic_lock ~state (fun () ->
-        decode buffer;
         let m = Av.get_input_metadata container in
         if Some m <> !last_meta && m <> [] then (
           last_meta := Some m;
           Generator.add_metadata buffer.Decoder.generator
-            (Frame.Metadata.from_list m)))
+            (Frame.Metadata.from_list m));
+        decode buffer)
 
 let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
   let track_packet ~stream = function
