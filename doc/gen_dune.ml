@@ -115,8 +115,8 @@ let mk_generated_rule (file, option, header) =
 let doctests = ref []
 
 let mk_test_rule file =
-  let test_name = Filename.(remove_extension (basename file)) in
-  doctests := ("test-doc-" ^ test_name) :: !doctests;
+  let test_name = "test-doc-" ^ Filename.(remove_extension (basename file)) in
+  doctests := test_name :: !doctests;
   Printf.printf
     {|
 (rule
