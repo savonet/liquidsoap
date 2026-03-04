@@ -53,7 +53,6 @@ type container = {
   decoder : Decoder.decoder;
   remaining : unit -> int;
   buffer : Decoder.buffer;
-  get_metadata : unit -> (string * string) list;
   closed : bool Atomic.t;
 }
 
@@ -150,49 +149,15 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           failwith
             (Printf.sprintf "url %S cannot produce content of type %s" url
                (Frame.string_of_content_type self#content_type));
-        let streams = Atomic.make Ffmpeg_decoder.Streams.empty in
-        let streams_process s = Atomic.set streams s in
         let decoder, remaining =
           Ffmpeg_decoder.mk_decoder_record ~ctype:self#content_type
-            ~streams_process ~decode_first_metadata:true container
+            ~decode_first_metadata:true container
         in
         let buffer = Decoder.mk_buffer ~ctype:self#content_type self#buffer in
-        (* FFmpeg has memory leaks with chained ogg stream so we manually
-           reset the metadata after fetching it. *)
-        let get_metadata stream =
-          let m = Av.get_metadata stream in
-          Av.set_metadata stream [];
-          m
-        in
-        let get_metadata () =
-          normalize_metadata
-            (Ffmpeg_decoder.Streams.fold
-               (fun _ s m ->
-                 m
-                 @
-                   match s.Ffmpeg_decoder.decoder with
-                   | `Audio_frame (stream, _) -> get_metadata stream
-                   | `Audio_packet (stream, _) -> get_metadata stream
-                   | `Video_frame (stream, _) -> get_metadata stream
-                   | `Video_packet (stream, _) -> get_metadata stream
-                   | `Subtitle_packet (stream, _) -> get_metadata stream
-                   | `Subtitle_frame (stream, _) -> get_metadata stream
-                   | `Data_packet _ -> [])
-               (Atomic.get streams)
-               (Av.get_input_metadata container))
-        in
-        let last_meta = ref [] in
-        let get_metadata () =
-          let m = get_metadata () in
-          if m <> !last_meta then (
-            last_meta := m;
-            m)
-          else []
-        in
         let m = self#on_connect_metadata_map container in
         List.iter (fun fn -> fn m) on_connect;
         Generator.add_track_mark self#buffer;
-        let container = { decoder; remaining; buffer; get_metadata; closed } in
+        let container = { decoder; remaining; buffer; closed } in
         Atomic.set source_status (`Connected (url, container));
         -1.
       with
@@ -270,11 +235,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       let size = Lazy.force Frame.size in
       try
         self#decode;
-        let { get_metadata } = self#get_connected_container in
-        let meta = get_metadata () in
-        if meta <> [] then (
-          Generator.add_metadata self#buffer (Frame.Metadata.from_list meta);
-          if new_track_on_metadata then Generator.add_track_mark self#buffer);
         let frame = Generator.slice self#buffer size in
         (* Metadata can be added by the decoder and the demuxer so we filter at the frame level. *)
         let metadata =
@@ -286,7 +246,10 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             []
             (Frame.get_all_metadata frame)
         in
-        Frame.add_all_metadata frame metadata
+        let frame = Frame.add_all_metadata frame metadata in
+        if metadata <> [] && new_track_on_metadata then
+          Frame.add_track_mark frame 0
+        else frame
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log

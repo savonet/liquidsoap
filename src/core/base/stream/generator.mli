@@ -88,8 +88,9 @@ val peek : t -> Content.data Frame_base.Fields.t
 (* Return the generator's media content (all tracks excluding metadata and track_marks) without removing it. *)
 val peek_media : t -> Content.data Frame_base.Fields.t
 
-(* Insert a metadata at the given position. To be used over [put]
-   for metadata. Default position is generator's length. *)
+(* Insert a metadata at the given position. If metadata already exists at
+   that position, the new metadata is merged into it. Default position is
+   generator's length. *)
 val add_metadata : ?pos:int -> t -> Frame_base.metadata -> unit
 
 (* Insert a track mark at the given position. To be used over [put]

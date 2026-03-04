@@ -914,7 +914,15 @@ let mk_decoder ~streams ~target_position ~state container =
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace exn bt
   in
-  fun buffer -> Mutex_utils.atomic_lock ~state (fun () -> decode buffer)
+  let last_meta = ref None in
+  fun buffer ->
+    Mutex_utils.atomic_lock ~state (fun () ->
+        let m = Av.get_input_metadata container in
+        if Some m <> !last_meta && m <> [] then (
+          last_meta := Some m;
+          Generator.add_metadata buffer.Decoder.generator
+            (Frame.Metadata.from_list m));
+        decode buffer)
 
 let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
   let track_packet ~stream = function
@@ -937,6 +945,8 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
     let latest_metadata = ref None in
     fun ~buffer data ->
       let m = Av.get_metadata stream in
+      (* FFmpeg has memory leaks with chained ogg stream so we manually
+           reset the metadata after fetching it. *)
       Av.set_metadata stream [];
       if
         ((not !is_first) || decode_first_metadata)
@@ -1155,8 +1165,7 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
   in
   streams
 
-let mk_decoder_record ?(streams_process = fun _ -> ()) ~ctype
-    ~decode_first_metadata container =
+let mk_decoder_record ~ctype ~decode_first_metadata container =
   let container_duration = try get_duration container with _ -> None in
   let remaining = Atomic.make container_duration in
   let set_remaining ~pts ~duration ~time_base =
@@ -1192,7 +1201,6 @@ let mk_decoder_record ?(streams_process = fun _ -> ()) ~ctype
     let streams =
       mk_streams ~ctype ~decode_first_metadata ~set_remaining container
     in
-    streams_process streams;
     let decoder = mk_decoder ~state ~streams ~target_position container in
     let eof = mk_eof streams in
     (streams, decoder, eof)

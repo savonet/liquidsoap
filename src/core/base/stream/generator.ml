@@ -148,7 +148,13 @@ let default_pos gen = function Some pos -> pos | None -> length gen
 
 let _add_metadata ?pos gen m =
   let pos = default_pos gen pos in
-  _set_metadata gen ((pos, m) :: get_metadata gen)
+  let rec upsert = function
+    | [] -> [(pos, m)]
+    | (pos', m') :: rest when pos' = pos ->
+        (pos, Frame.Metadata.append m m') :: rest
+    | entry :: rest -> entry :: upsert rest
+  in
+  _set_metadata gen (upsert (get_metadata gen))
 
 let add_metadata ?pos gen =
   Mutex_utils.mutexify gen.lock (_add_metadata ?pos gen)
