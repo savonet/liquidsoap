@@ -36,25 +36,31 @@ open Mm
 module Buffer = struct
   (* The kind of value shared by a producer and a consumer. *)
   type control = {
-    lock : Mutex.t;
+    lock : Mutex_utils.state;
     generator : Generator.t Lazy.t;
     mutable buffering : bool;
     mutable abort : bool;
   }
 
-  let proceed control f = Mutex_utils.mutexify control.lock f ()
+  let[@inline always] proceed control f =
+    Mutex_utils.atomic_lock ~state:control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
-  class producer ~id c =
+  class producer ~id ~add_track_mark ~replay_meta c =
     object (self)
       inherit Source.source ~name:id ()
+      val mutable cur_meta : Frame.metadata option = None
+      val mutable is_buffering = true
       method self_sync = (`Static, None)
       method fallible = true
 
       method remaining =
         proceed c (fun () -> Generator.remaining (Lazy.force c.generator))
 
-      method private can_generate_frame = proceed c (fun () -> not c.buffering)
+      method private can_generate_frame =
+        proceed c (fun () ->
+            is_buffering <- c.buffering;
+            not is_buffering)
 
       method! seek len =
         let len = min (Generator.length (Lazy.force c.generator)) len in
@@ -64,9 +70,37 @@ module Buffer = struct
       method effective_source = (self :> Source.source)
       method buffer_length = Generator.length (Lazy.force c.generator)
 
+      (* Returns true if metadata should be replayed. *)
+      method private save_metadata frame =
+        let new_meta =
+          match
+            List.fold_left
+              (function
+                | None -> fun (p, m) -> Some (p, m)
+                | Some (curp, curm) ->
+                    fun (p, m) ->
+                      Some (if p >= curp then (p, m) else (curp, curm)))
+              (match cur_meta with None -> None | Some m -> Some (-1, m))
+              (Frame.get_all_metadata frame)
+          with
+            | None -> None
+            | Some (_, m) -> Some m
+        in
+        if cur_meta = new_meta then true
+        else (
+          cur_meta <- new_meta;
+          false)
+
+      method private replay_metadata frame =
+        match cur_meta with
+          | None -> frame
+          | Some m -> Frame.add_metadata frame 0 m
+
       method private generate_frame =
         proceed c (fun () ->
             assert (not c.buffering);
+            let was_buffering = is_buffering in
+            is_buffering <- false;
             let frame =
               Generator.slice (Lazy.force c.generator) (Lazy.force Frame.size)
             in
@@ -76,7 +110,14 @@ module Buffer = struct
             then (
               self#log#important "Buffer emptied, start buffering...";
               c.buffering <- true);
-            frame)
+            let frame =
+              if was_buffering && add_track_mark then
+                Frame.add_track_mark frame 0
+              else frame
+            in
+            if self#save_metadata frame && was_buffering && replay_meta then
+              self#replay_metadata frame
+            else frame)
 
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
@@ -111,13 +152,14 @@ module Buffer = struct
                   (Generator.length (Lazy.force c.generator) - maxbuf)))
     end
 
-  let create ~id ~autostart ~infallible ~pre_buffer ~max_buffer source_val =
+  let create ~id ~autostart ~infallible ~pre_buffer ~max_buffer ~add_track_mark
+      ~replay_meta source_val =
     let control =
       {
         generator =
           Lazy.from_fun (fun () ->
               Generator.create (Lang.to_source source_val)#content_type);
-        lock = Mutex.create ();
+        lock = Mutex_utils.mk_state ();
         buffering = true;
         abort = false;
       }
@@ -127,7 +169,9 @@ module Buffer = struct
         ~id:(Printf.sprintf "%s.consumer" id)
         ~autostart ~infallible source_val ~pre_buffer ~max_buffer control
     in
-    new producer ~id:(Printf.sprintf "%s.producer" id) control
+    new producer
+      ~id:(Printf.sprintf "%s.producer" id)
+      ~add_track_mark ~replay_meta control
 end
 
 let buffer =
@@ -145,6 +189,16 @@ let buffer =
           Lang.float_t,
           Some (Lang.float 1.),
           Some "Amount of data to pre-buffer, in seconds." );
+        ( "replay_metadata",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some
+            "Replay the last metadata when the buffer becomes available again."
+        );
+        ( "add_track_mark",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Insert a track mark when the buffer becomes available again." );
         ( "max",
           Lang.float_t,
           Some (Lang.float 10.),
@@ -167,13 +221,16 @@ let buffer =
         Lang.to_default_option ~default:"buffer" Lang.to_string
           (List.assoc "id" p)
       in
+      let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
+      let add_track_mark = Lang.to_bool (List.assoc "add_track_mark" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let s = List.assoc "" p in
       let pre_buffer = Lang.to_float (List.assoc "buffer" p) in
       let max_buffer = Lang.to_float (List.assoc "max" p) in
       let max_buffer = max max_buffer (pre_buffer *. 1.1) in
-      Buffer.create ~id ~infallible ~autostart ~pre_buffer ~max_buffer s)
+      Buffer.create ~id ~infallible ~autostart ~pre_buffer ~replay_meta
+        ~add_track_mark ~max_buffer s)
 
 module AdaptativeBuffer = struct
   (** Ringbuffers where number of channels is fixed on first write. *)
