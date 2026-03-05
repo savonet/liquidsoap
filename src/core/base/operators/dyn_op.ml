@@ -73,7 +73,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
         | None -> self#switch ~activation s
 
     method private get_next reselect =
-      self#mutexify
+      self#mutable_lock
         (fun () ->
           let v = Lang.to_option (Lang.apply next_fn []) in
           let v =

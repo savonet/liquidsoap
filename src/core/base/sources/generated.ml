@@ -31,14 +31,15 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
     val mutable add_track_mark = false
     val mutable cur_meta : Frame.metadata option = None
     method virtual private log : Log.t
-    method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method virtual buffer : Generator.t
+    method virtual private mutable_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
+    method virtual private atomic_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method self_sync : Clock.self_sync = (`Static, None)
 
     method seek len =
       if (not seek) || len <= 0 then 0
       else
-        self#mutexify
+        self#mutable_lock
           (fun () ->
             let len = min len (Generator.remaining self#buffer) in
             Generator.truncate self#buffer len;
@@ -92,7 +93,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
         | Some m -> Frame.add_metadata frame 0 m
 
     method private generate_frame =
-      self#mutexify
+      self#atomic_lock
         (fun () ->
           let was_buffering = buffering in
           buffering <- false;

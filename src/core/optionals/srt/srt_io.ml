@@ -601,7 +601,8 @@ class virtual networking_agent =
     method virtual private connect : unit
     method virtual private disconnect : unit
     method virtual private is_connected : bool
-    method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
+    method virtual private mutable_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
+    method virtual private atomic_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method virtual private should_stop : bool
   end
 
@@ -737,7 +738,8 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
     method virtual id : string
     method virtual log : Log.t
     method virtual should_stop : bool
-    method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
+    method virtual private mutable_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
+    method virtual private atomic_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method virtual apply_on_socket : mode:socket_mode -> Srt.socket -> unit
     method virtual apply_on_connect : unit
     method virtual apply_on_disconnect : unit
@@ -745,9 +747,9 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
     initializer ToDisconnect.add to_disconnect (self :> ToDisconnect.data)
 
     method private is_connected =
-      self#mutexify (fun () -> client_sockets <> []) ()
+      self#atomic_lock (fun () -> client_sockets <> []) ()
 
-    method get_sockets = self#mutexify (fun () -> client_sockets) ()
+    method get_sockets = self#atomic_lock (fun () -> client_sockets) ()
 
     method private listening_socket =
       match Atomic.get listening_socket with
@@ -771,7 +773,9 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
               let max_clients_callback =
                 Option.map
                   (fun n _ _ _ _ ->
-                    self#mutexify (fun () -> List.length client_sockets < n) ())
+                    self#atomic_lock
+                      (fun () -> List.length client_sockets < n)
+                      ())
                   max_clients
               in
               let listen_callback =
@@ -832,11 +836,10 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
             if self#should_stop then (
               close_socket ~on_socket:self#apply_on_socket client;
               raise Done);
-            self#mutexify
-              (fun () ->
-                client_sockets <- (origin, client) :: client_sockets;
-                self#apply_on_connect)
-              ()
+            self#atomic_lock
+              (fun () -> client_sockets <- (origin, client) :: client_sockets)
+              ();
+            self#mutable_lock (fun () -> self#apply_on_connect) ()
           with exn ->
             let bt = Printexc.get_raw_backtrace () in
             Srt.close client;
@@ -845,14 +848,14 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
           self#log#debug "Failed to connect: %s" (Printexc.to_string exn)
       in
       if not self#should_stop then
-        self#mutexify
+        self#atomic_lock
           (fun () ->
             Poll.add_socket ~mode:`Read self#listening_socket accept_connection)
           ()
 
     method disconnect =
       let should_stop = self#should_stop in
-      self#mutexify
+      self#mutable_lock
         (fun () ->
           List.iter
             (fun (_, s) -> close_socket ~on_socket:self#apply_on_socket s)
@@ -1116,11 +1119,8 @@ class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
           Atomic.set encoder None)
 
     method private send_chunk =
-      self#mutexify
-        (fun () ->
-          Strings.Mutable.blit buffer 0 tmp 0 payload_size;
-          Strings.Mutable.drop buffer payload_size)
-        ();
+      Strings.Mutable.blit buffer 0 tmp 0 payload_size;
+      Strings.Mutable.drop buffer payload_size;
       let send data socket =
         if messageapi then Srt.sendmsg socket data (-1) false
         else Srt.send socket data
@@ -1142,13 +1142,12 @@ class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
       List.iter (f 0) self#get_sockets
 
     method private send_chunks =
-      let len = self#mutexify (fun () -> Strings.Mutable.length buffer) in
-      while payload_size <= len () do
+      while payload_size <= Strings.Mutable.length buffer do
         self#send_chunk
       done
 
     method private get_encoder =
-      self#mutexify
+      self#atomic_lock
         (fun () ->
           match Atomic.get encoder with
             | Some enc -> enc
@@ -1159,7 +1158,7 @@ class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
         ()
 
     method private start =
-      self#mutexify (fun () -> Atomic.set should_stop false) ();
+      self#atomic_lock (fun () -> Atomic.set should_stop false) ();
       self#connect
 
     method! private reset =
@@ -1167,7 +1166,7 @@ class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
       self#stop
 
     method private stop =
-      self#mutexify (fun () -> Atomic.set should_stop true) ();
+      self#atomic_lock (fun () -> Atomic.set should_stop true) ();
       self#stop_encoder;
       self#send_chunks;
       self#disconnect
@@ -1175,8 +1174,7 @@ class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
     method stop_encoder =
       if self#is_connected then (
         try
-          self#mutexify
-            (Strings.Mutable.append_strings buffer)
+          Strings.Mutable.append_strings buffer
             (self#get_encoder.Encoder.stop ())
         with exn ->
           let bt = Printexc.get_backtrace () in
@@ -1195,7 +1193,7 @@ class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
 
     method private send data =
       if self#is_connected then (
-        self#mutexify (Strings.Mutable.append_strings buffer) data;
+        Strings.Mutable.append_strings buffer data;
         self#send_chunks)
   end
 
@@ -1254,7 +1252,7 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
         ~bt:(Printexc.raw_backtrace_to_string bt)
         (Printf.sprintf "Error while sending client data: %s"
            (Printexc.to_string exn));
-      self#mutexify
+      self#mutable_lock
         (fun () ->
           close_socket ~on_socket:self#apply_on_socket socket;
           client_sockets <-
