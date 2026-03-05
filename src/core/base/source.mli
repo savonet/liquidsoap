@@ -100,7 +100,8 @@ class virtual source :
   name:string ->
   unit ->
 object
-  method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
+  method private mutable_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
+  method private atomic_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
 
   (** {1 Naming} *)
 

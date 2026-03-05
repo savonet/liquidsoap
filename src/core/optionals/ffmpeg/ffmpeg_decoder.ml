@@ -659,7 +659,8 @@ let get_type ?format ~ctype ~url container =
   Ffmpeg_stream_description.get_type ~ctype c
 
 let seek ~state ~target_position ~container ticks =
-  Mutex_utils.mutable_lock ~state (fun () ->
+  Mutex_utils.mutable_lock ~state
+    (fun () ->
       let tpos = Frame.seconds_of_main ticks in
       log#important "Setting target position to %f" tpos;
       Atomic.set target_position (Some ticks);
@@ -668,6 +669,7 @@ let seek ~state ~target_position ~container ticks =
       let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
       let max_ts = ts in
       Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container)
+    ()
 
 let mk_eof streams buffer =
   Streams.iter
@@ -916,13 +918,15 @@ let mk_decoder ~streams ~target_position ~state container =
   in
   let last_meta = ref None in
   fun buffer ->
-    Mutex_utils.atomic_lock ~state (fun () ->
+    Mutex_utils.atomic_lock ~state
+      (fun () ->
         let m = Av.get_input_metadata container in
         if Some m <> !last_meta && m <> [] then (
           last_meta := Some m;
           Generator.add_metadata buffer.Decoder.generator
             (Frame.Metadata.from_list m));
         decode buffer)
+      ()
 
 let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
   let track_packet ~stream = function

@@ -150,10 +150,13 @@ class virtual operator ?(stack = []) ?clock ~name sources =
          changes, and [log] has already been initialized, reset it. *)
         if log != source_log then self#create_log)
 
-    val mutex = Mutex.create ()
+    val lock_state = Mutex_utils.mk_state ()
 
-    method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
-      Mutex_utils.mutexify mutex
+    method private mutable_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b =
+      Mutex_utils.mutable_lock ~state:lock_state
+
+    method private atomic_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b =
+      Mutex_utils.atomic_lock ~state:lock_state
 
     method virtual fallible : bool
     method source_type : source_type = `Passive
@@ -673,7 +676,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
-      let on_frame = self#mutexify (fun () -> on_frame) () in
+      let on_frame = self#atomic_lock (fun () -> on_frame) () in
       List.iter (function `Before_frame fn -> fn _cache | _ -> ()) on_frame;
       let buf = self#normalize_video_content self#generate_frame in
       List.iter
