@@ -144,6 +144,27 @@ print("The number #{random.float()} is random.")
 will print `The number 0.663455738438 is random.` (at least it did last time I
 tried).
 
+#### Raw strings
+
+When a string should be taken verbatim — without any interpolation or escape
+processing — use the _raw string_ syntax `{|...|}`.:
+
+```{.liquidsoap include="raw-string.liq"}
+
+```
+
+will print `no interpolation: #{expr} here`.
+
+If the content itself contains `|}`, use a delimited form `{id|...|id}` where
+`id` is any sequence of lowercase letters and underscores:
+
+```{.liquidsoap include="raw-string-delimited.liq"}
+
+```
+
+will print `this |} is fine`. The opening `{id|` and closing `|id}` must use
+the same `id`, which can be empty (as in the basic `{|...|}` form).
+
 #### Escaping strings
 
 Liquidsoap strings follow the most common lexical conventions from `C` and `javascript` and `JSON`, in particular,
