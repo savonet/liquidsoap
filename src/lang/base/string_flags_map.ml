@@ -66,6 +66,8 @@ let merge_flags s flags =
   atomic_lock (fun () ->
       match Map.find_opt table { digest = d; flags = Flags.empty } with
         | Some entry ->
+            (* Each call adds a finalizer closure to s. We expect few repeated
+               calls on the same string, if any, so this is acceptable. *)
             Gc.finalise_last (fun () -> ignore (Sys.opaque_identity entry)) s;
             Flags.merge flags entry.flags
         | None -> flags)
