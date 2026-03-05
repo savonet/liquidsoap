@@ -25,6 +25,9 @@
     with the same content accumulate their flags. *)
 val register : string -> Flags.flag -> unit
 
+(** Remove a flag from the map entry for [s]'s content digest, if one exists. *)
+val remove_flag : string -> Flags.flag -> unit
+
 (** Merge the flags stored for [s]'s content digest into [flags] and return the
     result. If an entry exists, also anchors it to [s] via a finalizer so the
     entry stays alive as long as [s] is live. *)

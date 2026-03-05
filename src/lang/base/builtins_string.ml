@@ -44,7 +44,9 @@ let _ =
         (fun () -> Lang.bool (Value.has_flag v Flags.binary))
         (fun f ->
           if Lang.to_bool f then Value.add_flag v Flags.binary
-          else Value.remove_flag v Flags.binary))
+          else (
+            Value.remove_flag v Flags.binary;
+            String_flags_map.remove_flag (Lang.to_string v) Flags.binary)))
 
 let _ =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."

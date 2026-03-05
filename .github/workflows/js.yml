@@ -38,6 +38,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E opam update
           sudo -u opam -E opam upgrade -y
+          sudo -u opam -E opam install domain_shims
           sudo -u opam -E opam exec -- dune build --profile release src/js --verbose
       - name: Upload JS artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0

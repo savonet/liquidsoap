@@ -14,6 +14,16 @@ def f() =
   # string() should mask binary content when print_binary=false.
   test.equal(string(print_binary=false, s2), "<string>")
 
+  # Removing the binary flag should update the map: new strings with the same
+  # content should no longer inherit it.
+  string.flags.binary(s) := false
+  b_removed = string.flags.binary(s)
+  test.equal(b_removed(), false)
+  s3 =
+    "binary data"
+  b3 = string.flags.binary(s3)
+  test.equal(b3(), false)
+
   test.pass()
 end
 
