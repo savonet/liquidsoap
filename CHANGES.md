@@ -1,5 +1,11 @@
 # 2.4.3 (unreleased)
 
+## New:
+
+- Added optional `replay_metadata` and `add_new_track` to
+  the `buffer` operator to replay latest metadata and insert
+  track marks when the buffer becomes available again.
+
 ## Changed:
 
 - DEPRECATED telnet/server `request.on_air` command is enabled when
