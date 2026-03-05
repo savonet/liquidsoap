@@ -155,15 +155,3 @@ jobs:
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-  trigger_retry:
-    runs-on: depot-ubuntu-24.04-4
-    needs: [build_opam, build_posix, build_win32, update_release, build_docker]
-    if: always() && contains(needs.*.result, 'failure') && fromJSON(github.run_attempt) < 4
-    permissions:
-      actions: write
-    steps:
-      - name: Dispatch retry
-        run: gh workflow run retry.yml --repo ${{ github.repository }} --field run_id=${{ github.run_id }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
