@@ -24,9 +24,11 @@ let string =
       let v = if show_fields then v else dv in
       let print_binary = Lang.to_bool (List.assoc "print_binary" p) in
       match v with
-        | String { value = s; flags }
-          when (not (Flags.has flags Flags.binary)) || print_binary ->
-            Lang.string s
+        | String { value = s; flags } ->
+            let flags = Flags.merge flags (String_flags_map.find_flags s) in
+            if (not (Flags.has flags Flags.binary)) || print_binary then
+              Lang.string s
+            else Lang.string (Value.to_string v)
         | v -> Lang.string (Value.to_string v))
 
 let flags = Lang.add_module ~base:string "flags"

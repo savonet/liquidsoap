@@ -193,7 +193,9 @@ let has_flag v flag =
 let add_flag v flag =
   match v with
     | Float _ | Bool _ | Null _ -> assert false
-    | String p -> p.flags <- Flags.add p.flags flag
+    | String p ->
+        p.flags <- Flags.add p.flags flag;
+        if flag = Flags.binary then String_flags_map.register p.value flag
     | Int p -> p.flags <- Flags.add p.flags flag
     | Custom p -> p.flags <- Flags.add p.flags flag
     | Tuple p -> p.flags <- Flags.add p.flags flag
@@ -222,7 +224,9 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
     = function
   | `Int i -> Int { pos; methods; flags; value = i }
   | `Float f -> Float { pos; methods; value = f }
-  | `String s -> String { pos; methods; flags; value = s }
+  | `String s ->
+      let flags = Flags.merge flags (String_flags_map.find_flags s) in
+      String { pos; methods; flags; value = s }
   | `Bool b -> Bool { pos; methods; value = b }
   | `Custom c ->
       Custom { pos; methods; flags; dynamic_methods = None; value = c }

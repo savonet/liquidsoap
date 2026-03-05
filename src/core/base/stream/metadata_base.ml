@@ -24,6 +24,34 @@ include Liquidsoap_lang.Methods
 
 type t = (string, string) Liquidsoap_lang.Methods.t
 
+let register_cover_string k v =
+  if List.mem (String.lowercase_ascii k) Encoder_formats.conf_meta_cover#get
+  then Liquidsoap_lang.String_flags_map.register v Liquidsoap_lang.Flags.binary
+
+let add k v m =
+  register_cover_string k v;
+  add k v m
+
+let append l l' =
+  let m = append l l' in
+  iter register_cover_string m;
+  m
+
+let map fn m =
+  let m = map fn m in
+  iter register_cover_string m;
+  m
+
+let mapi fn m =
+  let m = mapi fn m in
+  iter register_cover_string m;
+  m
+
+let from_list l =
+  let m = from_list l in
+  iter register_cover_string m;
+  m
+
 let to_list m =
   List.stable_sort (fun (k, _) (k', _) -> Stdlib.compare k k') (bindings m)
 
