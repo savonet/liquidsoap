@@ -25,5 +25,5 @@ val mutexify : Mutex.t -> ('a -> 'b) -> 'a -> 'b
 type state
 
 val mk_state : unit -> state
-val mutable_lock : state:state -> (unit -> 'a) -> 'a
-val atomic_lock : state:state -> (unit -> 'a) -> 'a
+val mutable_lock : state:state -> ('a -> 'b) -> 'a -> 'b
+val atomic_lock : state:state -> ('a -> 'b) -> 'a -> 'b
