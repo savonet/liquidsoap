@@ -12568,106 +12568,106 @@
 (alias
  (name doctest)
  (deps
-  test-doc-append-silence
-  test-doc-archive-cleaner
-  test-doc-basic-radio
-  test-doc-beets-amplify
-  test-doc-beets-protocol
-  test-doc-beets-protocol-short
-  test-doc-beets-source
-  test-doc-blank-detect
-  test-doc-blank-sorry
-  test-doc-complete-case
-  test-doc-cron_add
-  test-doc-cron_id
-  test-doc-cron_id_arg
-  test-doc-cron_remove
-  test-doc-cross.custom
-  test-doc-crossfade
-  test-doc-decoder-openmpt
-  test-doc-dump-hourly
-  test-doc-dump-hourly2
-  test-doc-dynamic-source
-  test-doc-external-output.file
-  test-doc-fallback
-  test-doc-ffmpeg-filter-dynamic-volume
-  test-doc-ffmpeg-filter-flanger-highpass
-  test-doc-ffmpeg-filter-hflip
-  test-doc-ffmpeg-filter-hflip2
-  test-doc-ffmpeg-filter-parallel-flanger-highpass
-  test-doc-ffmpeg-live-switch
-  test-doc-ffmpeg-relay
-  test-doc-ffmpeg-relay-ondemand
-  test-doc-ffmpeg-shared-encoding
-  test-doc-ffmpeg-shared-encoding-rtmp
-  test-doc-fixed-time1
-  test-doc-fixed-time2
-  test-doc-frame-size
-  test-doc-harbor-auth
-  test-doc-harbor-dynamic
-  test-doc-harbor-insert-metadata
-  test-doc-harbor-metadata
-  test-doc-harbor-redirect
-  test-doc-harbor-simple
-  test-doc-harbor-usage
-  test-doc-harbor.http.register
-  test-doc-harbor.http.response
-  test-doc-hls-metadata
-  test-doc-http-input
-  test-doc-icy-update
-  test-doc-implicit-float-ok
-  test-doc-input.mplayer
-  test-doc-jingle-hour
-  test-doc-json-ex
-  test-doc-json-stringify
-  test-doc-json1
-  test-doc-labeled_arguments
-  test-doc-live-switch
-  test-doc-loudness-correction
-  test-doc-medialib
-  test-doc-medialib-predicate
-  test-doc-medialib.sqlite
-  test-doc-multitrack-add-video-track2
-  test-doc-multitrack-default-video-track
-  test-doc-multitrack2
-  test-doc-output.file.hls
-  test-doc-playlists
-  test-doc-prometheus-callback
-  test-doc-prometheus-settings
-  test-doc-radiopi
-  test-doc-re-encode
-  test-doc-regular
-  test-doc-replaygain-playlist
-  test-doc-request.dynamic
-  test-doc-rtmp
-  test-doc-samplerate3
-  test-doc-scheduling
-  test-doc-scheduling_9am
-  test-doc-scheduling_queue
-  test-doc-scheduling_queue_midnight
-  test-doc-scheduling_simple
-  test-doc-seek-telnet
-  test-doc-settings
-  test-doc-shoutcast
-  test-doc-single
-  test-doc-source-cue
-  test-doc-space_overhead
-  test-doc-split-cue
-  test-doc-sqlite
-  test-doc-srt-receiver
-  test-doc-srt-sender
-  test-doc-switch-show
-  test-doc-transcoding
-  test-doc-video-anonymizer
-  test-doc-video-bluescreen
-  test-doc-video-canvas-example
-  test-doc-video-default-canvas
-  test-doc-video-in-video
-  test-doc-video-logo
-  test-doc-video-osc
-  test-doc-video-simple
-  test-doc-video-static
-  test-doc-video-text
-  test-doc-video-transition
-  test-doc-video-weather
-  test-doc-video-webcam))
+  (alias test-doc-append-silence)
+  (alias test-doc-archive-cleaner)
+  (alias test-doc-basic-radio)
+  (alias test-doc-beets-amplify)
+  (alias test-doc-beets-protocol)
+  (alias test-doc-beets-protocol-short)
+  (alias test-doc-beets-source)
+  (alias test-doc-blank-detect)
+  (alias test-doc-blank-sorry)
+  (alias test-doc-complete-case)
+  (alias test-doc-cron_add)
+  (alias test-doc-cron_id)
+  (alias test-doc-cron_id_arg)
+  (alias test-doc-cron_remove)
+  (alias test-doc-cross.custom)
+  (alias test-doc-crossfade)
+  (alias test-doc-decoder-openmpt)
+  (alias test-doc-dump-hourly)
+  (alias test-doc-dump-hourly2)
+  (alias test-doc-dynamic-source)
+  (alias test-doc-external-output.file)
+  (alias test-doc-fallback)
+  (alias test-doc-ffmpeg-filter-dynamic-volume)
+  (alias test-doc-ffmpeg-filter-flanger-highpass)
+  (alias test-doc-ffmpeg-filter-hflip)
+  (alias test-doc-ffmpeg-filter-hflip2)
+  (alias test-doc-ffmpeg-filter-parallel-flanger-highpass)
+  (alias test-doc-ffmpeg-live-switch)
+  (alias test-doc-ffmpeg-relay)
+  (alias test-doc-ffmpeg-relay-ondemand)
+  (alias test-doc-ffmpeg-shared-encoding)
+  (alias test-doc-ffmpeg-shared-encoding-rtmp)
+  (alias test-doc-fixed-time1)
+  (alias test-doc-fixed-time2)
+  (alias test-doc-frame-size)
+  (alias test-doc-harbor-auth)
+  (alias test-doc-harbor-dynamic)
+  (alias test-doc-harbor-insert-metadata)
+  (alias test-doc-harbor-metadata)
+  (alias test-doc-harbor-redirect)
+  (alias test-doc-harbor-simple)
+  (alias test-doc-harbor-usage)
+  (alias test-doc-harbor.http.register)
+  (alias test-doc-harbor.http.response)
+  (alias test-doc-hls-metadata)
+  (alias test-doc-http-input)
+  (alias test-doc-icy-update)
+  (alias test-doc-implicit-float-ok)
+  (alias test-doc-input.mplayer)
+  (alias test-doc-jingle-hour)
+  (alias test-doc-json-ex)
+  (alias test-doc-json-stringify)
+  (alias test-doc-json1)
+  (alias test-doc-labeled_arguments)
+  (alias test-doc-live-switch)
+  (alias test-doc-loudness-correction)
+  (alias test-doc-medialib)
+  (alias test-doc-medialib-predicate)
+  (alias test-doc-medialib.sqlite)
+  (alias test-doc-multitrack-add-video-track2)
+  (alias test-doc-multitrack-default-video-track)
+  (alias test-doc-multitrack2)
+  (alias test-doc-output.file.hls)
+  (alias test-doc-playlists)
+  (alias test-doc-prometheus-callback)
+  (alias test-doc-prometheus-settings)
+  (alias test-doc-radiopi)
+  (alias test-doc-re-encode)
+  (alias test-doc-regular)
+  (alias test-doc-replaygain-playlist)
+  (alias test-doc-request.dynamic)
+  (alias test-doc-rtmp)
+  (alias test-doc-samplerate3)
+  (alias test-doc-scheduling)
+  (alias test-doc-scheduling_9am)
+  (alias test-doc-scheduling_queue)
+  (alias test-doc-scheduling_queue_midnight)
+  (alias test-doc-scheduling_simple)
+  (alias test-doc-seek-telnet)
+  (alias test-doc-settings)
+  (alias test-doc-shoutcast)
+  (alias test-doc-single)
+  (alias test-doc-source-cue)
+  (alias test-doc-space_overhead)
+  (alias test-doc-split-cue)
+  (alias test-doc-sqlite)
+  (alias test-doc-srt-receiver)
+  (alias test-doc-srt-sender)
+  (alias test-doc-switch-show)
+  (alias test-doc-transcoding)
+  (alias test-doc-video-anonymizer)
+  (alias test-doc-video-bluescreen)
+  (alias test-doc-video-canvas-example)
+  (alias test-doc-video-default-canvas)
+  (alias test-doc-video-in-video)
+  (alias test-doc-video-logo)
+  (alias test-doc-video-osc)
+  (alias test-doc-video-simple)
+  (alias test-doc-video-static)
+  (alias test-doc-video-text)
+  (alias test-doc-video-transition)
+  (alias test-doc-video-weather)
+  (alias test-doc-video-webcam)))

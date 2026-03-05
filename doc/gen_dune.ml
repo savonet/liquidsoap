@@ -194,4 +194,6 @@ let () =
   (deps
     %s))
 |}
-    (String.concat "\n    " (List.sort_uniq Stdlib.compare !doctests))
+    (String.concat "\n    "
+       List.(
+         map (Printf.sprintf "(alias %s)") (sort_uniq Stdlib.compare !doctests)))
