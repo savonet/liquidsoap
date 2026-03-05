@@ -225,7 +225,7 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
   | `Int i -> Int { pos; methods; flags; value = i }
   | `Float f -> Float { pos; methods; value = f }
   | `String s ->
-      let flags = Flags.merge flags (String_flags_map.find_flags s) in
+      let flags = String_flags_map.merge_flags s flags in
       String { pos; methods; flags; value = s }
   | `Bool b -> Bool { pos; methods; value = b }
   | `Custom c ->

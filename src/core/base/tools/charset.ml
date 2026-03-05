@@ -56,7 +56,9 @@ let recode_string ~fail ~in_enc ~out_enc s =
               s)
 
 let convert ?(fail = false) ?source ?(target = C.utf8) s =
-  let flags = Liquidsoap_lang.String_flags_map.find_flags s in
+  let flags =
+    Liquidsoap_lang.String_flags_map.merge_flags s Liquidsoap_lang.Flags.empty
+  in
   if Liquidsoap_lang.Flags.has flags Liquidsoap_lang.Flags.binary then (
     log#info "Skipping charset conversion for binary string.";
     s)

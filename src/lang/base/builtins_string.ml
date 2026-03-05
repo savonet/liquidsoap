@@ -25,7 +25,7 @@ let string =
       let print_binary = Lang.to_bool (List.assoc "print_binary" p) in
       match v with
         | String { value = s; flags } ->
-            let flags = Flags.merge flags (String_flags_map.find_flags s) in
+            let flags = String_flags_map.merge_flags s flags in
             if (not (Flags.has flags Flags.binary)) || print_binary then
               Lang.string s
             else Lang.string (Value.to_string v)

@@ -61,9 +61,11 @@ let register s flag =
       entry.flags <- Flags.add entry.flags flag;
       Gc.finalise_last (fun () -> ignore (Sys.opaque_identity entry)) s)
 
-let find_flags s =
+let merge_flags s flags =
   let d = digest s in
   atomic_lock (fun () ->
       match Map.find_opt table { digest = d; flags = Flags.empty } with
-        | Some entry -> entry.flags
-        | None -> Flags.empty)
+        | Some entry ->
+            Gc.finalise_last (fun () -> ignore (Sys.opaque_identity entry)) s;
+            Flags.merge flags entry.flags
+        | None -> flags)
