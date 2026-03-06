@@ -317,6 +317,7 @@ and expand_term tm =
                 l )
       | `Int _ as ast -> ast
       | `Float _ as ast -> ast
+      | `Raw_string _ as ast -> ast
       | `String _ as ast -> ast
       | `Bool _ as ast -> ast
       | `Eof -> `Eof

@@ -213,6 +213,12 @@ def f() =
   test.equal(string(s), "blablo")
   test.equal(string(print_binary=false, s), "blablo")
 
+  # Raw strings: no interpolation
+  test.equal({|hello #{world}|}, "hello " ^ "#" ^ "{world}")
+  test.equal({foo|contains |} inside|foo}, "contains |} inside")
+  test.equal({_|also works|_}, "also works")
+  test.equal({||}, "")
+
   test.pass()
 end
 

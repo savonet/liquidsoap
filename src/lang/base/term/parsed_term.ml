@@ -218,6 +218,7 @@ and parsed_ast =
   | `Bool of bool
   | `Float of string
   | `String of char * string
+  | `Raw_string of string * string
   | `Block of t
   | `Parenthesis of t
   | `Encoder of encoder
@@ -353,6 +354,7 @@ let rec iter_term fn ({ term } as tm) =
     | `Int _ -> ()
     | `Float _ -> ()
     | `String _ -> ()
+    | `Raw_string _ -> ()
     | `Bool _ -> ()
     | `Var _ -> ()
     | `Eof -> ()

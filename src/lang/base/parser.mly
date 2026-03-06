@@ -33,6 +33,7 @@ open Parser_helper
 %token <char * string * Parsed_term.pos> PP_STRING
 %token <string * char list * Parsed_term.pos> PP_REGEXP
 %token <char * string > STRING
+%token <string * string> RAW_STRING
 %token <string * char list > REGEXP
 %token <string> INT PP_INT_DOT_LCUR
 %token <string> FLOAT
@@ -212,6 +213,7 @@ expr:
   | BOOL                             { mk ~pos:$loc (`Bool $1) }
   | FLOAT                            { mk ~pos:$loc (`Float $1) }
   | STRING                           { mk ~pos:$loc (`String $1) }
+  | RAW_STRING                       { mk ~pos:$loc (`Raw_string $1) }
   | string_interpolation             { mk ~pos:$loc (`String_interpolation $1) }
   | VAR                              { mk ~pos:$loc (`Var $1) }
   | varlist                          { mk ~pos:$loc (`List $1) }

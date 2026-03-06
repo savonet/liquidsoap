@@ -246,6 +246,12 @@ let rec token lexbuf =
     | ']' -> RBRA
     | '(' -> LPAR
     | ')' -> RPAR
+    | '{', Star ('a' .. 'z' | '_'), '|' ->
+        let startp, _ = Sedlexing.lexing_bytes_positions lexbuf in
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let id = String.sub matched 1 (String.length matched - 2) in
+        let s = read_raw_string id startp (Buffer.create 17) lexbuf in
+        RAW_STRING (id, s)
     | '{' -> LCUR
     | '}' -> RCUR
     | ',' -> COMMA
@@ -394,6 +400,25 @@ and read_multiline_comment ?(level = 0) pos buf lexbuf =
         raise
           (Term_base.Parse_error
              (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
+
+and read_raw_string id pos buf lexbuf =
+  match%sedlex lexbuf with
+    | '|', Star ('a' .. 'z' | '_'), '}' ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let matched_id = String.sub matched 1 (String.length matched - 2) in
+        if matched_id = id then Buffer.contents buf
+        else (
+          Buffer.add_string buf matched;
+          read_raw_string id pos buf lexbuf)
+    | any ->
+        Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+        read_raw_string id pos buf lexbuf
+    | eof ->
+        raise
+          (Term_base.Parse_error
+             ( (pos, snd (Sedlexing.lexing_bytes_positions lexbuf)),
+               "Raw string is not terminated" ))
+    | _ -> failwith "Internal error"
 
 and read_string c pos buf lexbuf =
   match%sedlex lexbuf with
