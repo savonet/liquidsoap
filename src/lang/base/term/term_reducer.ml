@@ -1316,6 +1316,7 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
     | `Encoder e -> `Encoder (to_encoder ~to_term ~env e)
     | `List l -> list_reducer ~pos ~env ~to_term (List.rev l)
     | `Tuple l -> `Tuple (List.map (to_term ~env) l)
+    | `Raw_string (_, s) -> `String s
     | `String (sep, s) -> `String (render_string ~pos ~sep s)
     | `Int i -> `Int (int_of_string i)
     | `Float f -> (

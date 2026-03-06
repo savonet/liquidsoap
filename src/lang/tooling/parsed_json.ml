@@ -461,6 +461,8 @@ let rec to_ast_json ~to_json = function
   | `Float v -> ast_node ~typ:"ground" [("value", `String v)]
   | `Parenthesis tm -> ast_node ~typ:"parenthesis" [("value", to_json tm)]
   | `Block tm -> ast_node ~typ:"block" [("value", to_json tm)]
+  | `Raw_string (id, s) ->
+      ast_node ~typ:"raw_string" [("id", `String id); ("value", `String s)]
   | `String (c, s) ->
       ast_node ~typ:"string"
         [("value", `String (Printf.sprintf "%c%s%c" c s c))]

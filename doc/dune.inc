@@ -148,6 +148,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -279,6 +281,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -410,6 +414,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -541,6 +547,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -672,6 +680,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -803,6 +813,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -934,6 +946,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -1065,6 +1079,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -1196,6 +1212,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -1327,6 +1345,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -1458,6 +1478,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -1589,6 +1611,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -1720,6 +1744,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -1851,6 +1877,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -1982,6 +2010,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -2113,6 +2143,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -2244,6 +2276,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -2375,6 +2409,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -2506,6 +2542,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -2637,6 +2675,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -2768,6 +2808,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -2899,6 +2941,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -3030,6 +3074,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -3161,6 +3207,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -3292,6 +3340,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -3423,6 +3473,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -3554,6 +3606,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -3685,6 +3739,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -3816,6 +3872,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -3947,6 +4005,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -4078,6 +4138,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -4209,6 +4271,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -4340,6 +4404,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -4471,6 +4537,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -4602,6 +4670,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -4733,6 +4803,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -4864,6 +4936,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -4995,6 +5069,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -5126,6 +5202,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -5257,6 +5335,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -5388,6 +5468,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -5519,6 +5601,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -5650,6 +5734,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -5781,6 +5867,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -5912,6 +6000,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -6043,6 +6133,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -6174,6 +6266,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -6305,6 +6399,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -6436,6 +6532,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -6567,6 +6665,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -6698,6 +6798,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -6829,6 +6931,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -6960,6 +7064,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -7091,6 +7197,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -7222,6 +7330,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -7353,6 +7463,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -7484,6 +7596,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -7615,6 +7729,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -7746,6 +7862,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -7877,6 +7995,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -8008,6 +8128,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -8139,6 +8261,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -8270,6 +8394,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -8401,6 +8527,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -8532,6 +8660,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -8663,6 +8793,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -8794,6 +8926,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -8925,6 +9059,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -9056,6 +9192,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -9187,6 +9325,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -9318,6 +9458,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -9449,6 +9591,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -9580,6 +9724,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -9711,6 +9857,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -9842,6 +9990,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -9973,6 +10123,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -10104,6 +10256,8 @@
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
     content/liq/radiopi.liq
+    content/liq/raw-string-delimited.liq
+    content/liq/raw-string.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
     content/liq/replaygain-playlist.liq
@@ -10810,6 +10964,26 @@
     (:test_liq content/liq/radiopi.liq)
   )
   (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/radiopi.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/raw-string-delimited.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/raw-string-delimited.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (source_tree ../src/libs)
+    (:test_liq content/liq/raw-string.liq)
+  )
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/raw-string.liq))
 )
 
 (rule

@@ -16,7 +16,7 @@ cd "$TMPDIR"
 
 npm init -y > /dev/null 2>&1
 npm install --silent \
-  liquidsoap-playground@1.1.1 \
+  liquidsoap-playground@1.1.2 \
   esbuild@0.24.2 \
   @babel/runtime@7.26.0
 
