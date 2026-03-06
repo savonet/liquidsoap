@@ -9,4 +9,5 @@ val itered_value : flag
 val binary : flag
 val has : flags -> flag -> bool
 val add : flags -> flag -> flags
+val merge : flags -> flags -> flags
 val remove : flags -> flag -> flags
