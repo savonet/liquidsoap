@@ -1,127 +1,127 @@
 - name: "record with  2 fields"
   category: "performance"
-  value: 0.920745134354
+  value: 0.978866100311
   unit: "s"
-  time: 1772834496.2
+  time: 1772834492.69
   min: 0.0
 
 - name: "record with  5 fields"
   category: "performance"
-  value: 1.71427512169
+  value: 1.81023001671
   unit: "s"
-  time: 1772834497.91
+  time: 1772834494.5
   min: 0.0
 
 - name: "record with 10 fields"
   category: "performance"
-  value: 3.01821613312
+  value: 3.2090139389
   unit: "s"
-  time: 1772834500.93
+  time: 1772834497.71
   min: 0.0
 
 - name: "record with 20 fields"
   category: "performance"
-  value: 5.91436982155
+  value: 6.16899609566
   unit: "s"
-  time: 1772834506.84
+  time: 1772834503.88
   min: 0.0
 
 - name: "Memory usage: process private memory"
   category: "memory"
-  value: 59.65234375
+  value: 59.87109375
   unit: "MiB"
-  time: 1772834592.13
+  time: 1772834589.11
   min: 0.0
 
 - name: "Memory usage: process swapped memory"
   category: "memory"
   value: 0.0
   unit: "MiB"
-  time: 1772834592.14
+  time: 1772834589.11
   min: 0.0
 
 - name: "Memory usage: process physical memory"
   category: "memory"
-  value: 131.57421875
+  value: 133.55859375
   unit: "MiB"
-  time: 1772834592.14
+  time: 1772834589.11
   min: 0.0
 
 - name: "Memory usage: process virtual memory"
   category: "memory"
   value: 1364.3984375
   unit: "MiB"
-  time: 1772834592.14
+  time: 1772834589.11
   min: 0.0
 
 - name: "Memory usage: total physical memory"
   category: "memory"
-  value: 15620.2460938
+  value: 15620.25
   unit: "MiB"
-  time: 1772834592.14
+  time: 1772834589.11
   min: 0.0
 
 - name: "Memory usage: total virtual memory"
   category: "memory"
-  value: 19716.2421875
+  value: 19716.2460938
   unit: "MiB"
-  time: 1772834592.14
+  time: 1772834589.11
   min: 0.0
 
 - name: "Memory usage: total used physical memory"
   category: "memory"
-  value: 14806.1484375
+  value: 15171.3359375
   unit: "MiB"
-  time: 1772834592.14
+  time: 1772834589.11
   min: 0.0
 
 - name: "Memory usage: total used virtual memory"
   category: "memory"
-  value: 14806.3984375
+  value: 15171.5859375
   unit: "MiB"
-  time: 1772834592.14
+  time: 1772834589.11
   min: 0.0
 
 - name: "functions"
   category: "language"
   value: 1761.0
   unit: "functions"
-  time: 1772834593.6
+  time: 1772834590.23
 
 - name: "protocols"
   category: "language"
   value: 24.0
   unit: "protocols"
-  time: 1772834593.6
+  time: 1772834590.23
 
 - name: "sum of fields (big record)"
   category: "performance"
-  value: 3.84480619431
+  value: 3.73473286629
   unit: "s"
-  time: 1772834723.76
+  time: 1772834722.32
   min: 0.0
 
 - name: "Erathostenes (imperative)"
   category: "performance"
-  value: 27.79865098
+  value: 27.9112129211
   unit: "s"
-  time: 1772834870.54
+  time: 1772834870.06
   min: 0.0
 
 - name: "Erathostenes (recursive)"
   category: "performance"
-  value: 36.1169388294
+  value: 36.3460569382
   unit: "s"
-  time: 1772834906.65
+  time: 1772834906.41
   min: 0.0
 
 - name: "Process managed memory"
   category: "memory"
   value: 293.773727417
   unit: "Mio"
-  time: 1772834907.84
+  time: 1772834907.59
   min: 0.0
 
-- commit: a6638e9ee5c8d5195516b3069e98c81e1ec6fb9b
-  branch: renovate_docker-build-push-action-7.x
+- commit: c4e6865a5736f98e1feaef049840330835168e27
+  branch: renovate_actions-checkout-4.x
   time: 1772834907
