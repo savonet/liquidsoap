@@ -1,3 +1,4 @@
 doc/content/build.md binary
 doc/content/install.md binary
 CHANGES.md merge=union
+**/dune.inc merge=gendune
