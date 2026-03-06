@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install dune
+        run: sudo apt-get install -y dune
       - name: Configure dune.inc merge driver
         run: |
           git config --global merge.gendune.name "Regenerate dune.inc via gendune"
