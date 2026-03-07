@@ -91,7 +91,6 @@ Depending on your configuration, `output` will use AO, ALSA, or OSS. If none of 
 
 **Note:** in the following, we assume that you have installed the following optional dependencies:
 
-- `cry` for icecast output
 - `vorbis` for ogg/vorbis encoding
 - `ffmpeg` for ffmpeg encoding
 
