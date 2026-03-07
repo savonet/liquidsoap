@@ -73,9 +73,7 @@ let _ =
       let v = List.assoc "" p in
       let v =
         match v with
-          | String { value = s; flags } when not (Flags.has flags Flags.binary)
-            ->
-              s
+          | String { value = s } when not (Binary_strings_map.is_binary s) -> s
           | _ -> Value.to_string v
       in
       print_string v;

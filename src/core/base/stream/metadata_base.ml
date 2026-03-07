@@ -26,7 +26,7 @@ type t = (string, string) Liquidsoap_lang.Methods.t
 
 let register_cover_string k v =
   if List.mem (String.lowercase_ascii k) Encoder_formats.conf_meta_cover#get
-  then Liquidsoap_lang.String_flags_map.register v Liquidsoap_lang.Flags.binary
+  then Liquidsoap_lang.Binary_strings_map.register v
 
 let add k v m =
   register_cover_string k v;
