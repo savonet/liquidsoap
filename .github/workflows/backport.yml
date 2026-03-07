@@ -26,7 +26,8 @@ jobs:
     if: github.event.action == 'closed' && github.event.pull_request.merged == true && contains(toJSON(github.event.pull_request.labels.*.name), 'backport ')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Get copy of source for merge purposes
+        uses: actions/checkout@v4
         with:
           path: .liq-cache
       - name: Install dune
