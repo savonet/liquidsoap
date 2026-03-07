@@ -2,6 +2,8 @@
 
 ## New:
 
+- Added raw string syntax `{|...|}` and `{id|...|id}` for strings
+  with no escape sequences (#4959)
 - Added optional `replay_metadata` and `add_new_track` to
   the `buffer` operator to replay latest metadata and insert
   track marks when the buffer becomes available again.
