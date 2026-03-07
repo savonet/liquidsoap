@@ -49,16 +49,16 @@ server.register(
 )
 
 server.register(
-  namespace="clocks",
+  namespace="clock",
   description="Dump a description of the current clocks and sources",
   "dump",
   fun (_) -> clock.dump()
 )
 
 server.register(
-  namespace="clocks",
+  namespace="clock",
   description="Dump the source graph for all active clocks",
-  "dump_sources",
+  "dump_all_sources",
   fun (_) -> clock.dump_all_sources()
 )
 
