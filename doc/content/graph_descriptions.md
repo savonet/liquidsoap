@@ -118,7 +118,7 @@ In other words, while the main stream experiences time normally, the sources fee
                                insert_initial_track_mark.5 [switch.3], cross.eos_buffer [cross]
 ```
 
-Notice that the `cross` clock has advanced to 2.64s while the parent clock is only at 0.12s — the crossfade's sources have been running roughly 22x faster than real time to pre-compute transition data.
+Notice that the `cross` clock has advanced to 2.64s while the parent clock is only at 0.12s — the crossfade has been accelerating its sources around transition times to pre-compute transition data ahead of real time.
 
 ### Source graph
 
