@@ -84,6 +84,7 @@
   liquidsoap-lang.console
   liquidsoap-lang.stdlib
   dune-site
+  domain_shims
   fileutils
   re
   str

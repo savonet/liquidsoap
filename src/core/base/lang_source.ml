@@ -47,7 +47,7 @@ let metadata_list m =
        (fun (k, v) ->
          let v = string v in
          if List.mem k Encoder_formats.conf_meta_cover#get then
-           Value.add_flag v Liquidsoap_lang.Flags.binary;
+           Liquidsoap_lang.Binary_strings_map.register (Lang.to_string v);
          let k = string k in
          product k v)
        m)

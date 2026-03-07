@@ -129,6 +129,7 @@
   (depends
     (ocaml (>= 4.14))
     dune-site
+    domain_shims
     (re (>= 1.11.0))
     (ppx_string :build)
     (ppx_hash :build)

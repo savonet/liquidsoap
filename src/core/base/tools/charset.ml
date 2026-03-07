@@ -55,8 +55,12 @@ let recode_string ~fail ~in_enc ~out_enc s =
                 (Printexc.to_string e);
               s)
 
-let convert ?(fail = false) ?source ?(target = C.utf8) =
-  let in_enc =
-    match source with Some e -> e | None -> automatic_encoding ()
-  in
-  recode_string ~fail ~in_enc ~out_enc:target
+let convert ?(fail = false) ?source ?(target = C.utf8) s =
+  if Liquidsoap_lang.Binary_strings_map.is_binary s then (
+    log#info "Skipping charset conversion for binary string.";
+    s)
+  else (
+    let in_enc =
+      match source with Some e -> e | None -> automatic_encoding ()
+    in
+    recode_string ~fail ~in_enc ~out_enc:target s)

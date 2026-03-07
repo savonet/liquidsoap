@@ -24,9 +24,10 @@ let string =
       let v = if show_fields then v else dv in
       let print_binary = Lang.to_bool (List.assoc "print_binary" p) in
       match v with
-        | String { value = s; flags }
-          when (not (Flags.has flags Flags.binary)) || print_binary ->
-            Lang.string s
+        | String { value = s } ->
+            if (not (Binary_strings_map.is_binary s)) || print_binary then
+              Lang.string s
+            else Lang.string (Value.to_string v)
         | v -> Lang.string (Value.to_string v))
 
 let flags = Lang.add_module ~base:string "flags"
@@ -38,11 +39,12 @@ let _ =
     Lang.(ref_t bool_t)
     (fun p ->
       let v = List.assoc "" p in
+      let s = Lang.to_string v in
       Lang.reference
-        (fun () -> Lang.bool (Value.has_flag v Flags.binary))
+        (fun () -> Lang.bool (Binary_strings_map.is_binary s))
         (fun f ->
-          if Lang.to_bool f then Value.add_flag v Flags.binary
-          else Value.remove_flag v Flags.binary))
+          if Lang.to_bool f then Binary_strings_map.register s
+          else Binary_strings_map.remove s))
 
 let _ =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
