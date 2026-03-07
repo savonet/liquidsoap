@@ -1,15 +1,30 @@
 # Frequently Asked Questions
 
-## What does this message means?
+## Contents
+
+- [Error messages](#error-messages)
+  - [Type error](#type-error)
+  - [That source is fallible!](#that-source-is-fallible)
+  - [Clock error](#clock-error)
+  - [We must catchup x.xx!](#we-must-catchup-xxx)
+  - [Unable to decode a file](#unable-to-decode-a-file)
+  - [Runtime exceptions](#runtime-exceptions)
+  - [Crashes](#crashes)
+- [Troubleshooting](#troubleshooting)
+  - [PulseAudio](#pulseaudio)
+  - [Listeners are disconnected at the end of every track](#listeners-are-disconnected-at-the-end-of-every-track)
+  - [Encoding blank](#encoding-blank)
+  - [Temporary files](#temporary-files)
+
+## Error messages
 
 ### Type error
 
-Liquidsoap might also reject a script with a series of errors of the form ` this value has type ... but it should be a subtype of ...`
-. Usually the last error tells you what the problem is, but the previous errors might provide a better information as to where the error comes from.
+Liquidsoap may reject a script with a series of errors of the form `this value has type ... but it should be a subtype of ...`. Usually the last error tells you what the problem is, but earlier errors may help pinpoint where it comes from.
 
-For example, the error might indicate that a value of type `int` has been passed where a float was expected, in which case you should use a conversion, or more likely change an integer value such as `13` into a float `13.`.
+For example, the error might indicate that a value of type `int` has been passed where a `float` was expected, in which case you should use a conversion, or more likely change an integer value such as `13` to a float `13.`.
 
-A type error can also show that you're trying to use a source of a certain content type (e.g., audio) in a place where another content type (e.g., pure video) is required. In that case the last error in the list is not the most useful one, but you will read something like this above:
+A type error can also indicate that you're trying to use a source of a certain content type (e.g., audio) in a place where another content type (e.g., pure video) is required. In that case the last error in the list may not be the most useful one, but you will see something like this above it:
 
 ```
 At ...:
@@ -19,7 +34,7 @@ but it should be a subtype of
   source(audio=pcm(_),...)
 ```
 
-Sometimes, the type error actually indicates a mistake in the order or labels of arguments. For example, given `output.icecast(mount="foo.ogg",source)` liquidsoap will complain that the second argument is a source (`source(?A)`) but should be a format (`format(?A)`): indeed, the first unlabelled argument is expected to be the encoding format, e.g., `%vorbis`, and the source comes only second.
+Sometimes, a type error indicates a mistake in the order or labels of arguments. For example, given `output.icecast(mount="foo.ogg",source)` liquidsoap will complain that the second argument is a source (`source(?A)`) but should be a format (`format(?A)`): indeed, the first unlabelled argument is expected to be the encoding format, e.g., `%vorbis`, and the source comes second.
 
 Finally, a type error can indicate that you have forgotten to pass a mandatory parameter to some function. For example, on the code `fallback([source.mux.audio(x),...])`, liquidsoap will complain as follows:
 
@@ -35,8 +50,7 @@ Indeed, `fallback` expects a source, but `source.mux.audio(x)` is still a functi
 
 ### That source is fallible!
 
-See the [quickstart](quick_start.html), or read more about
-[sources](sources.html).
+See the [quickstart](quick_start.html), or read more about [sources](sources.html).
 
 ### Clock error
 
@@ -47,12 +61,12 @@ and
 
 ### We must catchup x.xx!
 
-This error means that a clock is getting late in liquidsoap. This can
-be caused by an overloaded CPU, if your script is doing too much encoding
-or processing: in that case, you should reduce the load on your machine
-or simplify your liquidsoap script. The latency may also be caused by
-some lag, for example a network lag will cause the icecast output to
-hang, making the clock late.
+This error means that a clock is falling behind in liquidsoap. This can
+be caused by an overloaded CPU — if your script is doing too much encoding
+or processing, you should reduce the load on your machine or simplify your
+liquidsoap script. Latency can also be caused by network lag: for example,
+a slow connection to an Icecast server can cause the output to stall,
+making the clock fall behind.
 
 The first kind of latency is problematic because it tends to accumulate,
 eventually leading to the restarting of outputs:
@@ -62,27 +76,27 @@ Too much latency!
 Resetting active source...
 ```
 
-The second kind of latency can often be ignored: if you are streaming to
-an icecast server, there are several buffers between you and your
-listeners which make this problem invisible to them. But in more realtime
-applications, even small lags will result in glitches.
+The second kind can often be ignored: if you are streaming to an Icecast
+server, there are several buffers between you and your listeners which make
+this invisible to them. In more real-time applications, however, even small
+lags will result in glitches.
 
-In some situations, it is possible to isolate some parts of a script
-from the latency caused by other parts. For example, it is possible to
-produce a clean script and back it up into a file, independently of
-its output to icecast (which again is sensitive to network lags).
-For more details on those techniques, read about [clocks](clocks.html).
+In some situations, it is possible to isolate parts of a script from the
+latency caused by other parts. For example, you can produce a clean stream
+and back it up to a file, independently of the output to Icecast (which is
+sensitive to network lag). For more details, read about [clocks](clocks.html).
 
-### Unable to decode ``file'' as {audio=pcm}!
+### Unable to decode a file
 
-This log message informs you that liquidsoap failed to decode a file, not
-necessarily because it cannot handle the file, but also possibly because
-the file does not contain the expected media type. For example, if audio and video
-is expected, an audio file with no video will be rejected.
+The log message `Unable to decode "file" as {audio=pcm}!` means that
+liquidsoap failed to decode a file — not necessarily because the format is
+unsupported, but possibly because the file does not contain the expected
+media type. For example, if audio and video are both expected, an audio-only
+file will be rejected.
 
-Liquidsoap is also able to convert audio channels in most situations. Typically,
-if stereo data is expected but the file contains mono audio, liquidsoap will use
-the single audio channel as both left and right channels.
+Liquidsoap can convert audio channels in most situations. Typically, if stereo
+data is expected but the file contains mono audio, liquidsoap will use the
+single channel as both left and right.
 
 ### Runtime exceptions
 
@@ -94,16 +108,13 @@ Error 14: Uncaught runtime error:
 type: not_found, message: "File not found!"
 ```
 
-These are errors that the script programmer can catch and decide what to do when they
-occur. Such errors will typically occur when trying to read a file that does not
-exist and etc.
-
-The [language page](language.html) has more details about errors, how to raise them
-and how to catch them. You can head over there to get more information.
+These are errors that a script can catch and handle — they typically occur
+when trying to read a file that does not exist. The [language page](language.html)
+has more details about errors, how to raise them, and how to catch them.
 
 ### Crashes
 
-Liquidsoap dies with messages such as these by the end of the log:
+Liquidsoap dies with messages such as these at the end of the log:
 
 ```
 ... [threads:1] Thread "XXX" aborts with exception YYY!
@@ -111,35 +122,34 @@ Liquidsoap dies with messages such as these by the end of the log:
 ... [stderr:3] Raised at file ..., line ..., etc.
 ```
 
-Those internal errors can be of two sorts:
+These internal errors fall into two categories:
 
-- **Bug**: Normally, this means that you've found a bug, which you should report on the mailing list or bug tracker.
-- **User error**: In some cases, we let an exception go on user errors, instead of nicely reporting and handling it. By looking at the surrounding log messages, you might realize that liquidsoap crashed for a good reason, that you are responsible for fixing. You can still report a bug: you should not have seen an exception and its backtrace.
+- **Bug**: This usually means you've found a bug. Please report it on [GitHub Issues](https://github.com/savonet/liquidsoap/issues).
+- **User error**: In some cases, an exception is raised on a user error rather than being reported cleanly. By looking at the surrounding log messages, you may find that liquidsoap crashed for an identifiable reason. You can still report it as a bug — you should not have seen a raw exception and backtrace.
 
-In any case, once that kind of error happens, there is no way for the
-user to prevent liquidsoap from crashing. Those exceptions cannot be
-caught or handled in any way at the level of liquidsoap scripts.
+In either case, once this kind of error occurs there is no way to prevent
+liquidsoap from crashing. These exceptions cannot be caught or handled at the
+level of liquidsoap scripts.
 
 ## Troubleshooting
 
-### Pulseaudio
+### PulseAudio
 
-When using ALSA input or output or, more generally any audio input or output
-that is not using pulseaudio, you should disable pulseaudio, which is often installed
-by default. Pulseaudio emulates ALSA but this also generates bugs,
-in particular errors of this form:
+When using ALSA input or output — or more generally any audio I/O that does
+not go through PulseAudio — you should make sure PulseAudio is not interfering.
+PulseAudio is often installed by default and emulates ALSA, but this can cause
+bugs, in particular errors of this form:
 
 ```
 Alsa.Unknown_error(1073697252)!
 ```
 
-There are two things you may do:
+There are two ways to address this:
 
-- Make sure your alsa input/output does not use pulseaudio
-- Disable pulseaudio on your system
+- Route your ALSA input/output to bypass PulseAudio
+- Disable PulseAudio on your system
 
-In the first case, you should first find out which sound card you want to use,
-with the command `aplay -l`. An example of its output is:
+**Bypassing PulseAudio:** First find out which sound card you want to use with `aplay -l`. Example output:
 
 ```
 **** List of PLAYBACK Hardware Devices ****
@@ -148,9 +158,8 @@ card 0: Intel [HDA Intel], device 0: STAC92xx Analog [STAC92xx Analog]
   Subdevice #0: subdevice #0
 ```
 
-In this case, the card we want to use is: device `0`, subdevice `0`, thus:
-`hw:0,0`. We now create a file `/etc/asound.conf` (or `~/.asoundrc` for single-user
-configuration) that contains the following:
+In this case the card is device `0`, subdevice `0`, i.e. `hw:0,0`. Create a file
+`/etc/asound.conf` (or `~/.asoundrc` for a single-user setup) with:
 
 ```liquidsoap
 pcm.liquidsoap {
@@ -159,31 +168,29 @@ pcm.liquidsoap {
 }
 ```
 
-This creates a new alsa device that you can use with liquidsoap. The `plug` operator
-in ALSA is used to work-around any hardware limitations in your device (mixing multiple
-outputs, resampling etc.). In some cases you may need to read more about ALSA and define
-your own PCM device.
+This creates a new ALSA device that you can use with liquidsoap. The `plug` operator
+works around hardware limitations (mixing multiple outputs, resampling, etc.). In some
+cases you may need to define your own PCM device.
 
-Once you have created this device, you can use it in liquidsoap as follows:
+You can then use the device in liquidsoap as follows:
 
 ```liquidsoap
 input.alsa(device="pcm.liquidsoap", ...)
 ```
 
-In the second case -- disabling pulseaudio, you can edit the file `/etc/pulse/client.conf` and
-change or add this line:
+**Disabling PulseAudio:** Edit `/etc/pulse/client.conf` and add or change:
 
 ```
 autospawn = no
 ```
 
-And kill any running pulseaudio process:
+Then kill any running PulseAudio process:
 
 ```
 killall pulseaudio
 ```
 
-Otherwise you may simply remove pulseaudio's packages, if you use Debian or Ubuntu:
+Alternatively, on Debian or Ubuntu, you can remove it entirely:
 
 ```
 apt-get remove pulseaudio libasound2-plugins
@@ -191,32 +198,29 @@ apt-get remove pulseaudio libasound2-plugins
 
 ### Listeners are disconnected at the end of every track
 
-Several media players, including renowned ones, do not properly support
+Several media players, including some popular ones, do not properly support
 Ogg/Vorbis streams: they treat the end of a track as an end of file,
-resulting in the disconnection.
+causing listeners to disconnect.
 
-Players that are affected by this problem include VLC.
-Players that are not affected include ogg123, liquidsoap.
+Affected players include VLC. Unaffected players include ogg123 and liquidsoap itself.
 
-One way to work around this problem is to not use Ogg/Vorbis (which we
-do not recommend) or to not produce tracks within a Vorbis stream.
-This is done by dropping both metadata and track marks (for example
-using `source.drop.metadata_track_marks`).
+One workaround is to avoid producing track boundaries within a Vorbis stream.
+This can be done by dropping both metadata and track marks, for example using
+`source.drop.metadata_track_marks`.
 
 ### Encoding blank
 
-Encoding pure silence is often too effective for streaming: data is so
-compressed that there is nothing to send to listeners, whose clients
-eventually disconnect. Therefore, it is a good idea to use a non-silent
-jingle instead of `blank()` to fill in the blank. You can
-also achieve various effects using synthesis sources such as
+Encoding pure silence is often too effective for streaming: the data is so
+compressed that there is almost nothing to send, and listener clients may
+eventually disconnect. It is better to use a non-silent jingle instead of
+`blank()` to fill gaps. You can also use synthesis sources such as
 `noise()`, `sine()`, etc.
 
 ### Temporary files
 
-Liquidsoap relies on OCaml's `Filename.tmp_dir_name` variable to store temporary
-files. It is documented as follows:
+Liquidsoap uses OCaml's `Filename.tmp_dir_name` variable to determine where
+to store temporary files. It works as follows:
 
-The name of the temporary directory: Under Unix, the value of the `TMPDIR` environment
-variable, or `"/tmp"` if the variable is not set. Under Windows, the value of the `TEMP`
-environment variable, or `"."` if the variable is not set.
+On Unix, the value of the `TMPDIR` environment variable, or `"/tmp"` if the
+variable is not set. On Windows, the value of the `TEMP` environment variable,
+or `"."` if the variable is not set.
