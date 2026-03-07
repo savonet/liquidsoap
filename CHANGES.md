@@ -28,7 +28,9 @@
 - Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
   decoder (#4848)
 - Fixed performance regression when initializing `playlist` (#4913)
-- Make sure that we read all stdout/stderr before considering a process closed. (#4918)
+- Make sure that we read all stdout/stderr before considering a process closed. (#4918, #4934, #4941)
+- Fixed `EINTR` signal interruption in process I/O, read, and flush operations (#4947, #4949, #4951)
+- Fixed binary string flags not persisting across string copies and metadata propagation (#4966)
 - Make sure `output.file` does not create files without data (#4899)
 
 ---
