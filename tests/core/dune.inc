@@ -1,5 +1,19 @@
 
 (executable
+ (name binary_strings_map_test)
+ (modules binary_strings_map_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias binary_strings_map_test)
+ (package liquidsoap)
+ (deps
+  
+  (:binary_strings_map_test binary_strings_map_test.exe))
+ (action (run %{binary_strings_map_test} )))
+
+
+(executable
  (name clock_utils_test)
  (modules clock_utils_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -407,6 +421,7 @@
 (alias
   (name citest)
   (deps
+    (alias binary_strings_map_test)
     (alias clock_utils_test)
     (alias content_test)
     (alias decoder_test)
