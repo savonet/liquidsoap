@@ -1,100 +1,85 @@
-# 📊 Visualizing clocks and sources
+# Visualizing clocks and sources
 
-Liquidsoap scripts can grow complex: multiple clocks, many sources, transitions, and time-dependent behaviors interacting together. To help reason about this, Liquidsoap can now **display graphs of clocks and sources**, giving you a visual overview of how time flows, how sources are connected, and which sources are actively animated.
+As Liquidsoap scripts grow more complex — multiple clocks, many sources, transitions, time-dependent behaviors — it can become difficult to reason about how everything fits together. To help with this, Liquidsoap can generate text-based graphs of clocks and sources, giving you a structural overview of how time flows, how sources are connected, and which sources are actively animated.
 
-These graphs are useful while **writing or debugging a script**, inspecting unexpected timing behavior, or **explaining a setup** to others.
+These graphs are useful when writing or debugging a script, investigating unexpected timing behavior, or simply understanding how a setup is wired.
 
-## 🧠 What is displayed?
+## What is displayed
 
 Liquidsoap can generate two related graphs:
 
-- **Clock graph** — shows clocks, their relationships, and which sources are active on each clock
-- **Source graph** — shows sources and how they are connected
+- **Clock graph** — shows clocks, their relationships, and which sources are attached to each clock
+- **Source graph** — shows sources and how they are connected to each other
 
-To build these graphs, Liquidsoap needs to **run the script for a short time** so it can observe clocks, sources, activations, and time flows. No actual output needs to be produced, but time must advance for clocks to be observable.
+To build these graphs, Liquidsoap runs the script briefly so it can observe clocks, sources, and activations. No actual output needs to be produced, but time must advance for clocks to become observable.
 
-## 🕰️ Understanding clocks
+## Clocks
 
-Clocks control how time advances for sources. The **clock graph** displays:
+Clocks control how time advances for sources. The clock graph displays:
 
 - Parent/child relationships between clocks
-- Each clock’s **internal time** and tick count
-- Which sources are **active** on each clock
+- Each clock's internal time and tick count
+- Which sources are active or passive on each clock
 
-The internal time is especially useful for reasoning about operators such as `crossfade` and `stretch`, which may accelerate their clock relative to real time to prepare transitions before they play. When a clock or source is marked with **`self_sync = true`**, it can _not_ be accelerated — an important detail when reasoning about timing and transitions.
+The internal time is particularly useful when reasoning about operators such as `crossfade` and `stretch`, which may run their clock faster than real time in order to buffer and prepare transitions ahead of when they are needed. When a source is marked with `self_sync = true`, it controls its own timing and cannot be accelerated — an important detail when reasoning about transitions.
 
-## 🔥 Active sources
+## Active sources
 
-The clock graph also highlights **active sources**. Active sources are always animated by their clock even if they are not currently producing output.
+An active source is one that is continuously animated by its clock even when it is not currently selected or producing output.
 
-This includes for example:
+For example:
 
-- `input.harbor`, which must actively pull data from a remote Icecast stream when connected
-- `input.ffmpeg`, which may be need to be configured to be active or passive depending on whether it’s reading from a file or a remote URL
+- `input.http`, which must actively pull data from a remote stream at all times to keep its buffer filled
+- `input.ffmpeg`, which may need to be configured as active or passive depending on whether it is reading from a file or a live URL
 
-Understanding which sources are active helps explain background activity you might otherwise miss.
+Knowing which sources are active helps explain background activity that might otherwise be surprising.
 
-## 🔄 Understanding source graphs
+## Source graphs
 
-The **source graph** shows how sources are connected, and — crucially — how they are animated:
+The source graph shows how sources are connected and how they are animated. Animation flows from top to bottom: the top is typically an output, or a source animated by an external driver such as `crossfade`. Sources lower in the graph are driven by whatever is above them.
 
-- The graph is animated **from top to bottom**
-- The top is usually an output, but it can also be a regular source that is animated by an external source such as a `crossfade`.
+For example, a `crossfade` or `stretch` operator may run its own faster clock and animate its inputs at an accelerated rate to prepare transitions or perform resampling before they are needed in real time.
 
-For example, a `crossfade` or `stretch` operator may accelerate its clock and animate its inputs faster than real time to prepare transitions or resampling.
-
-This top-to-bottom animation direction makes it easier to see:
-
-- Which source is driving evaluation
-- How transitions or clock acceleration affect lower sources
-
-## 💻 Using the CLI
+## Using the command line
 
 You can generate these graphs directly from the command line:
 
-```bash
-liquidsoap --display-clocks script.liq
-liquidsoap --display-sources script.liq
+```
+liquidsoap --describe-clocks script.liq
+liquidsoap --describe-sources script.liq
 ```
 
-When these options are used:
+When these options are used, the script starts, runs briefly so clock and source information can be gathered, then stops and prints the requested graph. You can adjust how long the script runs before dumping with:
 
-1. The script is started
-2. It runs briefly so clock and source information can be gathered
-3. The script is stopped
-4. The requested graph is displayed
-
-Adjust run duration with:
-
-```bash
+```
 --dump-delay <seconds>
 ```
 
-This offers a quick, non-intrusive way to inspect a script.
+This provides a quick, non-intrusive way to inspect a script without running it fully.
 
-## 🔌 Using the server / telnet interface
+## Using the telnet interface
 
-If your script is already running with the server enabled, you can request graphs interactively:
+If your script is already running with the telnet server enabled, you can request graphs interactively:
 
-- `clocks.dump` — display the clock graph
-- `clocks.dump_sources` — display the source graph
+- `clock.dump` — display the clock graph
+- `clock.dump_all_sources` — display the source graph
 
-Great for **live inspection** without restarting.
+## Using the scripting API
 
-## 📟 Using the scripting API
-
-Graphs can also be accessed programmatically:
+Graphs can also be generated from within a script:
 
 - `clock.dump()` — dump the clock graph
 - `clock.dump_all_sources()` — dump the source graph
 
-This makes it easy to integrate visualization into custom tooling or monitoring.
+This makes it possible to integrate graph output into custom tooling or monitoring setups.
 
-## 🌟 Examples
+## Examples
 
-Here are example outputs showing typical clock and source graphs:
+The following outputs are from a script that uses `crossfade` for transitions. They illustrate something important: `crossfade` needs to read data from its input sources ahead of time in order to compute transitions before they are due to play. To do this, it runs its inputs on a separate, faster-running clock — its own internal timeline. This is why the clock graph shows not one but two clocks: the top-level clock, which drives the outputs and operates at real time, and the crossfade's own clock, which drives its input sources and can advance faster than real time to buffer and prepare transition data.
 
-### 🕒 Clock graph
+In other words, while the main stream experiences time normally, the sources feeding into the crossfade are living on a faster timeline — producing data in advance so the transition sounds seamless when it arrives.
+
+### Clock graph
 
 ```
 · output.icecast (ticks: 3, time: 0.06s, self_sync: false)
@@ -133,7 +118,9 @@ Here are example outputs showing typical clock and source graphs:
                                insert_initial_track_mark.5 [switch.3], cross.eos_buffer [cross]
 ```
 
-### 🔗 Source graph
+Notice that the `cross` clock has advanced to 2.64s while the parent clock is only at 0.12s — the crossfade's sources have been running roughly 22x faster than real time to pre-compute transition data.
+
+### Source graph
 
 ```
 Clock output.icecast:
@@ -165,15 +152,13 @@ Outputs:
               └── metadata_map.3 [passive] (*)
 ```
 
-These outputs make it easy to see how clocks relate, which sources are active, and how evaluation flows from **top (outputs)** to **bottom (inputs)**.
+The source graph shows evaluation flowing from top to bottom: outputs at the top drive the sources below them. A `(*)` marks a source that has already appeared elsewhere in the graph — it is referenced again rather than expanded a second time.
 
-## ✅ When to use this feature
+## When to use this feature
 
-Clock and source graphs are particularly helpful when:
+Clock and source graphs are most helpful when:
 
-- ✏️ Designing or refactoring a script
-- 🐞 Debugging timing, synchronization, or activation issues
-- 🧠 Understanding `self_sync` and clock acceleration
-- 📢 Explaining how a script works to others
-
-By making time, structure, and activation visible, these graphs provide a new way to reason about Liquidsoap scripts — beyond reading code alone.
+- Designing or refactoring a complex script
+- Debugging timing, synchronization, or activation issues
+- Understanding how `self_sync` and clock acceleration interact
+- Explaining how a script is structured to someone else
