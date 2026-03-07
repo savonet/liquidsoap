@@ -27,12 +27,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: .liq-cache
       - name: Install dune
         run: sudo apt-get install -y ocaml-dune
       - name: Configure dune.inc merge driver
         run: |
           git config --global merge.gendune.name "Regenerate dune.inc via gendune"
-          git config --global merge.gendune.driver ".scripts/merge-dune-inc.sh %O %A %B %L %P"
+          git config --global merge.gendune.driver ".liq-cache/.scripts/merge-dune-inc.sh %O %A %B %L %P"
       - uses: tibdex/backport@9565281eda0731b1d20c4025c43339fb0a23812e # v2.0.4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
