@@ -51,7 +51,7 @@ jobs:
           - os: alpine
             ocaml_version: 5.2.0-ox
     container:
-      image: savonet/liquidsoap-ci:${{ matrix.os }}-${{ matrix.ocaml_version }}
+      image: ghcr.io/savonet/liquidsoap:ci-${{ matrix.os }}-${{ matrix.ocaml_version }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
