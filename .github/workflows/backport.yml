@@ -31,7 +31,7 @@ jobs:
         with:
           path: .liq-cache
       - name: Install dune
-        run: sudo apt-get install -y ocaml-dune
+        run: sudo apt-get install -y ocaml-nox ocaml-dune
       - name: Configure dune.inc merge driver
         run: |
           git config --global merge.gendune.name "Regenerate dune.inc via gendune"
