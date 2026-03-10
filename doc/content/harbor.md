@@ -1,90 +1,190 @@
 # Harbor input
 
-Liquidsoap is also able to receive a source using icecast or shoutcast source protocol with
-the `input.harbor` operator. Using this operator, the running liquidsoap will open
-a network socket and wait for an incoming connection.
+Liquidsoap can receive live streams from source clients using the Icecast or
+Shoutcast (ICY) source protocol, via the `input.harbor` and
+`input.harbor.dynamic` operators. When one of these is used, Liquidsoap opens a
+network port and waits for an incoming connection. Once a client connects and
+starts sending audio or video data, the source becomes available and can be used
+in your script like any other source.
 
-This operator is very useful to seamlessly add live streams
-into your final streams:
-you configure the live source client to connect directly to liquidsoap,
-and manage the switch to and from the live inside your script.
+This is the standard way to integrate live inputs into a Liquidsoap stream: you
+point your encoder (e.g. Butt, Mixxx, Liquidsoap itself) at the harbor port,
+and your script handles the transition to and from the live source using
+`fallback` or similar operators.
 
-Additionally, liquidsoap can handle many simultaneous harbor sources on different ports,
-with finer-grained authentication schemes that can be particularly useful when used with
-source clients designed for the shoutcast servers.
+Two variants are available:
 
-SSL support in harbor can be enabled using of of the following `opam` packages: `ssl`, `osx-secure-transport`.
-If enabled using `ssl`, `input.harbor.ssl` will be available. If enabled with `osx-secure-transport`, it will be
-`input.harbor.secure_transport`.
+- **`input.harbor`** — static: one mountpoint, one expected content type, registered at startup.
+- **`input.harbor.dynamic`** — dynamic: uses FFmpeg to detect the stream format at connection time and calls a user-defined callback with full stream information.
 
-## Parameters
+## `input.harbor`
 
-The global parameters for harbor can be retrieved using
-`liquidsoap --list-settings`. They are:
+### Basic usage
 
-- `harbor.bind_addr`: IP address on which the HTTP stream receiver should listen. The default is `"0.0.0.0"`. You can use this parameter to restrict connections only to your LAN.
-- `harbor.timeout`: Timeout for source connection, in seconds. Defaults to `30.`.
-- `harbor.verbose`: Print password used by source clients in logs, for debugging purposes. Defaults to: `false`
-- `harbor.reverse_dns`: Perform reverse DNS lookup to get the client's hostname from its IP. Defaults to: `true`
-- `harbor.icy_formats`: Content-type (mime) of formats which allow shout (ICY) metadata update. Defaults to: ` ["audio/mpeg"; "audio/aacp"; "audio/aac"; "audio/x-aac"; "audio/wav"; "audio/wave"]`
+`input.harbor` listens on a fixed mountpoint and port. The source is fallible:
+it is available when a client is connected and unavailable otherwise.
 
-If SSL support was enabled via `ssl`, you will have the following additional settings:
-
-- `harbor.ssl.certificate`: Path to the SSL certificate.
-- `harbor.ssl.private_key`: Path to the SSL private key (openssl only).
-- `harbor.ssl.password`: Optional password to unlock the private key.
-
-Obtaining a proper SSL certificate can be tricky. You may want to start with a self-signed certificate first.
-You can obtain a free, valid certificate at: [https://letsencrypt.org/](https://letsencrypt.org/)
-
-If SSL support is enable via `osx-secure-transport`, you will have the same settings but named: `harbor.secure_transport.*`.
-
-To create a self-signed certificate for local testing you can use the following one-liner:
+```{.liquidsoap include="harbor-usage.liq" to=-1}
 
 ```
-openssl req -x509 -newkey rsa:4096 -sha256 -nodes -keyout server.key -out server.crt -subj "/CN=localhost" -days 3650
-```
 
-You also have per-source parameters. You can retrieve them using the command
-`liquidsoap -h input.harbor`. The most important one are:
+The unlabeled argument is the mountpoint. Source clients connect to
+`http://<host>:<port>/<mountpoint>`. For Shoutcast clients, use `"/"` as the
+mountpoint.
 
-- `user`, `password`: set a permanent login and password for this harbor source.
-- `auth`: Authenticate the user according to a specific function.
-- `port`: Use a custom port for this input.
-- `icy`: Enable ICY (shoutcast) source connections.
-- `id`: The mountpoint registered for the source is also the id of the source.
+### Authentication
 
-When using different ports with different harbor inputs, mountpoints are attributed
-per-port. Hence, there can be a harbor input with mountpoint `"foo"` on port `1356`
-and a harbor input with mountpoint `"foo"` on port `3567`. Additionally, if an harbor
-source uses custom port `n` with shoutcast (ICY) source protocol enabled, shoutcast
-source clients should set their connection port to `n+1`.
-
-The `auth` function is a function, that takes a record `{user, password, address}` and returns a boolean representing whether the user
-should be granted access or not. Typical example can be:
+By default, connections are authenticated with a fixed `user` and `password`.
+For more control, use the `auth` parameter to provide a custom function. It
+receives a record with `user`, `password`, and `address` fields and must return
+a boolean:
 
 ```{.liquidsoap include="harbor-auth.liq"}
 
 ```
 
-In the case of the `ICY` (shoutcast) source protocol, there is no `user` parameter
-for the source connection. Thus, the user used will be the `user` parameter passed
-to the `input.harbor` source.
+For ICY (Shoutcast) connections, there is no username in the source protocol.
+The `user` parameter value is used instead, and passed to the `auth` function.
 
-When using a custom authentication function, in case of a `ICY` (shoutcast) connection,
-the function will receive this value for the username.
+### Global settings
 
-## Usage
+Global harbor settings can be listed with `liquidsoap --list-settings`. The
+most relevant ones are:
 
-When using harbor inputs, you first set the required settings, as described above. Then, you define each source using `input.harbor("mountpoint")`. This source is faillible and will become available when a source client is connected.
+- `harbor.bind_addrs`: List of IP addresses the server listens on. Defaults to `["0.0.0.0"]` (all interfaces). Restrict to `["127.0.0.1"]` to accept local connections only.
+- `harbor.timeout`: Timeout for source connections, in seconds. Defaults to `30.`.
+- `harbor.verbose`: Log passwords used by source clients. Useful for debugging. Defaults to `false`.
+- `harbor.reverse_dns`: Resolve client IP addresses to hostnames. Defaults to `true`.
+- `harbor.icy_formats`: MIME types for which ICY metadata updates are allowed. Defaults to common audio formats.
 
-The unlabeled parameter is the mount point that the source client may connect
-to. It should be `"/"` for shoutcast source clients.
+### Per-source settings
 
-The source client may use any of the recognized audio input codec. Hence, when using shoucast source clients, you need to have compiled liquidsoap with mp3 decoding support (`ocaml-mad`).
+Key parameters for `input.harbor`:
 
-A sample code can be:
+- `port`: Port to listen on. Defaults to `8005`. Different inputs can use different ports; mountpoints are scoped per port.
+- `user`, `password`: Credentials for source connections.
+- `auth`: Custom authentication function (see above).
+- `icy`: Enable ICY (Shoutcast) source protocol. Defaults to `false`.
 
-```{.liquidsoap include="harbor-usage.liq" to=-1}
+When ICY is enabled on port `n`, Shoutcast clients should connect to port `n+1`.
+
+### SSL / HTTPS
+
+SSL support requires one of the following opam packages: `ssl` or
+`osx-secure-transport`. When available via `ssl`, use `input.harbor.ssl`;
+when available via `osx-secure-transport`, use `input.harbor.secure_transport`.
+
+The corresponding settings are under `harbor.ssl.*` or
+`harbor.secure_transport.*`:
+
+- `harbor.ssl.certificate`: Path to the SSL certificate.
+- `harbor.ssl.private_key`: Path to the SSL private key.
+- `harbor.ssl.password`: Optional password to unlock the private key.
+
+For a free, valid certificate, see [Let's Encrypt](https://letsencrypt.org/).
+For local testing, a self-signed certificate can be generated with:
 
 ```
+openssl req -x509 -newkey rsa:4096 -sha256 -nodes \
+  -keyout server.key -out server.crt \
+  -subj "/CN=localhost" -days 3650
+```
+
+## `input.harbor.dynamic`
+
+`input.harbor.dynamic` is an advanced operator for building systems that react
+dynamically to incoming stream connections. Unlike `input.harbor`, everything
+is dynamic: mountpoints are matched via regexp or `:id` placeholders, the
+stream format is detected at connection time using FFmpeg, and a user-defined
+callback receives full stream information and decides what to do with it.
+
+This makes it the right tool for building sophisticated ingest systems —
+routing streams by URI, applying per-stream logic, or serving as the foundation
+of a full Icecast server clone in Liquidsoap. The callback-based design means
+each new connection can be handled independently, with full access to stream
+metadata before any audio or video is processed.
+
+Supported container formats include MP3, OGG, FLAC, AAC, MKV, WebM, MP4, FLV,
+MPEG-TS, and anything else FFmpeg can demux.
+
+### The `on_connection` callback
+
+The callback receives a single record argument with the following fields:
+
+| Field          | Type                  | Description                                           |
+| -------------- | --------------------- | ----------------------------------------------------- |
+| `source`       | `source`              | The live source, with all standard harbor methods     |
+| `uri`          | `string`              | The request URI                                       |
+| `query`        | `[(string * string)]` | Named capture groups from a regexp mountpoint         |
+| `format`       | `string?`             | Detected container format, e.g. `"ogg"`, `"matroska"` |
+| `streams`      | `[stream_info]`       | List of detected streams (see below)                  |
+| `headers`      | `[(string * string)]` | HTTP headers from the connecting client               |
+| `copy_encoder` | `(?string) -> format` | Pre-built encoder for passthrough muxing              |
+
+Each entry in `streams` is a record with:
+
+- `field`, `type`, `codec` — always present
+- `samplerate`, `channels`, `channel_layout` — present for audio streams
+- `width`, `height`, `pixel_format`, `frame_rate` — present for video streams
+
+To refuse a connection, raise an error in the callback.
+
+### `copy_encoder`
+
+The `copy_encoder` field is the most straightforward way to route an incoming
+stream: it produces an encoder that remuxes the stream without re-encoding,
+preserving the original quality. Call it with no argument to keep the original
+container format, or pass a format string to override it:
+
+```liquidsoap
+c.copy_encoder()           # keep original container
+c.copy_encoder("ogg")     # remux into OGG
+```
+
+### Examples
+
+**Basic relay — record each incoming stream to a file:**
+
+```{.liquidsoap include="harbor-dynamic-basic.liq"}
+
+```
+
+**URI-based routing using `:name` placeholders:**
+
+```{.liquidsoap include="harbor-dynamic-routing.liq"}
+
+```
+
+The plain `input.harbor.dynamic` accepts a path string where `:word` segments
+are placeholders that match any path component. Each placeholder is available
+by name in `c.query`.
+
+**URI-based routing using a full regexp:**
+
+For more control, `input.harbor.dynamic.regexp` accepts a Liquidsoap regexp
+directly. Named capture groups (`(?<name>...)`) are available by name in
+`c.query`, which allows matching more specific patterns:
+
+```{.liquidsoap include="harbor-dynamic-regexp.liq"}
+
+```
+
+**Filtering — reject connections without an audio stream:**
+
+```{.liquidsoap include="harbor-dynamic-filter.liq"}
+
+```
+
+### Known limitations
+
+- **Stream info is descriptive only.** The `streams` field tells you what FFmpeg
+  detected, but Liquidsoap does not enforce that your pipeline matches it. Using
+  the wrong encoder for the stream will produce a runtime error.
+
+- **Type inference edge cases.** Type inference between the callback's source
+  and the FFmpeg decoder works in most cases but may fail in some advanced
+  scenarios, such as remuxing using the `streams` parameter directly. These
+  cases will be addressed in future releases.
+
+For now, `copy_encoder` is the most reliable approach and covers the majority
+of use cases.
