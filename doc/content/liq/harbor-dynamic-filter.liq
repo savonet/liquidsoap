@@ -1,5 +1,6 @@
 input.harbor.dynamic(
   port=8005,
+  "/example",
   on_connection=fun(c) ->
     begin
       list.iter(

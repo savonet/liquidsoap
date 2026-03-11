@@ -216,7 +216,7 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       in
       let copy_encoder =
         Lang.val_fun
-          [("", "", None)]
+          [("", "", Some Lang.null)]
           (fun p ->
             let format =
               Lang.to_valued_option Lang.to_string (List.assoc "" p)
@@ -295,7 +295,7 @@ let callback_record_t =
       ("headers", Lang.metadata_t);
       ( "copy_encoder",
         Lang.fun_t
-          [(false, "", Lang.nullable_t Lang.string_t)]
+          [(true, "", Lang.nullable_t Lang.string_t)]
           (Lang.format_t frame_t) );
     ]
 
