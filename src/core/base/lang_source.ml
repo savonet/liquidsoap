@@ -624,7 +624,6 @@ let check_content v t =
     if not (has_value_flag v Flags.checked_value) then (
       add_value_flag v Flags.checked_value;
       match (v, (Type.deref t).Type.descr) with
-        | _, Type.Var _ -> ()
         | _ when Source_val.is_value v ->
             let source_t = source_t (Source_val.of_value v)#frame_type in
             check source_t t
@@ -717,6 +716,7 @@ let check_content v t =
                 let v = ffi_fn env in
                 check_value v ret_t;
                 v)
+        | _, Type.Var _ -> ()
         | _ ->
             failwith
               (Printf.sprintf "Unhandled value in check_content: %s, type: %s."
