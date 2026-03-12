@@ -89,8 +89,7 @@ class amplify ~field ~override_field (source : source) coeff =
   end
 
 let _ =
-  (* let frame_t = Lang.pcm_audio_t () in *)
-  let frame_t = Format_type.audio () in
+  let frame_t = Lang.pcm_audio_t () in
   Lang.add_track_operator ~base:Modules.track_audio "amplify"
     [
       ( "override",
