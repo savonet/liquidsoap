@@ -1,6 +1,6 @@
 # FFmpeg Support
 
-Since the `2.0.x` release cycle, liquidsoap integrates a tight support of ffmpeg. This includes:
+Since the `2.0.x` release cycle, liquidsoap includes tight FFmpeg integration. This covers:
 
 - [Decoders](#decoders)
 - [Encoders](#encoders)
@@ -9,19 +9,18 @@ Since the `2.0.x` release cycle, liquidsoap integrates a tight support of ffmpeg
 - [Encoded data tweaks](#encoded-data-tweaks)
 - [Examples](#examples)
 
-Ffmpeg support includes 3 types of content:
+FFmpeg support includes 3 types of content:
 
 - **Internal content**, that is content available to all liquidsoap operators: `PCM` audio and `YUV420p` video
-- **Raw content**, that is decoded content but stored as ffmpeg internal frame.
-  This type of content is only available to ffmpeg filters and raw encoders. It can be used to avoid data copies back and forth between liquidsoap and ffmpeg.
+- **Raw content**, that is decoded content stored as ffmpeg internal frames.
+  Only available to ffmpeg filters and raw encoders. Avoids data copies between liquidsoap and ffmpeg.
 - **Copy content**, that is encoded content stored as ffmpeg internal packets.
-  This type of content is only available to ffmpeg copy encoder and bitstream filters and requires a fairly good understanding of media codecs and containers.
-  Copy contents can be used to avoid transcoding and pass encoded data end-to-end inside liquidsoap scripts.
+  Only available to the ffmpeg copy encoder and bitstream filters. Requires solid knowledge of media codecs and containers.
+  Avoids transcoding by passing encoded data end-to-end inside liquidsoap scripts.
 
 ## Enabling ffmpeg support
 
-FFmpeg support is available via the external [ocaml-ffmpeg](https://github.com/savonet/ocaml-ffmpeg) binding package. If you are using any binary asset from
-our release pages or via docker, this should already be included.
+FFmpeg support is available via the external [ocaml-ffmpeg](https://github.com/savonet/ocaml-ffmpeg) binding package. Binary releases and Docker images include it by default.
 
 If you are installing via [opam](https://opam.ocaml.org/), installing the `ffmpeg` package should do the trick:
 
@@ -31,32 +30,27 @@ If you are installing via [opam](https://opam.ocaml.org/), installing the `ffmpe
 
 ### fdk-aac support in ffmpeg
 
-One common question is how to install `ffmpeg` with `fdk-aac` support. This can get tricky because you need the _ffmpeg shared libraries_ compiled with `libfdk-aac`.
-This means that installing `libfdk-aac` alone will not be enough, you might also need to recompile `ffmpeg` to take advantage of it.
+A common question is how to install `ffmpeg` with `fdk-aac` support. This requires the _ffmpeg shared libraries_ compiled with `libfdk-aac` — installing `libfdk-aac` alone is not enough. You may need to recompile `ffmpeg` to enable it.
 
-When recompiling `ffmpeg`, make sure that the `--enable-shared` argument is passed to the `configure` script. Also, compiling the shared libraries is different
-than downloading the `ffmpeg` command line. Most `ffmpeg` downloads include a _static build_ of ffmpeg that is, one that does not use or provide shared libraries.
+When recompiling, pass `--enable-shared` to the `configure` script. Note that most `ffmpeg` downloads are _static builds_ and do not provide shared libraries.
 
-On linux platforms, you can check what dynamic libraries liquidsoap is using using
+On Linux, check which dynamic libraries liquidsoap uses with:
 
 ```shell
 ldd /path/to/liquidsopap
 ```
 
-On macos, you can use `otool -L`. In the list of libraries, you should see `libavcodec`. In turn, you should be able to use the same command to inspect the libraries required by the `libavcodec` used by the `liquidsoap` binary. If this includes `libfdk-aac`, you're good to go!
+On macOS, use `otool -L`. Look for `libavcodec` in the output, then run the same command on that library. If `libfdk-aac` appears, you're good to go.
 
-On debian, you might be able to use [deb-multimedia.org](https://www.deb-multimedia.org/) to install a build of `ffmpeg` with `libfdk-aac` enabled. You are advised
-to follow the instructions on the website for the latest up-to date guide. You may also refer to [this conversation](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
+On Debian, [deb-multimedia.org](https://www.deb-multimedia.org/) may provide an `ffmpeg` build with `libfdk-aac` enabled. Follow the instructions on that site for the latest guide. See also [this discussion](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
 
 ## Decoders
 
-For the most part, you should never have to worry about the `ffmpeg` decoder. When enabled, it should be the preferred decoder for all supported media.
-When using raw or copied content, the decoder is able to produce the required content without the need of any intervention on the user part.
+In most cases, the `ffmpeg` decoder requires no configuration. When enabled, it is the preferred decoder for all supported media. When using raw or copied content, it produces the required format automatically.
 
-Should you need to tweak it, here are a couple of pointers:
+If you need to adjust its behavior:
 
-The `settings.decoder.decoders` settings controls which decoders are to be used when trying to decode media files.
-You can use it to restrict which decoders are being used, for instance making sure only the ffmpeg decoder is used:
+`settings.decoder.decoders` controls which decoders are tried when decoding media files. Use it to restrict decoders, for instance to use only ffmpeg:
 
 ```liquidsoap
 settings.decoder.decoders := ["FFMPEG"]
@@ -68,11 +62,9 @@ Priority for the decoder is set via:
 settings.decoder.priorities.ffmpeg := 10
 ```
 
-You can use this setting to adjust whether or not the ffmpeg decoder should be tried first when decoding media files, in particular in
-conjunction with the other `settings.decoder.priorities.*` settings.
+Use this to control whether ffmpeg is tried first, in combination with the other `settings.decoder.priorities.*` settings.
 
-For each type of media codec, the `settings.decoder.ffmpeg.codecs.*` settings can be used to tell `ffmpeg` which decoder to use to
-decode this type of content (there could more than one decoder for a given codec).
+The `settings.decoder.ffmpeg.codecs.*` settings specify which decoder ffmpeg should use for each codec (there may be more than one available).
 
 For instance, for the `aac` codec:
 
@@ -85,24 +77,20 @@ When debugging issues with `ffmpeg`, it can be useful to increase the log verbos
 settings.ffmpeg.log.verbosity := "warning"
 ```
 
-This settings sets the verbosity of `ffmpeg` logs. Possible values, from less verbose to more verbose are:
-`"quiet"`, `"panic"`, `"fatal"`, `"error"`, `"warning"`, `"info"`, `"verbose"` or `"debug"`
+This sets the verbosity of `ffmpeg` logs. Values from least to most verbose: `"quiet"`, `"panic"`, `"fatal"`, `"error"`, `"warning"`, `"info"`, `"verbose"`, `"debug"`.
 
-Please note that, due to a technical limitation, we are not yet able to route `ffmpeg` logs through
-the liquidsoap logging facilities, which means that `ffmpeg` logs are currently only printed to the
-process's standard output and that the `settings.ffmpeg.log.level` is currently not used.
+Due to a technical limitation, `ffmpeg` logs cannot currently be routed through liquidsoap's logging facilities. They are printed directly to standard output, and `settings.ffmpeg.log.level` is not used.
 
 ### Decoder arguments
 
-In some cases, for instance when sending raw PCM data, it might be required to pass some arguments to
-the ffmpeg decoder to let it know what kind of format, codec, etc. it should decode.
+In some cases, such as sending raw PCM data, the ffmpeg decoder needs additional arguments to know the format, codec, and other parameters.
 
-There are two ways to do that:
+There are two ways to provide them:
 
 - For _streams_, the `content_type` argument can be used. The convention is to use `"application/ffmpeg;<arguments>"`.
 - For _files_, the `ffmpeg_options` metadata can be used, for instance using the `annotate` protocol: `annotate:ffmpeg_options="<arguments>":/path/to/file.raw`
 
-Here's an example of a SRT input and output that can be used to send raw PCM data between two instances:
+Here is an example of a SRT input and output for sending raw PCM data between two instances:
 
 Sender:
 
@@ -127,14 +115,13 @@ s = input.srt(
 )
 ```
 
-If, instead of using `output.srt` above, we were using `output.file` and saving to a file
-named `bla.raw`, this file could be read with a `single` source this way:
+If `output.file` were used instead, saving to `bla.raw`, the file can be read with a `single` source:
 
 ```liquidsoap
 s = single("annotate:ffmpeg_options='format=s16le,ch_layout=stereo,sample_rate=44100':/tmp/bla.raw")
 ```
 
-This could also be done in a `playlist` or `request.dynamic` and etc.
+The same approach works with `playlist` or `request.dynamic`.
 
 ## Encoders
 
@@ -146,12 +133,9 @@ See detailed [ffmpeg filters](ffmpeg_filters.html) article.
 
 ## Bitstream filters
 
-FFmpeg bitstream filters are filters that modify the binary content of _encoded data_. They can be used to adjust certain aspects of
-media codecs and containers to make them fit some specific use, for instance a rtmp/flv output etc. They are particularly important
-when dealing with live switches of encoded content (see [Examples](#examples) section).
+FFmpeg bitstream filters modify the binary content of _encoded data_. They adjust codec and container aspects for specific uses, such as rtmp/flv output. They are particularly important for live switches on encoded content (see the [Examples](#examples) section).
 
-The list of all bitstream filters is documented on [FFmpeg](https://www.ffmpeg.org/ffmpeg-bitstream-filters.html) online doc and
-our [extra API reference](reference-extras.html). Here's one such filter:
+All bitstream filters are listed in the [FFmpeg documentation](https://www.ffmpeg.org/ffmpeg-bitstream-filters.html) and our [extra API reference](reference-extras.html). Here is an example:
 
 ```liquidsoap
 % liquidsoap -h ffmpeg.filter.bitstream.h264_mp4toannexb
@@ -175,30 +159,27 @@ Methods:
 ...
 ```
 
-Please consult the FFmpeg documentation for more details about that each filter do and why/how to use them.
+Consult the FFmpeg documentation for details on what each filter does and how to use it.
 
 ## Encoded data tweaks
 
-Manipulating encoded content is powerful but can sometimes require some specific knowledge of internals aspects of media codecs and containers. This section
-lists some specific cases.
+Manipulating encoded content requires knowledge of the internal aspects of media codecs and containers. This section covers specific cases.
 
 ### Relaxed copy content compatibility check
 
-By default, liquidsoap keeps track of the content passed in a stream containing ffmpeg encoded content (`ffmpeg.copy`) and only allows file and stream decoders to return strictly compatible
-content, e.g. same video resolution or audio samplerate.
+By default, liquidsoap tracks the content in `ffmpeg.copy` streams and only allows decoders to return strictly compatible content, such as matching video resolution or audio sample rate.
 
-Some containers such as `mp4`, however, do allow stream where video resolution or audio samplerate changes between tracks. In this case, you can
-relax those compatibility checks using the following setting:
+Some containers like `mp4` allow streams where these parameters change between tracks. To permit this, relax the compatibility check:
 
 ```liquidsoap
 settings.ffmpeg.content.copy.relaxed_compatibility_check := true
 ```
 
-This is a global setting for now and could be refined per-stream in the future if the needs arises.
+This is currently a global setting and may be refined per-stream in the future.
 
 ### Shared encoders
 
-`liquisoap` provides operators to encode data using `%ffmpeg` and reuse it across output. This is called _inline encoding_. Here's an example:
+Liquidsoap provides operators to encode data using `%ffmpeg` and share it across multiple outputs. This is called _inline encoding_. Here is an example:
 
 ```liquidsoap
 audio_source = single(audio_url)
@@ -241,8 +222,7 @@ output.file.hls(
 )
 ```
 
-Working with encoded data, however, requires a bit of knowledge of ffmpeg internal and media codecs and containers. Here, for instance, this stream
-will have issues because the `flv` format requires global data, something that in ffmpeg terms is called `extradata`.
+Working with encoded data requires some knowledge of ffmpeg internals and media codecs and containers. In this example, the stream will have issues because the `flv` format requires global data — called `extradata` in ffmpeg terms.
 
 When working with a single encoder such as:
 
@@ -254,14 +234,13 @@ When working with a single encoder such as:
 )
 ```
 
-We are aware when initializing the encoders that it is aimed for a `flv` container so the code implicitly enables the global header for each encoder.
+When initializing the encoders, liquidsoap knows the target container is `flv` and implicitly enables the global header for each encoder.
 
-However, when encoding inline, we do not know at the time of encoding the container that will be used to encapsulate the stream, even worst, it can be
-used potentially with different containers with different requirements!
+With inline encoding, the target container is not known at encode time — and the encoded stream may be sent to multiple containers with different requirements.
 
-In our case here, you have two ways to solve the issue:
+There are two ways to solve this:
 
-If you know that all the containers will be okay with global header, you can enable the corresponding flag in the encoder:
+If all containers accept global header, enable the flag in the encoder:
 
 ```liquidsoap
 stream = ffmpeg.encode.audio_video(
@@ -273,8 +252,7 @@ stream = ffmpeg.encode.audio_video(
 )
 ```
 
-However, it is also possible that one stream needs global header but not the other one, which is the case here with `mpegts`. In this case, you can
-use the _bitstream filter_ `ffmpeg.filter.bitstream.extract_extradata` to extract global data to only one stream:
+If only one stream needs global header (as with `mpegts` here), use the `ffmpeg.filter.bitstream.extract_extradata` bitstream filter to apply it selectively:
 
 ```
 audio_source = single(audio_url)

@@ -1,12 +1,10 @@
 # FFmpeg filters
 
-[FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html) provide audio and video filters that can be used
-to transform content using the ffmpeg library. They are enabled in liquidsoap when compiled with the
-optional [ffmpeg-avfilter](https://github.com/savonet/ocaml-ffmpeg).
+[FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html) provide audio and video processing using the ffmpeg library. They are available in liquidsoap when compiled with the optional [ffmpeg-avfilter](https://github.com/savonet/ocaml-ffmpeg) package.
 
 ## Filter as operators
 
-If enabled, the filters should appear as operators, prefixed with `ffmpeg.filter`. For instance:
+When enabled, filters appear as operators prefixed with `ffmpeg.filter`. For example:
 
 ```
 Ffmpeg filter: Add echoing to the audio.
@@ -37,69 +35,55 @@ Parameters:
  * (unlabeled) : ffmpeg.filter.audio (default: None)
 ```
 
-Filters input and output are abstract values of type `ffmpeg.filter.audio` and `ffmpeg.filter.video`. They can be created
-using `ffmpeg.filter.audio.input`, `ffmpeg.filter.video.input`. These operators take [media tracks](multitrack.html) as input.
+Filter inputs and outputs are abstract values of type `ffmpeg.filter.audio` and `ffmpeg.filter.video`. Create them with `ffmpeg.filter.audio.input` and `ffmpeg.filter.video.input`, which take [media tracks](multitrack.html) as input. Convert them back to tracks with `ffmpeg.filter.audio.output` and `ffmpeg.filter.video.output`.
 
-Conversely, tracks can be created from them using `ffmpeg.filter.audio.output` and `ffmpeg.filter.video.output`.
-
-Filters are configured within the closure of a function. Here's an example:
+Filters are configured inside a function closure. Here is an example:
 
 ```{.liquidsoap include="ffmpeg-filter-flanger-highpass.liq"}
 
 ```
 
-This filter receives an audio input, creates a `ffmpeg.filter.audio.input` with it that can be passed
-to filters, applies a flanger effect and then a high pass effect, creates an audio output from it and returns it.
+This filter takes an audio input, wraps it in a `ffmpeg.filter.audio.input`, applies a flanger and then a high-pass effect, and returns the result as an audio output.
 
-Here's another example for video:
+Here is another example for video:
 
 ```{.liquidsoap include="ffmpeg-filter-hflip.liq"}
 
 ```
 
-This filter receives a video input, creates a `ffmpeg.filter.video.input` with it that can be passed to filters,
-applies a `hflip` filter (flips the video vertically), creates a video output from it and returns it.
+This filter takes a video input, wraps it in a `ffmpeg.filter.video.input`, applies an `hflip` filter (horizontal flip), and returns the result as a video output.
 
 ## Applying filters to a source
 
-When applying a filter, the input is placed in a clock that is driven by the output. This means that you cannot share other tracks from the
-input to the output. This can be an annoying source of confusion.
+When applying a filter, the input is placed in a clock driven by the output. This means other tracks from the input cannot be shared with the output, which can be a source of confusion.
 
-Thus, when applying FFMpeg filters to sources with audio and video tracks, it is recommended to pass all the tracks through the filter, even
-if they are simply copied.
+When applying FFmpeg filters to sources with both audio and video, pass all tracks through the filter even if some are simply copied.
 
-Here's an example with the previous filter:
+Here is an example:
 
 ```{.liquidsoap include="ffmpeg-filter-hflip2.liq"}
 
 ```
 
-FFmpeg filters are very powerful, they can also convert audio to video, for instance displaying information about the
-stream, and they can combined into powerful graph processing filters.
+FFmpeg filters are powerful: they can convert audio to video (for example, to display stream information) and can be combined into complex graph-based processing pipelines.
 
 ## Filter commands
 
-Some filters support [changing options at runtime](https://ffmpeg.org/ffmpeg-filters.html#Changing-options-at-runtime-with-a-command) with a command. These are also
-supported in liquidsoap.
-
-In order to do so, you have to use a slightly different API:
+Some filters support [changing options at runtime](https://ffmpeg.org/ffmpeg-filters.html#Changing-options-at-runtime-with-a-command) via commands. This is supported in liquidsoap using a slightly different API:
 
 ```{.liquidsoap include="ffmpeg-filter-dynamic-volume.liq" to="END"}
 
 ```
 
-First, we instantiate a volume filter via `ffmpeg.filter.volume.create`. The filter instance has a `process_command`, which we use to create the `set_volume` function. Then,
-we apply the expected input to the filter and return the pair `(s, set_volume)` of source and function.
+A volume filter is instantiated via `ffmpeg.filter.volume.create`. The filter instance exposes `process_command`, which is used to build the `set_volume` function. The input is then applied to the filter and the pair `(s, set_volume)` is returned.
 
-The `ffmpeg.filter.<filter>.create` API is intended for advanced use if you want to use filter commands. Otherwise, `ffmpeg.filter.<filter>` provides a more straight forward
-API to filters.
+The `ffmpeg.filter.<filter>.create` API is for advanced use with filter commands. For standard use, `ffmpeg.filter.<filter>` provides a simpler interface.
 
 ## Filters with dynamic inputs or outputs
 
-Filters with dynamic inputs or outputs can have multiple inputs or outputs, decided at run-time. Typically, `ffmpeg.filter.split`
-splits a video stream into multiple streams and `ffmpeg.filter.merge` merges multiple video streams into a single one.
+Filters with dynamic inputs or outputs determine the number of inputs or outputs at runtime. For example, `ffmpeg.filter.split` splits a video stream and `ffmpeg.filter.merge` merges multiple streams into one.
 
-For these filters, the operators' signature is a little different. Here's an example for dynamic outputs:
+These filters have a different operator signature. Here is an example for dynamic outputs:
 
 ```
 % liquidsoap -h ffmpeg.filter.asplit
@@ -125,9 +109,9 @@ Parameters:
  * (unlabeled) : ffmpeg.filter.audio (default: None)
 ```
 
-This filter returns a tuple `(audio, video)` of possible dynamic outputs.
+This filter returns a tuple `(audio, video)` of dynamic outputs.
 
-Likewise, with dynamic inputs:
+For dynamic inputs:
 
 ```
 % liquidsoap -h ffmpeg.filter.amerge
@@ -155,9 +139,9 @@ Parameters:
  * (unlabeled) : [ffmpeg.filter.video] (default: None)
 ```
 
-This filter receives an array of possible `audio` inputs as well as an array of possible `video` inputs.
+This filter takes arrays of `audio` and `video` inputs.
 
-Put together, this can be used as such:
+Combined, these can be used as follows:
 
 ```{.liquidsoap include="ffmpeg-filter-parallel-flanger-highpass.liq"}
 
