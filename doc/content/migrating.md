@@ -1,19 +1,17 @@
 # Migrating to a new Liquidsoap version
 
-In this page, we list the most common catches when migrating to a new version of
-Liquidsoap.
+This page lists the most common issues when migrating to a new version of Liquidsoap.
 
 ### Generalities
 
 If you are installing via `opam`, it can be useful to create a [new switch](https://opam.ocaml.org/doc/Usage.html) to install
-the new version of `liquidsoap`. This will allow to test the new version while keeping
-the old version around in case you to revert to it.
+the new version of `liquidsoap`. This lets you test the new version while keeping
+the old version around in case you need to revert.
 
-More generally, we recommend to always keep a version of your script around and also
-to make sure that you test your new script with a staging environment that is
-close to production. Streaming issues can build up over time. We do our best to
-release the most stable possible code but problems can arise from many reasons
-so, always best to first to a trial run before putting things to production!
+More generally, we recommend keeping a backup of your script and testing it in a staging
+environment close to production before going live. Streaming issues can build up over time.
+We do our best to release stable code, but problems can arise for many reasons —
+always do a trial run before putting things into production.
 
 ## From 2.3.x to 2.4.x
 
@@ -35,26 +33,25 @@ s.insert_metadata([("title","bla")])
 
 ### Stream-related callbacks
 
-tl;dr:
+Stream-related callbacks are the biggest change in this release. They are now fully documented
+in their own dedicated section, and can be executed asynchronously by setting `synchronous=false`
+when registering them.
 
-- Callbacks have been moved to their own section of the documentation
-  for better standardization and information.
-- Callbacks can be executed using `thread.run` by passing `synchronous=false`
-  when registering them.
-- Most callback arguments should be accepted as deprecated arguments.
-- `blank.detect` could not be updated in a backward-compatible manner.
-- `on_file_change` in `output.*.hls` has been updated to pass a single record.
-- `on_connect` callback on `output.harbor` has been updated to pass a single record.
+When `synchronous=false`, the callback is placed in a `thread.run` task, keeping it off the
+streaming cycle. This matters because if a callback takes too long, the streaming cycle falls
+behind, causing catchup errors.
 
-Stream-related callbacks is the biggest change with this release. They are now fully documented, with their own dedicated section
-in the doc and can now be executed in an asynchronous task when asked by setting the mandatory `synchronous` argument to `false`.
+Callbacks have also been moved to source methods to unify the API. In most cases, callbacks
+previously passed as arguments are still accepted, but trigger a deprecation warning.
 
-When setting `synchronous=false`, the function to be executed by the callback is placed in a `thread.run` task. This is done to
-make sure that the functions executed during the streaming cycle do not impact the streaming latency. Otherwise,
-a callback function takes too long, the streaming cycle gets late, causing issues with the runtime system typically resulting in catchup errors.
+Summary of changes:
 
-Callbacks have also been moved to source methods in order to unify the codebase, options and more. In most cases, callback previously passed as
-arguments are still accepted, triggering a deprecation warning.
+- Callbacks now have their own documentation section.
+- Use `synchronous=false` to run a callback asynchronously via `thread.run`.
+- Most old-style callback arguments still work with a deprecation warning.
+- `blank.detect` could not be updated in a backward-compatible way.
+- `on_file_change` in `output.*.hls` now passes a single record argument.
+- `on_connect` in `output.harbor` now passes a single record argument.
 
 With the new source-related callbacks, instead of doing:
 
@@ -109,9 +106,11 @@ o = output.ao(...)
 o.on_start(synchronous=false, fn)
 ```
 
-❓ **Asynchronous or synchronous?** When registering callbacks, you have to specify if you want the function to be called synchronously or asynchronously. If the function is fast to execute or requires precise timing (it should still be fast to execute though!) then you should register with `synchronous=true`. Slow tasks that are not time-sensitive like submitting to a remote HTTP server should be registered with `synchronous=false`.
+**Asynchronous or synchronous?** Use `synchronous=true` for fast or timing-sensitive callbacks.
+Use `synchronous=false` for slow, non-time-sensitive work like submitting to a remote HTTP server.
 
-⚠️ **Asynchronous callbacks execution order** When registered with `synchronous=false`, callbacks are executed using `thread.run`. This means that there can be a slight delay in their execution. Also, execution order is not guaranteed to be respected.
+**Note on execution order:** When `synchronous=false`, callbacks run via `thread.run`, which means
+there may be a slight delay and execution order is not guaranteed.
 
 ### Error methods
 
@@ -149,9 +148,9 @@ Warning 6: Top-level variable request is overridden!
 
 …consider renaming your variable.
 
-## `null()` replaced by `null`
+### `null()` replaced by `null`
 
-Previously, `null` was a function — you had to call `null()` to get a null value, or `null(value)` to wrap something. This confused a lot of people (and the typechecker wasn’t helping).
+Previously, `null` was a function — you had to call `null()` to get a null value, or `null(value)` to wrap something.
 
 Now, `null` can be used directly:
 
@@ -159,10 +158,10 @@ Now, `null` can be used directly:
 my_var = null
 ```
 
-Function form still works if you need it:
+The function form still works for wrapping a value in a nullable:
 
 ```liquidsoap
-my_var = null("some value")  # Explicit nullable
+my_var = null("some value")
 ```
 
 ## From 2.2.x to 2.3.x
@@ -172,10 +171,10 @@ my_var = null("some value")  # Explicit nullable
 A mechanism for caching script was added. There are two caches, one for the standard library
 that is shared by all scripts, and one for individual scripts.
 
-Scripts should run the same way with or without caching. However, caching your script has two advantage:
+Scripts run the same way with or without caching. However, caching your script has two advantages:
 
 - The script starts much faster.
-- Much less memory is used when starting. This memory is used the first time running the script to typecheck it and more. This is what we're caching.
+- Much less memory is used at startup. The cache stores the result of typechecking and other initialization work done on first run.
 
 You can pre-cache a script using the `--cache-only` command:
 
@@ -232,7 +231,7 @@ end
   It handles both `r128_track_gain` and `replaygain_track_gain` internally and returns a single unified gain value.
 
 - The `file.replaygain` function now takes a new compute parameter:
-  `file.replaygain(~id=null, ~compute=true, ~ratio=50., file_name)`.
+  `file.replaygain(id=null, compute=true, ratio=50., file_name)`.
   The compute parameter determines if gain should be calculated when the metadata does not already contain replaygain tags.
 
 - The `enable_replaygain_metadata` function now accepts a compute parameter to control replaygain calculation.
@@ -244,32 +243,23 @@ end
 
 ### Regular expressions
 
-The library providing regular expressions has been switched with `2.3.0`. This means that subtle differences
-can arise with the evaluation of some regular expressions.
+The regular expression backend was replaced in `2.3.0`. Most existing patterns work as before,
+but subtle differences can arise with advanced expressions.
 
-Here's an example that was recently reported:
-
-In `2.2.x`, this was true:
+**Known behavioral change** — `string.split` with a capture group no longer returns the matched separator:
 
 ```
-# When using a regular expression with a capture pattern to split, the value matched for splitting is returned:
+# 2.2.x: matched separator was included in the result
 % string.split(separator="(:|,)", "foo:bar")
 ["foo", ":", "bar"]
 
-# But not when using a regular expression without matching:
-% string.split(separator=":|,", "foo:bar")
-["foo", "bar"]
-```
-
-In `2.3.x`, the matched pattern is not returned:
-
-```
+# 2.3.x: matched separator is not included
 % string.split(separator="(:|,)", "foo:bar")
 ["foo", "bar"]
-
-% string.split(separator=":|,", "foo:bar")
-["foo", "bar"]
 ```
+
+**Known incompatibility** — Named capture groups using `(?P<name>pattern)` are no longer supported.
+Use `(?<name>pattern)` instead.
 
 ### Static requests
 
@@ -278,8 +268,8 @@ Static requests detection can now work with nested requests.
 Typically, a request for this URI: `annotate:key="value",...:/path/to/file.mp3` will be
 considered static if `/path/to/file.mp3` can be decoded.
 
-Practically, this means that more source will now be considered infallible, for instance
-a `single` using the above uri.
+Practically, this means that more sources will now be considered infallible, for instance
+a `single` using the above URI.
 
 In most cases, this should improve the user experience when building new scripts and streaming
 systems.
@@ -292,30 +282,19 @@ the `single` operator or use the `fallible:` protocol.
 Some string functions have been updated to account for string encoding. In particular, `string.length` and `string.sub` now assume that their
 given string is in `utf8` by default.
 
-While this is what most user expect, this can lead to backward incompatibilities and new exceptions. You can change back to the old default by
-passing `encoding="ascii"` to these functions or using the `settings.string.default_encoding` settings.
+While this is what most users expect, it can lead to backward incompatibilities and new exceptions. You can revert to the previous default by
+passing `encoding="ascii"` to these functions or setting `settings.string.default_encoding`.
 
 ### `check_next`
 
-`check_next` in playlist operators is now called _before_ the request is resolved, to make it possible to cut out
-unwanted requests before consuming process time. If you need to see the request's metadata or if the request resolves
-into a valid tile, however, you might need to call `request.resolve` inside your `check_next` script.
-
-### Regular expressions
-
-The backend to interpret regular expressions has been changed. For the most part, all existing regular expressions should be supported
-but you might experience some incompatibilities with advanced/complex ones.
-
-Known incompatibilities include:
-
-- `(?P<name>pattern)` for named captures is not supported. `(?<name>pattern)` should be used instead.
+`check_next` in playlist operators is now called _before_ the request is resolved, so unwanted
+requests can be skipped before consuming process time. If you need to inspect the request's metadata
+or check whether it resolves into a valid file, call `request.resolve` inside your `check_next` function.
 
 ### `segment_name` in HLS outputs
 
-To make segment name more flexible, `duration` (segment duration in seconds) and `ticks` (segment exact duration in liquidsoap's main ticks) have been added
-to the data available when calling `segment_name`.
-
-To prevent any further breakage of this function, its arguments have been changed to a single record containing all the available attributes:
+The `segment_name` function now receives a single record argument instead of individual parameters.
+Two new fields have been added: `duration` (segment duration in seconds) and `ticks` (exact duration in Liquidsoap ticks).
 
 ```liquidsoap
 def segment_name(metadata) =
@@ -325,13 +304,13 @@ end
 
 ### `on_air` metadata
 
-Request `on_air` and `on_air_timestamp` metadata are deprecated. These values were never reliable. They are set at the request level when `request.dynamic`
-and all its derived sources start playing a request. However, a request can be used in multiple sources and the source using it can be used in multiple
-outputs or even not be actually being on the air if, for instance, it not selected by a `switch` or `fallback`.
+The `on_air` and `on_air_timestamp` request metadata are deprecated. These values were never reliable:
+they are set at the request level when `request.dynamic` starts playing, but a request can be used in
+multiple sources, and a source may not actually be on the air if excluded by a `switch` or `fallback`.
 
 Instead, it is recommended to get this data directly from the outputs.
 
-Starting with `2.3.0`, all output now add `on_air` and `on_air_timestamp` to the metadata returned by `on_track`, `on_metadata` and `last_metadata` and the telnet `metadata` command.
+Starting with `2.3.0`, all outputs add `on_air` and `on_air_timestamp` to the metadata returned by `on_track`, `on_metadata`, `last_metadata`, and the telnet `metadata` command.
 
 For the telnet `metadata` command, these metadata need to be added to the `settings.encoder.metadata.export` setting first.
 
@@ -343,12 +322,12 @@ For backward compatibility and easier migration, `on_air` and `on_air_timestamp`
 settings.request.deprecated_on_air_metadata := true
 ```
 
-However, it is highly recommended to migrate your script to use one of the new method.
+However, it is strongly recommended to migrate your script to use one of the new methods.
 
 ### `last_metadata`
 
-The implementation of `last_metadata` was updated to clear the last metadata when a new track begins. This is more in line with most user's expectation: last metadata
-is intended to reflect the metadata of the current track.
+`last_metadata` now clears when a new track begins, which aligns with the expected behavior:
+it reflects the metadata of the current track, not the previous one.
 
 If you need to, you can revert to the previous behavior using the source's `reset_last_metadata_on_track` method:
 
@@ -358,8 +337,8 @@ s.reset_last_metadata_on_track := false
 
 ### Gstreamer
 
-`gstreamer` was removed. It had been deprecated for a while. We expect `ffmpeg` to carry most, if not all
-of gstreamer's features. See [this PR](https://github.com/savonet/liquidsoap/pull/4036) for more details.
+`gstreamer` was removed after a long deprecation period. The `ffmpeg` integration covers most, if not all,
+of the same functionality. See [this PR](https://github.com/savonet/liquidsoap/pull/4036) for more details.
 
 ### Prometheus
 
@@ -368,14 +347,11 @@ As before, you can change it with `settings.prometheus.server.port := <your port
 
 ### `source.dynamic`
 
-Many operators such as `single` and `request.once` have been reworked to use `source.dynamic` as their underlying
-implementation.
+Operators such as `single` and `request.once` have been reworked to use `source.dynamic` internally.
 
-The operator is now considered usable in production although we urge caution when using it: it is very powerful but can
-also break things!
+The operator is now considered production-ready, though it is very powerful and should be used with care.
 
-If you were (boldly!) using this operator before, the most important change is that its `set` method has been removed in
-favor of a unique callback API.
+If you were already using it, note that the `set` method has been removed in favor of a callback API.
 
 ## From 2.1.x to 2.2.x
 
@@ -407,9 +383,10 @@ for more details.
 
 ### `cue_cut`
 
-Starting with version `2.2.4`, the `cue_cut` operator has been removed. Requests cue-in and cue-out processing has been integrated
-directly into requests resolution. In most cases, you simply can remove the operator from your script. In some cases, you might
-need to disable `cue_in_metadata` and `cue_out_metadat` either when creating new requests or when creating `playlist` sources.
+Starting with version `2.2.4`, the `cue_cut` operator has been removed. Cue-in and cue-out processing
+is now integrated directly into request resolution. In most cases, you can simply remove the operator
+from your script. In some cases, you may need to disable `cue_in_metadata` and `cue_out_metadata`
+when creating requests or `playlist` sources.
 
 ### Harbor HTTP server and SSL support
 
@@ -419,20 +396,18 @@ for more details. The [Https support](harbor_http.html#https-support) section al
 
 ### Timeout
 
-We used to have timeout values labelled `timeout` or `timeout_ms`, some of these would be integer and
-in milliseconds, other floating point and in seconds etc. This was pretty confusing so, now all `timeout`
-settings and arguments have been unified to be named `timeout` and hold a floating point value representing
-a number of seconds.
+Timeout values were previously inconsistent — some were named `timeout_ms` (integer, milliseconds),
+others `timeout` (float, seconds). All `timeout` settings and arguments are now unified: they are
+named `timeout` and hold a floating-point number of seconds.
 
-In most cases, your script will not execute until you have updated your custom `timeout`
-values but you should also review all of them to make sure that they follow the new
-convention.
+In most cases your script will fail to run until you update your custom `timeout` values.
+Review all of them to make sure they follow the new convention.
 
 ### Metadata overrides
 
-Some metadata overrides have been made to reset on track boundaries. Previously, those were permanent even though they
-were documented as only applying to the current track. If you need to keep the previous behavior, you can used the
-`persist_overrides` parameters (`persis_override` for `cross`/`crossfade`).
+Some metadata overrides now reset on track boundaries. Previously they were permanent, despite
+being documented as track-scoped. To keep the old behavior, use the `persist_overrides` parameter
+(`persist_override` for `cross`/`crossfade`).
 
 The list of concerned metadata is:
 
@@ -449,22 +424,17 @@ the `json.stringify()` function or the generic `json()` object mapper. Please us
 
 ### Default character encoding in `output.{harbor,icecast,shoutcast}`
 
-Default encoding for `output.harbor`, `output.icecast` and `output.shoutcast` metadata has been changed to `UTF-8` in all cases.
+Default metadata encoding for `output.harbor`, `output.icecast`, and `output.shoutcast` has changed to `UTF-8`.
 
-Legacy systems used to expect `ISO-8859-1` (also known as `latin1`) for metadata inserted into `mp3` streams via the `icy`
-mechanism.
+Legacy systems expected `ISO-8859-1` (`latin1`) for ICY metadata in MP3 streams, but most modern clients
+now expect `UTF-8` — including those that previously defaulted to other encodings.
 
-It seems that, nowadays, most software expect `UTF-8` out of the box, including for legacy systems that previously
-assumed other encodings. Therefore, by changing this default value, we try to match expectations of the largest
-number of users of our software.
-
-If you are using one of these outputs, make sure to test this assumptions with your listners' clients. If needed, the
-characters encoding can be set to a different value using the operator's parameters.
+If you use these outputs, verify that your listeners' clients handle `UTF-8` correctly. If needed, the
+encoding can be set explicitly via the operator's parameters.
 
 ### Decoder names
 
-Decoder names have been converted to lowercase. If you were relying on specific settings for decoders priority/ordering, you
-will need to convert them to lowercase, for instance:
+Decoder names are now lowercase. If you have customized decoder priority or ordering, update the names accordingly:
 
 ```
 settings.decoder.decoders.set(["FFMPEG"])
@@ -484,7 +454,7 @@ settings.decoder.decoders := ["ffmpeg"]
 
 ### `strftime`
 
-Add file-based operators do not support `strftime` type conversions out of the box anymore. Instead, you should use explicit conversions using `time.string`. This means that this script:
+File-based operators no longer support `strftime` format strings directly. Use `time.string` explicitly instead:
 
 ```liquidsoap
 output.file("/path/to/file%H%M%S.wav", ...)
@@ -646,7 +616,8 @@ but it should be a subtype of the type of the value at radio.liq, line 122, char
   _ * _.{reload : _}
 ```
 
-In such cases, we recommend to give a little nudge to the typechecker by using the `(s:source)` type annotation where a list of source is causing the issue. For instance:
+Use the `(s:source)` type annotation to tell the type checker to ignore source-specific methods
+and treat the value simply as a source:
 
 ```liquidsoap
 s = fallback([
@@ -656,13 +627,10 @@ s = fallback([
 ])
 ```
 
-This tells the type checker not to worry about the source methods and just focus on what matters, that they are actually sources.. 🙂
-
 ### Http input and operators
 
-In order to provide as much compatibility as possible with the different HTTP protocols and implementation, we have decided
-to delegate HTTP support to external libraries which have large scale support and implementation. This means that,
-if you have installed `liquidsoap` using `opam`:
+HTTP support has been delegated to external libraries for broader protocol compatibility.
+If you installed `liquidsoap` via `opam`:
 
 - You need to install the `ocurl` package to enable all HTTP request operators, `http.get`, `http.post`, `http.put`, `http.delete` and `http.head`
 - You need to install the `ffmpeg` package (version `1.0.0` or above) to enable `input.http`
@@ -670,8 +638,8 @@ if you have installed `liquidsoap` using `opam`:
 
 ### Crossfade
 
-The parameters for `cross` transitions was changed to take advantage of the new module system. Instead of passing multiple arguments
-related to the ending and starting track, those are regrouped into a single record. So, if you had a transition like this:
+The `cross` transition function signature changed: instead of individual arguments for each track's
+properties, they are now grouped into two records (`ending` and `starting`). For example:
 
 ```liquidsoap
 def transition(
@@ -728,13 +696,13 @@ video.frame.width.set(720)
 video.frame.height.set(1280)
 ```
 
-The `register` operator could not be adapted to this new API and had to be removed, however, backward-compatible
-`set` and `get` operators are provided. Make sure to replace them as they should be removed in a future version.
+The `register` operator was removed as it could not be adapted to the new API. Backward-compatible
+`set` and `get` operators are provided, but should be replaced as they will be removed in a future version.
 
 ### Metadata insertion
 
-The function `insert_metadata` does not return a pair anymore, but a source with
-a method named `insert_metadata`. This means that you should change the code
+`insert_metadata` no longer returns a pair. It now returns a source with an `insert_metadata` method.
+Update your code from:
 
 ```liquidsoap
 fs = insert_metadata(s)
@@ -750,7 +718,7 @@ f([("artist", "Bob")])
 output.pulseaudio(s)
 ```
 
-to
+to:
 
 ```liquidsoap
 s = insert_metadata(s)
@@ -764,31 +732,27 @@ output.pulseaudio(s)
 
 ### Request-based queueing
 
-Queueing for request-based sources has been simplified. The `default_duration` and `length` have been removed in favor of
-a simpler implementation. You can now pass a `prefetch` parameter which tells the source how many requests should be queued
-in advance.
+Queueing for request-based sources has been simplified. The `default_duration` and `length` parameters
+have been removed. Use `prefetch` instead to specify how many requests to queue in advance.
 
-Should you need more advanced queueing strategy, `request.dynamic.list` and `request.dynamic` now export functions to retrieve
-and set their own queue of requests.
+For more advanced queueing, `request.dynamic.list` and `request.dynamic` now expose functions to
+inspect and set their own request queues.
 
 ### JSON import/export
 
 `json_of` has been renamed `json.stringify` and `of_json` has been renamed `json.parse`.
 
-JSON export has been enhanced with a new generic json object export. Associative lists of type `(string, 'a)` are now
-exported as lists. See our [JSON documentation page](json.html) for more details.
+JSON export has been enhanced with a new generic object exporter. Associative lists of type `(string, 'a)` are
+now exported as objects. See the [JSON documentation page](json.html) for more details.
 
 Convenience functions have been added to convert metadata to and from JSON object format: `metadata.json.stringify` and
 `metadata.json.parse`.
 
 ### Returned types from output operators
 
-Starting with liquidsoap `2.0.0`, output operators return the empty value `()` while they previously returned a source.
-
-This helps enforce the fact that outputs should be end-points of your scripting graphs. However, in some cases, this can cause
-issues while migrating old scripts, in particular if the returned value of an output was used in the script.
-
-The way to fix this is to apply your operator to the source directly underneath the output. For instance, the following clock assignment:
+Output operators now return `()` instead of a source, enforcing that outputs are end-points of the
+signal graph. If your script used the return value of an output, apply the operator directly to the
+source instead. For example:
 
 ```liquidsoap
 s = ...
@@ -808,9 +772,8 @@ output.icecast(..., s)
 
 ### Deprecated operators
 
-Some operators have been deprecated. For most of them, we provide a backward-compatible support
-but it is good practice to update your script. You should see logs in your script when running
-deprecated operatords. Here's a list of the most important ones:
+Some operators have been deprecated. Most have backward-compatible replacements. You will see
+deprecation warnings in your logs. Here's a list of the most important ones:
 
 - `playlist.safe` is replaced by: `playlist(mksafe(..))`
 - `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
@@ -830,19 +793,17 @@ deprecated operatords. Here's a list of the most important ones:
 - `empty` is replaced by: `source.fail`
 - `file.unlink` is replaced by: `file.remove`
 - `string.utf8.escape` is replaced by: `string.escape`
-- `metadata.map` is replaced by: `metadata.map`
+- `map_metadata` is replaced by: `metadata.map`
 
 ### Windows build
 
-The windows binary is statically built and, for this reason, we cannot enable both the `%ffmpeg` encoder and any encoder that
-uses the same underlying libraries, for instance `libmp3lame` for `mp3` encoding. The technical reason is that both libraries
-import the same C symbols, which makes compilation fail.
+The Windows binary is statically built, which means both `%ffmpeg` and any encoder sharing its
+underlying libraries (e.g. `libmp3lame` for MP3) cannot be enabled simultaneously — they export
+conflicting C symbols.
 
-The `%ffmpeg` encoder provides all the functionalities of the internal encoders that conflict with it along with many more format
-we do not support otherwise. For this reason, it was decided to enable the `%ffmpeg` encoder and disable all other encoders.
-
-This means that, if you were previously using a different encoder than `%ffmpeg`, you will need to adapt your script to
-use it. For instance, for mp3 encoding with variable bitrate:
+Since `%ffmpeg` covers all conflicting encoders and more, the Windows build enables `%ffmpeg` and
+disables all other encoders. If you were using a different encoder, switch to `%ffmpeg`. For example,
+for MP3 encoding with variable bitrate:
 
 ```liquidsoap
 %ffmpeg(format="mp3", %audio(codec="libmp3lame", q=7))
