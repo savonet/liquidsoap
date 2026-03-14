@@ -22,12 +22,25 @@
 
 module Lang = Liquidsoap_lang.Lang
 module Flags = Liquidsoap_lang.Flags
+module Runtime = Liquidsoap_lang.Runtime
 open Lang
 
+let eval ?toplevel ?typecheck ?cache ?deprecated ?ty ?name ~stdlib s =
+  try eval ?toplevel ?typecheck ?cache ?deprecated ?ty ?name ~stdlib s
+  with exn ->
+    let bt = Printexc.get_raw_backtrace () in
+    (Liquidsoap_lang.Runtime.throw ~lexbuf:None ~bt ()) exn;
+    Printexc.raise_with_backtrace Runtime.Error bt
+
 let apply ?pos v env =
-  let ret = apply ?pos v env in
-  Clock.after_eval ();
-  ret
+  try
+    let ret = apply ?pos v env in
+    Clock.after_eval ();
+    ret
+  with exn ->
+    let bt = Printexc.get_raw_backtrace () in
+    (Runtime.throw ~lexbuf:None ~bt ()) exn;
+    Printexc.raise_with_backtrace Runtime.Error bt
 
 let log = Log.make ["lang"]
 let metadata_t = list_t (product_t string_t string_t)
