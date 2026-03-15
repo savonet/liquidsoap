@@ -609,12 +609,13 @@ class shared_output p =
         Option.iter
           (fun ch -> Strings.iter (output_substring ch) data)
           dump_channel;
+        let current_metadata = self#get_metadata () in
+        let get_metadata = fun () -> current_metadata in
         List.iter
           (fun listener ->
             if not listener.closed then
               append_data_to_listener ~buffer_limit listener
-                (insert_icy_metadata ~get_metadata:self#get_metadata listener
-                   data))
+                (insert_icy_metadata ~get_metadata listener data))
           (Atomic.get listeners);
         chunk_accumulator <- chunk_accumulator + len;
         if chunk_accumulator >= chunk_size then begin
@@ -707,14 +708,16 @@ class dedicated_output p =
     method send _ =
       Option.iter
         (fun frame ->
+          let current_metadata = self#get_metadata () in
+          let get_metadata = fun () -> current_metadata in
           List.iter
             (fun listener ->
               if not listener.closed then
                 Option.iter
                   (fun e ->
                     append_data_to_listener ~buffer_limit listener
-                      (insert_icy_metadata ~get_metadata:self#get_metadata
-                         listener (e.Encoder.encode frame)))
+                      (insert_icy_metadata ~get_metadata listener
+                         (e.Encoder.encode frame)))
                   listener.encoder)
             (Atomic.get listeners);
           current_frame <- None;
