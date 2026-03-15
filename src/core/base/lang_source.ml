@@ -27,20 +27,26 @@ open Lang
 
 let eval ?toplevel ?typecheck ?cache ?deprecated ?ty ?name ~stdlib s =
   try eval ?toplevel ?typecheck ?cache ?deprecated ?ty ?name ~stdlib s
-  with exn ->
+  with exn -> (
     let bt = Printexc.get_raw_backtrace () in
-    (Liquidsoap_lang.Runtime.throw ~lexbuf:None ~bt ()) exn;
-    Printexc.raise_with_backtrace Runtime.Error bt
+    match exn with
+      | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
+      | _ ->
+          (Liquidsoap_lang.Runtime.throw ~lexbuf:None ~bt ()) exn;
+          Printexc.raise_with_backtrace Runtime.Error bt)
 
 let apply ?pos v env =
   try
     let ret = apply ?pos v env in
     Clock.after_eval ();
     ret
-  with exn ->
+  with exn -> (
     let bt = Printexc.get_raw_backtrace () in
-    (Runtime.throw ~lexbuf:None ~bt ()) exn;
-    Printexc.raise_with_backtrace Runtime.Error bt
+    match exn with
+      | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
+      | _ ->
+          (Runtime.throw ~lexbuf:None ~bt ()) exn;
+          Printexc.raise_with_backtrace Runtime.Error bt)
 
 let log = Log.make ["lang"]
 let metadata_t = list_t (product_t string_t string_t)
