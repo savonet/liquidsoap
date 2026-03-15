@@ -66,7 +66,7 @@ output.harbor(mount="stream", user="source", password="hackme", ...)
 # New
 output.harbor(
   mount="stream",
-  auth=fun(~address, login, password) ->
+  auth=fun({address, login, password}) ->
     login == "source" and password == "hackme",
   ...
 )
