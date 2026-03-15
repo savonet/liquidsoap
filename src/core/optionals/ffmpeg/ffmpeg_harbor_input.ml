@@ -120,7 +120,8 @@ let mime_to_format = function
   | _ -> None
 
 class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
-  ~mountpoint ~login ~debug ~timeout ~on_connection () =
+  ~mountpoint ~login ~debug ~timeout ~on_connect () =
+  let on_connect_callback = on_connect in
   object (self)
     inherit
       Harbor_input.http_input_base
@@ -152,7 +153,7 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       Duppy.Task.add Tutils.scheduler task
 
     method private do_open_container =
-      (* Open FFmpeg container and call on_connection *)
+      (* Open FFmpeg container and call on_connect *)
       let socket = Option.get (Atomic.get relay_socket) in
       let mime = Option.get self#get_mime_type in
       let format = mime_to_format (String.lowercase_ascii mime) in
@@ -226,7 +227,6 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       let callback_record =
         Lang.record
           [
-            ("source", source_value);
             ("uri", Lang.string self#uri);
             ( "query",
               Lang.list
@@ -240,7 +240,8 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
             ("copy_encoder", copy_encoder);
           ]
       in
-      ignore (Lang.apply on_connection [("", callback_record)])
+      let handler = Lang.apply on_connect_callback [("", callback_record)] in
+      ignore (Lang.apply handler [("", source_value)])
 
     method private register_decoder _ =
       match Atomic.get ffmpeg_container with
@@ -276,7 +277,7 @@ let stream_info_t =
       ("codec", ([], Lang.string_t), "Stream codec.");
     ]
 
-let callback_record_t =
+let on_connect_t =
   let frame_t = Lang.univ_t () in
   let meth_t =
     List.map (fun m -> (m, `Method)) (Harbor_input.meth ())
@@ -285,28 +286,33 @@ let callback_record_t =
         (Harbor_input.callbacks ())
   in
   let source_t = Lang_source._method_t (Lang.source_t frame_t) meth_t in
-  Lang.record_t
-    [
-      ("source", source_t);
-      ("uri", Lang.string_t);
-      ("query", Lang.metadata_t);
-      ("format", Lang.nullable_t Lang.string_t);
-      ("streams", Lang.list_t stream_info_t);
-      ("headers", Lang.metadata_t);
-      ( "copy_encoder",
-        Lang.fun_t
-          [(true, "", Lang.nullable_t Lang.string_t)]
-          (Lang.format_t frame_t) );
-    ]
+  let connection_record_t =
+    Lang.record_t
+      [
+        ("uri", Lang.string_t);
+        ("query", Lang.metadata_t);
+        ("format", Lang.nullable_t Lang.string_t);
+        ("streams", Lang.list_t stream_info_t);
+        ("headers", Lang.metadata_t);
+        ( "copy_encoder",
+          Lang.fun_t
+            [(true, "", Lang.nullable_t Lang.string_t)]
+            (Lang.format_t frame_t) );
+      ]
+  in
+  Lang.fun_t
+    [(false, "", connection_record_t)]
+    (Lang.fun_t [(false, "", source_t)] Lang.unit_t)
 
 let extra_proto =
   [
-    ( "on_connection",
-      Lang.fun_t [(false, "", callback_record_t)] Lang.unit_t,
+    ( "on_connect",
+      on_connect_t,
       None,
       Some
-        "Callback when a source connects. Receives a record with: `source`, \
-         `uri`, `query`, `format`, `streams`, `headers` and `copy_encoder`." );
+        "Callback when a source connects. Called with a connection record \
+         containing `uri`, `query`, `format`, `streams`, `headers` and \
+         `copy_encoder`; returns a function that receives the source." );
   ]
 
 let input_harbor_dynamic =
@@ -316,9 +322,10 @@ let _ =
   Lang.add_builtin ~base:input_harbor_dynamic "regexp"
     ~descr:
       "Start a http/icecast receiver server. When a source connects, a new \
-       source is created and passed to the `on_connection` callback along with \
-       a description of its content (URI, format, streams, headers) and a \
-       `copy_encoder` that can be used to re-encode the stream as a copy."
+       source is created and its description (URI, format, streams, headers) \
+       passed to the `on_connect` callback, which returns a function that \
+       receives the source. A `copy_encoder` is provided for passthrough \
+       remuxing."
     ~category:(`Source `Input)
     (Harbor_input.proto ~buffer_default:0.2 Lang.regexp_t @ extra_proto)
     Lang.unit_t
@@ -344,7 +351,7 @@ let _ =
         Harbor_input.parse_args ~parse_mountpoint:Lang.to_regexp p
       in
       let mountpoint_s = Lang.descr_of_regexp mountpoint in
-      let on_connection = List.assoc "on_connection" p in
+      let on_connect = List.assoc "on_connect" p in
       let current_source = Atomic.make None in
       let handler =
         {
@@ -353,8 +360,7 @@ let _ =
               let s =
                 new ffmpeg_http_input
                   ~dumpfile ~logfile ~bufferize ~max ~replay_meta
-                  ~mountpoint:mountpoint_s ~login ~debug ~timeout ~on_connection
-                  ()
+                  ~mountpoint:mountpoint_s ~login ~debug ~timeout ~on_connect ()
               in
               s#set_id
                 (if String.length relay.uri > 1 && relay.uri.[0] = '/' then

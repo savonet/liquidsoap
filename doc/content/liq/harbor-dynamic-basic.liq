@@ -1,11 +1,12 @@
 input.harbor.dynamic(
   port=8005,
   "/example",
-  on_connection=fun (c) ->
+  on_connect=fun (c) ->
     begin
       log(
         "Client connected on #{c.uri}, format: #{c.format}"
       )
-      output.file(c.copy_encoder(), "/tmp/record-#{time()}.%(ext)", c.source)
+      fun (source) ->
+        output.file(c.copy_encoder(), "/tmp/record-#{time()}.%(ext)", source)
     end
 )
