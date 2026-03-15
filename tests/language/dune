@@ -25,6 +25,7 @@
   (diff dune.inc dune.inc.gen.formatted)))
 
 (rule
+ (alias test_write_cover)
  (deps
   test_write_cover.liq
   ../../src/bin/liquidsoap.exe

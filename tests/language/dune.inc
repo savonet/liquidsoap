@@ -602,25 +602,6 @@
    string_binary_flags.liq)))
 
 (rule
- (alias test_test_write_cover)
- (package liquidsoap)
- (deps
-  test_write_cover.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  crontab_test_cases.json
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   test_write_cover.liq
-   liquidsoap
-   %{test_liq}
-   test_write_cover.liq)))
-
-(rule
  (alias test_thread)
  (package liquidsoap)
  (deps
@@ -777,7 +758,6 @@
   (alias test_stdlib)
   (alias test_string)
   (alias test_string_binary_flags)
-  (alias test_test_write_cover)
   (alias test_thread)
   (alias test_time)
   (alias test_type_errors)
