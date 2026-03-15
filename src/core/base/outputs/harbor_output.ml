@@ -411,7 +411,7 @@ class virtual base p =
     val transport = transport
     val dumpfile = dumpfile
     val listeners : listener list Atomic.t = Atomic.make []
-    val listeners_mutex = Mutex.create ()
+    val listeners_lock = Mutex_utils.mk_state ()
     val burst_buffer = Strings.Mutable.empty ()
     val shared_metadata : Frame.metadata option Atomic.t = Atomic.make None
     val mutable dump_channel : out_channel option = None
@@ -450,18 +450,19 @@ class virtual base p =
       end
 
     method private write_to_all_listeners =
-      let updated =
-        List.filter_map
-          (fun listener ->
-            if listener.closed || try_write_to_socket listener < 0 then begin
-              self#handle_disconnect listener;
-              None
-            end
-            else Some listener)
-          (Atomic.get listeners)
-      in
-      Mutex_utils.mutexify listeners_mutex
-        (fun () -> Atomic.set listeners updated)
+      Mutex_utils.mutable_lock ~state:listeners_lock
+        (fun () ->
+          let updated =
+            List.filter_map
+              (fun listener ->
+                if listener.closed || try_write_to_socket listener < 0 then begin
+                  self#handle_disconnect listener;
+                  None
+                end
+                else Some listener)
+              (Atomic.get listeners)
+          in
+          Atomic.set listeners updated)
         ()
 
     method private add_listener ~protocol ~headers ~uri:request_uri ~query
@@ -532,7 +533,7 @@ class virtual base p =
           ~stream_url ~timeout
       in
       let* () = self#connect_listener ~protocol listener in
-      Mutex_utils.mutexify listeners_mutex
+      Mutex_utils.atomic_lock ~state:listeners_lock
         (fun () -> Atomic.set listeners (listener :: Atomic.get listeners))
         ();
       self#log#info "Listener %s connected" client_id;
@@ -548,8 +549,11 @@ class virtual base p =
           self#add_listener ~protocol ~headers ~uri:request_uri ~query socket)
 
     method private disconnect_all_listeners =
-      List.iter self#handle_disconnect (Atomic.get listeners);
-      Atomic.set listeners []
+      Mutex_utils.mutable_lock ~state:listeners_lock
+        (fun () ->
+          List.iter self#handle_disconnect (Atomic.get listeners);
+          Atomic.set listeners [])
+        ()
   end
 
 (* === Shared Encoder Output ===
