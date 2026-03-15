@@ -72,8 +72,9 @@ let mediatests = ref []
 
 let mediatest (type a) : (a, unit, string, string) format4 -> a =
   Printf.ksprintf (fun s ->
-      mediatests := Printf.sprintf "(alias %s)" s :: !mediatests;
-      s)
+      let alias = "test_" ^ s in
+      mediatests := Printf.sprintf "(alias %s)" alias :: !mediatests;
+      alias)
 
 let mk_encoder ?(deps = []) source format =
   let extra_deps =

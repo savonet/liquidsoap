@@ -18,11 +18,11 @@
  (deps
   (:liquidsoap ../../src/bin/liquidsoap.exe)
   (source_tree ../../src/libs)
-  (:small_record ./small-record.liq)
+  (:small_record ./test_small-record.liq)
   (:big_record ./big-record.liq)
-  (:erathostenes ./erathostenes.liq)
-  (:performance performance.liq)
-  (:memory memory.liq)
+  (:erathostenes ./test_erathostenes.liq)
+  (:performance test_performance.liq)
+  (:memory test_memory.liq)
   (:test_liq ../test.liq))
  (action
   (progn

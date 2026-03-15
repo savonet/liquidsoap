@@ -25,14 +25,15 @@
   (diff dune.inc dune.inc.gen.formatted)))
 
 (rule
+ (alias test_write_cover)
  (deps
-  write_cover.liq
+  test_write_cover.liq
   ../../src/bin/liquidsoap.exe
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/libs))
  (target cover.png)
  (action
-  (run ../../src/bin/liquidsoap.exe ./write_cover.liq -- %{target})))
+  (run ../../src/bin/liquidsoap.exe ./test_write_cover.liq -- %{target})))
 
 (rule
  (alias citest)
