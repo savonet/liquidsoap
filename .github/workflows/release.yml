@@ -61,7 +61,7 @@ jobs:
           fail-if-no-release: false
           fail-if-no-assets: false
       - name: Upload assets to main repo release
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        uses: softprops/action-gh-release@71d29a04ae7c63895f38299d7a5e05d238f7f445 # v2.5.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ inputs.branch }}
@@ -148,7 +148,7 @@ jobs:
           fail-if-no-release: false
           fail-if-no-assets: false
       - name: Upload assets to release repo
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        uses: softprops/action-gh-release@71d29a04ae7c63895f38299d7a5e05d238f7f445 # v2.5.1
         with:
           token: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
           tag_name: ${{ inputs.branch }}
