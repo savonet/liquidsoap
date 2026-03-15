@@ -1,7 +1,8 @@
 let test_names = ref []
 
 let test_name s =
-  let test_name = Filename.remove_extension s in
+  let base = Filename.remove_extension s in
+  let test_name = "test_" ^ base in
   test_names := Printf.sprintf "(alias %s)" test_name :: !test_names;
   test_name
 

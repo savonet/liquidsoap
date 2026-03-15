@@ -1,5 +1,5 @@
 (rule
- (alias 195)
+ (alias test_195)
  (package liquidsoap)
  (deps
   195.liq
@@ -30,7 +30,7 @@
   (run %{run_test} 195.liq liquidsoap %{test_liq} 195.liq)))
 
 (rule
- (alias add_all_metadata)
+ (alias test_add_all_metadata)
  (package liquidsoap)
  (deps
   add_all_metadata.liq
@@ -66,7 +66,7 @@
    add_all_metadata.liq)))
 
 (rule
- (alias autostart)
+ (alias test_autostart)
  (package liquidsoap)
  (deps
   autostart.liq
@@ -97,7 +97,7 @@
   (run %{run_test} autostart.liq liquidsoap %{test_liq} autostart.liq)))
 
 (rule
- (alias cross-override)
+ (alias test_cross-override)
  (package liquidsoap)
  (deps
   cross-override.liq
@@ -133,7 +133,7 @@
    cross-override.liq)))
 
 (rule
- (alias cross-persist-override)
+ (alias test_cross-persist-override)
  (package liquidsoap)
  (deps
   cross-persist-override.liq
@@ -169,7 +169,7 @@
    cross-persist-override.liq)))
 
 (rule
- (alias cross)
+ (alias test_cross)
  (package liquidsoap)
  (deps
   cross.liq
@@ -200,7 +200,7 @@
   (run %{run_test} cross.liq liquidsoap %{test_liq} cross.liq)))
 
 (rule
- (alias crossfade)
+ (alias test_crossfade)
  (package liquidsoap)
  (deps
   crossfade.liq
@@ -231,7 +231,7 @@
   (run %{run_test} crossfade.liq liquidsoap %{test_liq} crossfade.liq)))
 
 (rule
- (alias crossfade2)
+ (alias test_crossfade2)
  (package liquidsoap)
  (deps
   crossfade2.liq
@@ -262,7 +262,7 @@
   (run %{run_test} crossfade2.liq liquidsoap %{test_liq} crossfade2.liq)))
 
 (rule
- (alias ctype1)
+ (alias test_ctype1)
  (package liquidsoap)
  (deps
   ctype1.liq
@@ -293,7 +293,7 @@
   (run %{run_test} ctype1.liq liquidsoap %{test_liq} ctype1.liq)))
 
 (rule
- (alias ctype2)
+ (alias test_ctype2)
  (package liquidsoap)
  (deps
   ctype2.liq
@@ -324,7 +324,7 @@
   (run %{run_test} ctype2.liq liquidsoap %{test_liq} ctype2.liq)))
 
 (rule
- (alias cue-cut)
+ (alias test_cue-cut)
  (package liquidsoap)
  (deps
   cue-cut.liq
@@ -355,7 +355,7 @@
   (run %{run_test} cue-cut.liq liquidsoap %{test_liq} cue-cut.liq)))
 
 (rule
- (alias dtmf)
+ (alias test_dtmf)
  (package liquidsoap)
  (deps
   dtmf.liq
@@ -386,7 +386,7 @@
   (run %{run_test} dtmf.liq liquidsoap %{test_liq} dtmf.liq)))
 
 (rule
- (alias dtmf_pcm_s16)
+ (alias test_dtmf_pcm_s16)
  (package liquidsoap)
  (deps
   dtmf_pcm_s16.liq
@@ -417,7 +417,7 @@
   (run %{run_test} dtmf_pcm_s16.liq liquidsoap %{test_liq} dtmf_pcm_s16.liq)))
 
 (rule
- (alias fades-overrides)
+ (alias test_fades-overrides)
  (package liquidsoap)
  (deps
   fades-overrides.liq
@@ -453,7 +453,7 @@
    fades-overrides.liq)))
 
 (rule
- (alias fades-persistent-override)
+ (alias test_fades-persistent-override)
  (package liquidsoap)
  (deps
   fades-persistent-override.liq
@@ -489,7 +489,7 @@
    fades-persistent-override.liq)))
 
 (rule
- (alias ffmpeg-errors)
+ (alias test_ffmpeg-errors)
  (package liquidsoap)
  (deps
   ffmpeg-errors.liq
@@ -525,7 +525,7 @@
    ffmpeg-errors.liq)))
 
 (rule
- (alias ffmpeg-trim)
+ (alias test_ffmpeg-trim)
  (package liquidsoap)
  (deps
   ffmpeg-trim.liq
@@ -556,7 +556,7 @@
   (run %{run_test} ffmpeg-trim.liq liquidsoap %{test_liq} ffmpeg-trim.liq)))
 
 (rule
- (alias file_output)
+ (alias test_file_output)
  (package liquidsoap)
  (deps
   file_output.liq
@@ -587,7 +587,7 @@
   (run %{run_test} file_output.liq liquidsoap %{test_liq} file_output.liq)))
 
 (rule
- (alias harbor_kick_client)
+ (alias test_harbor_kick_client)
  (package liquidsoap)
  (deps
   harbor_kick_client.liq
@@ -623,7 +623,7 @@
    harbor_kick_client.liq)))
 
 (rule
- (alias harbor_metadata)
+ (alias test_harbor_metadata)
  (package liquidsoap)
  (deps
   harbor_metadata.liq
@@ -659,7 +659,7 @@
    harbor_metadata.liq)))
 
 (rule
- (alias harbor_metadata_2)
+ (alias test_harbor_metadata_2)
  (package liquidsoap)
  (deps
   harbor_metadata_2.liq
@@ -695,7 +695,7 @@
    harbor_metadata_2.liq)))
 
 (rule
- (alias harbor_metadata_3)
+ (alias test_harbor_metadata_3)
  (package liquidsoap)
  (deps
   harbor_metadata_3.liq
@@ -731,7 +731,7 @@
    harbor_metadata_3.liq)))
 
 (rule
- (alias hls_custom_tags)
+ (alias test_hls_custom_tags)
  (package liquidsoap)
  (deps
   hls_custom_tags.liq
@@ -767,7 +767,7 @@
    hls_custom_tags.liq)))
 
 (rule
- (alias hls_discontinuity)
+ (alias test_hls_discontinuity)
  (package liquidsoap)
  (deps
   hls_discontinuity.liq
@@ -803,7 +803,7 @@
    hls_discontinuity.liq)))
 
 (rule
- (alias hls_global_headers)
+ (alias test_hls_global_headers)
  (package liquidsoap)
  (deps
   hls_global_headers.liq
@@ -839,7 +839,7 @@
    hls_global_headers.liq)))
 
 (rule
- (alias hls_id3v2)
+ (alias test_hls_id3v2)
  (package liquidsoap)
  (deps
   hls_id3v2.liq
@@ -870,7 +870,7 @@
   (run %{run_test} hls_id3v2.liq liquidsoap %{test_liq} hls_id3v2.liq)))
 
 (rule
- (alias hls_large_frame)
+ (alias test_hls_large_frame)
  (package liquidsoap)
  (deps
   hls_large_frame.liq
@@ -906,7 +906,7 @@
    hls_large_frame.liq)))
 
 (rule
- (alias hls_main_playlist)
+ (alias test_hls_main_playlist)
  (package liquidsoap)
  (deps
   hls_main_playlist.liq
@@ -942,7 +942,7 @@
    hls_main_playlist.liq)))
 
 (rule
- (alias huge-playlist)
+ (alias test_huge-playlist)
  (package liquidsoap)
  (deps
   huge-playlist.liq
@@ -978,7 +978,7 @@
    huge-playlist.liq)))
 
 (rule
- (alias icecast_last_meta)
+ (alias test_icecast_last_meta)
  (package liquidsoap)
  (deps
   icecast_last_meta.liq
@@ -1014,7 +1014,7 @@
    icecast_last_meta.liq)))
 
 (rule
- (alias icecast_no_restart)
+ (alias test_icecast_no_restart)
  (package liquidsoap)
  (deps
   icecast_no_restart.liq
@@ -1050,7 +1050,7 @@
    icecast_no_restart.liq)))
 
 (rule
- (alias image)
+ (alias test_image)
  (package liquidsoap)
  (deps
   image.liq
@@ -1081,7 +1081,7 @@
   (run %{run_test} image.liq liquidsoap %{test_liq} image.liq)))
 
 (rule
- (alias many-playlists)
+ (alias test_many-playlists)
  (package liquidsoap)
  (deps
   many-playlists.liq
@@ -1117,7 +1117,7 @@
    many-playlists.liq)))
 
 (rule
- (alias merge_metadata)
+ (alias test_merge_metadata)
  (package liquidsoap)
  (deps
   merge_metadata.liq
@@ -1153,7 +1153,7 @@
    merge_metadata.liq)))
 
 (rule
- (alias metadata-override)
+ (alias test_metadata-override)
  (package liquidsoap)
  (deps
   metadata-override.liq
@@ -1189,7 +1189,7 @@
    metadata-override.liq)))
 
 (rule
- (alias never)
+ (alias test_never)
  (package liquidsoap)
  (deps
   never.liq
@@ -1220,7 +1220,7 @@
   (run %{run_test} never.liq liquidsoap %{test_liq} never.liq)))
 
 (rule
- (alias nfo_sidecar_metadata)
+ (alias test_nfo_sidecar_metadata)
  (package liquidsoap)
  (deps
   nfo_sidecar_metadata.liq
@@ -1256,7 +1256,7 @@
    nfo_sidecar_metadata.liq)))
 
 (rule
- (alias no-cue-cut)
+ (alias test_no-cue-cut)
  (package liquidsoap)
  (deps
   no-cue-cut.liq
@@ -1287,7 +1287,7 @@
   (run %{run_test} no-cue-cut.liq liquidsoap %{test_liq} no-cue-cut.liq)))
 
 (rule
- (alias non_repeating)
+ (alias test_non_repeating)
  (package liquidsoap)
  (deps
   non_repeating.liq
@@ -1323,7 +1323,7 @@
    non_repeating.liq)))
 
 (rule
- (alias on_end)
+ (alias test_on_end)
  (package liquidsoap)
  (deps
   on_end.liq
@@ -1354,7 +1354,7 @@
   (run %{run_test} on_end.liq liquidsoap %{test_liq} on_end.liq)))
 
 (rule
- (alias on_end_partial)
+ (alias test_on_end_partial)
  (package liquidsoap)
  (deps
   on_end_partial.liq
@@ -1390,7 +1390,7 @@
    on_end_partial.liq)))
 
 (rule
- (alias on_frame)
+ (alias test_on_frame)
  (package liquidsoap)
  (deps
   on_frame.liq
@@ -1421,7 +1421,7 @@
   (run %{run_test} on_frame.liq liquidsoap %{test_liq} on_frame.liq)))
 
 (rule
- (alias on_metadata)
+ (alias test_on_metadata)
  (package liquidsoap)
  (deps
   on_metadata.liq
@@ -1452,7 +1452,7 @@
   (run %{run_test} on_metadata.liq liquidsoap %{test_liq} on_metadata.liq)))
 
 (rule
- (alias on_offset)
+ (alias test_on_offset)
  (package liquidsoap)
  (deps
   on_offset.liq
@@ -1483,7 +1483,7 @@
   (run %{run_test} on_offset.liq liquidsoap %{test_liq} on_offset.liq)))
 
 (rule
- (alias on_offset_partial)
+ (alias test_on_offset_partial)
  (package liquidsoap)
  (deps
   on_offset_partial.liq
@@ -1519,7 +1519,7 @@
    on_offset_partial.liq)))
 
 (rule
- (alias on_track)
+ (alias test_on_track)
  (package liquidsoap)
  (deps
   on_track.liq
@@ -1550,7 +1550,7 @@
   (run %{run_test} on_track.liq liquidsoap %{test_liq} on_track.liq)))
 
 (rule
- (alias playlist-watch)
+ (alias test_playlist-watch)
  (package liquidsoap)
  (deps
   playlist-watch.liq
@@ -1586,7 +1586,7 @@
    playlist-watch.liq)))
 
 (rule
- (alias radio)
+ (alias test_radio)
  (package liquidsoap)
  (deps
   radio.liq
@@ -1617,7 +1617,7 @@
   (run %{run_test} radio.liq liquidsoap %{test_liq} radio.liq)))
 
 (rule
- (alias radio2)
+ (alias test_radio2)
  (package liquidsoap)
  (deps
   radio2.liq
@@ -1648,7 +1648,7 @@
   (run %{run_test} radio2.liq liquidsoap %{test_liq} radio2.liq)))
 
 (rule
- (alias random)
+ (alias test_random)
  (package liquidsoap)
  (deps
   random.liq
@@ -1679,7 +1679,7 @@
   (run %{run_test} random.liq liquidsoap %{test_liq} random.liq)))
 
 (rule
- (alias replaygain)
+ (alias test_replaygain)
  (package liquidsoap)
  (deps
   replaygain.liq
@@ -1710,7 +1710,7 @@
   (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
 
 (rule
- (alias request)
+ (alias test_request)
  (package liquidsoap)
  (deps
   request.liq
@@ -1741,7 +1741,7 @@
   (run %{run_test} request.liq liquidsoap %{test_liq} request.liq)))
 
 (rule
- (alias rotate)
+ (alias test_rotate)
  (package liquidsoap)
  (deps
   rotate.liq
@@ -1772,7 +1772,7 @@
   (run %{run_test} rotate.liq liquidsoap %{test_liq} rotate.liq)))
 
 (rule
- (alias say)
+ (alias test_say)
  (package liquidsoap)
  (deps
   say.liq
@@ -1803,7 +1803,7 @@
   (run %{run_test} say.liq liquidsoap %{test_liq} say.liq)))
 
 (rule
- (alias sharing)
+ (alias test_sharing)
  (package liquidsoap)
  (deps
   sharing.liq
@@ -1834,7 +1834,7 @@
   (run %{run_test} sharing.liq liquidsoap %{test_liq} sharing.liq)))
 
 (rule
- (alias sine.detect.full_conv)
+ (alias test_sine.detect.full_conv)
  (package liquidsoap)
  (deps
   sine.detect.full_conv.liq
@@ -1870,7 +1870,7 @@
    sine.detect.full_conv.liq)))
 
 (rule
- (alias sine.detect)
+ (alias test_sine.detect)
  (package liquidsoap)
  (deps
   sine.detect.liq
@@ -1901,7 +1901,7 @@
   (run %{run_test} sine.detect.liq liquidsoap %{test_liq} sine.detect.liq)))
 
 (rule
- (alias sine.detect.pcm_f32)
+ (alias test_sine.detect.pcm_f32)
  (package liquidsoap)
  (deps
   sine.detect.pcm_f32.liq
@@ -1937,7 +1937,7 @@
    sine.detect.pcm_f32.liq)))
 
 (rule
- (alias sine.detect.pcm_s16)
+ (alias test_sine.detect.pcm_s16)
  (package liquidsoap)
  (deps
   sine.detect.pcm_s16.liq
@@ -1973,7 +1973,7 @@
    sine.detect.pcm_s16.liq)))
 
 (rule
- (alias soundtouch-tracks)
+ (alias test_soundtouch-tracks)
  (package liquidsoap)
  (deps
   soundtouch-tracks.liq
@@ -2009,7 +2009,7 @@
    soundtouch-tracks.liq)))
 
 (rule
- (alias source-cue)
+ (alias test_source-cue)
  (package liquidsoap)
  (deps
   source-cue.liq
@@ -2040,7 +2040,7 @@
   (run %{run_test} source-cue.liq liquidsoap %{test_liq} source-cue.liq)))
 
 (rule
- (alias srt_listen_callback)
+ (alias test_srt_listen_callback)
  (package liquidsoap)
  (deps
   srt_listen_callback.liq
@@ -2076,7 +2076,7 @@
    srt_listen_callback.liq)))
 
 (rule
- (alias srt_multiple_outputs)
+ (alias test_srt_multiple_outputs)
  (package liquidsoap)
  (deps
   srt_multiple_outputs.liq
@@ -2112,7 +2112,7 @@
    srt_multiple_outputs.liq)))
 
 (rule
- (alias srt_passphrase)
+ (alias test_srt_passphrase)
  (package liquidsoap)
  (deps
   srt_passphrase.liq
@@ -2148,7 +2148,7 @@
    srt_passphrase.liq)))
 
 (rule
- (alias srt_raw_pcm)
+ (alias test_srt_raw_pcm)
  (package liquidsoap)
  (deps
   srt_raw_pcm.liq
@@ -2179,7 +2179,7 @@
   (run %{run_test} srt_raw_pcm.liq liquidsoap %{test_liq} srt_raw_pcm.liq)))
 
 (rule
- (alias stretch-clock-propagation)
+ (alias test_stretch-clock-propagation)
  (package liquidsoap)
  (deps
   stretch-clock-propagation.liq
@@ -2215,7 +2215,7 @@
    stretch-clock-propagation.liq)))
 
 (rule
- (alias string_binary_flags)
+ (alias test_string_binary_flags)
  (package liquidsoap)
  (deps
   string_binary_flags.liq
@@ -2251,7 +2251,7 @@
    string_binary_flags.liq)))
 
 (rule
- (alias test_ffmpeg_on_subitles)
+ (alias test_test_ffmpeg_on_subitles)
  (package liquidsoap)
  (deps
   test_ffmpeg_on_subitles.liq
@@ -2287,7 +2287,7 @@
    test_ffmpeg_on_subitles.liq)))
 
 (rule
- (alias test_on_subtitle)
+ (alias test_test_on_subtitle)
  (package liquidsoap)
  (deps
   test_on_subtitle.liq
@@ -2323,7 +2323,7 @@
    test_on_subtitle.liq)))
 
 (rule
- (alias test_subtitles_insert)
+ (alias test_test_subtitles_insert)
  (package liquidsoap)
  (deps
   test_subtitles_insert.liq
@@ -2359,7 +2359,7 @@
    test_subtitles_insert.liq)))
 
 (rule
- (alias test_subtitles_map)
+ (alias test_test_subtitles_map)
  (package liquidsoap)
  (deps
   test_subtitles_map.liq
@@ -2395,7 +2395,7 @@
    test_subtitles_map.liq)))
 
 (rule
- (alias test_subtitles_track_insert)
+ (alias test_test_subtitles_track_insert)
  (package liquidsoap)
  (deps
   test_subtitles_track_insert.liq
@@ -2430,115 +2430,78 @@
    %{test_liq}
    test_subtitles_track_insert.liq)))
 
-(rule
- (alias video_size_autodetect)
- (package liquidsoap)
- (deps
-  video_size_autodetect.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   video_size_autodetect.liq
-   liquidsoap
-   %{test_liq}
-   video_size_autodetect.liq)))
-
 (alias
  (name citest)
  (deps
-  (alias 195)
-  (alias add_all_metadata)
-  (alias autostart)
-  (alias cross)
-  (alias cross-override)
-  (alias cross-persist-override)
-  (alias crossfade)
-  (alias crossfade2)
-  (alias ctype1)
-  (alias ctype2)
-  (alias cue-cut)
-  (alias dtmf)
-  (alias dtmf_pcm_s16)
-  (alias fades-overrides)
-  (alias fades-persistent-override)
-  (alias ffmpeg-errors)
-  (alias ffmpeg-trim)
-  (alias file_output)
-  (alias harbor_kick_client)
-  (alias harbor_metadata)
-  (alias harbor_metadata_2)
-  (alias harbor_metadata_3)
-  (alias hls_custom_tags)
-  (alias hls_discontinuity)
-  (alias hls_global_headers)
-  (alias hls_id3v2)
-  (alias hls_large_frame)
-  (alias hls_main_playlist)
-  (alias huge-playlist)
-  (alias icecast_last_meta)
-  (alias icecast_no_restart)
-  (alias image)
-  (alias many-playlists)
-  (alias merge_metadata)
-  (alias metadata-override)
-  (alias never)
-  (alias nfo_sidecar_metadata)
-  (alias no-cue-cut)
-  (alias non_repeating)
-  (alias on_end)
-  (alias on_end_partial)
-  (alias on_frame)
-  (alias on_metadata)
-  (alias on_offset)
-  (alias on_offset_partial)
-  (alias on_track)
-  (alias playlist-watch)
-  (alias radio)
-  (alias radio2)
-  (alias random)
-  (alias replaygain)
-  (alias request)
-  (alias rotate)
-  (alias say)
-  (alias sharing)
-  (alias sine.detect)
-  (alias sine.detect.full_conv)
-  (alias sine.detect.pcm_f32)
-  (alias sine.detect.pcm_s16)
-  (alias soundtouch-tracks)
-  (alias source-cue)
-  (alias srt_listen_callback)
-  (alias srt_multiple_outputs)
-  (alias srt_passphrase)
-  (alias srt_raw_pcm)
-  (alias stretch-clock-propagation)
-  (alias string_binary_flags)
-  (alias test_ffmpeg_on_subitles)
-  (alias test_on_subtitle)
-  (alias test_subtitles_insert)
-  (alias test_subtitles_map)
-  (alias test_subtitles_track_insert)
-  (alias video_size_autodetect)))
+  (alias test_195)
+  (alias test_add_all_metadata)
+  (alias test_autostart)
+  (alias test_cross)
+  (alias test_cross-override)
+  (alias test_cross-persist-override)
+  (alias test_crossfade)
+  (alias test_crossfade2)
+  (alias test_ctype1)
+  (alias test_ctype2)
+  (alias test_cue-cut)
+  (alias test_dtmf)
+  (alias test_dtmf_pcm_s16)
+  (alias test_fades-overrides)
+  (alias test_fades-persistent-override)
+  (alias test_ffmpeg-errors)
+  (alias test_ffmpeg-trim)
+  (alias test_file_output)
+  (alias test_harbor_kick_client)
+  (alias test_harbor_metadata)
+  (alias test_harbor_metadata_2)
+  (alias test_harbor_metadata_3)
+  (alias test_hls_custom_tags)
+  (alias test_hls_discontinuity)
+  (alias test_hls_global_headers)
+  (alias test_hls_id3v2)
+  (alias test_hls_large_frame)
+  (alias test_hls_main_playlist)
+  (alias test_huge-playlist)
+  (alias test_icecast_last_meta)
+  (alias test_icecast_no_restart)
+  (alias test_image)
+  (alias test_many-playlists)
+  (alias test_merge_metadata)
+  (alias test_metadata-override)
+  (alias test_never)
+  (alias test_nfo_sidecar_metadata)
+  (alias test_no-cue-cut)
+  (alias test_non_repeating)
+  (alias test_on_end)
+  (alias test_on_end_partial)
+  (alias test_on_frame)
+  (alias test_on_metadata)
+  (alias test_on_offset)
+  (alias test_on_offset_partial)
+  (alias test_on_track)
+  (alias test_playlist-watch)
+  (alias test_radio)
+  (alias test_radio2)
+  (alias test_random)
+  (alias test_replaygain)
+  (alias test_request)
+  (alias test_rotate)
+  (alias test_say)
+  (alias test_sharing)
+  (alias test_sine.detect)
+  (alias test_sine.detect.full_conv)
+  (alias test_sine.detect.pcm_f32)
+  (alias test_sine.detect.pcm_s16)
+  (alias test_soundtouch-tracks)
+  (alias test_source-cue)
+  (alias test_srt_listen_callback)
+  (alias test_srt_multiple_outputs)
+  (alias test_srt_passphrase)
+  (alias test_srt_raw_pcm)
+  (alias test_stretch-clock-propagation)
+  (alias test_string_binary_flags)
+  (alias test_test_ffmpeg_on_subitles)
+  (alias test_test_on_subtitle)
+  (alias test_test_subtitles_insert)
+  (alias test_test_subtitles_map)
+  (alias test_test_subtitles_track_insert)))

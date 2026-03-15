@@ -1,5 +1,5 @@
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @fdkaac[aot='mpeg4_aac_lc',channels=1]_encoder.liq)
  (deps
@@ -15,7 +15,7 @@
     "@fdkaac[aot='mpeg4_aac_lc',channels=1].aac"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @fdkaac[channels=2]_encoder.liq)
  (deps
@@ -31,7 +31,7 @@
     "@fdkaac[channels=2].aac"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @shine[channels=1]_encoder.liq)
  (deps
@@ -47,7 +47,7 @@
     "@shine[channels=1].mp3"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @shine[channels=2]_encoder.liq)
  (deps
@@ -63,7 +63,7 @@
     "@shine[channels=2].mp3"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @flac[stereo]_encoder.liq)
  (deps
@@ -75,7 +75,7 @@
    (run %{mk_encoder_test} "%flac(stereo)" audio_only "@flac[stereo].flac"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @flac[mono]_encoder.liq)
  (deps
@@ -87,7 +87,7 @@
    (run %{mk_encoder_test} "%flac(mono)" audio_only "@flac[mono].flac"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @wav[stereo]_encoder.liq)
  (deps
@@ -99,7 +99,7 @@
    (run %{mk_encoder_test} "%wav(stereo)" audio_only "@wav[stereo].wav"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @wav[mono]_encoder.liq)
  (deps
@@ -111,7 +111,7 @@
    (run %{mk_encoder_test} "%wav(mono)" audio_only "@wav[mono].wav"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @mp3[mono]_encoder.liq)
  (deps
@@ -123,7 +123,7 @@
    (run %{mk_encoder_test} "%mp3(mono)" audio_only "@mp3[mono].mp3"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @mp3[stereo]_encoder.liq)
  (deps
@@ -135,7 +135,7 @@
    (run %{mk_encoder_test} "%mp3(stereo)" audio_only "@mp3[stereo].mp3"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ogg[@vorbis[mono]]_encoder.liq)
  (deps
@@ -151,7 +151,7 @@
     "@ogg[@vorbis[mono]].ogg"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ogg[@vorbis[stereo]]_encoder.liq)
  (deps
@@ -167,7 +167,7 @@
     "@ogg[@vorbis[stereo]].ogg"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ogg[@flac[mono]]_encoder.liq)
  (deps
@@ -183,7 +183,7 @@
     "@ogg[@flac[mono]].ogg"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ogg[@flac[stereo]]_encoder.liq)
  (deps
@@ -199,7 +199,7 @@
     "@ogg[@flac[stereo]].ogg"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ogg[@opus[mono]]_encoder.liq)
  (deps
@@ -215,7 +215,7 @@
     "@ogg[@opus[mono]].ogg"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ogg[@opus[stereo]]_encoder.liq)
  (deps
@@ -231,7 +231,7 @@
     "@ogg[@opus[stereo]].ogg"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target
   @ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']]_encoder.liq)
@@ -248,7 +248,7 @@
     "@ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ffmpeg[format='mp4',@audio[codec='aac']]_encoder.liq)
  (deps
@@ -264,7 +264,7 @@
     "@ffmpeg[format='mp4',@audio[codec='aac']].mp4"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']]_encoder.liq)
  (deps
@@ -280,7 +280,7 @@
     "@ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4"))))
 
 (rule
- (alias encoder_audio_only)
+ (alias test_encoder_audio_only)
  (package liquidsoap)
  (target @ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']]_encoder.liq)
  (deps
@@ -296,7 +296,7 @@
     "@ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4"))))
 
 (rule
- (alias encoder_video_only)
+ (alias test_encoder_video_only)
  (package liquidsoap)
  (target @ffmpeg[format='mp4',@video[codec='libx264']]_encoder.liq)
  (deps
@@ -312,7 +312,7 @@
     "@ffmpeg[format='mp4',@video[codec='libx264']].mp4"))))
 
 (rule
- (alias encoder_audio_video)
+ (alias test_encoder_audio_video)
  (package liquidsoap)
  (target
   @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']]_encoder.liq)
@@ -329,7 +329,7 @@
     "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"))))
 
 (rule
- (alias encoder_audio_video)
+ (alias test_encoder_audio_video)
  (package liquidsoap)
  (target
   @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']]_encoder.liq)
@@ -346,7 +346,7 @@
     "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"))))
 
 (rule
- (alias encoder_audio_video)
+ (alias test_encoder_audio_video)
  (package liquidsoap)
  (target
   @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]]_encoder.liq)
@@ -363,7 +363,7 @@
     "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4"))))
 
 (rule
- (alias encoder_multitrack)
+ (alias test_encoder_multitrack)
  (package liquidsoap)
  (target
   @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']]_encoder.liq)
@@ -380,7 +380,7 @@
     "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4"))))
 
 (rule
- (alias encoder_audio_subtitle)
+ (alias test_encoder_audio_subtitle)
  (package liquidsoap)
  (target
   @ffmpeg[format='matroska',@audio[codec='aac'],@subtitles[codec='subrip']]_encoder.liq)
@@ -398,7 +398,7 @@
     "@ffmpeg[format='matroska',@audio[codec='aac'],@subtitles[codec='subrip']].mkv"))))
 
 (rule
- (alias encoder_audio_subtitle)
+ (alias test_encoder_audio_subtitle)
  (package liquidsoap)
  (target
   @ffmpeg[format='matroska',@audio[codec='aac'],@subtitles[codec='ass']]_encoder.liq)
@@ -416,7 +416,7 @@
     "@ffmpeg[format='matroska',@audio[codec='aac'],@subtitles[codec='ass']].mkv"))))
 
 (rule
- (alias encoder_video_subtitle)
+ (alias test_encoder_video_subtitle)
  (package liquidsoap)
  (target
   @ffmpeg[format='matroska',@video[codec='libx264'],@subtitles[codec='subrip']]_encoder.liq)
@@ -434,7 +434,7 @@
     "@ffmpeg[format='matroska',@video[codec='libx264'],@subtitles[codec='subrip']].mkv"))))
 
 (rule
- (alias encoder_video_subtitle)
+ (alias test_encoder_video_subtitle)
  (package liquidsoap)
  (target
   @ffmpeg[format='matroska',@video[codec='libx264',b='500k'],@subtitles[codec='ass']]_encoder.liq)
@@ -452,7 +452,7 @@
     "@ffmpeg[format='matroska',@video[codec='libx264',b='500k'],@subtitles[codec='ass']].mkv"))))
 
 (rule
- (alias encoder_video_subtitle)
+ (alias test_encoder_video_subtitle)
  (package liquidsoap)
  (target
   @ffmpeg[format='webm',@video[codec='libvpx'],@subtitles[codec='webvtt']]_encoder.liq)
@@ -470,7 +470,7 @@
     "@ffmpeg[format='webm',@video[codec='libvpx'],@subtitles[codec='webvtt']].webm"))))
 
 (rule
- (alias encoder_audio_video_subtitle)
+ (alias test_encoder_audio_video_subtitle)
  (package liquidsoap)
  (target
   @ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='subrip']]_encoder.liq)
@@ -488,7 +488,7 @@
     "@ffmpeg[format='matroska',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='subrip']].mkv"))))
 
 (rule
- (alias encoder_audio_video_subtitle)
+ (alias test_encoder_audio_video_subtitle)
  (package liquidsoap)
  (target
   @ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitles[codec='ass']]_encoder.liq)
@@ -506,7 +506,7 @@
     "@ffmpeg[format='matroska',@audio[codec='aac',b='128k'],@video[codec='libx264'],@subtitles[codec='ass']].mkv"))))
 
 (rule
- (alias encoder_audio_video_subtitle)
+ (alias test_encoder_audio_video_subtitle)
  (package liquidsoap)
  (target
   @ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='mov_text']]_encoder.liq)
@@ -1279,7 +1279,7 @@
   @ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='mov_text']].mp4))
 
 (rule
- (alias mono)
+ (alias test_mono)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1300,7 +1300,7 @@
    "@mp3[stereo].mp3")))
 
 (rule
- (alias stereo)
+ (alias test_stereo)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1321,7 +1321,7 @@
    "@mp3[stereo].mp3")))
 
 (rule
- (alias ffmpeg_audio_decoder)
+ (alias test_ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1342,7 +1342,7 @@
    "@mp3[stereo].mp3")))
 
 (rule
- (alias mono)
+ (alias test_mono)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1363,7 +1363,7 @@
    "@flac[mono].flac")))
 
 (rule
- (alias stereo)
+ (alias test_stereo)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1384,7 +1384,7 @@
    "@flac[mono].flac")))
 
 (rule
- (alias ffmpeg_audio_decoder)
+ (alias test_ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1405,7 +1405,7 @@
    "@flac[mono].flac")))
 
 (rule
- (alias ffmpeg_video_decoder)
+ (alias test_ffmpeg_video_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1426,7 +1426,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias video_size)
+ (alias test_video_size)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1447,7 +1447,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_add_text)
+ (alias test_ffmpeg_add_text)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1468,7 +1468,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_copy_decoder)
+ (alias test_ffmpeg_copy_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1489,7 +1489,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_copy_and_encode_decoder)
+ (alias test_ffmpeg_copy_and_encode_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1510,7 +1510,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_filter)
+ (alias test_ffmpeg_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1531,7 +1531,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_filter_parse)
+ (alias test_ffmpeg_filter_parse)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1552,7 +1552,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_bitstream_filter)
+ (alias test_ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1573,7 +1573,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_decoder)
+ (alias test_ffmpeg_raw_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1594,7 +1594,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_and_encode_decoder)
+ (alias test_ffmpeg_raw_and_encode_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1615,7 +1615,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_and_copy_decoder)
+ (alias test_ffmpeg_raw_and_copy_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1636,7 +1636,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_add_text)
+ (alias test_ffmpeg_add_text)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1657,7 +1657,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_copy_decoder)
+ (alias test_ffmpeg_copy_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1678,7 +1678,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_copy_and_encode_decoder)
+ (alias test_ffmpeg_copy_and_encode_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1699,7 +1699,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_filter)
+ (alias test_ffmpeg_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1720,7 +1720,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_filter_parse)
+ (alias test_ffmpeg_filter_parse)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1741,7 +1741,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_bitstream_filter)
+ (alias test_ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1762,7 +1762,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_decoder)
+ (alias test_ffmpeg_raw_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1783,7 +1783,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_and_encode_decoder)
+ (alias test_ffmpeg_raw_and_encode_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1804,7 +1804,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_and_copy_decoder)
+ (alias test_ffmpeg_raw_and_copy_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1825,7 +1825,7 @@
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias multitrack)
+ (alias test_multitrack)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1846,7 +1846,7 @@
    "")))
 
 (rule
- (alias ffmpeg_inline_encode_decode)
+ (alias test_ffmpeg_inline_encode_decode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1867,7 +1867,7 @@
    "")))
 
 (rule
- (alias ffmpeg_inline_encode_decode_audio)
+ (alias test_ffmpeg_inline_encode_decode_audio)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1888,7 +1888,7 @@
    "")))
 
 (rule
- (alias ffmpeg_inline_encode_decode_video)
+ (alias test_ffmpeg_inline_encode_decode_video)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1909,7 +1909,7 @@
    "")))
 
 (rule
- (alias ffmpeg_raw_hls)
+ (alias test_ffmpeg_raw_hls)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1930,7 +1930,7 @@
    "")))
 
 (rule
- (alias pcm_s16_decode)
+ (alias test_pcm_s16_decode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1951,7 +1951,7 @@
    "")))
 
 (rule
- (alias pcm_f32_decode)
+ (alias test_pcm_f32_decode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1972,7 +1972,7 @@
    "")))
 
 (rule
- (alias subtitle_concat)
+ (alias test_subtitle_concat)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -1994,7 +1994,7 @@
    "")))
 
 (rule
- (alias subtitle_concat_copy)
+ (alias test_subtitle_concat_copy)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -2016,7 +2016,7 @@
    "")))
 
 (rule
- (alias subtitle_multi)
+ (alias test_subtitle_multi)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -2038,7 +2038,7 @@
    "")))
 
 (rule
- (alias subtitle_copy_encode)
+ (alias test_subtitle_copy_encode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -2060,7 +2060,7 @@
    "")))
 
 (rule
- (alias subtitle_reencode)
+ (alias test_subtitle_reencode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
@@ -2084,36 +2084,36 @@
 (alias
  (name mediatest)
  (deps
-  (alias encoder_audio_only)
-  (alias encoder_audio_subtitle)
-  (alias encoder_audio_video)
-  (alias encoder_audio_video_subtitle)
-  (alias encoder_multitrack)
-  (alias encoder_video_only)
-  (alias encoder_video_subtitle)
-  (alias ffmpeg_add_text)
-  (alias ffmpeg_audio_decoder)
-  (alias ffmpeg_bitstream_filter)
-  (alias ffmpeg_copy_and_encode_decoder)
-  (alias ffmpeg_copy_decoder)
-  (alias ffmpeg_filter)
-  (alias ffmpeg_filter_parse)
-  (alias ffmpeg_inline_encode_decode)
-  (alias ffmpeg_inline_encode_decode_audio)
-  (alias ffmpeg_inline_encode_decode_video)
-  (alias ffmpeg_raw_and_copy_decoder)
-  (alias ffmpeg_raw_and_encode_decoder)
-  (alias ffmpeg_raw_decoder)
-  (alias ffmpeg_raw_hls)
-  (alias ffmpeg_video_decoder)
-  (alias mono)
-  (alias multitrack)
-  (alias pcm_f32_decode)
-  (alias pcm_s16_decode)
-  (alias stereo)
-  (alias subtitle_concat)
-  (alias subtitle_concat_copy)
-  (alias subtitle_copy_encode)
-  (alias subtitle_multi)
-  (alias subtitle_reencode)
-  (alias video_size)))
+  (alias test_encoder_audio_only)
+  (alias test_encoder_audio_subtitle)
+  (alias test_encoder_audio_video)
+  (alias test_encoder_audio_video_subtitle)
+  (alias test_encoder_multitrack)
+  (alias test_encoder_video_only)
+  (alias test_encoder_video_subtitle)
+  (alias test_ffmpeg_add_text)
+  (alias test_ffmpeg_audio_decoder)
+  (alias test_ffmpeg_bitstream_filter)
+  (alias test_ffmpeg_copy_and_encode_decoder)
+  (alias test_ffmpeg_copy_decoder)
+  (alias test_ffmpeg_filter)
+  (alias test_ffmpeg_filter_parse)
+  (alias test_ffmpeg_inline_encode_decode)
+  (alias test_ffmpeg_inline_encode_decode_audio)
+  (alias test_ffmpeg_inline_encode_decode_video)
+  (alias test_ffmpeg_raw_and_copy_decoder)
+  (alias test_ffmpeg_raw_and_encode_decoder)
+  (alias test_ffmpeg_raw_decoder)
+  (alias test_ffmpeg_raw_hls)
+  (alias test_ffmpeg_video_decoder)
+  (alias test_mono)
+  (alias test_multitrack)
+  (alias test_pcm_f32_decode)
+  (alias test_pcm_s16_decode)
+  (alias test_stereo)
+  (alias test_subtitle_concat)
+  (alias test_subtitle_concat_copy)
+  (alias test_subtitle_copy_encode)
+  (alias test_subtitle_multi)
+  (alias test_subtitle_reencode)
+  (alias test_video_size)))

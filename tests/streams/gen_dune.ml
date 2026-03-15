@@ -1,18 +1,20 @@
 let test_names = ref []
 
 let test_name s =
-  let test_name = Filename.remove_extension s in
+  let base = Filename.remove_extension s in
+  let test_name = "test_" ^ base in
   test_names := Printf.sprintf "(alias %s)" test_name :: !test_names;
   test_name
 
 let static_tests =
   [
-    "icecast_ssl.liq";
-    "icecast_tls.liq";
-    "icecast_tls_ssl.liq";
-    "icecast_ssl_tls.liq";
-    "crossfade-plot.liq";
-    "autocue-plot.liq";
+    "test_icecast_ssl.liq";
+    "test_icecast_tls.liq";
+    "test_icecast_tls_ssl.liq";
+    "test_icecast_ssl_tls.liq";
+    "test_crossfade-plot.liq";
+    "test_autocue-plot.liq";
+    "test_video_size_autodetect.liq";
   ]
 
 let () =

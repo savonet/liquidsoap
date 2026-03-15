@@ -15,7 +15,8 @@ let () =
   List.iter
     (fun test ->
       let target = Filename.remove_extension test in
-      all_tests := Printf.sprintf "(alias %s)" target :: !all_tests;
+      let alias = "test_" ^ target in
+      all_tests := Printf.sprintf "(alias %s)" alias :: !all_tests;
       let extra_deps =
         List.assoc_opt target extra_deps |> Option.value ~default:""
       in
@@ -38,7 +39,7 @@ let () =
   (:run_test ../run_test.exe))
  (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
   |}
-        target test extra_deps test test)
+        alias test extra_deps target test)
     tests
 
 let () =

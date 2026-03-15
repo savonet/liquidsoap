@@ -1,5 +1,5 @@
 (rule
- (alias argsof)
+ (alias test_argsof)
  (package liquidsoap)
  (deps
   argsof.liq
@@ -13,7 +13,7 @@
   (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
 
 (rule
- (alias bool)
+ (alias test_bool)
  (package liquidsoap)
  (deps
   bool.liq
@@ -27,7 +27,7 @@
   (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
 
 (rule
- (alias comments)
+ (alias test_comments)
  (package liquidsoap)
  (deps
   comments.liq
@@ -41,7 +41,7 @@
   (run %{run_test} comments.liq liquidsoap %{test_liq} comments.liq)))
 
 (rule
- (alias conversions)
+ (alias test_conversions)
  (package liquidsoap)
  (deps
   conversions.liq
@@ -55,7 +55,7 @@
   (run %{run_test} conversions.liq liquidsoap %{test_liq} conversions.liq)))
 
 (rule
- (alias cron)
+ (alias test_cron)
  (package liquidsoap)
  (deps
   cron.liq
@@ -69,7 +69,7 @@
   (run %{run_test} cron.liq liquidsoap %{test_liq} cron.liq)))
 
 (rule
- (alias cue_test)
+ (alias test_cue_test)
  (package liquidsoap)
  (deps
   cue_test.liq
@@ -83,7 +83,7 @@
   (run %{run_test} cue_test.liq liquidsoap %{test_liq} cue_test.liq)))
 
 (rule
- (alias doc)
+ (alias test_doc)
  (package liquidsoap)
  (deps
   doc.liq
@@ -97,7 +97,7 @@
   (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
 
 (rule
- (alias encoders)
+ (alias test_encoders)
  (package liquidsoap)
  (deps
   encoders.liq
@@ -111,7 +111,7 @@
   (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
 
 (rule
- (alias error)
+ (alias test_error)
  (package liquidsoap)
  (deps
   error.liq
@@ -125,7 +125,7 @@
   (run %{run_test} error.liq liquidsoap %{test_liq} error.liq)))
 
 (rule
- (alias eval)
+ (alias test_eval)
  (package liquidsoap)
  (deps
   eval.liq
@@ -139,7 +139,7 @@
   (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
 
 (rule
- (alias file)
+ (alias test_file)
  (package liquidsoap)
  (deps
   file.liq
@@ -153,7 +153,7 @@
   (run %{run_test} file.liq liquidsoap %{test_liq} file.liq)))
 
 (rule
- (alias file.watch)
+ (alias test_file.watch)
  (package liquidsoap)
  (deps
   file.watch.liq
@@ -167,7 +167,7 @@
   (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
 
 (rule
- (alias file.watch2)
+ (alias test_file.watch2)
  (package liquidsoap)
  (deps
   file.watch2.liq
@@ -181,7 +181,7 @@
   (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
 
 (rule
- (alias file_protocol)
+ (alias test_file_protocol)
  (package liquidsoap)
  (deps
   file_protocol.liq
@@ -200,7 +200,7 @@
    file_protocol.liq)))
 
 (rule
- (alias functions)
+ (alias test_functions)
  (package liquidsoap)
  (deps
   functions.liq
@@ -214,7 +214,7 @@
   (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
 
 (rule
- (alias getter)
+ (alias test_getter)
  (package liquidsoap)
  (deps
   getter.liq
@@ -228,7 +228,7 @@
   (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
 
 (rule
- (alias implicit_float_casting)
+ (alias test_implicit_float_casting)
  (package liquidsoap)
  (deps
   implicit_float_casting.liq
@@ -247,7 +247,7 @@
    implicit_float_casting.liq)))
 
 (rule
- (alias interactive)
+ (alias test_interactive)
  (package liquidsoap)
  (deps
   interactive.liq
@@ -261,7 +261,7 @@
   (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
 
 (rule
- (alias json)
+ (alias test_json)
  (package liquidsoap)
  (deps
   json.liq
@@ -275,7 +275,7 @@
   (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
 
 (rule
- (alias list)
+ (alias test_list)
  (package liquidsoap)
  (deps
   list.liq
@@ -289,7 +289,7 @@
   (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
 
 (rule
- (alias loop)
+ (alias test_loop)
  (package liquidsoap)
  (deps
   loop.liq
@@ -303,7 +303,7 @@
   (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
 
 (rule
- (alias math)
+ (alias test_math)
  (package liquidsoap)
  (deps
   math.liq
@@ -317,7 +317,7 @@
   (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
 
 (rule
- (alias mem_usage)
+ (alias test_mem_usage)
  (package liquidsoap)
  (deps
   mem_usage.liq
@@ -331,7 +331,7 @@
   (run %{run_test} mem_usage.liq liquidsoap %{test_liq} mem_usage.liq)))
 
 (rule
- (alias metadata)
+ (alias test_metadata)
  (package liquidsoap)
  (deps
   metadata.liq
@@ -345,7 +345,7 @@
   (run %{run_test} metadata.liq liquidsoap %{test_liq} metadata.liq)))
 
 (rule
- (alias metrics)
+ (alias test_metrics)
  (package liquidsoap)
  (deps
   metrics.liq
@@ -359,7 +359,7 @@
   (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
 
 (rule
- (alias null)
+ (alias test_null)
  (package liquidsoap)
  (deps
   null.liq
@@ -373,7 +373,7 @@
   (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
 
 (rule
- (alias number)
+ (alias test_number)
  (package liquidsoap)
  (deps
   number.liq
@@ -387,7 +387,7 @@
   (run %{run_test} number.liq liquidsoap %{test_liq} number.liq)))
 
 (rule
- (alias osc)
+ (alias test_osc)
  (package liquidsoap)
  (deps
   osc.liq
@@ -401,7 +401,7 @@
   (run %{run_test} osc.liq liquidsoap %{test_liq} osc.liq)))
 
 (rule
- (alias pattern)
+ (alias test_pattern)
  (package liquidsoap)
  (deps
   pattern.liq
@@ -415,7 +415,7 @@
   (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
 
 (rule
- (alias pp)
+ (alias test_pp)
  (package liquidsoap)
  (deps
   pp.liq
@@ -429,7 +429,7 @@
   (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
 
 (rule
- (alias predicate)
+ (alias test_predicate)
  (package liquidsoap)
  (deps
   predicate.liq
@@ -443,7 +443,7 @@
   (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
 
 (rule
- (alias process)
+ (alias test_process)
  (package liquidsoap)
  (deps
   process.liq
@@ -457,7 +457,7 @@
   (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
 
 (rule
- (alias rec)
+ (alias test_rec)
  (package liquidsoap)
  (deps
   rec.liq
@@ -471,7 +471,7 @@
   (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
 
 (rule
- (alias record)
+ (alias test_record)
  (package liquidsoap)
  (deps
   record.liq
@@ -485,7 +485,7 @@
   (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
 
 (rule
- (alias ref)
+ (alias test_ref)
  (package liquidsoap)
  (deps
   ref.liq
@@ -499,7 +499,7 @@
   (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
 
 (rule
- (alias regexp)
+ (alias test_regexp)
  (package liquidsoap)
  (deps
   regexp.liq
@@ -513,7 +513,7 @@
   (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
 
 (rule
- (alias replaygain)
+ (alias test_replaygain)
  (package liquidsoap)
  (deps
   replaygain.liq
@@ -527,7 +527,7 @@
   (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
 
 (rule
- (alias socket)
+ (alias test_socket)
  (package liquidsoap)
  (deps
   socket.liq
@@ -541,7 +541,7 @@
   (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
 
 (rule
- (alias sqlite)
+ (alias test_sqlite)
  (package liquidsoap)
  (deps
   sqlite.liq
@@ -555,7 +555,7 @@
   (run %{run_test} sqlite.liq liquidsoap %{test_liq} sqlite.liq)))
 
 (rule
- (alias stdlib)
+ (alias test_stdlib)
  (package liquidsoap)
  (deps
   stdlib.liq
@@ -569,7 +569,7 @@
   (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
 
 (rule
- (alias string)
+ (alias test_string)
  (package liquidsoap)
  (deps
   string.liq
@@ -583,7 +583,7 @@
   (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
 
 (rule
- (alias string_binary_flags)
+ (alias test_string_binary_flags)
  (package liquidsoap)
  (deps
   string_binary_flags.liq
@@ -602,7 +602,26 @@
    string_binary_flags.liq)))
 
 (rule
- (alias thread)
+ (alias test_test_write_cover)
+ (package liquidsoap)
+ (deps
+  test_write_cover.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   test_write_cover.liq
+   liquidsoap
+   %{test_liq}
+   test_write_cover.liq)))
+
+(rule
+ (alias test_thread)
  (package liquidsoap)
  (deps
   thread.liq
@@ -616,7 +635,7 @@
   (run %{run_test} thread.liq liquidsoap %{test_liq} thread.liq)))
 
 (rule
- (alias time)
+ (alias test_time)
  (package liquidsoap)
  (deps
   time.liq
@@ -630,7 +649,7 @@
   (run %{run_test} time.liq liquidsoap %{test_liq} time.liq)))
 
 (rule
- (alias type_errors)
+ (alias test_type_errors)
  (package liquidsoap)
  (deps
   type_errors.liq
@@ -644,7 +663,7 @@
   (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq)))
 
 (rule
- (alias typing)
+ (alias test_typing)
  (package liquidsoap)
  (deps
   typing.liq
@@ -658,7 +677,7 @@
   (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
 
 (rule
- (alias url)
+ (alias test_url)
  (package liquidsoap)
  (deps
   url.liq
@@ -672,7 +691,7 @@
   (run %{run_test} url.liq liquidsoap %{test_liq} url.liq)))
 
 (rule
- (alias various)
+ (alias test_various)
  (package liquidsoap)
  (deps
   various.liq
@@ -686,7 +705,7 @@
   (run %{run_test} various.liq liquidsoap %{test_liq} various.liq)))
 
 (rule
- (alias xml_test)
+ (alias test_xml_test)
  (package liquidsoap)
  (deps
   xml_test.liq
@@ -700,7 +719,7 @@
   (run %{run_test} xml_test.liq liquidsoap %{test_liq} xml_test.liq)))
 
 (rule
- (alias yaml)
+ (alias test_yaml)
  (package liquidsoap)
  (deps
   yaml.liq
@@ -716,53 +735,54 @@
 (alias
  (name citest)
  (deps
-  (alias argsof)
-  (alias bool)
-  (alias comments)
-  (alias conversions)
-  (alias cron)
-  (alias cue_test)
-  (alias doc)
-  (alias encoders)
-  (alias error)
-  (alias eval)
-  (alias file)
-  (alias file.watch)
-  (alias file.watch2)
-  (alias file_protocol)
-  (alias functions)
-  (alias getter)
-  (alias implicit_float_casting)
-  (alias interactive)
-  (alias json)
-  (alias list)
-  (alias loop)
-  (alias math)
-  (alias mem_usage)
-  (alias metadata)
-  (alias metrics)
-  (alias null)
-  (alias number)
-  (alias osc)
-  (alias pattern)
-  (alias pp)
-  (alias predicate)
-  (alias process)
-  (alias rec)
-  (alias record)
-  (alias ref)
-  (alias regexp)
-  (alias replaygain)
-  (alias socket)
-  (alias sqlite)
-  (alias stdlib)
-  (alias string)
-  (alias string_binary_flags)
-  (alias thread)
-  (alias time)
-  (alias type_errors)
-  (alias typing)
-  (alias url)
-  (alias various)
-  (alias xml_test)
-  (alias yaml)))
+  (alias test_argsof)
+  (alias test_bool)
+  (alias test_comments)
+  (alias test_conversions)
+  (alias test_cron)
+  (alias test_cue_test)
+  (alias test_doc)
+  (alias test_encoders)
+  (alias test_error)
+  (alias test_eval)
+  (alias test_file)
+  (alias test_file.watch)
+  (alias test_file.watch2)
+  (alias test_file_protocol)
+  (alias test_functions)
+  (alias test_getter)
+  (alias test_implicit_float_casting)
+  (alias test_interactive)
+  (alias test_json)
+  (alias test_list)
+  (alias test_loop)
+  (alias test_math)
+  (alias test_mem_usage)
+  (alias test_metadata)
+  (alias test_metrics)
+  (alias test_null)
+  (alias test_number)
+  (alias test_osc)
+  (alias test_pattern)
+  (alias test_pp)
+  (alias test_predicate)
+  (alias test_process)
+  (alias test_rec)
+  (alias test_record)
+  (alias test_ref)
+  (alias test_regexp)
+  (alias test_replaygain)
+  (alias test_socket)
+  (alias test_sqlite)
+  (alias test_stdlib)
+  (alias test_string)
+  (alias test_string_binary_flags)
+  (alias test_test_write_cover)
+  (alias test_thread)
+  (alias test_time)
+  (alias test_type_errors)
+  (alias test_typing)
+  (alias test_url)
+  (alias test_various)
+  (alias test_xml_test)
+  (alias test_yaml)))

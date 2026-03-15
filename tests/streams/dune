@@ -214,7 +214,7 @@
    "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost")))
 
 (rule
- (alias crossfade-plot)
+ (alias test_crossfade-plot)
  (package liquidsoap)
  (targets
   crossfade-plot.png.gen
@@ -222,7 +222,7 @@
   crossfade-plot.new.txt.gen)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./crossfade-plot.liq
+  ./test_crossfade-plot.liq
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/lib)
@@ -236,7 +236,7 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./crossfade-plot.liq)))
+   ./test_crossfade-plot.liq)))
 
 (rule
  (alias genplot)
@@ -254,7 +254,7 @@
   (diff crossfade-plot.new.txt crossfade-plot.new.txt.gen)))
 
 (rule
- (alias autocue-plot)
+ (alias test_autocue-plot)
  (package liquidsoap)
  (targets
   autocue-plot.0.png.gen
@@ -268,7 +268,7 @@
   autocue-plot.2.new.txt.gen)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./autocue-plot.liq
+  ./test_autocue-plot.liq
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/lib)
@@ -282,7 +282,7 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./autocue-plot.liq)))
+   ./test_autocue-plot.liq)))
 
 (rule
  (alias genplot)
@@ -330,11 +330,11 @@
   (diff autocue-plot.2.new.txt autocue-plot.2.new.txt.gen)))
 
 (rule
- (alias icecast_ssl)
+ (alias test_icecast_ssl)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./icecast_ssl.liq
+  ./test_icecast_ssl.liq
   ./ssl.cert
   ./ssl.key
   (package liquidsoap)
@@ -350,14 +350,14 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./icecast_ssl.liq)))
+   ./test_icecast_ssl.liq)))
 
 (rule
- (alias icecast_tls)
+ (alias test_icecast_tls)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./icecast_tls.liq
+  ./test_icecast_tls.liq
   ./ssl.cert
   ./ssl.key
   (package liquidsoap)
@@ -373,14 +373,14 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./icecast_tls.liq)))
+   ./test_icecast_tls.liq)))
 
 (rule
- (alias icecast_ssl_tls)
+ (alias test_icecast_ssl_tls)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./icecast_ssl_tls.liq
+  ./test_icecast_ssl_tls.liq
   ./ssl.cert
   ./ssl.key
   (package liquidsoap)
@@ -396,14 +396,14 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./icecast_ssl_tls.liq)))
+   ./test_icecast_ssl_tls.liq)))
 
 (rule
- (alias icecast_tls_ssl)
+ (alias test_icecast_tls_ssl)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./icecast_tls_ssl.liq
+  ./test_icecast_tls_ssl.liq
   ./ssl.cert
   ./ssl.key
   (package liquidsoap)
@@ -419,7 +419,7 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./icecast_tls_ssl.liq)))
+   ./test_icecast_tls_ssl.liq)))
 
 (rule
  (alias citest)
@@ -567,11 +567,11 @@
    %{target})))
 
 (rule
- (alias video_size_autodetect)
+ (alias test_video_size_autodetect)
  (package liquidsoap)
  (deps
   nola_test_size.mp4
-  video_size_autodetect.liq
+  test_video_size_autodetect.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -583,15 +583,15 @@
    "Video size auto-detection"
    liquidsoap
    %{test_liq}
-   video_size_autodetect.liq)))
+   test_video_size_autodetect.liq)))
 
 (alias
  (name citest)
  (deps
-  (alias icecast_ssl)
-  (alias icecast_tls)
-  (alias icecast_ssl_tls)
-  (alias icecast_tls_ssl)
-  (alias crossfade-plot)
-  (alias autocue-plot)
-  (alias video_size_autodetect)))
+  (alias test_icecast_ssl)
+  (alias test_icecast_tls)
+  (alias test_icecast_ssl_tls)
+  (alias test_icecast_tls_ssl)
+  (alias test_crossfade-plot)
+  (alias test_autocue-plot)
+  (alias test_video_size_autodetect)))
