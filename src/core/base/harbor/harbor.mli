@@ -131,8 +131,8 @@ module type T = sig
     login : string * (login_args -> bool);
     icy_charset : string option;
     meta_charset : string option;
-    mutable encode_metadata : Frame.metadata -> unit;
-    get_mime_type : unit -> string option;
+    mutable encode_metadata : mount:string -> Frame.metadata -> unit;
+    get_mime_type : mount:string -> string option;
   }
 
   val http_auth_check :

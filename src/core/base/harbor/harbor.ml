@@ -178,8 +178,8 @@ module type T = sig
     login : string * (login_args -> bool);
     icy_charset : string option;
     meta_charset : string option;
-    mutable encode_metadata : Frame.metadata -> unit;
-    get_mime_type : unit -> string option;
+    mutable encode_metadata : mount:string -> Frame.metadata -> unit;
+    get_mime_type : mount:string -> string option;
   }
 
   val http_auth_check :
@@ -251,8 +251,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     login : string * (login_args -> bool);
     icy_charset : string option;
     meta_charset : string option;
-    mutable encode_metadata : Frame.metadata -> unit;
-    get_mime_type : unit -> string option;
+    mutable encode_metadata : mount:string -> Frame.metadata -> unit;
+    get_mime_type : mount:string -> string option;
   }
 
   type sources = (Lang.regexp * source_handler) list Atomic.t
@@ -746,7 +746,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   let data = Option.get data in
                   let m = List.map (fun (l, v) -> (l, json_string_of v)) data in
                   let m = Frame.Metadata.from_list m in
-                  source.encode_metadata m;
+                  source.encode_metadata ~mount m;
                   raise Retry
               | _ -> raise Retry)
         | `Close _ -> raise Websocket_closed
@@ -819,7 +819,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             exec_http_auth_check ~args ~meth:"GET" ~uri ~login:s.login h headers
           in
           let* () =
-            match s.get_mime_type () with
+            match s.get_mime_type ~mount with
               | None ->
                   log#critical
                     "No mime-type found for source at %s, this should not \
@@ -865,7 +865,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             if add then Frame.Metadata.add (g x) (g y) m else m
           in
           let args = Hashtbl.fold f args Frame.Metadata.empty in
-          s.encode_metadata args;
+          s.encode_metadata ~mount args;
           simple_reply
             (Printf.sprintf
                "HTTP/1.0 200 OK\r\n\r\nUpdated metadatas for mount %s" mount)
