@@ -222,7 +222,7 @@
   crossfade-plot.new.txt.gen)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./crossfade-plot.liq
+  ./test_crossfade-plot.liq
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/lib)
@@ -236,7 +236,7 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./crossfade-plot.liq)))
+   ./test_crossfade-plot.liq)))
 
 (rule
  (alias genplot)
@@ -268,7 +268,7 @@
   autocue-plot.2.new.txt.gen)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./autocue-plot.liq
+  ./test_autocue-plot.liq
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/lib)
@@ -282,7 +282,7 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./autocue-plot.liq)))
+   ./test_autocue-plot.liq)))
 
 (rule
  (alias genplot)
@@ -334,7 +334,7 @@
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./icecast_ssl.liq
+  ./test_icecast_ssl.liq
   ./ssl.cert
   ./ssl.key
   (package liquidsoap)
@@ -350,14 +350,14 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./icecast_ssl.liq)))
+   ./test_icecast_ssl.liq)))
 
 (rule
  (alias icecast_tls)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./icecast_tls.liq
+  ./test_icecast_tls.liq
   ./ssl.cert
   ./ssl.key
   (package liquidsoap)
@@ -373,14 +373,14 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./icecast_tls.liq)))
+   ./test_icecast_tls.liq)))
 
 (rule
  (alias icecast_ssl_tls)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./icecast_ssl_tls.liq
+  ./test_icecast_ssl_tls.liq
   ./ssl.cert
   ./ssl.key
   (package liquidsoap)
@@ -396,14 +396,14 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./icecast_ssl_tls.liq)))
+   ./test_icecast_ssl_tls.liq)))
 
 (rule
  (alias icecast_tls_ssl)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  ./icecast_tls_ssl.liq
+  ./test_icecast_tls_ssl.liq
   ./ssl.cert
   ./ssl.key
   (package liquidsoap)
@@ -419,7 +419,7 @@
    --stdlib
    %{stdlib}
    %{test_liq}
-   ./icecast_tls_ssl.liq)))
+   ./test_icecast_tls_ssl.liq)))
 
 (rule
  (alias citest)
@@ -571,7 +571,7 @@
  (package liquidsoap)
  (deps
   nola_test_size.mp4
-  video_size_autodetect.liq
+  test_video_size_autodetect.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -583,7 +583,7 @@
    "Video size auto-detection"
    liquidsoap
    %{test_liq}
-   video_size_autodetect.liq)))
+   test_video_size_autodetect.liq)))
 
 (alias
  (name citest)

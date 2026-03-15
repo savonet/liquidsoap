@@ -5,7 +5,7 @@ let test_name s =
   test_names := Printf.sprintf "(alias %s)" test_name :: !test_names;
   test_name
 
-let excluded_files = ["write_cover.liq"; "test_cover.liq"]
+let excluded_files = ["test_write_cover.liq"; "test_cover.liq"]
 
 let () =
   let location = Sys.getcwd () in

@@ -7,12 +7,13 @@ let test_name s =
 
 let static_tests =
   [
-    "icecast_ssl.liq";
-    "icecast_tls.liq";
-    "icecast_tls_ssl.liq";
-    "icecast_ssl_tls.liq";
-    "crossfade-plot.liq";
-    "autocue-plot.liq";
+    "test_icecast_ssl.liq";
+    "test_icecast_tls.liq";
+    "test_icecast_tls_ssl.liq";
+    "test_icecast_ssl_tls.liq";
+    "test_crossfade-plot.liq";
+    "test_autocue-plot.liq";
+    "test_video_size_autodetect.liq";
   ]
 
 let () =

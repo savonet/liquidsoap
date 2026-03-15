@@ -129,7 +129,7 @@
   first-concat.mp4
   second-concat.mp4
   third-concat.mp4
-  ffmpeg_copy_concat.liq
+  test_ffmpeg_copy_concat.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -141,14 +141,14 @@
    "FFmpeg copy+concat"
    liquidsoap
    %{test_liq}
-   ffmpeg_copy_concat.liq)))
+   test_ffmpeg_copy_concat.liq)))
 
 (rule
  (alias ffmpeg_raw_implicit_conversion)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_raw_implicit_conversion.liq
+  test_ffmpeg_raw_implicit_conversion.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -160,14 +160,14 @@
    "FFmpeg raw implicit conversion"
    liquidsoap
    %{test_liq}
-   ffmpeg_raw_implicit_conversion.liq)))
+   test_ffmpeg_raw_implicit_conversion.liq)))
 
 (rule
  (alias ffmpeg_complex_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_complex_filter.liq
+  test_ffmpeg_complex_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -179,7 +179,7 @@
    "FFmpeg complex filter"
    liquidsoap
    %{test_liq}
-   ffmpeg_complex_filter.liq)))
+   test_ffmpeg_complex_filter.liq)))
 
 (rule
  (alias mediatest)
@@ -237,7 +237,7 @@
  (package liquidsoap)
  (deps
   video-with-subtitle.mkv
-  ffmpeg_copy_subtitle.liq
+  test_ffmpeg_copy_subtitle.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -249,7 +249,7 @@
    "FFmpeg copy subtitle"
    liquidsoap
    %{test_liq}
-   ffmpeg_copy_subtitle.liq
+   test_ffmpeg_copy_subtitle.liq
    --
    video-with-subtitle.mkv)))
 
@@ -258,7 +258,7 @@
  (package liquidsoap)
  (deps
   long-video.mp4
-  ffmpeg_distributed_hls.liq
+  test_ffmpeg_distributed_hls.liq
   ffmpeg_distributed_hls_state.json
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -271,7 +271,7 @@
    "FFmpeg distributed HLS encoding"
    liquidsoap
    %{test_liq}
-   ffmpeg_distributed_hls.liq
+   test_ffmpeg_distributed_hls.liq
    --
    long-video.mp4)))
 
@@ -280,7 +280,7 @@
  (package liquidsoap)
  (deps
   long-video.mp4
-  ffmpeg_hls_mp4.liq
+  test_ffmpeg_hls_mp4.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -292,7 +292,7 @@
    "FFmpeg HLS MP4 encoding"
    liquidsoap
    %{test_liq}
-   ffmpeg_hls_mp4.liq
+   test_ffmpeg_hls_mp4.liq
    --
    long-video.mp4)))
 
@@ -301,7 +301,7 @@
  (package liquidsoap)
  (deps
   long-video.mp4
-  ffmpeg_hls_copy_mp4.liq
+  test_ffmpeg_hls_copy_mp4.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -313,7 +313,7 @@
    "FFmpeg HLS MP4 encoding"
    liquidsoap
    %{test_liq}
-   ffmpeg_hls_copy_mp4.liq
+   test_ffmpeg_hls_copy_mp4.liq
    --
    long-video.mp4)))
 
@@ -322,7 +322,7 @@
  (package liquidsoap)
  (deps
   long-video.mp4
-  ffmpeg_distributed_hls.liq
+  test_ffmpeg_distributed_hls.liq
   ffmpeg_distributed_hls_state.json
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -335,7 +335,7 @@
    "FFmpeg distributed HLS encoding"
    liquidsoap
    %{test_liq}
-   ffmpeg_distributed_hls.liq
+   test_ffmpeg_distributed_hls.liq
    --
    long-video.mp4)))
 
@@ -346,7 +346,7 @@
   (alias all_media_files)
   background.jpg
   logo.png
-  ffmpeg_transparency_filter.liq
+  test_ffmpeg_transparency_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -358,7 +358,7 @@
    "FFmpeg transparency filter"
    liquidsoap
    %{test_liq}
-   ffmpeg_transparency_filter.liq)))
+   test_ffmpeg_transparency_filter.liq)))
 
 (rule
  (alias ffmpeg_filter_changing_rate)
@@ -367,7 +367,7 @@
   (alias all_media_files)
   background.jpg
   logo.png
-  ffmpeg_filter_changing_rate.liq
+  test_ffmpeg_filter_changing_rate.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -379,7 +379,7 @@
    "FFmpeg filter with changing video rate"
    liquidsoap
    %{test_liq}
-   ./ffmpeg_filter_changing_rate.liq
+   ./test_ffmpeg_filter_changing_rate.liq
    --
    ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
    ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4)))
@@ -389,7 +389,7 @@
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  lufs_integrated.liq
+  test_lufs_integrated.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -401,7 +401,7 @@
    "Integrated LUFS computation"
    liquidsoap
    %{test_liq}
-   lufs_integrated.liq)))
+   test_lufs_integrated.liq)))
 
 (rule
  (alias mediatest)
@@ -424,7 +424,7 @@
  (package liquidsoap)
  (deps
   test-audio.wav
-  ffmpeg_filter_array_args.liq
+  test_ffmpeg_filter_array_args.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -436,7 +436,7 @@
    "FFmpeg filter with array arguments"
    liquidsoap
    %{test_liq}
-   ffmpeg_filter_array_args.liq
+   test_ffmpeg_filter_array_args.liq
    --
    test-audio.wav)))
 
@@ -462,7 +462,7 @@
  (package liquidsoap)
  (deps
   test-image.png
-  image_decoder_duration.liq
+  test_image_decoder_duration.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -474,7 +474,7 @@
    "Image decoder with fixed duration"
    liquidsoap
    %{test_liq}
-   image_decoder_duration.liq)))
+   test_image_decoder_duration.liq)))
 
 ; Fetch DVD bitmap subtitle test file from FFmpeg FATE samples
 
@@ -494,7 +494,7 @@
  (target bitmap_subtitle_to_video_output.mp4)
  (deps
   fate-suite-filter-242_4.mkv
-  bitmap_subtitle_to_video.liq
+  test_bitmap_subtitle_to_video.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -506,7 +506,7 @@
    "Bitmap subtitle to video conversion"
    liquidsoap
    %{test_liq}
-   bitmap_subtitle_to_video.liq
+   test_bitmap_subtitle_to_video.liq
    --
    fate-suite-filter-242_4.mkv)))
 
@@ -550,7 +550,7 @@
  (package liquidsoap)
  (deps
   test-subtitle.srt
-  subtitle_text_to_ass.liq
+  test_subtitle_text_to_ass.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -562,7 +562,7 @@
    "Custom text_to_ass function"
    liquidsoap
    %{test_liq}
-   subtitle_text_to_ass.liq)))
+   test_subtitle_text_to_ass.liq)))
 
 (alias
  (name mediatest)

@@ -61,19 +61,19 @@ def f() =
   )
 
   # Test file upload
-  fname = "post.liq"
+  fname = "test_put.liq"
   range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
   l = list.init(12, fun (_) -> string.char.ascii.random(range))
   boundary = string.concat(l)
 
   def handler(req, _) =
     test.equal(req.http_version, "1.1")
-    test.equal(req.method, "POST")
+    test.equal(req.method, "PUT")
     test.equal(req.query, [])
     test.equal(
       req.headers,
       [
-        ("host", "localhost:6543"),
+        ("host", "localhost:5427"),
         ("user-agent", http.user_agent),
         ("accept", "*/*"),
         ("transfer-encoding", "chunked"),
@@ -85,7 +85,7 @@ def f() =
       ]
     )
 
-    test.equal(req.path, "/file_upload")
+    test.equal(req.path, "/large_non_chunked")
     test.equal(
       req.body(timeout=5.0),
       "--#{boundary}\r\nContent-Disposition: form-data; name=\"file\"; \
@@ -95,13 +95,13 @@ def f() =
     )
   end
 
-  harbor.http.register("/file_upload", method="POST", port=6543, handler)
+  harbor.http.register("/large_non_chunked", method="PUT", port=5427, handler)
   resp =
-    http.post.file(
+    http.put.file(
       file=fname,
       content_type="text/plain",
       boundary=boundary,
-      "http://localhost:6543/file_upload"
+      "http://localhost:5427/large_non_chunked"
     )
 
   test.equal(resp.status_message, "OK")
@@ -117,19 +117,20 @@ def f() =
 
   def handler(req, _) =
     test.equal(req.http_version, "1.1")
-    test.equal(req.method, "POST")
+    test.equal(req.method, "PUT")
     test.equal(req.query, [])
     test.equal(
       req.headers,
       [
-        ("host", "localhost:6543"),
+        ("host", "localhost:5427"),
         ("user-agent", http.user_agent),
         ("accept", "*/*"),
+        ("transfer-encoding", "chunked"),
         (
           "content-type",
           "multipart/form-data; boundary=#{boundary}"
         ),
-        ("content-length", "138")
+        ("expect", "100-continue")
       ]
     )
 
@@ -145,18 +146,18 @@ def f() =
 
   harbor.http.register(
     "/in_memory_file_upload",
-    method="POST",
-    port=6543,
+    method="PUT",
+    port=5427,
     handler
   )
 
   resp =
-    http.post.file(
+    http.put.file(
       filename="foo.txt",
       contents="foobarlol",
       content_type="text/plain",
       boundary=boundary,
-      "http://localhost:6543/in_memory_file_upload"
+      "http://localhost:5427/in_memory_file_upload"
     )
 
   test.equal(resp.status_message, "OK")
@@ -165,40 +166,41 @@ def f() =
   test.equal(resp.headers, [])
   test.equal("#{resp}", "")
 
-  # Test JSON post
+  # Test JSON put
   j = json.object()
   j.add("foo", random.int())
-  j.add("contents", file.contents("post.liq"))
+  j.add("contents", file.contents("test_put.liq"))
   data = json.stringify(j)
 
   def handler(req, _) =
     test.equal(req.http_version, "1.1")
-    test.equal(req.method, "POST")
+    test.equal(req.method, "PUT")
     test.equal(req.query, [])
     test.equal(
       req.headers,
       [
-        ("host", "localhost:6543"),
+        ("host", "localhost:5427"),
         ("user-agent", http.user_agent),
+        ("transfer-encoding", "chunked"),
         ("content-type", "application/json"),
         ("accept", "application/json"),
-        ("content-length", "#{string.length(data)}")
+        ("expect", "100-continue")
       ]
     )
 
-    test.equal(req.path, "/json_post")
+    test.equal(req.path, "/json_put")
     test.equal(req.body(timeout=5.0), data)
   end
 
-  harbor.http.register("/json_post", method="POST", port=6543, handler)
+  harbor.http.register("/json_put", method="PUT", port=5427, handler)
   resp =
-    http.post(
+    http.put(
       headers=[
         ("Content-Type", "application/json"),
         ("Accept", "application/json")
       ],
       data=data,
-      "http://localhost:6543/json_post"
+      "http://localhost:5427/json_put"
     )
 
   test.equal(resp.status_message, "OK")

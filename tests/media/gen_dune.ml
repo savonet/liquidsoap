@@ -1,43 +1,43 @@
 let audio_decoding_tests =
   [
-    ("Mono decoding", "mono.liq");
-    ("Stereo decoding", "stereo.liq");
-    ("FFmpeg audio decoder", "ffmpeg_audio_decoder.liq");
+    ("Mono decoding", "test_mono.liq");
+    ("Stereo decoding", "test_stereo.liq");
+    ("FFmpeg audio decoder", "test_ffmpeg_audio_decoder.liq");
   ]
 
 let video_decoding_tests =
   [
-    ("FFmpeg video decoder", "ffmpeg_video_decoder.liq");
-    ("FFmpeg video size", "video_size.liq");
+    ("FFmpeg video decoder", "test_ffmpeg_video_decoder.liq");
+    ("FFmpeg video size", "test_video_size.liq");
   ]
 
 let audio_video_decoding_tests =
   [
-    ("FFmpeg add text filter", "ffmpeg_add_text.liq");
-    ("FFmpeg copy decoder", "ffmpeg_copy_decoder.liq");
-    ("FFmpeg copy+encode decode", "ffmpeg_copy_and_encode_decoder.liq");
-    ("FFmpeg filter", "ffmpeg_filter.liq");
-    ("FFmpeg filter parse", "ffmpeg_filter_parse.liq");
-    ("FFmpeg bitstream filter", "ffmpeg_bitstream_filter.liq");
-    ("FFmpeg raw decoder", "ffmpeg_raw_decoder.liq");
-    ("FFmpeg raw+encode decoder", "ffmpeg_raw_and_encode_decoder.liq");
-    ("FFmpeg raw+copy decoder", "ffmpeg_raw_and_copy_decoder.liq");
+    ("FFmpeg add text filter", "test_ffmpeg_add_text.liq");
+    ("FFmpeg copy decoder", "test_ffmpeg_copy_decoder.liq");
+    ("FFmpeg copy+encode decode", "test_ffmpeg_copy_and_encode_decoder.liq");
+    ("FFmpeg filter", "test_ffmpeg_filter.liq");
+    ("FFmpeg filter parse", "test_ffmpeg_filter_parse.liq");
+    ("FFmpeg bitstream filter", "test_ffmpeg_bitstream_filter.liq");
+    ("FFmpeg raw decoder", "test_ffmpeg_raw_decoder.liq");
+    ("FFmpeg raw+encode decoder", "test_ffmpeg_raw_and_encode_decoder.liq");
+    ("FFmpeg raw+copy decoder", "test_ffmpeg_raw_and_copy_decoder.liq");
   ]
 
 let standalone_tests =
   [
-    ("multitrack.liq", []);
-    ("ffmpeg_inline_encode_decode.liq", []);
-    ("ffmpeg_inline_encode_decode_audio.liq", []);
-    ("ffmpeg_inline_encode_decode_video.liq", []);
-    ("ffmpeg_raw_hls.liq", []);
-    ("pcm_s16_decode.liq", []);
-    ("pcm_f32_decode.liq", []);
-    ("subtitle_concat.liq", ["test-subtitle.srt"]);
-    ("subtitle_concat_copy.liq", ["test-subtitle.srt"]);
-    ("subtitle_multi.liq", ["test-subtitle.srt"]);
-    ("subtitle_copy_encode.liq", ["test-subtitle.srt"]);
-    ("subtitle_reencode.liq", ["test-subtitle.srt"]);
+    ("test_multitrack.liq", []);
+    ("test_ffmpeg_inline_encode_decode.liq", []);
+    ("test_ffmpeg_inline_encode_decode_audio.liq", []);
+    ("test_ffmpeg_inline_encode_decode_video.liq", []);
+    ("test_ffmpeg_raw_hls.liq", []);
+    ("test_pcm_s16_decode.liq", []);
+    ("test_pcm_f32_decode.liq", []);
+    ("test_subtitle_concat.liq", ["test-subtitle.srt"]);
+    ("test_subtitle_concat_copy.liq", ["test-subtitle.srt"]);
+    ("test_subtitle_multi.liq", ["test-subtitle.srt"]);
+    ("test_subtitle_copy_encode.liq", ["test-subtitle.srt"]);
+    ("test_subtitle_reencode.liq", ["test-subtitle.srt"]);
   ]
 
 let audio_formats = Test_media_formats.audio_formats

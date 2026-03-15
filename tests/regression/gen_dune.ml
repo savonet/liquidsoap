@@ -1,7 +1,7 @@
 let all_tests = ref []
 
 let extra_deps =
-  [("GH4882", {|
+  [("test_GH4882", {|
   (glob_files ./*.dylib)
   (glob_files ./*.so)|})]
 

@@ -1279,11 +1279,11 @@
   @ffmpeg[format='mp4',@audio[codec='aac'],@video[codec='libx264'],@subtitles[codec='mov_text']].mp4))
 
 (rule
- (alias mono)
+ (alias test_mono)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  mono.liq
+  test_mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1295,16 +1295,16 @@
    "Mono decoding test for @mp3[stereo].mp3"
    liquidsoap
    %{test_liq}
-   mono.liq
+   test_mono.liq
    --
    "@mp3[stereo].mp3")))
 
 (rule
- (alias stereo)
+ (alias test_stereo)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  stereo.liq
+  test_stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1316,16 +1316,16 @@
    "Stereo decoding test for @mp3[stereo].mp3"
    liquidsoap
    %{test_liq}
-   stereo.liq
+   test_stereo.liq
    --
    "@mp3[stereo].mp3")))
 
 (rule
- (alias ffmpeg_audio_decoder)
+ (alias test_ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_audio_decoder.liq
+  test_ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1337,16 +1337,16 @@
    "FFmpeg audio decoder test for @mp3[stereo].mp3"
    liquidsoap
    %{test_liq}
-   ffmpeg_audio_decoder.liq
+   test_ffmpeg_audio_decoder.liq
    --
    "@mp3[stereo].mp3")))
 
 (rule
- (alias mono)
+ (alias test_mono)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  mono.liq
+  test_mono.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1358,16 +1358,16 @@
    "Mono decoding test for @flac[mono].flac"
    liquidsoap
    %{test_liq}
-   mono.liq
+   test_mono.liq
    --
    "@flac[mono].flac")))
 
 (rule
- (alias stereo)
+ (alias test_stereo)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  stereo.liq
+  test_stereo.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1379,16 +1379,16 @@
    "Stereo decoding test for @flac[mono].flac"
    liquidsoap
    %{test_liq}
-   stereo.liq
+   test_stereo.liq
    --
    "@flac[mono].flac")))
 
 (rule
- (alias ffmpeg_audio_decoder)
+ (alias test_ffmpeg_audio_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_audio_decoder.liq
+  test_ffmpeg_audio_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1400,16 +1400,16 @@
    "FFmpeg audio decoder test for @flac[mono].flac"
    liquidsoap
    %{test_liq}
-   ffmpeg_audio_decoder.liq
+   test_ffmpeg_audio_decoder.liq
    --
    "@flac[mono].flac")))
 
 (rule
- (alias ffmpeg_video_decoder)
+ (alias test_ffmpeg_video_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_video_decoder.liq
+  test_ffmpeg_video_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1421,16 +1421,16 @@
    "FFmpeg video decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_video_decoder.liq
+   test_ffmpeg_video_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias video_size)
+ (alias test_video_size)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  video_size.liq
+  test_video_size.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1442,16 +1442,16 @@
    "FFmpeg video size test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   video_size.liq
+   test_video_size.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_add_text)
+ (alias test_ffmpeg_add_text)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_add_text.liq
+  test_ffmpeg_add_text.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1463,16 +1463,16 @@
    "FFmpeg add text filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_add_text.liq
+   test_ffmpeg_add_text.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_copy_decoder)
+ (alias test_ffmpeg_copy_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_copy_decoder.liq
+  test_ffmpeg_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1484,16 +1484,16 @@
    "FFmpeg copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_copy_decoder.liq
+   test_ffmpeg_copy_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_copy_and_encode_decoder)
+ (alias test_ffmpeg_copy_and_encode_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_copy_and_encode_decoder.liq
+  test_ffmpeg_copy_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1505,16 +1505,16 @@
    "FFmpeg copy+encode decode test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_copy_and_encode_decoder.liq
+   test_ffmpeg_copy_and_encode_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_filter)
+ (alias test_ffmpeg_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_filter.liq
+  test_ffmpeg_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1526,16 +1526,16 @@
    "FFmpeg filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_filter.liq
+   test_ffmpeg_filter.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_filter_parse)
+ (alias test_ffmpeg_filter_parse)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_filter_parse.liq
+  test_ffmpeg_filter_parse.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1547,16 +1547,16 @@
    "FFmpeg filter parse test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_filter_parse.liq
+   test_ffmpeg_filter_parse.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_bitstream_filter)
+ (alias test_ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_bitstream_filter.liq
+  test_ffmpeg_bitstream_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1568,16 +1568,16 @@
    "FFmpeg bitstream filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_bitstream_filter.liq
+   test_ffmpeg_bitstream_filter.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_decoder)
+ (alias test_ffmpeg_raw_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_raw_decoder.liq
+  test_ffmpeg_raw_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1589,16 +1589,16 @@
    "FFmpeg raw decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_raw_decoder.liq
+   test_ffmpeg_raw_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_and_encode_decoder)
+ (alias test_ffmpeg_raw_and_encode_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_raw_and_encode_decoder.liq
+  test_ffmpeg_raw_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1610,16 +1610,16 @@
    "FFmpeg raw+encode decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_raw_and_encode_decoder.liq
+   test_ffmpeg_raw_and_encode_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_and_copy_decoder)
+ (alias test_ffmpeg_raw_and_copy_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_raw_and_copy_decoder.liq
+  test_ffmpeg_raw_and_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1631,16 +1631,16 @@
    "FFmpeg raw+copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_raw_and_copy_decoder.liq
+   test_ffmpeg_raw_and_copy_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_add_text)
+ (alias test_ffmpeg_add_text)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_add_text.liq
+  test_ffmpeg_add_text.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1652,16 +1652,16 @@
    "FFmpeg add text filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_add_text.liq
+   test_ffmpeg_add_text.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_copy_decoder)
+ (alias test_ffmpeg_copy_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_copy_decoder.liq
+  test_ffmpeg_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1673,16 +1673,16 @@
    "FFmpeg copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_copy_decoder.liq
+   test_ffmpeg_copy_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_copy_and_encode_decoder)
+ (alias test_ffmpeg_copy_and_encode_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_copy_and_encode_decoder.liq
+  test_ffmpeg_copy_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1694,16 +1694,16 @@
    "FFmpeg copy+encode decode test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_copy_and_encode_decoder.liq
+   test_ffmpeg_copy_and_encode_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_filter)
+ (alias test_ffmpeg_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_filter.liq
+  test_ffmpeg_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1715,16 +1715,16 @@
    "FFmpeg filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_filter.liq
+   test_ffmpeg_filter.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_filter_parse)
+ (alias test_ffmpeg_filter_parse)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_filter_parse.liq
+  test_ffmpeg_filter_parse.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1736,16 +1736,16 @@
    "FFmpeg filter parse test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_filter_parse.liq
+   test_ffmpeg_filter_parse.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_bitstream_filter)
+ (alias test_ffmpeg_bitstream_filter)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_bitstream_filter.liq
+  test_ffmpeg_bitstream_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1757,16 +1757,16 @@
    "FFmpeg bitstream filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_bitstream_filter.liq
+   test_ffmpeg_bitstream_filter.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_decoder)
+ (alias test_ffmpeg_raw_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_raw_decoder.liq
+  test_ffmpeg_raw_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1778,16 +1778,16 @@
    "FFmpeg raw decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_raw_decoder.liq
+   test_ffmpeg_raw_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_and_encode_decoder)
+ (alias test_ffmpeg_raw_and_encode_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_raw_and_encode_decoder.liq
+  test_ffmpeg_raw_and_encode_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1799,16 +1799,16 @@
    "FFmpeg raw+encode decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_raw_and_encode_decoder.liq
+   test_ffmpeg_raw_and_encode_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias ffmpeg_raw_and_copy_decoder)
+ (alias test_ffmpeg_raw_and_copy_decoder)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_raw_and_copy_decoder.liq
+  test_ffmpeg_raw_and_copy_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1820,16 +1820,16 @@
    "FFmpeg raw+copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
    %{test_liq}
-   ffmpeg_raw_and_copy_decoder.liq
+   test_ffmpeg_raw_and_copy_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
 
 (rule
- (alias multitrack)
+ (alias test_multitrack)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  multitrack.liq
+  test_multitrack.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1838,19 +1838,19 @@
  (action
   (run
    %{run_test}
-   "multitrack.liq"
+   "test_multitrack.liq"
    liquidsoap
    %{test_liq}
-   multitrack.liq
+   test_multitrack.liq
    --
    "")))
 
 (rule
- (alias ffmpeg_inline_encode_decode)
+ (alias test_ffmpeg_inline_encode_decode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_inline_encode_decode.liq
+  test_ffmpeg_inline_encode_decode.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1859,19 +1859,19 @@
  (action
   (run
    %{run_test}
-   "ffmpeg_inline_encode_decode.liq"
+   "test_ffmpeg_inline_encode_decode.liq"
    liquidsoap
    %{test_liq}
-   ffmpeg_inline_encode_decode.liq
+   test_ffmpeg_inline_encode_decode.liq
    --
    "")))
 
 (rule
- (alias ffmpeg_inline_encode_decode_audio)
+ (alias test_ffmpeg_inline_encode_decode_audio)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_inline_encode_decode_audio.liq
+  test_ffmpeg_inline_encode_decode_audio.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1880,19 +1880,19 @@
  (action
   (run
    %{run_test}
-   "ffmpeg_inline_encode_decode_audio.liq"
+   "test_ffmpeg_inline_encode_decode_audio.liq"
    liquidsoap
    %{test_liq}
-   ffmpeg_inline_encode_decode_audio.liq
+   test_ffmpeg_inline_encode_decode_audio.liq
    --
    "")))
 
 (rule
- (alias ffmpeg_inline_encode_decode_video)
+ (alias test_ffmpeg_inline_encode_decode_video)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_inline_encode_decode_video.liq
+  test_ffmpeg_inline_encode_decode_video.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1901,19 +1901,19 @@
  (action
   (run
    %{run_test}
-   "ffmpeg_inline_encode_decode_video.liq"
+   "test_ffmpeg_inline_encode_decode_video.liq"
    liquidsoap
    %{test_liq}
-   ffmpeg_inline_encode_decode_video.liq
+   test_ffmpeg_inline_encode_decode_video.liq
    --
    "")))
 
 (rule
- (alias ffmpeg_raw_hls)
+ (alias test_ffmpeg_raw_hls)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  ffmpeg_raw_hls.liq
+  test_ffmpeg_raw_hls.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1922,19 +1922,19 @@
  (action
   (run
    %{run_test}
-   "ffmpeg_raw_hls.liq"
+   "test_ffmpeg_raw_hls.liq"
    liquidsoap
    %{test_liq}
-   ffmpeg_raw_hls.liq
+   test_ffmpeg_raw_hls.liq
    --
    "")))
 
 (rule
- (alias pcm_s16_decode)
+ (alias test_pcm_s16_decode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  pcm_s16_decode.liq
+  test_pcm_s16_decode.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1943,19 +1943,19 @@
  (action
   (run
    %{run_test}
-   "pcm_s16_decode.liq"
+   "test_pcm_s16_decode.liq"
    liquidsoap
    %{test_liq}
-   pcm_s16_decode.liq
+   test_pcm_s16_decode.liq
    --
    "")))
 
 (rule
- (alias pcm_f32_decode)
+ (alias test_pcm_f32_decode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  pcm_f32_decode.liq
+  test_pcm_f32_decode.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -1964,19 +1964,19 @@
  (action
   (run
    %{run_test}
-   "pcm_f32_decode.liq"
+   "test_pcm_f32_decode.liq"
    liquidsoap
    %{test_liq}
-   pcm_f32_decode.liq
+   test_pcm_f32_decode.liq
    --
    "")))
 
 (rule
- (alias subtitle_concat)
+ (alias test_subtitle_concat)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  subtitle_concat.liq
+  test_subtitle_concat.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1986,19 +1986,19 @@
  (action
   (run
    %{run_test}
-   "subtitle_concat.liq"
+   "test_subtitle_concat.liq"
    liquidsoap
    %{test_liq}
-   subtitle_concat.liq
+   test_subtitle_concat.liq
    --
    "")))
 
 (rule
- (alias subtitle_concat_copy)
+ (alias test_subtitle_concat_copy)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  subtitle_concat_copy.liq
+  test_subtitle_concat_copy.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2008,19 +2008,19 @@
  (action
   (run
    %{run_test}
-   "subtitle_concat_copy.liq"
+   "test_subtitle_concat_copy.liq"
    liquidsoap
    %{test_liq}
-   subtitle_concat_copy.liq
+   test_subtitle_concat_copy.liq
    --
    "")))
 
 (rule
- (alias subtitle_multi)
+ (alias test_subtitle_multi)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  subtitle_multi.liq
+  test_subtitle_multi.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2030,19 +2030,19 @@
  (action
   (run
    %{run_test}
-   "subtitle_multi.liq"
+   "test_subtitle_multi.liq"
    liquidsoap
    %{test_liq}
-   subtitle_multi.liq
+   test_subtitle_multi.liq
    --
    "")))
 
 (rule
- (alias subtitle_copy_encode)
+ (alias test_subtitle_copy_encode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  subtitle_copy_encode.liq
+  test_subtitle_copy_encode.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2052,19 +2052,19 @@
  (action
   (run
    %{run_test}
-   "subtitle_copy_encode.liq"
+   "test_subtitle_copy_encode.liq"
    liquidsoap
    %{test_liq}
-   subtitle_copy_encode.liq
+   test_subtitle_copy_encode.liq
    --
    "")))
 
 (rule
- (alias subtitle_reencode)
+ (alias test_subtitle_reencode)
  (package liquidsoap)
  (deps
   (alias all_media_files)
-  subtitle_reencode.liq
+  test_subtitle_reencode.liq
   test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -2074,10 +2074,10 @@
  (action
   (run
    %{run_test}
-   "subtitle_reencode.liq"
+   "test_subtitle_reencode.liq"
    liquidsoap
    %{test_liq}
-   subtitle_reencode.liq
+   test_subtitle_reencode.liq
    --
    "")))
 
@@ -2091,29 +2091,29 @@
   (alias encoder_multitrack)
   (alias encoder_video_only)
   (alias encoder_video_subtitle)
-  (alias ffmpeg_add_text)
-  (alias ffmpeg_audio_decoder)
-  (alias ffmpeg_bitstream_filter)
-  (alias ffmpeg_copy_and_encode_decoder)
-  (alias ffmpeg_copy_decoder)
-  (alias ffmpeg_filter)
-  (alias ffmpeg_filter_parse)
-  (alias ffmpeg_inline_encode_decode)
-  (alias ffmpeg_inline_encode_decode_audio)
-  (alias ffmpeg_inline_encode_decode_video)
-  (alias ffmpeg_raw_and_copy_decoder)
-  (alias ffmpeg_raw_and_encode_decoder)
-  (alias ffmpeg_raw_decoder)
-  (alias ffmpeg_raw_hls)
-  (alias ffmpeg_video_decoder)
-  (alias mono)
-  (alias multitrack)
-  (alias pcm_f32_decode)
-  (alias pcm_s16_decode)
-  (alias stereo)
-  (alias subtitle_concat)
-  (alias subtitle_concat_copy)
-  (alias subtitle_copy_encode)
-  (alias subtitle_multi)
-  (alias subtitle_reencode)
-  (alias video_size)))
+  (alias test_ffmpeg_add_text)
+  (alias test_ffmpeg_audio_decoder)
+  (alias test_ffmpeg_bitstream_filter)
+  (alias test_ffmpeg_copy_and_encode_decoder)
+  (alias test_ffmpeg_copy_decoder)
+  (alias test_ffmpeg_filter)
+  (alias test_ffmpeg_filter_parse)
+  (alias test_ffmpeg_inline_encode_decode)
+  (alias test_ffmpeg_inline_encode_decode_audio)
+  (alias test_ffmpeg_inline_encode_decode_video)
+  (alias test_ffmpeg_raw_and_copy_decoder)
+  (alias test_ffmpeg_raw_and_encode_decoder)
+  (alias test_ffmpeg_raw_decoder)
+  (alias test_ffmpeg_raw_hls)
+  (alias test_ffmpeg_video_decoder)
+  (alias test_mono)
+  (alias test_multitrack)
+  (alias test_pcm_f32_decode)
+  (alias test_pcm_s16_decode)
+  (alias test_stereo)
+  (alias test_subtitle_concat)
+  (alias test_subtitle_concat_copy)
+  (alias test_subtitle_copy_encode)
+  (alias test_subtitle_multi)
+  (alias test_subtitle_reencode)
+  (alias test_video_size)))
