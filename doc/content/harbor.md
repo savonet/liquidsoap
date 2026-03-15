@@ -107,13 +107,19 @@ metadata before any audio or video is processed.
 Supported container formats include MP3, OGG, FLAC, AAC, MKV, WebM, MP4, FLV,
 MPEG-TS, and anything else FFmpeg can demux.
 
-### The `on_connection` callback
+### The `on_connect` callback
 
-The callback receives a single record argument with the following fields:
+The callback has the signature `(connection_record) -> source -> unit`. It is
+first called with a connection record describing the incoming stream, and must
+return a function that will be called with the live source. This two-step design
+lets you inspect the stream before deciding how to handle it, and allows you to
+select a pre-determined handler function for each content type based on
+`streams` without having to dispatch inside a single catch-all function.
+
+The connection record contains:
 
 | Field          | Type                  | Description                                           |
 | -------------- | --------------------- | ----------------------------------------------------- |
-| `source`       | `source`              | The live source, with all standard harbor methods     |
 | `uri`          | `string`              | The request URI                                       |
 | `query`        | `[(string * string)]` | Named capture groups from a regexp mountpoint         |
 | `format`       | `string?`             | Detected container format, e.g. `"ogg"`, `"matroska"` |
@@ -127,7 +133,8 @@ Each entry in `streams` is a record with:
 - `samplerate`, `channels`, `channel_layout` — present for audio streams
 - `width`, `height`, `pixel_format`, `frame_rate` — present for video streams
 
-To refuse a connection, raise an error in the callback.
+To refuse a connection, raise an error in the callback (in either the first or
+second call).
 
 ### `copy_encoder`
 

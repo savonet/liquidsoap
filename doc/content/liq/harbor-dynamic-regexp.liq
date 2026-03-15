@@ -3,13 +3,14 @@
 input.harbor.dynamic.regexp(
   port=8005,
   r/^\/live\/foo-(?<id>\d+)$/,
-  on_connection=fun (c) ->
+  on_connect=fun (c) ->
     begin
       let id = list.assoc(default="0", "id", c.query)
       in
       log(
         "Stream foo-#{id} connected, format: #{c.format}"
       )
-      output.harbor(c.copy_encoder(), mount="/relay/foo-#{id}", c.source)
+      fun (source) ->
+        output.harbor(c.copy_encoder(), mount="/relay/foo-#{id}", source)
     end
 )
