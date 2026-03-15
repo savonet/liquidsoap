@@ -254,16 +254,21 @@ let proto frame_t =
         Lang.nullable_t
           (Lang.fun_t
              [
-               (false, "address", Lang.string_t);
-               (false, "", Lang.string_t);
-               (false, "", Lang.string_t);
+               ( false,
+                 "",
+                 Lang.record_t
+                   [
+                     ("address", Lang.string_t);
+                     ("login", Lang.string_t);
+                     ("password", Lang.string_t);
+                   ] );
              ]
              Lang.bool_t),
         Some Lang.null,
         Some
-          "Authentication function. `f(~address, login, password)` returns \
-           `true` if the listener should be granted access. When `null`, no \
-           authentication is required." );
+          "Authentication function. Receives a record with `address`, `login`, \
+           and `password` fields. Returns `true` to grant access. When `null`, \
+           no authentication is required." );
       ( "buffer",
         Lang.int_t,
         Some (Lang.int (5 * 65535)),
@@ -366,9 +371,13 @@ class virtual base p =
           Lang.to_bool
             (Lang.apply auth_function
                [
-                 ("address", Lang.string address);
-                 ("", Lang.string user);
-                 ("", Lang.string password);
+                 ( "",
+                   Lang.record
+                     [
+                       ("address", Lang.string address);
+                       ("login", Lang.string user);
+                       ("password", Lang.string password);
+                     ] );
                ])
         in
         ( "",

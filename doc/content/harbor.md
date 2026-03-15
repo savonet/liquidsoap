@@ -197,13 +197,13 @@ clients.
 
 ### Authentication
 
-Authentication is configured via the `auth` function. It receives the client's
-`address`, `login`, and `password` and must return a boolean:
+Authentication is configured via the `auth` function. It receives a record with
+`address`, `login`, and `password` fields and must return a boolean:
 
 ```liquidsoap
 output.harbor(
   mount="/stream",
-  auth=fun(~address, login, password) ->
+  auth=fun({address, login, password}) ->
     login == "source" and password == "secret",
   %mp3,
   s
