@@ -46,6 +46,7 @@ let () =
       ("speex", Speex_option.enabled);
       ("srt", Srt_option.enabled);
       ("ssl", Ssl_option.enabled);
+      ("syslog", Syslog_option.enabled);
       ("tls", Tls_option.enabled);
       ("theora", Theora_option.enabled);
       ("vorbis", Vorbis_option.enabled);

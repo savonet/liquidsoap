@@ -192,6 +192,11 @@
    (liquidsoap_srt -> srt_option.enabled.ml)
    (-> srt_option.disabled.ml))
   (select
+   syslog_option.ml
+   from
+   (syslog -> syslog_option.enabled.ml)
+   (-> syslog_option.disabled.ml))
+  (select
    ssl_option.ml
    from
    (liquidsoap_ssl -> ssl_option.enabled.ml)

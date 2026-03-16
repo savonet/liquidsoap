@@ -31,7 +31,7 @@ let conf_facility =
   Conf.string ~p:(conf_syslog#plug "facility") ~d:"DAEMON" "Logging facility."
 
 let conf_level =
-  Conf.string ~p:(onf_syslog#plug "level") ~d:"info"
+  Conf.string ~p:(conf_syslog#plug "level") ~d:"info"
     "Logging level. One of: `\"emergency\"`, `\"alert\"`, `\"critical\"`, \
      `\"error\"`, `\"warning\"`, `\"notice\"`, `\"info\"` or `\"debug\"`."
 
@@ -45,7 +45,7 @@ let level_of_string = function
   | "info" -> `LOG_INFO
   | "debug" -> `LOG_DEBUG
   | s ->
-      log#critical "Invalid log level: %s" s;
+      log#f 2 "Invalid log level: %s" s;
       `LOG_INFO
 
 let logging = ref None
