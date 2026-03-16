@@ -28,6 +28,7 @@ let log = Log.make ["harbor"; "output"]
 
 (** Output to harbor listeners. *)
 
+module Task = Duppy.Task
 module Duppy = Harbor.Http_transport.Duppy
 
 module Icecast = struct
@@ -64,8 +65,7 @@ type listener = {
   socket : Harbor.Http_transport.socket;
   close : unit -> unit;
   mutable encoder : Encoder.encoder option;
-  mutable pending_data : Strings.t;
-  mutable pending_length : int;
+  pending_data : Strings.Mutable.t;
   mutable metadata_position : int;
   mutable last_sent_metadata : string;
   metadata_interval : int;
@@ -165,8 +165,7 @@ let create_listener ~id ~socket ~close ~metadata_interval ~stream_url ~timeout =
     socket;
     close;
     encoder = None;
-    pending_data = Strings.empty;
-    pending_length = 0;
+    pending_data = Strings.Mutable.empty ();
     metadata_position = 0;
     last_sent_metadata = "\000";
     metadata_interval;
@@ -177,41 +176,49 @@ let create_listener ~id ~socket ~close ~metadata_interval ~stream_url ~timeout =
 
 let append_data_to_listener ~buffer_limit listener data =
   let data_len = Strings.length data in
-  let new_length = listener.pending_length + data_len in
-  if new_length > buffer_limit then begin
-    let drop_amount = new_length - buffer_limit in
-    listener.pending_data <- Strings.drop listener.pending_data drop_amount;
-    listener.pending_length <- listener.pending_length - drop_amount
-  end;
-  listener.pending_data <- Strings.concat [listener.pending_data; data];
-  listener.pending_length <- listener.pending_length + data_len
+  let new_length = Strings.Mutable.length listener.pending_data + data_len in
+  if new_length > buffer_limit then
+    Strings.Mutable.drop listener.pending_data (new_length - buffer_limit);
+  Strings.Mutable.append_strings listener.pending_data data
 
 (* === Write Handling Functions === *)
 
 let try_write_to_socket listener =
-  if listener.pending_length = 0 then 0
-  else begin
-    let data_bytes = Strings.to_bytes listener.pending_data in
-    try
-      let written =
-        Harbor.write listener.socket data_bytes 0 (Bytes.length data_bytes)
-      in
-      if written > 0 then begin
-        listener.pending_data <- Strings.drop listener.pending_data written;
-        listener.pending_length <- listener.pending_length - written
-      end;
-      written
+  if Strings.Mutable.is_empty listener.pending_data then 0
+  else (
+    match
+      Strings.Mutable.fold
+        (fun state s ofs len ->
+          match state with
+            | `Error | `Stop _ -> state
+            | `Continue total -> (
+                try
+                  let written =
+                    Harbor.write listener.socket (Bytes.unsafe_of_string s) ofs
+                      len
+                  in
+                  if written = len then `Continue (total + written)
+                  else `Stop (total + max 0 written)
+                with
+                  | Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) ->
+                      `Stop total
+                  | exn ->
+                      (match exn with
+                        | Unix.Unix_error ((Unix.EPIPE | Unix.ECONNRESET), _, _)
+                          ->
+                            ()
+                        | _ ->
+                            log#info "Write error for %s: %s" listener.id
+                              (Printexc.to_string exn));
+                      `Error))
+        (`Continue 0) listener.pending_data
     with
-      | Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) -> 0
-      | exn ->
-          (match exn with
-            | Unix.Unix_error ((Unix.EPIPE | Unix.ECONNRESET), _, _) -> ()
-            | _ ->
-                log#info "Write error for %s: %s" listener.id
-                  (Printexc.to_string exn));
+      | `Error ->
           listener.closed <- true;
           -1
-  end
+      | `Continue written | `Stop written ->
+          if written > 0 then Strings.Mutable.drop listener.pending_data written;
+          written)
 
 (* === Burst Buffer Functions === *)
 
@@ -412,6 +419,7 @@ class virtual base p =
     val dumpfile = dumpfile
     val listeners : listener list Atomic.t = Atomic.make []
     val listeners_lock = Mutex_utils.mk_state ()
+    val write_task_active : bool Atomic.t = Atomic.make false
     val burst_buffer = Strings.Mutable.empty ()
     val shared_metadata : Frame.metadata option Atomic.t = Atomic.make None
     val mutable dump_channel : out_channel option = None
@@ -449,21 +457,53 @@ class virtual base p =
         List.iter (fun fn -> fn listener.id) on_disconnect_callbacks
       end
 
-    method private write_to_all_listeners =
-      Mutex_utils.mutable_lock ~state:listeners_lock
-        (fun () ->
-          let updated =
-            List.filter_map
-              (fun listener ->
-                if listener.closed || try_write_to_socket listener < 0 then begin
-                  self#handle_disconnect listener;
-                  None
-                end
-                else Some listener)
-              (Atomic.get listeners)
-          in
-          Atomic.set listeners updated)
-        ()
+    method private write_task_handler _ =
+      let current =
+        Mutex_utils.atomic_lock ~state:listeners_lock
+          (fun () -> Atomic.get listeners)
+          ()
+      in
+      let updated =
+        List.filter_map
+          (fun listener ->
+            if listener.closed || try_write_to_socket listener < 0 then begin
+              self#handle_disconnect listener;
+              None
+            end
+            else Some listener)
+          current
+      in
+      Mutex_utils.atomic_lock ~state:listeners_lock
+        (fun () -> Atomic.set listeners updated)
+        ();
+      self#write_task_next
+
+    method private write_task_next =
+      match
+        List.filter_map
+          (fun l ->
+            if l.closed then None
+            else Some (`Write (Harbor.file_descr_of_socket l.socket)))
+          (Atomic.get listeners)
+      with
+        | [] ->
+            Atomic.set write_task_active false;
+            []
+        | events ->
+            [
+              {
+                Task.priority = `Non_blocking;
+                events;
+                handler = self#write_task_handler;
+              };
+            ]
+
+    method private ensure_write_task =
+      if Atomic.compare_and_set write_task_active false true then (
+        match self#write_task_next with
+          | [] -> Atomic.set write_task_active false
+          | [task] -> Task.add Tutils.scheduler task
+          | _ -> assert false)
 
     method private add_listener ~protocol ~headers ~uri:request_uri ~query
         socket =
@@ -536,6 +576,7 @@ class virtual base p =
       Mutex_utils.atomic_lock ~state:listeners_lock
         (fun () -> Atomic.set listeners (listener :: Atomic.get listeners))
         ();
+      self#ensure_write_task;
       self#log#info "Listener %s connected" client_id;
       List.iter
         (fun fn -> fn ~headers ~uri:request_uri ~protocol client_id)
@@ -582,8 +623,7 @@ class shared_output p =
               insert_icy_metadata ~get_metadata:self#get_metadata listener
                 (Strings.concat [e.Encoder.header (); burst])
             in
-            listener.pending_data <- data;
-            listener.pending_length <- Strings.length data;
+            Strings.Mutable.append_strings listener.pending_data data;
             Duppy.Monad.return ()
 
     method private stop_listener_encoder (_ : shared_listener) = ()
@@ -620,7 +660,7 @@ class shared_output p =
         chunk_accumulator <- chunk_accumulator + len;
         if chunk_accumulator >= chunk_size then begin
           chunk_accumulator <- 0;
-          self#write_to_all_listeners
+          self#ensure_write_task
         end
       end
 
@@ -689,8 +729,7 @@ class dedicated_output p =
               insert_icy_metadata ~get_metadata:self#get_metadata listener
                 (Strings.concat [e.Encoder.header (); burst])
             in
-            listener.pending_data <- data;
-            listener.pending_length <- Strings.length data;
+            Strings.Mutable.append_strings listener.pending_data data;
             Duppy.Monad.return ()
 
     method private stop_listener_encoder (listener : dedicated_listener) =
@@ -721,7 +760,7 @@ class dedicated_output p =
                   listener.encoder)
             (Atomic.get listeners);
           current_frame <- None;
-          self#write_to_all_listeners)
+          self#ensure_write_task)
         current_frame
 
     method start =
