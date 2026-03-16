@@ -66,7 +66,7 @@ type 'a listener = {
   encoder : 'a;
   pending_data : Strings.Mutable.t;
   mutable metadata_position : int;
-  mutable last_sent_metadata : string;
+  mutable last_sent_metadata : Frame.metadata option;
   metadata_interval : int;
   stream_url : string option;
   mutable closed : bool;
@@ -109,7 +109,7 @@ let format_icy_metadata ~url metadata =
   String.blit meta 0 result 1 len;
   Bytes.unsafe_to_string result
 
-let insert_icy_metadata ~get_metadata listener data =
+let insert_icy_metadata ~metadata listener data =
   if listener.metadata_interval <= 0 then data
   else (
     let rec insert_at_intervals accumulated remaining =
@@ -120,17 +120,11 @@ let insert_icy_metadata ~get_metadata listener data =
       if bytes_until_next_meta <= remaining_len then begin
         (* Insert metadata at this position *)
         let meta_string =
-          match get_metadata () with
-            | Some m ->
-                let formatted =
-                  format_icy_metadata ~url:listener.stream_url m
-                in
-                if formatted <> listener.last_sent_metadata then begin
-                  listener.last_sent_metadata <- formatted;
-                  formatted
-                end
-                else "\000"
-            | None -> "\000"
+          match metadata with
+            | Some m when metadata != listener.last_sent_metadata ->
+                listener.last_sent_metadata <- metadata;
+                format_icy_metadata ~url:listener.stream_url m
+            | _ -> "\000"
         in
         let before = Strings.sub remaining 0 bytes_until_next_meta in
         let after =
@@ -159,7 +153,7 @@ let create_listener ~id ~encoder ~socket ~close ~metadata_interval ~stream_url
     encoder;
     pending_data = Strings.Mutable.empty ();
     metadata_position = 0;
-    last_sent_metadata = "\000";
+    last_sent_metadata = None;
     metadata_interval;
     stream_url;
     closed = false;
@@ -416,11 +410,7 @@ class virtual ['a] base p =
       on_disconnect_callbacks <- fn :: on_disconnect_callbacks
 
     method self_sync = source#self_sync
-
-    method private get_metadata () =
-      let meta = Atomic.get shared_metadata in
-      Atomic.set shared_metadata None;
-      meta
+    method private get_metadata = Atomic.get shared_metadata
 
     (* Called synchronously when a listener connects. Subclasses populate the
        listener's initial pending_data with the codec header and burst data. *)
@@ -617,7 +607,7 @@ class shared_output p =
           | None -> Strings.empty
       in
       let data =
-        insert_icy_metadata ~get_metadata:self#get_metadata listener
+        insert_icy_metadata ~metadata:self#get_metadata listener
           (Strings.concat [e.Encoder.header (); burst])
       in
       Strings.Mutable.append_strings listener.pending_data data
@@ -645,13 +635,12 @@ class shared_output p =
         Option.iter
           (fun ch -> Strings.iter (output_substring ch) data)
           dump_channel;
-        let current_metadata = self#get_metadata () in
-        let get_metadata = fun () -> current_metadata in
+        let metadata = self#get_metadata in
         List.iter
           (fun listener ->
             if not listener.closed then
               append_data_to_listener ~buffer_limit listener
-                (insert_icy_metadata ~get_metadata listener data))
+                (insert_icy_metadata ~metadata listener data))
           (Atomic.get listeners);
         chunk_accumulator <- chunk_accumulator + len;
         if chunk_accumulator >= chunk_size then begin
@@ -725,7 +714,7 @@ class dedicated_output p =
           | None -> Strings.empty
       in
       let data =
-        insert_icy_metadata ~get_metadata:self#get_metadata listener
+        insert_icy_metadata ~metadata:self#get_metadata listener
           (Strings.concat [listener.encoder.Encoder.header (); burst])
       in
       Strings.Mutable.append_strings listener.pending_data data
@@ -744,13 +733,12 @@ class dedicated_output p =
     method send _ =
       Option.iter
         (fun frame ->
-          let current_metadata = self#get_metadata () in
-          let get_metadata = fun () -> current_metadata in
+          let metadata = self#get_metadata in
           List.iter
             (fun listener ->
               if not listener.closed then
                 append_data_to_listener ~buffer_limit listener
-                  (insert_icy_metadata ~get_metadata listener
+                  (insert_icy_metadata ~metadata listener
                      (listener.encoder.Encoder.encode frame)))
             (Atomic.get listeners);
           current_frame <- None;
