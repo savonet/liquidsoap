@@ -56,15 +56,14 @@ open M
 let max_icy_title = 3852
 let max_icy_url = 200
 
-(* === Type Definitions === *)
-
-(* Listener record. In shared mode the encoder field is always None.
-   In dedicated mode it is set to Some enc at connect time. *)
-type listener = {
+(* Listener record parameterized over the encoder type:
+   - shared_listener = unit listener  (one shared encoder for all listeners)
+   - dedicated_listener = Encoder.encoder listener (fresh encoder per listener) *)
+type 'a listener = {
   id : string;
   socket : Harbor.Http_transport.socket;
   close : unit -> unit;
-  mutable encoder : Encoder.encoder option;
+  encoder : 'a;
   pending_data : Strings.Mutable.t;
   mutable metadata_position : int;
   mutable last_sent_metadata : string;
@@ -73,12 +72,6 @@ type listener = {
   mutable closed : bool;
   timeout : float;
 }
-
-(* Semantic aliases documenting the encoder invariant for each mode. *)
-type shared_listener = listener
-type dedicated_listener = listener
-
-(* === ICY Metadata Functions === *)
 
 let format_icy_title ~artist ~title =
   match (artist, title) with
@@ -157,14 +150,13 @@ let insert_icy_metadata ~get_metadata listener data =
     in
     insert_at_intervals Strings.empty data)
 
-(* === Listener Management Functions === *)
-
-let create_listener ~id ~socket ~close ~metadata_interval ~stream_url ~timeout =
+let create_listener ~id ~encoder ~socket ~close ~metadata_interval ~stream_url
+    ~timeout =
   {
     id;
     socket;
     close;
-    encoder = None;
+    encoder;
     pending_data = Strings.Mutable.empty ();
     metadata_position = 0;
     last_sent_metadata = "\000";
@@ -180,8 +172,6 @@ let append_data_to_listener ~buffer_limit listener data =
   if new_length > buffer_limit then
     Strings.Mutable.drop listener.pending_data (new_length - buffer_limit);
   Strings.Mutable.append_strings listener.pending_data data
-
-(* === Write Handling Functions === *)
 
 let try_write_to_socket listener =
   if Strings.Mutable.is_empty listener.pending_data then 0
@@ -220,15 +210,11 @@ let try_write_to_socket listener =
           if written > 0 then Strings.Mutable.drop listener.pending_data written;
           written)
 
-(* === Burst Buffer Functions === *)
-
 let update_burst_buffer burst_buffer ~max_size data =
   Strings.Mutable.append_strings burst_buffer data;
   Strings.Mutable.keep burst_buffer max_size
 
 let get_burst_data burst_buffer = Strings.Mutable.to_strings burst_buffer
-
-(* === Protocol Definition === *)
 
 let proto frame_t =
   Output.proto
@@ -311,9 +297,7 @@ let proto frame_t =
       ("", Lang.source_t frame_t, None, None);
     ]
 
-(* === Virtual Base Class === *)
-
-class virtual base p =
+class virtual ['a] base p =
   let pos = Lang.pos p in
   let get_param name = List.assoc name p in
   let metaint = Lang.to_int (get_param "metaint") in
@@ -417,7 +401,7 @@ class virtual base p =
     val port = port
     val transport = transport
     val dumpfile = dumpfile
-    val listeners : listener list Atomic.t = Atomic.make []
+    val listeners : 'a listener list Atomic.t = Atomic.make []
     val listeners_lock = Mutex_utils.mk_state ()
     val write_task_active : bool Atomic.t = Atomic.make false
     val burst_buffer = Strings.Mutable.empty ()
@@ -438,15 +422,23 @@ class virtual base p =
       Atomic.set shared_metadata None;
       meta
 
-    (* Called synchronously when a listener connects. Subclasses set up the
-       encoder (if any) and populate the listener's initial pending_data with
-       the codec header and burst data. *)
-    method virtual private connect_listener
-        : protocol:string -> listener -> (unit, Harbor.reply) Duppy.Monad.t
+    (* Called synchronously when a listener connects. Subclasses populate the
+       listener's initial pending_data with the codec header and burst data. *)
+    method virtual private connect_listener : 'a listener -> unit
+
+    method virtual private create_listener
+        : protocol:string ->
+          id:string ->
+          socket:Harbor.Http_transport.socket ->
+          close:(unit -> unit) ->
+          metadata_interval:int ->
+          stream_url:string option ->
+          timeout:float ->
+          ('a listener, Harbor.reply) Duppy.Monad.t
 
     (* Called when a listener disconnects. Subclasses stop any per-listener
        encoder. *)
-    method virtual private stop_listener_encoder : listener -> unit
+    method virtual private stop_listener_encoder : 'a listener -> unit
 
     method private handle_disconnect listener =
       if not listener.closed then begin
@@ -568,11 +560,11 @@ class virtual base p =
                   | _ -> assert false)
           | None -> Duppy.Monad.return ()
       in
-      let listener =
-        create_listener ~id:client_id ~socket ~close ~metadata_interval
-          ~stream_url ~timeout
+      let* listener =
+        self#create_listener ~protocol ~id:client_id ~socket ~close
+          ~metadata_interval ~stream_url ~timeout
       in
-      let* () = self#connect_listener ~protocol listener in
+      self#connect_listener listener;
       Mutex_utils.atomic_lock ~state:listeners_lock
         (fun () -> Atomic.set listeners (listener :: Atomic.get listeners))
         ();
@@ -597,36 +589,40 @@ class virtual base p =
         ()
   end
 
-(* === Shared Encoder Output ===
-   A single encoder instance is created at start time and shared across all
-   listeners. connect_listener seeds each new listener's buffer with the
-   codec header and any accumulated burst data. *)
-
+(* Shared encoder: one instance started at output startup, distributed to all
+   listeners. connect_listener seeds each new listener with the codec header
+   and any accumulated burst data. *)
 class shared_output p =
   object (self)
-    inherit base p
+    inherit [unit] base p
     val mutable enc : Encoder.encoder option = None
     val mutable chunk_accumulator = 0
 
-    method private connect_listener ~protocol (listener : shared_listener) =
+    method private create_listener ~protocol ~id ~socket ~close
+        ~metadata_interval ~stream_url ~timeout =
       match enc with
         | None ->
             Harbor.reply (fun () ->
                 Printf.sprintf "HTTP/%s 404 Not found\r\n" protocol)
-        | Some e ->
-            let burst =
-              match burst_size with
-                | Some _ -> get_burst_data burst_buffer
-                | None -> Strings.empty
-            in
-            let data =
-              insert_icy_metadata ~get_metadata:self#get_metadata listener
-                (Strings.concat [e.Encoder.header (); burst])
-            in
-            Strings.Mutable.append_strings listener.pending_data data;
-            Duppy.Monad.return ()
+        | Some _ ->
+            Duppy.Monad.return
+              (create_listener ~encoder:() ~id ~socket ~close ~metadata_interval
+                 ~stream_url ~timeout)
 
-    method private stop_listener_encoder (_ : shared_listener) = ()
+    method private connect_listener listener =
+      let e = Option.get enc in
+      let burst =
+        match burst_size with
+          | Some _ -> get_burst_data burst_buffer
+          | None -> Strings.empty
+      in
+      let data =
+        insert_icy_metadata ~get_metadata:self#get_metadata listener
+          (Strings.concat [e.Encoder.header (); burst])
+      in
+      Strings.Mutable.append_strings listener.pending_data data
+
+    method private stop_listener_encoder _ = ()
 
     method encode frame =
       match enc with Some e -> e.Encoder.encode frame | None -> Strings.empty
@@ -697,14 +693,12 @@ class shared_output p =
       self#start
   end
 
-(* === Dedicated Encoder Output ===
-   A fresh encoder instance is created for each listener at connect time.
-   encode() stores the current frame and send() encodes it independently
-   per listener, ensuring a clean stream from the first byte. *)
-
+(* Dedicated encoder: a fresh instance is created per listener at connect time,
+   ensuring each gets a clean stream from the first byte. encode() stores the
+   current frame; send() encodes it independently per listener. *)
 class dedicated_output p =
   object (self)
-    inherit base p
+    inherit [Encoder.encoder] base p
 
     val mutable encoder_factory
         : (Frame.Metadata.Export.t -> Encoder.encoder) option =
@@ -712,30 +706,33 @@ class dedicated_output p =
 
     val mutable current_frame : Frame.t option = None
 
-    method private connect_listener ~protocol (listener : dedicated_listener) =
+    method private create_listener ~protocol ~id ~socket ~close
+        ~metadata_interval ~stream_url ~timeout =
       match encoder_factory with
         | None ->
             Harbor.reply (fun () ->
                 Printf.sprintf "HTTP/%s 404 Not found\r\n" protocol)
         | Some factory ->
-            let e = factory Frame.Metadata.Export.empty in
-            listener.encoder <- Some e;
-            let burst =
-              match burst_size with
-                | Some _ -> get_burst_data burst_buffer
-                | None -> Strings.empty
-            in
-            let data =
-              insert_icy_metadata ~get_metadata:self#get_metadata listener
-                (Strings.concat [e.Encoder.header (); burst])
-            in
-            Strings.Mutable.append_strings listener.pending_data data;
-            Duppy.Monad.return ()
+            let encoder = factory Frame.Metadata.Export.empty in
+            Duppy.Monad.return
+              (create_listener ~encoder ~id ~socket ~close ~metadata_interval
+                 ~stream_url ~timeout)
 
-    method private stop_listener_encoder (listener : dedicated_listener) =
-      Option.iter (fun e -> ignore (e.Encoder.stop ())) listener.encoder
+    method private connect_listener listener =
+      let burst =
+        match burst_size with
+          | Some _ -> get_burst_data burst_buffer
+          | None -> Strings.empty
+      in
+      let data =
+        insert_icy_metadata ~get_metadata:self#get_metadata listener
+          (Strings.concat [listener.encoder.Encoder.header (); burst])
+      in
+      Strings.Mutable.append_strings listener.pending_data data
 
-    (* Stores the frame for per-listener encoding in send(). *)
+    method private stop_listener_encoder listener =
+      ignore (listener.encoder.Encoder.stop ())
+
     method encode frame =
       current_frame <- Some frame;
       Strings.empty
@@ -752,12 +749,9 @@ class dedicated_output p =
           List.iter
             (fun listener ->
               if not listener.closed then
-                Option.iter
-                  (fun e ->
-                    append_data_to_listener ~buffer_limit listener
-                      (insert_icy_metadata ~get_metadata listener
-                         (e.Encoder.encode frame)))
-                  listener.encoder)
+                append_data_to_listener ~buffer_limit listener
+                  (insert_icy_metadata ~get_metadata listener
+                     (listener.encoder.Encoder.encode frame)))
             (Atomic.get listeners);
           current_frame <- None;
           self#ensure_write_task)
@@ -793,8 +787,6 @@ class dedicated_output p =
       self#stop;
       self#start
   end
-
-(* === Operator Registration === *)
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
