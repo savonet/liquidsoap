@@ -124,6 +124,7 @@ let build_config =
    - memtrace          : %{Memtrace_option.detected}
    - osc               : %{Osc_option.detected}
    - ssl               : %{Ssl_option.detected}
+   - syslog            : %{Syslog_option.detected}
    - sqlite3           : %{Sqlite3_option.detected}
    - tls               : %{Tls_option.detected}
    - posix-time2       : %{Posix_time_option.detected}
