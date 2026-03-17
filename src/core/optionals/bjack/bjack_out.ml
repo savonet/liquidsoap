@@ -24,7 +24,7 @@
 
 let bytes_per_sample = 2
 
-class output ~self_sync ~infallible ~register_telnet ~server source =
+class output ~infallible ~register_telnet ~server source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -35,11 +35,7 @@ class output ~self_sync ~infallible ~register_telnet ~server source =
           ~output_kind:"output.jack" source true
 
     val mutable device = None
-
-    method self_sync =
-      if self_sync then
-        (`Dynamic, if device <> None then Some Bjack_in.sync_source else None)
-      else (`Static, None)
+    method self_sync = (`Static, None)
 
     method get_device =
       match device with
@@ -95,10 +91,6 @@ let _ =
   Lang.add_operator ~base:Modules.output "jack"
     (Output.proto
     @ [
-        ( "self_sync",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Force the use of the dedicated bjack clock." );
         ( "server",
           Lang.string_t,
           Some (Lang.string ""),
@@ -110,9 +102,7 @@ let _ =
     ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in
-      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let server = Lang.to_string (List.assoc "server" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-      (new output ~self_sync ~infallible ~register_telnet ~server source
-        :> Output.output))
+      (new output ~infallible ~register_telnet ~server source :> Output.output))

@@ -24,15 +24,7 @@ open Mm
 
 let log = Log.make ["input"; "jack"]
 
-module SyncSource = Clock.MkSyncSource (struct
-  type t = unit
-
-  let to_string _ = "jack"
-end)
-
-let sync_source = SyncSource.make ()
-
-class jack_in ~self_sync ~fallible ~autostart ~server =
+class jack_in ~fallible ~autostart ~server =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
@@ -47,11 +39,7 @@ class jack_in ~self_sync ~fallible ~autostart ~server =
     method remaining = -1
     val mutable sample_freq = samples_per_second
     val mutable device = None
-
-    method self_sync =
-      if self_sync then
-        (`Dynamic, if device <> None then Some sync_source else None)
-      else (`Static, None)
+    method self_sync = (`Static, None)
 
     method stop =
       match device with
@@ -114,10 +102,6 @@ let _ =
   Lang.add_operator ~base:Modules.input "jack"
     (Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
-        ( "self_sync",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Mark the source as being synchronized by the jack server." );
         ( "server",
           Lang.string_t,
           Some (Lang.string ""),
@@ -127,9 +111,7 @@ let _ =
     ~callbacks:(Start_stop.callbacks ~label:"source")
     ~return_t ~category:`Input ~descr:"Get stream from jack."
     (fun p ->
-      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let server = Lang.to_string (List.assoc "server" p) in
-      (new jack_in ~self_sync ~server ~fallible ~autostart
-        :> Start_stop.active_source))
+      (new jack_in ~server ~fallible ~autostart :> Start_stop.active_source))
