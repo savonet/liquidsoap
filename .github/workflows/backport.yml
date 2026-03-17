@@ -3,6 +3,16 @@ name: Backport
 on:
   pull_request_target:
     types: [closed, labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to backport"
+        required: true
+        type: number
+      target_branch:
+        description: "Target branch (e.g. rolling)"
+        required: true
+        type: string
 
 jobs:
   notify:
@@ -23,7 +33,7 @@ jobs:
             });
 
   backport:
-    if: github.event.action == 'closed' && github.event.pull_request.merged == true && contains(toJSON(github.event.pull_request.labels.*.name), 'backport ')
+    if: github.event_name == 'workflow_dispatch' || (github.event.action == 'closed' && github.event.pull_request.merged == true && contains(toJSON(github.event.pull_request.labels.*.name), 'backport '))
     runs-on: ubuntu-latest
     steps:
       - name: Get copy of source for merge purposes
@@ -39,3 +49,41 @@ jobs:
       - uses: tibdex/backport@9565281eda0731b1d20c4025c43339fb0a23812e # v2.0.4
         with:
           github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          pull_request_number: ${{ inputs.pr_number }}
+          target_branches: ${{ inputs.target_branch }}
+      - name: Enable auto-merge on backport PRs
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          github-token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          script: |
+            const isManual = context.eventName === 'workflow_dispatch';
+            const prNumber = isManual
+              ? parseInt(context.payload.inputs.pr_number)
+              : context.payload.pull_request.number;
+            const targetBranches = isManual
+              ? [context.payload.inputs.target_branch]
+              : context.payload.pull_request.labels
+                  .filter(l => l.name.startsWith('backport '))
+                  .map(l => l.name.replace('backport ', ''));
+            for (const targetBranch of targetBranches) {
+              const headBranch = `backport-${prNumber}-to-${targetBranch}`;
+              const { data: prs } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                head: `${context.repo.owner}:${headBranch}`
+              });
+              if (prs.length === 0) {
+                console.log(`No open PR found for branch ${headBranch}, skipping.`);
+                continue;
+              }
+              const backportPr = prs[0];
+              await github.graphql(`
+                mutation EnableAutoMerge($prId: ID!) {
+                  enablePullRequestAutoMerge(input: {pullRequestId: $prId}) {
+                    pullRequest { autoMergeRequest { enabledAt } }
+                  }
+                }
+              `, { prId: backportPr.node_id });
+              console.log(`Enabled auto-merge for PR #${backportPr.number} (${headBranch})`);
+            }
