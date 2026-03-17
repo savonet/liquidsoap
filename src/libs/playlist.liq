@@ -1164,19 +1164,21 @@ def replaces playlist(
 
   s.on_wake_up(
     synchronous=false,
-    {
-      if_not_reloading(
-        fun () ->
-          begin
-            log(
-              label=s.id(),
-              "Initial load with URI #{playlist_uri()}."
-            )
-            files := load_playlist()
-            s.reload(empty_queue=true, files())
-          end
-      )
-    }
+    memoize(
+      {
+        if_not_reloading(
+          fun () ->
+            begin
+              log(
+                label=s.id(),
+                "Initial load with URI #{playlist_uri()}."
+              )
+              files := load_playlist()
+              s.reload(empty_queue=true, files())
+            end
+        )
+      }
+    )
   )
 
   # The reload function
