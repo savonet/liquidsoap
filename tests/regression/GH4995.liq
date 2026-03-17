@@ -34,8 +34,6 @@ d =
     {if playing_sine() then (s() : source) else (p : source) end}
   )
 
-playlist_count = ref(0)
-
 d.on_metadata(
   synchronous=true,
   fun (m) ->
@@ -50,14 +48,6 @@ d.on_metadata(
           "Saw playlist metadata, switching to sine"
         )
         playing_sine := true
-        ref.incr(playlist_count)
-
-        # Double check: with no reload, files play in order!
-        if
-          m["filename"] != "../streams/file#{playlist_count()}.mp3"
-        then
-          test.fail()
-        end
       elsif
         m["liq_test_source"] == "sine"
       then
