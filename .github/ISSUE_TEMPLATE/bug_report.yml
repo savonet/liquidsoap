@@ -3,6 +3,10 @@ description: Document issues or problems encountered in the software to facilita
 labels:
   - bug
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you so much for taking the time to report your issue! Please fill out every section below, even if you think it may not be relevant. Every piece of information — your script, logs (with or without errors), system details, etc. — helps us understand and reproduce your problem. In particular, **please set the log level to `4`** before capturing your logs.
   - type: textarea
     id: description
     attributes:
