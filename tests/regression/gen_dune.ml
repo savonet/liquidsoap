@@ -1,9 +1,17 @@
 let all_tests = ref []
 
 let extra_deps =
-  [("GH4882", {|
+  [
+    ("GH4882", {|
   (glob_files ./*.dylib)
-  (glob_files ./*.so)|})]
+  (glob_files ./*.so)|});
+    ( "GH4995",
+      {|
+  ../streams/playlist
+  ../streams/file2.mp3
+  ../streams/file3.mp3|}
+    );
+  ]
 
 let () =
   let location = Sys.getcwd () in
