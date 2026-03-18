@@ -17,6 +17,7 @@
   (#4919)
 - Refactored XML parsing to be type-driven, support optional fields with
   custom element name aliases (#4926, #4927)
+- Removed `self_sync` parameter from `input.jack` and `output.jack` (#5017)
 
 ## Fixed:
 
@@ -34,6 +35,10 @@
 - Fixed `EINTR` signal interruption in process I/O, read, and flush operations (#4947, #4949, #4951)
 - Fixed binary string flags not persisting across string copies and metadata propagation (#4966)
 - Make sure `output.file` does not create files without data (#4899)
+- Fixed content type propagation through free type variables (#4988)
+- Improved runtime error reporting by wrapping low-level exceptions into proper
+  runtime errors (#5004)
+- Fixed `syslog` support and added it to build configuration detection (#5009)
 
 ---
 
