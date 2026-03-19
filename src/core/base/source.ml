@@ -37,7 +37,10 @@ type sync = [ `Auto | `CPU | `None ]
 module SourceSync = Clock.MkSyncSource (struct
   type t = < id : string >
 
+  let time_implementation _ = Clock.time_implementation ()
   let to_string s = Printf.sprintf "source(id=%s)" s#id
+  let latency _ = Clock.conf_latency#get
+  let max_latency _ = Clock.conf_max_latency#get
 end)
 
 (** {1 Sources} *)
