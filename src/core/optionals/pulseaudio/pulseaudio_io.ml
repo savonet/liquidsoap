@@ -26,7 +26,10 @@ open Pulseaudio
 module SyncSource = Clock.MkSyncSource (struct
   type t = unit
 
+  let time_implementation () = Clock.unconstrained_time
   let to_string _ = "pulseaudio"
+  let latency () = Clock.conf_latency#get
+  let max_latency () = Clock.conf_max_latency#get
 end)
 
 let sync_source = SyncSource.make ()
