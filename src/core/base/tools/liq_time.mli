@@ -15,5 +15,10 @@ end
 
 type implementation = (module T)
 
+(** [set_offset impl off] returns a new time implementation with [off] as its
+    origin: [time ()] returns [raw_time () - off] and [sleep_until] adds [off]
+    back before delegating. *)
+val set_offset : implementation -> t -> implementation
+
 val unix : implementation
 val implementations : (string, implementation) Hashtbl.t
