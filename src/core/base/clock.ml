@@ -473,7 +473,8 @@ let _after_tick x =
             | None -> conf_max_latency#get
         in
         if Time.(of_float max_latency |<=| latency) then (
-          x.log#severe "Too much latency! Resetting active sources...";
+          if 0. < max_latency then
+            x.log#severe "Too much latency! Resetting active sources...";
           _set_time x end_time;
           List.iter
             (fun s ->

@@ -7,8 +7,7 @@
 #include <caml/mlvalues.h>
 #include <caml/threads.h>
 
-#include <jack/jack.h>
-#include <jack/ringbuffer.h>
+#include "jack_stubs.h"
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -36,13 +35,6 @@ static void ocaml_jack_register_thread()
 }
 
 /* --- jack_client_t custom block --- */
-
-typedef struct {
-  jack_client_t *client;
-  value _process_callback;
-} client_wrapper_t;
-
-#define Client_val(v) (*((client_wrapper_t **)Data_custom_val(v)))
 
 static void client_finalize(value _client_block)
 {
@@ -76,8 +68,6 @@ static struct custom_operations port_ops = {
   custom_compare_ext_default,
   custom_fixed_length_default
 };
-
-#define Port_val(v) (*((jack_port_t **)Data_custom_val(v)))
 
 /* --- process callback glue --- */
 
@@ -194,8 +184,6 @@ CAMLprim value caml_jack_port_unregister(value _client, value _port)
 }
 
 /* --- jack_ringbuffer_t custom block --- */
-
-#define Rb_val(v) (*((jack_ringbuffer_t **)Data_custom_val(v)))
 
 static void rb_finalize(value _ringbuffer_block)
 {
@@ -355,30 +343,12 @@ CAMLprim value caml_jack_port_connect(value _client, value _source_port, value _
 
 /* --- Semaphore custom block --- */
 
-#ifndef _WIN32
-
-#ifdef __APPLE__
-#include <dispatch/dispatch.h>
-typedef dispatch_semaphore_t jack_sem_t;
-static void jack_sem_init_fn(jack_sem_t *s) { *s = dispatch_semaphore_create(0); }
-static void jack_sem_post_fn(jack_sem_t *s) { dispatch_semaphore_signal(*s); }
-static void jack_sem_wait_fn(jack_sem_t *s) { dispatch_semaphore_wait(*s, DISPATCH_TIME_FOREVER); }
-static void jack_sem_destroy_fn(jack_sem_t *s) { dispatch_release(*s); }
-#else
-#include <semaphore.h>
-typedef sem_t jack_sem_t;
-static void jack_sem_init_fn(jack_sem_t *s) { sem_init(s, 0, 0); }
-static void jack_sem_post_fn(jack_sem_t *s) { sem_post(s); }
-static void jack_sem_wait_fn(jack_sem_t *s) { sem_wait(s); }
-static void jack_sem_destroy_fn(jack_sem_t *s) { sem_destroy(s); }
-#endif
-
 #define Sem_val(v) (*((jack_sem_t **)Data_custom_val(v)))
 
 static void sem_block_finalize(value _sem_block)
 {
   jack_sem_t *semaphore = Sem_val(_sem_block);
-  jack_sem_destroy_fn(semaphore);
+  jack_sem_destroy(semaphore);
   free(semaphore);
 }
 
@@ -399,7 +369,7 @@ CAMLprim value caml_jack_sem_create(value _unit)
   CAMLlocal1(_sem_block);
   jack_sem_t *semaphore = malloc(sizeof(jack_sem_t));
   if (!semaphore) caml_failwith("jack_sem_create: out of memory");
-  jack_sem_init_fn(semaphore);
+  jack_sem_init(semaphore);
   _sem_block = caml_alloc_custom(&sem_ops, sizeof(jack_sem_t *), 0, 1);
   Sem_val(_sem_block) = semaphore;
   CAMLreturn(_sem_block);
@@ -407,7 +377,7 @@ CAMLprim value caml_jack_sem_create(value _unit)
 
 CAMLprim value caml_jack_sem_post(value _sem_block)
 {
-  jack_sem_post_fn(Sem_val(_sem_block));
+  jack_sem_post(Sem_val(_sem_block));
   return Val_unit;
 }
 
@@ -415,29 +385,7 @@ CAMLprim value caml_jack_sem_wait(value _sem_block)
 {
   CAMLparam1(_sem_block);
   caml_release_runtime_system();
-  jack_sem_wait_fn(Sem_val(_sem_block));
+  jack_sem_wait(Sem_val(_sem_block));
   caml_acquire_runtime_system();
   CAMLreturn(Val_unit);
 }
-
-#else /* _WIN32 */
-
-CAMLprim value caml_jack_sem_create(value _unit)
-{
-  (void)_unit;
-  caml_failwith("jack_sem_create: not supported on Windows");
-}
-
-CAMLprim value caml_jack_sem_post(value _sem_block)
-{
-  (void)_sem_block;
-  caml_failwith("jack_sem_post: not supported on Windows");
-}
-
-CAMLprim value caml_jack_sem_wait(value _sem_block)
-{
-  (void)_sem_block;
-  caml_failwith("jack_sem_wait: not supported on Windows");
-}
-
-#endif /* _WIN32 */
