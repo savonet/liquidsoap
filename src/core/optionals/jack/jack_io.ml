@@ -458,7 +458,7 @@ class output ~server ~infallible ~register_telnet source =
             Array.iter
               (fun port ->
                 let jack_buf = Jack.port_get_buffer port#port nframes in
-                if self#state <> `Started then Bigarray.Array1.fill jack_buf 0.)
+                Bigarray.Array1.fill jack_buf 0.)
               ports
 
     method private register_ports entry =

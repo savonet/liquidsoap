@@ -130,14 +130,12 @@ CAMLprim value caml_jack_client_close(value _client)
 
 CAMLprim value caml_jack_get_sample_rate(value _client)
 {
-  CAMLparam1(_client);
-  CAMLreturn(Val_int(jack_get_sample_rate(Client_val(_client)->client)));
+  return Val_int(jack_get_sample_rate(Client_val(_client)->client));
 }
 
 CAMLprim value caml_jack_get_buffer_size(value _client)
 {
-  CAMLparam1(_client);
-  CAMLreturn(Val_int(jack_get_buffer_size(Client_val(_client)->client)));
+  return Val_int(jack_get_buffer_size(Client_val(_client)->client));
 }
 
 CAMLprim value caml_jack_port_register(value _client, value _name, value _port_type,
@@ -191,9 +189,8 @@ CAMLprim value caml_jack_port_get_buffer(value _port, value _frame_count)
 
 CAMLprim value caml_jack_port_unregister(value _client, value _port)
 {
-  CAMLparam2(_client, _port);
   jack_port_unregister(Client_val(_client)->client, Port_val(_port));
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 /* --- jack_ringbuffer_t custom block --- */
@@ -239,55 +236,49 @@ CAMLprim value caml_jack_ringbuffer_mlock(value _ringbuffer)
 CAMLprim value caml_jack_ringbuffer_read(value _ringbuffer, value _buffer, value _offset,
                                          value _count)
 {
-  CAMLparam4(_ringbuffer, _buffer, _offset, _count);
   size_t bytes_read = jack_ringbuffer_read(Rb_val(_ringbuffer),
                                            (char *)Bytes_val(_buffer) + Int_val(_offset),
                                            (size_t)Int_val(_count));
-  CAMLreturn(Val_int(bytes_read));
+  return Val_int(bytes_read);
 }
 
 CAMLprim value caml_jack_ringbuffer_read_space(value _ringbuffer)
 {
-  CAMLparam1(_ringbuffer);
-  CAMLreturn(Val_int(jack_ringbuffer_read_space(Rb_val(_ringbuffer))));
+  return Val_int(jack_ringbuffer_read_space(Rb_val(_ringbuffer)));
 }
 
 CAMLprim value caml_jack_ringbuffer_write(value _ringbuffer, value _buffer, value _offset,
                                           value _count)
 {
-  CAMLparam4(_ringbuffer, _buffer, _offset, _count);
   size_t bytes_written = jack_ringbuffer_write(Rb_val(_ringbuffer),
                                                (const char *)Bytes_val(_buffer) + Int_val(_offset),
                                                (size_t)Int_val(_count));
-  CAMLreturn(Val_int(bytes_written));
+  return Val_int(bytes_written);
 }
 
 CAMLprim value caml_jack_ringbuffer_write_space(value _ringbuffer)
 {
-  CAMLparam1(_ringbuffer);
-  CAMLreturn(Val_int(jack_ringbuffer_write_space(Rb_val(_ringbuffer))));
+  return Val_int(jack_ringbuffer_write_space(Rb_val(_ringbuffer)));
 }
 
 /* Read from ringbuffer into a float32 Bigarray. Offsets and count in samples. */
 CAMLprim value caml_jack_ringbuffer_read_ba(value _ringbuffer, value _bigarray, value _offset,
                                             value _count)
 {
-  CAMLparam4(_ringbuffer, _bigarray, _offset, _count);
   float *destination = (float *)Caml_ba_data_val(_bigarray) + Int_val(_offset);
   size_t byte_count = (size_t)Int_val(_count) * sizeof(float);
   size_t bytes_read = jack_ringbuffer_read(Rb_val(_ringbuffer), (char *)destination, byte_count);
-  CAMLreturn(Val_int((int)(bytes_read / sizeof(float))));
+  return Val_int((int)(bytes_read / sizeof(float)));
 }
 
 /* Write from a float32 Bigarray into ringbuffer. Offsets and count in samples. */
 CAMLprim value caml_jack_ringbuffer_write_ba(value _ringbuffer, value _bigarray, value _offset,
                                              value _count)
 {
-  CAMLparam4(_ringbuffer, _bigarray, _offset, _count);
   const float *source = (const float *)Caml_ba_data_val(_bigarray) + Int_val(_offset);
   size_t byte_count = (size_t)Int_val(_count) * sizeof(float);
   size_t bytes_written = jack_ringbuffer_write(Rb_val(_ringbuffer), (const char *)source, byte_count);
-  CAMLreturn(Val_int((int)(bytes_written / sizeof(float))));
+  return Val_int((int)(bytes_written / sizeof(float)));
 }
 
 /* Read from the ringbuffer into a float64 OCaml array, converting from float32.
@@ -295,7 +286,6 @@ CAMLprim value caml_jack_ringbuffer_write_ba(value _ringbuffer, value _bigarray,
 CAMLprim value caml_jack_ringbuffer_read_array(value _ringbuffer, value _array,
                                                value _offset, value _count)
 {
-  CAMLparam4(_ringbuffer, _array, _offset, _count);
   jack_ringbuffer_t *ringbuffer = Rb_val(_ringbuffer);
   int offset = Int_val(_offset);
   int count = Int_val(_count);
@@ -318,7 +308,7 @@ CAMLprim value caml_jack_ringbuffer_read_array(value _ringbuffer, value _array,
     Store_double_field(_array, offset + i, (double)second_segment_source[i - first_segment_available]);
 
   jack_ringbuffer_read_advance(ringbuffer, (size_t)to_read * sizeof(float));
-  CAMLreturn(Val_int(to_read));
+  return Val_int(to_read);
 }
 
 /* Write from a float64 OCaml array into the ringbuffer, converting to float32.
@@ -326,7 +316,6 @@ CAMLprim value caml_jack_ringbuffer_read_array(value _ringbuffer, value _array,
 CAMLprim value caml_jack_ringbuffer_write_array(value _ringbuffer, value _array,
                                                 value _offset, value _count)
 {
-  CAMLparam4(_ringbuffer, _array, _offset, _count);
   jack_ringbuffer_t *ringbuffer = Rb_val(_ringbuffer);
   int offset = Int_val(_offset);
   int count = Int_val(_count);
@@ -349,21 +338,19 @@ CAMLprim value caml_jack_ringbuffer_write_array(value _ringbuffer, value _array,
     second_segment_dest[i - first_segment_space] = (float)Double_field(_array, offset + i);
 
   jack_ringbuffer_write_advance(ringbuffer, (size_t)to_write * sizeof(float));
-  CAMLreturn(Val_int(to_write));
+  return Val_int(to_write);
 }
 
 CAMLprim value caml_jack_ringbuffer_read_advance(value _ringbuffer, value _count)
 {
-  CAMLparam2(_ringbuffer, _count);
   jack_ringbuffer_read_advance(Rb_val(_ringbuffer), (size_t)Int_val(_count));
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_jack_port_connect(value _client, value _source_port, value _destination_port)
 {
-  CAMLparam3(_client, _source_port, _destination_port);
   jack_connect(Client_val(_client)->client, String_val(_source_port), String_val(_destination_port));
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 /* --- Semaphore custom block --- */
@@ -420,9 +407,8 @@ CAMLprim value caml_jack_sem_create(value _unit)
 
 CAMLprim value caml_jack_sem_post(value _sem_block)
 {
-  CAMLparam1(_sem_block);
   jack_sem_post_fn(Sem_val(_sem_block));
-  CAMLreturn(Val_unit);
+  return Val_unit;
 }
 
 CAMLprim value caml_jack_sem_wait(value _sem_block)

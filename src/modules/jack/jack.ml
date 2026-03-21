@@ -40,8 +40,12 @@ let client_open name options =
   _client_open name flags server
 
 external client_close : client -> unit = "caml_jack_client_close"
+
 external get_sample_rate : client -> int = "caml_jack_get_sample_rate"
+[@@noalloc]
+
 external get_buffer_size : client -> int = "caml_jack_get_buffer_size"
+[@@noalloc]
 
 type port_flag =
   [ `IsInput | `IsOutput | `IsPhysical | `CanMonitor | `IsTerminal ]
@@ -71,35 +75,48 @@ module Ringbuffer = struct
 
   external create : int -> t = "caml_jack_ringbuffer_create"
   external mlock : t -> unit = "caml_jack_ringbuffer_mlock"
+
   external read : t -> bytes -> int -> int -> int = "caml_jack_ringbuffer_read"
-  external read_space : t -> int = "caml_jack_ringbuffer_read_space"
+  [@@noalloc]
+
+  external read_space : t -> int = "caml_jack_ringbuffer_read_space" [@@noalloc]
 
   external write : t -> bytes -> int -> int -> int
     = "caml_jack_ringbuffer_write"
+  [@@noalloc]
 
   external write_space : t -> int = "caml_jack_ringbuffer_write_space"
+  [@@noalloc]
 
   external read_to_ba : t -> buffer -> int -> int -> int
     = "caml_jack_ringbuffer_read_ba"
+  [@@noalloc]
 
   external read_to_buffer : t -> float array -> int -> int -> int
     = "caml_jack_ringbuffer_read_array"
+  [@@noalloc]
 
   external write_from_ba : t -> buffer -> int -> int -> int
     = "caml_jack_ringbuffer_write_ba"
+  [@@noalloc]
 
   external write_from_buffer : t -> float array -> int -> int -> int
     = "caml_jack_ringbuffer_write_array"
+  [@@noalloc]
 
   external read_advance : t -> int -> unit = "caml_jack_ringbuffer_read_advance"
+  [@@noalloc]
 end
 
 external activate : client -> unit = "caml_jack_activate"
 external port_get_buffer : port -> int -> buffer = "caml_jack_port_get_buffer"
+
 external port_unregister : client -> port -> unit = "caml_jack_port_unregister"
+[@@noalloc]
 
 external port_connect : client -> string -> string -> unit
   = "caml_jack_port_connect"
+[@@noalloc]
 
 module Wait = struct
   type posix_sem
@@ -109,7 +126,10 @@ module Wait = struct
     | Cond of { m : Mutex.t; c : Condition.t; triggered : bool Atomic.t }
 
   external posix_sem_create : unit -> posix_sem = "caml_jack_sem_create"
+
   external posix_sem_signal : posix_sem -> unit = "caml_jack_sem_post"
+  [@@noalloc]
+
   external posix_sem_wait : posix_sem -> unit = "caml_jack_sem_wait"
 
   let create () =
