@@ -21,6 +21,11 @@
  *****************************************************************************)
 
 let log = Log.make ["jack"]
+let stopped = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"jack" (fun () ->
+      Atomic.set stopped true)
 
 module SyncSource = Clock.MkSyncSource (struct
   type t = < id : string ; time_implementation : Liq_time.implementation >
@@ -335,7 +340,7 @@ class input ~server ~autostart =
               min n n')
             nframes ports
         in
-        if n < nframes then
+        if n < nframes && not (Atomic.get stopped) then
           self#log#important "input overrun: %.3fs"
             (float (nframes - n) /. float self#jack_client#sample_rate))
 
@@ -422,7 +427,7 @@ class output ~server ~infallible ~register_telnet source =
                   min n n')
                 nframes ports
             in
-            if n < nframes then
+            if n < nframes && not (Atomic.get stopped) then
               self#log#important "output underrun: %.3fs"
                 (float (nframes - n) /. float self#jack_client#sample_rate)
         | _ ->
