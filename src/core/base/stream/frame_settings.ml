@@ -262,12 +262,12 @@ let size =
       try
         let size = main_of_audio conf_audio_size#get in
         log#important
-          "Targeting 'frame.audio.size': %d audio samples = %d ticks = %.2fs."
+          "Targeting 'frame.audio.size': %d audio samples = %d ticks = %.3gs."
           conf_audio_size#get size (seconds_of_main size);
         size
       with Conf.Undefined _ ->
         let size = main_of_seconds conf_duration#get in
-        log#important "Targeting 'frame.duration': %.2fs = %d ticks."
+        log#important "Targeting 'frame.duration': %.3gs = %d ticks."
           conf_duration#get size;
         size)
 
