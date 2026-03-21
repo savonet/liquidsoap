@@ -440,8 +440,6 @@ class output ~server ~infallible ~register_telnet source =
     method private process_callback nframes =
       match self#state with
         | `Started ->
-            if Array.exists (fun port -> port#read_space < nframes) ports then
-              self#feed_ringbuffer;
             let n =
               Array.fold_left
                 (fun n port ->
@@ -469,7 +467,14 @@ class output ~server ~infallible ~register_telnet source =
 
     method send_frame frame =
       Generator.append self#buffer frame;
-      self#feed_ringbuffer
+      self#feed_ringbuffer;
+      (* Busy-wait to drain any remaining buffer data into the ringbuffer.
+         This is only expected to spin for a few samples when a Liquidsoap
+         frame does not align exactly with the available ringbuffer space. *)
+      while Generator.length self#buffer > 0 do
+        Domain.cpu_relax ();
+        self#feed_ringbuffer
+      done
   end
 
 let jack_proto =
