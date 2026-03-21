@@ -81,3 +81,15 @@ val activate : client -> unit
 val port_get_buffer : port -> int -> buffer
 val port_unregister : client -> port -> unit
 val port_connect : client -> string -> string -> unit
+
+(** Lightweight one-shot thread synchronization. Backed by a POSIX semaphore on
+    Unix/macOS (via GCD dispatch semaphores on macOS) and a mutex+condition
+    variable on Windows. One thread calls [wait] to block; another calls
+    [signal] to unblock it. *)
+module Wait : sig
+  type t
+
+  val create : unit -> t
+  val signal : t -> unit
+  val wait : t -> unit
+end

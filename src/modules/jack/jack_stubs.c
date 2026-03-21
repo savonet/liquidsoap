@@ -365,3 +365,93 @@ CAMLprim value caml_jack_port_connect(value _client, value _source_port, value _
   jack_connect(Client_val(_client)->client, String_val(_source_port), String_val(_destination_port));
   CAMLreturn(Val_unit);
 }
+
+/* --- Semaphore custom block --- */
+
+#ifndef _WIN32
+
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+typedef dispatch_semaphore_t jack_sem_t;
+static void jack_sem_init_fn(jack_sem_t *s) { *s = dispatch_semaphore_create(0); }
+static void jack_sem_post_fn(jack_sem_t *s) { dispatch_semaphore_signal(*s); }
+static void jack_sem_wait_fn(jack_sem_t *s) { dispatch_semaphore_wait(*s, DISPATCH_TIME_FOREVER); }
+static void jack_sem_destroy_fn(jack_sem_t *s) { dispatch_release(*s); }
+#else
+#include <semaphore.h>
+typedef sem_t jack_sem_t;
+static void jack_sem_init_fn(jack_sem_t *s) { sem_init(s, 0, 0); }
+static void jack_sem_post_fn(jack_sem_t *s) { sem_post(s); }
+static void jack_sem_wait_fn(jack_sem_t *s) { sem_wait(s); }
+static void jack_sem_destroy_fn(jack_sem_t *s) { sem_destroy(s); }
+#endif
+
+#define Sem_val(v) (*((jack_sem_t **)Data_custom_val(v)))
+
+static void sem_block_finalize(value _sem_block)
+{
+  jack_sem_t *semaphore = Sem_val(_sem_block);
+  jack_sem_destroy_fn(semaphore);
+  free(semaphore);
+}
+
+static struct custom_operations sem_ops = {
+  "liquidsoap_jack_sem",
+  sem_block_finalize,
+  custom_compare_default,
+  custom_hash_default,
+  custom_serialize_default,
+  custom_deserialize_default,
+  custom_compare_ext_default,
+  custom_fixed_length_default
+};
+
+CAMLprim value caml_jack_sem_create(value _unit)
+{
+  CAMLparam1(_unit);
+  CAMLlocal1(_sem_block);
+  jack_sem_t *semaphore = malloc(sizeof(jack_sem_t));
+  if (!semaphore) caml_failwith("jack_sem_create: out of memory");
+  jack_sem_init_fn(semaphore);
+  _sem_block = caml_alloc_custom(&sem_ops, sizeof(jack_sem_t *), 0, 1);
+  Sem_val(_sem_block) = semaphore;
+  CAMLreturn(_sem_block);
+}
+
+CAMLprim value caml_jack_sem_post(value _sem_block)
+{
+  CAMLparam1(_sem_block);
+  jack_sem_post_fn(Sem_val(_sem_block));
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value caml_jack_sem_wait(value _sem_block)
+{
+  CAMLparam1(_sem_block);
+  caml_release_runtime_system();
+  jack_sem_wait_fn(Sem_val(_sem_block));
+  caml_acquire_runtime_system();
+  CAMLreturn(Val_unit);
+}
+
+#else /* _WIN32 */
+
+CAMLprim value caml_jack_sem_create(value _unit)
+{
+  (void)_unit;
+  caml_failwith("jack_sem_create: not supported on Windows");
+}
+
+CAMLprim value caml_jack_sem_post(value _sem_block)
+{
+  (void)_sem_block;
+  caml_failwith("jack_sem_post: not supported on Windows");
+}
+
+CAMLprim value caml_jack_sem_wait(value _sem_block)
+{
+  (void)_sem_block;
+  caml_failwith("jack_sem_wait: not supported on Windows");
+}
+
+#endif /* _WIN32 */

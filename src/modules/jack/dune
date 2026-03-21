@@ -1,6 +1,7 @@
 (library
  (name jack)
  (public_name jack)
+ (libraries threads.posix)
  (c_library_flags
   (:include ./config/jack_libs.sexp))
  (enabled_if

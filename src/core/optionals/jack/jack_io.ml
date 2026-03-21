@@ -71,8 +71,10 @@ class jack_port ~(unregister : unit -> unit) ~sample_rate (port : Jack.port) =
 class jack_client (server : string option) =
   let liq_rate = Lazy.force Frame.audio_rate in
   let time_elapsed = Atomic.make 0. in
-  let sleep_m = Mutex.create () in
-  let sleep_cond = Condition.create () in
+  let sleep_target = Atomic.make Float.infinity in
+  let drift_ema = Atomic.make 0. in
+  let ema_alpha = 0.1 in
+  let waiter = Jack.Wait.create () in
   object (self)
     val users_count = Atomic.make 0
     val mutable client : Jack.client option = None
@@ -91,12 +93,14 @@ class jack_client (server : string option) =
         let time () = Time.of_float (Atomic.get time_elapsed)
 
         let sleep_until target =
-          let target = Time.to_float target in
-          Mutex.lock sleep_m;
-          while Atomic.get time_elapsed < target do
-            Condition.wait sleep_cond sleep_m
-          done;
-          Mutex.unlock sleep_m
+          let target_f = Time.to_float target in
+          let corrected = target_f -. Atomic.get drift_ema in
+          Atomic.set sleep_target corrected;
+          Jack.Wait.wait waiter;
+          let actual = Atomic.get time_elapsed in
+          let drift = actual -. target_f in
+          let prev = Atomic.get drift_ema in
+          Atomic.set drift_ema (prev +. (ema_alpha *. (drift -. prev)))
       end)
 
     method time_implementation = time_implementation
@@ -145,6 +149,8 @@ class jack_client (server : string option) =
 
     method open_client =
       Atomic.set time_elapsed 0.;
+      Atomic.set sleep_target Float.infinity;
+      Atomic.set drift_ema 0.;
       let options =
         `NoStartServer
         :: Option.fold ~none:[] ~some:(fun s -> [`ServerName s]) server
@@ -158,15 +164,19 @@ class jack_client (server : string option) =
           liq_rate;
       sample_rate <- r;
       buffer_size <- Jack.get_buffer_size c;
-      let rec loop dt =
+      let rec advance dt =
         let cur = Atomic.get time_elapsed in
         if not (Atomic.compare_and_set time_elapsed cur (cur +. dt)) then
-          loop dt
+          advance dt
       in
       Jack.set_process_callback c (fun nframes ->
-          if sample_rate > 0 then loop (float nframes /. float sample_rate);
+          if sample_rate > 0 then advance (float nframes /. float sample_rate);
           List.iter (fun cb -> cb nframes) (Atomic.get process_handlers);
-          Condition.broadcast sleep_cond)
+          let target = Atomic.get sleep_target in
+          if Atomic.get time_elapsed >= target then begin
+            Atomic.set sleep_target Float.infinity;
+            Jack.Wait.signal waiter
+          end)
 
     method activate =
       if not activated then (

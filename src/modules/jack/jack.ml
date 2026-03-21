@@ -100,3 +100,43 @@ external port_unregister : client -> port -> unit = "caml_jack_port_unregister"
 
 external port_connect : client -> string -> string -> unit
   = "caml_jack_port_connect"
+
+module Wait = struct
+  type posix_sem
+
+  type t =
+    | Posix of posix_sem
+    | Cond of { m : Mutex.t; c : Condition.t; triggered : bool Atomic.t }
+
+  external posix_sem_create : unit -> posix_sem = "caml_jack_sem_create"
+  external posix_sem_signal : posix_sem -> unit = "caml_jack_sem_post"
+  external posix_sem_wait : posix_sem -> unit = "caml_jack_sem_wait"
+
+  let create () =
+    if Sys.win32 then
+      Cond
+        {
+          m = Mutex.create ();
+          c = Condition.create ();
+          triggered = Atomic.make false;
+        }
+    else Posix (posix_sem_create ())
+
+  let signal = function
+    | Posix s -> posix_sem_signal s
+    | Cond { m; c; triggered } ->
+        Mutex.lock m;
+        Atomic.set triggered true;
+        Condition.signal c;
+        Mutex.unlock m
+
+  let wait = function
+    | Posix s -> posix_sem_wait s
+    | Cond { m; c; triggered } ->
+        Mutex.lock m;
+        while not (Atomic.get triggered) do
+          Condition.wait c m
+        done;
+        Atomic.set triggered false;
+        Mutex.unlock m
+end
