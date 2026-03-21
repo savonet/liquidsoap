@@ -98,12 +98,14 @@ class jack_client (server : string option) =
         let time () = Time.of_float (Atomic.get time_elapsed)
 
         let sleep_until target =
+          if Atomic.get stopped then raise Clock.Has_stopped;
           let target_f = Time.to_float target in
           let corrected = target_f -. Atomic.get drift_ema in
           if Atomic.get time_elapsed < corrected then begin
             Atomic.set sleep_target corrected;
             Jack.Wait.wait waiter
           end;
+          if Atomic.get stopped then raise Clock.Has_stopped;
           let actual = Atomic.get time_elapsed in
           let drift = actual -. target_f in
           let prev = Atomic.get drift_ema in
@@ -180,7 +182,7 @@ class jack_client (server : string option) =
           if sample_rate > 0 then advance (float nframes /. float sample_rate);
           List.iter (fun cb -> cb nframes) (Atomic.get process_handlers);
           let target = Atomic.get sleep_target in
-          if Atomic.get time_elapsed >= target then begin
+          if Atomic.get stopped || Atomic.get time_elapsed >= target then begin
             Atomic.set sleep_target Float.infinity;
             Jack.Wait.signal waiter
           end)
@@ -291,9 +293,19 @@ class virtual jack_base ~server () =
     method private start =
       let frame_duration = Lazy.force Frame.duration in
       let jack_client = self#jack_client in
-      let n =
+      let n_samples =
         int_of_float (frame_duration *. float jack_client#sample_rate)
-        + jack_client#buffer_size
+      in
+      (* Add one JACK buffer of padding to cover reads and writes that land in
+         the middle of a JACK buffer. This can be skipped when the sample rates
+         match and the frame size is already an exact multiple of the JACK
+         buffer — there is no mid-buffer misalignment in that case. *)
+      let aligned =
+        jack_client#sample_rate = samples_per_second
+        && n_samples mod jack_client#buffer_size = 0
+      in
+      let n =
+        if aligned then n_samples else n_samples + jack_client#buffer_size
       in
       let silence = Array.make n 0. in
       Array.iter (fun p -> ignore (p#write_from_buffer silence 0 n)) ports

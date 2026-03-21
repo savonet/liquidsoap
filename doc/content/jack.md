@@ -37,7 +37,7 @@ Liquidsoap wakes up exactly when JACK needs data — not on a CPU timer. It
 blocks until the next JACK callback fires, produces one Liquidsoap frame of
 audio, and goes back to sleep. No busy-waiting, no drift.
 
-Liquidsoap's own frame duration (default ~100 ms, set via
+Liquidsoap's own frame duration (default ~200 ms, set via
 `settings.frame.duration`) determines how much audio it produces per tick.
 With the default, Liquidsoap produces several JACK buffer-lengths of audio at
 once; they are queued in an internal ringbuffer and consumed by JACK one block
@@ -146,20 +146,45 @@ Use `buffer()` to safely move audio between the JACK clock domain and another:
 
 ```
 
-## Advanced: matching frame size to JACK's buffer
+## Advanced: minimizing latency
 
 > **Note**: This section is for setups specifically tuned for minimum latency.
 > It is _not_ recommended for general use.
 
-On a well-configured system (real-time kernel, `jackd -R`, ample CPU
-headroom), you can set Liquidsoap's frame duration equal to JACK's buffer
-size. This makes Liquidsoap produce exactly one JACK buffer per tick, reducing
-end-to-end latency to a single buffer length (e.g. ~5 ms at 44100 Hz with a
-256-sample buffer).
+End-to-end latency between Liquidsoap and JACK depends on how well the two
+frame sizes and sample rates align. There are three levels of tuning, in
+increasing order of aggressiveness.
 
-On an underpowered or misconfigured machine this will cause frequent
-underruns. Start with the default frame size and only tune this if you have a
-specific latency target and a stable system.
+### Step 1 — match sample rates
+
+Configure Liquidsoap's audio sample rate to match JACK's. Mismatched rates
+force resampling on every buffer, adding CPU overhead and latency:
+
+```liquidsoap
+settings.frame.audio.samplerate := jack.server.sample_rate()
+```
+
+### Step 2 — make Liquidsoap's frame a multiple of the JACK buffer
+
+Liquidsoap produces audio in fixed-size frames (default ~200 ms). Setting the
+frame duration so that the resulting sample count is an exact multiple of the
+JACK buffer size keeps reads and writes aligned to buffer boundaries, avoiding
+timing slop at the edges:
+
+```liquidsoap
+# Example: 4× the JACK buffer
+settings.frame.duration :=
+  4. *. float_of_int(jack.server.buffer_size()) /.
+    float_of_int(jack.server.sample_rate())
+```
+
+### Step 3 — match exactly one JACK buffer (adventurous users only)
+
+On a well-configured system (real-time kernel, `jackd -R`, ample CPU
+headroom) you can go further and set Liquidsoap's frame duration equal to
+exactly one JACK buffer. Liquidsoap then produces audio one JACK buffer at a
+time, reducing end-to-end latency to a single buffer length (e.g. ~5 ms at
+44100 Hz with a 256-sample buffer):
 
 ```{.liquidsoap include="jack-low-latency.liq"}
 
@@ -167,3 +192,7 @@ specific latency target and a stable system.
 
 `video.frame.rate := 0` disables the video frame rate constraint so that the
 frame duration is determined solely by the audio calculation above.
+
+On an underpowered or misconfigured machine this will cause frequent
+underruns. Use the default frame size unless you have a specific latency
+target and a stable, well-tuned system.
