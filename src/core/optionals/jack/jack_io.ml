@@ -100,8 +100,10 @@ class jack_client (server : string option) =
         let sleep_until target =
           let target_f = Time.to_float target in
           let corrected = target_f -. Atomic.get drift_ema in
-          Atomic.set sleep_target corrected;
-          Jack.Wait.wait waiter;
+          if Atomic.get time_elapsed < corrected then begin
+            Atomic.set sleep_target corrected;
+            Jack.Wait.wait waiter
+          end;
           let actual = Atomic.get time_elapsed in
           let drift = actual -. target_f in
           let prev = Atomic.get drift_ema in
@@ -348,8 +350,7 @@ class input ~server ~autostart =
       Array.init self#audio_channels (fun i ->
           entry#register_port (Printf.sprintf "%s_%d" self#id i) [`IsInput])
 
-    method private generate_frame =
-      let frame_size = Lazy.force Frame.size in
+    method private drain_ringbuffer =
       let audio =
         Array.init self#audio_channels (fun ch ->
             let available = ports.(ch)#read_space in
@@ -366,20 +367,33 @@ class input ~server ~autostart =
           (Array.length audio.(0))
           audio
       in
-      let audio =
-        Array.map
-          (fun arr ->
-            let n = Array.length arr in
-            if n < len then Array.append arr (Array.make (len - n) 0.) else arr)
-          audio
-      in
-      let audio, ofs, len = self#resample_from_jack audio len in
-      let content =
-        Content.Audio.lift_data
-          (Array.init self#audio_channels (fun ch ->
-               Array.sub audio.(ch) ofs len))
-      in
-      Generator.put self#buffer Frame.Fields.audio content;
+      if len > 0 then begin
+        let audio =
+          Array.map
+            (fun arr ->
+              let n = Array.length arr in
+              if n < len then Array.append arr (Array.make (len - n) 0.)
+              else arr)
+            audio
+        in
+        let audio, ofs, len = self#resample_from_jack audio len in
+        let content =
+          Content.Audio.lift_data
+            (Array.init self#audio_channels (fun ch ->
+                 Array.sub audio.(ch) ofs len))
+        in
+        Generator.put self#buffer Frame.Fields.audio content
+      end
+
+    method private generate_frame =
+      let frame_size = Lazy.force Frame.size in
+      self#drain_ringbuffer;
+      (* Busy-wait for a full frame — only expected to spin for a few samples
+         at most when the JACK callback hasn't fully filled the buffer yet. *)
+      while Generator.length self#buffer < frame_size do
+        Domain.cpu_relax ();
+        self#drain_ringbuffer
+      done;
       Generator.slice self#buffer frame_size
   end
 
