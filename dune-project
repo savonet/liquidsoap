@@ -1,5 +1,5 @@
-(lang dune 3.18)
-(using menhir 2.1)
+(lang dune 3.20)
+(using menhir 3.0)
 (using dune_site 0.1)
 (name liquidsoap)
 (source (github savonet/liquidsoap))
@@ -33,11 +33,12 @@
     magic-mime
     dune-build-info
     (liquidsoap-lang (= :version))
-    (ppx_string :build))
+    (ppx_string :build)
+    (dune-configurator :build))
   (depopts
     alsa
     ao
-    bjack
+    conf-jack
     camlimages
     ctypes-foreign
     dssi
@@ -80,7 +81,6 @@
  (conflicts
     (alsa (< 0.3.0))
     (ao (< 0.2.0))
-    (bjack (< 0.1.3))
     (camomile (< 1.0.0))
     (dssi (< 0.1.3))
     (faad (< 0.5.0))
@@ -181,4 +181,10 @@
    (allow_empty)
    (depends tsdl (tsdl-image (>= 0.3.2)) tsdl-ttf)
    (synopsis "Virtual package installing liquidsoap dependencies for SDL optional features")
+)
+
+(package
+   (name jack)
+   (depends (ocaml (>= 4.14)) conf-jack)
+   (synopsis "Bindings for the Jack library which provides functions for linking audio programs")
 )

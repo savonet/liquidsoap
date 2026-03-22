@@ -1,0 +1,12 @@
+(library
+ (name jack)
+ (public_name jack)
+ (libraries threads.posix)
+ (c_library_flags
+  (:include ./config/jack_libs.sexp))
+ (enabled_if
+  (= %{read:./config/jack_available.sexp} "true"))
+ (modules jack)
+ (foreign_stubs
+  (language c)
+  (names jack_stubs)))

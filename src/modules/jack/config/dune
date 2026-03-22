@@ -1,0 +1,17 @@
+(rule
+ (targets jack_available.sexp)
+ (action
+  (run
+   %{workspace_root}/src/modules/external_config/discover.exe
+   detect
+   jack
+   jack_available.sexp)))
+
+(rule
+ (targets jack_libs.sexp)
+ (action
+  (run
+   %{workspace_root}/src/modules/external_config/discover.exe
+   generate
+   jack
+   jack_libs.sexp)))
