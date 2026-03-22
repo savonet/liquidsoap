@@ -7,7 +7,7 @@ FFmpeg provides subtitle support including encoding, decoding from media contain
 Subtitles can be decoded from media files using `input.ffmpeg`:
 
 ```liquidsoap
-let {video, subtitle} = source.tracks(
+let {video, subtitles} = source.tracks(
   input.ffmpeg("input.mkv")
 )
 ```
@@ -130,16 +130,16 @@ output.file(
 
 ```liquidsoap
 # Raw subtitle stream for copy
-let {subtitle = sub_copy} = source.tracks(
+let {subtitles = sub_copy} = source.tracks(
   input.ffmpeg(self_sync=true, "input.mkv")
 )
 
 # Decoded subtitle for encoding
-let {subtitle = sub_encode} = source.tracks(
+let {subtitles = sub_encode} = source.tracks(
   (single("additional.srt"):source(audio=none,video=none))
 )
 
-s = source({video=video, subtitle=sub_copy, subtitle_2=sub_encode})
+s = source({video=video, subtitles=sub_copy, subtitles_2=sub_encode})
 
 output.file(
   %ffmpeg(
@@ -157,14 +157,14 @@ output.file(
 Text-based subtitles from a media file can be decoded and re-encoded to a different format:
 
 ```liquidsoap
-let {video, subtitle} = source.tracks(
+let {video, subtitles} = source.tracks(
   input.ffmpeg("input.mkv")
 )
 
 output.file(
   %ffmpeg(format="matroska", %video.copy, %subtitle(codec="ass")),
   "output.mkv",
-  source({video=video, subtitle=subtitle})
+  source({video=video, subtitles=subtitles})
 )
 ```
 
