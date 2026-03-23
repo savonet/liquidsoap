@@ -107,7 +107,8 @@ val set_stack : t -> Liquidsoap_lang.Pos.t list -> unit
 val self_sync : t -> bool
 val time : t -> float
 val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
-val create_sub_clock : ?controller:controller -> id:string -> t -> t
+val register_sub_clock : t -> t -> unit
+val deregister_sub_clock : t -> t -> unit
 val attach : t -> source -> unit
 val detach : t -> source -> unit
 val activate_pending_sources : t -> unit
