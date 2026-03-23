@@ -74,8 +74,11 @@ class virtual base ~check_self_sync children_val =
       List.iter
         (fun (_, s) -> Clock.unify ~pos:self#pos self#child_clock s#clock)
         children;
+      (* We need an early registration for sources such as source.dynamic. *)
       Clock.register_sub_clock self#clock self#child_clock;
       self#on_wake_up (fun () ->
+          (* This is idenpotent so it's okay to do it twice the first time. *)
+          Clock.register_sub_clock self#clock self#child_clock;
           children <-
             List.map
               (fun (a, s) ->
