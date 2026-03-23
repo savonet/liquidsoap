@@ -53,8 +53,8 @@ class virtual base ~check_self_sync children_val =
     initializer
       child_clock <-
         Some
-          (Clock.create_sub_clock ?controller:self#child_clock_controller
-             ~id:(Clock.id self#clock) self#clock);
+          (Clock.create ?controller:self#child_clock_controller ~sync:`Passive
+             ~id:(Clock.id self#clock) ());
 
       self#on_before_streaming_cycle (fun () ->
           if not (Clock.started self#child_clock) then
@@ -74,7 +74,11 @@ class virtual base ~check_self_sync children_val =
       List.iter
         (fun (_, s) -> Clock.unify ~pos:self#pos self#child_clock s#clock)
         children;
+      (* We need an early registration for sources such as source.dynamic. *)
+      Clock.register_sub_clock self#clock self#child_clock;
       self#on_wake_up (fun () ->
+          (* This is idenpotent so it's okay to do it twice the first time. *)
+          Clock.register_sub_clock self#clock self#child_clock;
           children <-
             List.map
               (fun (a, s) ->
@@ -82,6 +86,7 @@ class virtual base ~check_self_sync children_val =
                 (Some (s#wake_up (self :> Clock.source)), s))
               children);
       self#on_sleep (fun () ->
+          Clock.deregister_sub_clock self#clock self#child_clock;
           children <-
             List.map
               (fun (a, s) ->

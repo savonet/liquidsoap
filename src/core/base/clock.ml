@@ -794,14 +794,14 @@ let tick clock = _tick ~clock:(Unifier.deref clock) (active_params clock)
 let set_stack c stack =
   ignore (Atomic.compare_and_set (Unifier.deref c).stack [] stack)
 
-let create_sub_clock ?controller ~id clock =
-  let controller = Option.value ~default:(`Clock clock) controller in
-  let _clock = Unifier.deref clock in
-  let sub_clock =
-    create ~stack:(Atomic.get _clock.stack) ~id ~controller ~sync:`Passive ()
-  in
-  Queue.push _clock.sub_clocks sub_clock;
-  sub_clock
+let register_sub_clock parent sub =
+  let _sub = Unifier.deref sub in
+  let sub_clocks = (Unifier.deref parent).sub_clocks in
+  if not (Queue.exists sub_clocks (fun c -> Unifier.deref c == _sub)) then
+    Queue.push sub_clocks sub
+
+let deregister_sub_clock parent sub =
+  Queue.filter_out (Unifier.deref parent).sub_clocks (fun c -> c == sub)
 
 let create ?stack ?controller ?on_error ?id ?sync () =
   create ?stack ?controller ?on_error ?id ?sync ()
