@@ -396,8 +396,12 @@ let _self_sync ~clock x =
          });
   let is_self_sync = List.length self_sync_sources = 1 in
   if x.is_self_sync <> is_self_sync && x.sync = `Automatic then (
-    x.log#important "Switching to %sself-sync mode"
-      (if is_self_sync then "" else "non ");
+    x.log#important "Switching to %sself-sync mode%s"
+      (if is_self_sync then "" else "non ")
+      (if is_self_sync then
+         Printf.sprintf " with sync source: %s"
+           (string_of_sync_source (List.hd self_sync_sources).sync_source)
+       else "");
     x.is_self_sync <- is_self_sync);
   is_self_sync
 
