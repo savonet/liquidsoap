@@ -998,7 +998,8 @@ let _ =
       in
       let input_clock =
         Clock.create ~sync:`Passive ~id:(id ^ ".input")
-          ~controller:(`Other ("ffmpeg filter graph", controller)) ()
+          ~controller:(`Other ("ffmpeg filter graph", controller))
+          ()
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       unify_clocks ~clock:output_clock graph.graph_outputs;
