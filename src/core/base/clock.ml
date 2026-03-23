@@ -796,9 +796,15 @@ let set_stack c stack =
 
 let register_sub_clock parent sub =
   let _sub = Unifier.deref sub in
-  if _sync _sub <> `Passive then
-    failwith
-      (Printf.sprintf "register_sub_clock: clock %s must be passive" (_id _sub));
+  (match Atomic.get _sub.state with
+    | `Stopped _ -> Atomic.set _sub.state (`Stopped `Passive)
+    | _ when _sync _sub = `Passive -> ()
+    | _ ->
+        failwith
+          (Printf.sprintf
+             "register_sub_clock: clock %s must be passive but has sync mode %s"
+             (_id _sub)
+             (string_of_sync_mode (_sync _sub))));
   (match Unifier.deref _sub.controller with
     | `Clock c when not (Unifier.deref c == Unifier.deref parent) ->
         failwith
