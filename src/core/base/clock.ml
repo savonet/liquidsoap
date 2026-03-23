@@ -796,24 +796,6 @@ let set_stack c stack =
 
 let register_sub_clock parent sub =
   let _sub = Unifier.deref sub in
-  (match Atomic.get _sub.state with
-    | `Stopped _ -> Atomic.set _sub.state (`Stopped `Passive)
-    | _ when _sync _sub = `Passive -> ()
-    | _ ->
-        failwith
-          (Printf.sprintf
-             "register_sub_clock: clock %s must be passive but has sync mode %s"
-             (_id _sub)
-             (string_of_sync_mode (_sync _sub))));
-  (match Unifier.deref _sub.controller with
-    | `Clock c when not (Unifier.deref c == Unifier.deref parent) ->
-        failwith
-          (Printf.sprintf
-             "register_sub_clock: clock %s already belongs to clock %s"
-             (_id _sub)
-             (_id (Unifier.deref c)))
-    | `None -> Unifier.set _sub.controller (`Clock parent)
-    | _ -> ());
   let sub_clocks = (Unifier.deref parent).sub_clocks in
   if not (Queue.exists sub_clocks (fun c -> Unifier.deref c == _sub)) then
     Queue.push sub_clocks sub
