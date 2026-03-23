@@ -1,0 +1,3 @@
+(library
+ (name datachannel_constants)
+ (libraries ctypes.stubs))
