@@ -1003,12 +1003,10 @@ let _ =
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       unify_clocks ~clock:output_clock graph.graph_outputs;
+      Clock.register_sub_clock output_clock input_clock;
       let active_outputs = Atomic.make 0 in
       Queue.iter graph.graph_outputs (fun s ->
-          s#on_wake_up (fun () ->
-              if Atomic.get active_outputs = 0 then
-                Clock.register_sub_clock output_clock input_clock;
-              Atomic.incr active_outputs);
+          s#on_wake_up (fun () -> Atomic.incr active_outputs);
           s#on_sleep (fun () ->
               Atomic.decr active_outputs;
               if Atomic.get active_outputs = 0 then

@@ -814,7 +814,9 @@ let register_sub_clock parent sub =
              (_id (Unifier.deref c)))
     | `None -> Unifier.set _sub.controller (`Clock parent)
     | _ -> ());
-  Queue.push (Unifier.deref parent).sub_clocks sub
+  let sub_clocks = (Unifier.deref parent).sub_clocks in
+  if not (Queue.exists sub_clocks (fun c -> Unifier.deref c == _sub)) then
+    Queue.push sub_clocks sub
 
 let deregister_sub_clock parent sub =
   Queue.filter_out (Unifier.deref parent).sub_clocks (fun c -> c == sub)
