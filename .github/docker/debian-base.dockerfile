@@ -36,7 +36,7 @@ RUN \
     apt-get -y autoclean && \
     apt-get -y clean
 
-RUN adduser opam
+RUN useradd -m opam
 
 USER opam
 
