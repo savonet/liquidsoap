@@ -114,6 +114,8 @@ jobs:
           APK_RELEASE: 0
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          apk update
+          apk upgrade
           apk add alpine-sdk
           adduser opam abuild
           mkdir -p "${LIQ_TMP_DIR}"
