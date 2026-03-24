@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-(** Values and types of the liquidsoap language. *)
+(** Values and types of the liquidsoap language *)
 
 val log : Log.t
 
