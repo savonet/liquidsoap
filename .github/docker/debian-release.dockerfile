@@ -21,7 +21,10 @@ FROM debian:13-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# For ffmpeg with libfdk-aac
+# Enable non-free for libfdk-aac2t64 and add deb-multimedia
+RUN set -eux; \
+      sed -i 's/^Components: main$/Components: main non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources
+
 RUN --mount=type=bind,from=downloader,source=/downloads,target=/downloads \
     set -eux; \
       apt-get update; \
