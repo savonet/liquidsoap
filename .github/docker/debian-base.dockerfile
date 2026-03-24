@@ -20,8 +20,8 @@ RUN if [ "$OS" = "debian" ]; then \
       echo "deb http://deb.$OS.org/$OS $DISTRIBUTION non-free" >> /etc/apt/sources.list; \
     fi
 
-# We need an up-to date ffmpeg on bookworm
-RUN if [ "$DISTRIBUTION" = "forky" -o "$DISTRIBUTION" = "bookworm" ]; then \
+# We need an up-to date ffmpeg on all debian distributions
+RUN if [ "$OS" = "debian" ]; then \
       apt-get update && apt install -y ca-certificates && \
       echo "deb https://www.deb-multimedia.org $DISTRIBUTION main non-free" >> /etc/apt/sources.list && \
       apt-get update -oAcquire::AllowInsecureRepositories=true && \
