@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-debian-ci:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-24.04-32
     strategy:
       fail-fast: false
       matrix:
@@ -57,7 +57,7 @@ jobs:
           sbom: false
 
   build-alpine-ci:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-24.04-32
     strategy:
       fail-fast: false
       matrix:
