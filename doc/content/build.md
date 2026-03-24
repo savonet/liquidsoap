@@ -103,7 +103,14 @@ configuration. Here’s a brief overview of the relevant environment variables a
 - `LIQUIDSOAP_BUILD_TARGET`: Controls the runtime lookup paths for Liquidsoap components.
   - Set to `default`: Uses paths detected in the OPAM switch directory.
   - Set to `standalone`: Uses paths relative to the binary location, ideal for self-contained deployments.
-  - Set to `posix`: Configures paths to standard system directories.
+  - Set to `posix`: Configures paths to standard system directories. The following environment variables can be used to
+    override individual paths when using the `posix` target (defaults shown):
+    - `LIQUIDSOAP_RUN_DIR` (default: `/var/run/liquidsoap`): Runtime/PID file directory.
+    - `LIQUIDSOAP_LOG_DIR` (default: `/var/log/liquidsoap`): Log file directory.
+    - `LIQUIDSOAP_LIBS_DIR` (default: `/usr/share/liquidsoap/libs`): Liquidsoap standard library directory.
+    - `LIQUIDSOAP_BIN_DIR` (default: `/usr/share/liquidsoap/bin`): Liquidsoap binary scripts directory.
+    - `LIQUIDSOAP_CAMOMILE_DIR` (default: `/usr/share/liquidsoap/camomile`): Camomile charset data directory.
+    - `LIQUIDSOAP_CACHE_DIR` (default: `/var/cache/liquidsoap`): System cache directory.
 
 ## Compiling
 

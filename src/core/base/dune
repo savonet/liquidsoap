@@ -9,6 +9,36 @@
 (include_subdirs unqualified)
 
 (rule
+ (target liquidsoap_paths.posix.ml)
+ (action
+  (with-stdout-to
+   %{target}
+   (progn
+    (echo "type mode = [ `Default | `Standalone | `Posix ]\n\n")
+    (echo "let mode = `Posix\n")
+    (echo
+     "let rundir () = \"%{env:LIQUIDSOAP_RUN_DIR=/var/run/liquidsoap}\"\n")
+    (echo "let rundir_descr = rundir ()\n")
+    (echo
+     "let logdir () = \"%{env:LIQUIDSOAP_LOG_DIR=/var/log/liquidsoap}\"\n")
+    (echo "let logdir_descr = logdir ()\n")
+    (echo
+     "let liq_libs_dir () = \"%{env:LIQUIDSOAP_LIBS_DIR=/usr/share/liquidsoap/libs}\"\n")
+    (echo "let liq_libs_dir_descr = liq_libs_dir ()\n")
+    (echo
+     "let bin_dir () = \"%{env:LIQUIDSOAP_BIN_DIR=/usr/share/liquidsoap/bin}\"\n")
+    (echo "let bin_dir_descr = bin_dir ()\n")
+    (echo
+     "let camomile_dir () = \"%{env:LIQUIDSOAP_CAMOMILE_DIR=/usr/share/liquidsoap/camomile}\"\n")
+    (echo "let camomile_dir_descr = camomile_dir ()\n")
+    (echo "let user_cache_override () = None\n")
+    (echo "let user_cache_override_descr = \"$HOME/.cache/liquidsoap\"\n")
+    (echo
+     "let system_cache_override () = Some \"%{env:LIQUIDSOAP_CACHE_DIR=/var/cache/liquidsoap}\"\n")
+    (echo
+     "let system_cache_override_descr = \"%{env:LIQUIDSOAP_CACHE_DIR=/var/cache/liquidsoap}\"\n")))))
+
+(rule
  (target liquidsoap_paths.ml)
  (action
   (copy liquidsoap_paths.%{env:LIQUIDSOAP_BUILD_TARGET=default}.ml %{target})))
