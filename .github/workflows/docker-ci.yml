@@ -13,33 +13,48 @@ jobs:
         ocaml_version: ["4.14.2", "5.4.0"]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
+      - name: Compute build args
+        id: build_args
         env:
           BASE_IMAGE: ${{ matrix.base_image }}
           OCAML_VERSION: ${{ matrix.ocaml_version }}
         run: |
           TAG=$(echo ${BASE_IMAGE} | sed -e 's#/#_#g' -e 's#:#_#g')
-          BUILD_IMAGE=ghcr.io/savonet/liquidsoap:ci-${TAG}-${OCAML_VERSION}
-          OS=$(echo ${BASE_IMAGE} | cut -d':' -f 1)
+          echo "tag=ghcr.io/savonet/liquidsoap:ci-${TAG}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "os=$(echo ${BASE_IMAGE} | cut -d':' -f 1)" >> "${GITHUB_OUTPUT}"
+          echo "distribution=$(echo ${BASE_IMAGE} | cut -d':' -f 2)" >> "${GITHUB_OUTPUT}"
           DISTRIBUTION=$(echo ${BASE_IMAGE} | cut -d':' -f 2)
           if [ "${DISTRIBUTION}" = "focal" ]; then
-            EXTRA_PACKAGES="conf-srt.1"
+            echo "extra_packages=conf-srt.1" >> "${GITHUB_OUTPUT}"
           else
-            EXTRA_PACKAGES="conf-srt-gnutls"
+            echo "extra_packages=conf-srt-gnutls" >> "${GITHUB_OUTPUT}"
           fi
-          depot build -t ${BUILD_IMAGE} --platform linux/amd64,linux/arm64 --push \
-            --build-arg OCAML_VERSION \
-            --build-arg EXTRA_PACKAGES \
-            --build-arg BASE_IMAGE \
-            --build-arg OS \
-            --build-arg DISTRIBUTION \
-            -f .github/docker/debian-base.dockerfile .
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          build-args: |
+            OCAML_VERSION=${{ matrix.ocaml_version }}
+            EXTRA_PACKAGES=${{ steps.build_args.outputs.extra_packages }}
+            BASE_IMAGE=${{ matrix.base_image }}
+            OS=${{ steps.build_args.outputs.os }}
+            DISTRIBUTION=${{ steps.build_args.outputs.distribution }}
+          context: .
+          file: .github/docker/debian-base.dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.build_args.outputs.tag }}
+          push: true
+          provenance: false
+          sbom: false
 
   build-alpine-ci:
     runs-on: depot-ubuntu-24.04-4
@@ -49,6 +64,8 @@ jobs:
         ocaml_version: ["4.14.2", "5.4.0"]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -56,10 +73,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
+        uses: docker/build-push-action@v6
         env:
-          OCAML_VERSION: ${{ matrix.ocaml_version }}
-        run: |
-          BUILD_IMAGE=ghcr.io/savonet/liquidsoap:ci-alpine-${OCAML_VERSION}
-          depot build -t ${BUILD_IMAGE} --platform linux/amd64,linux/arm64 --push \
-            --build-arg OCAML_VERSION \
-            -f .github/docker/alpine-base.dockerfile .
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          build-args: |
+            OCAML_VERSION=${{ matrix.ocaml_version }}
+          context: .
+          file: .github/docker/alpine-base.dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/savonet/liquidsoap:ci-alpine-${{ matrix.ocaml_version }}
+          push: true
+          provenance: false
+          sbom: false
