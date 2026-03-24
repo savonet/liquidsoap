@@ -15,6 +15,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 USER root
 
+# Avoid dpkg postinst script crashes under QEMU ARM64 emulation
+RUN echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/force-unsafe-io
+
 # For libfdk-aac-dev
 RUN if [ "$OS" = "debian" ]; then \
       echo "deb http://deb.$OS.org/$OS $DISTRIBUTION non-free" >> /etc/apt/sources.list; \
