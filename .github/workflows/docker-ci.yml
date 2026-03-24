@@ -9,7 +9,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        base_image: [debian:forky, debian:trixie, ubuntu:resolute, ubuntu:plucky]
+        base_image:
+          [debian:forky, debian:trixie, ubuntu:resolute, ubuntu:plucky]
         ocaml_version: ["4.14.2", "5.4.0"]
     steps:
       - uses: actions/checkout@v4

@@ -57,7 +57,7 @@ WORKDIR /tmp/liquidsoap-full
 
 RUN make init && make update
 
-RUN cat PACKAGES.default | grep '^ocaml' > /tmp/modules && \ 
+RUN cat PACKAGES.default | grep '^ocaml' > /tmp/modules && \
     cat /tmp/modules | while read i; do find $i | grep '\.opam$'; done | while read i; do basename $i | cut -d'.' -f 1; done > /tmp/packages
 
 RUN \
