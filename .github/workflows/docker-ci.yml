@@ -1,0 +1,65 @@
+name: Build CI Docker Images
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-debian-ci:
+    runs-on: depot-ubuntu-24.04-4
+    strategy:
+      fail-fast: false
+      matrix:
+        base_image: [debian:forky, debian:trixie, ubuntu:resolute, ubuntu:plucky]
+        ocaml_version: ["4.14.2", "5.4.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        env:
+          BASE_IMAGE: ${{ matrix.base_image }}
+          OCAML_VERSION: ${{ matrix.ocaml_version }}
+        run: |
+          TAG=$(echo ${BASE_IMAGE} | sed -e 's#/#_#g' -e 's#:#_#g')
+          BUILD_IMAGE=ghcr.io/savonet/liquidsoap:ci-${TAG}-${OCAML_VERSION}
+          OS=$(echo ${BASE_IMAGE} | cut -d':' -f 1)
+          DISTRIBUTION=$(echo ${BASE_IMAGE} | cut -d':' -f 2)
+          if [ "${DISTRIBUTION}" = "focal" ]; then
+            EXTRA_PACKAGES="conf-srt.1"
+          else
+            EXTRA_PACKAGES="conf-srt-gnutls"
+          fi
+          depot build -t ${BUILD_IMAGE} --platform linux/amd64,linux/arm64 --push \
+            --build-arg OCAML_VERSION \
+            --build-arg EXTRA_PACKAGES \
+            --build-arg BASE_IMAGE \
+            --build-arg OS \
+            --build-arg DISTRIBUTION \
+            -f .github/docker/debian-base.dockerfile .
+
+  build-alpine-ci:
+    runs-on: depot-ubuntu-24.04-4
+    strategy:
+      fail-fast: false
+      matrix:
+        ocaml_version: ["4.14.2", "5.4.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        env:
+          OCAML_VERSION: ${{ matrix.ocaml_version }}
+        run: |
+          BUILD_IMAGE=ghcr.io/savonet/liquidsoap:ci-alpine-${OCAML_VERSION}
+          depot build -t ${BUILD_IMAGE} --platform linux/amd64,linux/arm64 --push \
+            --build-arg OCAML_VERSION \
+            -f .github/docker/alpine-base.dockerfile .

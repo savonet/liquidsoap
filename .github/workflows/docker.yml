@@ -73,7 +73,7 @@ jobs:
             "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
             "DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}"
           context: .
-          file: .github/docker/debian.dockerfile
+          file: .github/docker/debian-release.dockerfile
           tags: |
             "ghcr.io/savonet/liquidsoap:ci-build-${{ inputs.branch }}_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ inputs.publish_docker_image }}
@@ -114,7 +114,7 @@ jobs:
           build-args: |
             "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
           context: .
-          file: .github/docker/alpine.dockerfile
+          file: .github/docker/alpine-release.dockerfile
           tags: |
             "ghcr.io/savonet/liquidsoap:ci-build-${{ inputs.branch }}_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ inputs.publish_docker_image }}
@@ -158,7 +158,7 @@ jobs:
             "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
             "DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}"
           context: .
-          file: .github/docker/debian.dockerfile
+          file: .github/docker/debian-release.dockerfile
           tags: |
             "ghcr.io/savonet/liquidsoap:ci-build-${{ inputs.branch }}-minimal_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ inputs.publish_docker_image }}
@@ -199,7 +199,7 @@ jobs:
           build-args: |
             "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
           context: .
-          file: .github/docker/alpine.dockerfile
+          file: .github/docker/alpine-release.dockerfile
           tags: |
             "ghcr.io/savonet/liquidsoap:ci-build-${{ inputs.branch }}-minimal_alpine_${{ matrix.platform }}-ocaml${{ matrix.ocaml_version }}"
           push: ${{ inputs.publish_docker_image }}
