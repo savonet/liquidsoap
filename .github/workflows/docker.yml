@@ -32,6 +32,8 @@ on:
         required: true
       DOCKERHUB_PASSWORD:
         required: true
+      DEPOT_TOKEN:
+        required: true
 
 jobs:
   build_docker:
@@ -45,8 +47,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       - name: Download all artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -66,10 +66,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: false
+        uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
         with:
+          token: ${{ secrets.DEPOT_TOKEN }}
           build-args: |
             "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
             "DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}"
@@ -98,8 +97,6 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
@@ -111,10 +108,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: false
+        uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
         with:
+          token: ${{ secrets.DEPOT_TOKEN }}
           build-args: |
             "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
           context: .
@@ -136,8 +132,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       - name: Download all artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -157,10 +151,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: false
+        uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
         with:
+          token: ${{ secrets.DEPOT_TOKEN }}
           build-args: |
             "DEB_FILE=${{ steps.debian_package.outputs.deb-file }}"
             "DEB_DEBUG_FILE=${{ steps.debian_debug_package.outputs.deb-file }}"
@@ -189,8 +182,6 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ inputs.sha }} -type f | grep minimal | grep ${{ matrix.ocaml_version }} | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
@@ -202,10 +193,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: false
+        uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
         with:
+          token: ${{ secrets.DEPOT_TOKEN }}
           build-args: |
             "APK_FILE=${{ steps.alpine_package.outputs.apk-file }}"
           context: .

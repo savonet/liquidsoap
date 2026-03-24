@@ -155,3 +155,4 @@ jobs:
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      DEPOT_TOKEN: ${{ secrets.DEPOT_TOKEN }}
