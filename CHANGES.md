@@ -39,6 +39,7 @@
 - Improved runtime error reporting by wrapping low-level exceptions into proper
   runtime errors (#5004)
 - Fixed `syslog` support and added it to build configuration detection (#5009)
+- Fixed sub-clock accumulation causing gradual CPU growth over time (#5032)
 
 ---
 
