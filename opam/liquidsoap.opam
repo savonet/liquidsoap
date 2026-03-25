@@ -16,7 +16,7 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "3.18"}
+  "dune" {>= "3.20"}
   "ocaml" {>= "4.14"}
   "base-bytes"
   "mm" {>= "0.8.6"}
@@ -32,12 +32,13 @@ depends: [
   "dune-build-info"
   "liquidsoap-lang" {= version}
   "ppx_string" {build}
+  "dune-configurator" {build}
   "odoc" {with-doc}
 ]
 depopts: [
   "alsa"
   "ao"
-  "bjack"
+  "conf-jack"
   "camlimages"
   "ctypes-foreign"
   "dssi"
@@ -81,7 +82,6 @@ depopts: [
 conflicts: [
   "alsa" {< "0.3.0"}
   "ao" {< "0.2.0"}
-  "bjack" {< "0.1.3"}
   "camomile" {< "1.0.0"}
   "dssi" {< "0.1.3"}
   "faad" {< "0.5.0"}

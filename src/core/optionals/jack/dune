@@ -1,0 +1,11 @@
+(library
+ (name liquidsoap_jack)
+ (libraries liquidsoap_core jack)
+ (library_flags -linkall)
+ (wrapped false)
+ (foreign_stubs
+  (language c)
+  (names jack_io_stubs)
+  (flags
+   (:standard -I%{workspace_root}/src/modules/jack)))
+ (optional))
