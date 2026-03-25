@@ -57,7 +57,7 @@ its own means:
 
 Consider this script:
 
-```{.liquidsoap include="liq/clock-alsa-file.liq"}
+```{.liquidsoap include="clock-alsa-file.liq"}
 
 ```
 
@@ -79,7 +79,7 @@ a sync source, it hands over timing control:
 
 By contrast, a script with no hardware or network source:
 
-```{.liquidsoap include="liq/clock-sine-file.liq"}
+```{.liquidsoap include="clock-sine-file.liq"}
 
 ```
 
@@ -108,7 +108,7 @@ simultaneous effects or encodings is the right approach. If you find the
 catchup messages noisy without indicating a real problem, you can reduce their
 frequency:
 
-```{.liquidsoap include="liq/clock-log-delay.liq"}
+```{.liquidsoap include="clock-log-delay.liq"}
 
 ```
 
@@ -124,7 +124,7 @@ It is worth noting that two synchronization sources can coexist in the same
 clock without conflict, as long as only one is ever producing data at a time.
 A `fallback` between an SRT input and a local microphone is perfectly fine:
 
-```{.liquidsoap include="liq/clock-srt-alsa-fallback.liq"}
+```{.liquidsoap include="clock-srt-alsa-fallback.liq"}
 
 ```
 
@@ -132,7 +132,7 @@ Since only one branch is active at any moment, the clock always sees exactly
 one sync source. The situation becomes problematic when both are simultaneously
 active — as in:
 
-```{.liquidsoap include="liq/clock-alsa-pulseaudio-conflict.liq"}
+```{.liquidsoap include="clock-alsa-pulseaudio-conflict.liq"}
 
 ```
 
@@ -154,7 +154,7 @@ A different kind of conflict arises with operators like `crossfade` and
 has no synchronization source. Passing a hardware or network source directly
 will fail:
 
-```{.liquidsoap include="liq/clock-srt-crossfade-conflict.liq"}
+```{.liquidsoap include="clock-srt-crossfade-conflict.liq"}
 
 ```
 
@@ -177,7 +177,7 @@ different clocks.
 
 For the dual-output conflict above, wrapping one side in a buffer resolves it:
 
-```{.liquidsoap include="liq/clock-alsa-pulseaudio-buffer.liq"}
+```{.liquidsoap include="clock-alsa-pulseaudio-buffer.liq"}
 
 ```
 
@@ -191,7 +191,7 @@ keep the buffer full, at the cost of a small pitch shift.
 For the `crossfade` conflict, wrapping the input in a buffer breaks the
 coupling:
 
-```{.liquidsoap include="liq/clock-srt-crossfade-buffer.liq"}
+```{.liquidsoap include="clock-srt-crossfade-buffer.liq"}
 
 ```
 
@@ -203,7 +203,7 @@ crossfade free to control its own timing.
 An alternative fix for some conflicts is to pass `self_sync=false` to one of
 the conflicting operators, explicitly surrendering its synchronization role:
 
-```{.liquidsoap include="liq/clock-alsa-pulseaudio-self-sync.liq"}
+```{.liquidsoap include="clock-alsa-pulseaudio-self-sync.liq"}
 
 ```
 
@@ -219,7 +219,7 @@ Beyond resolving conflicts, explicit clock separation is a useful design tool.
 Consider a microphone being recorded to a file and simultaneously streamed to
 Icecast:
 
-```{.liquidsoap include="liq/clock-decoupling-conflict.liq"}
+```{.liquidsoap include="clock-decoupling-conflict.liq"}
 
 ```
 
@@ -229,7 +229,7 @@ will cause gaps in what should be a pristine local backup.
 
 Wrapping the Icecast output in a buffer moves it to its own clock:
 
-```{.liquidsoap include="liq/clock-decoupling.liq"}
+```{.liquidsoap include="clock-decoupling.liq"}
 
 ```
 
@@ -247,13 +247,13 @@ which is typically the most CPU-intensive part of a streaming workflow.
 
 When two outputs share the same default clock, they encode sequentially:
 
-```{.liquidsoap include="liq/clock-parallel-sequential.liq"}
+```{.liquidsoap include="clock-parallel-sequential.liq"}
 
 ```
 
 Assigning `b` to a dedicated clock allows both encoders to run in parallel:
 
-```{.liquidsoap include="liq/clock-parallel.liq"}
+```{.liquidsoap include="clock-parallel.liq"}
 
 ```
 
@@ -265,6 +265,6 @@ underflow the buffer, occasional glitches may result.
 
 A source's clock is accessible via the `.clock` method:
 
-```{.liquidsoap include="liq/clock-inspect.liq" from="BEGIN" to="END"}
+```{.liquidsoap include="clock-inspect.liq" from="BEGIN" to="END"}
 
 ```
