@@ -49,7 +49,8 @@ cd /tmp/liquidsoap-full/liquidsoap
 ./.github/scripts/checkout-deps.sh
 
 # TMP
-cd /tmp/liquidsoap-full/ocaml-ffmpeg && git checkout v1.2.9
+opam remove -y ffmpeg-avutil
+cd /tmp/liquidsoap-full/ocaml-ffmpeg && git checkout v1.2.9 && dune clean
 
 cd /tmp/liquidsoap-full
 
