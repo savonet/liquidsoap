@@ -1,10 +1,9 @@
 # Clocks in Liquidsoap
 
 Every source in Liquidsoap is attached to a _clock_, assigned at startup and fixed
-for the lifetime of the script. At regular intervals — 25 times per second by
-default, since each frame covers 0.04 seconds — the clock asks the active
-sources it controls to generate the next frame. The clock's job is to make sure
-this happens at the right rate.
+for the lifetime of the script. At regular intervals determined by the configured
+frame duration, the clock asks the active sources it controls to generate the next
+frame. The clock's job is to make sure this happens at the right rate.
 
 In simple scripts, a single clock governs everything and you never have to think
 about it. But as soon as your script involves hardware audio, network streams, or
@@ -91,6 +90,29 @@ mode:
 ```
 [clock.output.file:3] Switching to non self-sync mode
 ```
+
+## Catchup warnings
+
+When a clock falls behind real time — because frame computation is taking longer
+than the frame duration — it will attempt to catch up by running faster than real
+time, and log a warning:
+
+```
+[clock.pulseaudio:2] We must catchup 0.86 seconds!
+```
+
+This usually indicates CPU overload, a slow network operation blocking the
+streaming loop, or a source that is consistently too slow. Buffers help absorb
+short-lived disturbances. For persistent overload, reducing the number of
+simultaneous effects or encodings is the right approach. If you find the
+catchup messages noisy without indicating a real problem, you can reduce their
+frequency:
+
+```{.liquidsoap include="liq/clock-log-delay.liq"}
+
+```
+
+This limits the warning to at most once per minute.
 
 ## Clock conflicts
 
@@ -246,26 +268,3 @@ A source's clock is accessible via the `.clock` method:
 ```{.liquidsoap include="liq/clock-inspect.liq" from="BEGIN" to="END"}
 
 ```
-
-## Catchup warnings
-
-When a clock falls behind real time — because frame computation is taking longer
-than 0.04 seconds — it will attempt to catch up by running faster than real
-time, and log a warning:
-
-```
-[clock.pulseaudio:2] We must catchup 0.86 seconds!
-```
-
-This usually indicates CPU overload, a slow network operation blocking the
-streaming loop, or a source that is consistently too slow. Buffers help absorb
-short-lived disturbances. For persistent overload, reducing the number of
-simultaneous effects or encodings is the right approach. If you find the
-catchup messages noisy without indicating a real problem, you can reduce their
-frequency:
-
-```{.liquidsoap include="liq/clock-log-delay.liq"}
-
-```
-
-This limits the warning to at most once per minute.
