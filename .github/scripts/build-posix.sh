@@ -49,7 +49,7 @@ cd /tmp/liquidsoap-full/liquidsoap
 ./.github/scripts/checkout-deps.sh
 
 # TMP
-cd /tmp/liquidsoap-full/ocaml-ffmpeg && git checkout v1.2.9
+cd /tmp/liquidsoap-full/ocaml-ffmpeg && git checkout v1.2.9 && git pull && dune build @citest
 
 cd /tmp/liquidsoap-full
 
