@@ -499,8 +499,15 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       fun field lift data -> Frame.set_data self#get_frame field lift data
 
     method private split_frame frame =
+      let pos = Frame.position frame in
       match Frame.track_marks frame with
         | 0 :: _ -> (self#empty_frame, Some frame)
+        | p :: _ when p > pos ->
+            self#log#important
+              "split_frame: ignoring out-of-bounds track mark at %d (frame \
+               position: %d)"
+              p pos;
+            (frame, None)
         | p :: _ -> (Frame.slice frame p, Some (Frame.after frame p))
         | [] -> (frame, None)
 
