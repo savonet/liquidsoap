@@ -7,6 +7,7 @@
 - Added optional `replay_metadata` and `add_new_track` to
   the `buffer` operator to replay latest metadata and insert
   track marks when the buffer becomes available again.
+- Added support for array options in ffmpeg filters (#4799)
 
 ## Changed:
 
@@ -18,9 +19,12 @@
 - Refactored XML parsing to be type-driven, support optional fields with
   custom element name aliases (#4926, #4927)
 - Removed `self_sync` parameter from `input.jack` and `output.jack` (#5017)
+- Make posix build target paths configurable via env vars (#5046)
 
 ## Fixed:
 
+- Prevent crashing when getting out-of-bound mark in `split_frame` (#5054)
+- Fixed clock source detach when clock is running (#5051)
 - Fixed `??` operator type inference in conditional branches (#4922)
 - Prevent double nullable types (#4925)
 - Make active `stereotool` really be active.. (#4882)
