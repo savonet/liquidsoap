@@ -36,7 +36,7 @@ RUN \
     apt-get -y autoclean && \
     apt-get -y clean
 
-RUN bash -c "sh <(curl -fsSL https://opam.ocaml.org/install.sh)" -- --yes
+RUN printf "\ny\n" | bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
 
 RUN useradd -m opam
 
