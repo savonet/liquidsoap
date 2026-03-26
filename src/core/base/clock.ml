@@ -201,17 +201,20 @@ let attach c s =
 
 let _detach x s =
   Queue.filter_out x.pending_activations (fun s' -> s == s');
+  let do_detach { outputs; active_sources; passive_sources } =
+    Queue.filter_out outputs (fun (a, s') ->
+        if s == s' then (
+          s#sleep a;
+          true)
+        else false);
+    WeakQueue.filter_out active_sources (fun s' -> s == s');
+    WeakQueue.filter_out passive_sources (fun s' -> s == s')
+  in
   match Atomic.get x.state with
     | `Stopped _ -> ()
-    | `Stopping { outputs; active_sources; passive_sources }
-    | `Started { outputs; active_sources; passive_sources } ->
-        Queue.filter_out outputs (fun (a, s') ->
-            if s == s' then (
-              s#sleep a;
-              true)
-            else false);
-        WeakQueue.filter_out active_sources (fun s' -> s == s');
-        WeakQueue.filter_out passive_sources (fun s' -> s == s')
+    | `Stopping params -> do_detach params
+    | `Started params ->
+        Queue.push params.after_tick (fun () -> do_detach params)
 
 let detach c s = _detach (Unifier.deref c) s
 
