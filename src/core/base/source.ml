@@ -504,8 +504,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | 0 :: _ -> (self#empty_frame, Some frame)
         | p :: _ when p > pos ->
             self#log#important
-              "split_frame: ignoring out-of-bounds track mark at %d \
-               (frame position: %d)"
+              "split_frame: ignoring out-of-bounds track mark at %d (frame \
+               position: %d)"
               p pos;
             (frame, None)
         | p :: _ -> (Frame.slice frame p, Some (Frame.after frame p))
