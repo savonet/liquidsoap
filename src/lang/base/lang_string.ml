@@ -595,13 +595,6 @@ let length ~encoding s =
   match encoding with
     | `Ascii -> String.length s
     | `Utf8 ->
-        let len = String.length s in
-        let rec f count pos =
-          if pos = len then count
-          else (
-            let d = String.get_utf_8_uchar s pos in
-            if not (Uchar.utf_decode_is_valid d) then
-              failwith "Decoding failed!";
-            f (count + 1) (pos + Uchar.utf_decode_length d))
-        in
-        f 0 0
+        let n = ref 0 in
+        String.iter (fun c -> if Char.code c land 0xC0 <> 0x80 then incr n) s;
+        !n
