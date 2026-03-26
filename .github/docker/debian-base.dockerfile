@@ -31,10 +31,12 @@ RUN if [ "$OS" = "debian" ]; then \
 RUN \
     apt-get update && \
     apt-get install -y --no-install-recommends aspcud autoconf automake rsync \
-            build-essential ca-certificates curl debhelper devscripts sudo opam \
+            build-essential ca-certificates curl debhelper devscripts sudo \
             ffmpeg pandoc fakeroot git openssh-client unzip gnupg dirmngr apt-transport-https && \
     apt-get -y autoclean && \
     apt-get -y clean
+
+RUN bash -c "sh <(curl -fsSL https://opam.ocaml.org/install.sh)" -- --yes
 
 RUN useradd -m opam
 
