@@ -2,7 +2,7 @@
 # crossfade transitions.
 # @category Source / Track processing
 # @flag extra
-def cross.plot(~png=null, ~dir=null, s) =
+def cross.plot(~png=null, ~dir=null, ~font=null, ~font_size=10, s) =
   dir =
     if
       null.defined(dir)
@@ -18,9 +18,17 @@ def cross.plot(~png=null, ~dir=null, s) =
   new_txt = path.concat(dir, "new.txt")
 
   def gnuplot_cmd(filename) =
-    'set term png; set output "#{(filename : string)}"; plot "#{new_txt}" using \
-     1:2 with lines title "new track", "#{old_txt}" using 1:2 with lines title \
-     "old track"'
+    term =
+      if
+        null.defined(font)
+      then
+        'pngcairo font "#{null.get(font)},#{font_size}"'
+      else
+        "png"
+      end
+    'set term #{term}; set output "#{(filename : string)}"; plot "#{new_txt}" \
+     using 1:2 with lines title "new track", "#{old_txt}" using 1:2 with lines \
+     title "old track"'
   end
 
   def store_rms(~id, s) =
@@ -40,8 +48,8 @@ def cross.plot(~png=null, ~dir=null, s) =
             t0 := source.time(s)
             null.get(t0())
           end
-        let v = s.rms()
-        let p = source.time(s) - t0
+        let v = float.truncate(digits=4, mode="floor", s.rms())
+        let p = float.truncate(digits=4, mode="floor", source.time(s) - t0)
         fname = id == "old" ? old_txt : new_txt
         file.write(append=true, data="#{p}\t#{v}\n", fname)
       }
@@ -86,6 +94,8 @@ end
 def autocue.plot(
   ~png=null,
   ~dir=null,
+  ~font=null,
+  ~font_size=10,
   ~old_autocue,
   ~new_autocue,
   ~sync="auto",
@@ -106,9 +116,17 @@ def autocue.plot(
   new_txt = path.concat(dir, "new.txt")
 
   def gnuplot_cmd(filename) =
-    'set term png; set output "#{(filename : string)}"; plot "#{new_txt}" using \
-     1:2 with lines title "new track", "#{old_txt}" using 1:2 with lines title \
-     "old track"'
+    term =
+      if
+        null.defined(font)
+      then
+        'pngcairo font "#{null.get(font)},#{font_size}"'
+      else
+        "png"
+      end
+    'set term #{term}; set output "#{(filename : string)}"; plot "#{new_txt}" \
+     using 1:2 with lines title "new track", "#{old_txt}" using 1:2 with lines \
+     title "old track"'
   end
 
   def autocue_annotate(a, uri) =
@@ -141,13 +159,23 @@ def autocue.plot(
 
   def store_rms(~fname, ~offset, s) =
     s = rms(duration=settings.frame.duration(), s)
+    t0 = ref(null)
 
     s.on_frame(
       synchronous=true,
       before=false,
       {
-        let t = source.time(s) - offset
-        let v = s.rms()
+        let t0 =
+          if
+            null.defined(t0())
+          then
+            null.get(t0())
+          else
+            t0 := source.time(s)
+            null.get(t0())
+          end
+        let t = float.truncate(digits=4, mode="floor", source.time(s) - t0)
+        let v = float.truncate(digits=4, mode="floor", s.rms())
         file.write(append=true, data="#{t}\t#{v}\n", fname)
       }
     )
