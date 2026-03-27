@@ -123,6 +123,38 @@ let _ =
     (fun p -> Lang.bool (Float.is_infinite (Lang.to_float (List.assoc "" p))))
 
 let _ =
+  Lang.add_builtin ~base:float "truncate" ~category:`Math
+    ~descr:
+      "Round a float to a given number of decimal digits. Mode can be \
+       `\"ceil\"` (round up), `\"floor\"` (round down), or `\"default\"` \
+       (round to nearest)."
+    [
+      ( "digits",
+        Lang.int_t,
+        Some (Lang.int 0),
+        Some "Number of decimal digits to keep." );
+      ( "mode",
+        Lang.string_t,
+        Some (Lang.string "default"),
+        Some "Rounding mode: `\"ceil\"`, `\"floor\"`, or `\"default\"`." );
+      ("", Lang.float_t, None, None);
+    ]
+    Lang.float_t
+    (fun p ->
+      let digits = Lang.to_int (List.assoc "digits" p) in
+      let mode = Lang.to_string (List.assoc "mode" p) in
+      let v = Lang.to_float (List.assoc "" p) in
+      let factor = 10. ** float_of_int digits in
+      let scaled = v *. factor in
+      let rounded =
+        match mode with
+          | "ceil" -> Float.ceil scaled
+          | "floor" -> Float.floor scaled
+          | _ -> Float.round scaled
+      in
+      Lang.float (rounded /. factor))
+
+let _ =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "int" ~category:`Math
     ~descr:"Convert a number to an integer."
