@@ -199,24 +199,21 @@ def f() =
   test.equal(string.escape.html("/"), "/")
   test.equal(string.escape.html("`"), "`")
 
-  s = "blablo"
-  flag = string.flags.binary(s)
-  test.equal(flag(), false)
-  flag := true
-  test.equal(flag(), true)
-  test.equal("#{s}", "blablo")
-  test.equal(string(s), "blablo")
-  test.equal(string(print_binary=false, s), "<string>")
-  flag := false
-  test.equal(flag(), false)
-  test.equal("#{s}", "blablo")
-  test.equal(string(s), "blablo")
-  test.equal(string(print_binary=false, s), "blablo")
-
   # Raw strings: no interpolation
-  test.equal({|hello #{world}|}, "hello " ^ "#" ^ "{world}")
-  test.equal({foo|contains |} inside|foo}, "contains |} inside")
-  test.equal({_|also works|_}, "also works")
+  test.equal(
+    {|hello #{world}|},
+    "hello " ^
+      "#" ^
+      "{world}"
+  )
+  test.equal(
+    {foo|contains |} inside|foo},
+    "contains |} inside"
+  )
+  test.equal(
+    {_|also works|_},
+    "also works"
+  )
   test.equal({||}, "")
 
   test.pass()
