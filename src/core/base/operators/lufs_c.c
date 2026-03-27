@@ -104,3 +104,93 @@ CAMLprim value liquidsoap_lufs_process(value _stage1, value _stage2, value _x) {
 
   CAMLreturn(caml_copy_double(power / samples));
 }
+
+/* ---- True peak measurement (ITU-R BS.1770-4, Annex 2) ---- */
+
+#define TP_TAPS   12
+#define TP_PHASES  4
+
+/* Polyphase FIR coefficients from ITU-R BS.1770-4, Annex 2, Table 2.
+   Four phases of 12 taps each, for 4x oversampling. */
+static const double tp_fir[TP_PHASES][TP_TAPS] = {
+  { 0.0017089843750,  0.0109863281250, -0.0196533203125,  0.0332031250000,
+   -0.0594482421875,  0.1373291015625,  0.4650878906250,  0.2177734375000,
+   -0.1015625000000,  0.0535888671875, -0.0244140625000,  0.0086059570313 },
+  { 0.0037841796875, -0.0296630859375,  0.0539550781250, -0.0932617187500,
+    0.1665039062500, -0.3999023437500,  0.8686523437500,  0.3940429687500,
+   -0.1665039062500,  0.0830078125000, -0.0354003906250,  0.0117187500000 },
+  { 0.0117187500000, -0.0354003906250,  0.0830078125000, -0.1665039062500,
+    0.3940429687500,  0.8686523437500, -0.3999023437500,  0.1665039062500,
+   -0.0932617187500,  0.0539550781250, -0.0296630859375,  0.0037841796875 },
+  { 0.0086059570313, -0.0244140625000,  0.0535888671875, -0.1015625000000,
+    0.2177734375000,  0.4650878906250,  0.1373291015625, -0.0594482421875,
+    0.0332031250000, -0.0196533203125,  0.0109863281250,  0.0017089843750 }
+};
+
+typedef struct {
+  uint8_t channels;
+  int     pos;
+  double  history[MAX_CHANNELS][TP_TAPS];
+} tp_state_t;
+
+#define TP_val(v) (*(tp_state_t **)Data_custom_val(v))
+
+static void finalize_tp(value v) { free(TP_val(v)); }
+
+static struct custom_operations tp_ops = {
+    "liquidsoap_tp",          finalize_tp,
+    custom_compare_default,   custom_hash_default,
+    custom_serialize_default, custom_deserialize_default};
+
+CAMLprim value liquidsoap_lufs_true_peak_create(value _channels) {
+  CAMLparam1(_channels);
+  CAMLlocal1(ans);
+  int channels = Int_val(_channels);
+
+  if (channels > MAX_CHANNELS)
+    caml_failwith("True peak: too many channels! Maximum is 12.");
+
+  tp_state_t *tp = calloc(1, sizeof(tp_state_t));
+  if (!tp)
+    caml_raise_out_of_memory();
+
+  tp->channels = channels;
+  tp->pos      = 0;
+
+  ans = caml_alloc_custom(&tp_ops, sizeof(tp_state_t *), 0, 1);
+  TP_val(ans) = tp;
+  CAMLreturn(ans);
+}
+
+CAMLprim value liquidsoap_lufs_true_peak_process(value _state, value _x) {
+  CAMLparam2(_state, _x);
+  tp_state_t *tp = TP_val(_state);
+  int samples    = Wosize_val(Field(_x, 0)) / Double_wosize;
+  double peak    = 0.0;
+  int i, c, p, t;
+
+  for (i = 0; i < samples; i++) {
+    int wpos = tp->pos;
+
+    /* Write incoming sample into circular history buffer */
+    for (c = 0; c < tp->channels; c++)
+      tp->history[c][wpos] = Double_field(Field(_x, c), i);
+
+    tp->pos = (tp->pos + 1) % TP_TAPS;
+
+    /* Compute all 4 interpolated sub-samples via polyphase FIR */
+    for (p = 0; p < TP_PHASES; p++) {
+      for (c = 0; c < tp->channels; c++) {
+        double y = 0.0;
+        for (t = 0; t < TP_TAPS; t++) {
+          int idx = (wpos - t + TP_TAPS) % TP_TAPS;
+          y += tp_fir[p][t] * tp->history[c][idx];
+        }
+        double abs_y = y < 0.0 ? -y : y;
+        if (abs_y > peak) peak = abs_y;
+      }
+    }
+  }
+
+  CAMLreturn(caml_copy_double(peak));
+}

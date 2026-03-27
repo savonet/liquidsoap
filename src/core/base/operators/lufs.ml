@@ -86,6 +86,16 @@ module IIR = struct
     process ~stage1 ~stage2 samples
 end
 
+(** True peak measurement via 4x polyphase FIR oversampling (ITU-R BS.1770-4). *)
+module TruePeak = struct
+  type state
+
+  external create : int -> state = "liquidsoap_lufs_true_peak_create"
+
+  external process : state -> float array array -> float
+    = "liquidsoap_lufs_true_peak_process"
+end
+
 (** Compute the loudness from the mean of squares. *)
 let loudness z = -0.691 +. (10. *. log10 z)
 
@@ -182,8 +192,27 @@ class lufs window source =
     method private add_integrated_block v =
       LufsIntegratedHistogram.append lufs_integrated v
 
+    (** True peak state and running maximum (linear, not dBTP). *)
+    val mutable tp_state : TruePeak.state option = None
+    val mutable true_peak_linear = neg_infinity
+
+    method private tp_state =
+      match tp_state with
+        | None ->
+            let s = TruePeak.create self#audio_channels in
+            tp_state <- Some s;
+            s
+        | Some s -> s
+
+    (** Current true peak in dBTP. Returns neg_infinity if no audio processed. *)
+    method true_peak =
+      if true_peak_linear >= 0. then 20. *. log10 (max true_peak_linear Float.epsilon)
+      else neg_infinity
+
     method private reset_lufs_integrated =
       iir <- None;
+      tp_state <- None;
+      true_peak_linear <- neg_infinity;
       lufs_integrated <- LufsIntegratedHistogram.create ()
 
     (** Compute LUFS. *)
@@ -214,6 +243,9 @@ class lufs window source =
         let frame = Generator.slice self#buffer len_100ms in
         if Frame.has_track_marks frame then self#reset_lufs_integrated;
         let buf = AFrame.pcm frame in
+        (* True peak operates on raw PCM before K-weighting. *)
+        let peak = TruePeak.process self#tp_state buf in
+        true_peak_linear <- max true_peak_linear peak;
         let power = IIR.process self#iir buf in
         self#add_integrated_block power;
         ms_blocks <- power :: ms_blocks
@@ -223,6 +255,20 @@ class lufs window source =
 
     method private generate_frame =
       let frame = source#get_frame in
+      (* Inject true peak into metadata at the track boundary, capturing the
+         value before process_frame triggers reset_lufs_integrated. *)
+      let frame =
+        match Frame.track_marks frame with
+          | [] -> frame
+          | pos :: _ when true_peak_linear >= 0. ->
+              let m =
+                Frame.Metadata.add "lufs_true_peak"
+                  (Printf.sprintf "%.2f" self#true_peak)
+                  Frame.Metadata.empty
+              in
+              Frame.add_metadata frame pos m
+          | _ -> frame
+      in
       self#process_frame frame;
       frame
   end
@@ -257,6 +303,16 @@ let _ =
             descr = "Momentary LUFS (over a 400ms window).";
             value =
               (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_momentary));
+          };
+          {
+            name = "true_peak";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr =
+              "Maximum true peak in dBTP over the current track, measured via \
+               4x oversampling per ITU-R BS.1770-4. Also written as \
+               `lufs_true_peak` in track metadata at each track boundary.";
+            value =
+              (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#true_peak));
           };
         ]
     ~return_t
