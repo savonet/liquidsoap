@@ -244,12 +244,12 @@
   (diff crossfade-plot.png crossfade-plot.png.gen)))
 
 (rule
- (alias genplot)
+ (alias test_crossfade-plot)
  (action
   (diff crossfade-plot.old.txt crossfade-plot.old.txt.gen)))
 
 (rule
- (alias genplot)
+ (alias test_crossfade-plot)
  (action
   (diff crossfade-plot.new.txt crossfade-plot.new.txt.gen)))
 
@@ -290,12 +290,12 @@
   (diff autocue-plot.0.png autocue-plot.0.png.gen)))
 
 (rule
- (alias genplot)
+ (alias test_autocue-plot)
  (action
   (diff autocue-plot.0.old.txt autocue-plot.0.old.txt.gen)))
 
 (rule
- (alias genplot)
+ (alias test_autocue-plot)
  (action
   (diff autocue-plot.0.new.txt autocue-plot.0.new.txt.gen)))
 
@@ -305,12 +305,12 @@
   (diff autocue-plot.1.png autocue-plot.1.png.gen)))
 
 (rule
- (alias genplot)
+ (alias test_autocue-plot)
  (action
   (diff autocue-plot.1.old.txt autocue-plot.1.old.txt.gen)))
 
 (rule
- (alias genplot)
+ (alias test_autocue-plot)
  (action
   (diff autocue-plot.1.new.txt autocue-plot.1.new.txt.gen)))
 
@@ -320,12 +320,12 @@
   (diff autocue-plot.2.png autocue-plot.2.png.gen)))
 
 (rule
- (alias genplot)
+ (alias test_autocue-plot)
  (action
   (diff autocue-plot.2.old.txt autocue-plot.2.old.txt.gen)))
 
 (rule
- (alias genplot)
+ (alias test_autocue-plot)
  (action
   (diff autocue-plot.2.new.txt autocue-plot.2.new.txt.gen)))
 
