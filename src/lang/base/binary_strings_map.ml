@@ -24,12 +24,12 @@
     alive as long as at least one registered string with matching content is
     live, then collected automatically. *)
 
-type entry = { digest : string; value : string }
+type entry = string
 
 module Table = Weak.Make (struct
   type t = entry
 
-  let equal { digest = d } { digest = d' } = String.equal d d'
+  let equal = String.equal
   let hash = Hashtbl.hash
 end)
 
@@ -52,53 +52,49 @@ let atomic_lock f =
         Atomic.set lock false;
         v
 
-let digest s = Digest.(to_hex (string s))
-
 exception Found of entry
 
-let find ~digest value =
+let find value =
   try
     List.fold_left
       (fun cur entry ->
         match (cur, entry) with
           | None, _ -> Some entry
-          | Some _, { value = v' } when v' == value -> raise (Found entry)
+          | Some _, v' when v' == value -> raise (Found entry)
           | Some _, _ -> cur)
       None
-      (Table.find_all table { digest; value })
+      (Table.find_all table value)
   with Found entry -> Some entry
 
 (* Strong references for entries anchored to non-heap strings (e.g. literals),
    which cannot have finalizers attached. Such strings are permanent anyway. *)
 let permanent = ref []
 
-let add ~digest value =
-  let entry = { digest; value } in
-  Table.add table entry;
+let register_closure ~entry value =
   try Gc.finalise_last (fun () -> ignore (Sys.opaque_identity entry)) value
   with Invalid_argument _ -> permanent := entry :: !permanent
 
+let add value =
+  let entry = Table.merge table value in
+  if entry != value then register_closure ~entry value
+
 let register value =
-  let digest = digest value in
   atomic_lock (fun () ->
-      match find ~digest value with
-        | Some entry when entry.value == value -> ()
-        | _ -> add ~digest value)
+      match find value with
+        | Some entry when entry == value -> ()
+        | _ -> add value)
 
 let remove value =
-  let digest = digest value in
-  let entry = { digest; value } in
   atomic_lock (fun () ->
-      let n = List.length (Table.find_all table entry) in
+      let n = List.length (Table.find_all table value) in
       for _ = 1 to n do
-        Table.remove table entry
+        Table.remove table value
       done)
 
 let is_binary value =
-  let digest = digest value in
   atomic_lock (fun () ->
-      match find ~digest value with
+      match find value with
         | Some entry ->
-            if entry.value != value then add ~digest value;
+            if entry != value then register_closure ~entry value;
             true
         | None -> false)
