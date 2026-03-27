@@ -88,11 +88,12 @@ end
 
 (** True peak measurement via 4x polyphase FIR oversampling (ITU-R BS.1770-4).
     Unlike the original IIR module, this wraps the C external with a channel
-    count assertion to guard against out-of-bounds access on format changes.
-    The original IIR.process has the same assertion (via [Array.length samples =
-    channels]) but the C function underneath does not validate buffer dimensions
-    either; we follow the same OCaml-side guard pattern here rather than
-    duplicating the check in C, to stay consistent with the existing codebase. *)
+    count assertion to guard against out-of-bounds access on format changes. The
+    original IIR.process has the same assertion (via
+    [Array.length samples = channels]) but the C function underneath does not
+    validate buffer dimensions either; we follow the same OCaml-side guard
+    pattern here rather than duplicating the check in C, to stay consistent with
+    the existing codebase. *)
 module TruePeak = struct
   type state
 
@@ -208,6 +209,7 @@ class lufs window source =
 
     (** True peak state and running maximum (linear, not dBTP). *)
     val mutable tp_state : TruePeak.t option = None
+
     val mutable true_peak_linear = neg_infinity
 
     method private tp_state =
@@ -221,8 +223,8 @@ class lufs window source =
     (** Current true peak in dBTP. Returns neg_infinity if no audio has been
         processed or the track is pure digital silence. We use [> 0.] rather
         than [>= 0.] so that an empty frame (C returns 0.0) or all-zero audio
-        does not register as a measured peak — silence is correctly reported
-        as [neg_infinity] dBTP instead of ~-313 dBTP. *)
+        does not register as a measured peak — silence is correctly reported as
+        [neg_infinity] dBTP instead of ~-313 dBTP. *)
     method true_peak =
       if true_peak_linear > 0. then 20. *. log10 true_peak_linear
       else neg_infinity
@@ -329,8 +331,7 @@ let _ =
               "Maximum true peak in dBTP over the current track, measured via \
                4x oversampling per ITU-R BS.1770-4. Also written as \
                `lufs_true_peak` in track metadata at each track boundary.";
-            value =
-              (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#true_peak));
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#true_peak));
           };
         ]
     ~return_t
