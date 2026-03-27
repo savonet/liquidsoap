@@ -2215,42 +2215,6 @@
    stretch-clock-propagation.liq)))
 
 (rule
- (alias test_string_binary_flags)
- (package liquidsoap)
- (deps
-  string_binary_flags.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   string_binary_flags.liq
-   liquidsoap
-   %{test_liq}
-   string_binary_flags.liq)))
-
-(rule
  (alias test_test_ffmpeg_on_subitles)
  (package liquidsoap)
  (deps
@@ -2499,7 +2463,6 @@
   (alias test_srt_passphrase)
   (alias test_srt_raw_pcm)
   (alias test_stretch-clock-propagation)
-  (alias test_string_binary_flags)
   (alias test_test_ffmpeg_on_subitles)
   (alias test_test_on_subtitle)
   (alias test_test_subtitles_insert)

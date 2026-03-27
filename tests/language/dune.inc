@@ -583,25 +583,6 @@
   (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
 
 (rule
- (alias test_string_binary_flags)
- (package liquidsoap)
- (deps
-  string_binary_flags.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  crontab_test_cases.json
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   string_binary_flags.liq
-   liquidsoap
-   %{test_liq}
-   string_binary_flags.liq)))
-
-(rule
  (alias test_thread)
  (package liquidsoap)
  (deps
@@ -757,7 +738,6 @@
   (alias test_sqlite)
   (alias test_stdlib)
   (alias test_string)
-  (alias test_string_binary_flags)
   (alias test_thread)
   (alias test_time)
   (alias test_type_errors)
