@@ -162,9 +162,19 @@ CAMLprim value liquidsoap_lufs_true_peak_create(value _channels) {
   CAMLreturn(ans);
 }
 
+/* Unlike liquidsoap_lufs_process (the original IIR function), we validate that
+   the OCaml buffer has at least as many channel sub-arrays as the state expects.
+   The original code relies on the OCaml wrapper's assert for this guarantee;
+   we add a C-side guard as well because an out-of-bounds Field() access on a
+   format change would be a silent memory-safety violation, not a catchable
+   OCaml exception. */
 CAMLprim value liquidsoap_lufs_true_peak_process(value _state, value _x) {
   CAMLparam2(_state, _x);
   tp_state_t *tp = TP_val(_state);
+
+  if (Wosize_val(_x) < (mlsize_t)tp->channels)
+    caml_invalid_argument("true_peak_process: buffer has fewer channels than state");
+
   int samples    = Wosize_val(Field(_x, 0)) / Double_wosize;
   double peak    = 0.0;
   int i, c, p, t;

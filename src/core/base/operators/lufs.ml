@@ -86,14 +86,28 @@ module IIR = struct
     process ~stage1 ~stage2 samples
 end
 
-(** True peak measurement via 4x polyphase FIR oversampling (ITU-R BS.1770-4). *)
+(** True peak measurement via 4x polyphase FIR oversampling (ITU-R BS.1770-4).
+    Unlike the original IIR module, this wraps the C external with a channel
+    count assertion to guard against out-of-bounds access on format changes.
+    The original IIR.process has the same assertion (via [Array.length samples =
+    channels]) but the C function underneath does not validate buffer dimensions
+    either; we follow the same OCaml-side guard pattern here rather than
+    duplicating the check in C, to stay consistent with the existing codebase. *)
 module TruePeak = struct
   type state
 
-  external create : int -> state = "liquidsoap_lufs_true_peak_create"
+  external create_raw : int -> state = "liquidsoap_lufs_true_peak_create"
 
-  external process : state -> float array array -> float
+  external process_raw : state -> float array array -> float
     = "liquidsoap_lufs_true_peak_process"
+
+  type t = int * state
+
+  let create channels = (channels, create_raw channels)
+
+  let process (channels, state) samples =
+    assert (Array.length samples = channels);
+    process_raw state samples
 end
 
 (** Compute the loudness from the mean of squares. *)
@@ -193,7 +207,7 @@ class lufs window source =
       LufsIntegratedHistogram.append lufs_integrated v
 
     (** True peak state and running maximum (linear, not dBTP). *)
-    val mutable tp_state : TruePeak.state option = None
+    val mutable tp_state : TruePeak.t option = None
     val mutable true_peak_linear = neg_infinity
 
     method private tp_state =
@@ -204,9 +218,13 @@ class lufs window source =
             s
         | Some s -> s
 
-    (** Current true peak in dBTP. Returns neg_infinity if no audio processed. *)
+    (** Current true peak in dBTP. Returns neg_infinity if no audio has been
+        processed or the track is pure digital silence. We use [> 0.] rather
+        than [>= 0.] so that an empty frame (C returns 0.0) or all-zero audio
+        does not register as a measured peak — silence is correctly reported
+        as [neg_infinity] dBTP instead of ~-313 dBTP. *)
     method true_peak =
-      if true_peak_linear >= 0. then 20. *. log10 (max true_peak_linear Float.epsilon)
+      if true_peak_linear > 0. then 20. *. log10 true_peak_linear
       else neg_infinity
 
     method private reset_lufs_integrated =
@@ -260,7 +278,7 @@ class lufs window source =
       let frame =
         match Frame.track_marks frame with
           | [] -> frame
-          | pos :: _ when true_peak_linear >= 0. ->
+          | pos :: _ when true_peak_linear > 0. ->
               let m =
                 Frame.Metadata.add "lufs_true_peak"
                   (Printf.sprintf "%.2f" self#true_peak)
