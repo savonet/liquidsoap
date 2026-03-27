@@ -37,7 +37,7 @@
 - Fixed performance regression when initializing `playlist` (#4913)
 - Make sure that we read all stdout/stderr before considering a process closed. (#4918, #4934, #4941)
 - Fixed `EINTR` signal interruption in process I/O, read, and flush operations (#4947, #4949, #4951)
-- Replaced binary string registry with automatic UTF-8 validity and length heuristic; added `settings.string.max_printable_length` configuration key
+- Improved string binary detection heuristics by checking for valid UTF-8 and max length; added `settings.string.max_printable_length` configuration key
 - Make sure `output.file` does not create files without data (#4899)
 - Fixed content type propagation through free type variables (#4988)
 - Improved runtime error reporting by wrapping low-level exceptions into proper
