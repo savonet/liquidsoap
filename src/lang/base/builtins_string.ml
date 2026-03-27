@@ -30,20 +30,6 @@ let string =
             else Lang.string (Value.to_string v)
         | v -> Lang.string (Value.to_string v))
 
-let flags = Lang.add_module ~base:string "flags"
-
-let _ =
-  Lang.add_builtin "binary" ~base:flags ~category:`String
-    ~descr:
-      "Return true if the string is binary (longer than max_printable_length \
-       or not valid UTF-8)."
-    [("", Lang.string_t, None, None)]
-    Lang.bool_t
-    (fun p ->
-      let v = List.assoc "" p in
-      let s = Lang.to_string v in
-      Lang.bool (Binary_strings_map.is_binary s))
-
 let _ =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
