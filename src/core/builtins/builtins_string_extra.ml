@@ -44,7 +44,15 @@ let () =
                 v;
               `Utf8
       in
-      Liquidsoap_lang.Builtins_string.default_encoding := enc)
+      Liquidsoap_lang.Builtins_string.default_encoding := enc);
+  let conf_max_printable_length =
+    Dtools.Conf.int
+      ~p:(conf_string#plug "max_printable_length")
+      ~d:4096
+      "Maximum byte length for a string to be considered printable (not binary)"
+  in
+  conf_max_printable_length#on_change (fun v ->
+      Liquidsoap_lang.Binary_strings_map.max_printable_length := v)
 
 let string = Liquidsoap_lang.Builtins_string.string
 let string_annotate = Lang.add_module ~base:string "annotate"

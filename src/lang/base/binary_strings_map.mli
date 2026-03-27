@@ -20,13 +20,10 @@
 
  *****************************************************************************)
 
-(** Register [s] as a binary string. The entry is kept alive as long as [s] is
-    live. Multiple registrations for strings with the same content share a
-    single entry. *)
-val register : string -> unit
+(** Strings longer than this or containing invalid UTF-8 are treated as binary.
+    Defaults to [4096]. *)
+val max_printable_length : int ref
 
-(** Remove [s]'s content digest from the binary set. *)
-val remove : string -> unit
-
-(** Return [true] if [s]'s content digest is in the binary set. *)
+(** Return [true] if [s] should be treated as binary: either it is longer than
+    [max_printable_length] bytes or contains invalid UTF-8. *)
 val is_binary : string -> bool
