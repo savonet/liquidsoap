@@ -39,7 +39,8 @@ let () =
         {|
 (rule
  (alias %s)
- (package liquidsoap)%s
+ (package liquidsoap)
+ %s
  (deps
   %s
   (alias ../media/all_media_files)
