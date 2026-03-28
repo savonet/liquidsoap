@@ -718,6 +718,10 @@ def fade.in(
   s.on_track(synchronous=true, reset_overrides)
   s.on_metadata(synchronous=true, update_fade)
 
+  # Register start_fade on the inner source so it fires before the amplify
+  # operator processes the new track head.
+  if track_sensitive then s.on_track(synchronous=true, start_fade) end
+
   # Initial duration for fade.in should be computed after fetching the initial
   # frame from s to make sure any initial metadata is taken into account
   prepare = ref(fun (_) -> ())
@@ -756,10 +760,8 @@ def fade.in(
   s = fade.scale(id=id, apply, s)
 
   if
-    track_sensitive
+    not track_sensitive
   then
-    s.on_track(synchronous=true, start_fade)
-  else
     s.on_frame(synchronous=true, before=false, memoize({start_fade([])}))
   end
   s.{fade_duration={duration()}, fade_delay={delay()}, fade_type={type()}}

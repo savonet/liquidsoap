@@ -110,9 +110,12 @@ jobs:
         if: (success() || failure()) && matrix.target == '@citest'
         run: |
           mkdir -p /tmp/${{ github.run_number }}/test-artifacts/tests/streams
+          mkdir -p /tmp/${{ github.run_number }}/test-artifacts/tests/regression
           cd /tmp/liquidsoap-full/liquidsoap
-          cp -f tests/streams/*.txt /tmp/${{ github.run_number }}/test-artifacts/tests/streams
-          cp -f tests/streams/*.png /tmp/${{ github.run_number }}/test-artifacts/tests/streams
+          for f in _build/default/tests/streams/*.gen; do
+            cp -f "$f" "/tmp/${{ github.run_number }}/test-artifacts/tests/streams/$(basename "${f%.gen}")"
+          done
+          cp -f _build/default/tests/regression/GH5019.gen.png /tmp/${{ github.run_number }}/test-artifacts/tests/regression/GH5019.png || true
       - name: Upload test artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: (success() || failure()) && inputs.is_fork != 'true' && matrix.target == '@citest'
