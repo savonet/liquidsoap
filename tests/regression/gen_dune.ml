@@ -13,6 +13,8 @@ let extra_deps =
     );
   ]
 
+let extra_targets = [("GH5019", "GH5019.wav")]
+
 let () =
   let location = Sys.getcwd () in
   let tests =
@@ -28,11 +30,16 @@ let () =
       let extra_deps =
         List.assoc_opt target extra_deps |> Option.value ~default:""
       in
+      let targets_stanza =
+        match List.assoc_opt target extra_targets with
+          | None -> ""
+          | Some t -> Printf.sprintf "\n (targets %s)" t
+      in
       Printf.printf
         {|
 (rule
  (alias %s)
- (package liquidsoap)
+ (package liquidsoap)%s
  (deps
   %s
   (alias ../media/all_media_files)
@@ -47,7 +54,7 @@ let () =
   (:run_test ../run_test.exe))
  (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
   |}
-        alias test extra_deps target test)
+        alias targets_stanza test extra_deps target test)
     tests
 
 let () =

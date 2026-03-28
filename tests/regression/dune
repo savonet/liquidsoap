@@ -105,3 +105,26 @@
     (run unzip -o %{deps}))
    (bash
     "cp libStereoTool_*/lib/Linux/IntelAMD/64/libStereoTool_intel64.so %{target}"))))
+
+(rule
+ (target GH5019.gen.png)
+ (deps GH5019.wav)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -i
+   %{deps}
+   -filter_complex
+   showwavespic=s=800x200:colors=black
+   -frames:v
+   1
+   -y
+   %{target})))
+
+(rule
+ (alias test_GH5019)
+ (action
+  (diff GH5019.png GH5019.gen.png)))
