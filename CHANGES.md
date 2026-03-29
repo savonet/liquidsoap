@@ -23,6 +23,7 @@
 
 ## Fixed:
 
+- Fixed clicks/glitches when combining `liq_cue_in` with `liq_fade_in` due to `fade.in` firing too late on new tracks (#5019)
 - Prevent crashing when getting out-of-bound mark in `split_frame` (#5054)
 - Fixed clock source detach when clock is running (#5051)
 - Fixed `??` operator type inference in conditional branches (#4922)
