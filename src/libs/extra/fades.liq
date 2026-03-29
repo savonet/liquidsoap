@@ -157,7 +157,7 @@ def autocue.plot(
 
   s = sequence([old_source, new_source])
 
-  def store_rms(~fname, ~offset, s) =
+  def store_rms(~fname, s) =
     s = rms(duration=settings.frame.duration(), s)
     t0 = ref(null)
 
@@ -205,14 +205,12 @@ def autocue.plot(
       new.metadata
     )
 
-    offset = source.duration(old.source) + source.duration(new.source)
-
     def ending_map(s) =
       if
         is_first_ending()
       then
         is_first_ending := false
-        store_rms(fname=old_txt, offset=offset, s)
+        store_rms(fname=old_txt, s)
       else
         s
       end
@@ -223,7 +221,7 @@ def autocue.plot(
         is_first_starting()
       then
         is_first_starting := false
-        store_rms(fname=new_txt, offset=offset, s)
+        store_rms(fname=new_txt, s)
       else
         s
       end
