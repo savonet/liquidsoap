@@ -148,8 +148,8 @@ module Conf : sig
   val conf_set : ut -> string -> unit
 
   (** Read configuration values from the file associated with the given
-      filename. Raises [File_Wrong_Conf] with filename line and and error
-      message in case of a bad configuration file. *)
+      filename. Raises [File_Wrong_Conf] with filename line and error message in
+      case of a bad configuration file. *)
   val conf_file : ut -> string -> unit
 
   (** A set of command line options to be used with the Arg module. *)

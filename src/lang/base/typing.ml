@@ -147,7 +147,7 @@ let update_level level a =
 exception Incompatible
 
 (** Approximated supremum of two types. We grow the second argument so that it
-    has a chance be be greater than the first. No binding is performed by this
+    has a chance to be greater than the first. No binding is performed by this
     function so that it should always be followed by a subtyping. *)
 let rec sup ~pos a b =
   (* Printf.printf "  sup: %s \\/ %s\n%!" (Type.to_string a) (Type.to_string b); *)

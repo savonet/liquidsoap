@@ -51,8 +51,8 @@ type t = {
 }
 
 let string_of_bitrate = function
-  | `Auto -> "birate=\"auto\","
-  | `Bitrate_max -> "birate=\"max\","
+  | `Auto -> "bitrate=\"auto\","
+  | `Bitrate_max -> "bitrate=\"max\","
   | `Bitrate b -> Printf.sprintf "bitrate=%d," b
 
 let string_of_mode = function

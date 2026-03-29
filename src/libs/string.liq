@@ -1,6 +1,6 @@
 # Match a string with an expression. Perl compatible regular expressions are
 # recognized. Hence, special characters should be escaped. Alternatively, one
-# can use the the `r/_/.test(_)` syntax for regular expressions.
+# can use the `r/_/.test(_)` syntax for regular expressions.
 # @category String
 def string.match(~pattern, s) =
   regexp(pattern).test(s)

@@ -122,11 +122,11 @@ let _ =
       ( "width",
         Lang.nullable_t Lang.int_t,
         Some Lang.null,
-        Some "Initial width of the video (defaults ot the same as frame)." );
+        Some "Initial width of the video (defaults to the same as frame)." );
       ( "height",
         Lang.nullable_t Lang.int_t,
         Some Lang.null,
-        Some "Initial height of the video (defaults ot the same as frame)." );
+        Some "Initial height of the video (defaults to the same as frame)." );
     ]
     ~return_t:(Lang.internal_tracks_t ())
     ~category:`Video ~descr:"A plane where one can draw."
