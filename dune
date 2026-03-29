@@ -1,7 +1,5 @@
 (rule
  (target liquidsoap.config)
- (package liquidsoap)
- (alias install)
  (enabled_if %{env:LIQUIDSOAP_ENABLE_BUILD_CONFIG=true})
  (deps
   src/libs/stdlib.liq
@@ -19,15 +17,54 @@
     %{target}
     (run %{bin:liquidsoap} --opam-config)))))
 
+(rule
+ (target liquidsoap.config)
+ (package liquidsoap)
+ (enabled_if
+  (not %{env:LIQUIDSOAP_ENABLE_BUILD_CONFIG=true}))
+ (mode
+  (promote
+   (only liquidsoap.config)
+   (until-clean)))
+ (action
+  (with-stdout-to
+   %{target}
+   (echo "Congratulation on building liquidsoap!\n"))))
+
+(rule
+ (target .git-setup)
+ (enabled_if %{bin-available:git})
+ (mode
+  (promote (until-clean)))
+ (action
+  (progn
+   (run git config --local include.path ../.gitconfig)
+   (with-stdout-to
+    %{target}
+    (echo "")))))
+
+(rule
+ (target .git-setup)
+ (enabled_if
+  (not %{bin-available:git}))
+ (mode
+  (promote (until-clean)))
+ (action
+  (with-stdout-to
+   %{target}
+   (echo ""))))
+
 (alias
  (name default)
  (deps
-  (alias_rec install)))
+  .git-setup
+  liquidsoap.config
+  (alias_rec src/libs/install)))
 
 (alias
  (name runtest)
  (deps
-  (alias_rec install)))
+  (alias_rec src/libs/install)))
 
 (alias
  (name citest)
