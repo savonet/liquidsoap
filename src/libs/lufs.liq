@@ -188,7 +188,7 @@ end
 # @param ~true_peak Also measure true peak and apply EBU R128 TP correction to the gain.
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Defaults to `settings.lufs.decoding_ratio` when `null`.
 # @category Liquidsoap
-def enable_lufs_track_gain_metadata(~compute=true, ~true_peak=false, ~ratio=null) =
+def enable_lufs_track_gain_metadata(~compute=true, ~true_peak=true, ~ratio=null) =
   ratio  = ratio ?? settings.lufs.decoding_ratio()
   def lufs_metadata(~metadata:_, file_name) =
     if
