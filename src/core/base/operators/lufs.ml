@@ -172,7 +172,7 @@ module LufsIntegratedHistogram = struct
     loudness (power /. float total)
 end
 
-class lufs window source =
+class lufs window true_peak_enabled source =
   object (self)
     inherit operator [source] ~name:"lufs"
     method fallible = source#fallible
@@ -263,9 +263,10 @@ class lufs window source =
         let frame = Generator.slice self#buffer len_100ms in
         if Frame.has_track_marks frame then self#reset_lufs_integrated;
         let buf = AFrame.pcm frame in
-        (* True peak operates on raw PCM before K-weighting. *)
-        let peak = TruePeak.process self#tp_state buf in
-        true_peak_linear <- max true_peak_linear peak;
+        if true_peak_enabled then begin
+          let peak = TruePeak.process self#tp_state buf in
+          true_peak_linear <- max true_peak_linear peak
+        end;
         let power = IIR.process self#iir buf in
         self#add_integrated_block power;
         ms_blocks <- power :: ms_blocks
@@ -280,7 +281,7 @@ class lufs window source =
       let frame =
         match Frame.track_marks frame with
           | [] -> frame
-          | pos :: _ when true_peak_linear > 0. ->
+          | pos :: _ when true_peak_enabled && true_peak_linear > 0. ->
               let m =
                 Frame.Metadata.add "lufs_true_peak"
                   (Printf.sprintf "%.2f" self#true_peak)
@@ -343,10 +344,17 @@ let _ =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 3.),
         Some "Duration of the window (in seconds) used to compute the LUFS." );
+      ( "true_peak",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Measure true peak. Set to false \
+           to disable true peak measurement and save CPU." );
       ("", Lang.source_t return_t, None, None);
     ]
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let window = Lang.to_float_getter (f "window") in
-      new lufs window src)
+      let true_peak = Lang.to_bool (f "true_peak") in
+      new lufs window true_peak src)
