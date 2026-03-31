@@ -86,14 +86,6 @@ module IIR = struct
     process ~stage1 ~stage2 samples
 end
 
-(** True peak measurement via 4x polyphase FIR oversampling (ITU-R BS.1770-4).
-    Unlike the original IIR module, this wraps the C external with a channel
-    count assertion to guard against out-of-bounds access on format changes. The
-    original IIR.process has the same assertion (via
-    [Array.length samples = channels]) but the C function underneath does not
-    validate buffer dimensions either; we follow the same OCaml-side guard
-    pattern here rather than duplicating the check in C, to stay consistent with
-    the existing codebase. *)
 module TruePeak = struct
   type state
 
@@ -348,8 +340,8 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool true),
         Some
-          "Measure true peak. Set to false \
-           to disable true peak measurement and save CPU." );
+          "Measure true peak. Set to false to disable true peak measurement \
+           and save CPU." );
       ("", Lang.source_t return_t, None, None);
     ]
     (fun p ->
