@@ -54,7 +54,7 @@ let register_args =
       Some
         "Accepted method (\"GET\" / \"POST\" / \"PUT\" / \"DELETE\" / \"HEAD\" \
          / \"OPTIONS\")." );
-    ("", Lang.regexp_t, None, Some "path to to serve.");
+    ("", Lang.regexp_t, None, Some "path to serve.");
     ( "",
       Lang.fun_t [(false, "", request_t)] resp_t,
       None,

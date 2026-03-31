@@ -30,22 +30,6 @@ let string =
             else Lang.string (Value.to_string v)
         | v -> Lang.string (Value.to_string v))
 
-let flags = Lang.add_module ~base:string "flags"
-
-let _ =
-  Lang.add_builtin "binary" ~base:flags ~category:`String
-    ~descr:"Get or set the string binary flag."
-    [("", Lang.string_t, None, None)]
-    Lang.(ref_t bool_t)
-    (fun p ->
-      let v = List.assoc "" p in
-      let s = Lang.to_string v in
-      Lang.reference
-        (fun () -> Lang.bool (Binary_strings_map.is_binary s))
-        (fun f ->
-          if Lang.to_bool f then Binary_strings_map.register s
-          else Binary_strings_map.remove s))
-
 let _ =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]

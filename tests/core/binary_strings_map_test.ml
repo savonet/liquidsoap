@@ -1,34 +1,19 @@
 open Liquidsoap_lang.Binary_strings_map
 
-(* Basic register/is_binary/remove cycle. *)
+(* Valid short UTF-8 strings are not binary. *)
 let () =
-  let s = "hello" in
-  assert (not (is_binary s));
-  register s;
-  assert (is_binary s);
-  remove s;
-  assert (not (is_binary s))
+  assert (not (is_binary "hello"));
+  assert (not (is_binary ""));
+  assert (not (is_binary "résumé"))
 
-(* Two physically distinct strings with the same content share binary status.
-   register one, is_binary on the other should return true and anchor it. *)
+(* Invalid UTF-8 is binary. *)
 let () =
-  let s1 = Bytes.to_string (Bytes.of_string "world") in
-  let s2 = Bytes.to_string (Bytes.of_string "world") in
-  assert (s1 != s2);
-  assert (not (is_binary s1));
-  assert (not (is_binary s2));
-  register s1;
-  assert (is_binary s1);
-  assert (is_binary s2);
-  remove s1;
-  assert (not (is_binary s1));
-  assert (not (is_binary s2))
+  let invalid_utf8 = "\xFF\xFE" in
+  assert (is_binary invalid_utf8)
 
-(* Registering the same physical string twice is a no-op. *)
+(* Strings longer than max_printable_length are binary. *)
 let () =
-  let s = "foo" in
-  register s;
-  register s;
-  assert (is_binary s);
-  remove s;
-  assert (not (is_binary s))
+  let long_string = String.make (!max_printable_length + 1) 'a' in
+  assert (is_binary long_string);
+  let exact_length = String.make !max_printable_length 'a' in
+  assert (not (is_binary exact_length))
