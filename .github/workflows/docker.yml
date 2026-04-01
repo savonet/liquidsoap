@@ -9,6 +9,9 @@ on:
       branch:
         required: true
         type: string
+      is_fork:
+        required: true
+        type: string
       publish_docker_image:
         required: true
         type: string
@@ -36,7 +39,8 @@ on:
         required: true
 
 jobs:
-  build_docker:
+  actual_build:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -80,7 +84,8 @@ jobs:
           provenance: false
           sbom: false
 
-  build_docker_alpine:
+  actual_build_docker_alpine:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -122,6 +127,7 @@ jobs:
           sbom: false
 
   build_docker_minimal:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -166,6 +172,7 @@ jobs:
           sbom: false
 
   build_docker_alpine_minimal:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -208,7 +215,7 @@ jobs:
 
   build_docker_release:
     runs-on: depot-ubuntu-24.04-4
-    needs: [build_docker, build_docker_alpine]
+    needs: [actual_build, actual_build_docker_alpine]
     if: inputs.docker_release == 'true'
     steps:
       - name: Checkout code
@@ -245,3 +252,31 @@ jobs:
           GITHUB_SHA: ${{ inputs.sha }}
           OCAML_DOCKER_RELEASE_VERSION: ocaml${{ inputs.ocaml_docker_release_version }}
         run: .github/scripts/push-docker.sh
+
+  build_docker:
+    runs-on: depot-ubuntu-24.04-4
+    needs: actual_build
+    if: always()
+    steps:
+      - name: Check build result
+        run: |
+          if [[ "${{ inputs.is_fork }}" == "true" ]]; then
+            echo "Fork PR, skipping build_docker requirement"
+          elif [[ "${{ needs.actual_build.result }}" != "success" ]]; then
+            echo "build_docker failed or was cancelled"
+            exit 1
+          fi
+
+  build_docker_alpine:
+    runs-on: depot-ubuntu-24.04-4
+    needs: actual_build_docker_alpine
+    if: always()
+    steps:
+      - name: Check build result
+        run: |
+          if [[ "${{ inputs.is_fork }}" == "true" ]]; then
+            echo "Fork PR, skipping build_docker_alpine requirement"
+          elif [[ "${{ needs.actual_build_docker_alpine.result }}" != "success" ]]; then
+            echo "build_docker_alpine failed or was cancelled"
+            exit 1
+          fi
