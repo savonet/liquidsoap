@@ -87,7 +87,6 @@ jobs:
   build_posix:
     uses: ./.github/workflows/build-posix.yml
     needs: build_details
-    if: needs.build_details.outputs.is_fork != 'true'
     with:
       sha: ${{ github.sha }}
       branch: ${{ needs.build_details.outputs.branch }}
