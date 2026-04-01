@@ -39,6 +39,7 @@ on:
 
 jobs:
   build_posix:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
