@@ -38,7 +38,7 @@ on:
         type: string
 
 jobs:
-  build_posix:
+  build:
     if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -133,3 +133,17 @@ jobs:
         if: ${{ always() }}
         run: |
           rm -rf /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}
+
+  build_posix:
+    runs-on: depot-ubuntu-24.04-4
+    needs: build
+    if: always()
+    steps:
+      - name: Check build result
+        run: |
+          if [[ "${{ inputs.is_fork }}" == "true" ]]; then
+            echo "Fork PR, skipping build requirement"
+          elif [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "build failed or was cancelled"
+            exit 1
+          fi
