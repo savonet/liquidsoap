@@ -971,6 +971,98 @@ def replaygain(~id=null, s) =
   amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
 end
 
+# Set `replay_metadata` on a source only if not already set.
+def set_replay_metadata(replay_meta, s) =
+  if null.defined(s?.replay_metadata) then s else s.{replay_metadata = replay_meta} end
+end
+
+# @docof switch
+# @flag deprecated
+# @param ~replay_metadata Deprecated: use the `replay_metadata` method on individual sources instead.
+def replaces switch(%argsof(switch), ~replay_metadata=null, sources) =
+  sources =
+    if
+      null.defined(replay_metadata)
+    then
+      deprecated(
+        "replay_metadata parameter on switch",
+        "the replay_metadata source method"
+      )
+      replay_meta = null.get(replay_metadata)
+      list.map(
+        fun (s) ->
+          begin
+            let (pred, src) = s
+            (pred, set_replay_metadata(replay_meta, src))
+          end,
+        sources
+      )
+    else
+      sources
+    end
+  switch(%argsof(switch), sources)
+end
+
+# @docof fallback
+# @flag deprecated
+# @param ~replay_metadata Deprecated: use the `replay_metadata` method on individual sources instead.
+def replaces fallback(%argsof(fallback), ~replay_metadata=null, sources) =
+  sources =
+    if
+      null.defined(replay_metadata)
+    then
+      deprecated(
+        "replay_metadata parameter on fallback",
+        "the replay_metadata source method"
+      )
+      replay_meta = null.get(replay_metadata)
+      list.map(fun (s) -> set_replay_metadata(replay_meta, s), sources)
+    else
+      sources
+    end
+  fallback(%argsof(fallback), sources)
+end
+
+# @docof rotate
+# @flag deprecated
+# @param ~replay_metadata Deprecated: use the `replay_metadata` method on individual sources instead.
+def replaces rotate(%argsof(rotate), ~replay_metadata=null, sources) =
+  sources =
+    if
+      null.defined(replay_metadata)
+    then
+      deprecated(
+        "replay_metadata parameter on rotate",
+        "the replay_metadata source method"
+      )
+      replay_meta = null.get(replay_metadata)
+      list.map(fun (s) -> set_replay_metadata(replay_meta, s), sources)
+    else
+      sources
+    end
+  rotate(%argsof(rotate), sources)
+end
+
+# @docof random
+# @flag deprecated
+# @param ~replay_metadata Deprecated: use the `replay_metadata` method on individual sources instead.
+def replaces random(%argsof(random), ~replay_metadata=null, sources) =
+  sources =
+    if
+      null.defined(replay_metadata)
+    then
+      deprecated(
+        "replay_metadata parameter on random",
+        "the replay_metadata source method"
+      )
+      replay_meta = null.get(replay_metadata)
+      list.map(fun (s) -> set_replay_metadata(replay_meta, s), sources)
+    else
+      sources
+    end
+  random(%argsof(random), sources)
+end
+
 # Deprecated: use json.object
 # @flag deprecated
 def replaces json() =

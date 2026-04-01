@@ -54,13 +54,8 @@ def rotate.merge(
 
   s = rotate(transitions=transitions, weights=weights, sources)
   let {track_marks = _, ...tracks} = source.tracks(s)
-  s = source(tracks)
-  switch(
-    id=id,
-    replay_metadata=false,
-    track_sensitive=false,
-    [(ready, s), ({not ready()}, s)]
-  )
+  s = source(tracks).{replay_metadata=false}
+  switch(id=id, track_sensitive=false, [(ready, s), ({not ready()}, s)])
 end
 
 # Rotate between overlapping sources. Next track starts according

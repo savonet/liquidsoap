@@ -47,7 +47,7 @@ class insert_initial_track_mark src =
 
 (* A transition is a value of type (source,source) -> source *)
 type transition = Lang.value
-type child = { source : source; transition : transition }
+type child = { source : source; transition : transition; replay_meta : bool }
 
 (** The switch can either happen at any time in the stream (insensitive) or only
     at track limits (sensitive). *)
@@ -81,8 +81,8 @@ let find ?(strict = false) f l =
   in
   aux l
 
-class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
-  ~track_sensitive children =
+class switch ~all_predicates ~override_meta ~transition_length ~track_sensitive
+  children =
   let cases = List.map (fun (_, _, s) -> s) children in
   let sources = List.map (fun c -> c.source) cases in
   let self_sync_type = Clock_base.self_sync_type sources in
@@ -148,11 +148,12 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
              (not s.source#fallible) && (not single) && trivially_true d)
            children)
 
-    method private prepare_new_source source =
+    method private prepare_new_source ~child source =
       let new_source = new insert_initial_track_mark source in
       Typing.(new_source#frame_type <: self#frame_type);
-      match (source#last_metadata, replay_meta) with
+      match (source#last_metadata, child.replay_meta) with
         | Some (_, m), true ->
+            self#log#info "Replaying metadata for %s." source#id;
             let new_source = new Replay_metadata.replay m new_source in
             Typing.(new_source#frame_type <: self#frame_type);
             new_source
@@ -182,7 +183,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
               | Some _, None -> self#exchange_selected None
               | None, Some (predicate, c) ->
                   self#log#important "Switch to %s." c.source#id;
-                  let new_source = self#prepare_new_source c.source in
+                  let new_source = self#prepare_new_source ~child:c c.source in
                   self#set_selected ~predicate ~child:c new_source
               | Some old_selection, Some (_, c)
                 when old_selection.child.source == c.source ->
@@ -196,7 +197,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                   self#log#important "Switch to %s with%s transition."
                     c.source#id
                     (if forget then " forgetful" else "");
-                  let new_source = self#prepare_new_source c.source in
+                  let new_source = self#prepare_new_source ~child:c c.source in
                   let s =
                     Lang.to_source
                       (Lang.apply c.transition
@@ -293,12 +294,6 @@ let _ =
         Some
           "Metadata field which, if present and containing a float, overrides \
            the `transition_length` parameter." );
-      ( "replay_metadata",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some
-          "Replay the last metadata of a child when switching to it in the \
-           middle of a track." );
       ( "all_predicates",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -328,11 +323,18 @@ let _ =
     ]
     ~return_t
     (fun p ->
+      let source_replay_meta s_val =
+        match
+          Value.Methods.find_opt "replay_metadata" (Value.methods s_val)
+        with
+          | Some v -> Lang.to_bool v
+          | None -> true
+      in
       let children =
         List.map
           (fun p ->
-            let pred, s = Lang.to_product p in
-            (pred, Lang.to_source s))
+            let pred, s_val = Lang.to_product p in
+            (pred, Lang.to_source s_val, source_replay_meta s_val))
           (Lang.to_list (List.assoc "" p))
       in
       let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
@@ -347,7 +349,6 @@ let _ =
         if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition)
         else tr
       in
-      let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
       let tl =
         Frame.main_of_seconds (Lang.to_float (List.assoc "transition_length" p))
       in
@@ -362,7 +363,8 @@ let _ =
       in
       let children =
         List.map2
-          (fun t (f, s) -> (f, { source = s; transition = t }))
+          (fun t (f, s, replay_meta) ->
+            (f, { source = s; transition = t; replay_meta }))
           tr children
       in
       let children =
@@ -374,5 +376,5 @@ let _ =
                  "there should be exactly one flag per children" ))
       in
       new switch
-        ~replay_meta ~override_meta ~all_predicates ~transition_length:tl
-        ~track_sensitive:ts children)
+        ~override_meta ~all_predicates ~transition_length:tl ~track_sensitive:ts
+        children)

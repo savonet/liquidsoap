@@ -81,6 +81,31 @@ The `add` operator now relays metadata from all sources being summed (see above)
 
 Also, remember that the `add` operator removes all track marks.
 
+### Per-source `replay_metadata` on `switch`, `fallback`, `rotate`, `random`
+
+The global `replay_metadata` parameter on `switch` (and the wrappers `fallback`, `rotate`, `random`) is now deprecated. Use the `replay_metadata` method on individual sources instead. This allows fine-grained control per branch rather than a single global flag.
+
+**Before:**
+
+```liquidsoap
+s = fallback(replay_metadata=false, [s1, s2])
+```
+
+**After:**
+
+```liquidsoap
+s1 = s1.{replay_metadata = false}
+s2 = s2.{replay_metadata = false}
+s = fallback([s1, s2])
+```
+
+To disable replay for a single branch while keeping the default (`true`) for the others:
+
+```liquidsoap
+s1 = s1.{replay_metadata = false}
+s = fallback([s1, s2])
+```
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation

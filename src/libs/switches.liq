@@ -2,14 +2,12 @@
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
-# @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
 # @param ~track_sensitive Re-select only on end of tracks.
 # @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 def fallback(
   ~id=null,
   ~override="liq_transition_length",
-  ~replay_metadata=true,
   ~track_sensitive=true,
   ~transition_length=5.,
   ~transitions=[],
@@ -22,7 +20,6 @@ def fallback(
   switch(
     id=id,
     override=override,
-    replay_metadata=replay_metadata,
     transitions=transitions,
     track_sensitive=track_sensitive,
     transition_length=transition_length,
@@ -34,14 +31,12 @@ end
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
-# @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
 # @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 def rotate(
   ~id=null,
   ~override="liq_transition_length",
-  ~replay_metadata=true,
   ~transition_length=5.,
   ~transitions=[],
   ~weights=[],
@@ -118,7 +113,6 @@ def rotate(
   s =
     switch(
       override=override,
-      replay_metadata=replay_metadata,
       track_sensitive=true,
       transition_length=transition_length,
       transitions=transitions,
@@ -152,14 +146,12 @@ end
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
-# @param ~replay_metadata Replay the last metadata of a child when switching to it in the middle of a track.
 # @param ~transition_length Maximum transition duration.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child the probability that it is selected.
 def replaces random(
   ~id=null,
   ~override="liq_transition_length",
-  ~replay_metadata=true,
   ~transition_length=5.,
   ~transitions=[],
   ~weights=[],
@@ -219,7 +211,6 @@ def replaces random(
   s =
     switch(
       override=override,
-      replay_metadata=replay_metadata,
       track_sensitive=true,
       transition_length=transition_length,
       transitions=transitions,
