@@ -115,12 +115,12 @@ def f() =
     'def f(x=null) = ref(x) end r = f(); r.set(1); r.set("aabb")'
   )
 
-  incorrect('fallback([blank().{transition=fun(~l)->blank()}])')
-  incorrect('fallback([blank().{transition=fun(~l=blank())->blank()}])')
-  incorrect('fallback([blank().{transition=fun(x,y)->x}])')
-  incorrect('fallback([blank().{transition=fun(x)->0}])')
-  correct('fallback([blank().{transition=fun(x,a=2)->x}])')
-  incorrect('fallback([blank().{transition=fun(x)->x+1}])')
+  incorrect('fallback([blank().{on_select=fun(~l)->blank()}])')
+  incorrect('fallback([blank().{on_select=fun(~l=blank())->blank()}])')
+  incorrect('fallback([blank().{on_select=fun(x,y)->x}])')
+  incorrect('fallback([blank().{on_select=fun(x)->0}])')
+  correct('fallback([blank().{on_select=fun(x,a=2)->x}])')
+  incorrect('fallback([blank().{on_select=fun(x)->x+1}])')
   correct(
     'x=fun(f)->f(3) y=x(fun(f,u="1")->u) ignore(y)'
   )

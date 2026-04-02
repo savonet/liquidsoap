@@ -15,7 +15,7 @@ end
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
-# @param sources Sequence of sources to be merged. The first source's `transition` method is always overridden with an internal transition that marks the track boundary.
+# @param sources Sequence of sources to be merged.
 def rotate.merge(
   ~id=null("rotate.merge"),
   ~weights=[],
@@ -32,7 +32,7 @@ def rotate.merge(
   sources =
     list.mapi(
       fun (i, (s : source)) ->
-        if i == 0 then s.{transition = to_first} else s.{transition = fun (x) -> x} end,
+        if i == 0 then s.{on_select = to_first} else (s : source) end,
       sources
     )
 

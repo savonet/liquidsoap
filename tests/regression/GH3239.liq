@@ -11,7 +11,7 @@ def transition(b) =
   fade.in(b)
 end
 
-s = fallback([a.{transition = transition}, b.{transition = transition}])
+s = fallback([a.{on_select = transition}, b.{on_select = transition}])
 
 clock.assign_new(sync='none', [s])
 

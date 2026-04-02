@@ -1,10 +1,10 @@
 log.level.set(5)
 
-# Test that the per-source transition callback is called when switching to a
+# Test that the per-source on_select callback is called when switching to a
 # source, and that the returned source is used.
 #
-# The transition for s_b wraps the incoming source in a metadata.map that adds
-# a "via_transition" marker. If the transition ran, we see that marker.
+# The on_select for s_b wraps the incoming source in a metadata.map that adds
+# a "via_on_select" marker. If on_select ran, we see that marker.
 
 state = ref(0)
 use_b = ref(false)
@@ -25,9 +25,9 @@ s_b_raw =
 
 s_b =
   (s_b_raw : source).{
-    transition = fun (new) ->
+    on_select = fun (new) ->
       (metadata.map(
-         fun (m) -> [("via_transition", "true"), ...m],
+         fun (m) -> [("via_on_select", "true"), ...m],
          (new : source)
        ) : source)
   }
@@ -43,8 +43,8 @@ s.on_metadata(
   fun (m) ->
     begin
       title = m["title"]
-      via = m["via_transition"]
-      log("state=#{state()}, title=#{title}, via_transition=#{via}")
+      via = m["via_on_select"]
+      log("state=#{state()}, title=#{title}, via_on_select=#{via}")
       if state() == 0 and title == "a" then
         state := 1
         use_b := true

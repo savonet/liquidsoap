@@ -50,7 +50,7 @@ type transition = Lang.value
 
 type child = {
   source : source;
-  transition : transition;
+  on_select : transition;
   on_leave : Lang.value;
   replay_meta : bool;
   single : bool;
@@ -204,7 +204,7 @@ class switch ~all_predicates ~track_sensitive children =
                   let new_source = self#prepare_new_source ~child:c c.source in
                   let s =
                     Lang.to_source
-                      (Lang.apply c.transition [("", Lang.source new_source)])
+                      (Lang.apply c.on_select [("", Lang.source new_source)])
                   in
                   Typing.(s#frame_type <: self#frame_type);
                   self#set_selected ~predicate ~child:c s
@@ -239,7 +239,7 @@ class switch ~all_predicates ~track_sensitive children =
 
 (** Common tools for Lang bindings of switch operators *)
 
-let default_transition =
+let default_on_select =
   Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (x) -> x"
 
 let default_on_leave =
@@ -302,10 +302,12 @@ let _ =
                      ([], Lang.bool_t),
                      "Forbid the selection of this source for two consecutive \
                       tracks. Defaults to `false`." );
-                   ( "transition",
+                   ( "on_select",
                      ([], transition_t),
-                     "Transition executed when switching to this source. \
-                      Defaults to `fun (x) -> x`." );
+                     "Function called when selecting this source. It receives \
+                      the source as argument and should return a source, \
+                      allowing optional processing such as a fade-in or an \
+                      intro jingle. Defaults to `fun (x) -> x`." );
                  ]))),
         None,
         Some "Sources with the predicate telling when they can be played." );
@@ -335,12 +337,12 @@ let _ =
                 | Some v -> Lang.to_bool v
                 | None -> false
             in
-            let transition =
-              match source_method_opt "transition" s_val with
+            let on_select =
+              match source_method_opt "on_select" s_val with
                 | Some v -> v
-                | None -> default_transition
+                | None -> default_on_select
             in
-            (pred, { source; transition; on_leave; replay_meta; single }))
+            (pred, { source; on_select; on_leave; replay_meta; single }))
           (Lang.to_list (List.assoc "" p))
       in
       let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in

@@ -117,9 +117,12 @@ s = switch([({cond1}, s1.{single = true}), ({cond2}, s2)])
 
 #### `transitions`, `transition_length`, `override` (breaking change)
 
-The `transitions` list parameter and `transition_length`/`override` parameters have been removed. Transitions are now set as a per-source `transition` method and control their own duration.
+The `transitions` list parameter and `transition_length`/`override` parameters have been removed. Per-source selection behavior is now set via optional methods directly on each source. The relevant methods are:
 
-The transition function signature changed from `(source, source) -> source` to `source -> source`. The outgoing source argument was removed because `switch` and its related operators do not buffer data from the ending source — once a switch decision is made, the old source stops being pulled entirely, so a two-argument transition would receive no data from it. For true crossfades that overlap the end of one source with the start of another, use the `crossfade` operator instead.
+- `on_select`: called when the source is selected. Receives the source as argument and returns a source, allowing optional processing such as a fade-in or an intro jingle. Defaults to `fun (x) -> x`.
+- `on_leave`: called with the source when switching away from it.
+
+The `on_select` function signature is `source -> source` (single argument). The outgoing source argument from the old two-argument `transitions` functions was removed because `switch` and its related operators do not buffer data from the ending source — once a switch decision is made, the old source stops being pulled entirely, so a two-argument function would receive no data from it. For true crossfades that overlap the end of one source with the start of another, use the `crossfade` operator instead.
 
 **Before:**
 
@@ -133,10 +136,10 @@ s = fallback(transitions=[my_transition], transition_length=3., [s1, s2])
 **After:**
 
 ```liquidsoap
-def my_transition(new) =
+def my_on_select(new) =
   fade.in(new)
 end
-s = fallback([s1.{transition = my_transition}, s2])
+s = fallback([s1.{on_select = my_on_select}, s2])
 ```
 
 ## From 2.3.x to 2.4.x

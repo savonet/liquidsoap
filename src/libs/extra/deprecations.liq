@@ -981,7 +981,7 @@ def set_switch_source_attrs(
     on_leave?: (source)->unit,
     replay_metadata?: bool,
     single?: bool,
-    transition?: (source)->source
+    on_select?: (source)->source
   }
   )
 ) =
