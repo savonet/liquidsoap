@@ -114,7 +114,10 @@ let getaddrinfo ~(log : Log.t) ~prefer_address address port =
 module SyncSource = Clock.MkSyncSource (struct
   type t = unit
 
+  let time_implementation () = Clock.unconstrained_time
   let to_string _ = "srt"
+  let latency () = Clock.conf_latency#get
+  let max_latency () = Clock.conf_max_latency#get
 end)
 
 let sync_source = SyncSource.make ()
