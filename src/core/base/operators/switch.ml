@@ -51,6 +51,7 @@ type transition = Lang.value
 type child = {
   source : source;
   transition : transition;
+  on_leave : Lang.value;
   replay_meta : bool;
   single : bool;
 }
@@ -183,7 +184,11 @@ class switch ~all_predicates ~track_sensitive children =
                   () )
             with
               | None, None -> ()
-              | Some _, None -> self#exchange_selected None
+              | Some old_selection, None ->
+                  ignore
+                    (Lang.apply old_selection.child.on_leave
+                       [("", Lang.source old_selection.child.source)]);
+                  self#exchange_selected None
               | None, Some (predicate, c) ->
                   self#log#important "Switch to %s." c.source#id;
                   let new_source = self#prepare_new_source ~child:c c.source in
@@ -191,8 +196,11 @@ class switch ~all_predicates ~track_sensitive children =
               | Some old_selection, Some (_, c)
                 when old_selection.child.source == c.source ->
                   ()
-              | Some _, Some (predicate, c) ->
+              | Some old_selection, Some (predicate, c) ->
                   self#log#important "Switch to %s with transition." c.source#id;
+                  ignore
+                    (Lang.apply old_selection.child.on_leave
+                       [("", Lang.source old_selection.child.source)]);
                   let new_source = self#prepare_new_source ~child:c c.source in
                   let s =
                     Lang.to_source
@@ -234,6 +242,9 @@ class switch ~all_predicates ~track_sensitive children =
 let default_transition =
   Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (x) -> x"
 
+let default_on_leave =
+  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> ()"
+
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let pred_t = Lang.fun_t [] Lang.bool_t in
@@ -272,10 +283,17 @@ let _ =
              [(false, "", Lang.source_t return_t)]
              (Lang.source_t return_t)
          in
+         let on_leave_t =
+           Lang.fun_t [(false, "", Lang.source_t return_t)] Lang.unit_t
+         in
          Lang.list_t
            (Lang.product_t pred_t
               (Lang.optional_method_t (Lang.source_t return_t)
                  [
+                   ( "on_leave",
+                     ([], on_leave_t),
+                     "Called when switching away from this source. Defaults to \
+                      `fun (_) -> ()`." );
                    ( "replay_metadata",
                      ([], Lang.bool_t),
                      "Replay metadata when switching to this source. Defaults \
@@ -302,6 +320,11 @@ let _ =
           (fun p ->
             let pred, s_val = Lang.to_product p in
             let source = Lang.to_source s_val in
+            let on_leave =
+              match source_method_opt "on_leave" s_val with
+                | Some v -> v
+                | None -> default_on_leave
+            in
             let replay_meta =
               match source_method_opt "replay_metadata" s_val with
                 | Some v -> Lang.to_bool v
@@ -317,7 +340,7 @@ let _ =
                 | Some v -> v
                 | None -> default_transition
             in
-            (pred, { source; transition; replay_meta; single }))
+            (pred, { source; transition; on_leave; replay_meta; single }))
           (Lang.to_list (List.assoc "" p))
       in
       let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in

@@ -16,9 +16,9 @@
 
 - `switch`, `fallback`, `rotate`, `random`: replaced parallel list parameters
   (`transitions`, `single`, `transition_length`, `override`) with per-source
-  methods (`transition`, `single`, `replay_metadata`). The `transition` function
-  now takes only the incoming source (`source -> source`) instead of both old
-  and new. `replay_metadata` and `single` are deprecated with backward-compatible
+  methods (`transition`, `single`, `replay_metadata`, `on_leave`). The `transition`
+  function now takes only the incoming source (`source -> source`) instead of both
+  old and new. `replay_metadata` and `single` are deprecated with backward-compatible
   wrappers; `transitions`, `transition_length`, and `override` are removed (#5074).
 - Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
   with a single unified `duration` parameter. Removed autocue-specific code and
