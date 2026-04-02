@@ -33,7 +33,11 @@ type sync_source = Clock_base.sync_source
 type self_sync = [ `Static | `Dynamic ] * sync_source option
 type controller = [ `None | `Clock of t | `Other of string * < id : string > ]
 
+val conf_latency : float Dtools.Conf.t
+val conf_max_latency : float Dtools.Conf.t
 val string_of_sync_source : sync_source -> string
+val latency_of_sync_source : sync_source -> float option
+val max_latency_of_sync_source : sync_source -> float option
 
 type sync_source_entry = {
   name : string;
@@ -52,7 +56,10 @@ exception Sync_error of clock_sync_error
 module type SyncSource = sig
   type t
 
+  val time_implementation : t -> Liq_time.implementation
   val to_string : t -> string
+  val latency : t -> float
+  val max_latency : t -> float
 end
 
 module MkSyncSource (S : SyncSource) : sig
@@ -117,6 +124,12 @@ val on_tick : t -> (unit -> unit) -> unit
 val tick : t -> unit
 val after_tick : t -> (unit -> unit) -> unit
 val time_implementation : unit -> Liq_time.implementation
+
+(** A time implementation that always returns [0] for [time] and is a no-op for
+    [sleep_until]. For use by self-sync sources that drive their own clock and
+    do not need liquidsoap's timing. *)
+val unconstrained_time : Liq_time.implementation
+
 val after_eval : unit -> unit
 val dump : unit -> string
 val dump_sources : t -> string
