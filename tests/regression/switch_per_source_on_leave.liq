@@ -19,7 +19,9 @@ s_a =
     on_leave=
       fun (left) ->
         begin
-          source.skip(left)
+          log(
+            "on_leave called for #{source.id(left)}"
+          )
           on_leave_fired := true
         end
   }
