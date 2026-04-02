@@ -317,7 +317,15 @@ let _ =
           "Forbid the selection of a branch for two tracks in a row. The empty \
            list stands for `[false,...,false]`." );
       ( "",
-        Lang.list_t (Lang.product_t pred_t (Lang.source_t return_t)),
+        Lang.list_t
+          (Lang.product_t pred_t
+             (Lang.optional_method_t (Lang.source_t return_t)
+                [
+                  ( "replay_metadata",
+                    ([], Lang.bool_t),
+                    "Replay metadata when switching to this source. Defaults \
+                     to `true`." );
+                ])),
         None,
         Some "Sources with the predicate telling when they can be played." );
     ]
