@@ -5,7 +5,17 @@
 def fallback(
   ~id=null,
   ~track_sensitive=true,
-  sources
+  (
+  sources:
+  [
+    source.{
+      on_leave?: (source)->unit,
+      replay_metadata?: bool,
+      single?: bool,
+      transition?: (source)->source
+    }
+  ]
+  )
 ) =
   switch(
     id=id,
@@ -21,7 +31,17 @@ end
 def rotate(
   ~id=null,
   ~weights=[],
-  sources
+  (
+  sources:
+  [
+    source.{
+      on_leave?: (source)->unit,
+      replay_metadata?: bool,
+      single?: bool,
+      transition?: (source)->source
+    }
+  ]
+  )
 ) =
   weights = list.map(getter.function, weights)
   default_weight = {1}
@@ -91,11 +111,7 @@ def rotate(
     (cond, s)
   end
 
-  s =
-    switch(
-      track_sensitive=true,
-      list.mapi(add_condition, sources)
-    )
+  s = switch(track_sensitive=true, list.mapi(add_condition, sources))
 
   def f(_) =
     if
@@ -127,7 +143,17 @@ end
 def replaces random(
   ~id=null,
   ~weights=[],
-  sources
+  (
+  sources:
+  [
+    source.{
+      on_leave?: (source)->unit,
+      replay_metadata?: bool,
+      single?: bool,
+      transition?: (source)->source
+    }
+  ]
+  )
 ) =
   weights = list.map(getter.function, weights)
   default_weight = fun () -> 1
@@ -180,11 +206,7 @@ def replaces random(
     (cond, s)
   end
 
-  s =
-    switch(
-      track_sensitive=true,
-      list.mapi(add_condition, sources)
-    )
+  s = switch(track_sensitive=true, list.mapi(add_condition, sources))
 
   def f(_) =
     next_index := -1

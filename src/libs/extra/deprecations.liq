@@ -972,14 +972,26 @@ def replaygain(~id=null, s) =
 end
 
 # Set optional switch source attributes as per-source methods.
-def set_switch_source_attrs(~replay_metadata=null, ~single=null, s) =
+def set_switch_source_attrs(
+  ~replay_metadata=null,
+  ~single=null,
+  (
+  s:
+  source.{
+    on_leave?: (source)->unit,
+    replay_metadata?: bool,
+    single?: bool,
+    transition?: (source)->source
+  }
+  )
+) =
   s =
     if
       null.defined(replay_metadata)
     then
       s.{replay_metadata=null.get(replay_metadata)}
     else
-      (s : source.{ replay_metadata?: bool })
+      s
     end
   s = if null.defined(single) then s.{single=null.get(single)} else s end
   s
