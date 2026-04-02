@@ -81,9 +81,11 @@ The `add` operator now relays metadata from all sources being summed (see above)
 
 Also, remember that the `add` operator removes all track marks.
 
-### Per-source `replay_metadata` on `switch`, `fallback`, `rotate`, `random`
+### Per-source methods on `switch`, `fallback`, `rotate`, `random`
 
-The global `replay_metadata` parameter on `switch` (and the wrappers `fallback`, `rotate`, `random`) is now deprecated. Use the `replay_metadata` method on individual sources instead. This allows fine-grained control per branch rather than a single global flag.
+The `switch` operator (and its wrappers `fallback`, `rotate`, `random`) now uses per-source methods instead of parallel list parameters. This gives fine-grained control per branch.
+
+#### `replay_metadata` (deprecated parameter)
 
 **Before:**
 
@@ -94,16 +96,47 @@ s = fallback(replay_metadata=false, [s1, s2])
 **After:**
 
 ```liquidsoap
-s1 = s1.{replay_metadata = false}
-s2 = s2.{replay_metadata = false}
-s = fallback([s1, s2])
+s = fallback([s1.{replay_metadata = false}, s2.{replay_metadata = false}])
+# or only for one branch:
+s = fallback([s1.{replay_metadata = false}, s2])
 ```
 
-To disable replay for a single branch while keeping the default (`true`) for the others:
+#### `single` (deprecated parameter on `switch`)
+
+**Before:**
 
 ```liquidsoap
-s1 = s1.{replay_metadata = false}
-s = fallback([s1, s2])
+s = switch(single=[true, false], [({cond1}, s1), ({cond2}, s2)])
+```
+
+**After:**
+
+```liquidsoap
+s = switch([({cond1}, s1.{single = true}), ({cond2}, s2)])
+```
+
+#### `transitions`, `transition_length`, `override` (breaking change)
+
+The `transitions` list parameter and `transition_length`/`override` parameters have been removed. Transitions are now set as a per-source `transition` method and control their own duration.
+
+The transition function signature changed from `(source, source) -> source` to `source -> source`. The outgoing source argument was removed because `switch` and its related operators do not buffer data from the ending source — once a switch decision is made, the old source stops being pulled entirely, so a two-argument transition would receive no data from it. For true crossfades that overlap the end of one source with the start of another, use the `crossfade` operator instead.
+
+**Before:**
+
+```liquidsoap
+def my_transition(old, new) =
+  add([fade.out(old), fade.in(new)])
+end
+s = fallback(transitions=[my_transition], transition_length=3., [s1, s2])
+```
+
+**After:**
+
+```liquidsoap
+def my_transition(new) =
+  fade.in(new)
+end
+s = fallback([s1.{transition = my_transition}, s2])
 ```
 
 ## From 2.3.x to 2.4.x

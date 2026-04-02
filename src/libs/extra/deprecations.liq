@@ -971,15 +971,30 @@ def replaygain(~id=null, s) =
   amplify(id=id, override=settings.normalize_track_gain_metadata(), 1., s)
 end
 
-# Set `replay_metadata` on a source only if not already set.
-def set_replay_metadata(replay_meta, s) =
-  if null.defined(s?.replay_metadata) then s else s.{replay_metadata = replay_meta} end
+# Set optional switch source attributes as per-source methods.
+def set_switch_source_attrs(~replay_metadata=null, ~single=null, s) =
+  s =
+    if
+      null.defined(replay_metadata)
+    then
+      s.{replay_metadata=null.get(replay_metadata)}
+    else
+      s
+    end
+  s = if null.defined(single) then s.{single=null.get(single)} else s end
+  s
 end
 
 # @docof switch
 # @flag deprecated
 # @param ~replay_metadata Deprecated: use the `replay_metadata` method on individual sources instead.
-def replaces switch(%argsof(switch), ~replay_metadata=null, sources) =
+# @param ~single Deprecated: use the `single` method on individual sources instead.
+def replaces switch(
+  %argsof(switch),
+  ~replay_metadata=null,
+  ~single=null,
+  sources
+) =
   sources =
     if
       null.defined(replay_metadata)
@@ -988,12 +1003,43 @@ def replaces switch(%argsof(switch), ~replay_metadata=null, sources) =
         "replay_metadata parameter on switch",
         "the replay_metadata source method"
       )
-      replay_meta = null.get(replay_metadata)
       list.map(
         fun (s) ->
           begin
             let (pred, src) = s
-            (pred, set_replay_metadata(replay_meta, src))
+            (
+              pred,
+              set_switch_source_attrs(
+                replay_metadata=null.get(replay_metadata),
+                src
+              )
+            )
+          end,
+        sources
+      )
+    else
+      sources
+    end
+  sources =
+    if
+      null.defined(single)
+    then
+      deprecated(
+        "single parameter on switch",
+        "the single source method"
+      )
+      singles = null.get(single)
+      list.mapi(
+        fun (i, s) ->
+          begin
+            let (pred, src) = s
+            (
+              pred,
+              set_switch_source_attrs(
+                single=list.nth(default=false, singles, i),
+                src
+              )
+            )
           end,
         sources
       )
@@ -1015,8 +1061,11 @@ def replaces fallback(%argsof(fallback), ~replay_metadata=null, sources) =
         "replay_metadata parameter on fallback",
         "the replay_metadata source method"
       )
-      replay_meta = null.get(replay_metadata)
-      list.map(fun (s) -> set_replay_metadata(replay_meta, s), sources)
+      list.map(
+        fun (s) ->
+          set_switch_source_attrs(replay_metadata=null.get(replay_metadata), s),
+        sources
+      )
     else
       sources
     end
@@ -1035,8 +1084,11 @@ def replaces rotate(%argsof(rotate), ~replay_metadata=null, sources) =
         "replay_metadata parameter on rotate",
         "the replay_metadata source method"
       )
-      replay_meta = null.get(replay_metadata)
-      list.map(fun (s) -> set_replay_metadata(replay_meta, s), sources)
+      list.map(
+        fun (s) ->
+          set_switch_source_attrs(replay_metadata=null.get(replay_metadata), s),
+        sources
+      )
     else
       sources
     end
@@ -1055,8 +1107,11 @@ def replaces random(%argsof(random), ~replay_metadata=null, sources) =
         "replay_metadata parameter on random",
         "the replay_metadata source method"
       )
-      replay_meta = null.get(replay_metadata)
-      list.map(fun (s) -> set_replay_metadata(replay_meta, s), sources)
+      list.map(
+        fun (s) ->
+          set_switch_source_attrs(replay_metadata=null.get(replay_metadata), s),
+        sources
+      )
     else
       sources
     end

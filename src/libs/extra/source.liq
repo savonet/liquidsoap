@@ -14,47 +14,31 @@ end
 # @category Source / Track processing
 # @flag extra
 # @param ~id Force the value of the source ID.
-# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
-# @param sources Sequence of sources to be merged
+# @param sources Sequence of sources to be merged. The first source's `transition` method is always overridden with an internal transition that marks the track boundary.
 def rotate.merge(
   ~id=null("rotate.merge"),
-  ~transitions=[],
   ~weights=[],
   sources
 ) =
   ready = ref(true)
   duration = frame.duration()
 
-  def to_first(_, new) =
+  def to_first(new) =
     ready := (not ready())
-    sequence(merge=true, [blank(duration=duration), (new : source)])
+    (sequence(merge=true, [blank(duration=duration), (new : source)]) : source)
   end
 
-  transitions =
-    if
-      list.length(transitions) == 0
-    then
-      [to_first]
-    else
-      list.mapi(
-        (
-          fun (i, t) ->
-            if
-              i == 0
-            then
-              (fun (old, new) -> to_first(old, t(old, new)))
-            else
-              t
-            end
-        ),
-        transitions
-      )
-    end
+  sources =
+    list.mapi(
+      fun (i, (s : source)) ->
+        if i == 0 then s.{transition = to_first} else s.{transition = fun (x) -> x} end,
+      sources
+    )
 
-  s = rotate(transitions=transitions, weights=weights, sources)
+  s = rotate(weights=weights, sources)
   let {track_marks = _, ...tracks} = source.tracks(s)
-  s = source(tracks).{replay_metadata=false}
+  s = source(tracks).{replay_metadata = false}
   switch(id=id, track_sensitive=false, [(ready, s), ({not ready()}, s)])
 end
 

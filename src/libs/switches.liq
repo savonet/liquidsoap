@@ -1,44 +1,25 @@
 # At the beginning of each track, select the first ready child.
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
-# @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
 # @param ~track_sensitive Re-select only on end of tracks.
-# @param ~transition_length Maximum transition duration.
-# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 def fallback(
   ~id=null,
-  ~override="liq_transition_length",
   ~track_sensitive=true,
-  ~transition_length=5.,
-  ~transitions=[],
   sources
 ) =
-  def add_condition(s) =
-    ({true}, s)
-  end
-
   switch(
     id=id,
-    override=override,
-    transitions=transitions,
     track_sensitive=track_sensitive,
-    transition_length=transition_length,
-    list.map(add_condition, sources)
+    list.map(fun (s) -> ({true}, s), sources)
   )
 end
 
 # Rotate between sources.
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
-# @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
-# @param ~transition_length Maximum transition duration.
-# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 def rotate(
   ~id=null,
-  ~override="liq_transition_length",
-  ~transition_length=5.,
-  ~transitions=[],
   ~weights=[],
   sources
 ) =
@@ -112,10 +93,7 @@ def rotate(
 
   s =
     switch(
-      override=override,
       track_sensitive=true,
-      transition_length=transition_length,
-      transitions=transitions,
       list.mapi(add_condition, sources)
     )
 
@@ -145,15 +123,9 @@ end
 # At the beginning of every track, select a random ready child.
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
-# @param ~override Metadata field which, if present and containing a float, overrides the `transition_length` parameter.
-# @param ~transition_length Maximum transition duration.
-# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child the probability that it is selected.
 def replaces random(
   ~id=null,
-  ~override="liq_transition_length",
-  ~transition_length=5.,
-  ~transitions=[],
   ~weights=[],
   sources
 ) =
@@ -210,10 +182,7 @@ def replaces random(
 
   s =
     switch(
-      override=override,
       track_sensitive=true,
-      transition_length=transition_length,
-      transitions=transitions,
       list.mapi(add_condition, sources)
     )
 
