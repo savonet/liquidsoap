@@ -12,7 +12,7 @@ def fallback(
       on_leave?: (source)->unit,
       replay_metadata?: bool,
       single?: bool,
-      transition?: (source)->source
+      on_select?: (source)->source
     }
   ]
   )
@@ -38,7 +38,7 @@ def rotate(
       on_leave?: (source)->unit,
       replay_metadata?: bool,
       single?: bool,
-      transition?: (source)->source
+      on_select?: (source)->source
     }
   ]
   )
@@ -150,7 +150,7 @@ def replaces random(
       on_leave?: (source)->unit,
       replay_metadata?: bool,
       single?: bool,
-      transition?: (source)->source
+      on_select?: (source)->source
     }
   ]
   )
