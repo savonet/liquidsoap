@@ -979,7 +979,7 @@ def set_switch_source_attrs(~replay_metadata=null, ~single=null, s) =
     then
       s.{replay_metadata=null.get(replay_metadata)}
     else
-      s
+      (s : source.{ replay_metadata?: bool })
     end
   s = if null.defined(single) then s.{single=null.get(single)} else s end
   s
