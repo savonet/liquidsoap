@@ -123,6 +123,11 @@ let rec mk_parsed_ty ?pos ~env ~to_term = function
         l
   | `Invoke (t, s) -> snd (Type.invoke (mk_parsed_ty ?pos ~env ~to_term t) s)
   | `Source (s, p) -> mk_source_ty ?pos s p
+  | `Getter t ->
+      Type.(
+        make
+          ?pos:(Option.map Pos.of_lexing_pos pos)
+          (Getter (mk_parsed_ty ?pos ~env ~to_term t)))
 
 and mk_meth_ty ?pos ~env ~to_term base
     { Parsed_term.name; optional_meth = optional; typ; json_name } =

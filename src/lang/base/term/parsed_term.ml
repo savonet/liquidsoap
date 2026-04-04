@@ -177,7 +177,8 @@ and type_annotation =
   | `Record of meth_annotation list
   | `Method of type_annotation * meth_annotation list
   | `Invoke of type_annotation * string
-  | `Source of string * source_annotation ]
+  | `Source of string * source_annotation
+  | `Getter of type_annotation ]
 
 (* These terms are reduced at runtime *)
 and parsed_ast =
