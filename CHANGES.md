@@ -2,6 +2,7 @@
 
 ## New:
 
+- Added `getter(t)` type annotation syntax for getter types (#TODO).
 - Added subtitles support as a dedicated content type. Includes native SRT decoding,
   FFmpeg subtitle encoding/decoding (`%subtitle`), passthrough for bitmap subtitles
   (`%subtitle.copy`), callbacks (`on_subtitle`), transformations (`subtitles.map`),

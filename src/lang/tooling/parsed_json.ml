@@ -147,6 +147,7 @@ let rec json_of_type_annotation = function
       type_node ~typ:"source"
         ~extra:[("base", `String n)]
         (json_of_source_annotation t)
+  | `Getter t -> type_node ~typ:"getter" (json_of_type_annotation t)
 
 and json_of_type_fun_arg (b, s, t) =
   type_node ~typ:"fun_arg"

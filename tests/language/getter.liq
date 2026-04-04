@@ -83,6 +83,21 @@ def tests() =
   getter.get(g)
   getter.get(g)
 
+  # Test getter type annotations
+  def h((x:getter(int))) =
+    getter.get(x)
+  end
+
+  test.equal(h(3), 3)
+  test.equal(h({4}), 4)
+
+  def k((x:getter(string))) =
+    getter.get(x)
+  end
+
+  test.equal(k("hello"), "hello")
+  test.equal(k({"world"}), "world")
+
   test.pass()
 end
 
