@@ -160,6 +160,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method virtual fallible : bool
     method source_type : source_type = `Passive
+    val mutable _composition : [ `File | `Live ] = `File
+    method composition = _composition
+    method set_composition c = _composition <- c
     val mutable registered_commands = Queue.create ()
 
     method register_command ?usage ~descr name cmd =
@@ -783,6 +786,7 @@ and virtual source ?stack ?clock ~name () =
 class virtual active_source ?stack ?clock ~name () =
   object
     inherit active_operator ?stack ?clock ~name []
+    initializer _composition <- `Live
   end
 
 (* Reselect type. This drives the choice of next source.

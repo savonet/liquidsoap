@@ -45,9 +45,13 @@ class insert_initial_track_mark src =
       else buf
   end
 
-(* A transition is a value of type (source,source) -> source *)
-type transition = Lang.value
-type child = { source : source; transition : transition }
+type child = {
+  source : source;
+  on_select : source option -> source -> source;
+  on_leave : source -> bool -> unit;
+  track_sensitive : unit -> bool;
+  single : bool;
+}
 
 (** The switch can either happen at any time in the stream (insensitive) or only
     at track limits (sensitive). *)
@@ -66,7 +70,7 @@ let trivially_true = function
   | Value.Fun { fun_body = { Term.term = `Bool true } } -> true
   | _ -> false
 
-let pick_selection (p, _, s) = (p, s)
+let pick_selection (p, s) = (p, s)
 
 (** Like [List.find] but evaluates [f] on every element when [strict] is [true].
 *)
@@ -81,20 +85,25 @@ let find ?(strict = false) f l =
   in
   aux l
 
-class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
-  ~track_sensitive children =
-  let cases = List.map (fun (_, _, s) -> s) children in
+class switch ~all_predicates children =
+  let cases = List.map (fun (_, s) -> s) children in
   let sources = List.map (fun c -> c.source) cases in
   let self_sync_type = Clock_base.self_sync_type sources in
+  (* Track-sensitivity is determined per-source from the selected child.
+     We use a ref so it can be captured by the generate_from_multiple_sources
+     mixin at construction time and updated in set_selected. *)
+  let track_sensitive = ref (fun () -> true) in
   object (self)
     inherit operator ~name:"switch" (List.map (fun x -> x.source) cases)
 
     inherit
       generate_from_multiple_sources
         ~merge:(fun () -> false)
-        ~track_sensitive ()
+        ~track_sensitive:(fun () -> !track_sensitive ())
+        ()
 
-    val mutable transition_length = transition_length
+    (* Ensure track_sensitive ref is reset when no source is selected. *)
+    initializer self#on_sleep (fun () -> track_sensitive := fun () -> true)
     val selected : selection option Atomic.t = Atomic.make None
     method selected = Atomic.get selected
 
@@ -104,6 +113,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         | _ -> ()
 
     method set_selected ~predicate ~child effective_source =
+      track_sensitive := child.track_sensitive;
       let sleep =
         if effective_source != child.source then (
           let a = effective_source#wake_up (self :> Clock.source) in
@@ -126,42 +136,52 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
       self#on_before_streaming_cycle (fun () -> excluded_sources <- [])
 
     method private select ~reselect () =
-      let may_select ~single s =
+      let may_select s =
         match self#selected with
           | Some { child; effective_source } when child.source == s.source ->
-              (not single) && self#can_reselect ~reselect effective_source
+              (not s.single) && self#can_reselect ~reselect effective_source
           | _ -> not (List.memq s excluded_sources)
       in
       try
         Some
           (pick_selection
              (find ~strict:all_predicates
-                (fun (d, single, s) ->
-                  satisfied d && may_select ~single s && s.source#is_ready)
+                (fun (d, s) -> satisfied d && may_select s && s.source#is_ready)
                 children))
       with Not_found -> None
 
     method fallible =
       not
         (List.exists
-           (fun (d, single, s) ->
-             (not s.source#fallible) && (not single) && trivially_true d)
+           (fun (d, s) ->
+             (not s.source#fallible) && (not s.single) && trivially_true d)
            children)
 
     method private prepare_new_source source =
       let new_source = new insert_initial_track_mark source in
       Typing.(new_source#frame_type <: self#frame_type);
-      match (source#last_metadata, replay_meta) with
-        | Some (_, m), true ->
-            let new_source = new Replay_metadata.replay m new_source in
-            Typing.(new_source#frame_type <: self#frame_type);
-            new_source
-        | _ -> new_source
+      new_source
+
+    (* [incoming] is the child being selected next, if any. Its
+       track_sensitive setting determines whether the leaving source was
+       preempted mid-track (track_sensitive=false) or left at a natural track
+       boundary (track_sensitive=true). When there is no incoming source the
+       leave is unconditional and we pass true (no skip needed). *)
+    method private apply_on_leave ~incoming child =
+      let ts =
+        match incoming with Some c -> c.track_sensitive () | None -> true
+      in
+      child.on_leave child.source ts
+
+    method private apply_on_select ~ending ~starting child =
+      let s = child.on_select ending starting in
+      Typing.(s#frame_type <: self#frame_type);
+      s
 
     method get_source ~reselect () =
       match self#selected with
         | Some s
-          when (track_sensitive () || satisfied s.predicate)
+          when (s.child.track_sensitive () || satisfied s.predicate)
                && self#can_reselect
                     ~reselect:
                       (* We want to force a re-select on each new track. *)
@@ -179,46 +199,27 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                   () )
             with
               | None, None -> ()
-              | Some _, None -> self#exchange_selected None
+              | Some old_selection, None ->
+                  self#apply_on_leave ~incoming:None old_selection.child;
+                  self#exchange_selected None
               | None, Some (predicate, c) ->
                   self#log#important "Switch to %s." c.source#id;
                   let new_source = self#prepare_new_source c.source in
-                  self#set_selected ~predicate ~child:c new_source
+                  let s =
+                    self#apply_on_select ~ending:None ~starting:new_source c
+                  in
+                  self#set_selected ~predicate ~child:c s
               | Some old_selection, Some (_, c)
                 when old_selection.child.source == c.source ->
                   ()
-              | old_selection, Some (predicate, c) ->
-                  let forget, old_source =
-                    match old_selection with
-                      | None -> (true, Debug_sources.empty ())
-                      | Some old_selection -> (false, old_selection.child.source)
-                  in
-                  self#log#important "Switch to %s with%s transition."
-                    c.source#id
-                    (if forget then " forgetful" else "");
+              | Some old_selection, Some (predicate, c) ->
+                  self#log#important "Switch to %s with transition." c.source#id;
+                  self#apply_on_leave ~incoming:(Some c) old_selection.child;
                   let new_source = self#prepare_new_source c.source in
                   let s =
-                    Lang.to_source
-                      (Lang.apply c.transition
-                         [
-                           ("", Lang.source old_source);
-                           ("", Lang.source new_source);
-                         ])
-                  in
-                  let s =
-                    if s == new_source then s
-                    else (
-                      Typing.(s#frame_type <: self#frame_type);
-                      let s =
-                        new Max_duration.max_duration
-                          ~override_meta ~duration:transition_length s
-                      in
-                      Typing.(s#frame_type <: self#frame_type);
-                      let s =
-                        new Sequence.sequence ~merge:true [s; new_source]
-                      in
-                      Typing.(s#frame_type <: self#frame_type);
-                      (s :> Source.source))
+                    self#apply_on_select
+                      ~ending:(Some old_selection.child.source)
+                      ~starting:new_source c
                   in
                   self#set_selected ~predicate ~child:c s
             end;
@@ -252,12 +253,43 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
 (** Common tools for Lang bindings of switch operators *)
 
-let default_transition =
-  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_, y) -> y"
-
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let pred_t = Lang.fun_t [] Lang.bool_t in
+  (* Source type with optional per-source composition methods. Declaring them as
+     optional allows passing plain sources as well as sources with explicit
+     method overrides (e.g. s.{on_select = my_fn}). *)
+  let source_t =
+    let src_t = Lang.source_t return_t in
+    let on_select_t =
+      Lang.fun_t
+        [
+          ( false,
+            "",
+            Type.meth ~optional:true "ending" ([], Lang.source_t return_t)
+            @@ Lang.record_t [("starting", Lang.source_t return_t)] );
+        ]
+        (Lang.source_t return_t)
+    in
+    let on_leave_t =
+      Lang.fun_t
+        [
+          ( false,
+            "",
+            Lang.record_t
+              [
+                ("source", Lang.source_t return_t);
+                ("track_sensitive", Lang.bool_t);
+              ] );
+        ]
+        Lang.unit_t
+    in
+    Type.meth ~optional:true "single" ([], Lang.bool_t)
+    @@ Type.meth ~optional:true "track_sensitive" ([], Lang.getter_t Lang.bool_t)
+    @@ Type.meth ~optional:true "on_leave" ([], on_leave_t)
+    @@ Type.meth ~optional:true "on_select" ([], on_select_t)
+    @@ src_t
+  in
   Lang.add_operator "switch" ~category:`Track
     ~descr:
       "At the beginning of a track, select the first source whose predicate is \
@@ -279,100 +311,67 @@ let _ =
         };
       ]
     [
-      ( "track_sensitive",
-        Lang.getter_t Lang.bool_t,
-        Some (Lang.bool true),
-        Some "Re-select only on end of tracks." );
-      ( "transition_length",
-        Lang.float_t,
-        Some (Lang.float 5.),
-        Some "Maximum transition duration." );
-      ( "override",
-        Lang.string_t,
-        Some (Lang.string "liq_transition_length"),
-        Some
-          "Metadata field which, if present and containing a float, overrides \
-           the `transition_length` parameter." );
-      ( "replay_metadata",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some
-          "Replay the last metadata of a child when switching to it in the \
-           middle of a track." );
       ( "all_predicates",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Always evaluate all predicates when re-selecting." );
-      (let transition_t =
-         Lang.fun_t
-           [
-             (false, "", Lang.source_t return_t);
-             (false, "", Lang.source_t return_t);
-           ]
-           (Lang.source_t return_t)
-       in
-       ( "transitions",
-         Lang.list_t transition_t,
-         Some (Lang.list []),
-         Some "Transition functions, padded with `fun (x,y) -> y` functions." ));
-      ( "single",
-        Lang.list_t Lang.bool_t,
-        Some (Lang.list []),
-        Some
-          "Forbid the selection of a branch for two tracks in a row. The empty \
-           list stands for `[false,...,false]`." );
       ( "",
-        Lang.list_t (Lang.product_t pred_t (Lang.source_t return_t)),
+        Lang.list_t (Lang.product_t pred_t source_t),
         None,
         Some "Sources with the predicate telling when they can be played." );
     ]
     ~return_t
     (fun p ->
+      let find_opt name s_val =
+        Value.Methods.find_opt name (Value.methods s_val)
+      in
       let children =
         List.map
           (fun p ->
-            let pred, s = Lang.to_product p in
-            (pred, Lang.to_source s))
+            let pred, s_val = Lang.to_product p in
+            let source = Lang.to_source s_val in
+            let single =
+              match find_opt "single" s_val with
+                | Some v -> Lang.to_bool v
+                | None -> false
+            in
+            let track_sensitive =
+              match find_opt "track_sensitive" s_val with
+                | Some v -> Lang.to_bool_getter v
+                | None ->
+                    let ts = source#composition = `File in
+                    fun () -> ts
+            in
+            let on_leave =
+              match find_opt "on_leave" s_val with
+                | Some on_leave ->
+                    fun s ts ->
+                      let record =
+                        Lang.record
+                          [
+                            ("source", Lang.source s);
+                            ("track_sensitive", Lang.bool ts);
+                          ]
+                      in
+                      ignore (Lang.apply on_leave [("", record)])
+                | None -> fun _s _ts -> ()
+            in
+            let on_select =
+              match find_opt "on_select" s_val with
+                | Some on_select ->
+                    fun ending starting ->
+                      let record =
+                        Lang.record
+                          ((match ending with
+                             | None -> []
+                             | Some s -> [("ending", Lang.source s)])
+                          @ [("starting", Lang.source starting)])
+                      in
+                      Lang.to_source (Lang.apply on_select [("", record)])
+                | None -> fun _ending starting -> starting
+            in
+            (pred, { source; on_select; on_leave; track_sensitive; single }))
           (Lang.to_list (List.assoc "" p))
       in
-      let ts = Lang.to_bool_getter (List.assoc "track_sensitive" p) in
-      let tr = Lang.to_list (List.assoc "transitions" p) in
-      let ltr = List.length tr in
-      let tr =
-        let l = List.length children in
-        if ltr > l then
-          raise
-            (Error.Invalid_value
-               (List.assoc "transitions" p, "Too many transitions"));
-        if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition)
-        else tr
-      in
-      let replay_meta = Lang.to_bool (List.assoc "replay_metadata" p) in
-      let tl =
-        Frame.main_of_seconds (Lang.to_float (List.assoc "transition_length" p))
-      in
-      let override_meta = Lang.to_string (List.assoc "override" p) in
       let all_predicates = Lang.to_bool (List.assoc "all_predicates" p) in
-      let singles =
-        List.map Lang.to_bool (Lang.to_list (List.assoc "single" p))
-      in
-      let singles =
-        if singles = [] then List.init (List.length children) (fun _ -> false)
-        else singles
-      in
-      let children =
-        List.map2
-          (fun t (f, s) -> (f, { source = s; transition = t }))
-          tr children
-      in
-      let children =
-        try List.map2 (fun (d, s) single -> (d, single, s)) children singles
-        with Invalid_argument s when s = "List.map2" ->
-          raise
-            (Error.Invalid_value
-               ( List.assoc "single" p,
-                 "there should be exactly one flag per children" ))
-      in
-      new switch
-        ~replay_meta ~override_meta ~all_predicates ~transition_length:tl
-        ~track_sensitive:ts children)
+      new switch ~all_predicates children)

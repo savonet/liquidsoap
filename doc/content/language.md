@@ -849,6 +849,16 @@ so that you can still write constant floats where float getters are
 expected. What we actually call a _getter_ is generally an element of such a
 type, which is either a constant or a function with no argument.
 
+When writing type annotations, getter types are written as `getter(t)`. For
+instance, a function that accepts either an `int` or a `() -> int` can be
+annotated as:
+
+```liquidsoap
+def f((x : getter(int))) =
+  getter.get(x)
+end
+```
+
 In order to work with such types, the standard library often uses the following
 functions:
 

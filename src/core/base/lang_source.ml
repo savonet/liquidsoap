@@ -576,9 +576,263 @@ let source_methods =
     };
   ]
 
+(** Default composition profile values for file and live sources. These are
+    mutable so that stdlib.liq can update the live defaults (e.g. to install a
+    fade-based on_select) after all operators load. *)
+
+type composition_profile = {
+  on_leave : value;
+  on_select : value;
+  track_sensitive : bool;
+}
+
+let noop_on_leave =
+  eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> ()"
+
+let passthrough_on_select =
+  eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (x) -> x.starting"
+
+let file_profile =
+  ref
+    {
+      on_leave = noop_on_leave;
+      on_select = passthrough_on_select;
+      track_sensitive = true;
+    }
+
+let live_profile =
+  ref
+    {
+      on_leave = noop_on_leave;
+      on_select = passthrough_on_select;
+      track_sensitive = false;
+    }
+
+let profile_of s =
+  if s#composition = `File then !file_profile else !live_profile
+
+let profile_to_value p =
+  record
+    [
+      ("on_leave", p.on_leave);
+      ("on_select", p.on_select);
+      ("track_sensitive", bool p.track_sensitive);
+    ]
+
+let profile_of_value v =
+  {
+    on_leave = Value.invoke v "on_leave";
+    on_select = Value.invoke v "on_select";
+    track_sensitive = to_bool (Value.invoke v "track_sensitive");
+  }
+
+let source_composition_methods =
+  [
+    {
+      name = "composition_type";
+      scheme = ([], ref_t string_t);
+      descr =
+        "Composition type for this source: `\"file\"` or `\"live\"`. Controls \
+         the default values of `track_sensitive`, `on_leave`, and `on_select` \
+         when they have not been explicitly overridden. File-based sources \
+         default to `\"file\"`; live network and hardware inputs default to \
+         `\"live\"`. Setting this ref changes which global composition profile \
+         (`source.composition.file` or `source.composition.live`) is used as \
+         the default.";
+      value =
+        (fun s ->
+          reference
+            (fun () ->
+              string
+                (match s#composition with `File -> "file" | `Live -> "live"))
+            (fun v ->
+              s#set_composition
+                (match to_string v with
+                  | "file" -> `File
+                  | "live" -> `Live
+                  | other ->
+                      Runtime_error.raise ~pos:[]
+                        ~message:
+                          (Printf.sprintf
+                             "composition_type must be \"file\" or \"live\", \
+                              got %S"
+                             other)
+                        "invalid")));
+    };
+    {
+      name = "track_sensitive";
+      scheme = ([], getter_t bool_t);
+      descr =
+        "Whether this source is track-sensitive by default in switch \
+         operators. File-based sources default to `true`; live network and \
+         hardware inputs default to `false`. The value is looked up at runtime \
+         from the active composition profile (`source.composition.file` or \
+         `source.composition.live` depending on `composition_type`).";
+      value =
+        (fun s -> val_fun [] (fun _ -> bool (profile_of s).track_sensitive));
+    };
+    {
+      name = "single";
+      scheme = ([], bool_t);
+      descr =
+        "Forbid the selection of this source for two consecutive tracks in \
+         switch operators. Defaults to `false`.";
+      value = (fun _ -> bool false);
+    };
+    (let on_leave_frame_t = Type.var () in
+     let on_leave_var =
+       match on_leave_frame_t.Type.descr with
+         | Type.Var { contents = Type.Free v } -> v
+         | _ -> assert false
+     in
+     let on_leave_source_t =
+       Type.make
+         (Type.Constr
+            {
+              Type.constructor = "source";
+              params = [(`Invariant, on_leave_frame_t)];
+            })
+     in
+     let on_leave_arg_t =
+       record_t [("source", on_leave_source_t); ("track_sensitive", bool_t)]
+     in
+     {
+       name = "on_leave";
+       scheme = ([on_leave_var], fun_t [(false, "", on_leave_arg_t)] unit_t);
+       (* Default behavior (installed by stdlib.liq): skip the source only
+          when it was preempted mid-track (track_sensitive=false), so it
+          starts fresh on next selection. No skip when it finished naturally. *)
+       descr =
+         "Called when switching away from this source in a switch operator. \
+          Receives a record with `source` (the source being left) and \
+          `track_sensitive` (`true` if the switch happened at a track \
+          boundary, `false` if the source was preempted mid-track). By \
+          default, skips the source when it was preempted mid-track so it \
+          starts fresh on its next selection. No action is taken when the \
+          source finished its track naturally. The default is looked up at \
+          runtime from the active composition profile \
+          (`source.composition.file` or `source.composition.live` depending on \
+          `composition_type`).";
+       value =
+         (fun s ->
+           val_fun
+             [("", "", None)]
+             (fun p ->
+               let x = List.assoc "" p in
+               apply (profile_of s).on_leave [("", x)]));
+     });
+    (let on_select_frame_t = Type.var () in
+     let on_select_var =
+       match on_select_frame_t.Type.descr with
+         | Type.Var { contents = Type.Free v } -> v
+         | _ -> assert false
+     in
+     let on_select_source_t =
+       Type.make
+         (Type.Constr
+            {
+              Type.constructor = "source";
+              params = [(`Invariant, on_select_frame_t)];
+            })
+     in
+     {
+       name = "on_select";
+       scheme =
+         ( [on_select_var],
+           fun_t
+             [
+               ( false,
+                 "",
+                 Type.meth ~optional:true "ending" ([], on_select_source_t)
+                 @@ record_t [("starting", on_select_source_t)] );
+             ]
+             on_select_source_t );
+       (* Default behavior (installed by stdlib.liq): file profile returns
+          starting unchanged; live profile fades out the ending source when
+          preempted mid-track (ending non-null), otherwise passes through. *)
+       descr =
+         "Called when selecting this source in a switch operator. Receives a \
+          record with `starting` (the incoming source) and `ending` (the \
+          previous source, or `null` if the switch happened at a track \
+          boundary). Returns the source to use. By default, file sources \
+          return `starting` unchanged. Live sources fade out `ending` (up to 1 \
+          second, or the remaining track time if shorter) when it is non-null, \
+          and return `starting` directly otherwise. The default is looked up \
+          at runtime from the active composition profile \
+          (`source.composition.file` or `source.composition.live` depending on \
+          `composition_type`).";
+       value =
+         (fun s ->
+           val_fun
+             [("", "", None)]
+             (fun p ->
+               let x = List.assoc "" p in
+               apply (profile_of s).on_select [("", x)]));
+     });
+  ]
+
 let source_methods =
   List.map (fun m -> (m, `Method)) source_methods
+  @ List.map (fun m -> (m, `Composition)) source_composition_methods
   @ List.map (fun c -> (callback c, `Callback)) source_callbacks
+
+(** Register source.composition.{file,live}.{on_leave,on_select,track_sensitive}
+    as mutable Liquidsoap references. Must be called after the [source] module
+    exists in the environment.  Pass the string returned by
+    [Lang.add_operator "source" ...] as [~base]. *)
+let register_composition_module ~base () =
+  let composition = add_module ~base "composition" in
+  let frame_t = Type.var () in
+  let source_frame_t =
+    Type.make
+      (Type.Constr
+         { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
+  in
+  let on_leave_t =
+    fun_t
+      [
+        ( false,
+          "",
+          record_t [("source", source_frame_t); ("track_sensitive", bool_t)] );
+      ]
+      unit_t
+  in
+  let on_select_t =
+    fun_t
+      [
+        ( false,
+          "",
+          record_t
+            [
+              ("ending", nullable_t source_frame_t); ("starting", source_frame_t);
+            ] );
+      ]
+      source_frame_t
+  in
+  let profile_t =
+    record_t
+      [
+        ("on_leave", on_leave_t);
+        ("on_select", on_select_t);
+        ("track_sensitive", bool_t);
+      ]
+  in
+  List.iter
+    (fun (name, profile_ref) ->
+      ignore
+        (add_builtin_value ~base:composition ~category:`Liquidsoap
+           ~descr:
+             (Printf.sprintf
+                "Default composition profile for %s sources. Contains \
+                 `on_leave`, `on_select`, and `track_sensitive` defaults used \
+                 by switch operators."
+                name)
+           name
+           (reference
+              (fun () -> profile_to_value !profile_ref)
+              (fun v -> profile_ref := profile_of_value v))
+           (ref_t profile_t)))
+    [("file", file_profile); ("live", live_profile)]
 
 let make_t ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
 

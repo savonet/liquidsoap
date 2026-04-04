@@ -86,6 +86,23 @@ module IIR = struct
     process ~stage1 ~stage2 samples
 end
 
+module TruePeak = struct
+  type state
+
+  external create_raw : int -> state = "liquidsoap_lufs_true_peak_create"
+
+  external process_raw : state -> float array array -> float
+    = "liquidsoap_lufs_true_peak_process"
+
+  type t = int * state
+
+  let create channels = (channels, create_raw channels)
+
+  let process (channels, state) samples =
+    assert (Array.length samples = channels);
+    process_raw state samples
+end
+
 (** Compute the loudness from the mean of squares. *)
 let loudness z = -0.691 +. (10. *. log10 z)
 
@@ -147,7 +164,7 @@ module LufsIntegratedHistogram = struct
     loudness (power /. float total)
 end
 
-class lufs window source =
+class lufs window true_peak_enabled source =
   object (self)
     inherit operator [source] ~name:"lufs"
     method fallible = source#fallible
@@ -182,8 +199,32 @@ class lufs window source =
     method private add_integrated_block v =
       LufsIntegratedHistogram.append lufs_integrated v
 
+    (** True peak state and running maximum (linear, not dBTP). *)
+    val mutable tp_state : TruePeak.t option = None
+
+    val mutable true_peak_linear = neg_infinity
+
+    method private tp_state =
+      match tp_state with
+        | None ->
+            let s = TruePeak.create self#audio_channels in
+            tp_state <- Some s;
+            s
+        | Some s -> s
+
+    (** Current true peak in dBTP. Returns neg_infinity if no audio has been
+        processed or the track is pure digital silence. We use [> 0.] rather
+        than [>= 0.] so that an empty frame (C returns 0.0) or all-zero audio
+        does not register as a measured peak — silence is correctly reported as
+        [neg_infinity] dBTP instead of ~-313 dBTP. *)
+    method true_peak =
+      if true_peak_linear > 0. then 20. *. log10 true_peak_linear
+      else neg_infinity
+
     method private reset_lufs_integrated =
       iir <- None;
+      tp_state <- None;
+      true_peak_linear <- neg_infinity;
       lufs_integrated <- LufsIntegratedHistogram.create ()
 
     (** Compute LUFS. *)
@@ -214,6 +255,10 @@ class lufs window source =
         let frame = Generator.slice self#buffer len_100ms in
         if Frame.has_track_marks frame then self#reset_lufs_integrated;
         let buf = AFrame.pcm frame in
+        if true_peak_enabled then begin
+          let peak = TruePeak.process self#tp_state buf in
+          true_peak_linear <- max true_peak_linear peak
+        end;
         let power = IIR.process self#iir buf in
         self#add_integrated_block power;
         ms_blocks <- power :: ms_blocks
@@ -223,6 +268,20 @@ class lufs window source =
 
     method private generate_frame =
       let frame = source#get_frame in
+      (* Inject true peak into metadata at the track boundary, capturing the
+         value before process_frame triggers reset_lufs_integrated. *)
+      let frame =
+        match Frame.track_marks frame with
+          | [] -> frame
+          | pos :: _ when true_peak_enabled && true_peak_linear > 0. ->
+              let m =
+                Frame.Metadata.add "lufs_true_peak"
+                  (Printf.sprintf "%.2f" self#true_peak)
+                  Frame.Metadata.empty
+              in
+              Frame.add_metadata frame pos m
+          | _ -> frame
+      in
       self#process_frame frame;
       frame
   end
@@ -258,6 +317,15 @@ let _ =
             value =
               (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#lufs_momentary));
           };
+          {
+            name = "true_peak";
+            scheme = ([], Lang.fun_t [] Lang.float_t);
+            descr =
+              "Maximum true peak in dBTP over the current track, measured via \
+               4x oversampling per ITU-R BS.1770-4. Also written as \
+               `lufs_true_peak` in track metadata at each track boundary.";
+            value = (fun s -> Lang.val_fun [] (fun _ -> Lang.float s#true_peak));
+          };
         ]
     ~return_t
     ~descr:
@@ -268,10 +336,17 @@ let _ =
         Lang.getter_t Lang.float_t,
         Some (Lang.float 3.),
         Some "Duration of the window (in seconds) used to compute the LUFS." );
+      ( "true_peak",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Measure true peak. Set to false to disable true peak measurement \
+           and save CPU." );
       ("", Lang.source_t return_t, None, None);
     ]
     (fun p ->
       let f v = List.assoc v p in
       let src = Lang.to_source (f "") in
       let window = Lang.to_float_getter (f "window") in
-      new lufs window src)
+      let true_peak = Lang.to_bool (f "true_peak") in
+      new lufs window true_peak src)

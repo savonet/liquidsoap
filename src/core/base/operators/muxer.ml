@@ -215,6 +215,8 @@ let source =
     [("", tracks_t, None, Some "Tracks to mux")]
     muxer_operator
 
+let () = Lang_source.register_composition_module ~base:source ()
+
 let _ =
   let track_t = Lang.univ_t ~constraints:[Format_type.track] () in
   let return_t = Format_type.track_marks in

@@ -123,6 +123,10 @@ let mk_named_ty ~pos name ty =
     | "ref", None ->
         raise
           (Term_base.Parse_error (pos, "ref type requires a type parameter"))
+    | "getter", Some t -> `Getter t
+    | "getter", None ->
+        raise
+          (Term_base.Parse_error (pos, "getter type requires a type parameter"))
     | "source", _ ->
         mk_source_ty ~pos name { Parsed_term.extensible = false; tracks = [] }
     | _, _ ->

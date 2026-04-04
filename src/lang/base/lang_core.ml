@@ -173,6 +173,9 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     let callbacks, meth =
       List.partition (fun (m : Type.meth) -> m.doc.category = `Callback) meth
     in
+    let composition, meth =
+      List.partition (fun (m : Type.meth) -> m.doc.category = `Composition) meth
+    in
     let t = builtin_type proto return_t in
     let generalized = Typing.filter_vars (fun _ -> true) t in
     let examples =
@@ -202,7 +205,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
               } ))
         proto
     in
-    let methods =
+    let meth_list l =
       List.map
         (fun (m : Type.meth) ->
           let d = m.doc.meth_descr in
@@ -213,21 +216,11 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
                 meth_type = Repr.string_of_scheme m.scheme;
                 meth_description = d;
               } ))
-        meth
+        l
     in
-    let callbacks =
-      List.map
-        (fun (m : Type.meth) ->
-          let d = m.doc.meth_descr in
-          let d = if d = "" then None else Some d in
-          ( m.meth,
-            Doc.Value.
-              {
-                meth_type = Repr.string_of_scheme m.scheme;
-                meth_description = d;
-              } ))
-        callbacks
-    in
+    let methods = meth_list meth in
+    let callbacks = meth_list callbacks in
+    let composition = meth_list composition in
     Doc.Value.
       {
         typ = Repr.string_of_scheme (generalized, t);
@@ -238,6 +231,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
         arguments;
         methods;
         callbacks;
+        composition;
       }
     (* to_plugin_doc category flags examples descr proto return_t *)
   in
@@ -262,6 +256,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
         arguments = [];
         methods = [];
         callbacks = [];
+        composition = [];
       }
   in
   Environment.add_builtin ~doc:(Lazy.from_fun doc)

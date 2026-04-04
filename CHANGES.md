@@ -2,6 +2,7 @@
 
 ## New:
 
+- Added `getter(t)` type annotation syntax for getter types (#TODO).
 - Added subtitles support as a dedicated content type. Includes native SRT decoding,
   FFmpeg subtitle encoding/decoding (`%subtitle`), passthrough for bitmap subtitles
   (`%subtitle.copy`), callbacks (`on_subtitle`), transformations (`subtitles.map`),
@@ -14,6 +15,14 @@
 
 ## Changed:
 
+- `switch`, `fallback`, `rotate`, `random`: replaced parallel list parameters
+  (`transitions`, `single`, `transition_length`, `override`) with per-source
+  methods (`on_select`, `on_leave`, `single`, `track_sensitive`) registered on
+  every source. `on_select` now receives a record `{ending: source?, starting:
+source}` and returns a processed source; `on_leave` is called with the source
+  being left; `track_sensitive` and `single` default to the source's composition
+  type (`true`/`false` for file-based vs live). `replay_metadata` is removed;
+  `transitions`, `transition_length`, and `override` are removed (#5074).
 - Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
   with a single unified `duration` parameter. Removed autocue-specific code and
   `assume_autocue` setting. Metadata overrides `liq_cross_start_duration` and

@@ -106,7 +106,7 @@ end
 # @param s the source to turn infaillible
 # @category Source / Track processing
 def mksafe(~id="mksafe", s) =
-  fallback(id=id, track_sensitive=false, [(s : source), blank(id="safe_blank")])
+  fallback(id=id, [(s : source), blank(id="safe_blank")])
 end
 
 # Creates a source that plays only one track of the input source.
@@ -221,7 +221,7 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   if insert_missing then d.on_track(synchronous=true, f) end
   d.on_metadata(synchronous=true, f)
 
-  s = fallback(id=id, track_sensitive=false, [d, s])
+  s = fallback(id=id, [d, s])
   s.{
     pending=
       # Return the pending source
@@ -293,7 +293,7 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
   end
 
   d = source.dynamic(track_sensitive=true, next)
-  fallback(id=id, track_sensitive=true, [d, s])
+  fallback(id=id, [d, s])
 end
 
 # Call a callback on each subtitle in the source.
