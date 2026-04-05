@@ -125,6 +125,19 @@ object
   (** The source type. Defaults to [`Passive] *)
   method source_type : source_type
 
+  (** Composition mode. File-based sources return [`File]; live network and
+      hardware inputs default to [`Live]. Can be changed at runtime via
+      [set_composition], which is exposed as the [composition_type] ref method
+      in Liquidsoap. *)
+  method composition : [ `File | `Live ]
+
+  (** Set the composition mode at runtime. *)
+  method set_composition : [ `File | `Live ] -> unit
+
+  (** Remove the given source from the list of controlled sources. For advanced
+      use only! *)
+  method release_source : source -> unit
+
   (** [true] if the source needs to be animated on each clock tick. *)
   method active : bool
 

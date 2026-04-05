@@ -18,7 +18,7 @@ radio = myplaylist
 radio = random(weights=[1, 4], [jingles, radio])
 
 # And finally the security
-radio = fallback(track_sensitive=false, [radio, security])
+radio = fallback([radio, security])
 
 # Stream it out
 output.icecast(

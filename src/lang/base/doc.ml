@@ -189,6 +189,7 @@ module Value = struct
     arguments : (string option * argument) list;
     methods : (string * meth) list;
     callbacks : (string * meth) list;
+    composition : (string * meth) list;
   }
 
   let db = ref Map.empty
@@ -321,7 +322,15 @@ module Value = struct
           print (" * " ^ label_color l ^ " : " ^ type_color m.meth_type ^ "\n");
           Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
           print "\n\n")
-        (List.sort compare f.callbacks))
+        (List.sort compare f.callbacks));
+    if f.composition <> [] then (
+      print (title_color "Composition:\n\n");
+      List.iter
+        (fun (l, m) ->
+          print (" * " ^ label_color l ^ " : " ^ type_color m.meth_type ^ "\n");
+          Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
+          print "\n\n")
+        (List.sort compare f.composition))
 
   let to_json () : Json.t =
     !db |> Map.to_seq
@@ -344,28 +353,23 @@ module Value = struct
             f.arguments
         in
         let arguments = `Assoc arguments in
-        let methods, callbacks =
-          match
-            List.map
-              (fun m ->
-                `Assoc
-                  (List.map
-                     (fun (l, m) ->
-                       ( l,
-                         `Assoc
-                           [
-                             ("type", `String m.meth_type);
-                             ( "description",
-                               `String
-                                 (Option.value ~default:"" m.meth_description)
-                             );
-                           ] ))
-                     m))
-              [f.methods; f.callbacks]
-          with
-            | [x; v] -> (x, v)
-            | _ -> assert false
+        let meth_to_json m =
+          `Assoc
+            (List.map
+               (fun (l, m) ->
+                 ( l,
+                   `Assoc
+                     [
+                       ("type", `String m.meth_type);
+                       ( "description",
+                         `String (Option.value ~default:"" m.meth_description)
+                       );
+                     ] ))
+               m)
         in
+        let methods = meth_to_json f.methods in
+        let callbacks = meth_to_json f.callbacks in
+        let composition = meth_to_json f.composition in
         ( l,
           `Assoc
             [
@@ -380,6 +384,7 @@ module Value = struct
               ("arguments", arguments);
               ("methods", methods);
               ("callbacks", callbacks);
+              ("composition", composition);
             ] ))
     |> List.of_seq
     |> fun l -> `Assoc l
@@ -473,6 +478,19 @@ module Value = struct
                     in
                     Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
                   (List.sort compare d.callbacks);
+                print "\n");
+              if d.composition <> [] then (
+                print "Composition:\n\n";
+                List.iter
+                  (fun (l, m) ->
+                    let t = m.meth_type in
+                    let s =
+                      match m.meth_description with
+                        | None -> ""
+                        | Some s -> ": " ^ s
+                    in
+                    Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
+                  (List.sort compare d.composition);
                 print "\n");
               if List.mem `Experimental d.flags then
                 print "This function is experimental.\n\n"))
@@ -733,4 +751,5 @@ let parse_doc ~pos doc =
           arguments = params;
           methods;
           callbacks;
+          composition = [];
         })

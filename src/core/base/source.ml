@@ -106,6 +106,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable sources : (Clock.activation option * operator) list =
       List.map (fun s -> (None, s)) sources
 
+    method release_source s =
+      sources <-
+        List.filter
+          (fun (a, s') ->
+            if s == s' then (
+              Option.iter s'#sleep a;
+              false)
+            else true)
+          sources
+
     method add_watcher w = watchers <- w :: watchers
     method private iter_watchers fn = List.iter fn watchers
     method clock = clock
@@ -160,6 +170,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method virtual fallible : bool
     method source_type : source_type = `Passive
+    val mutable _composition : [ `File | `Live ] = `File
+    method composition = _composition
+    method set_composition c = _composition <- c
     val mutable registered_commands = Queue.create ()
 
     method register_command ?usage ~descr name cmd =
@@ -783,6 +796,7 @@ and virtual source ?stack ?clock ~name () =
 class virtual active_source ?stack ?clock ~name () =
   object
     inherit active_operator ?stack ?clock ~name []
+    initializer _composition <- `Live
   end
 
 (* Reselect type. This drives the choice of next source.

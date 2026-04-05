@@ -63,3 +63,60 @@
 %include_extra "extra/video.liq"
 
 set_settings_ref(settings)
+
+# Update both composition profiles: skip the source when it is preempted
+# mid-track (track_sensitive=false), so it starts fresh on next selection.
+# When switching at a track boundary (track_sensitive=true), the source has
+# finished naturally and no skip is needed.
+def _on_leave({source = s, track_sensitive}) =
+  if not track_sensitive then source.skip(s) end
+end
+
+source.composition.file := {...source.composition.file(), on_leave=_on_leave}
+
+source.composition.live := {...source.composition.live(), on_leave=_on_leave}
+
+# Update the live composition profile: use a fade-out transition when switching
+# away from a live source mid-track (ending is non-null).
+source.composition.live :=
+  {
+    ...source.composition.live(),
+    on_select=
+      fun (x) ->
+        begin
+          starting = x.starting
+          if
+            null.defined(x?.ending)
+          then
+            begin
+              leaving = null.get(x?.ending)
+              max_fade = 1.
+              rem = source.remaining(leaving)
+              effective_fade =
+                if rem >= 0. then min(rem, max_fade) else max_fade end
+              (
+                sequence(
+                  [
+                    (
+                      fade.out(
+                        duration=effective_fade,
+                        max_duration(
+                          effective_fade,
+                          sequence([leaving, switch([])])
+                        )
+                      )
+                    :
+                      source
+                    ),
+                    starting
+                  ]
+                )
+              :
+                source
+              )
+            end
+          else
+            starting
+          end
+        end
+  }
