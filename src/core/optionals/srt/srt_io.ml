@@ -1024,6 +1024,9 @@ let _ =
     ~category:(`Input `Active)
     ~meth:(meth () @ Start_stop.meth ())
     ~callbacks:(callbacks @ Start_stop.callbacks ~label:"source")
+    ~self_sync_description:
+      "This source can synchronize on its SRT stream when self_sync=true and \
+       connected."
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
     @ Start_stop.active_source_proto ~fallible_opt:`Nope

@@ -190,6 +190,7 @@ module Value = struct
     arguments : (string option * argument) list;
     methods : (string * meth) list;
     callbacks : (string * meth) list;
+    sync_description : string option;
   }
 
   let db = ref Map.empty
@@ -286,6 +287,12 @@ module Value = struct
         print e;
         print "\n\n")
       f.examples;
+    (match f.sync_description with
+      | Some s ->
+          print (title_color "Synchronization:\n\n");
+          print (reflow ~indent:2 s);
+          print "\n\n"
+      | None -> ());
     print (title_color "Arguments:\n\n");
     List.iter
       (fun (l, a) ->
@@ -381,6 +388,10 @@ module Value = struct
               ("arguments", arguments);
               ("methods", methods);
               ("callbacks", callbacks);
+              ( "sync_description",
+                Option.fold ~none:`Null
+                  ~some:(fun s -> `String s)
+                  f.sync_description );
             ] ))
     |> List.of_seq
     |> fun l -> `Assoc l
@@ -734,4 +745,5 @@ let parse_doc ~pos doc =
           arguments = params;
           methods;
           callbacks;
+          sync_description = None;
         })

@@ -458,7 +458,12 @@ let toplevel_add ?doc pat ~t v =
               (methods, callbacks, t)
             in
             let typ = Repr.string_of_type ~generalized t in
-            { doc with typ; arguments; methods; callbacks }
+            let sync_description =
+              match List.assoc_opt "self_sync_description" methods with
+                | Some { meth_description = Some s; _ } when s <> "" -> Some s
+                | _ -> None
+            in
+            { doc with typ; arguments; methods; callbacks; sync_description }
           in
           Some (Lazy.from_fun doc)
   in

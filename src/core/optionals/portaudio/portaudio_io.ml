@@ -364,6 +364,8 @@ let _ =
       ])
     ~return_t ~category:(`Input `Active) ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
+    ~self_sync_description:
+      "This source can synchronize on the PortAudio clock when self_sync=true."
     ~descr:"Stream from a portaudio input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
