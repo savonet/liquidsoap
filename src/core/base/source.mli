@@ -125,6 +125,10 @@ object
   (** The source type. Defaults to [`Passive] *)
   method source_type : source_type
 
+  (** Remove the given source from the list of controlled sources. For advanced
+      use only! *)
+  method release_source : source -> unit
+
   (** [true] if the source needs to be animated on each clock tick. *)
   method active : bool
 
