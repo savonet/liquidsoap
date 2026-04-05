@@ -63,7 +63,7 @@ let add name g =
   let return_t =
     Lang.frame_t Lang.unit_t (Frame.Fields.make ~audio:(Lang.pcm_audio_t ()) ())
   in
-  Lang.add_operator name ~category:`Input
+  Lang.add_operator name ~category:(`Input `Passive)
     ~descr:("Generate a " ^ name ^ " wave.")
     ~return_t
     [

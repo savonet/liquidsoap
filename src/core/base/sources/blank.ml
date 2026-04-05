@@ -124,7 +124,7 @@ class blank d =
 
 let blank =
   let return_t = Lang.internal_tracks_t () in
-  Lang.add_operator "blank" ~category:`Input
+  Lang.add_operator "blank" ~category:(`Input `Passive)
     ~descr:"Produce silence and blank images." ~return_t
     [
       ( "duration",

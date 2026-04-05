@@ -82,7 +82,7 @@ module Value = struct
 
   (** Kind of source. *)
   type source =
-    [ `Input
+    [ `Input of [ `Active | `Passive ]
     | `Output
     | `Conversion
     | `FFmpegFilter
@@ -118,7 +118,8 @@ module Value = struct
 
   let categories : (category * string) list =
     [
-      (`Source `Input, "Source / Input");
+      (`Source (`Input `Active), "Source / Active Input");
+      (`Source (`Input `Passive), "Source / Passive Input");
       (`Source `Output, "Source / Output");
       (`Source `Conversion, "Source / Conversion");
       (`Source `FFmpegFilter, "Source / FFmpeg filter");
@@ -131,7 +132,7 @@ module Value = struct
       (`Source `Liquidsoap, "Source / Liquidsoap");
       (`Source `Fade, "Source / Fade");
       (`Source `Testing, "Source / Testing");
-      (`Track `Input, "Track / Input");
+      (`Track (`Input `Passive), "Track / Input");
       (`Track `Output, "Track / Output");
       (`Track `Conversion, "Track / Conversion");
       (`Track `FFmpegFilter, "Track / FFmpeg filter");

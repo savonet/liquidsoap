@@ -353,7 +353,8 @@ let register_input is_http =
     else ("ffmpeg", "Create a stream using ffmpeg")
   in
   ignore
-    (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input
+    (Lang.add_operator ~base:Modules.input name ~descr
+       ~category:(`Input `Active)
        (Start_stop.active_source_proto ~fallible_opt:`Nope
        @ (if is_http then
             [

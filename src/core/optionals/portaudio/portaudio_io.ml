@@ -362,7 +362,7 @@ let _ =
           Some Lang.null,
           Some "Device latency. Only used when specifying device ID." );
       ])
-    ~return_t ~category:`Input ~meth:(Start_stop.meth ())
+    ~return_t ~category:(`Input `Active) ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
     ~descr:"Stream from a portaudio input device."
     (fun p ->

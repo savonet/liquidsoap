@@ -361,7 +361,8 @@ let _ =
       ])
     ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
-    ~return_t ~category:`Input ~descr:"Stream from an ALSA input device."
+    ~return_t ~category:(`Input `Active)
+    ~descr:"Stream from an ALSA input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let self_sync = e Lang.to_bool "self_sync" in
