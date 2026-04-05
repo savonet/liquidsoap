@@ -94,6 +94,9 @@ source.composition.live :=
               rem = source.remaining(leaving)
               effective_fade =
                 if rem >= 0. then min(rem, max_fade) else max_fade end
+              print(
+                "here #{effective_fade}"
+              )
               (
                 sequence(
                   [

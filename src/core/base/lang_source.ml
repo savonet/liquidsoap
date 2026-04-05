@@ -703,16 +703,17 @@ let source_composition_methods =
           when it was preempted mid-track (track_sensitive=false), so it
           starts fresh on next selection. No skip when it finished naturally. *)
        descr =
-         "Called when switching away from this source in a switch operator. \
-          Receives a record with `source` (the source being left) and \
-          `track_sensitive` (`true` if the switch happened at a track \
-          boundary, `false` if the source was preempted mid-track). By \
-          default, skips the source when it was preempted mid-track so it \
-          starts fresh on its next selection. No action is taken when the \
-          source finished its track naturally. The default is looked up at \
-          runtime from the active composition profile \
-          (`source.composition.file` or `source.composition.live` depending on \
-          `composition_type`).";
+         "Called after switching away from this source in a switch operator, \
+          once the transition using the ending source has completed. Receives \
+          a record with `source` (the source being left) and `track_sensitive` \
+          (`true` if the ending source's last frame had a track mark, i.e. it \
+          finished naturally; `false` if it was preempted mid-track). This \
+          function must return quickly as it runs in the streaming thread. The \
+          default depends on the active composition profile: file sources \
+          (`source.composition.file`) skip the source when preempted mid-track \
+          so it starts fresh on its next selection, and do nothing when it \
+          finished naturally; live sources (`source.composition.live`) do \
+          nothing.";
        value =
          (fun s ->
            val_fun

@@ -16,11 +16,12 @@ s_a =
   (metadata.map(insert_missing=true, fun (_) -> [("title", "a")], sine()) :
     source
   ).{
+    track_sensitive=false,
     on_leave=
-      fun (left) ->
+      fun (x) ->
         begin
           log(
-            "on_leave called for #{source.id(left)}"
+            "on_leave called for #{source.id(x.source)}"
           )
           on_leave_fired := true
         end
@@ -28,7 +29,7 @@ s_a =
 
 s_b = metadata.map(insert_missing=true, fun (_) -> [("title", "b")], sine())
 
-s = switch(track_sensitive=false, [({use_b()}, s_b), ({true}, s_a)])
+s = switch([({use_b()}, s_b), ({true}, s_a)])
 
 s.on_metadata(
   synchronous=true,
