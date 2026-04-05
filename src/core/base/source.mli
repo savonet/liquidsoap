@@ -134,6 +134,10 @@ object
   (** Set the composition mode at runtime. *)
   method set_composition : [ `File | `Live ] -> unit
 
+  (** Remove the given source from the list of controlled sources. For advanced
+      use only! *)
+  method release_source : source -> unit
+
   (** [true] if the source needs to be animated on each clock tick. *)
   method active : bool
 

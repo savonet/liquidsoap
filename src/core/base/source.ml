@@ -106,6 +106,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable sources : (Clock.activation option * operator) list =
       List.map (fun s -> (None, s)) sources
 
+    method release_source s =
+      sources <-
+        List.filter
+          (fun (a, s') ->
+            if s == s' then (
+              Option.iter s'#sleep a;
+              false)
+            else true)
+          sources
+
     method add_watcher w = watchers <- w :: watchers
     method private iter_watchers fn = List.iter fn watchers
     method clock = clock

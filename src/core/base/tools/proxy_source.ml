@@ -20,11 +20,9 @@
 
  *****************************************************************************)
 
-type t = { source : Source.source; is_used : unit -> bool }
-
-class proxy (s : Source.source) =
+class proxy ~name (s : Source.source) =
   object
-    inherit Source.operator ~name:"proxy_source" [s]
+    inherit Source.operator ~name [s]
     method fallible = s#fallible
     method remaining = s#remaining
     method abort_track = s#abort_track
@@ -33,10 +31,3 @@ class proxy (s : Source.source) =
     method private can_generate_frame = s#is_ready
     method private generate_frame = s#get_frame
   end
-
-let create_proxy s =
-  let proxy = new proxy s in
-  let w = Weak.create 1 in
-  Weak.set w 0 (Some proxy);
-  let is_used () = Weak.check w 0 in
-  { source = (proxy :> Source.source); is_used }

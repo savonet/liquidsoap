@@ -26,9 +26,9 @@
 
 open Source
 
-class insert_initial_track_mark src =
+class insert_initial_track_mark ~name src =
   object
-    inherit operator ~name:"insert_initial_track_mark" [src]
+    inherit operator ~name [src]
     val mutable first = true
     method fallible = src#fallible
     method private can_generate_frame = src#is_ready
@@ -52,6 +52,8 @@ type child = {
   on_leave : source -> bool -> unit;
   track_sensitive : unit -> bool;
   single : bool;
+  mutable is_up : bool;
+  mutable has_track_marks : bool;
   mutable effective_track_sensitive : bool option;
   mutable effective_predicate : bool option;
 }
@@ -183,8 +185,12 @@ class switch ~all_predicates children =
              && trivially_true c.predicate)
            children)
 
-    method private prepare_new_source source =
-      let new_source = new insert_initial_track_mark source in
+    method private prepare_new_source child =
+      let new_source =
+        new insert_initial_track_mark
+          ~name:(Printf.sprintf "%s.initial_track_mark" child.source#id)
+          child.source
+      in
       Typing.(new_source#frame_type <: self#frame_type);
       new_source
 
@@ -198,19 +204,25 @@ class switch ~all_predicates children =
         match ending with
           | None -> (None, None)
           | Some ending_child ->
-              let p = Proxy_source.create_proxy ending_child.source in
               let on_leave () =
-                if not (p.Proxy_source.is_used ()) then (
-                  let ts =
-                    if ending_child.source#is_ready then
-                      Frame.has_track_marks ending_child.source#get_frame
-                    else false
-                  in
-                  ending_child.on_leave ending_child.source ts;
+                if not ending_child.is_up then (
+                  ending_child.on_leave ending_child.source
+                    ending_child.has_track_marks;
                   true)
                 else false
               in
-              (Some on_leave, Some p.Proxy_source.source)
+              let ending_source =
+                new Proxy_source.proxy
+                  ~name:(Printf.sprintf "%s.proxy" ending_child.source#id)
+                  ending_child.source
+              in
+              ending_source#on_wake_up (fun () -> ending_child.is_up <- true);
+              ending_source#on_sleep (fun () -> ending_child.is_up <- false);
+              ending_source#on_frame
+                (`After_frame
+                   (fun { Source.frame } ->
+                     child.has_track_marks <- Frame.has_track_marks frame));
+              (Some on_leave, Some ending_source)
       in
       let s = child.on_select ending_source starting in
       Typing.(s#frame_type <: self#frame_type);
@@ -242,7 +254,7 @@ class switch ~all_predicates children =
                   self#exchange_selected None
               | None, Some c ->
                   self#log#important "Switch to %s." c.source#id;
-                  let new_source = self#prepare_new_source c.source in
+                  let new_source = self#prepare_new_source c in
                   let s, pending_on_leave =
                     self#apply_on_select ~ending:None ~starting:new_source c
                   in
@@ -252,7 +264,7 @@ class switch ~all_predicates children =
                   ()
               | Some old_selection, Some c ->
                   self#log#important "Switch to %s with transition." c.source#id;
-                  let new_source = self#prepare_new_source c.source in
+                  let new_source = self#prepare_new_source c in
                   let s, pending_on_leave =
                     self#apply_on_select ~ending:(Some old_selection.child)
                       ~starting:new_source c
@@ -413,6 +425,8 @@ let _ =
               on_leave;
               track_sensitive;
               single;
+              is_up = false;
+              has_track_marks = false;
               effective_track_sensitive = None;
               effective_predicate = None;
             })
