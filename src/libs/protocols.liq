@@ -712,6 +712,7 @@ protocol.add(
 )
 
 # Text2wave
+# @category Settings
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 let settings.protocol.text2wave.path =
   settings.make(
@@ -738,6 +739,7 @@ protocol.add(
 )
 
 # Pico2wave
+# @category Settings
 let settings.protocol.pico2wave = settings.make.protocol("pico2wave")
 let settings.protocol.pico2wave.path =
   settings.make(
@@ -771,6 +773,7 @@ protocol.add(
 )
 
 # GTTS
+# @category Settings
 let settings.protocol.gtts = settings.make.protocol("gtts")
 let settings.protocol.gtts.path =
   settings.make(
@@ -812,6 +815,7 @@ protocol.add(
 )
 
 # MacOS say
+# @category Settings
 let settings.protocol.macos_say = settings.make.protocol("macos_say")
 let settings.protocol.macos_say.path =
   settings.make(
@@ -845,7 +849,7 @@ protocol.add(
 )
 
 # Say
-
+# @category Settings
 let settings.protocol.say = settings.make.protocol("say")
 let settings.protocol.say.implementation =
   settings.make(

@@ -1,19 +1,25 @@
 # Information about all variables
+# @category Interaction
 variables = ref([])
 
 # Float variables
+# @category Interaction
 variables_float = ref([])
 
 # Int variables
+# @category Interaction
 variables_int = ref([])
 
 # Bool variables
+# @category Interaction
 variables_bool = ref([])
 
 # String variables
+# @category Interaction
 variables_string = ref([])
 
 # Unit variables: those are not references but handler functions
+# @category Interaction
 variables_unit = ref([])
 let interactive = ()
 let interactive.float = ()
@@ -135,6 +141,7 @@ def interactive.unit.remove(name) =
 end
 
 # Function called to ensure persistency of data.
+# @category Interaction
 let interactive.persistency = ref(fun () -> ())
 
 # @flag hidden
