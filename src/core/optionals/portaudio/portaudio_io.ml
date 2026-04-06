@@ -311,6 +311,9 @@ let _ =
       ])
     ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~self_sync_description:
+      "This output uses the PortAudio clock as synchronization source when \
+       `self_sync=true` and the stream is open."
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -362,8 +365,11 @@ let _ =
           Some Lang.null,
           Some "Device latency. Only used when specifying device ID." );
       ])
-    ~return_t ~category:`Input ~meth:(Start_stop.meth ())
+    ~return_t ~category:(`Input `Active) ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
+    ~self_sync_description:
+      "This source uses the PortAudio clock as synchronization source when \
+       `self_sync=true` and the stream is open."
     ~descr:"Stream from a portaudio input device."
     (fun p ->
       let e f v = f (List.assoc v p) in

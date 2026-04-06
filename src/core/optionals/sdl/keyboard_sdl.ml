@@ -160,7 +160,7 @@ let _ =
         Some (Lang.float 0.8),
         Some "Velocity of notes." );
     ]
-    ~return_t ~category:`Input ~flags:[`Experimental]
+    ~return_t ~category:(`Input `Active) ~flags:[`Experimental]
     ~descr:"Play notes from the keyboard."
     (fun p ->
       let f v = List.assoc v p in

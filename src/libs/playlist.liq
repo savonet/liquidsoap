@@ -711,7 +711,7 @@ let stdlib_native = native
 %endif
 
 # Play a list of files.
-# @category Source / Input
+# @category Source / Passive Input
 # @param ~id Force the value of the source ID.
 # @param ~check_next Function used to filter next tracks. A candidate track is \
 #   only validated if the function returns true on it. The function is called \
@@ -979,7 +979,7 @@ def playlist.list(
 end
 
 # Read a playlist or a directory and play all files.
-# @category Source / Input
+# @category Source / Passive Input
 # @param ~id Force the value of the source ID.
 # @param ~check_next Function used to filter next tracks. A candidate track is \
 #   only validated if the function returns true on it. The function is called \

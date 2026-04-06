@@ -189,6 +189,9 @@ let _ =
       ])
     ~category:`Output ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~self_sync_description:
+      "This output uses the NDI sender clock as synchronization source when \
+       `self_sync=true` and the sender is active."
     ~descr:"Output stream to NDI" ~return_t
     (fun p ->
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in

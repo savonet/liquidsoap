@@ -236,7 +236,7 @@ let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~base:Modules.input "udp"
     ~descr:"Input encoded data from UDP, without any control whatsoever."
-    ~category:`Input
+    ~category:(`Input `Active)
     ~flags:[`Hidden; `Deprecated; `Experimental]
     [
       ("port", Lang.int_t, None, None);

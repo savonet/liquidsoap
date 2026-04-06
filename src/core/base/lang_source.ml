@@ -485,6 +485,24 @@ let source_methods =
       value = (fun s -> val_fun [] (fun _ -> bool (snd s#self_sync <> None)));
     };
     {
+      name = "self_sync_description";
+      scheme = ([], fun_t [] string_t);
+      descr = "";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              match s#self_sync with
+                | `Static, Some src ->
+                    string ("Static: " ^ Clock_base.string_of_sync_source src)
+                | `Dynamic, Some src ->
+                    string
+                      ("Dynamic synchronization source. Current one: "
+                      ^ Clock_base.string_of_sync_source src)
+                | `Dynamic, None ->
+                    string "Dynamic synchronization source. Current one: none"
+                | `Static, None -> string ""));
+    };
+    {
       name = "log";
       scheme = ([], record_t [("level", ref_t int_t)]);
       descr = "Get or set the source's log level, from `1` to `5`.";
@@ -857,7 +875,8 @@ let deprecated_callback_registration_arguments callbacks =
 
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : ((< Source.source ; .. > as 'a) -> value) meth list))
-    ?(callbacks = ([] : 'a callback list)) ?base name arguments ~return_t f =
+    ?(callbacks = ([] : 'a callback list)) ?self_sync_description ?base name
+    arguments ~return_t f =
   let compare (x, _, _, _) (y, _, _, _) =
     match (x, y) with
       | "", "" -> 0
@@ -891,6 +910,36 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
           };
         ]
     else meth
+  in
+  let meth =
+    match self_sync_description with
+      | None -> meth
+      | Some sync_descr ->
+          meth
+          @ [
+              {
+                name = "self_sync_description";
+                scheme = ([], fun_t [] string_t);
+                descr = sync_descr;
+                value =
+                  (fun s ->
+                    val_fun [] (fun _ ->
+                        match s#self_sync with
+                          | `Static, Some src ->
+                              string
+                                ("Static: "
+                                ^ Clock_base.string_of_sync_source src)
+                          | `Dynamic, Some src ->
+                              string
+                                ("Dynamic synchronization source. Current one: "
+                                ^ Clock_base.string_of_sync_source src)
+                          | `Dynamic, None ->
+                              string
+                                "Dynamic synchronization source. Current one: \
+                                 none"
+                          | `Static, None -> string ""));
+              };
+            ]
   in
   let meth =
     List.map (fun m -> (m, `Method)) meth

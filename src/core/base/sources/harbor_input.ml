@@ -303,7 +303,7 @@ let _ =
                 Lang.val_fun [] (fun _ -> Lang.float s#buffer_length_cmd));
           };
         ]
-    ~category:`Input
+    ~category:(`Input `Active)
     ~descr:
       "Create a source that receives a http/icecast stream and forwards it as \
        a stream."

@@ -1017,9 +1017,13 @@ class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.input "srt" ~return_t ~category:`Input
+  Lang.add_operator ~base:Modules.input "srt" ~return_t
+    ~category:(`Input `Active)
     ~meth:(meth () @ Start_stop.meth ())
     ~callbacks:(callbacks @ Start_stop.callbacks ~label:"source")
+    ~self_sync_description:
+      "This source uses the SRT stream as synchronization source when \
+       `self_sync=true` and connected."
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
     @ Start_stop.active_source_proto ~fallible_opt:`Nope
