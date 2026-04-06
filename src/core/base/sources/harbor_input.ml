@@ -545,7 +545,7 @@ let callbacks () =
 
 let input_harbor =
   Lang.add_operator ~base:Modules.input "harbor" ~return_t:(Lang.univ_t ())
-    ~callbacks:(callbacks ()) ~meth:(meth ()) ~category:`Input
+    ~callbacks:(callbacks ()) ~meth:(meth ()) ~category:(`Input `Active)
     ~descr:
       "Create a source that receives a http/icecast stream and forwards it as \
        a stream." (proto Lang.string_t) (fun p ->

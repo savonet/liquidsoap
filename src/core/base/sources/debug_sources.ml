@@ -37,7 +37,7 @@ let empty = fail
 
 let fail =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Muxer.source "fail" ~category:`Input
+  Lang.add_operator ~base:Muxer.source "fail" ~category:(`Input `Passive)
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
     ~return_t [] (fun _ -> (new fail "source.fail" :> Source.source))
@@ -54,7 +54,7 @@ class fail_init =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:fail "init" ~category:`Input
+  Lang.add_operator ~base:fail "init" ~category:(`Input `Passive)
     ~descr:
       "A source that errors during its initialization phase, used for testing \
        and debugging." ~flags:[`Experimental] ~return_t [] (fun _ ->
@@ -74,7 +74,7 @@ class is_ready s =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.debug "is_ready" ~category:`Input
+  Lang.add_operator ~base:Modules.debug "is_ready" ~category:(`Input `Passive)
     ~descr:
       "A source that always produces an empty frame when the underlying source \
        is not ready, used for testing and debugging."

@@ -182,7 +182,11 @@ let _ =
       ])
     ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
-    ~return_t ~category:`Input ~descr:"Stream from an OSS input device."
+    ~return_t ~category:(`Input `Active)
+    ~self_sync_description:
+      "This source can synchronize on the OSS hardware clock when \
+       `self_sync=true`."
+    ~descr:"Stream from an OSS input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let self_sync = e Lang.to_bool "self_sync" in

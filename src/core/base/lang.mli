@@ -136,6 +136,7 @@ val add_operator :
   ?flags:Doc.Value.flag list ->
   ?meth:((< Source.source ; .. > as 'a) -> value) meth list ->
   ?callbacks:'a callback list ->
+  ?self_sync_description:string ->
   ?base:module_name ->
   string ->
   proto ->

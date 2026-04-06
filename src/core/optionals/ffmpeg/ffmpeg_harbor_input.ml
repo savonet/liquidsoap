@@ -326,7 +326,7 @@ let _ =
        passed to the `on_connect` callback, which returns a function that \
        receives the source. A `copy_encoder` is provided for passthrough \
        remuxing."
-    ~category:(`Source `Input)
+    ~category:(`Source (`Input `Active))
     (Harbor_input.proto ~buffer_default:0.2 Lang.regexp_t @ extra_proto)
     Lang.unit_t
     (fun p ->
