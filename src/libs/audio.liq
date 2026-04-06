@@ -391,6 +391,7 @@ end
 #
 # This operator encodes and decodes the audio content. See `defer.pcm_s16` for
 # a low-level operator using directly the `pcm_s16` format.
+# @category Source / Audio processing
 # @argsof track.audio.defer[!id]
 # @param ~id Force the source's ID
 def defer(~id=null("defer"), %argsof(track.audio.defer[!id]), s) =
@@ -415,6 +416,7 @@ end
 # into the format and encoders who support it (also `%ffmpeg`)
 # will encoder directly from the `pcm_s16` data. Use `defer` if you
 # prefer a more user-friendly operator.
+# @category Source / Audio processing
 # @argsof track.audio.defer[!id]
 # @param ~id Force the source's ID
 def defer.pcm_s16(

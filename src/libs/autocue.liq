@@ -1,4 +1,5 @@
 # Initialize settings for autocue
+# @category Settings
 let settings.autocue = {internal=()}
 
 let settings.autocue.implementations =

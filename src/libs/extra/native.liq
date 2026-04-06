@@ -1,4 +1,5 @@
 # Native reimplementation of track functions.
+# @category Source / Track processing
 let native = ()
 
 # Create a source that plays only one track of the input source.
@@ -85,6 +86,7 @@ def native.switch(~id=null, ~track_sensitive=true, sources) =
 end
 
 # This allows doing `open native`
+# @category Source / Track processing
 let native.request = request
 
 # @docof request.dynamic
