@@ -291,6 +291,7 @@ let _ =
     ~return_t ~category:(`Input `Active) ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
     ~self_sync_description:
-      "This source can synchronize on the PulseAudio clock when self_sync=true."
+      "This source can synchronize on the PulseAudio clock when \
+       `self_sync=true`."
     ~descr:"Stream from a pulseaudio input device."
     (fun p -> new input p)

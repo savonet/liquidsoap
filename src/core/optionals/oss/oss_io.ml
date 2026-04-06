@@ -185,7 +185,7 @@ let _ =
     ~return_t ~category:(`Input `Active)
     ~self_sync_description:
       "This source can synchronize on the OSS hardware clock when \
-       self_sync=true."
+       `self_sync=true`."
     ~descr:"Stream from an OSS input device."
     (fun p ->
       let e f v = f (List.assoc v p) in

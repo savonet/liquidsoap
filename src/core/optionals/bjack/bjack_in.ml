@@ -109,10 +109,7 @@ let _ =
       ])
     ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
-    ~return_t ~category:(`Input `Active)
-    ~self_sync_description:
-      "This source synchronizes on the JACK audio server clock."
-    ~descr:"Get stream from jack."
+    ~return_t ~category:(`Input `Active) ~descr:"Get stream from jack."
     (fun p ->
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
