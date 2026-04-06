@@ -206,7 +206,7 @@ def request.queue(
 end
 
 # Play a request once and become unavailable.
-# @category Source / Passive Input
+# @category Source / Input / Passive
 # @param ~timeout Timeout in seconds for resolving the request.
 # @param r Request to play.
 def request.once(~id=null("request.once"), ~timeout=null, r) =
@@ -247,7 +247,7 @@ end
 # Loop on a request. It never fails if the request is static, meaning
 # that it can be fetched once. Typically, http, ftp, say requests are
 # static, and time is not.
-# @category Source / Passive Input
+# @category Source / Input / Passive
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.
@@ -366,7 +366,7 @@ end
 # Loop on a URI. It never fails if the request is static, meaning
 # that it can be fetched once. Typically, http, ftp, say requests are
 # static, and time is not.
-# @category Source / Passive Input
+# @category Source / Input / Passive
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.

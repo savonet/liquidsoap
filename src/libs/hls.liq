@@ -77,7 +77,7 @@ end
 let input.hls = ()
 
 # Play an HLS stream.
-# @category Source / Active Input
+# @category Source / Input / Active
 # @param ~id Force the value of the source ID.
 # @param ~reload How often (in seconds) the playlist should be reloaded.
 # @param uri Playlist URI.
@@ -199,7 +199,7 @@ let replaces input.hls = input.ffmpeg
 %endif
 
 # Play an HLS stream.
-# @category Source / Active Input
+# @category Source / Input / Active
 # @param ~id Force the value of the source ID.
 # @param uri Playlist URI.
 def input.hls(~id=null, uri) =

@@ -97,7 +97,7 @@ let replaces input = input.pulseaudio
 %endif
 
 # Input an audio stream using the default operator.
-# @category Source / Active Input
+# @category Source / Input / Active
 # @param ~id Force the value of the source ID.
 # @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
 # @param ~start Automatically start outputting whenever possible. If `true`, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.

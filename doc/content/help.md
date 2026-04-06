@@ -27,7 +27,7 @@ Type: (?id : string?, ?amplitude : {float}, ?duration : float,
  ?{float}) -> source(audio=internal('a),
 video=internal('b), midi=internal('c))
 
-Category: Source / Passive Input
+Category: Source / Input / Passive
 
 Parameters:
 

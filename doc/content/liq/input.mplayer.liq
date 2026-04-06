@@ -1,5 +1,5 @@
 # Stream data from mplayer
-# @category Source / Active Input
+# @category Source / Input / Active
 # @param s data URI.
 # @param ~restart restart on exit.
 # @param ~restart_on_error restart on exit with error.
