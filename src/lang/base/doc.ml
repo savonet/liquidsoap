@@ -118,8 +118,8 @@ module Value = struct
 
   let categories : (category * string) list =
     [
-      (`Source (`Input `Active), "Source / Active Input");
-      (`Source (`Input `Passive), "Source / Passive Input");
+      (`Source (`Input `Active), "Source / Input / Active");
+      (`Source (`Input `Passive), "Source / Input / Passive");
       (`Source `Output, "Source / Output");
       (`Source `Conversion, "Source / Conversion");
       (`Source `FFmpegFilter, "Source / FFmpeg filter");
@@ -441,6 +441,11 @@ module Value = struct
                   print "Example:\n\n";
                   Printf.ksprintf print "```liquidsoap\n%s\n```\n\n" e)
                 d.examples;
+              Option.iter
+                (fun s ->
+                  print "Synchronization:\n\n";
+                  Printf.ksprintf print "%s\n\n" s)
+                d.sync_description;
               if d.arguments <> [] then (
                 print "Arguments:\n\n";
                 List.iter
