@@ -351,7 +351,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.request "dynamic" ~category:`Input
+  Lang.add_operator ~base:Modules.request "dynamic" ~category:(`Input `Passive)
     ~descr:"Play request dynamically created by a given function."
     [
       ("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None);

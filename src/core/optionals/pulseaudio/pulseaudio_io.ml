@@ -274,6 +274,9 @@ let _ =
     (Output.proto @ proto @ [("", Lang.source_t frame_t, None, None)])
     ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~self_sync_description:
+      "This output uses the PulseAudio clock as synchronization source when \
+       `self_sync=true` and the stream is open."
     ~descr:"Output the source's stream to a pulseaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -288,7 +291,10 @@ let _ =
   in
   Lang.add_operator ~base:Modules.input "pulseaudio"
     (Start_stop.active_source_proto ~fallible_opt:(`Yep true) @ proto)
-    ~return_t ~category:`Input ~meth:(Start_stop.meth ())
+    ~return_t ~category:(`Input `Active) ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
+    ~self_sync_description:
+      "This source uses the PulseAudio clock as synchronization source when \
+       `self_sync=true` and the stream is open."
     ~descr:"Stream from a pulseaudio input device."
     (fun p -> new input p)

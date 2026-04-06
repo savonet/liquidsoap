@@ -353,7 +353,11 @@ let register_input is_http =
     else ("ffmpeg", "Create a stream using ffmpeg")
   in
   ignore
-    (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input
+    (Lang.add_operator ~base:Modules.input name ~descr
+       ~category:(`Input `Active)
+       ~self_sync_description:
+         "This source uses the FFmpeg input stream as synchronization source \
+          when `self_sync=true` and connected."
        (Start_stop.active_source_proto ~fallible_opt:`Nope
        @ (if is_http then
             [

@@ -55,8 +55,9 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ())
          ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator ~base:Modules.input_external "avi" ~category:`Input
-    ~flags:[`Experimental] ~descr:"Stream data from an external application."
+  Lang.add_operator ~base:Modules.input_external "avi"
+    ~category:(`Input `Passive) ~flags:[`Experimental]
+    ~descr:"Stream data from an external application."
     [
       ( "buffer",
         Lang.float_t,
@@ -197,8 +198,9 @@ let _ =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
-  Lang.add_operator ~base:Modules.input_external "rawvideo" ~category:`Input
-    ~flags:[`Experimental] ~descr:"Stream data from an external application."
+  Lang.add_operator ~base:Modules.input_external "rawvideo"
+    ~category:(`Input `Passive) ~flags:[`Experimental]
+    ~descr:"Stream data from an external application."
     [
       ( "buffer",
         Lang.float_t,

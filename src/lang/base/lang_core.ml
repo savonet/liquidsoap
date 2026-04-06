@@ -228,6 +228,11 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
               } ))
         callbacks
     in
+    let sync_description =
+      match List.assoc_opt "self_sync_description" methods with
+        | Some { meth_description = Some s; _ } when s <> "" -> Some s
+        | _ -> None
+    in
     Doc.Value.
       {
         typ = Repr.string_of_scheme (generalized, t);
@@ -238,6 +243,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
         arguments;
         methods;
         callbacks;
+        sync_description;
       }
     (* to_plugin_doc category flags examples descr proto return_t *)
   in
@@ -262,6 +268,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
         arguments = [];
         methods = [];
         callbacks = [];
+        sync_description = None;
       }
   in
   Environment.add_builtin ~doc:(Lazy.from_fun doc)

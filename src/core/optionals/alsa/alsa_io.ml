@@ -315,6 +315,9 @@ let _ =
       ])
     ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~self_sync_description:
+      "This output uses the ALSA hardware clock as synchronization source when \
+       `self_sync=true` and the device is open."
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
@@ -361,7 +364,11 @@ let _ =
       ])
     ~meth:(Start_stop.meth ())
     ~callbacks:(Start_stop.callbacks ~label:"source")
-    ~return_t ~category:`Input ~descr:"Stream from an ALSA input device."
+    ~return_t ~category:(`Input `Active)
+    ~self_sync_description:
+      "This source uses the ALSA hardware clock as synchronization source when \
+       `self_sync=true` and the device is open."
+    ~descr:"Stream from an ALSA input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
       let self_sync = e Lang.to_bool "self_sync" in

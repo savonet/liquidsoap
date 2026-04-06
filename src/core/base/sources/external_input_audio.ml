@@ -77,7 +77,8 @@ let _ =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator ~base:Modules.input_external "rawaudio" ~category:`Input
+  Lang.add_operator ~base:Modules.input_external "rawaudio"
+    ~category:(`Input `Passive)
     ~descr:
       "Stream raw PCM data (interleaved signed 16 bits little endian integers) \
        from an external application."
@@ -121,7 +122,8 @@ let _ =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator ~base:Modules.input_external "wav" ~category:`Input
+  Lang.add_operator ~base:Modules.input_external "wav"
+    ~category:(`Input `Passive)
     ~descr:"Stream WAV data from an external application." proto ~return_t
     (fun p ->
       let command = Lang.to_string_getter (List.assoc "" p) in
