@@ -12731,6 +12731,7 @@
  (alias test-doc-append-silence)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/append-silence.liq))
  (action
@@ -12744,6 +12745,7 @@
  (alias test-doc-archive-cleaner)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/archive-cleaner.liq))
  (action
@@ -12757,6 +12759,7 @@
  (alias test-doc-basic-radio)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/basic-radio.liq))
  (action
@@ -12770,6 +12773,7 @@
  (alias test-doc-beets-amplify)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/beets-amplify.liq))
  (action
@@ -12783,6 +12787,7 @@
  (alias test-doc-beets-protocol-short)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/beets-protocol-short.liq))
  (action
@@ -12796,6 +12801,7 @@
  (alias test-doc-beets-protocol)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/beets-protocol.liq))
  (action
@@ -12809,6 +12815,7 @@
  (alias test-doc-beets-source)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/beets-source.liq))
  (action
@@ -12822,6 +12829,7 @@
  (alias test-doc-blank-detect)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/blank-detect.liq))
  (action
@@ -12835,6 +12843,7 @@
  (alias test-doc-blank-sorry)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/blank-sorry.liq))
  (action
@@ -12848,6 +12857,7 @@
  (alias test-doc-clock-alsa-file)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-alsa-file.liq))
  (action
@@ -12861,6 +12871,7 @@
  (alias test-doc-clock-alsa-pulseaudio-buffer)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-alsa-pulseaudio-buffer.liq))
  (action
@@ -12874,6 +12885,7 @@
  (alias test-doc-clock-alsa-pulseaudio-conflict)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-alsa-pulseaudio-conflict.liq))
  (action
@@ -12887,6 +12899,7 @@
  (alias test-doc-clock-alsa-pulseaudio-self-sync)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-alsa-pulseaudio-self-sync.liq))
  (action
@@ -12900,6 +12913,7 @@
  (alias test-doc-clock-decoupling-conflict)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-decoupling-conflict.liq))
  (action
@@ -12913,6 +12927,7 @@
  (alias test-doc-clock-decoupling)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-decoupling.liq))
  (action
@@ -12926,6 +12941,7 @@
  (alias test-doc-clock-inspect)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-inspect.liq))
  (action
@@ -12939,6 +12955,7 @@
  (alias test-doc-clock-log-delay)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-log-delay.liq))
  (action
@@ -12952,6 +12969,7 @@
  (alias test-doc-clock-parallel-sequential)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-parallel-sequential.liq))
  (action
@@ -12965,6 +12983,7 @@
  (alias test-doc-clock-parallel)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-parallel.liq))
  (action
@@ -12978,6 +12997,7 @@
  (alias test-doc-clock-sine-file)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-sine-file.liq))
  (action
@@ -12991,6 +13011,7 @@
  (alias test-doc-clock-srt-alsa-fallback)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-srt-alsa-fallback.liq))
  (action
@@ -13004,6 +13025,7 @@
  (alias test-doc-clock-srt-crossfade-buffer)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-srt-crossfade-buffer.liq))
  (action
@@ -13017,6 +13039,7 @@
  (alias test-doc-clock-srt-crossfade-conflict)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/clock-srt-crossfade-conflict.liq))
  (action
@@ -13030,6 +13053,7 @@
  (alias test-doc-complete-case)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/complete-case.liq))
  (action
@@ -13043,6 +13067,7 @@
  (alias test-doc-cron_add)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/cron_add.liq))
  (action
@@ -13056,6 +13081,7 @@
  (alias test-doc-cron_id)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/cron_id.liq))
  (action
@@ -13065,6 +13091,7 @@
  (alias test-doc-cron_id_arg)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/cron_id_arg.liq))
  (action
@@ -13078,6 +13105,7 @@
  (alias test-doc-cron_remove)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/cron_remove.liq))
  (action
@@ -13091,6 +13119,7 @@
  (alias test-doc-cross.custom)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/cross.custom.liq))
  (action
@@ -13104,6 +13133,7 @@
  (alias test-doc-crossfade)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/crossfade.liq))
  (action
@@ -13117,6 +13147,7 @@
  (alias test-doc-decoder-openmpt)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/decoder-openmpt.liq))
  (action
@@ -13130,6 +13161,7 @@
  (alias test-doc-dump-hourly)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/dump-hourly.liq))
  (action
@@ -13143,6 +13175,7 @@
  (alias test-doc-dump-hourly2)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/dump-hourly2.liq))
  (action
@@ -13156,6 +13189,7 @@
  (alias test-doc-dynamic-source)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/dynamic-source.liq))
  (action
@@ -13169,6 +13203,7 @@
  (alias test-doc-external-output.file)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/external-output.file.liq))
  (action
@@ -13182,6 +13217,7 @@
  (alias test-doc-fallback)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/fallback.liq))
  (action
@@ -13195,6 +13231,7 @@
  (alias test-doc-ffmpeg-filter-dynamic-volume)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-filter-dynamic-volume.liq))
  (action
@@ -13208,6 +13245,7 @@
  (alias test-doc-ffmpeg-filter-flanger-highpass)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-filter-flanger-highpass.liq))
  (action
@@ -13221,6 +13259,7 @@
  (alias test-doc-ffmpeg-filter-hflip)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-filter-hflip.liq))
  (action
@@ -13234,6 +13273,7 @@
  (alias test-doc-ffmpeg-filter-hflip2)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-filter-hflip2.liq))
  (action
@@ -13247,6 +13287,7 @@
  (alias test-doc-ffmpeg-filter-parallel-flanger-highpass)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-filter-parallel-flanger-highpass.liq))
  (action
@@ -13260,6 +13301,7 @@
  (alias test-doc-ffmpeg-live-switch)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-live-switch.liq))
  (action
@@ -13273,6 +13315,7 @@
  (alias test-doc-ffmpeg-relay-ondemand)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-relay-ondemand.liq))
  (action
@@ -13286,6 +13329,7 @@
  (alias test-doc-ffmpeg-relay)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-relay.liq))
  (action
@@ -13299,6 +13343,7 @@
  (alias test-doc-ffmpeg-shared-encoding-rtmp)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-shared-encoding-rtmp.liq))
  (action
@@ -13312,6 +13357,7 @@
  (alias test-doc-ffmpeg-shared-encoding)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/ffmpeg-shared-encoding.liq))
  (action
@@ -13325,6 +13371,7 @@
  (alias test-doc-fixed-time1)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/fixed-time1.liq))
  (action
@@ -13338,6 +13385,7 @@
  (alias test-doc-fixed-time2)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/fixed-time2.liq))
  (action
@@ -13351,6 +13399,7 @@
  (alias test-doc-frame-size)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/frame-size.liq))
  (action
@@ -13364,6 +13413,7 @@
  (alias test-doc-harbor-auth)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-auth.liq))
  (action
@@ -13377,6 +13427,7 @@
  (alias test-doc-harbor-dynamic-basic)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-dynamic-basic.liq))
  (action
@@ -13390,6 +13441,7 @@
  (alias test-doc-harbor-dynamic-filter)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-dynamic-filter.liq))
  (action
@@ -13403,6 +13455,7 @@
  (alias test-doc-harbor-dynamic-regexp)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-dynamic-regexp.liq))
  (action
@@ -13416,6 +13469,7 @@
  (alias test-doc-harbor-dynamic-routing)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-dynamic-routing.liq))
  (action
@@ -13429,6 +13483,7 @@
  (alias test-doc-harbor-dynamic)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-dynamic.liq))
  (action
@@ -13442,6 +13497,7 @@
  (alias test-doc-harbor-insert-metadata)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-insert-metadata.liq))
  (action
@@ -13455,6 +13511,7 @@
  (alias test-doc-harbor-metadata)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-metadata.liq))
  (action
@@ -13468,6 +13525,7 @@
  (alias test-doc-harbor-redirect)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-redirect.liq))
  (action
@@ -13481,6 +13539,7 @@
  (alias test-doc-harbor-simple)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-simple.liq))
  (action
@@ -13494,6 +13553,7 @@
  (alias test-doc-harbor-usage)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor-usage.liq))
  (action
@@ -13507,6 +13567,7 @@
  (alias test-doc-harbor.http.register)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor.http.register.liq))
  (action
@@ -13520,6 +13581,7 @@
  (alias test-doc-harbor.http.response)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/harbor.http.response.liq))
  (action
@@ -13533,6 +13595,7 @@
  (alias test-doc-hls-metadata)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/hls-metadata.liq))
  (action
@@ -13546,6 +13609,7 @@
  (alias test-doc-http-input)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/http-input.liq))
  (action
@@ -13559,6 +13623,7 @@
  (alias test-doc-icy-update)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/icy-update.liq))
  (action
@@ -13572,6 +13637,7 @@
  (alias test-doc-implicit-float-ok)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/implicit-float-ok.liq))
  (action
@@ -13585,6 +13651,7 @@
  (alias test-doc-input.mplayer)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/input.mplayer.liq))
  (action
@@ -13598,6 +13665,7 @@
  (alias test-doc-jingle-hour)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/jingle-hour.liq))
  (action
@@ -13611,6 +13679,7 @@
  (alias test-doc-json-ex)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/json-ex.liq))
  (action
@@ -13620,6 +13689,7 @@
  (alias test-doc-json-stringify)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/json-stringify.liq))
  (action
@@ -13633,6 +13703,7 @@
  (alias test-doc-json1)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/json1.liq))
  (action
@@ -13642,6 +13713,7 @@
  (alias test-doc-labeled_arguments)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/labeled_arguments.liq))
  (action
@@ -13655,6 +13727,7 @@
  (alias test-doc-live-switch)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/live-switch.liq))
  (action
@@ -13668,6 +13741,7 @@
  (alias test-doc-loudness-correction)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/loudness-correction.liq))
  (action
@@ -13681,6 +13755,7 @@
  (alias test-doc-medialib-predicate)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/medialib-predicate.liq))
  (action
@@ -13694,6 +13769,7 @@
  (alias test-doc-medialib)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/medialib.liq))
  (action
@@ -13707,6 +13783,7 @@
  (alias test-doc-medialib.sqlite)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/medialib.sqlite.liq))
  (action
@@ -13720,6 +13797,7 @@
  (alias test-doc-multitrack-add-video-track2)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/multitrack-add-video-track2.liq))
  (action
@@ -13733,6 +13811,7 @@
  (alias test-doc-multitrack-default-video-track)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/multitrack-default-video-track.liq))
  (action
@@ -13746,6 +13825,7 @@
  (alias test-doc-multitrack2)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/multitrack2.liq))
  (action
@@ -13759,6 +13839,7 @@
  (alias test-doc-output.file.hls)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/output.file.hls.liq))
  (action
@@ -13772,6 +13853,7 @@
  (alias test-doc-playlists)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/playlists.liq))
  (action
@@ -13785,6 +13867,7 @@
  (alias test-doc-prometheus-callback)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/prometheus-callback.liq))
  (action
@@ -13798,6 +13881,7 @@
  (alias test-doc-prometheus-settings)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/prometheus-settings.liq))
  (action
@@ -13811,6 +13895,7 @@
  (alias test-doc-radiopi)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/radiopi.liq))
  (action
@@ -13820,6 +13905,7 @@
  (alias test-doc-raw-string-delimited)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/raw-string-delimited.liq))
  (action
@@ -13833,6 +13919,7 @@
  (alias test-doc-raw-string)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/raw-string.liq))
  (action
@@ -13846,6 +13933,7 @@
  (alias test-doc-re-encode)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/re-encode.liq))
  (action
@@ -13859,6 +13947,7 @@
  (alias test-doc-regular)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/regular.liq))
  (action
@@ -13868,6 +13957,7 @@
  (alias test-doc-replaygain-playlist)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/replaygain-playlist.liq))
  (action
@@ -13881,6 +13971,7 @@
  (alias test-doc-request.dynamic)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/request.dynamic.liq))
  (action
@@ -13894,6 +13985,7 @@
  (alias test-doc-rtmp)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/rtmp.liq))
  (action
@@ -13903,6 +13995,7 @@
  (alias test-doc-samplerate3)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/samplerate3.liq))
  (action
@@ -13916,6 +14009,7 @@
  (alias test-doc-scheduling)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/scheduling.liq))
  (action
@@ -13929,6 +14023,7 @@
  (alias test-doc-scheduling_9am)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/scheduling_9am.liq))
  (action
@@ -13942,6 +14037,7 @@
  (alias test-doc-scheduling_queue)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/scheduling_queue.liq))
  (action
@@ -13955,6 +14051,7 @@
  (alias test-doc-scheduling_queue_midnight)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/scheduling_queue_midnight.liq))
  (action
@@ -13968,6 +14065,7 @@
  (alias test-doc-scheduling_simple)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/scheduling_simple.liq))
  (action
@@ -13981,6 +14079,7 @@
  (alias test-doc-seek-telnet)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/seek-telnet.liq))
  (action
@@ -13994,6 +14093,7 @@
  (alias test-doc-settings)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/settings.liq))
  (action
@@ -14007,6 +14107,7 @@
  (alias test-doc-shoutcast)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/shoutcast.liq))
  (action
@@ -14020,6 +14121,7 @@
  (alias test-doc-single)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/single.liq))
  (action
@@ -14029,6 +14131,7 @@
  (alias test-doc-source-cue)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/source-cue.liq))
  (action
@@ -14042,6 +14145,7 @@
  (alias test-doc-space_overhead)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/space_overhead.liq))
  (action
@@ -14055,6 +14159,7 @@
  (alias test-doc-split-cue)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/split-cue.liq))
  (action
@@ -14068,6 +14173,7 @@
  (alias test-doc-sqlite)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/sqlite.liq))
  (action
@@ -14077,6 +14183,7 @@
  (alias test-doc-srt-receiver)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/srt-receiver.liq))
  (action
@@ -14090,6 +14197,7 @@
  (alias test-doc-srt-sender)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/srt-sender.liq))
  (action
@@ -14103,6 +14211,7 @@
  (alias test-doc-switch-show)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/switch-show.liq))
  (action
@@ -14116,6 +14225,7 @@
  (alias test-doc-transcoding)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/transcoding.liq))
  (action
@@ -14129,6 +14239,7 @@
  (alias test-doc-video-anonymizer)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-anonymizer.liq))
  (action
@@ -14142,6 +14253,7 @@
  (alias test-doc-video-bluescreen)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-bluescreen.liq))
  (action
@@ -14155,6 +14267,7 @@
  (alias test-doc-video-canvas-example)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-canvas-example.liq))
  (action
@@ -14168,6 +14281,7 @@
  (alias test-doc-video-default-canvas)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-default-canvas.liq))
  (action
@@ -14181,6 +14295,7 @@
  (alias test-doc-video-in-video)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-in-video.liq))
  (action
@@ -14194,6 +14309,7 @@
  (alias test-doc-video-logo)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-logo.liq))
  (action
@@ -14207,6 +14323,7 @@
  (alias test-doc-video-osc)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-osc.liq))
  (action
@@ -14220,6 +14337,7 @@
  (alias test-doc-video-simple)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-simple.liq))
  (action
@@ -14233,6 +14351,7 @@
  (alias test-doc-video-static)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-static.liq))
  (action
@@ -14246,6 +14365,7 @@
  (alias test-doc-video-text)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-text.liq))
  (action
@@ -14259,6 +14379,7 @@
  (alias test-doc-video-transition)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-transition.liq))
  (action
@@ -14272,6 +14393,7 @@
  (alias test-doc-video-weather)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-weather.liq))
  (action
@@ -14285,6 +14407,7 @@
  (alias test-doc-video-webcam)
  (package liquidsoap)
  (deps
+  (alias_rec ../install)
   (source_tree ../src/libs)
   (:test_liq content/liq/video-webcam.liq))
  (action

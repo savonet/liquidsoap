@@ -123,6 +123,7 @@ let mk_test_rule file =
   (alias %s)
   (package liquidsoap)
   (deps
+    (alias_rec ../install)
     (source_tree ../src/libs)
     (:test_liq %s)
   )
