@@ -59,7 +59,8 @@ s.on_track(synchronous=true, fun (_) -> ref.incr(file_track_seen))
 
 should_stop = ref(false)
 
-s = switch(track_sensitive=false, [({not should_stop()}, s)])
+s.composition_type := "live"
+s = switch([({not should_stop()}, s)])
 
 enc =
   %ffmpeg(

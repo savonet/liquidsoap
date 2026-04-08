@@ -11,7 +11,7 @@ playlist = playlist("/path/to/playlist")
 live = input.harbor("live", port=8080, password="hackme")
 
 # fallback
-radio = fallback(track_sensitive=false, [live, playlist, emergency])
+radio = fallback([live, playlist, emergency])
 
 # output it
 output.icecast(%vorbis, mount="test", host="host", radio)
