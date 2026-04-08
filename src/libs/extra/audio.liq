@@ -586,26 +586,28 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
   normal_volume = ref(fun () -> 1.)
   normal = c(normal_volume, normal)
 
-  def to_special(_, special) =
+  def to_special({starting}) =
     last_p := p()
     q = 1. - last_p()
     normal_volume := mkfade(start=1., stop=last_p(), duration=duration, normal)
-    special_volume := mkfade(stop=q, duration=duration, special)
-    special
+    special_volume := mkfade(stop=q, duration=duration, starting)
+    starting
   end
 
-  def to_blank(special, b) =
+  def to_blank(x) =
+    b = x.starting
     normal_volume := mkfade(start=last_p(), duration=duration, normal)
-    special_volume := mkfade(start=1. - last_p(), duration=duration, special)
-    sequence([special, b])
+    if null.defined(x?.ending) then
+      special_volume :=
+        mkfade(start=1. - last_p(), duration=duration, null.get(x?.ending))
+      sequence([null.get(x?.ending), b])
+    else
+      b
+    end
   end
 
   special =
-    fallback(
-      track_sensitive=false,
-      transitions=[to_special, to_blank],
-      [special, blank()]
-    )
+    fallback([special.{on_select=to_special}, blank().{on_select=to_blank}])
 
   add(normalize=false, [normal, special])
 end

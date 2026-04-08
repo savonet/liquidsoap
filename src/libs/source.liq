@@ -101,12 +101,44 @@ def metadata.map(
   )
 end
 
+# Legacy on_select for switch operators. Replays the latest metadata on the
+# starting source when `replay_metadata` is `true`, then returns it directly
+# with no fade-out of the ending source. Use this to restore the pre-2.5.x
+# behavior when the new default fade-out transition is not desired.
+# @category Source / Track processing
+def source.composition.legacy_on_select(
+  (
+  {starting, ending = _, replay_metadata}:
+  {starting: source, ending: source?, replay_metadata: bool}
+  )
+) =
+  let {insert_metadata, last_metadata} = source.methods(starting)
+  last_metadata = last_metadata()
+
+  if
+    replay_metadata and null.defined(last_metadata)
+  then
+    insert_metadata(null.get(last_metadata))
+  end
+
+  starting
+end
+
 # Turn a source into an infaillible source by adding blank when the source is
 # not available.
 # @param s the source to turn infaillible
 # @category Source / Track processing
 def mksafe(~id="mksafe", s) =
-  fallback(id=id, track_sensitive=false, [(s : source), blank(id="safe_blank")])
+  fallback(
+    id=id,
+    [
+      (s : source).{
+        track_sensitive = false,
+        on_select = source.composition.legacy_on_select
+      },
+      blank(id="safe_blank").{on_select = source.composition.legacy_on_select}
+    ]
+  )
 end
 
 # Creates a source that plays only one track of the input source.
@@ -221,7 +253,7 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   if insert_missing then d.on_track(synchronous=true, f) end
   d.on_metadata(synchronous=true, f)
 
-  s = fallback(id=id, track_sensitive=false, [d, s])
+  s = fallback(id=id, [d, s])
   s.{
     pending =
       # Return the pending source
@@ -296,7 +328,7 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
   end
 
   d = source.dynamic(track_sensitive=true, next)
-  fallback(id=id, track_sensitive=true, [d, s])
+  fallback(id=id, [d, s])
 end
 
 # Call a callback on each subtitle in the source.

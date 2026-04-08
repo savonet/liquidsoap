@@ -86,7 +86,7 @@ type scheme = var list * t
 
 type meth_doc = Type_base.meth_doc = {
   meth_descr : string;
-  category : [ `Method | `Callback ];
+  category : [ `Method | `Callback | `Composition ];
 }
 
 type meth = Type_base.meth = {
@@ -153,7 +153,7 @@ val invokes : t -> string list -> var list * t
 val meth :
   ?pos:Pos.t ->
   ?json_name:string ->
-  ?category:[ `Method | `Callback ] ->
+  ?category:[ `Method | `Callback | `Composition ] ->
   ?optional:bool ->
   string ->
   scheme ->

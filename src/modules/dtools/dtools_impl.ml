@@ -695,16 +695,28 @@ module Log = struct
   let log_queue = ref (Queue.create ())
   let log_stop = ref false
   let log_thread = ref None
+  let log_mutex_owner : int Atomic.t = Atomic.make (-1)
 
   let mutexify f x =
-    Mutex.lock log_mutex;
-    try
-      let ret = f x in
-      Mutex.unlock log_mutex;
-      ret
-    with e ->
-      Mutex.unlock log_mutex;
-      raise e
+    let tid = Thread.id (Thread.self ()) in
+    if Atomic.get log_mutex_owner = tid then
+      (* Re-entrant call from the same thread (e.g. a GC finalizer firing
+         during an allocation inside the log queue push). Just run f
+         directly — the outer call's lock already serializes us. *)
+      f x
+    else begin
+      Mutex.lock log_mutex;
+      Atomic.set log_mutex_owner tid;
+      try
+        let ret = f x in
+        Atomic.set log_mutex_owner (-1);
+        Mutex.unlock log_mutex;
+        ret
+      with e ->
+        Atomic.set log_mutex_owner (-1);
+        Mutex.unlock log_mutex;
+        raise e
+    end
 
   let rotate_queue () =
     let new_q = Queue.create () in

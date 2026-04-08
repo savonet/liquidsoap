@@ -23,30 +23,19 @@ fallback_source =
       end
   )
 
-# Transition to live
-def to_live(playlist, live) =
-  sequence([playlist, live])
-end
+# When leaving the playlist, prepare the silence insertion immediately so it
+# is ready when we return from live.
+fallback_source =
+  fallback_source.{
+    on_leave =
+      fun (_) ->
+        begin
+          should_append := true
+          fallback_source.skip()
+        end
+  }
 
-# Transition back to playlist
-def to_playlist(live, playlist) =
-  # Ask to insert a silent track.
-  should_append := true
-
-  # Cancel current track. This will also set the playlist to play a new
-  # track. If needed, `cancel_pending` can be used to for a new silent track
-  # without skipping the playlist current track.
-  fallback_source.skip()
-
-  sequence([live, playlist])
-end
-
-radio =
-  fallback(
-    track_sensitive=false,
-    transitions=[to_live, to_playlist],
-    [live_source, fallback_source]
-  )
+radio = fallback([live_source, fallback_source])
 
 # END
 output.dummy(fallible=true, radio)

@@ -28,7 +28,7 @@ end
 
 blank = single("/tmp/blank.mp3")
 
-stream = fallback(track_sensitive=false, [stream, blank])
+stream = fallback([stream, blank])
 
 o =
   output.harbor(
