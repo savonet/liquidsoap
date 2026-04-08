@@ -218,7 +218,7 @@ Switch to a live show as soon as one is available. Make the show unavailable whe
 
 ```
 
-Without `track_sensitive=false` the fallback would wait for the end of a track before switching to the live. When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
+Live inputs such as `input.http` automatically use immediate switching (they default to `track_sensitive=false`). To override this and wait for track boundaries, use `.{track_sensitive = true}` on the source. When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
 
 ## Transitions
 
