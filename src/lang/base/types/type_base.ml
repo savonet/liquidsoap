@@ -78,7 +78,11 @@ module R = struct
 end
 
 type custom
-type meth_doc = { meth_descr : string; category : [ `Method | `Callback ] }
+
+type meth_doc = {
+  meth_descr : string;
+  category : [ `Method | `Callback | `Composition ];
+}
 
 type t = { pos : Pos.Option.t; descr : descr }
 

@@ -10,7 +10,7 @@ radio = switch([({8h-20h}, day), ({20h-8h}, night)])
 radio = crossfade(fade_out=3., fade_in=3., duration=5., radio)
 
 # Add jingles
-radio = random(weights=[1, 4], [jingles, radio])
+radio = random([jingles.{weight = 1}, radio.{weight = 4}])
 output.dummy(fallible=true, radio)
 
 def on_done() =

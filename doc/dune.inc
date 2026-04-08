@@ -227,6 +227,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -409,6 +415,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -591,6 +603,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -773,6 +791,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -955,6 +979,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -1137,6 +1167,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -1319,6 +1355,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -1501,6 +1543,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -1683,6 +1731,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -1865,6 +1919,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -2047,6 +2107,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -2229,6 +2295,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -2411,6 +2483,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -2593,6 +2671,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -2775,6 +2859,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -2957,6 +3047,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -3139,6 +3235,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -3321,6 +3423,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -3503,6 +3611,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -3685,6 +3799,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -3867,6 +3987,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -4049,6 +4175,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -4231,6 +4363,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -4413,6 +4551,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -4595,6 +4739,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -4777,6 +4927,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -4959,6 +5115,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -5141,6 +5303,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -5323,6 +5491,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -5505,6 +5679,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -5687,6 +5867,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -5869,6 +6055,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -6051,6 +6243,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -6233,6 +6431,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -6415,6 +6619,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -6597,6 +6807,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -6779,6 +6995,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -6961,6 +7183,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -7143,6 +7371,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -7325,6 +7559,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -7507,6 +7747,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -7689,6 +7935,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -7871,6 +8123,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -8053,6 +8311,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -8235,6 +8499,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -8417,6 +8687,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -8599,6 +8875,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -8781,6 +9063,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -8963,6 +9251,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -9145,6 +9439,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -9327,6 +9627,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -9509,6 +9815,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -9691,6 +10003,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -9873,6 +10191,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -10055,6 +10379,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -10237,6 +10567,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -10419,6 +10755,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -10601,6 +10943,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -10783,6 +11131,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -10965,6 +11319,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -11147,6 +11507,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -11329,6 +11695,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -11511,6 +11883,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -11693,6 +12071,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -11875,6 +12259,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -12057,6 +12447,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -12239,6 +12635,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -12421,6 +12823,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -12603,6 +13011,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -12785,6 +13199,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -12967,6 +13387,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -13149,6 +13575,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -13331,6 +13763,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -13513,6 +13951,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -13695,6 +14139,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -13877,6 +14327,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -14059,6 +14515,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -14241,6 +14703,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -14423,6 +14891,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -14605,6 +15079,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -14787,6 +15267,12 @@
   content/liq/scheduling_queue_midnight.liq
   content/liq/scheduling_simple.liq
   content/liq/seek-telnet.liq
+  content/liq/server-harbor.liq
+  content/liq/server-interactive-float.liq
+  content/liq/server-interactive-harbor.liq
+  content/liq/server-interactive-persistent.liq
+  content/liq/server-socket.liq
+  content/liq/server-switch.liq
   content/liq/settings.liq
   content/liq/shoutcast.liq
   content/liq/single.liq
@@ -16464,6 +16950,90 @@
    content/liq/seek-telnet.liq)))
 
 (rule
+ (alias test-doc-server-harbor)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/server-harbor.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/server-harbor.liq)))
+
+(rule
+ (alias test-doc-server-interactive-float)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/server-interactive-float.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/server-interactive-float.liq)))
+
+(rule
+ (alias test-doc-server-interactive-harbor)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/server-interactive-harbor.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/server-interactive-harbor.liq)))
+
+(rule
+ (alias test-doc-server-interactive-persistent)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/server-interactive-persistent.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/server-interactive-persistent.liq)))
+
+(rule
+ (alias test-doc-server-socket)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/server-socket.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/server-socket.liq)))
+
+(rule
+ (alias test-doc-server-switch)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/server-switch.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/server-switch.liq)))
+
+(rule
  (alias test-doc-settings)
  (package liquidsoap)
  (deps
@@ -17026,6 +17596,12 @@
   (alias test-doc-scheduling_queue_midnight)
   (alias test-doc-scheduling_simple)
   (alias test-doc-seek-telnet)
+  (alias test-doc-server-harbor)
+  (alias test-doc-server-interactive-float)
+  (alias test-doc-server-interactive-harbor)
+  (alias test-doc-server-interactive-persistent)
+  (alias test-doc-server-socket)
+  (alias test-doc-server-switch)
   (alias test-doc-settings)
   (alias test-doc-shoutcast)
   (alias test-doc-single)

@@ -427,44 +427,42 @@ let toplevel_add ?doc pat ~t v =
           *)
               List.rev !arguments
             in
-            let methods, callbacks, t =
-              let methods, t =
-                let methods, t = Type.split_meths t in
-                match (Type.deref t).Type.descr with
-                  | Type.Arrow (p, a) ->
-                      let methods, a = Type.split_meths a in
-                      (* Note that in case we have a function, we drop the methods around,
-                         the reason being that we expect that they are registered on their
-                         own in the documentation. For instance, we don't want the field
-                         recurrent to appear in the doc of thread.run: it is registered as
-                         thread.run.recurrent anyways. *)
-                      (methods, Type.make ?pos:t.Type.pos (Type.Arrow (p, a)))
-                  | _ -> (methods, t)
-              in
-              let methods, callbacks =
-                List.fold_left
-                  (fun (methods, callbacks) m ->
-                    let l = m.Type.meth in
-                    (* Override description and category by the one given in comment if it exists. *)
-                    let d, category =
-                      match List.assoc_opt l doc.Doc.Value.callbacks with
-                        | Some cb -> (cb.meth_description, `Callback)
-                        | None -> (
-                            match List.assoc_opt l doc.Doc.Value.methods with
-                              | Some entry ->
-                                  (entry.meth_description, m.doc.category)
-                              | None -> (Some m.doc.meth_descr, m.doc.category))
-                    in
-                    let t = Repr.string_of_scheme m.scheme in
-                    let entry =
-                      (l, Doc.Value.{ meth_type = t; meth_description = d })
-                    in
-                    match category with
-                      | `Method -> (entry :: methods, callbacks)
-                      | `Callback -> (methods, entry :: callbacks))
-                  ([], []) methods
-              in
-              (methods, callbacks, t)
+            let methods, t =
+              let methods, t = Type.split_meths t in
+              match (Type.deref t).Type.descr with
+                | Type.Arrow (p, a) ->
+                    let methods, a = Type.split_meths a in
+                    (* Note that in case we have a function, we drop the methods around,
+                       the reason being that we expect that they are registered on their
+                       own in the documentation. For instance, we don't want the field
+                       recurrent to appear in the doc of thread.run: it is registered as
+                       thread.run.recurrent anyways. *)
+                    (methods, Type.make ?pos:t.Type.pos (Type.Arrow (p, a)))
+                | _ -> (methods, t)
+            in
+            let methods, callbacks, composition =
+              List.fold_left
+                (fun (methods, callbacks, composition) m ->
+                  let l = m.Type.meth in
+                  (* Override description and category by the one given in comment if it exists. *)
+                  let d, category =
+                    match List.assoc_opt l doc.Doc.Value.callbacks with
+                      | Some cb -> (cb.meth_description, `Callback)
+                      | None -> (
+                          match List.assoc_opt l doc.Doc.Value.methods with
+                            | Some entry ->
+                                (entry.meth_description, m.doc.category)
+                            | None -> (Some m.doc.meth_descr, m.doc.category))
+                  in
+                  let t = Repr.string_of_scheme m.scheme in
+                  let entry =
+                    (l, Doc.Value.{ meth_type = t; meth_description = d })
+                  in
+                  match category with
+                    | `Method -> (entry :: methods, callbacks, composition)
+                    | `Callback -> (methods, entry :: callbacks, composition)
+                    | `Composition -> (methods, callbacks, entry :: composition))
+                ([], [], []) methods
             in
             let typ = Repr.string_of_type ~generalized t in
             let sync_description =
@@ -472,7 +470,21 @@ let toplevel_add ?doc pat ~t v =
                 | Some { meth_description = Some s; _ } when s <> "" -> Some s
                 | _ -> None
             in
-            { doc with typ; arguments; methods; callbacks; sync_description }
+            let composition_description =
+              match List.assoc_opt "composition_type" composition with
+                | Some { meth_description = Some s; _ } when s <> "" -> Some s
+                | _ -> None
+            in
+            {
+              doc with
+              typ;
+              arguments;
+              methods;
+              callbacks;
+              composition;
+              sync_description;
+              composition_description;
+            }
           in
           Some (Lazy.from_fun doc)
   in

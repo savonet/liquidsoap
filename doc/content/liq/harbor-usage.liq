@@ -12,5 +12,5 @@ files = playlist("the-playlist")
 # the live stream.
 #
 # You may insert a jingle transition here...
-radio = fallback(track_sensitive=false, [live, files])
+radio = fallback([live, files])
 output.dummy(fallible=true, radio)

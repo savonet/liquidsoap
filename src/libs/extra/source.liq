@@ -5,7 +5,7 @@
 # @param fn The applied function.
 # @param s The input source.
 def map_first_track(~id=null("map_first_track"), fn, s) =
-  fallback(id=id, track_sensitive=true, [fn((once(s) : source)), s])
+  fallback(id=id, [fn((once(s) : source)), s])
 end
 
 # Same operator as rotate but merges tracks from each sources.
@@ -14,53 +14,44 @@ end
 # @category Source / Track processing
 # @flag extra
 # @param ~id Force the value of the source ID.
-# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
-# @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
-# @param sources Sequence of sources to be merged
-def rotate.merge(
-  ~id=null("rotate.merge"),
-  ~transitions=[],
-  ~weights=[],
-  sources
-) =
+# @param sources Sequence of sources to be merged.
+def rotate.merge(~id=null("rotate.merge"), sources) =
+  sources =
+    (sources :
+      [
+        source.{
+          on_select?: (
+            {ending: source?, replay_metadata: bool, starting: source}
+          )->source,
+          on_leave?: ({source: source, track_sensitive: bool})->unit,
+          single?: bool,
+          track_sensitive?: getter(bool),
+          weight?: getter(int)
+        }
+      ]
+    )
+
   ready = ref(true)
   duration = frame.duration()
 
-  def to_first(_, new) =
+  def to_first({starting, ..._}) =
     ready := (not ready())
-    sequence(merge=true, [blank(duration=duration), (new : source)])
+    (sequence(merge=true, [blank(duration=duration), (starting : source)]) :
+      source
+    )
   end
 
-  transitions =
-    if
-      list.length(transitions) == 0
-    then
-      [to_first]
-    else
-      list.mapi(
-        (
-          fun (i, t) ->
-            if
-              i == 0
-            then
-              (fun (old, new) -> to_first(old, t(old, new)))
-            else
-              t
-            end
-        ),
-        transitions
-      )
-    end
+  sources =
+    list.mapi(
+      fun (i, (s:source)) ->
+        if i == 0 then s.{on_select=to_first} else (s : source) end,
+      sources
+    )
 
-  s = rotate(transitions=transitions, weights=weights, sources)
+  s = rotate(sources)
   let {track_marks = _, ...tracks} = source.tracks(s)
-  s = source(tracks)
-  switch(
-    id=id,
-    replay_metadata=false,
-    track_sensitive=false,
-    [(ready, s), ({not ready()}, s)]
-  )
+  s = source(tracks).{replay_metadata=false}
+  switch(id=id, [(ready, s), ({not ready()}, s)])
 end
 
 # Rotate between overlapping sources. Next track starts according
@@ -144,7 +135,7 @@ def overlap_sources(
   # Wrap sources into switches.
   def make_switch(pos, source) =
     is_ready = grab_ready(pos)
-    switch(track_sensitive=true, [(is_ready, source)])
+    switch([(is_ready, source)])
   end
 
   sources = list.mapi(make_switch, sources)
@@ -259,7 +250,7 @@ def fallback.skip(s, ~fallback:f=null) =
     if not old and avail() then source.skip(f) end
   end
 
-  s = fallback(track_sensitive=false, [s, f])
+  s = fallback([s, f])
 
   # TODO: could we have something more efficient that checking on every frame
   s.on_frame(synchronous=true, check)

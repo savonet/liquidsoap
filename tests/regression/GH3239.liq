@@ -4,14 +4,14 @@ a = sine(duration=2.)
 b = sine(duration=2.)
 
 # This function will be type-checked as a generic
-# fun (source('a), source('a)) -> source('a). We
-# need to make sure that it returns a mono source
-# when used as transition for a mono fallback.
-def transition(a, b) =
-  add([fade.out(a), fade.in(b)])
+# fun ({..., starting: source('a), ...}) -> source('a). We need to make sure
+# that it returns a mono source when used as transition
+# for a mono fallback.
+def transition({starting, ..._}) =
+  fade.in(starting)
 end
 
-s = fallback(transitions=[transition, transition], [a, b])
+s = fallback([a.{on_select=transition}, b.{on_select=transition}])
 
 clock.assign_new(sync='none', [s])
 
