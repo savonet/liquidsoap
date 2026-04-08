@@ -569,14 +569,6 @@ let source_methods =
       value = (fun s -> bool s#fallible);
     };
     {
-      name = "has_track_marks";
-      scheme = ([], fun_t [] bool_t);
-      descr =
-        "`true` if the last completed streaming cycle produced a frame \
-         containing at least one track mark.";
-      value = (fun s -> val_fun [] (fun _ -> bool s#has_track_marks));
-    };
-    {
       name = "clock";
       scheme = ([], Lang_clock.ClockValue.base_t);
       descr = "The source's clock";

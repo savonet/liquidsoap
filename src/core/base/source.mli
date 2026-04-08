@@ -129,10 +129,6 @@ object
       use only! *)
   method release_source : source -> unit
 
-  (** [true] if the last completed streaming cycle produced a frame containing
-      at least one track mark. Reset to [false] at the start of each cycle. *)
-  method has_track_marks : bool
-
   (** [true] if the source needs to be animated on each clock tick. *)
   method active : bool
 

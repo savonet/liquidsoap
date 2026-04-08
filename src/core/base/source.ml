@@ -407,8 +407,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           | _ -> false)
       else false
 
-    val _has_track_marks = Atomic.make false
-    method has_track_marks = Atomic.get _has_track_marks
     val mutable _cache = None
     val mutable consumed = 0
     val mutable on_before_streaming_cycle = []
@@ -439,7 +437,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private before_streaming_cycle =
       match Atomic.get streaming_state with
         | `Pending ->
-            Atomic.set _has_track_marks false;
             List.iter (fun fn -> fn ()) on_before_streaming_cycle;
             consumed <- 0;
             let cache_pos = self#cache_pos in
@@ -471,10 +468,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method private after_streaming_cycle =
       (match (Atomic.get streaming_state, consumed) with
-        | `Done buf, n ->
-            if Frame.has_track_marks buf then Atomic.set _has_track_marks true;
-            if n < Frame.position buf then
-              _cache <- Some (Frame.append (Frame.after buf n) self#cache)
+        | `Done buf, n when n < Frame.position buf ->
+            _cache <- Some (Frame.append (Frame.after buf n) self#cache)
         | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
       Atomic.set streaming_state `Pending

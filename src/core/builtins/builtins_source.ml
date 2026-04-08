@@ -106,16 +106,6 @@ let _ =
     (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#is_ready)
 
 let _ =
-  Lang.add_builtin ~base:source "has_track_marks"
-    ~category:(`Source `Liquidsoap)
-    ~descr:
-      "`true` if the last completed streaming cycle produced a frame \
-       containing at least one track mark."
-    [("", Lang.source_t (Lang.univ_t ()), None, None)]
-    Lang.bool_t
-    (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#has_track_marks)
-
-let _ =
   Lang.add_builtin ~base:source "is_up" ~category:`System
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t ~descr:"Check whether a source is up."
