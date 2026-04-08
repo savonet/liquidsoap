@@ -357,37 +357,32 @@ clock.assign_new([jazz, That70Sound, metal, reggae])
 # - the failsafe 'interlude' source to channels
 # - blank detection
 def mklive(s) =
-  # Transition function: if transitioning to the live, fade out the old source
-  # if transitioning from live, fade.in the new source. NOTE: We cannot skip the
+  # Fade in when selecting live or returning from it. NOTE: We cannot skip the
   # current song because reloading new songs for all the sources when live
   # starts costs too much CPU.
-  def trans(old, new) =
-    if
-      source.id(new) == source.id(live)
-    then
-      log(
-        "Transition to live!"
-      )
-      add([new, fade.out(old)])
-    elsif
-      source.id(old) == source.id(live)
-    then
-      log(
-        "Transitioning from live!"
-      )
-      add([fade.in(new), old])
-    else
-      log(
-        "Dummy transition"
-      )
-      new
-    end
-  end
-  fallback(
-    track_sensitive=false,
-    transitions=[trans, trans, trans],
-    [live, (s : source), interlude]
-  )
+  live =
+    live.{
+      on_select =
+        fun ({starting, ..._}) ->
+          begin
+            log(
+              "Transition to live!"
+            )
+            fade.in(starting)
+          end
+    }
+  s =
+    (s : source).{
+      on_select =
+        fun ({starting, ..._}) ->
+          begin
+            log(
+              "Transitioning from live!"
+            )
+            fade.in(starting)
+          end
+    }
+  fallback([live, s, interlude])
 end
 
 # Create a channel using mklive(), encode and output it to icecast.

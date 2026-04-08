@@ -7,7 +7,7 @@ s = sine()
 
 is_on = ref(true)
 
-s = switch(track_sensitive=false, [(is_on, s)])
+s = switch([(is_on, s.{track_sensitive = false})])
 
 clock.assign_new(sync="none", [s])
 

@@ -17,6 +17,11 @@
 
 ## Changed:
 
+- `switch`, `fallback`, `rotate`, `random`: replaced parallel list parameters
+  (`transitions`, `single`, `transition_length`, `override`) with per-source
+  methods (`on_select`, `on_leave`, `single`, `track_sensitive`, `composition_type`)
+  registered on every source. Switching behavior now defaults automatically based
+  on whether a source is file-based or live. `replay_metadata` is removed (#5074).
 - Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
   with a single unified `duration` parameter. Removed autocue-specific code and
   `assume_autocue` setting. Metadata overrides `liq_cross_start_duration` and

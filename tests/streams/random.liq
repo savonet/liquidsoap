@@ -11,7 +11,7 @@ end
 
 s1 = metadata.map(insert_missing=true, id="s1-map", m1, s1)
 s1_ready = ref(true)
-s1 = switch(id="s1", track_sensitive=false, [(s1_ready, s1)])
+s1 = switch(id="s1", [(s1_ready, s1.{track_sensitive=false})])
 s1_weight = ref(1)
 s2 = blank(duration=0.04)
 
@@ -21,7 +21,7 @@ end
 
 s2 = metadata.map(insert_missing=true, id="s2-map", m2, s2)
 s2_ready = ref(false)
-s2 = switch(id="s2", track_sensitive=false, [(s2_ready, s2)])
+s2 = switch(id="s2", [(s2_ready, s2.{track_sensitive=false})])
 s2_weight = ref(1)
 round = ref(1)
 
@@ -48,7 +48,7 @@ def f(m) =
   selected := list.cons(m["id"], selected())
 end
 
-s = random(weights=[s1_weight, s2_weight], [s1, s2])
+s = random([s1.{weight=s1_weight}, s2.{weight=s2_weight}])
 s.on_track(synchronous=true, f)
 output.dummy(fallible=true, s)
 

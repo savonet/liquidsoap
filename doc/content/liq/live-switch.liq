@@ -4,7 +4,7 @@ s1 = ffmpeg.filter.bitstream.h264_mp4toannexb(s1)
 s2 = playlist("/path/to/playlist")
 s2 = ffmpeg.filter.bitstream.h264_mp4toannexb(s2)
 
-s = fallback(track_sensitive=false, [s1, s2])
+s = fallback([s1, s2])
 
 mpegts =
   %ffmpeg(format = "mpegts", fflags = "-autobsf", %audio.copy, %video.copy)

@@ -21,8 +21,10 @@ thread.run(delay=2., {r := true})
 mixer =
   fallback(
     id="mixer",
-    track_sensitive=false,
-    [source.available(sine(duration=3.), pred), blank()]
+    [
+      source.available(sine(duration=3.), pred).{track_sensitive = false},
+      blank().{track_sensitive = false},
+    ]
   )
 
 output.dummy(mixer)
