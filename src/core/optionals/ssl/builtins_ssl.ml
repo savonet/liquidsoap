@@ -32,7 +32,8 @@ let protocol_of_value protocol_val =
     | "tls.1.1" -> Ssl.TLSv1_1 [@alert "-deprecated"]
     | "tls.1.2" -> Ssl.TLSv1_2
     | "tls.1.3" -> Ssl.TLSv1_3
-    | _ -> raise (Error.Invalid_value (protocol_val, "Invalid SSL protocol"))
+    | _ ->
+        raise (Error.Invalid_value (protocol_val, "Invalid SSL protocol", []))
 
 let ssl_socket ~pos transport ssl =
   let closed = Atomic.make false in

@@ -403,7 +403,8 @@ let _ =
                 || Content_timed.Track_marks.is_format format
               then (audio_tracks, video_tracks)
               else
-                raise (Error.Invalid_value (sources_val, "Invalid source type")))
+                raise
+                  (Error.Invalid_value (sources_val, "Invalid source type", [])))
             ([], []) content_type
         in
         let audio_tracks =

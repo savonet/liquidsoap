@@ -34,7 +34,8 @@ class virtual base ~check_self_sync children_val =
                 (Error.Invalid_value
                    ( c,
                      "This source may control its own latency and cannot be \
-                      used with this operator." )))
+                      used with this operator.",
+                     [] )))
           children_val
 
     method virtual id : string

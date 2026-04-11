@@ -343,7 +343,7 @@ let _ =
         if ltr > l then
           raise
             (Error.Invalid_value
-               (List.assoc "transitions" p, "Too many transitions"));
+               (List.assoc "transitions" p, "Too many transitions", []));
         if ltr < l then tr @ List.init (l - ltr) (fun _ -> default_transition)
         else tr
       in
@@ -371,7 +371,8 @@ let _ =
           raise
             (Error.Invalid_value
                ( List.assoc "single" p,
-                 "there should be exactly one flag per children" ))
+                 "there should be exactly one flag per children",
+                 [] ))
       in
       new switch
         ~replay_meta ~override_meta ~all_predicates ~transition_length:tl

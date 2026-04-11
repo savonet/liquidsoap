@@ -329,7 +329,7 @@ let mk_options options =
           in
           let x =
             try from_value v
-            with _ -> raise (Error.Invalid_value (v, "Invalid value"))
+            with _ -> raise (Error.Invalid_value (v, "Invalid value", []))
           in
           (match min with
             | Some m when x < m ->
@@ -337,7 +337,8 @@ let mk_options options =
                   (Error.Invalid_value
                      ( v,
                        Printf.sprintf "%s must be more than %s" name
-                         (to_string m) ))
+                         (to_string m),
+                       [] ))
             | _ -> ());
           (match max with
             | Some m when m < x ->
@@ -345,7 +346,8 @@ let mk_options options =
                   (Error.Invalid_value
                      ( v,
                        Printf.sprintf "%s must be less than %s" name
-                         (to_string m) ))
+                         (to_string m),
+                       [] ))
             | _ -> ());
           (match values with
             | _ :: _ when List.find_opt (fun (_, v) -> v = x) values = None ->
@@ -354,7 +356,8 @@ let mk_options options =
                      ( v,
                        Printf.sprintf "%s should be one of: %s" name
                          (String.concat ", "
-                            (List.map (fun (_, v) -> to_string v) values)) ))
+                            (List.map (fun (_, v) -> to_string v) values)),
+                       [] ))
             | _ -> ());
           let x =
             match default with
@@ -419,7 +422,8 @@ let mk_options options =
                 in
                 let values =
                   try array_from_value v
-                  with _ -> raise (Error.Invalid_value (v, "Invalid value"))
+                  with _ ->
+                    raise (Error.Invalid_value (v, "Invalid value", []))
                 in
                 let array_args =
                   List.map
@@ -441,8 +445,8 @@ let get_config graph =
         raise
           (Error.Invalid_value
              ( graph,
-               "Graph variables cannot be used outside of ffmpeg.filter.create!"
-             ))
+               "Graph variables cannot be used outside of ffmpeg.filter.create!",
+               [] ))
 
 let apply_filter ~args_parser ~filter ~sources_t p =
   Avfilter.(
@@ -510,8 +514,8 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                       (Error.Invalid_value
                          ( v,
                            Printf.sprintf
-                             "Invalid number of input for filter %s" filter.name
-                         ));
+                             "Invalid number of input for filter %s" filter.name,
+                           [] ));
                   List.nth inputs idx)
                 else Lang.assoc "" (idx + ofs + 1) p
               in

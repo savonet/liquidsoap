@@ -119,7 +119,8 @@ class virtual base =
                            Printf.sprintf
                              "Could not find portaudio device named %s, \
                               available devices are %s."
-                             name names )))
+                             name names,
+                           [] )))
       in
       match device_id with
         | None ->

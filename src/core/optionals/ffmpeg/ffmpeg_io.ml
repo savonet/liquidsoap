@@ -546,8 +546,8 @@ let register_input is_http =
                      raise
                        (Error.Invalid_value
                           ( Lang.string format,
-                            "Could not find ffmpeg input format with that name"
-                          )))
+                            "Could not find ffmpeg input format with that name",
+                            [] )))
              format
          in
          let opts = Hashtbl.create 10 in

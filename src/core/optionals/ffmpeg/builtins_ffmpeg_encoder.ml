@@ -456,13 +456,15 @@ let mk_encoder mode =
                 ( format_val,
                   Printf.sprintf
                     "Muxer options are not supported for inline encoders: %s"
-                    (Ffmpeg_format.string_of_options format.Ffmpeg_format.opts)
-                ));
+                    (Ffmpeg_format.string_of_options format.Ffmpeg_format.opts),
+                  [] ));
 
          if format.Ffmpeg_format.format <> None then
            raise
              (Error.Invalid_value
-                (format_val, "Format option is not supported inline encoders"));
+                ( format_val,
+                  "Format option is not supported inline encoders",
+                  [] ));
 
          let mk_encode_frame generator =
            let output_frame_t = Type.fresh output_frame_t in
@@ -536,7 +538,8 @@ let mk_encoder mode =
                (Error.Invalid_value
                   ( format_val,
                     Printf.sprintf "Unrecognized options: %s"
-                      (Ffmpeg_format.string_of_options original_opts) ));
+                      (Ffmpeg_format.string_of_options original_opts),
+                    [] ));
 
            encode_frame
          in

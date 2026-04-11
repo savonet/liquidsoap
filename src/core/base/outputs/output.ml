@@ -55,7 +55,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
       (* This should be done before the active_operator initializer attaches us
          to a clock. *)
       if !fallibility_check && infallible && source#fallible then
-        raise (Error.Invalid_value (val_source, "That source is fallible."))
+        raise (Error.Invalid_value (val_source, "That source is fallible.", []))
 
     initializer Typing.(source#frame_type <: self#frame_type)
     inherit active_operator ?clock ~name:output_kind [source]

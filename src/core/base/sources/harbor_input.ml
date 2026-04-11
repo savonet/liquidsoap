@@ -455,7 +455,9 @@ let parse_args ~parse_mountpoint p =
   if bufferize >= max then
     raise
       (Error.Invalid_value
-         (List.assoc "max" p, "Maximum buffering inferior to pre-buffered data"));
+         ( List.assoc "max" p,
+           "Maximum buffering inferior to pre-buffered data",
+           [] ));
   let pos = Lang.pos p in
   {
     pos;
