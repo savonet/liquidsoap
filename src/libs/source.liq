@@ -5,9 +5,9 @@ def source.audio(~id=null("source.audio"), audio) =
   source(
     id=id,
     {
-      audio=audio,
-      metadata=track.metadata(audio),
-      track_marks=track.track_marks(audio)
+      audio = audio,
+      metadata = track.metadata(audio),
+      track_marks = track.track_marks(audio)
     }
   )
 end
@@ -19,9 +19,9 @@ def source.video(~id=null("source.video"), video) =
   source(
     id=id,
     {
-      video=video,
-      metadata=track.metadata(video),
-      track_marks=track.track_marks(video)
+      video = video,
+      metadata = track.metadata(video),
+      track_marks = track.track_marks(video)
     }
   )
 end
@@ -78,7 +78,7 @@ def metadata.deduplicate(~id=null("metadata.deduplicate"), ~using=null, s) =
   tracks = source.tracks(s)
   source(
     id=id,
-    tracks.{metadata=track.metadata.deduplicate(using=using, tracks.metadata)}
+    tracks.{metadata = track.metadata.deduplicate(using=using, tracks.metadata)}
   )
 end
 
@@ -95,7 +95,7 @@ def metadata.map(
   source(
     id=id,
     tracks.{
-      metadata=
+      metadata =
         track.metadata.map(%argsof(track.metadata.map), f, tracks.metadata)
     }
   )
@@ -223,16 +223,16 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
 
   s = fallback(id=id, track_sensitive=false, [d, s])
   s.{
-    pending=
+    pending =
       # Return the pending source
       fun () -> pending(),
-    set_pending=
+    set_pending =
       # Set the pending source
       fun (s) -> pending.set(s),
-    cancel_pending=
+    cancel_pending =
       # Cancel any pending appended source.
       fun () -> pending.set(null),
-    skip=
+    skip =
       # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
       fun (~cancel_pending=true) ->
         begin
@@ -256,7 +256,10 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
       m["liq_prepend"] == "false"
     then
       last_meta := null
-    elsif last_meta() != m then last_meta := m
+    elsif
+      last_meta() != m
+    then
+      last_meta := m
     end
   end
 
@@ -310,7 +313,8 @@ def on_subtitle(
   source(
     id=id,
     tracks.{
-      subtitles=track.on_subtitle(%argsof(track.on_subtitle[!id]), f, subtitles)
+      subtitles =
+        track.on_subtitle(%argsof(track.on_subtitle[!id]), f, subtitles)
     }
   )
 end
@@ -329,7 +333,7 @@ def subtitles.map(
   source(
     id=id,
     tracks.{
-      subtitles=
+      subtitles =
         track.subtitles.map(%argsof(track.subtitles.map[!id]), f, subtitles)
     }
   )
@@ -349,7 +353,7 @@ def subtitles.insert(
   subtitles = tracks?.subtitles
   let subtitles =
     track.subtitles.insert(%argsof(track.subtitles.insert[!id]), subtitles)
-  source(id=id, tracks.{subtitles=subtitles}).{
-    insert_subtitle=subtitles.insert_subtitle
+  source(id=id, tracks.{subtitles = subtitles}).{
+    insert_subtitle = subtitles.insert_subtitle
   }
 end

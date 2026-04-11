@@ -5,7 +5,7 @@ def socket.unix.client(~non_blocking=false, path) =
   s = socket.unix(domain=socket.domain.unix)
   s.non_blocking(non_blocking)
   s.connect(socket.address.unix(path))
-  (s : socket).{read=s.read, write=s.write, type=s.type, close=s.close}
+  (s : socket).{read = s.read, write = s.write, type = s.type, close = s.close}
 end
 
 # Open a named socket and wait for a client to connect
@@ -24,5 +24,10 @@ def socket.unix.listen(~non_blocking=false, path) =
         s.close()
       end
 
-  (s' : socket).{read=s'.read, write=s'.write, type=s'.type, close=close}
+  (s' : socket).{
+    read = s'.read,
+    write = s'.write,
+    type = s'.type,
+    close = close
+  }
 end

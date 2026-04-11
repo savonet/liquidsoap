@@ -27,11 +27,11 @@ s =
   source(
     id="muxed",
     {
-      audio=audio,
-      audio_2=audio_2,
-      video=video,
-      metadata=metadata,
-      track_marks=track_marks
+      audio = audio,
+      audio_2 = audio_2,
+      video = video,
+      metadata = metadata,
+      track_marks = track_marks
     }
   )
 

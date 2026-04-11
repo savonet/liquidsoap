@@ -2,7 +2,7 @@ def f() =
   config = null
   port = 123
 
-  parsed = if null.defined(config) then {port=null} else {port=null} end
+  parsed = if null.defined(config) then {port = null} else {port = null} end
 
   port = parsed.port ?? port
 

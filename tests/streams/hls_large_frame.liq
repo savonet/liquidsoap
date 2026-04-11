@@ -18,7 +18,7 @@ enc =
       tune = "zerolatency",
       x264opts = "keyint=12:min-keyint=12"
     )
-  ).{bandwidth=4000000}
+  ).{bandwidth = 4000000}
 
 streams = [("radio", enc)]
 

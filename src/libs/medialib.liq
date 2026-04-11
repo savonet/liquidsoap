@@ -241,68 +241,48 @@ def medialib(
       end
 
       eqf("artist", artist)
-    and
-      ctf("artist", artist_contains)
-    and
-      mtf("artist", artist_matches)
-    and
-      eqf("album", album)
-    and
-      eqf("genre", genre)
-    and
-      eqf("title", title)
-    and
-      ctf("title", title_contains)
-    and
-      eqf("filename", filename)
-    and
-      ctf("basename", filename_contains)
-    and
-      mtf("basename", filename_matches)
-    and
-
+      and ctf("artist", artist_contains)
+      and mtf("artist", artist_matches)
+      and eqf("album", album)
+      and eqf("genre", genre)
+      and eqf("title", title)
+      and ctf("title", title_contains)
+      and eqf("filename", filename)
+      and ctf("basename", filename_contains)
+      and mtf("basename", filename_matches)
+      and if
+        null.defined(year) or null.defined(year_ge) or null.defined(year_lt)
+      then
         if
-          null.defined(year) or null.defined(year_ge) or null.defined(year_lt)
+          string.is_int(m["year"])
         then
-          if
-            string.is_int(m["year"])
-          then
-            y = string.to_int(m["year"])
-            (null.defined(year) ? y == null.get(year) : true )
-          and
-            (null.defined(year_ge) ? y >= null.get(year_ge) : true )
-          and
-            (null.defined(year_lt) ? y < null.get(year_lt) : true )
-          else
-            false
-          end
+          y = string.to_int(m["year"])
+          (null.defined(year) ? y == null.get(year) : true)
+          and (null.defined(year_ge) ? y >= null.get(year_ge) : true)
+          and (null.defined(year_lt) ? y < null.get(year_lt) : true)
         else
-          true
+          false
         end
-
-    and
-
+      else
+        true
+      end
+      and if
+        null.defined(bpm) or null.defined(bpm_ge) or null.defined(bpm_lt)
+      then
         if
-          null.defined(bpm) or null.defined(bpm_ge) or null.defined(bpm_lt)
+          string.is_int(m["bpm"])
         then
-          if
-            string.is_int(m["bpm"])
-          then
-            b = string.to_int(m["bpm"])
-            (null.defined(bpm) ? b == null.get(bpm) : true )
-          and
-            (null.defined(bpm_ge) ? b >= null.get(bpm_ge) : true )
-          and
-            (null.defined(bpm_lt) ? b < null.get(bpm_lt) : true )
-          else
-            false
-          end
+          b = string.to_int(m["bpm"])
+          (null.defined(bpm) ? b == null.get(bpm) : true)
+          and (null.defined(bpm_ge) ? b >= null.get(bpm_ge) : true)
+          and (null.defined(bpm_lt) ? b < null.get(bpm_lt) : true)
         else
-          true
+          false
         end
-
-    and
-      predicate(m)
+      else
+        true
+      end
+      and predicate(m)
     end
 
     l = list.filter(fun (fm) -> p(snd(fm)), db())
@@ -382,7 +362,7 @@ def medialib(
     scan()
   end
 
-  {find=find, refresh=refresh, add_directory=add_directory, clear=clear}
+  {find = find, refresh = refresh, add_directory = add_directory, clear = clear}
 end
 
 %ifdef sqlite
@@ -506,15 +486,15 @@ def medialib.sqlite(
         id = fun (x) -> x
         m =
           {
-            file=f,
-            artist=field(map=id, "artist"),
-            title=field(map=id, "title"),
-            album=field(map=id, "album"),
-            genre=field(map=id, "genre"),
-            basename=field(map=id, "basename"),
-            last_scan=field(map=float_of_string, "last_scan"),
-            year=field(map=int_of_string, "year"),
-            bpm=field(map=int_of_string, "bpm")
+            file = f,
+            artist = field(map=id, "artist"),
+            title = field(map=id, "title"),
+            album = field(map=id, "album"),
+            genre = field(map=id, "genre"),
+            basename = field(map=id, "basename"),
+            last_scan = field(map=float_of_string, "last_scan"),
+            year = field(map=int_of_string, "year"),
+            bpm = field(map=int_of_string, "bpm")
           }
         db.insert(table="metadata", replace=true, m)
       end
@@ -767,6 +747,6 @@ def medialib.sqlite(
     scan()
   end
 
-  {find=find, refresh=refresh, add_directory=add_directory, clear=clear}
+  {find = find, refresh = refresh, add_directory = add_directory, clear = clear}
 end
 %endif

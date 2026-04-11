@@ -4,7 +4,7 @@ let {video = v} = source.tracks(video.testsrc.ffmpeg(duration=16.))
 let {subtitles = s1} = source.tracks(single("test-subtitle.srt"))
 let {subtitles = s2} = source.tracks(single("test-subtitle.srt"))
 
-s = source({video=v, subtitles=s1, subtitles_2=s2})
+s = source({video = v, subtitles = s1, subtitles_2 = s2})
 
 s = once(s)
 

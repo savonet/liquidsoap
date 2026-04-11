@@ -18,8 +18,8 @@ def vumeter(~rms_min=-25., ~rms_max=-5., ~window=0.5, ~scroll=false, s) =
     n = int_of_float(x * float_of_int(bar_width))
     bar = ref("")
     if not scroll then bar := "\r" end
-    for _ = 0 to n - 1 do bar := bar() ^ "=" end
-    for _ = 0 to bar_width - n - 1 do bar := bar() ^ "." end
+    for _ = 0 to n - 1 do bar := bar() ^ "="  end
+    for _ = 0 to bar_width - n - 1 do bar := bar() ^ "."  end
     bar :=
       bar() ^
         " " ^
@@ -49,7 +49,7 @@ def video.vumeter(
   ~persistence=0.,
   s
 ) =
-  s = source(s.{video=source.tracks(blank()).video})
+  s = source(s.{video = source.tracks(blank()).video})
   s = rms(duration=window, s)
   height = video.frame.height()
   width = ref(0)

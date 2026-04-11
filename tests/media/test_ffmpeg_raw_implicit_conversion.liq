@@ -32,14 +32,10 @@ def on_close(filename) =
 
   if
     audio_stream.channel_layout == "stereo"
-  and
-    audio_stream.codec_name == "aac"
-  and
-    audio_stream.sample_fmt == "fltp"
-  and
-    audio_stream.sample_rate == "44100"
-  and
-    float_of_string(audio_stream.duration) > 29.
+    and audio_stream.codec_name == "aac"
+    and audio_stream.sample_fmt == "fltp"
+    and audio_stream.sample_rate == "44100"
+    and float_of_string(audio_stream.duration) > 29.
   then
     test.pass()
   else

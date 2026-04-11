@@ -3,15 +3,10 @@ port = 3461
 def fn() =
   def on_metadata(m) =
     if
-
-        m["title"] ==
-          "song title"
-
-    and
-
-        m["metadata_url"] ==
-          "metadata url"
-
+      m["title"] ==
+        "song title"
+      and m["metadata_url"] ==
+        "metadata url"
     then
       test.pass()
     end

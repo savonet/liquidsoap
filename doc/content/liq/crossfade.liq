@@ -34,10 +34,8 @@ def cross.smart(
   if
     # If A and B are not too loud and close, fully cross-fade them.
     a.db_level <= medium
-  and
-    b.db_level <= medium
-  and
-    abs(a.db_level - b.db_level) <= margin
+    and b.db_level <= medium
+    and abs(a.db_level - b.db_level) <= margin
   then
     log(
       "Old <= medium, new <= medium and |old-new| <= margin."
@@ -53,10 +51,8 @@ def cross.smart(
     # If B is significantly louder than A, only fade-out A.
     # We don't want to fade almost silent things, ask for >medium.
     b.db_level >= a.db_level + margin
-  and
-    a.db_level >= medium
-  and
-    b.db_level <= high
+    and a.db_level >= medium
+    and b.db_level <= high
   then
     log(
       "new >= old + margin, old >= medium and new <= high."
@@ -71,10 +67,8 @@ def cross.smart(
   elsif
     # Opposite as the previous one.
     a.db_level >= b.db_level + margin
-  and
-    b.db_level >= medium
-  and
-    a.db_level <= high
+    and b.db_level >= medium
+    and a.db_level <= high
   then
     log(
       "old >= new + margin, new >= medium and old <= high"
@@ -89,10 +83,8 @@ def cross.smart(
   elsif
     # Do not fade if it's already very low.
     b.db_level >= a.db_level + margin
-  and
-    a.db_level <= medium
-  and
-    b.db_level <= high
+    and a.db_level <= medium
+    and b.db_level <= high
   then
     log(
       "new >= old + margin, old <= medium and new <= high."

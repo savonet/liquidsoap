@@ -56,10 +56,8 @@ def on_done() =
   s = list.rev(selected())
   if
     list.nth(default="", s, 0) == "s1"
-  and
-    list.nth(default="", s, 1) == "s2"
-  and
-    list.nth(default="", s, 2) == "s1"
+    and list.nth(default="", s, 1) == "s2"
+    and list.nth(default="", s, 2) == "s1"
   then
     test.pass()
   else

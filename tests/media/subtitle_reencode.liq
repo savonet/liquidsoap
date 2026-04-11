@@ -4,7 +4,7 @@ log.level.set(4)
 let {video = v} = source.tracks(video.testsrc.ffmpeg(duration=16.))
 let {subtitles = sub} = source.tracks(single("test-subtitle.srt"))
 
-input_source = source({video=v, subtitles=sub})
+input_source = source({video = v, subtitles = sub})
 input_source = once(input_source)
 
 clock.assign_new(id="encode", sync="none", [input_source])
@@ -15,7 +15,7 @@ def on_close(_) =
   let {subtitles = sub2} =
     source.tracks(input.ffmpeg("subtitle_reencode_input.mkv"))
 
-  output_source = source({video=v2, subtitles=sub2})
+  output_source = source({video = v2, subtitles = sub2})
   output_source = once(output_source)
 
   clock.assign_new(id="re-encode", sync="none", [output_source])

@@ -105,9 +105,18 @@ def mkfade(
       type == "sin"
     then
       sin_shape
-    elsif type == "exp" then exp_shape
-    elsif type == "log" then log_shape
-    elsif type == "lin" then lin_shape
+    elsif
+      type == "exp"
+    then
+      exp_shape
+    elsif
+      type == "log"
+    then
+      log_shape
+    elsif
+      type == "lin"
+    then
+      lin_shape
     else
       log(
         "Invalid type #{type}, using \"lin\""
@@ -374,7 +383,10 @@ def fade.out(
     memoize({if s.is_ready() then s.generate_frame() end})
   )
 
-  fade.scale(id=id, apply, d).{fade_duration={duration()}, fade_type={type()}}
+  fade.scale(id=id, apply, d).{
+    fade_duration = {duration()},
+    fade_type = {type()}
+  }
 end
 
 # Fade when the metadata trigger is received and then skip.
@@ -539,7 +551,10 @@ def fade.skip(
   s.on_metadata(synchronous=true, update_fade)
   s.on_track(synchronous=true, stop_fade)
 
-  fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
+  fade.scale(id=id, apply, s).{
+    fade_duration = {duration()},
+    fade_type = {type()}
+  }
 end
 
 # Fade the beginning of tracks.
@@ -764,7 +779,7 @@ def fade.in(
   then
     s.on_frame(synchronous=true, before=false, memoize({start_fade([])}))
   end
-  s.{fade_duration={duration()}, fade_delay={delay()}, fade_type={type()}}
+  s.{fade_duration = {duration()}, fade_delay = {delay()}, fade_type = {type()}}
 end
 
 # Simple transition for crossfade
@@ -860,9 +875,9 @@ def replaces cross(%argsof(cross), ~deduplicate=true, transition, s) =
     dedup = metadata.deduplicate(s)
 
     dedup.{
-      buffered=s.buffered,
-      duration=s.duration,
-      cross_duration=s.cross_duration
+      buffered = s.buffered,
+      duration = s.duration,
+      cross_duration = s.cross_duration
     }
   end
 end

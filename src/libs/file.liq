@@ -43,7 +43,7 @@ def file.read(fname) =
     end
   end
 
-  read.{close=close}
+  read.{close = close}
 end
 
 let file.write = ()
@@ -157,6 +157,7 @@ def replaces file.write(
       while s() != "" do
         s := getter.get(data) ?? ""
         cb(s())
+
       end
     end
   catch err do
@@ -182,6 +183,7 @@ def file.contents(fname) =
   while next() != "" do
     cur := "#{cur()}#{next()}"
     next := fn()
+
   end
 
   cur()
@@ -319,13 +321,13 @@ def file.metadata.flac.cover.decode(s) =
   else
     null(
       data.{
-        picture_type=pic_type,
-        mime=mime,
-        description=desc,
-        width=width,
-        height=height,
-        color_depth=color_depth,
-        number_of_colors=number_of_colors
+        picture_type = pic_type,
+        mime = mime,
+        description = desc,
+        width = width,
+        height = height,
+        color_depth = color_depth,
+        number_of_colors = number_of_colors
       }
     )
   end

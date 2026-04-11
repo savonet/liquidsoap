@@ -24,12 +24,11 @@ def cleanup() =
 end
 
 def create() =
-  for i = 0 to
-    49
-  do
+  for i = 0 to 49 do
     s = switch([({true}, sine()), ({true}, s)])
     o = output.dummy(s)
     output_list := [o, ...!output_list]
+
   end
   thread.run(delay=2., cleanup)
 end

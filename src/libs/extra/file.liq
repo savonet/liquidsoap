@@ -62,5 +62,5 @@ def playlog(
     time() - list.assoc(default=0. - infinity, f, l())
   end
 
-  {add=add, last=last}
+  {add = add, last = last}
 end

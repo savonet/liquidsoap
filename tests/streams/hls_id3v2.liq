@@ -5,13 +5,13 @@ def run_check() =
   to_check =
     ref(
       {
-        aac=null,
-        shine=null,
-        lame=null,
-        fdkaac=null,
-        ts_with_meta=null,
-        ts=null,
-        mp4=null
+        aac = null,
+        shine = null,
+        lame = null,
+        fdkaac = null,
+        ts_with_meta = null,
+        ts = null,
+        mp4 = null
       }
     )
 
@@ -43,12 +43,9 @@ def run_check() =
       ts_with_meta = null.get(ts_with_meta)
 
       if
-
-          ts_with_meta["title"] ==
-            "test title"
-
-      and
-        ts_with_meta["album"] == "foolol"
+        ts_with_meta["title"] ==
+          "test title"
+        and ts_with_meta["album"] == "foolol"
       then
         test.pass()
       end
@@ -63,7 +60,7 @@ def run_check() =
         print(
           "ts_with_meta #{m}"
         )
-        if m["title"] != "" then to_check := to_check().{ts_with_meta=m} end
+        if m["title"] != "" then to_check := to_check().{ts_with_meta = m} end
         check_done()
       end
   )
@@ -74,7 +71,7 @@ def run_check() =
     synchronous=true,
     fun (m) ->
       begin
-        if m["title"] != "" then to_check := to_check().{ts=m} end
+        if m["title"] != "" then to_check := to_check().{ts = m} end
         check_done()
       end
   )
@@ -85,7 +82,7 @@ def run_check() =
     synchronous=true,
     fun (m) ->
       begin
-        if m["title"] != "" then to_check := to_check().{mp4=m} end
+        if m["title"] != "" then to_check := to_check().{mp4 = m} end
         check_done()
       end
   )
@@ -121,10 +118,8 @@ end
 def on_file_change({state, path = fname}) =
   if
     state == "created"
-  and
-    string.contains(prefix="segment-", path.basename(fname))
-  and
-    string.contains(suffix="mp3", fname)
+    and string.contains(prefix="segment-", path.basename(fname))
+    and string.contains(suffix="mp3", fname)
   then
     ref.incr(segments_created)
   end
@@ -143,12 +138,15 @@ o =
     segment_name=segment_name,
     tmp_dir,
     [
-      ("aac", %ffmpeg(format = "adts", %audio(codec = "aac")).{id3_version=3}),
+      (
+        "aac",
+        %ffmpeg(format = "adts", %audio(codec = "aac")).{id3_version = 3}
+      ),
       (
         "ts_with_meta",
-        %ffmpeg(format = "mpegts", %audio(codec = "aac")).{id3_version=4}
+        %ffmpeg(format = "mpegts", %audio(codec = "aac")).{id3_version = 4}
       ),
-      ("ts", %ffmpeg(format = "mpegts", %audio(codec = "aac")).{id3=false}),
+      ("ts", %ffmpeg(format = "mpegts", %audio(codec = "aac")).{id3 = false}),
       ("shine", %shine),
       ("lame", %mp3),
       ("fdkaac", %fdkaac),

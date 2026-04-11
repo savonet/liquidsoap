@@ -1,12 +1,12 @@
 def f() =
   lufs_integrated = ref(0.)
-  true_peak       = ref(neg_infinity)
+  true_peak = ref(neg_infinity)
 
   def process(s) =
     s = lufs(s)
     def update() =
       lufs_integrated := s.lufs_integrated()
-      true_peak       := s.true_peak()
+      true_peak := s.true_peak()
     end
     s.on_frame(synchronous=true, update)
     s

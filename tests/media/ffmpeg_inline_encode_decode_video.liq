@@ -9,7 +9,7 @@ if file.exists(out_encode) then file.remove(out_encode) end
 
 let {audio} = source.tracks(sine(duration=10.))
 let {video} = source.tracks(video.testsrc.ffmpeg(duration=10.))
-s = source({audio=audio, video=video})
+s = source({audio = audio, video = video})
 
 todo = ref(2)
 done = ref(false)

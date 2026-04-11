@@ -12,19 +12,19 @@ def map_subtitle(sub) =
   then
     # Change text only
     {
-      text=
+      text =
         "Modified first"
     }
   elsif
     c == 1
   then
     # Change format only
-    {format="ass"}
+    {format = "ass"}
   elsif
     c == 2
   then
     # Change forced only
-    {forced=true}
+    {forced = true}
   elsif
     c == 3
   then

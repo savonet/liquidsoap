@@ -94,14 +94,14 @@ def f() =
   test.equal(z, [3])
 
   # Ensure that common methods are kept and others are forgotten
-  l = ["a".{b=true, k=0}, "b".{b=true, l=1}]
+  l = ["a".{b = true, k = 0}, "b".{b = true, l = 1}]
   test.equal(list.for_all(fun (x) -> x.b, l), true)
-  _ = ["a".{b=true}, "c"]
+  _ = ["a".{b = true}, "c"]
 
   # There used to be a bug where [x] would loose all its methods.
   x = 1
   let x.foo = "bla"
-  _ = list.add(x, [2.{foo="gni"}])
+  _ = list.add(x, [2.{foo = "gni"}])
   try
     ignore(list.insert(23, 2, [1, 2, 3]))
     test.fail()

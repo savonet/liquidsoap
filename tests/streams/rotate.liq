@@ -46,10 +46,8 @@ def ot(m) =
 
       if
         njingles() == rounds
-      and
-        nmusic() == 3 * rounds
-      and
-        nmusic2() == 4 * rounds
+        and nmusic() == 3 * rounds
+        and nmusic2() == 4 * rounds
       then
         test.pass()
       else

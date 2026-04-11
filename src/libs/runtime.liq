@@ -3,29 +3,29 @@ def replaces runtime.memory() =
   x =
     {
       ...runtime.memory(),
-      process_managed_memory=
+      process_managed_memory =
         runtime.gc.quick_stat().heap_words * runtime.sys.word_size / 8
     }
 
   let x.pretty =
     {
-      process_managed_memory=
+      process_managed_memory =
         runtime.memory.prettify_bytes(x.process_managed_memory),
-      total_virtual_memory=
+      total_virtual_memory =
         runtime.memory.prettify_bytes(x.total_virtual_memory),
-      total_physical_memory=
+      total_physical_memory =
         runtime.memory.prettify_bytes(x.total_physical_memory),
-      total_used_virtual_memory=
+      total_used_virtual_memory =
         runtime.memory.prettify_bytes(x.total_used_virtual_memory),
-      total_used_physical_memory=
+      total_used_physical_memory =
         runtime.memory.prettify_bytes(x.total_used_physical_memory),
-      process_virtual_memory=
+      process_virtual_memory =
         runtime.memory.prettify_bytes(x.process_virtual_memory),
-      process_physical_memory=
+      process_physical_memory =
         runtime.memory.prettify_bytes(x.process_physical_memory),
-      process_private_memory=
+      process_private_memory =
         runtime.memory.prettify_bytes(x.process_private_memory),
-      process_swapped_memory=
+      process_swapped_memory =
         runtime.memory.prettify_bytes(x.process_swapped_memory)
     }
 
@@ -52,7 +52,7 @@ def runtime.cpu.usage_getter() =
     t := t'
     u := user
     s := system
-    {user=u' / delta, system=s' / delta, total=(u' + s') / delta}
+    {user = u' / delta, system = s' / delta, total = (u' + s') / delta}
   end
 
   f
@@ -67,4 +67,4 @@ def time.zone.set(tz) =
   environment.set("TZ", tz)
 end
 
-runtime.gc.set(runtime.gc.get().{space_overhead=80})
+runtime.gc.set(runtime.gc.get().{space_overhead = 80})

@@ -35,7 +35,7 @@ def handler(request, response) =
   # Advanced wrappers:
 
   # Sets content-type to json and data to `json.stringify({foo = "bla"})`
-  response.json({foo="bla"})
+  response.json({foo = "bla"})
 
   # Sets `status_code` and `Location:` header for a HTTP redirect response. Takes an optional `status_code` argument.
   response.redirect("http://...")

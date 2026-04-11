@@ -8,7 +8,7 @@ let {subtitles = sub_copy} = source.tracks(input.ffmpeg("test-subtitle.srt"))
 # SRT decoded subtitle for encoding
 let {subtitles = sub_encode} = source.tracks(single("test-subtitle.srt"))
 
-s = source({video=v, subtitles=sub_copy, subtitles_2=sub_encode})
+s = source({video = v, subtitles = sub_copy, subtitles_2 = sub_encode})
 
 s = once(s)
 

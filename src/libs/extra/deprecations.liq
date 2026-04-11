@@ -957,8 +957,7 @@ def replaygain(~id=null, s) =
   def add_legacy_meta(m) =
     if
       m["replaygain_track_gain"] != ""
-    and
-      m[settings.normalize_track_gain_metadata()] == ""
+      and m[settings.normalize_track_gain_metadata()] == ""
     then
       [(settings.normalize_track_gain_metadata(), m["replaygain_track_gain"])]
     else

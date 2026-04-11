@@ -9,7 +9,7 @@ def f() =
       ]
     )
 
-  test.equal(content_type, {mime="text/html", args=[("charset", "utf-8")]})
+  test.equal(content_type, {mime = "text/html", args = [("charset", "utf-8")]})
   content_type =
     http.headers.content_type(
       [
@@ -22,7 +22,7 @@ def f() =
 
   test.equal(
     content_type,
-    {mime="multipart/form-data", args=[("boundary", "something")]}
+    {mime = "multipart/form-data", args = [("boundary", "something")]}
   )
 
   extname =

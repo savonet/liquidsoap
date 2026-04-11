@@ -7,7 +7,7 @@ image = single("/path/to/image.png")
 video = source.tracks(s).video ?? source.tracks(image).video
 
 # Return a source that always has video:
-s = source(source.tracks(s).{video=video})
+s = source(source.tracks(s).{video = video})
 
 # END
 output.dummy(fallible=true, s)

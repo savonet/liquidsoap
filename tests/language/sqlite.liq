@@ -30,16 +30,16 @@ def f() =
   )
 
   # Insertion
-  db.insert(table="test", {n=5, s="bla", f=2.5})
-  db.insert(table="test", {n=5, s="bli", f=1.})
-  db.insert(table="test", {n=20, s="blu", f=0.2})
-  db.insert(table="test", {n=666, s="blu", f=null})
+  db.insert(table="test", {n = 5, s = "bla", f = 2.5})
+  db.insert(table="test", {n = 5, s = "bli", f = 1.})
+  db.insert(table="test", {n = 20, s = "blu", f = 0.2})
+  db.insert(table="test", {n = 666, s = "blu", f = null})
   db.exec(
     "INSERT INTO test VALUES (5,#{sqlite.escape('hello')},1.2)"
   )
 
-  db.insert(table="test2", replace=true, {id=0, value="a"})
-  db.insert(table="test2", replace=true, {id=0, value="b"})
+  db.insert(table="test2", replace=true, {id = 0, value = "a"})
+  db.insert(table="test2", replace=true, {id = 0, value = "b"})
 
   # Count
   test.equal(db.count(table="test", where="n=5"), 3)

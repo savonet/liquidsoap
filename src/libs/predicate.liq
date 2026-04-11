@@ -102,5 +102,5 @@ def predicate.signal() =
     end
   end
 
-  p.{signal=signal}
+  p.{signal = signal}
 end

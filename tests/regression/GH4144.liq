@@ -1,5 +1,5 @@
 def metadata_test(_) =
-  data = {test={test="好吗"}}
+  data = {test = {test = "好吗"}}
   try
     http.response(
       status_code=200,

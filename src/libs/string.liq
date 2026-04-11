@@ -82,16 +82,13 @@ def string.contains(~encoding=null, ~prefix="", ~substring="", ~suffix="", s) =
   then
     ans :=
       ans()
-    or
-
-        string.sub(
-          encoding=encoding,
-          s,
-          start=0,
-          length=string.length(encoding=encoding, prefix)
-        ) ==
-          prefix
-
+      or string.sub(
+        encoding=encoding,
+        s,
+        start=0,
+        length=string.length(encoding=encoding, prefix)
+      ) ==
+        prefix
   end
 
   if
@@ -100,29 +97,26 @@ def string.contains(~encoding=null, ~prefix="", ~substring="", ~suffix="", s) =
     suflen = string.length(encoding=encoding, suffix)
     ans :=
       ans()
-    or
-
-        string.sub(
-          encoding=encoding,
-          s,
-          start=string.length(encoding=encoding, s) - suflen,
-          length=suflen
-        ) ==
-          suffix
-
+      or string.sub(
+        encoding=encoding,
+        s,
+        start=string.length(encoding=encoding, s) - suflen,
+        length=suflen
+      ) ==
+        suffix
   end
 
   if
     substring != ""
   then
     sublen = string.length(encoding=encoding, substring)
-    for i = 0 to
-      string.length(encoding=encoding, s) - sublen
-    do
+    for i = 0 to string.length(encoding=encoding, s) - sublen do
       ans :=
         ans()
-      or
-        (string.sub(encoding=encoding, s, start=i, length=sublen) == substring)
+        or (
+          string.sub(encoding=encoding, s, start=i, length=sublen) == substring
+        )
+
     end
   end
 
@@ -196,11 +190,10 @@ let string.binary = ()
 def string.binary.to_int(~little_endian=true, s) =
   ans = ref(0)
   n = string.bytes.length(s)
-  for i = 0 to
-    n - 1
-  do
+  for i = 0 to n - 1 do
     ans :=
       lsl(ans(), 8) + string.nth(s, if little_endian then n - 1 - i else i end)
+
   end
 
   ans()
@@ -323,7 +316,7 @@ def string.data_uri.decode(s) =
         data
       end
 
-    data.{mime=mime}
+    data.{mime = mime}
   else
     null
   end

@@ -29,21 +29,21 @@ db.table.create(
 db.insert(
   table="metadata",
   {
-    artist="Naps",
-    title=
+    artist = "Naps",
+    title =
       "Best life",
-    year=2021,
-    filename="naps.mp3"
+    year = 2021,
+    filename = "naps.mp3"
   }
 )
 db.insert(
   table="metadata",
   {
-    artist="Orelsan",
-    title=
+    artist = "Orelsan",
+    title =
       "L'odeur de l'essence",
-    year=2021,
-    filename="orelsan.mp3"
+    year = 2021,
+    filename = "orelsan.mp3"
   }
 )
 

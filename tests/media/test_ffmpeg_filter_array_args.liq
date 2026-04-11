@@ -16,7 +16,7 @@ def mkfilter(graph) =
 end
 
 a = ffmpeg.filter.create(mkfilter)
-s = source({audio=a})
+s = source({audio = a})
 
 clock.assign_new(sync="none", [s])
 

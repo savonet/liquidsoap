@@ -46,7 +46,7 @@ def openai.chat(
   ]
   )
 ) =
-  payload = {model=model, messages=messages}
+  payload = {model = model, messages = messages}
 
   ans =
     http.post(
@@ -117,11 +117,11 @@ def openai.speech(
 ) =
   payload =
     {
-      model=model,
-      input=input,
-      voice=(voice : string),
-      response_format=response_format,
-      speed=speed
+      model = model,
+      input = input,
+      voice = (voice : string),
+      response_format = response_format,
+      speed = speed
     }
 
   ans =

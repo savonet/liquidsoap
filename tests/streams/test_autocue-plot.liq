@@ -4,36 +4,54 @@ tests =
   [
     (
       {
-        cue_in=0.,
-        cue_out=7.,
-        fade_in=2.,
-        fade_out_type="lin",
-        fade_out=1.,
-        start_next=2.
+        cue_in = 0.,
+        cue_out = 7.,
+        fade_in = 2.,
+        fade_out_type = "lin",
+        fade_out = 1.,
+        start_next = 2.
       },
-      {cue_in=0., cue_out=10., fade_in=3., fade_in_type="lin", fade_out=2.}
+      {
+        cue_in = 0.,
+        cue_out = 10.,
+        fade_in = 3.,
+        fade_in_type = "lin",
+        fade_out = 2.
+      }
     ),
     (
       {
-        cue_in=0.,
-        cue_out=7.,
-        fade_in=2.,
-        fade_out_type="lin",
-        fade_out=5.,
-        start_next=6.
+        cue_in = 0.,
+        cue_out = 7.,
+        fade_in = 2.,
+        fade_out_type = "lin",
+        fade_out = 5.,
+        start_next = 6.
       },
-      {cue_in=0., cue_out=10., fade_in=3., fade_in_type="lin", fade_out=2.}
+      {
+        cue_in = 0.,
+        cue_out = 10.,
+        fade_in = 3.,
+        fade_in_type = "lin",
+        fade_out = 2.
+      }
     ),
     (
       {
-        cue_in=0.,
-        cue_out=7.,
-        fade_in=2.,
-        fade_out_type="lin",
-        fade_out=3.,
-        start_next=4.
+        cue_in = 0.,
+        cue_out = 7.,
+        fade_in = 2.,
+        fade_out_type = "lin",
+        fade_out = 3.,
+        start_next = 4.
       },
-      {cue_in=0., cue_out=10., fade_in=1., fade_in_type="lin", fade_out=2.}
+      {
+        cue_in = 0.,
+        cue_out = 10.,
+        fade_in = 1.,
+        fade_in_type = "lin",
+        fade_out = 2.
+      }
     )
   ]
 

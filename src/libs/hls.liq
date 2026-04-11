@@ -1,4 +1,4 @@
-let hls = {playlist=()}
+let hls = {playlist = ()}
 
 # Generate a main HLS playlist
 # @category String
@@ -36,14 +36,7 @@ def hls.playlist.main(~extra_tags=[], ~prefix="", ~version=7, streams) =
 
   string.concat(
     separator="\r\n",
-    [
-      "#EXTM3U",
-      "#EXT-X-VERSION:#{version}",
-      ...extra_tags,
-      ...streams,
-
-      ""
-    ]
+    ["#EXTM3U", "#EXT-X-VERSION:#{version}", ...extra_tags, ...streams, ""]
   )
 end
 

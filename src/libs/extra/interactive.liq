@@ -198,7 +198,7 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
     )
   end
 
-  variables := (name, {type=type, description=description})::variables()
+  variables := (name, {type = type, description = description})::variables()
   variables :=
     list.sort(
       fun (n, n') -> if fst(n) < fst(n') then -1 else 1 end,
@@ -225,7 +225,10 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
       type == "string"
     then
       stdlib_osc.on_string(osc, fun (x) -> interactive.string.set(name, x))
-    elsif type == "unit" then ()
+    elsif
+      type == "unit"
+    then
+      ()
     else
       # TODO
       error.raise(error.not_found)
@@ -260,7 +263,10 @@ def interactive.get(name) =
     then
       r = interactive.string.ref(name)
       r()
-    elsif t == "unit" then "()"
+    elsif
+      t == "unit"
+    then
+      "()"
     else
       error.raise(error.not_found)
     end
@@ -287,10 +293,22 @@ def interactive.set(arg) =
       t == "float"
     then
       interactive.float.set(name, float_of_string(value))
-    elsif t == "int" then interactive.int.set(name, int_of_string(value))
-    elsif t == "bool" then interactive.bool.set(name, bool_of_string(value))
-    elsif t == "string" then interactive.string.set(name, value)
-    elsif t == "unit" then interactive.unit.set(name)
+    elsif
+      t == "int"
+    then
+      interactive.int.set(name, int_of_string(value))
+    elsif
+      t == "bool"
+    then
+      interactive.bool.set(name, bool_of_string(value))
+    elsif
+      t == "string"
+    then
+      interactive.string.set(name, value)
+    elsif
+      t == "unit"
+    then
+      interactive.unit.set(name)
     else
       error.raise(error.not_found)
     end
@@ -317,7 +335,7 @@ def interactive.save(fname) =
   data =
     json.stringify(
       {
-        float=
+        float =
           list.map(
             fun (nv) ->
               begin
@@ -326,7 +344,7 @@ def interactive.save(fname) =
               end,
             variables_float()
           ),
-        int=
+        int =
           list.map(
             fun (nv) ->
               begin
@@ -335,7 +353,7 @@ def interactive.save(fname) =
               end,
             variables_int()
           ),
-        bool=
+        bool =
           list.map(
             fun (nv) ->
               begin
@@ -344,7 +362,7 @@ def interactive.save(fname) =
               end,
             variables_bool()
           ),
-        string=
+        string =
           list.map(
             fun (nv) ->
               begin
@@ -665,10 +683,22 @@ def interactive.harbor(
           t == "float"
         then
           interactive.float.set(name, float_of_string(v))
-        elsif t == "int" then interactive.int.set(name, int_of_string(v))
-        elsif t == "bool" then interactive.bool.set(name, bool_of_string(v))
-        elsif t == "string" then interactive.string.set(name, v)
-        elsif t == "unit" then interactive.unit.set(name)
+        elsif
+          t == "int"
+        then
+          interactive.int.set(name, int_of_string(v))
+        elsif
+          t == "bool"
+        then
+          interactive.bool.set(name, bool_of_string(v))
+        elsif
+          t == "string"
+        then
+          interactive.string.set(name, v)
+        elsif
+          t == "unit"
+        then
+          interactive.unit.set(name)
         end
       catch e do
         log.important(
@@ -719,11 +749,14 @@ def replaces interactive.float(
   interactive.create(name=name, description=description, osc=osc, type="float")
   r = ref(v)
   variables_float :=
-    (name, {ref=r, unit=unit, min=min, max=max, step=step})::variables_float()
+    (
+      name,
+      {ref = r, unit = unit, min = min, max = max, step = step}
+    )::variables_float()
 
   r.{
-    set=fun (x) -> interactive.float.set(name, x),
-    remove={interactive.float.remove(name)}
+    set = fun (x) -> interactive.float.set(name, x),
+    remove = {interactive.float.remove(name)}
   }
 end
 
@@ -737,10 +770,10 @@ end
 def replaces interactive.int(~description="", ~osc="", name, v) =
   interactive.create(name=name, description=description, osc=osc, type="int")
   r = ref(v)
-  variables_int := (name, {ref=r})::variables_int()
+  variables_int := (name, {ref = r})::variables_int()
   r.{
-    set=fun (x) -> interactive.int.set(name, x),
-    remove={interactive.int.remove(name)}
+    set = fun (x) -> interactive.int.set(name, x),
+    remove = {interactive.int.remove(name)}
   }
 end
 
@@ -754,10 +787,10 @@ end
 def replaces interactive.bool(~description="", ~osc="", name, v) =
   interactive.create(name=name, description=description, osc=osc, type="bool")
   r = ref(v)
-  variables_bool := (name, {ref=r})::variables_bool()
+  variables_bool := (name, {ref = r})::variables_bool()
   r.{
-    set=fun (x) -> interactive.bool.set(name, x),
-    remove={interactive.bool.remove(name)}
+    set = fun (x) -> interactive.bool.set(name, x),
+    remove = {interactive.bool.remove(name)}
   }
 end
 
@@ -771,10 +804,10 @@ end
 def replaces interactive.string(~description="", ~osc="", name, v) =
   interactive.create(name=name, description=description, osc=osc, type="string")
   r = ref(v)
-  variables_string := (name, {ref=r})::variables_string()
+  variables_string := (name, {ref = r})::variables_string()
   r.{
-    set=fun (x) -> interactive.string.set(name, x),
-    remove={interactive.string.remove(name)}
+    set = fun (x) -> interactive.string.set(name, x),
+    remove = {interactive.string.remove(name)}
   }
 end
 
@@ -787,8 +820,8 @@ end
 # @param f Function triggered when the value is set.
 def replaces interactive.unit(~description="", ~osc="", name, f) =
   interactive.create(name=name, description=description, osc=osc, type="unit")
-  variables_unit := (name, {handler=f})::variables_unit()
-  {set=f, remove={interactive.float.remove(name)}}
+  variables_unit := (name, {handler = f})::variables_unit()
+  {set = f, remove = {interactive.float.remove(name)}}
 end
 
 # Create a multiband compressor whose parameters are interactive variables.
@@ -870,12 +903,12 @@ def compress.multiband.interactive(~id=null, ~bands=5, s) =
       )
 
     {
-      frequency=frequency,
-      attack=attack,
-      release=release,
-      threshold=threshold,
-      ratio=ratio,
-      gain=gain
+      frequency = frequency,
+      attack = attack,
+      release = release,
+      threshold = threshold,
+      ratio = ratio,
+      gain = gain
     }
   end
 

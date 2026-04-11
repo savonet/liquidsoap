@@ -10,6 +10,7 @@ let file.nfo = ()
 # @flag hidden
 def file.nfo._normalize_tag(name) =
   name = string.trim(name)
+
   # Strip XML namespace prefix, if any (e.g. "x:title" -> "title").
   # This also tolerates a leading ":" (malformed XML) by stripping it.
   name = r/^[^:]*:/.replace(fun (_) -> "", name)
@@ -26,7 +27,9 @@ def file.nfo._accum_add(key, value, acc) =
       fun (st, kv) ->
         begin
           let (rev, found) = st
-          if fst(kv) == key then
+          if
+            fst(kv) == key
+          then
             ([(key, value::snd(kv)), ...rev], true)
           else
             ([kv, ...rev], found)
@@ -36,11 +39,7 @@ def file.nfo._accum_add(key, value, acc) =
       acc
     )
 
-  if found then
-    list.rev(rev)
-  else
-    list.rev([(key, [value]), ...rev])
-  end
+  if found then list.rev(rev) else list.rev([(key, [value]), ...rev]) end
 end
 
 # Build a tag rule table for `.nfo` parsing.
@@ -74,14 +73,16 @@ def file.nfo.rules(~extra_rules=[]) =
     def without_type() =
       # Missing or invalid `type` (legacy / malformed input).
       is_default
-      ? [("uniqueid.default", txt), ("uniqueid.untyped", txt)]
-      : [("uniqueid.untyped", txt)]
+        ? [("uniqueid.default", txt), ("uniqueid.untyped", txt)]
+        : [("uniqueid.untyped", txt)]
     end
 
     def with_type(t) =
       # Standard case: typed ID.
       kvs = [("uniqueid." ^ t, txt)]
-      if is_default then
+      if
+        is_default
+      then
         [("uniqueid.default", txt), ("uniqueid.default.type", t), ...kvs]
       else
         kvs
@@ -135,17 +136,16 @@ def file.nfo.metadata(~rules=file.nfo.rules(), nfo_file) =
           *
           {
             xml_params: [(string * string)],
-            xml_children:
-              [
-                (
-                  string
-                  *
-                  {
-                    xml_params: [(string * string)],
-                    xml_children: [(string * {xml_text: string})]
-                  }
-                )
-              ]
+            xml_children: [
+              (
+                string
+                *
+                {
+                  xml_params: [(string * string)],
+                  xml_children: [(string * {xml_text: string})]
+                }
+              )
+            ]
           }
         )
       ) = s
@@ -160,7 +160,9 @@ def file.nfo.metadata(~rules=file.nfo.rules(), nfo_file) =
             fun (child) ->
               begin
                 let (name, node) = child
-                if name != "xml_text" then
+                if
+                  name != "xml_text"
+                then
                   null
                 else
                   txt = string.trim(node.xml_text)
@@ -239,11 +241,7 @@ def enable_nfo_metadata(
   ~rules=null
 ) =
   rules =
-    null.case(
-      rules,
-      {file.nfo.rules(extra_rules=extra_rules)},
-      fun (r) -> r
-    )
+    null.case(rules, {file.nfo.rules(extra_rules=extra_rules)}, fun (r) -> r)
 
   def resolver(~metadata:_, file_name) =
     nfo_file = path.remove_extension(file_name) ^ ".nfo"

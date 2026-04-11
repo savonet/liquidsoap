@@ -3,7 +3,7 @@ let {audio = a} = source.tracks(sine())
 track_l = track.audio.amplify(2., track.audio.stereo.pan(-1., a))
 track_r = track.audio.amplify(0.5, track.audio.stereo.pan(1., a))
 
-s = source({audio=track.audio.add(normalize=false, [track_l, track_r])})
+s = source({audio = track.audio.add(normalize=false, [track_l, track_r])})
 
 r = rms.stereo(s, duration=1.)
 

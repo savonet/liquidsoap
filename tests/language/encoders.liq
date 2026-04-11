@@ -9,11 +9,8 @@ def f() =
   catch err do
     if
       err.kind != "encoder"
-    or
-
-        err.message !=
-          "invalid sample size"
-
+      or err.message !=
+        "invalid sample size"
     then
       test.fail()
     end

@@ -77,5 +77,5 @@ let duration = ()
 # Convert a duration in seconds to hour/minutes/seconds
 # @category Time
 def duration.split(d) =
-  {hours=d / 3600, minutes=(d / 60) mod 60, seconds=(d mod 60)}
+  {hours = d / 3600, minutes = (d / 60) mod 60, seconds = (d mod 60)}
 end

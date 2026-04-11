@@ -129,7 +129,10 @@ s.on_frame(
         track_pos() == 3 and source.time(s) == 3.
       then
         f([("artist", "artist3"), ("album", "album3"), ("title", "title3")])
-      elsif track_pos() == 4 then check()
+      elsif
+        track_pos() == 4
+      then
+        check()
       end
     end
 )

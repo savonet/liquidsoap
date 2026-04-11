@@ -16,9 +16,9 @@ def dynamic_volume(s) =
     s =
       source(
         {
-          audio=audio_track,
-          metadata=track.metadata(audio_track),
-          track_marks=track.track_marks(audio_track)
+          audio = audio_track,
+          metadata = track.metadata(audio_track),
+          track_marks = track.track_marks(audio_track)
         }
       )
 

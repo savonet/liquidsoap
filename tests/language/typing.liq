@@ -140,14 +140,14 @@ def f() =
     "" ^ x
   end
 
-  ignore(f("a".{n=3}))
+  ignore(f("a".{n = 3}))
 
   # Ensure that we have correct subtyping for arguments, which should be
   # contravariant, see #1465.
   # We have string.{l : int} < string
   # Thus    (string) -> int  < (string.{l : int}) -> int
   def g(f) =
-    f("a".{l=3})
+    f("a".{l = 3})
   end
 
   def f(x) =
@@ -184,33 +184,33 @@ def f() =
   let ([x] : [int]) = [123]
   ([] : [(string*int)] as json.object)
   ([("bla", 3.14)] : [(string*float)] as json.object)
-  ({foo=123} : {foo: int})
-  ({foo=123} : {"✨ name ✨" as foo: int})
-  (123.{foo=3.14, gni="aabbcc"} : int.{ foo: float, gni: string })
-  (123.{foo=3.14, gni="aabbcc"} : int.{ foo: float }.{ gni: string })
-  (123.{foo=3.14, gni="aabbcc"} :
+  ({foo = 123} : {foo: int})
+  ({foo = 123} : {"✨ name ✨" as foo: int})
+  (123.{foo = 3.14, gni = "aabbcc"} : int.{ foo: float, gni: string })
+  (123.{foo = 3.14, gni = "aabbcc"} : int.{ foo: float }.{ gni: string })
+  (123.{foo = 3.14, gni = "aabbcc"} :
     int.{ foo: float }.{ gni: int }.{ gni: string }
   )
 
-  (source.tracks(single("")).audio.{foo=3.14, gni="aabbcc"} :
+  (source.tracks(single("")).audio.{foo = 3.14, gni = "aabbcc"} :
     ffmpeg.copy.{ foo: float }.{ gni: int }.{ gni: string }
   )
 
-  (blank().{foo=3.14, gni="aabbcc"} :
+  (blank().{foo = 3.14, gni = "aabbcc"} :
     source(audio=pcm).{ foo: float }.{ gni: int }.{ gni: string }
   )
 
-  (blank().{foo=3.14, gni="aabbcc"} :
+  (blank().{foo = 3.14, gni = "aabbcc"} :
     source.{ foo: float }.{ gni: int }.{ gni: string }
   )
 
   (123 : {foo: int}.foo)
-  (123.{foo=3.14, gni="aabbcc"} :
+  (123.{foo = 3.14, gni = "aabbcc"} :
     int.{ "✨ name ✨" as foo: float, gni: string }
   )
 
   # Nullable type with methods:
-  (123.{foo="aabb"} : int?.{ foo: string })
+  (123.{foo = "aabb"} : int?.{ foo: string })
 
   # Ref type annotation:
   (ref(123) : ref(int))
@@ -219,13 +219,13 @@ def f() =
 
   (() : {})
   (() : unit.{  })
-  ({foo=123} : {foo?: int})
+  ({foo = 123} : {foo?: int})
   ({} : {foo?: int})
-  ({foo=null} : {foo?: int})
-  ({foo=123} : {foo?: int})
-  ({foo=null(null)} : {foo?: int?})
-  ([({} : {foo?: int}), (), {foo=123}] : [{foo?: int}])
-  ([(), {foo=123}] : [{foo?: int}])
+  ({foo = null} : {foo?: int})
+  ({foo = 123} : {foo?: int})
+  ({foo = null(null)} : {foo?: int?})
+  ([({} : {foo?: int}), (), {foo = 123}] : [{foo?: int}])
+  ([(), {foo = 123}] : [{foo?: int}])
 
   # This one is more subtle than it seems because we have no field video on the
   # left and a video:never field on the right when testing for the subtyping,

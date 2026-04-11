@@ -69,9 +69,9 @@ end
 # @param s Source to play.
 def output.audio_video(~id=null, ~fallible=true, ~start=true, s) =
   let {audio, video} = source.tracks(s)
-  output(id=id, fallible=fallible, start=start, source({audio=audio}))
+  output(id=id, fallible=fallible, start=start, source({audio = audio}))
 
-  output.video(id=id, fallible=fallible, start=start, source({video=video}))
+  output.video(id=id, fallible=fallible, start=start, source({video = video}))
 end
 
 def replaces input(~id=null, ~start=true, ~fallible=false) =

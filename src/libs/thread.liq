@@ -32,7 +32,8 @@ end
 # value. We batch them by getter value. All callbacks are expected to be fast so we
 # do a single global callback for all batched calls. After tasks_count_warning is
 # reached that they might need to refactor their code.
-let thread.when = {tasks_count=ref(0), tasks_count_warning=70, batches=ref([])}
+let thread.when =
+  {tasks_count = ref(0), tasks_count_warning = 70, batches = ref([])}
 
 # @flag hidden
 def thread.when.add_to_batch(~every, check) =
@@ -136,14 +137,10 @@ def thread.when(
   if
     (
       batched
-    and
-      getter.is_constant(every)
-    and
-      not null.defined(on_error)
-    and
-      fast
-    and
-      not once
+      and getter.is_constant(every)
+      and not null.defined(on_error)
+      and fast
+      and not once
     )
   then
     thread.when.add_to_batch(every=getter.get(every), fun () -> ignore(check()))

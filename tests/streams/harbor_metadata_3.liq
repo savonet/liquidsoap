@@ -5,16 +5,10 @@ def fn() =
     print(m)
     if
       m["title"] == ""
-    and
-
-        m["artist"] ==
-          "the artist"
-
-    and
-
-        m["metadata_url"] ==
-          "metadata url"
-
+      and m["artist"] ==
+        "the artist"
+      and m["metadata_url"] ==
+        "metadata url"
     then
       test.pass()
     end

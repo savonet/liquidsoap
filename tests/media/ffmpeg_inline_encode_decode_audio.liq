@@ -28,12 +28,9 @@ def on_close(_) =
 
     let [stream] = parsed.streams
     stream.channel_layout == "stereo"
-  and
-    stream.codec_name == "aac"
-  and
-    stream.sample_fmt == "fltp"
-  and
-    stream.sample_rate == "44100"
+    and stream.codec_name == "aac"
+    and stream.sample_fmt == "fltp"
+    and stream.sample_rate == "44100"
   end
 
   todo := !todo - 1

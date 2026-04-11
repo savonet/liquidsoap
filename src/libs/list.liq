@@ -20,11 +20,10 @@ def list.hd(~default=null, l) =
     l,
     {
       default
-        ??
-          error.raise(
-            error.not_found,
-            "no default value for list.hd"
-          )
+        ?? error.raise(
+          error.not_found,
+          "no default value for list.hd"
+        )
     },
     fun (x, _) -> x
   )
@@ -420,11 +419,10 @@ def list.pick(~default=null, l) =
     list.is_empty(l)
   then
     default
-      ??
-        error.raise(
-          error.not_found,
-          "empty list in list.pick"
-        )
+      ?? error.raise(
+        error.not_found,
+        "empty list in list.pick"
+      )
   else
     list.nth(l, random.int(min=0, max=list.length(l)))
   end

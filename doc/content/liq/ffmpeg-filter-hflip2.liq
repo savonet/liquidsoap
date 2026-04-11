@@ -13,10 +13,10 @@ def hflip(s) =
 
     source(
       {
-        audio=audio_track,
-        video=video_track,
-        metadata=track.metadata(audio_track),
-        track_marks=track.track_marks(audio_track)
+        audio = audio_track,
+        video = video_track,
+        metadata = track.metadata(audio_track),
+        track_marks = track.track_marks(audio_track)
       }
     )
   end

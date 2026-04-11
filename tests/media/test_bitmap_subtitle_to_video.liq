@@ -12,7 +12,7 @@ s = once(s)
 
 let {audio = a, video = v, subtitles = sub} = source.tracks(s)
 
-s = source({audio=a, video=track.video.add([v, sub])})
+s = source({audio = a, video = track.video.add([v, sub])})
 
 clock.assign_new(id="test", sync="none", [s])
 
