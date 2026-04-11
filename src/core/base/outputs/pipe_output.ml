@@ -30,7 +30,7 @@ let encoder_factory ?format format_val =
   in
   try (Encoder.get_factory format) ~hls:false ~pos:(Value.pos format_val)
   with Not_found ->
-    raise (Error.Invalid_value (format_val, "Unsupported encoding format"))
+    raise (Error.Invalid_value (format_val, "Unsupported encoding format", []))
 
 let base_proto =
   ( "export_cover_metadata",
@@ -158,7 +158,7 @@ class url_output p =
     if not (Encoder.url_output format) then
       raise
         (Error.Invalid_value
-           (format_val, "Encoding format does not support output url!"))
+           (format_val, "Encoding format does not support output url!", []))
   in
   let format = Encoder.with_url_output format url in
   let source = Lang.assoc "" 2 p in

@@ -188,9 +188,14 @@ let rec throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
       Format.fprintf formatter
         "Function has multiple arguments with the same label: %s@]@." lbl;
       Printexc.raise_with_backtrace Error bt
-  | Error.Invalid_value (v, msg) ->
+  | Error.Invalid_value (v, msg, stack) ->
       error_header ~formatter 7 (Value.pos v);
-      Format.fprintf formatter "Invalid value:@ %s@]@." msg;
+      Format.fprintf formatter "Invalid value:@ %s" msg;
+      if stack <> [] then
+        Format.fprintf formatter
+          "@\nThis value was passed through the following call stack:@\n%s"
+          (Pos.List.to_string ~newlines:true stack);
+      Format.fprintf formatter "@]@.";
       Printexc.raise_with_backtrace Error bt
   | Lang_error.Encoder_error (pos, s) ->
       error_header ~formatter 8 pos;

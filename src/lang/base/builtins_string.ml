@@ -208,7 +208,8 @@ let string_escape =
               raise
                 (Error.Invalid_value
                    ( encoding,
-                     "Encoding should be one of: \"ascii\" or \"utf8\"." ))
+                     "Encoding should be one of: \"ascii\" or \"utf8\".",
+                     [] ))
       in
       let exec encoding =
         let encoding_string =
@@ -293,7 +294,8 @@ let _ =
                 (Error.Invalid_value
                    ( format,
                      "Format should be one of: `\"octal\"`, `\"hex\"` or \
-                      `\"utf8\"`." ))
+                      `\"utf8\"`.",
+                     [] ))
       in
       let s = Lang.to_string (List.assoc "" p) in
       Lang.string
@@ -327,7 +329,9 @@ let _ =
         | _ ->
             raise
               (Error.Invalid_value
-                 (encoding, "Encoding should be one of: \"ascii\" or \"utf8\".")))
+                 ( encoding,
+                   "Encoding should be one of: \"ascii\" or \"utf8\".",
+                   [] )))
 
 let _ =
   Lang.add_builtin ~base:string "unescape"

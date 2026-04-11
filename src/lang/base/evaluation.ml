@@ -121,6 +121,11 @@ and apply ?(pos = []) ~eval_check f l =
           Printexc.raise_with_backtrace
             (Internal_error (Option.to_list apply_pos @ poss, e))
             bt
+      | Error.Invalid_value (v, msg, stack) ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printexc.raise_with_backtrace
+            (Error.Invalid_value (v, msg, Option.to_list apply_pos @ stack))
+            bt
   in
   (* Provide given arguments. *)
   let pe, p =

@@ -89,7 +89,8 @@ let _ =
             (Error.Invalid_value
                ( sync,
                  "Invalid sync mode! Should be one of: `\"auto\"`, `\"CPU\"`, \
-                  `\"unsynced\"` or `\"passive\"`" ))
+                  `\"unsynced\"` or `\"passive\"`",
+                 [] ))
       in
       Lang_clock.ClockValue.to_value
         (Clock.create ~stack:(Lang.pos p) ?on_error ?id ~sync ()))
