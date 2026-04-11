@@ -472,7 +472,8 @@ let _ =
         raise
           (Error.Invalid_value
              ( List.assoc "max" p,
-               "Maximum buffering inferior to pre-buffered data" ));
+               "Maximum buffering inferior to pre-buffered data",
+               [] ));
       let pos = Lang.pos p in
       new http_input_server
         ~pos ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile

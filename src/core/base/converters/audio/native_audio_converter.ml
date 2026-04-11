@@ -44,7 +44,8 @@ let quality_of_string = function
         (Error.Invalid_value
            ( Lang.string s,
              "Native resampling quality must either be \"nearest\" or \
-              \"linear\"." ))
+              \"linear\".",
+             [] ))
 
 let samplerate_converter _ =
   let mode = quality_of_string quality_conf#get in

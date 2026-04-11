@@ -163,7 +163,8 @@ let liquidsoap_cache =
               raise
                 (Error.Invalid_value
                    ( mode,
-                     "Invalid mode. Should be one of: \"user\" or \"system\"" ))
+                     "Invalid mode. Should be one of: \"user\" or \"system\"",
+                     [] ))
       in
       match Cache.dir dirtype with
         | None -> Lang.null
@@ -190,7 +191,8 @@ let _ =
               raise
                 (Error.Invalid_value
                    ( mode,
-                     "Invalid mode. Should be one of: \"user\" or \"system\"" ))
+                     "Invalid mode. Should be one of: \"user\" or \"system\"",
+                     [] ))
       in
       let fn = !Hooks.cache_maintenance in
       fn dirtype;

@@ -255,8 +255,9 @@ let _ =
       let entry = Lang.to_string entry_val in
       let ({ Cron.week_day; month; month_day; hour; minute } as entry) =
         try Cron.parse entry with
-          | Cron.Parse_error s -> raise (Error.Invalid_value (entry_val, s))
-          | _ -> raise (Error.Invalid_value (entry_val, "Invalid CRON entry!"))
+          | Cron.Parse_error s -> raise (Error.Invalid_value (entry_val, s, []))
+          | _ ->
+              raise (Error.Invalid_value (entry_val, "Invalid CRON entry!", []))
       in
       let test =
         Lang.val_fun

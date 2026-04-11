@@ -55,7 +55,8 @@ let quality_of_string v =
           (Error.Invalid_value
              ( Lang.string v,
                "libsamplerate quality must be one of: \"best\", \"medium\", \
-                \"fast\", \"zero_order\", \"linear\"." ))
+                \"fast\", \"zero_order\", \"linear\".",
+               [] ))
 
 let samplerate_converter channels =
   let quality = quality_of_string quality_conf#get in

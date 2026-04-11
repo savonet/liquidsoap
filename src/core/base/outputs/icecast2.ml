@@ -348,7 +348,7 @@ class output p =
         | _ ->
             raise
               (Error.Invalid_value
-                 (m, "Valid values are: 'source' 'put' or 'post'."))
+                 (m, "Valid values are: 'source' 'put' or 'post'.", []))
     in
     let v = List.assoc "protocol" p in
     match Lang.to_string v with
@@ -357,7 +357,7 @@ class output p =
       | _ ->
           raise
             (Error.Invalid_value
-               (v, "Valid values are 'http' (icecast) and 'icy' (shoutcast)"))
+               (v, "Valid values are 'http' (icecast) and 'icy' (shoutcast)", []))
   in
   let send_icy_metadata =
     match
@@ -377,7 +377,8 @@ class output p =
             (Error.Invalid_value
                ( List.assoc "send_icy_metadata" p,
                  "Could not guess send_icy_metadata for this format, please \
-                  specify either true or false." ))
+                  specify either true or false.",
+                 [] ))
   in
   let icy_metadata =
     List.map Lang.to_string (Lang.to_list (List.assoc "icy_metadata" p))
@@ -424,7 +425,9 @@ class output p =
       | _ ->
           raise
             (Error.Invalid_value
-               (v, "Valid values are: `\"system\"`, `\"ipv4\"` or `\"ipv6\"`."))
+               ( v,
+                 "Valid values are: `\"system\"`, `\"ipv4\"` or `\"ipv6\"`.",
+                 [] ))
   in
   let transport = (transport :> Cry.transport) in
   let transport =

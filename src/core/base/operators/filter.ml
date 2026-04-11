@@ -135,6 +135,6 @@ let filter =
           | _ ->
               raise
                 (Error.Invalid_value
-                   (mode, "valid values are low|high|band|notch"))
+                   (mode, "valid values are low|high|band|notch", []))
       in
       (new filter src freq q wet mode :> Source.source))

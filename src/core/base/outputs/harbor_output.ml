@@ -303,12 +303,16 @@ class output p =
     if chunk > buflen then
       raise
         (Error.Invalid_value
-           (List.assoc "buffer" p, "Maximum buffering inferior to chunk length"))
+           ( List.assoc "buffer" p,
+             "Maximum buffering inferior to chunk length",
+             [] ))
     else ();
     if burst > buflen then
       raise
         (Error.Invalid_value
-           (List.assoc "buffer" p, "Maximum buffering inferior to burst length"))
+           ( List.assoc "buffer" p,
+             "Maximum buffering inferior to burst length",
+             [] ))
     else ()
   in
   let source_val = Lang.assoc "" 2 p in
