@@ -44,6 +44,7 @@ type binding = [ explicit_binding | `Binding of Term._let ]
 type let_opt_el = string * Term.t
 
 val clear_comments : unit -> unit
+val get_pending_comments : unit -> (pos * string list) list
 val append_comment : pos:pos -> string -> unit
 val attach_comments : Term.t -> unit
 
@@ -84,11 +85,9 @@ val mk :
   Term.t
 
 val mk_try :
-  ?ensure:Term.t ->
-  ?handler:Term.t ->
-  ?errors_list:Term.t ->
-  variable:string ->
-  body:Term.t ->
+  ?handler:Term._try_handler ->
+  ?finally_block:Term.block ->
+  body_block:Term.block ->
   pos:pos ->
   unit ->
   Term.t

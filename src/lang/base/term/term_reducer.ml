@@ -150,22 +150,36 @@ let mk_expr ?fname processor lexbuf =
   Term_preprocessor.expand_term parsed_term
 
 let pp_if_reducer ~env ~pos = function
-  | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else } -> (
+  | `If_def
+      {
+        if_def_negative;
+        if_def_condition;
+        if_def_then_block;
+        if_def_else_block;
+      } -> (
       let if_def_else =
-        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_def_else
+        Option.value
+          ~default:(mk_parsed ~pos (`Tuple []))
+          (Option.map (fun b -> b.block_body) if_def_else_block)
       in
       match
         ( List.mem_assoc if_def_condition env
           || Environment.has_builtin if_def_condition,
           if_def_negative )
       with
-        | true, false | false, true -> if_def_then
+        | true, false | false, true -> if_def_then_block.block_body
         | _ -> if_def_else)
   | `If_version
-      { if_version_op; if_version_version; if_version_then; if_version_else }
-    -> (
+      {
+        if_version_op;
+        if_version_version;
+        if_version_then_block;
+        if_version_else_block;
+      } -> (
       let if_version_else =
-        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_version_else
+        Option.value
+          ~default:(mk_parsed ~pos (`Tuple []))
+          (Option.map (fun b -> b.block_body) if_version_else_block)
       in
       let current_version =
         Lang_string.Version.of_string Build_config.version
@@ -174,28 +188,30 @@ let pp_if_reducer ~env ~pos = function
         ( if_version_op,
           Lang_string.Version.compare current_version if_version_version )
       with
-        | `Eq, 0 -> if_version_then
-        | `Geq, v when v >= 0 -> if_version_then
-        | `Leq, v when v <= 0 -> if_version_then
-        | `Gt, v when v > 0 -> if_version_then
-        | `Lt, v when v < 0 -> if_version_then
+        | `Eq, 0 -> if_version_then_block.block_body
+        | `Geq, v when v >= 0 -> if_version_then_block.block_body
+        | `Leq, v when v <= 0 -> if_version_then_block.block_body
+        | `Gt, v when v > 0 -> if_version_then_block.block_body
+        | `Lt, v when v < 0 -> if_version_then_block.block_body
         | _ -> if_version_else)
   | `If_encoder
       {
         if_encoder_negative;
         if_encoder_condition;
-        if_encoder_then;
-        if_encoder_else;
+        if_encoder_then_block;
+        if_encoder_else_block;
       } -> (
       let if_encoder_else =
-        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_encoder_else
+        Option.value
+          ~default:(mk_parsed ~pos (`Tuple []))
+          (Option.map (fun b -> b.block_body) if_encoder_else_block)
       in
       try
         let encoder =
           !Hooks.make_encoder ~pos:None (if_encoder_condition, [])
         in
         match (!Hooks.has_encoder encoder, if_encoder_negative) with
-          | true, false | false, true -> if_encoder_then
+          | true, false | false, true -> if_encoder_then_block.block_body
           | _ -> if_encoder_else
       with _ -> if_encoder_else)
 
@@ -863,12 +879,19 @@ let set_reducer ~pos ~env ~to_term = function
         }
 
 let if_reducer ~pos ~env ~to_term = function
-  | `Inline_if { if_condition; if_then; if_elsif; if_else }
-  | `If { if_condition; if_then; if_elsif; if_else } ->
+  | `Inline_if { if_condition; if_then_block; if_elsif; if_else_block; _ }
+  | `If { if_condition; if_then_block; if_elsif; if_else_block; _ } ->
       let if_else =
-        match if_else with
+        match if_else_block with
           | None -> mk ~pos (`Tuple [])
-          | Some t -> to_term ~env t
+          | Some b -> to_term ~env b.block_body
+      in
+      let branches =
+        (if_condition, if_then_block.block_body)
+        :: List.map
+             (fun { elsif_condition; elsif_then_block; _ } ->
+               (elsif_condition, elsif_then_block.block_body))
+             if_elsif
       in
       let term =
         List.fold_left
@@ -882,16 +905,17 @@ let if_reducer ~pos ~env ~to_term = function
                      ("then", mk_fun ~pos [] (to_term ~env _then));
                      ("else", mk_fun ~pos [] if_else);
                    ] )))
-          if_else
-          (List.rev ((if_condition, if_then) :: if_elsif))
+          if_else (List.rev branches)
       in
       term.term
 
 let while_reducer ~pos ~env ~to_term = function
-  | `While { while_condition; while_loop } ->
+  | `While { while_condition; while_do_block } ->
       let op = mk ~pos (`Var "while") in
       let while_condition = mk_fun ~pos [] (to_term ~env while_condition) in
-      let while_loop = mk_fun ~pos [] (to_term ~env while_loop) in
+      let while_loop =
+        mk_fun ~pos [] (to_term ~env while_do_block.block_body)
+      in
       `App (op, [("", while_condition); ("", while_loop)])
 
 let base_for_reducer ~pos for_variable for_iterator for_loop =
@@ -913,13 +937,13 @@ let base_for_reducer ~pos for_variable for_iterator for_loop =
 
 let iterable_for_reducer ~pos ~env ~to_term = function
   | `Iterable_for
-      { iterable_for_variable; iterable_for_iterator; iterable_for_loop } ->
+      { iterable_for_variable; iterable_for_iterator; iterable_for_do_block } ->
       base_for_reducer ~pos iterable_for_variable
         (to_term ~env iterable_for_iterator)
-        (to_term ~env iterable_for_loop)
+        (to_term ~env iterable_for_do_block.block_body)
 
 let for_reducer ~pos ~env ~to_term = function
-  | `For { for_variable; for_from; for_to; for_loop } ->
+  | `For { for_variable; for_from; for_to; for_do_block } ->
       let to_op = mk ~pos (`Var "iterator") in
       let to_op =
         mk ~pos
@@ -929,7 +953,8 @@ let for_reducer ~pos ~env ~to_term = function
         mk ~pos
           (`App (to_op, [("", to_term ~env for_from); ("", to_term ~env for_to)]))
       in
-      base_for_reducer ~pos for_variable for_condition (to_term ~env for_loop)
+      base_for_reducer ~pos for_variable for_condition
+        (to_term ~env for_do_block.block_body)
 
 let infix_reducer ~pos ~env ~to_term = function
   | `Infix (tm, op, tm') ->
@@ -1007,9 +1032,11 @@ let regexp_reducer ~pos ~env:_ ~to_term:_ = function
       `App (op, [("", regexp); ("flags", flags)])
 
 let try_reducer ~pos ~env ~to_term = function
-  | `Try { try_body; try_variable; try_errors_list; try_handler; try_finally }
-    ->
-      let try_body = mk_fun ~pos [] (to_term ~env try_body) in
+  | `Try { try_body_block; try_handler; try_finally_block } ->
+      let try_body = mk_fun ~pos [] (to_term ~env try_body_block.block_body) in
+      let try_variable =
+        match try_handler with Some h -> h.try_handler_variable | None -> "_"
+      in
       let err_arg =
         [
           {
@@ -1022,22 +1049,25 @@ let try_reducer ~pos ~env ~to_term = function
         ]
       in
       let finally_pos, finally =
-        match try_finally with
+        match try_finally_block with
           | None -> (pos, mk ~pos (`Tuple []))
-          | Some tm -> (tm.pos, to_term ~env tm)
+          | Some b -> (b.block_body.pos, to_term ~env b.block_body)
       in
       let finally = mk_fun ~pos:finally_pos [] finally in
       let handler_pos, handler =
         match try_handler with
           | None -> (pos, mk ~pos (`Tuple []))
-          | Some tm -> (tm.pos, to_term ~env tm)
+          | Some h ->
+              ( h.try_handler_block.block_body.pos,
+                to_term ~env h.try_handler_block.block_body )
       in
       let handler = mk_fun ~pos:handler_pos err_arg handler in
       let error_module = mk ~pos (`Var "error") in
       let try_errors_list =
-        match try_errors_list with
+        match try_handler with
           | None -> mk ~pos `Null
-          | Some tm -> to_term ~env tm
+          | Some { try_handler_errors_list = None; _ } -> mk ~pos `Null
+          | Some { try_handler_errors_list = Some tm; _ } -> to_term ~env tm
       in
       let op =
         mk ~pos

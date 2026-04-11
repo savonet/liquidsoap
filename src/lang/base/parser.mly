@@ -140,7 +140,7 @@ open Parser_helper
 %type <Term.t> exprs
 %type <Term.t> simple_fun_body
 %type <unit> g
-%type <(Term.t * Term.t) list * Term.t option> if_elsif
+%type <Term.if_elsif list * (Term.pos * Term.t) option> if_elsif
 %type <string list> in_subfield
 %type <string list> in_subfield_lbra
 %type <Parsed_term.list_el list> inner_list
@@ -238,28 +238,93 @@ expr:
   | BEGIN exprs END                  { mk ~pos:$loc (`Block $2) }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR simple_fun_body RCUR        { mk ~pos:$loc (`Simple_fun $2) }
-  | WHILE expr DO exprs END          { mk ~pos:$loc (`While {while_condition = $2; while_loop = $4 }) }
+  | WHILE expr DO exprs END
+      { mk ~pos:$loc (`While {
+          while_condition = $2;
+          while_do_block = { block_body = $4;
+                             block_pos = ($startpos($3), $startpos($5)) } }) }
   | FOR optvar GETS expr TO expr DO exprs END
-                                     { mk ~pos:$loc (`For { for_variable = $2; for_from = $4; for_to = $6; for_loop = $8 }) }
+      { mk ~pos:$loc (`For {
+          for_variable = $2;
+          for_from = $4;
+          for_to = $6;
+          for_do_block = { block_body = $8;
+                           block_pos = ($startpos($7), $startpos($9)) } }) }
   | FOR optvar GETS expr DO exprs END
-                                     { mk ~pos:$loc (`Iterable_for {
-                                         iterable_for_variable = $2;
-                                         iterable_for_iterator = $4;
-                                         iterable_for_loop = $6
-                                       } ) }
+      { mk ~pos:$loc (`Iterable_for {
+          iterable_for_variable = $2;
+          iterable_for_iterator = $4;
+          iterable_for_do_block = { block_body = $6;
+                                    block_pos = ($startpos($5), $startpos($7)) } }) }
   | expr COALESCE expr               { mk ~pos:$loc (`Coalesce ($1, $3)) }
-  | TRY exprs FINALLY exprs END          { mk_try ~pos:$loc ~ensure:$4 ~variable:"_" ~body:$2 () }
+  | TRY exprs FINALLY exprs END
+      { mk_try ~pos:$loc
+          ~body_block:{ block_body = $2; block_pos = ($startpos($1), $startpos($3)) }
+          ~finally_block:{ block_body = $4; block_pos = ($startpos($3), $startpos($5)) }
+          () }
   | TRY exprs CATCH optvar COLON varlist DO exprs END
-                                     { mk_try ~pos:$loc ~handler:$8 ~errors_list:(mk ~pos:$loc($6) (`List $6)) ~variable:$4 ~body:$2 () }
+      { mk_try ~pos:$loc
+          ~body_block:{ block_body = $2; block_pos = ($startpos($1), $startpos($3)) }
+          ~handler:{ try_handler_variable = $4;
+                     try_handler_errors_list = Some (mk ~pos:$loc($6) (`List $6));
+                     try_handler_block = { block_body = $8; block_pos = ($startpos($7), $startpos($9)) };
+                     try_handler_pos = ($startpos($3), $endpos($3)) }
+          () }
   | TRY exprs CATCH optvar COLON varlist DO exprs FINALLY exprs END
-                                     { mk_try ~pos:$loc ~ensure:$10 ~handler:$8 ~errors_list:(mk ~pos:$loc($6) (`List $6)) ~variable:$4 ~body:$2 () }
+      { mk_try ~pos:$loc
+          ~body_block:{ block_body = $2; block_pos = ($startpos($1), $startpos($3)) }
+          ~handler:{ try_handler_variable = $4;
+                     try_handler_errors_list = Some (mk ~pos:$loc($6) (`List $6));
+                     try_handler_block = { block_body = $8; block_pos = ($startpos($7), $startpos($9)) };
+                     try_handler_pos = ($startpos($3), $endpos($3)) }
+          ~finally_block:{ block_body = $10; block_pos = ($startpos($9), $startpos($11)) }
+          () }
   | TRY exprs CATCH optvar DO exprs END
-                                     { mk_try ~pos:$loc ~handler:$6 ~variable:$4 ~body:$2 () }
+      { mk_try ~pos:$loc
+          ~body_block:{ block_body = $2; block_pos = ($startpos($1), $startpos($3)) }
+          ~handler:{ try_handler_variable = $4;
+                     try_handler_errors_list = None;
+                     try_handler_block = { block_body = $6; block_pos = ($startpos($5), $startpos($7)) };
+                     try_handler_pos = ($startpos($3), $endpos($3)) }
+          () }
   | TRY exprs CATCH optvar DO exprs FINALLY exprs END
-                                     { mk_try ~pos:$loc ~ensure:$8 ~handler:$6 ~variable:$4 ~body:$2 () }
-  | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_elsif = fst $5; if_else = snd $5 }) }
+      { mk_try ~pos:$loc
+          ~body_block:{ block_body = $2; block_pos = ($startpos($1), $startpos($3)) }
+          ~handler:{ try_handler_variable = $4;
+                     try_handler_errors_list = None;
+                     try_handler_block = { block_body = $6; block_pos = ($startpos($5), $startpos($7)) };
+                     try_handler_pos = ($startpos($3), $endpos($3)) }
+          ~finally_block:{ block_body = $8; block_pos = ($startpos($7), $startpos($9)) }
+          () }
+  | IF exprs THEN exprs if_elsif END
+      { let (if_elsif, else_opt) = $5 in
+        let if_else_block =
+          match else_opt with
+            | None -> None
+            | Some (p, t) -> Some { block_body = t; block_pos = (fst p, $startpos($6)) }
+        in
+        let if_then_end = match if_elsif with
+          | { elsif_pos; _ } :: _ -> fst elsif_pos
+          | [] -> (match if_else_block with
+              | Some b -> fst b.block_pos
+              | None -> $startpos($6))
+        in
+        mk ~pos:$loc (`If {
+          if_condition = $2;
+          if_then_block = { block_body = $4; block_pos = ($startpos($3), if_then_end) };
+          if_elsif;
+          if_else_block;
+          if_end_pos = ($startpos($6), $endpos($6)) }) }
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
-  | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_elsif = []; if_else = Some $5}) }
+  | expr QUESTION expr COLON expr
+      { mk ~pos:$loc (`Inline_if {
+          if_condition = $1;
+          if_then_block = { block_body = $3;
+                            block_pos = ($startpos($2), $startpos($4)) };
+          if_elsif = [];
+          if_else_block = Some { block_body = $5;
+                                 block_pos = ($startpos($4), $endpos($5)) };
+          if_end_pos = ($startpos($5), $endpos($5)) }) }
   | expr AND expr                  { match $1.term, $3.term with
                                        | `BoolOp ("and", l), `BoolOp ("and", l') -> mk ~pos:$loc (`BoolOp ("and", l@l'))
                                        |  `BoolOp ("and", l), _ -> mk ~pos:$loc (`BoolOp ("and", l@[$3]))
@@ -565,8 +630,14 @@ in_subfield_lbra:
   | VAR DOT in_subfield_lbra { $1::$3 }
 
 if_elsif:
-  | ELSIF exprs THEN exprs if_elsif { ($2, $4)::(fst $5), snd $5 }
-  | ELSE exprs                      { [], Some $2 }
+  | ELSIF exprs THEN exprs if_elsif
+      { let (rest, else_opt) = $5 in
+        let e : Term.if_elsif = {
+            elsif_condition = $2;
+            elsif_then_block = { block_body = $4; block_pos = ($startpos($3), $endpos($4)) };
+            elsif_pos = ($startpos($1), $endpos($1)) }
+        in (e :: rest, else_opt) }
+  | ELSE exprs                      { [], Some (($startpos($1), $endpos($1)), $2) }
   |                                 { [], None }
 
 encoder_opt:
@@ -617,28 +688,28 @@ if_def:
   | PP_IFDEF if_def_var exprs PP_ENDIF { {
       if_def_negative = $1;
       if_def_condition = String.concat "." $2;
-      if_def_then = $3;
-      if_def_else = None
+      if_def_then_block = { block_body = $3; block_pos = ($startpos($3), $startpos($4)) };
+      if_def_else_block = None
    } }
   | PP_IFDEF if_def_var exprs PP_ELSE exprs PP_ENDIF { {
       if_def_negative = $1;
       if_def_condition = String.concat "." $2;
-      if_def_then = $3;
-      if_def_else = Some $5;
+      if_def_then_block = { block_body = $3; block_pos = ($startpos($3), $startpos($4)) };
+      if_def_else_block = Some { block_body = $5; block_pos = ($startpos($4), $startpos($6)) };
   } }
 
 if_encoder:
   | PP_IFENCODER ENCODER exprs PP_ENDIF { {
       if_encoder_negative = $1;
       if_encoder_condition = $2;
-      if_encoder_then = $3;
-      if_encoder_else = None
+      if_encoder_then_block = { block_body = $3; block_pos = ($startpos($3), $startpos($4)) };
+      if_encoder_else_block = None
    } }
   | PP_IFENCODER ENCODER exprs PP_ELSE exprs PP_ENDIF { {
       if_encoder_negative = $1;
       if_encoder_condition = $2;
-      if_encoder_then = $3;
-      if_encoder_else = Some $5;
+      if_encoder_then_block = { block_body = $3; block_pos = ($startpos($3), $startpos($4)) };
+      if_encoder_else_block = Some { block_body = $5; block_pos = ($startpos($4), $startpos($6)) };
   } }
 
 if_version_op:
@@ -661,14 +732,14 @@ if_version:
   | PP_IFVERSION if_version_op if_version_version exprs PP_ENDIF { {
       if_version_op = $2;
       if_version_version = $3;
-      if_version_then = $4;
-      if_version_else = None
+      if_version_then_block = { block_body = $4; block_pos = ($startpos($4), $startpos($5)) };
+      if_version_else_block = None
    } }
   | PP_IFVERSION if_version_op if_version_version exprs PP_ELSE exprs PP_ENDIF { {
       if_version_op = $2;
       if_version_version = $3;
-      if_version_then = $4;
-      if_version_else = Some $6;
+      if_version_then_block = { block_body = $4; block_pos = ($startpos($4), $startpos($5)) };
+      if_version_else_block = Some { block_body = $6; block_pos = ($startpos($5), $startpos($7)) };
   } }
 
 annotate:

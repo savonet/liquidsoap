@@ -61,26 +61,46 @@ type _of = { only : string list; except : string list; source : string }
 
 type _if = {
   if_condition : t;
-  if_then : t;
-  if_elsif : (t * t) list;
-  if_else : t option;
+  if_then_block : block;
+  if_elsif : if_elsif list;
+  if_else_block : block option;
+  if_end_pos : pos; [@hash.ignore]
 }
 
-and _while = { while_condition : t; while_loop : t }
-and _for = { for_variable : string; for_from : t; for_to : t; for_loop : t }
+and block = { block_body : t; block_pos : pos [@hash.ignore] }
+
+and if_elsif = {
+  elsif_condition : t;
+  elsif_then_block : block;
+  elsif_pos : pos; [@hash.ignore]
+}
+
+and _while = { while_condition : t; while_do_block : block }
+
+and _for = {
+  for_variable : string;
+  for_from : t;
+  for_to : t;
+  for_do_block : block;
+}
 
 and iterable_for = {
   iterable_for_variable : string;
   iterable_for_iterator : t;
-  iterable_for_loop : t;
+  iterable_for_do_block : block;
+}
+
+and _try_handler = {
+  try_handler_variable : string;
+  try_handler_errors_list : t option;
+  try_handler_block : block;
+  try_handler_pos : pos; [@hash.ignore]
 }
 
 and _try = {
-  try_body : t;
-  try_variable : string;
-  try_errors_list : t option;
-  try_handler : t option;
-  try_finally : t option;
+  try_body_block : block;
+  try_handler : _try_handler option;
+  try_finally_block : block option;
 }
 
 and let_decoration =
@@ -121,22 +141,22 @@ and list_el = [ `Term of t | `Ellipsis of t ]
 and if_def = {
   if_def_negative : bool;
   if_def_condition : string;
-  if_def_then : t;
-  if_def_else : t option;
+  if_def_then_block : block;
+  if_def_else_block : block option;
 }
 
 and if_version = {
   if_version_op : [ `Eq | `Geq | `Leq | `Gt | `Lt ];
   if_version_version : Lang_string.Version.t;
-  if_version_then : t;
-  if_version_else : t option;
+  if_version_then_block : block;
+  if_version_else_block : block option;
 }
 
 and if_encoder = {
   if_encoder_negative : bool;
   if_encoder_condition : string;
-  if_encoder_then : t;
-  if_encoder_else : t option;
+  if_encoder_then_block : block;
+  if_encoder_else_block : block option;
 }
 
 and time_el = {
@@ -256,39 +276,54 @@ let rec iter_term fn ({ term } as tm) =
   match term with
     | `If p | `Inline_if p -> (
         iter_term fn p.if_condition;
-        iter_term fn p.if_then;
+        iter_term fn p.if_then_block.block_body;
         List.iter
-          (fun (t, t') ->
-            iter_term fn t;
-            iter_term fn t')
+          (fun { elsif_condition; elsif_then_block; _ } ->
+            iter_term fn elsif_condition;
+            iter_term fn elsif_then_block.block_body)
           p.if_elsif;
-        match p.if_else with None -> () | Some t -> iter_term fn t)
-    | `If_def { if_def_then; if_def_else } -> (
-        iter_term fn if_def_then;
-        match if_def_else with None -> () | Some term -> iter_term fn term)
-    | `If_version { if_version_then; if_version_else } -> (
-        iter_term fn if_version_then;
-        match if_version_else with None -> () | Some term -> iter_term fn term)
-    | `If_encoder { if_encoder_then; if_encoder_else } -> (
-        iter_term fn if_encoder_then;
-        match if_encoder_else with None -> () | Some term -> iter_term fn term)
-    | `While { while_condition; while_loop } ->
+        match p.if_else_block with
+          | None -> ()
+          | Some b -> iter_term fn b.block_body)
+    | `If_def { if_def_then_block; if_def_else_block } -> (
+        iter_term fn if_def_then_block.block_body;
+        match if_def_else_block with
+          | None -> ()
+          | Some b -> iter_term fn b.block_body)
+    | `If_version { if_version_then_block; if_version_else_block } -> (
+        iter_term fn if_version_then_block.block_body;
+        match if_version_else_block with
+          | None -> ()
+          | Some b -> iter_term fn b.block_body)
+    | `If_encoder { if_encoder_then_block; if_encoder_else_block } -> (
+        iter_term fn if_encoder_then_block.block_body;
+        match if_encoder_else_block with
+          | None -> ()
+          | Some b -> iter_term fn b.block_body)
+    | `While { while_condition; while_do_block } ->
         iter_term fn while_condition;
-        iter_term fn while_loop
-    | `For { for_from; for_to; for_loop } ->
+        iter_term fn while_do_block.block_body
+    | `For { for_from; for_to; for_do_block } ->
         iter_term fn for_from;
         iter_term fn for_to;
-        iter_term fn for_loop
-    | `Iterable_for { iterable_for_iterator; iterable_for_loop } ->
+        iter_term fn for_do_block.block_body
+    | `Iterable_for { iterable_for_iterator; iterable_for_do_block } ->
         iter_term fn iterable_for_iterator;
-        iter_term fn iterable_for_loop
+        iter_term fn iterable_for_do_block.block_body
     | `List l ->
         List.iter (function `Term tm | `Ellipsis tm -> iter_term fn tm) l
-    | `Try { try_body; try_errors_list; try_handler; try_finally } -> (
-        iter_term fn try_body;
-        (match try_errors_list with None -> () | Some tm -> iter_term fn tm);
-        (match try_handler with Some tm -> iter_term fn tm | None -> ());
-        match try_finally with Some tm -> iter_term fn tm | None -> ())
+    | `Try { try_body_block; try_handler; try_finally_block } -> (
+        iter_term fn try_body_block.block_body;
+        (match try_handler with
+          | None -> ()
+          | Some { try_handler_errors_list; try_handler_block; _ } ->
+              (match try_handler_errors_list with
+                | None -> ()
+                | Some tm -> iter_term fn tm);
+              iter_term fn try_handler_block.block_body);
+        match try_finally_block with
+          | None -> ()
+          | Some b -> iter_term fn b.block_body)
     | `Regexp _ -> ()
     | `Time_interval _ -> ()
     | `Time _ -> ()

@@ -52,6 +52,7 @@ let render_string ~pos s =
 
 let pending_comments = ref []
 let clear_comments () = pending_comments := []
+let get_pending_comments () = !pending_comments
 
 let append_comment ~pos c =
   let comments = List.map String.trim (String.split_on_char '\n' c) in
@@ -156,15 +157,13 @@ let args_of_json_parse ~pos = function
 let mk = Parsed_term.make
 let mk_fun ~pos arguments body = mk ~pos (`Fun (arguments, body))
 
-let mk_try ?ensure ?handler ?errors_list ~variable ~body ~pos () =
+let mk_try ?handler ?finally_block ~body_block ~pos () =
   mk ~pos
     (`Try
        {
-         try_body = body;
-         try_variable = variable;
-         try_errors_list = errors_list;
+         try_body_block = body_block;
          try_handler = handler;
-         try_finally = ensure;
+         try_finally_block = finally_block;
        })
 
 let mk_let ~pos _let body =
