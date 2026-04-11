@@ -249,7 +249,8 @@ let _ =
         List.map
           (fun v ->
             try regexp_flag_of_string (Lang_core.to_string v)
-            with _ -> raise (Error.Invalid_value (v, "Invalid regexp flag")))
+            with _ ->
+              raise (Error.Invalid_value (v, "Invalid regexp flag", [])))
           (Lang_core.to_list (List.assoc "flags" p))
       in
       let descr = Lang_core.to_string (List.assoc "" p) in

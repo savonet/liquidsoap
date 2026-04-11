@@ -399,7 +399,7 @@ class hls_output p =
       with _ ->
         raise
           (Error.Invalid_value
-             (directory_val, "Could not create or open output directory!")))
+             (directory_val, "Could not create or open output directory!", [])))
   in
   let persist_at =
     Option.map
@@ -419,7 +419,8 @@ class hls_output p =
                     "Error while creating directory for persisting state at \
                      %s: %s"
                     (Lang_string.quote_string filename)
-                    (Printexc.to_string exn) )));
+                    (Printexc.to_string exn),
+                  [] )));
         filename)
       (Lang.to_option (List.assoc "persist_at" p))
   in
@@ -452,7 +453,7 @@ class hls_output p =
     let l = Lang.to_list streams in
     if l = [] then
       raise
-        (Error.Invalid_value (streams, "The list of streams cannot be empty"));
+        (Error.Invalid_value (streams, "The list of streams cannot be empty", []));
     l
   in
   let mk_streams, streams =
@@ -464,7 +465,7 @@ class hls_output p =
       let encoder_factory =
         try Encoder.get_factory format
         with Not_found ->
-          raise (Error.Invalid_value (fmt_val, "Unsupported format"))
+          raise (Error.Invalid_value (fmt_val, "Unsupported format", []))
       in
       let encoder =
         encoder_factory ~hls:true ~pos:(Value.pos fmt_val) name
@@ -486,7 +487,8 @@ class hls_output p =
                                "Bandwidth for stream %S cannot be inferred \
                                 from codec, please specify it with: \
                                 `%%encoder(...).{bandwidth = <number>, ...}`"
-                               name )))))
+                               name,
+                             [] )))))
       in
       let codecs =
         Lazy.from_fun (fun () ->
@@ -504,7 +506,8 @@ class hls_output p =
                                "Stream info for stream %S cannot be inferred \
                                 from codec, please specify it with: \
                                 `%%encoder(...).{codecs = \"...\", ...}`"
-                               name )))))
+                               name,
+                             [] )))))
       in
       let extname =
         try Lang.to_string (List.assoc "extname" stream_info)
@@ -518,7 +521,8 @@ class hls_output p =
                      "File extension for stream %S cannot be inferred from \
                       codec, please specify it with: `%%encoder(...).{extname \
                       = \"...\", ...}`"
-                     name )))
+                     name,
+                   [] )))
       in
       let extname = if extname = "mp4" then "m4s" else extname in
       let video_size =

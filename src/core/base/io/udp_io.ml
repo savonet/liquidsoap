@@ -224,7 +224,7 @@ let _ =
         with Not_found ->
           raise
             (Error.Invalid_value
-               (fmt, "Cannot get a stream encoder for that format"))
+               (fmt, "Cannot get a stream encoder for that format", []))
       in
       let source = Lang.assoc "" 2 p in
       (new output
@@ -260,7 +260,8 @@ let _ =
               raise
                 (Error.Invalid_value
                    ( Lang.assoc "" 1 p,
-                     "Cannot get a stream decoder for this MIME" ))
+                     "Cannot get a stream decoder for this MIME",
+                     [] ))
           | Some decoder_factory -> decoder_factory
       in
       (new input ~hostname ~port ~bufferize ~get_stream_decoder

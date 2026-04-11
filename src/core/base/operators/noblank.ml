@@ -238,7 +238,7 @@ let extract p =
     fun () ->
       let t = t () in
       if t > 0. then
-        raise (Error.Invalid_value (v, "threshold should be negative"));
+        raise (Error.Invalid_value (v, "threshold should be negative", []));
       Audio.lin_of_dB t
   in
   let ts = Lang.to_bool_getter (f "track_sensitive") in

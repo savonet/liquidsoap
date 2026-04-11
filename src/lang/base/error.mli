@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** Runtime error, should eventually disappear. *)
-exception Invalid_value of Value.t * string
+exception Invalid_value of Value.t * string * Pos.t list
 
 exception Clock_conflict of (Pos.Option.t * string * string)
 exception Clock_loop of (Pos.Option.t * string * string)
