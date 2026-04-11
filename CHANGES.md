@@ -23,6 +23,10 @@
 
 ## Fixed:
 
+- `sequence` now releases unused sources early, reducing resource usage when
+  earlier sources in the sequence are no longer needed (#5082)
+- Improved error messages: `Invalid_value` errors now include the call stack
+  to help pinpoint the origin of the invalid value (#5090)
 - Fixed clicks/glitches when combining `liq_cue_in` with `liq_fade_in` due to `fade.in` firing too late on new tracks (#5019)
 - Prevent crashing when getting out-of-bound mark in `split_frame` (#5054)
 - Fixed clock source detach when clock is running (#5051)
