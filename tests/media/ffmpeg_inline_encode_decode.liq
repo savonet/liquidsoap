@@ -8,7 +8,7 @@ if file.exists(out_encode) then file.remove(out_encode) end
 
 let {audio} = source.tracks(sine(duration=10.))
 let {video} = source.tracks(video.testsrc.ffmpeg(duration=10.))
-s = source({audio=audio, video=video})
+s = source({audio = audio, video = video})
 
 s = once(s)
 todo = ref(2)
@@ -40,16 +40,11 @@ def on_close(_) =
       )
 
     null.get(video_stream.codec_name) == "h264"
-  and
-    null.get(video_stream.pix_fmt) == "yuv420p"
-  and
-    null.get(audio_stream.channel_layout) == "stereo"
-  and
-    null.get(audio_stream.codec_name) == "aac"
-  and
-    null.get(audio_stream.sample_fmt) == "fltp"
-  and
-    null.get(audio_stream.sample_rate) == "44100"
+    and null.get(video_stream.pix_fmt) == "yuv420p"
+    and null.get(audio_stream.channel_layout) == "stereo"
+    and null.get(audio_stream.codec_name) == "aac"
+    and null.get(audio_stream.sample_fmt) == "fltp"
+    and null.get(audio_stream.sample_rate) == "44100"
   end
 
   todo := !todo - 1

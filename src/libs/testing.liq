@@ -20,7 +20,7 @@ def sleeper(
   frozen = ref(false)
 
   def f() =
-    while frozen() do thread.pause(0.1) end
+    while frozen() do thread.pause(0.1)  end
     now = source.time(s)
     if
       now >= last() + every
@@ -33,5 +33,5 @@ def sleeper(
   end
 
   source.methods(s).on_frame(synchronous=true, f)
-  s.{frozen=frozen}
+  s.{frozen = frozen}
 end

@@ -20,10 +20,9 @@ let settings.lufs.decoding_ratio =
 
 let settings.lufs.true_peak_max =
   settings.make(
-    description=
-      "Maximum allowed true peak (dBTP) after LUFS normalization. Tracks \
-       whose true peak would exceed this after gain application will have \
-       their gain reduced accordingly. EBU R128 mandates -1.0 dBTP.",
+    description="Maximum allowed true peak (dBTP) after LUFS normalization. \
+     Tracks whose true peak would exceed this after gain application will have \
+     their gain reduced accordingly. EBU R128 mandates -1.0 dBTP.",
     -1.0
   )
 
@@ -70,20 +69,22 @@ def file.lufs.compute_with_peak(~ratio=null, file_name) =
     request.resolve(_request)
   then
     get_lufs = ref(fun () -> null)
-    get_tp   = ref(fun () -> null)
+    get_tp = ref(fun () -> null)
     def process(s) =
       s = lufs(s)
       get_lufs := {s.lufs_integrated()}
-      get_tp   := {s.true_peak()}
+      get_tp := {s.true_peak()}
       s
     end
     request.process(ratio=ratio, process=process, _request)
-    lufs_fn  = get_lufs()
-    tp_fn    = get_tp()
+    lufs_fn = get_lufs()
+    tp_fn = get_tp()
     lufs_val = lufs_fn()
-    tp_val   = tp_fn()
-    if null.defined(lufs_val) and null.defined(tp_val) then
-      {lufs=null.get(lufs_val), true_peak=null.get(tp_val)}
+    tp_val = tp_fn()
+    if
+      null.defined(lufs_val) and null.defined(tp_val)
+    then
+      {lufs = null.get(lufs_val), true_peak = null.get(tp_val)}
     else
       null
     end
@@ -188,8 +189,12 @@ end
 # @param ~true_peak Also measure true peak and apply EBU R128 TP correction to the gain.
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Defaults to `settings.lufs.decoding_ratio` when `null`.
 # @category Liquidsoap
-def enable_lufs_track_gain_metadata(~compute=true, ~true_peak=true, ~ratio=null) =
-  ratio  = ratio ?? settings.lufs.decoding_ratio()
+def enable_lufs_track_gain_metadata(
+  ~compute=true,
+  ~true_peak=true,
+  ~ratio=null
+) =
+  ratio = ratio ?? settings.lufs.decoding_ratio()
   def lufs_metadata(~metadata:_, file_name) =
     if
       compute and true_peak
@@ -199,20 +204,24 @@ def enable_lufs_track_gain_metadata(~compute=true, ~true_peak=true, ~ratio=null)
       if
         result != null
       then
-        let {lufs=measured_lufs, true_peak=measured_tp} = null.get(result)
-        target       = settings.lufs.track_gain_target()
-        tp_max       = settings.lufs.true_peak_max()
-        gain_lufs    = target - measured_lufs
-        tp_after     = measured_tp + gain_lufs
+        let {lufs = measured_lufs, true_peak = measured_tp} = null.get(result)
+        target = settings.lufs.track_gain_target()
+        tp_max = settings.lufs.true_peak_max()
+        gain_lufs = target - measured_lufs
+        tp_after = measured_tp + gain_lufs
 
         # x is the correction: negative (attenuation) when tp_after > tp_max.
         x = tp_max - tp_after
 
         final_gain =
-          if tp_after <= tp_max then
+          if
+            tp_after <= tp_max
+          then
             # Case 1: true peak within limit, LUFS target is met exactly.
             gain_lufs
-          elsif tp_after <= tp_max + 0.5 then
+          elsif
+            tp_after <= tp_max + 0.5
+          then
             # Case 2: mild overshoot (up to 0.5 dB), correct by reducing gain.
             # Resulting LUFS-I will be slightly below target (max 0.5 LU deviation),
             # but within allowed variance of ± 1 dB.
@@ -224,17 +233,23 @@ def enable_lufs_track_gain_metadata(~compute=true, ~true_peak=true, ~ratio=null)
             log.important(
               label="lufs",
               "#{string.quote(file_name)}: true peak after normalization would \
-               be #{tp_after} dBTP (#{tp_after - tp_max} dB over limit). \
-               Gain correction capped at 0.5 dB to preserve LUFS-I; a limiter \
-               is required for this track."
+               be #{tp_after} dBTP (#{tp_after - tp_max} dB over limit). Gain \
+               correction capped at 0.5 dB to preserve LUFS-I; a limiter is \
+               required for this track."
             )
             gain_lufs - 0.5
           end
 
         [
-          (settings.normalize_track_gain_metadata(), "#{final_gain} dB"),
-          (settings.lufs.integrated_metadata(),       "#{measured_lufs} LUFS"),
-          ("lufs_true_peak",                          "#{measured_tp}")
+          (
+            settings.normalize_track_gain_metadata(),
+            "#{final_gain} dB"
+          ),
+          (
+            settings.lufs.integrated_metadata(),
+            "#{measured_lufs} LUFS"
+          ),
+          ("lufs_true_peak", "#{measured_tp}")
         ]
       else
         []

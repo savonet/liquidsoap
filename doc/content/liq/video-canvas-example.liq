@@ -28,6 +28,7 @@ background =
     "Some text",
     background
   )
+
 # END
 
 output.dummy(fallible=true, background)

@@ -13,11 +13,10 @@ def _null.get(~default=null, x) =
     x,
     {
       default
-        ??
-          error.raise(
-            error.not_found,
-            "no default value for null.get"
-          )
+        ?? error.raise(
+          error.not_found,
+          "no default value for null.get"
+        )
     },
     fun (x) -> x
   )
@@ -51,11 +50,10 @@ def _null.find(~default=null, f, l) =
         l,
         {
           default
-            ??
-              error.raise(
-                error.not_found,
-                "no default value for list.find_defined"
-              )
+            ?? error.raise(
+              error.not_found,
+              "no default value for list.find_defined"
+            )
         },
         fun (x, l) ->
           {

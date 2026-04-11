@@ -86,11 +86,11 @@ def f() =
   t(double_fn(5), 10.)
 
   # Test 7: Methods with float values
-  x = (3.).{scale=2.}
+  x = (3.).{scale = 2.}
   t(x * x.scale, 6.)
 
   # Test 8: Record with float field, assigned int
-  r = {value=5., factor=2.}
+  r = {value = 5., factor = 2.}
   t(r.value * r.factor, 10.)
 
   # Test 9: Float getter with int

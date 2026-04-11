@@ -80,7 +80,7 @@ def http.multipart_form_data(~boundary=null, data) =
       contents
     end
 
-  {contents=contents, boundary=boundary}
+  {contents = contents, boundary = boundary}
 end
 
 # Initiate a response handler with pre-filled values.
@@ -105,18 +105,15 @@ def http.response(
 ) =
   status_code =
     status_code
-      ??
-        if
-          http_version == "1.1"
-        and
-          headers["expect"] == "100-continue"
-        and
-          getter.get(data) == ""
-        then
-          100
-        else
-          200
-        end
+      ?? if
+        http_version == "1.1"
+        and headers["expect"] == "100-continue"
+        and getter.get(data) == ""
+      then
+        100
+      else
+        200
+      end
 
   http_version = ref(http_version)
   status_code = ref(status_code)
@@ -209,8 +206,14 @@ def http.response(
       response_ended()
     then
       ""
-    elsif not status_sent() then mk_status()
-    elsif not headers_sent() then mk_headers()
+    elsif
+      not status_sent()
+    then
+      mk_status()
+    elsif
+      not headers_sent()
+    then
+      mk_headers()
     else
       mk_data()
     end
@@ -234,7 +237,7 @@ def http.response(
       attr()
     end
 
-    set.{current=get}
+    set.{current = get}
   end
 
   def header(k, v) =
@@ -307,19 +310,19 @@ def http.response(
   end
 
   response.{
-    http_version=attr_method(status_sent, http_version),
-    status_code=attr_method(status_sent, status_code),
-    status_message=attr_method(status_sent, status_message),
-    headers=attr_method(headers_sent, headers),
-    header=header,
-    redirect=redirect,
-    json=json,
-    html=html,
-    content_type=attr_method(headers_sent, content_type),
-    multipart_form=multipart_form,
-    data=attr_method(data_sent, data),
-    send_status=send_status,
-    status_sent={status_sent()}
+    http_version = attr_method(status_sent, http_version),
+    status_code = attr_method(status_sent, status_code),
+    status_message = attr_method(status_sent, status_message),
+    headers = attr_method(headers_sent, headers),
+    header = header,
+    redirect = redirect,
+    json = json,
+    html = html,
+    content_type = attr_method(headers_sent, content_type),
+    multipart_form = multipart_form,
+    data = attr_method(data_sent, data),
+    send_status = send_status,
+    status_sent = {status_sent()}
   }
 end
 
@@ -395,7 +398,7 @@ def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) =
       request.data(timeout=timeout)
     end
 
-    handler(request.{data=data, body=harbor.http.mk_body(data)})
+    handler(request.{data = data, body = harbor.http.mk_body(data)})
   end
 
   harbor.http.register(
@@ -462,13 +465,13 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
 
     request =
       {
-        body=harbor.http.mk_body(data),
-        data=data,
-        headers=request.headers,
-        http_version=request.http_version,
-        method=request.method,
-        path=request.path,
-        query=request.query
+        body = harbor.http.mk_body(data),
+        data = data,
+        headers = request.headers,
+        http_version = request.http_version,
+        method = request.method,
+        path = request.path,
+        query = request.query
       }
 
     handler =
@@ -708,11 +711,13 @@ upload_file_fn =
       # Massage parameters
       filename =
         null.defined(filename)
-        ? null.get(filename) : string(path.basename(null.get(file)))
+          ? null.get(filename)
+          : string(path.basename(null.get(file)))
 
       contents =
         null.defined(contents)
-        ? null.get(contents) : getter(stdlib_file.read(null.get(file)))
+          ? null.get(contents)
+          : getter(stdlib_file.read(null.get(file)))
 
       # Create query
       content_type = content_type ?? "application/octet-stream"
@@ -721,10 +726,10 @@ upload_file_fn =
           boundary=boundary,
           [
             {
-              name=name,
-              attributes=[("filename", filename)],
-              headers=[("Content-Type", content_type)],
-              contents=contents
+              name = name,
+              attributes = [("filename", filename)],
+              headers = [("Content-Type", content_type)],
+              contents = contents
             }
           ]
         )
@@ -913,7 +918,7 @@ def http.headers.content_type(headers) =
           (name, string.unquote(string.concat(separator="=", value)))
         end
 
-        {mime=mime, args=list.map(parse_arg, args)}
+        {mime = mime, args = list.map(parse_arg, args)}
       end,
     mime
   )
@@ -990,7 +995,7 @@ def http.headers.content_disposition(headers) =
         args = list.map(parse_arg, args)
         let (filename, args) = parse_filename(args)
         let (name, args) = parse_name(args)
-        ({type=type, filename=filename, name=name, args=args} :
+        ({type = type, filename = filename, name = name, args = args} :
           {
             type: string,
             filename?: string,

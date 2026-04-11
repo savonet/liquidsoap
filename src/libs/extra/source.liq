@@ -182,9 +182,8 @@ def source.say_metadata =
     say_metadata = r/:/g.replace(fun (_) -> '$(colon)', say_metadata)
     say_metadata =
       say_metadata == ""
-      ?
-        "Sorry, I do not know what this song title was"
-      : say_metadata
+        ? "Sorry, I do not know what this song title was"
+        : say_metadata
 
     "say:#{say_metadata}"
   end
@@ -441,7 +440,11 @@ def source.cue(
 
     m = map_metadata(m)
     entry =
-      {position=current_position(), time=source.time(s) - t0(), metadata=m}
+      {
+        position = current_position(),
+        time = source.time(s) - t0(),
+        metadata = m
+      }
     ref.incr(current_position)
 
     if

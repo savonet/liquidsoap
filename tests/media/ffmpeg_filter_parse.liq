@@ -15,8 +15,8 @@ def f(s) =
       ffmpeg.filter.parse(
         graph,
         description="[v_in]hue=s=0[hue];[hue]fps=fps=30[fps];[fps]format[v_out];[a_in]volume=0.5[volume];[volume]aformat[a_out]",
-        inputs={audio=[("a_in", a)], video=[("v_in", v)]},
-        outputs={audio=["a_out"], video=["v_out"]}
+        inputs={audio = [("a_in", a)], video = [("v_in", v)]},
+        outputs={audio = ["a_out"], video = ["v_out"]}
       )
 
     a = list.assoc("a_out", audio_out)
@@ -25,7 +25,7 @@ def f(s) =
     a = ffmpeg.filter.audio.output(graph, a)
     v = ffmpeg.filter.video.output(graph, v)
 
-    source({audio=a, video=v})
+    source({audio = a, video = v})
   end
 
   ffmpeg.filter.create(mkfilter)
@@ -70,16 +70,11 @@ def on_close(filename) =
 
     if
       null.get(video_stream.codec_name) == "h264"
-    and
-      null.get(video_stream.pix_fmt) == "yuv420p"
-    and
-      null.get(audio_stream.channel_layout) == "stereo"
-    and
-      null.get(audio_stream.codec_name) == "aac"
-    and
-      null.get(audio_stream.sample_fmt) == "fltp"
-    and
-      null.get(audio_stream.sample_rate) == "44100"
+      and null.get(video_stream.pix_fmt) == "yuv420p"
+      and null.get(audio_stream.channel_layout) == "stereo"
+      and null.get(audio_stream.codec_name) == "aac"
+      and null.get(audio_stream.sample_fmt) == "fltp"
+      and null.get(audio_stream.sample_rate) == "44100"
     then
       test.pass()
     else

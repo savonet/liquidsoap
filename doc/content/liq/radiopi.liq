@@ -134,16 +134,11 @@ interlude = single("/home/radiopi/fallback.mp3")
 def lastfm(m) =
   if
     m["type"] == "chansons"
-  and
-
-      (
-        m["canal"] == "reggae"
-      or
-        m["canal"] == "Jazz"
-      or
-        m["canal"] == "That70Sound"
-      )
-
+    and (
+      m["canal"] == "reggae"
+      or m["canal"] == "Jazz"
+      or m["canal"] == "That70Sound"
+    )
   then
     canal = if (m["canal"] == "That70Sound") then "70sound" else m["canal"] end
     username = "radiopi-" ^ canal
@@ -202,10 +197,8 @@ def crossfade(
     elsif
       # If A and B are not too loud and close, fully cross-fade them.
       a.db_level <= medium
-    and
-      b.db_level <= medium
-    and
-      abs(a.db_level - b.db_level) <= margin
+      and b.db_level <= medium
+      and abs(a.db_level - b.db_level) <= margin
     then
       log(
         "Old <= medium, new <= medium and |old-new| <= margin."
@@ -221,10 +214,8 @@ def crossfade(
       # If B is significantly louder than A, only fade-out A.
       # We don't want to fade almost silent things, ask for >medium.
       b.db_level >= a.db_level + margin
-    and
-      a.db_level >= medium
-    and
-      b.db_level <= high
+      and a.db_level >= medium
+      and b.db_level <= high
     then
       log(
         "new >= old + margin, old >= medium and new <= high."
@@ -239,10 +230,8 @@ def crossfade(
     elsif
       # Opposite as the previous one.
       a.db_level >= b.db_level + margin
-    and
-      b.db_level >= medium
-    and
-      a.db_level <= high
+      and b.db_level >= medium
+      and a.db_level <= high
     then
       log(
         "old >= new + margin, new >= medium and old <= high"
@@ -257,10 +246,8 @@ def crossfade(
     elsif
       # Do not fade if it's already very low.
       b.db_level >= a.db_level + margin
-    and
-      a.db_level <= medium
-    and
-      b.db_level <= high
+      and a.db_level <= medium
+      and b.db_level <= high
     then
       log(
         "new >= old + margin, old <= medium and new <= high."

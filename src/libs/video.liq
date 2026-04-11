@@ -164,7 +164,7 @@ def video.add_request(
       video
     )
 
-  source(id=id, tracks.{video=video})
+  source(id=id, tracks.{video = video})
 end
 
 # Add a static image on the source video channel.
@@ -198,7 +198,7 @@ def video.add_image(
       video
     )
 
-  source(id=id, tracks.{video=video})
+  source(id=id, tracks.{video = video})
 end
 
 # Generate a video source containing cover-art for current track of input audio
@@ -221,7 +221,13 @@ def video.cover(s) =
       last_filename := filename
 
       cover =
-        if file.exists(filename) then file.cover(filename) else "".{mime=""} end
+        if
+          file.exists(filename)
+        then
+          file.cover(filename)
+        else
+          "".{mime = ""}
+        end
 
       if
         null.defined(cover) and null.get(cover) != ""
@@ -230,10 +236,10 @@ def video.cover(s) =
         extname =
           (
             null.defined(cover.mime)
-            ? file.mime.extension(null.get(cover.mime)) : null
+              ? file.mime.extension(null.get(cover.mime))
+              : null
           )
-            ??
-              ".osb"
+            ?? ".osb"
         f = file.temp("cover", extname)
         log.debug(
           "Found cover for #{filename}."
@@ -316,8 +322,7 @@ def output.youtube.live.hls(
   def on_file_change({state, path = fname}) =
     if
       (state == "created" or state == "updated")
-    and
-      path.basename(fname) != "main.m3u8"
+      and path.basename(fname) != "main.m3u8"
     then
       try
         ignore(http.post(data=file.read(fname), file_url(path.basename(fname))))
@@ -426,7 +431,7 @@ def add_text_builder(f) =
     let {video = v, ...tracks} = source.tracks(s)
     let {video = t} = source.tracks(t)
     let v = track.video.add([v, t])
-    source(tracks.{video=v})
+    source(tracks.{video = v})
   end
 
   at
@@ -645,7 +650,7 @@ def video.add_subtitle(
   let {video = v, ...tracks} = source.tracks(s)
   let {video = t} = source.tracks(t)
   let v = track.video.add([v, t])
-  source(tracks.{video=v})
+  source(tracks.{video = v})
 end
 
 # Display a slideshow (typically of pictures).
@@ -746,7 +751,13 @@ def video.slideshow(
     thread.run(delay=getter.get(advance), every=advance, next)
   end
 
-  s.{append=append, clear=clear, next=next, prev=prev, current=current}
+  s.{
+    append = append,
+    clear = clear,
+    next = next,
+    prev = prev,
+    current = current
+  }
 end
 
 # Generate a video filled with given color.
@@ -770,7 +781,7 @@ def video.tile(
   tracks = list.map(fun (s) -> source.tracks(s), sources)
   video_tracks = list.map(fun (t) -> t.video, tracks)
   new_tracks =
-    {video=track.video.tile(%argsof(track.video.tile[!id]), video_tracks)}
+    {video = track.video.tile(%argsof(track.video.tile[!id]), video_tracks)}
 
   new_tracks =
     if
@@ -784,12 +795,12 @@ def video.tile(
             getter(1.)
           end
 
-        null.get(track?.audio).{weight=weight}
+        null.get(track?.audio).{weight = weight}
       end
 
       audio_tracks = list.mapi(mk_audio_track, tracks)
       new_tracks.{
-        audio=track.audio.add(%argsof(track.audio.add[!id]), audio_tracks)
+        audio = track.audio.add(%argsof(track.audio.add[!id]), audio_tracks)
       }
     else
       new_tracks
@@ -881,7 +892,7 @@ def video.canvas.make(~virtual_width, ~actual_size, ~font_size) =
     int_of_float(v * font_ratio)
   end
 
-  {px=px, rem=rem, vw=vw, vh=vh, ...actual_size}
+  {px = px, rem = rem, vw = vw, vh = vh, ...actual_size}
 end
 
 # Standard video canvas based off a `10k` virtual canvas.
@@ -890,18 +901,18 @@ def video.canvas.virtual_10k =
   def make(width, height) =
     video.canvas.make(
       virtual_width=10000,
-      actual_size={width=width, height=height},
+      actual_size={width = width, height = height},
       font_size=160
     )
   end
 
   {
-    actual_360p=make(640, 360),
-    actual_480p=make(640, 480),
-    actual_720p=make(1280, 720),
-    actual_1080p=make(1920, 1080),
-    actual_1440p=make(2560, 1440),
-    actual_4k=make(3840, 2160),
-    actual_8k=make(7680, 4320)
+    actual_360p = make(640, 360),
+    actual_480p = make(640, 480),
+    actual_720p = make(1280, 720),
+    actual_1080p = make(1920, 1080),
+    actual_1440p = make(2560, 1440),
+    actual_4k = make(3840, 2160),
+    actual_8k = make(7680, 4320)
   }
 end

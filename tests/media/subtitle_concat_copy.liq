@@ -5,10 +5,10 @@ let {video = v} = source.tracks(video.testsrc.ffmpeg(duration=32.))
 let {subtitles = s1} = source.tracks(single("test-subtitle.srt"))
 let {subtitles = s2} = source.tracks(single("test-subtitle.srt"))
 
-subtitle_source = sequence([source({subtitles=s1}), source({subtitles=s2})])
+subtitle_source = sequence([source({subtitles = s1}), source({subtitles = s2})])
 let {subtitles = s} = source.tracks(subtitle_source)
 
-s = source({video=v, subtitles=s})
+s = source({video = v, subtitles = s})
 
 s = once(s)
 

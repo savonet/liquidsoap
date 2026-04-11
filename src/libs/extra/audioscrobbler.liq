@@ -97,7 +97,7 @@ def audioscrobbler.auth(~username, ~password, ~api_key=null, ~api_secret=null) =
   end
 end
 
-let audioscrobbler.api = {track=()}
+let audioscrobbler.api = {track = ()}
 
 # Submit a track to the audioscrobbler
 # `track.updateNowPlaying` API.
@@ -119,32 +119,34 @@ def audioscrobbler.api.track.updateNowPlaying(
 ) =
   session_key =
     session_key
-      ??
-        audioscrobbler.auth(
-          username=username,
-          password=password,
-          api_key=api_key,
-          api_secret=api_secret
-        )
+      ?? audioscrobbler.auth(
+        username=username,
+        password=password,
+        api_key=api_key,
+        api_secret=api_secret
+      )
 
   params =
     [
       ("track", track),
       ("artist", artist),
-      ...(null.defined(album) ? [("album", null.get(album))] : [] ),
-      ...(null.defined(context) ? [("context", null.get(context))] : [] ),
+      ...(null.defined(album) ? [("album", null.get(album))] : []),
+      ...(null.defined(context) ? [("context", null.get(context))] : []),
       ...(
         null.defined(trackNumber)
-        ? [("trackNumber", string((null.get(trackNumber) : int)))] : []
+          ? [("trackNumber", string((null.get(trackNumber) : int)))]
+          : []
       ),
-      ...(null.defined(mbid) ? [("mbid", null.get(mbid))] : [] ),
+      ...(null.defined(mbid) ? [("mbid", null.get(mbid))] : []),
       ...(
         null.defined(albumArtist)
-        ? [("albumArtist", null.get(albumArtist))] : []
+          ? [("albumArtist", null.get(albumArtist))]
+          : []
       ),
       ...(
         null.defined(duration)
-        ? [("duration", string((null.get(duration) : int)))] : []
+          ? [("duration", string((null.get(duration) : int)))]
+          : []
       )
     ]
 
@@ -288,36 +290,37 @@ def audioscrobbler.api.track.scrobble(
 ) =
   session_key =
     session_key
-      ??
-        audioscrobbler.auth(
-          username=username,
-          password=password,
-          api_key=api_key,
-          api_secret=api_secret
-        )
+      ?? audioscrobbler.auth(
+        username=username,
+        password=password,
+        api_key=api_key,
+        api_secret=api_secret
+      )
 
   params =
     [
       ("track", track),
       ("artist", artist),
       ("timestamp", string(timestamp ?? time())),
-      ...(null.defined(album) ? [("album", null.get(album))] : [] ),
-      ...(null.defined(context) ? [("context", null.get(context))] : [] ),
-      ...(null.defined(streamId) ? [("streamId", null.get(streamId))] : [] ),
-
-      ("chosenByUser", chosenByUser ? "1" : "0" ),
+      ...(null.defined(album) ? [("album", null.get(album))] : []),
+      ...(null.defined(context) ? [("context", null.get(context))] : []),
+      ...(null.defined(streamId) ? [("streamId", null.get(streamId))] : []),
+      ("chosenByUser", chosenByUser ? "1" : "0"),
       ...(
         null.defined(trackNumber)
-        ? [("trackNumber", string((null.get(trackNumber) : int)))] : []
+          ? [("trackNumber", string((null.get(trackNumber) : int)))]
+          : []
       ),
-      ...(null.defined(mbid) ? [("mbid", null.get(mbid))] : [] ),
+      ...(null.defined(mbid) ? [("mbid", null.get(mbid))] : []),
       ...(
         null.defined(albumArtist)
-        ? [("albumArtist", null.get(albumArtist))] : []
+          ? [("albumArtist", null.get(albumArtist))]
+          : []
       ),
       ...(
         null.defined(duration)
-        ? [("duration", string((null.get(duration) : int)))] : []
+          ? [("duration", string((null.get(duration) : int)))]
+          : []
       )
     ]
 

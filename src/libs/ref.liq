@@ -3,7 +3,7 @@
 # @param get Function to retrieve the value of the reference.
 # @param set Function to change the value of the reference.
 def ref.make(get, set) =
-  (get.{set=set} : ref)
+  (get.{set = set} : ref)
 end
 
 # Create a getter from a reference (sometimes useful to remove the `set`

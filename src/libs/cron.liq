@@ -23,9 +23,10 @@ def cron.add(~id=null, c, handler) =
     label="cron",
     "Adding cron.tab entry #{c} (cron id: #{id})"
   )
-  cron.tab := [...cron.tab(), {id=id, cron=c, test=test, handler=handler}]
+  cron.tab :=
+    [...cron.tab(), {id = id, cron = c, test = test, handler = handler}]
 
-  {id=id}
+  {id = id}
 end
 
 # Remove a cron tab entry. ID is returned during

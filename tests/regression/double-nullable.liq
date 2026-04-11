@@ -1,6 +1,6 @@
 # Regression test: ?? with two nullable values should not create double nullable type
-a = {x=(null : string?)}
-b = {x=(null : string?)}
+a = {x = (null : string?)}
+b = {x = (null : string?)}
 
 # a.x is string?, b.x is string?
 # result should be string?, not string??

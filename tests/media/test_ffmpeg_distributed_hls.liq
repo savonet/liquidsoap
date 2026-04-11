@@ -75,14 +75,10 @@ def check_stream() =
 
     if
       null.get(video_stream.codec_name) == "h264"
-    and
-      null.get(audio_stream.channel_layout) == "stereo"
-    and
-      null.get(audio_stream.codec_name) == "aac"
-    and
-      null.get(audio_stream.sample_fmt) == "fltp"
-    and
-      null.get(audio_stream.sample_rate) == "44100"
+      and null.get(audio_stream.channel_layout) == "stereo"
+      and null.get(audio_stream.codec_name) == "aac"
+      and null.get(audio_stream.sample_fmt) == "fltp"
+      and null.get(audio_stream.sample_rate) == "44100"
     then
       test.pass()
     else

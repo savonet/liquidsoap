@@ -71,5 +71,5 @@ def file.cover.manager(
     current_cover_request := (new_cover ?? default)
   end
 
-  current_cover_request.{set=extract_cover_from_metadata}
+  current_cover_request.{set = extract_cover_from_metadata}
 end

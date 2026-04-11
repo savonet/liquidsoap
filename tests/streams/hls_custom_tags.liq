@@ -16,8 +16,7 @@ def on_file_change({state, path = p}) =
   then
     if
       fname == "main.m3u8"
-    and
-      string.contains(substring="X-CUSTOM", file.contents(p))
+      and string.contains(substring="X-CUSTOM", file.contents(p))
     then
       main_tags := true
     end
@@ -69,7 +68,7 @@ o =
       (
         "aac",
         %ffmpeg(format = "adts", %audio(codec = "aac")).{
-          extra_tags=["X-CUSTOM"]
+          extra_tags = ["X-CUSTOM"]
         }
       ),
       (
@@ -79,7 +78,7 @@ o =
           frag_duration = 10,
           movflags = "+dash+skip_sidx+skip_trailer+frag_custom",
           %audio(codec = "aac")
-        ).{extra_tags=["X-CUSTOM"]}
+        ).{extra_tags = ["X-CUSTOM"]}
       )
     ],
     s

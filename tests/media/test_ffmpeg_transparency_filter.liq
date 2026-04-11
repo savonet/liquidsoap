@@ -17,7 +17,7 @@ def logo_overlay(background, logo) =
 end
 
 video = logo_overlay(source.tracks(background).video, source.tracks(logo).video)
-s = source({audio=source.tracks(playlist).audio, video=video})
+s = source({audio = source.tracks(playlist).audio, video = video})
 s = max_duration(3., s)
 
 done = ref(false)
@@ -55,16 +55,11 @@ def on_close(filename) =
 
     if
       null.get(video_stream.codec_name) == "h264"
-    and
-      null.get(video_stream.pix_fmt) == "yuv420p"
-    and
-      null.get(audio_stream.channel_layout) == "stereo"
-    and
-      null.get(audio_stream.codec_name) == "aac"
-    and
-      null.get(audio_stream.sample_fmt) == "fltp"
-    and
-      null.get(audio_stream.sample_rate) == "44100"
+      and null.get(video_stream.pix_fmt) == "yuv420p"
+      and null.get(audio_stream.channel_layout) == "stereo"
+      and null.get(audio_stream.codec_name) == "aac"
+      and null.get(audio_stream.sample_fmt) == "fltp"
+      and null.get(audio_stream.sample_rate) == "44100"
     then
       test.pass()
     else

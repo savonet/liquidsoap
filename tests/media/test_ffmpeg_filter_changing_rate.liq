@@ -18,7 +18,7 @@ def f(s) =
     v = ffmpeg.filter.video.input(graph, tracks.video)
     v = ffmpeg.filter.hflip(graph, v)
     v = ffmpeg.filter.video.output(graph, v)
-    source({audio=a, video=v, metadata=track.metadata(a)})
+    source({audio = a, video = v, metadata = track.metadata(a)})
   end
 
   ffmpeg.filter.create(mkfilter)
@@ -63,16 +63,11 @@ def on_done(filename) =
 
     if
       null.get(video_stream.codec_name) == "h264"
-    and
-      null.get(video_stream.pix_fmt) == "yuv420p"
-    and
-      null.get(audio_stream.channel_layout) == "stereo"
-    and
-      null.get(audio_stream.codec_name) == "aac"
-    and
-      null.get(audio_stream.sample_fmt) == "fltp"
-    and
-      null.get(audio_stream.sample_rate) == "44100"
+      and null.get(video_stream.pix_fmt) == "yuv420p"
+      and null.get(audio_stream.channel_layout) == "stereo"
+      and null.get(audio_stream.codec_name) == "aac"
+      and null.get(audio_stream.sample_fmt) == "fltp"
+      and null.get(audio_stream.sample_rate) == "44100"
     then
       passed := true
       test.pass()

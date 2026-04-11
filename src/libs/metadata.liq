@@ -104,7 +104,7 @@ def metadata.cover(~coverart_mime=null, m) =
     list.assoc.mem("coverart", m) and null.defined(coverart_mime)
   then
     cover = list.assoc(default="", "coverart", m)
-    string.base64.decode(cover).{mime=null.get(coverart_mime)}
+    string.base64.decode(cover).{mime = null.get(coverart_mime)}
   elsif
     list.assoc.mem("metadata_block_picture", m)
   then
@@ -165,12 +165,15 @@ def metadata.cover(~coverart_mime=null, m) =
           pic.format == "JPG"
         then
           "image/jpeg"
-        elsif pic.format == "PNG" then "image/png"
+        elsif
+          pic.format == "PNG"
+        then
+          "image/png"
         else
           "application/octet-stream"
         end
 
-      pic.{mime=mime}
+      pic.{mime = mime}
     else
       log.info(
         "No cover found for #{fname}."

@@ -25,14 +25,14 @@ def f() =
   test.equal(
     x,
     {
-      bla=
+      bla =
         {
-          foo="gni".{xml_params={opt=12.3}},
-          bar=(null, "bla".{xml_params=[("option", "aab")]}),
-          blo=1.23,
-          blu=false,
-          ble=123,
-          xml_params=[("param", "1"), ("bla", "true")].{bla=true}
+          foo = "gni".{xml_params = {opt = 12.3}},
+          bar = (null, "bla".{xml_params = [("option", "aab")]}),
+          blo = 1.23,
+          blu = false,
+          ble = 123,
+          xml_params = [("param", "1"), ("bla", "true")].{bla = true}
         }
     }
   )
@@ -40,11 +40,11 @@ def f() =
   test.equal(
     xml.stringify(
       {
-        bla=
+        bla =
           {
-            xml_params=[("param", "1"), ("bla", "true")],
-            bar="bla".{xml_params=[("option", "aab")]},
-            foo=true.{xml_params={opt=12.3}}
+            xml_params = [("param", "1"), ("bla", "true")],
+            bar = "bla".{xml_params = [("option", "aab")]},
+            foo = true.{xml_params = {opt = 12.3}}
           }
       }
     ),
@@ -79,35 +79,44 @@ def f() =
     (
       "bla",
       {
-        xml_params=[("param", "1"), ("bla", "true")],
-        xml_children=
+        xml_params = [("param", "1"), ("bla", "true")],
+        xml_children =
           [
             (
               "foo",
               {
-                xml_params=[("opt", "12.3")],
-                xml_children=[("xml_text", {xml_text="gni"})]
+                xml_params = [("opt", "12.3")],
+                xml_children = [("xml_text", {xml_text = "gni"})]
               }
             ),
-            ("bar", {xml_params=[], xml_children=[]}),
+            ("bar", {xml_params = [], xml_children = []}),
             (
               "bar",
               {
-                xml_params=[("option", "aab")],
-                xml_children=[("xml_text", {xml_text="bla"})]
+                xml_params = [("option", "aab")],
+                xml_children = [("xml_text", {xml_text = "bla"})]
               }
             ),
             (
               "blo",
-              {xml_params=[], xml_children=[("xml_text", {xml_text="1.23"})]}
+              {
+                xml_params = [],
+                xml_children = [("xml_text", {xml_text = "1.23"})]
+              }
             ),
             (
               "blu",
-              {xml_params=[], xml_children=[("xml_text", {xml_text="false"})]}
+              {
+                xml_params = [],
+                xml_children = [("xml_text", {xml_text = "false"})]
+              }
             ),
             (
               "ble",
-              {xml_params=[], xml_children=[("xml_text", {xml_text="123"})]}
+              {
+                xml_params = [],
+                xml_children = [("xml_text", {xml_text = "123"})]
+              }
             )
           ]
       }

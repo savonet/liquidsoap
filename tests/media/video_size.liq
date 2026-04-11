@@ -13,7 +13,8 @@ out = {"#{fname}+test_videos_size-#{random.int()}.avi"}
 
 s = (single(fname) : source(video=canvas(width=47, height=52)))
 s = once(s)
-s = source({audio=source.tracks(blank()).audio, video=source.tracks(s).video})
+s =
+  source({audio = source.tracks(blank()).audio, video = source.tracks(s).video})
 
 done = ref(false)
 

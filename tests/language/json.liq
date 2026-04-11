@@ -52,7 +52,7 @@ def f() =
   test.equal(json.stringify(json5=true, nan), 'NaN')
   let b = json.object()
   b.add("b", 1)
-  s = json.stringify({a=null({a=1}), b=null(b)})
+  s = json.stringify({a = null({a = 1}), b = null(b)})
   test.equal(
     s,
     "{ \"a\": { \"a\": 1 }, \"b\": { \"b\": 1 } }"
@@ -96,16 +96,16 @@ def f() =
   test.equal(
     x,
     {
-      foo=34.24,
-      gni_gno=true,
-      nested=
+      foo = 34.24,
+      gni_gno = true,
+      nested =
         {
-          tuple=(null, 3.14),
-          list=[44., 55., 66.12],
-          nullable_list=[null, 23, null],
-          object_as_list=[("foo", 123.), ("gni", 456.0), ("gno", 3.14)],
-          arbitrary_object_key=true,
-          not_present=null
+          tuple = (null, 3.14),
+          list = [44., 55., 66.12],
+          nullable_list = [null, 23, null],
+          object_as_list = [("foo", 123.), ("gni", 456.0), ("gno", 3.14)],
+          arbitrary_object_key = true,
+          not_present = null
         }
     }
   )
@@ -278,8 +278,8 @@ def f() =
   j.add("foo", 1)
   j.add("bla", "bar")
   j.add("baz", 3.14)
-  j.add("key_with_methods", "value".{method=123})
-  j.add("record", {a=1, b="ert"})
+  j.add("key_with_methods", "value".{method = 123})
+  j.add("record", {a = 1, b = "ert"})
   j.remove("foo")
   j = json.stringify(j)
   test.equal(

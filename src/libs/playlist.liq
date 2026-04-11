@@ -54,7 +54,7 @@ def playlist.parse.cue.full(~pwd=null, content) =
         end
 
       filename = playlist.parse.get_file(pwd=pwd, filename)
-      {filename=filename, file_type=file_type}
+      {filename = filename, file_type = file_type}
     catch _ do
       null
     end
@@ -66,7 +66,7 @@ def playlist.parse.cue.full(~pwd=null, content) =
       position = int_of_string(list.assoc(1, matches))
       type = list.assoc(2, matches)
 
-      {position=position, track_type=string.case(lower=true, type)}
+      {position = position, track_type = string.case(lower=true, type)}
     catch _ : [error.not_found] do
       null
     end
@@ -90,7 +90,7 @@ def playlist.parse.cue.full(~pwd=null, content) =
       seconds = int_of_string(list.assoc(2, matches))
       frames = int_of_string(list.assoc(3, matches))
 
-      {minutes=minutes, seconds=seconds, frames=frames}
+      {minutes = minutes, seconds = seconds, frames = frames}
     catch _ : [error.not_found] do
       null
     end
@@ -167,24 +167,30 @@ def playlist.parse.cue.full(~pwd=null, content) =
             file,
             {
               ...track,
-              indexes=[...track.indexes, (idx, {...file, ...timecode})]
+              indexes = [...track.indexes, (idx, {...file, ...timecode})]
             }
           )
-        elsif null.defined(new_file) then (new_file, track)
+        elsif
+          null.defined(new_file)
+        then
+          (new_file, track)
         else
           track_attributes =
             [
-              ("title", fun (title) -> {...track, title=title}),
-              ("performer", fun (performer) -> {...track, performer=performer}),
+              ("title", fun (title) -> {...track, title = title}),
+              (
+                "performer",
+                fun (performer) -> {...track, performer = performer}
+              ),
               (
                 "pregap",
                 fun (pregap) ->
-                  {...track, pregap=null.get(parse_timecode(pregap))}
+                  {...track, pregap = null.get(parse_timecode(pregap))}
               ),
               (
                 "postgap",
                 fun (postgap) ->
-                  {...track, postgap=null.get(parse_timecode(postgap))}
+                  {...track, postgap = null.get(parse_timecode(postgap))}
               ),
               (
                 "rem",
@@ -201,7 +207,7 @@ def playlist.parse.cue.full(~pwd=null, content) =
                       if
                         label == "album"
                       then
-                        {...track, album=value}
+                        {...track, album = value}
                       else
                         log.important(
                           label="playlist.parse.cue.full",
@@ -213,7 +219,7 @@ def playlist.parse.cue.full(~pwd=null, content) =
                     end
                   end
               ),
-              ("isrc", fun (isrc) -> {...track, isrc=isrc})
+              ("isrc", fun (isrc) -> {...track, isrc = isrc})
             ]
           attribute_names = list.map(fst, track_attributes)
 
@@ -303,7 +309,7 @@ def playlist.parse.cue.full(~pwd=null, content) =
       then
         parse_content(
           file=file,
-          sheet={...sheet, rem=[null.get(new_rem), ...sheet.rem]},
+          sheet={...sheet, rem = [null.get(new_rem), ...sheet.rem]},
           content
         )
       elsif
@@ -312,20 +318,20 @@ def playlist.parse.cue.full(~pwd=null, content) =
         let (file, track, content) =
           parse_track(
             file=file,
-            track={...null.get(track), indexes=[]},
+            track={...null.get(track), indexes = []},
             content
           )
         parse_content(
           file=file,
-          sheet={...sheet, tracks=[...sheet.tracks, track]},
+          sheet={...sheet, tracks = [...sheet.tracks, track]},
           content
         )
       else
         sheet_attributes =
           [
-            ("catalog", fun (catalog) -> {...sheet, catalog=catalog}),
-            ("performer", fun (performer) -> {...sheet, performer=performer}),
-            ("title", fun (title) -> {...sheet, title=title})
+            ("catalog", fun (catalog) -> {...sheet, catalog = catalog}),
+            ("performer", fun (performer) -> {...sheet, performer = performer}),
+            ("title", fun (title) -> {...sheet, title = title})
           ]
 
         attribute_names = list.map(fst, sheet_attributes)
@@ -363,7 +369,7 @@ def playlist.parse.cue.full(~pwd=null, content) =
     end
   end
 
-  parse_content(file=null, sheet={tracks=[], rem=[]}, content)
+  parse_content(file=null, sheet={tracks = [], rem = []}, content)
 end
 
 let settings.playlist.cue =
@@ -512,11 +518,9 @@ def replaces playlist.parse.cue(~pwd=null, content) =
               ("catalog", catalog),
               ...(
                 null.defined(performer)
-                ? [("artist", performer), ("albumartist", album_performer)] :
-                  [("artist", album_performer)]
-
+                  ? [("artist", performer), ("albumartist", album_performer)]
+                  : [("artist", album_performer)]
               ),
-
               ("title", title),
               ("isrc", isrc),
               ("album", album ?? playlist_album)
@@ -538,25 +542,25 @@ let settings.playlist.mime_types.basic =
     description="Mime-types used for guessing text-based playlists.",
     [
       {
-        name=
+        name =
           "scpls format",
-        mimes=["audio/x-scpls"],
-        strict=true,
-        parser=playlist.parse.scpls
+        mimes = ["audio/x-scpls"],
+        strict = true,
+        parser = playlist.parse.scpls
       },
       {
-        name=
+        name =
           "cue sheet",
-        mimes=["application/x-cue"],
-        strict=true,
-        parser=playlist.parse.cue
+        mimes = ["application/x-cue"],
+        strict = true,
+        parser = playlist.parse.cue
       },
       {
-        name=
+        name =
           "m3u Format",
-        mimes=["audio/x-mpegurl", "audio/mpegurl", "application/x-mpegURL"],
-        strict=false,
-        parser=playlist.parse.m3u
+        mimes = ["audio/x-mpegurl", "audio/mpegurl", "application/x-mpegURL"],
+        strict = false,
+        parser = playlist.parse.m3u
       }
     ]
   )
@@ -567,9 +571,9 @@ let settings.playlist.mime_types.xml =
     description="Mime-types used for guessing xml-based playlists.",
     [
       {
-        name=
+        name =
           "xmlplaylist format",
-        mimes=
+        mimes =
           [
             "video/x-ms-asf",
             "audio/x-ms-asx",
@@ -580,8 +584,8 @@ let settings.playlist.mime_types.xml =
             "application/xspf+xml",
             "application/rss+xml"
           ],
-        strict=true,
-        parser=playlist.parse.xml
+        strict = true,
+        parser = playlist.parse.xml
       }
     ]
   )
@@ -975,7 +979,7 @@ def playlist.list(
   end
 
   # Return
-  s.{reload=reload, remaining_files=remaining_files}
+  s.{reload = reload, remaining_files = remaining_files}
 end
 
 # Read a playlist or a directory and play all files.
@@ -1272,7 +1276,7 @@ def replaces playlist(
           n = max(10, int_of_string(default=10, n))
           requests =
             list.fold(
-              (fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur ),
+              (fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur),
               [],
               s.queue()
             )

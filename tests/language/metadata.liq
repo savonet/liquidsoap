@@ -21,10 +21,10 @@ def f() =
   test.equal(
     parse_apic_data,
     expected_apic_string_data.{
-      description=
+      description =
         "Album cover",
-      picture_type=3,
-      mime="image/png"
+      picture_type = 3,
+      mime = "image/png"
     }
   )
 
@@ -41,7 +41,11 @@ def f() =
 
   test.equal(
     parse_pic_data,
-    expected_pic_string_data.{description="", picture_type=1, mime="image/jpeg"}
+    expected_pic_string_data.{
+      description = "",
+      picture_type = 1,
+      mime = "image/jpeg"
+    }
   )
 
   # From http://towerofbabel.free.fr/test/music.ogg
@@ -59,13 +63,13 @@ def f() =
   test.equal(
     parse_flac_cover,
     excepted_flac_string_data.{
-      picture_type=3,
-      mime="image/jpeg",
-      description="",
-      width=0,
-      height=0,
-      color_depth=0,
-      number_of_colors=null
+      picture_type = 3,
+      mime = "image/jpeg",
+      description = "",
+      width = 0,
+      height = 0,
+      color_depth = 0,
+      number_of_colors = null
     }
   )
 

@@ -7,7 +7,7 @@ def compand(~id=null("compand"), %argsof(track.audio.compand[!id]), s) =
   source(
     id=id,
     tracks.{
-      audio=track.audio.compand(%argsof(track.audio.compand), tracks.audio)
+      audio = track.audio.compand(%argsof(track.audio.compand), tracks.audio)
     }
   )
 end
@@ -20,7 +20,7 @@ def comb(~id=null("comb"), %argsof(track.audio.comb[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,
-    tracks.{audio=track.audio.comb(%argsof(track.audio.comb), tracks.audio)}
+    tracks.{audio = track.audio.comb(%argsof(track.audio.comb), tracks.audio)}
   )
 end
 
@@ -33,7 +33,7 @@ def compress(%argsof(track.audio.compress), s) =
   let {gain, rms, ...audio} =
     track.audio.compress(%argsof(track.audio.compress), tracks.audio)
 
-  source(id=id, tracks.{audio=audio}).{gain=gain, rms=rms}
+  source(id=id, tracks.{audio = audio}).{gain = gain, rms = rms}
 end
 
 # Exponential compressor.
@@ -45,7 +45,7 @@ def compress.exponential(%argsof(track.audio.compress.exponential), s) =
   source(
     id=id,
     tracks.{
-      audio=
+      audio =
         track.audio.compress.exponential(
           %argsof(track.audio.compress.exponential),
           tracks.audio
@@ -124,9 +124,7 @@ end
 # @flag extra
 def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
   # Check that the bands are with increasing frequencies.
-  for i = 0 to
-    list.length(l) - 2
-  do
+  for i = 0 to list.length(l) - 2 do
     if
       getter.get(list.nth(l, i + 1).frequency) <
         getter.get(list.nth(l, i).frequency)
@@ -135,6 +133,7 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
         "Bands should be sorted."
       )
     end
+
   end
 
   # Process a band
@@ -142,8 +141,7 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
     high =
       if
         getter.is_constant(band.frequency)
-      and
-        getter.get(band.frequency) >= float_of_int(audio.samplerate()) / 2.
+        and getter.get(band.frequency) >= float_of_int(audio.samplerate()) / 2.
       then
         infinity
       else
@@ -304,30 +302,73 @@ end
 # @param dtmf String describing DTMF tones to generates: it should contains characters 0 to 9, A to D, or * or #.
 def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf) =
   l = ref([])
-  for i = 0 to
-    string.bytes.length(dtmf) - 1
-  do
+  for i = 0 to string.bytes.length(dtmf) - 1 do
     c = string.sub(encoding="ascii", dtmf, start=i, length=1)
     let (row, col) =
       if
         c == "1"
       then
         (697., 1209.)
-      elsif c == "2" then (697., 1336.)
-      elsif c == "3" then (697., 1477.)
-      elsif c == "A" then (697., 1633.)
-      elsif c == "4" then (770., 1209.)
-      elsif c == "5" then (770., 1336.)
-      elsif c == "6" then (770., 1477.)
-      elsif c == "B" then (770., 1633.)
-      elsif c == "7" then (852., 1209.)
-      elsif c == "8" then (852., 1336.)
-      elsif c == "9" then (852., 1477.)
-      elsif c == "C" then (852., 1633.)
-      elsif c == "*" then (941., 1209.)
-      elsif c == "0" then (941., 1336.)
-      elsif c == "#" then (941., 1477.)
-      elsif c == "D" then (941., 1633.)
+      elsif
+        c == "2"
+      then
+        (697., 1336.)
+      elsif
+        c == "3"
+      then
+        (697., 1477.)
+      elsif
+        c == "A"
+      then
+        (697., 1633.)
+      elsif
+        c == "4"
+      then
+        (770., 1209.)
+      elsif
+        c == "5"
+      then
+        (770., 1336.)
+      elsif
+        c == "6"
+      then
+        (770., 1477.)
+      elsif
+        c == "B"
+      then
+        (770., 1633.)
+      elsif
+        c == "7"
+      then
+        (852., 1209.)
+      elsif
+        c == "8"
+      then
+        (852., 1336.)
+      elsif
+        c == "9"
+      then
+        (852., 1477.)
+      elsif
+        c == "C"
+      then
+        (852., 1633.)
+      elsif
+        c == "*"
+      then
+        (941., 1209.)
+      elsif
+        c == "0"
+      then
+        (941., 1336.)
+      elsif
+        c == "#"
+      then
+        (941., 1477.)
+      elsif
+        c == "D"
+      then
+        (941., 1633.)
       else
         (0., 0.)
       end
@@ -335,6 +376,7 @@ def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf) =
     s = add([sine(row, duration=duration), sine(col, duration=duration)])
     l := blank(duration=delay)::l()
     l := s::l()
+
   end
 
   l = list.rev(l())
@@ -357,7 +399,12 @@ def mix(~id=null, ~register_server_commands=true, ~normalize=false, sources) =
           volume = ref(1.)
           is_selected = ref(false)
           is_single = ref(false)
-          {volume=volume, selected=is_selected, single=is_single, source=s}
+          {
+            volume = volume,
+            selected = is_selected,
+            single = is_single,
+            source = s
+          }
         end,
       sources
     )
@@ -492,7 +539,7 @@ def mix(~id=null, ~register_server_commands=true, ~normalize=false, sources) =
     )
   end
 
-  s.{inputs=inputs}
+  s.{inputs = inputs}
 end
 
 # Indicate beats.
@@ -622,5 +669,5 @@ def smooth_volume(~id=null("smooth_volume"), s) =
     last_volume := v
   end
 
-  amplify(id=id, volume, s).{set_volume=set_volume}
+  amplify(id=id, volume, s).{set_volume = set_volume}
 end

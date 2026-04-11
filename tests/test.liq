@@ -4,7 +4,7 @@ settings.init.force_start := true
 test = ()
 let test.done = ref(false)
 
-runtime.gc.set(runtime.gc.get().{space_overhead=20, allocation_policy=2})
+runtime.gc.set(runtime.gc.get().{space_overhead = 20, allocation_policy = 2})
 
 # End test successfully.
 def test.pass() =
@@ -156,9 +156,9 @@ def test._almost_equal(~digits=7, first, second) =
   if
     diff * float(pow(10, digits)) < 0.5
   then
-    true.{diff=diff}
+    true.{diff = diff}
   else
-    false.{diff=diff}
+    false.{diff = diff}
   end
 end
 
@@ -242,9 +242,8 @@ end
 def test.metric(~category, ~name, ~value, ~unit, ~min:min_value=null) =
   min_value =
     null.defined(min_value)
-    ?
-      "\n  min: #{(null.get(min_value) : float)}"
-    : ""
+      ? "\n  min: #{(null.get(min_value) : float)}"
+      : ""
   data =
     "- name: \"#{(name : string)}\"\n  category: \"#{(category : string)}\"\n  \
      value: #{(value : float)}\n  unit: \"#{(unit : string)}\"\n  time: #{
@@ -264,7 +263,10 @@ end
 thread.on_error(null, on_error)
 
 def test.ffprobe(~count_packets=false, filename) =
-  count_packets_flag = count_packets ? "-count_packets " : ""
+  count_packets_flag =
+    count_packets
+      ? "-count_packets "
+      : ""
   json =
     process.read(
       "ffprobe -v quiet -print_format json -show_streams #{count_packets_flag}#{

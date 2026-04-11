@@ -7,7 +7,7 @@ video =
     "../media/@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
   )
 
-stream = source(source.tracks(audio).{video=source.tracks(video).video})
+stream = source(source.tracks(audio).{video = source.tracks(video).video})
 
 clock.assign_new(sync='none', [stream])
 

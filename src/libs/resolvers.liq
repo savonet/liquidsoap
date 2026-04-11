@@ -5,7 +5,7 @@ def youtube_playlist_parser(~pwd="", url) =
 
   def parse_line(line) =
     let json.parse (parsed : {url: string}?) = line
-    parsed = parsed ?? {url="foo"}
+    parsed = parsed ?? {url = "foo"}
     url = parsed.url
     ([], "youtube-dl:#{url}")
   end

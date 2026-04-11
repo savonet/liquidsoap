@@ -5,8 +5,8 @@ def f() =
       version=54,
       prefix="prefix",
       [
-        "stream_a".{bandwidth=123, codecs="codecs_a"},
-        "steam_b".{bandwidth=456, codecs="codecs_b", video_size=(12, 34)}
+        "stream_a".{bandwidth = 123, codecs = "codecs_a"},
+        "steam_b".{bandwidth = 456, codecs = "codecs_b", video_size = (12, 34)}
       ]
     )
   test.equal(
@@ -28,8 +28,8 @@ prefix/steam_b.m3u8\r
       version=54,
       prefix="prefix/",
       [
-        "stream_a".{bandwidth=123, codecs="codecs_a"},
-        "steam_b".{bandwidth=456, codecs="codecs_b", video_size=(12, 34)}
+        "stream_a".{bandwidth = 123, codecs = "codecs_a"},
+        "steam_b".{bandwidth = 456, codecs = "codecs_b", video_size = (12, 34)}
       ]
     )
   test.equal(
@@ -49,8 +49,8 @@ prefix/steam_b.m3u8\r
     hls.playlist.main(
       version=54,
       [
-        "stream_a".{bandwidth=123, codecs="codecs_a"},
-        "steam_b".{bandwidth=456, codecs="codecs_b", video_size=(12, 34)}
+        "stream_a".{bandwidth = 123, codecs = "codecs_a"},
+        "steam_b".{bandwidth = 456, codecs = "codecs_b", video_size = (12, 34)}
       ]
     )
   test.equal(

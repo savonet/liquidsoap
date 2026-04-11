@@ -126,11 +126,11 @@ def request.queue(
 
   s =
     s.{
-      add=add,
-      push=push.{uri=push_uri},
-      length={list.length(queue()) + list.length(s.queue())},
-      set_queue=set_queue,
-      queue=get_queue
+      add = add,
+      push = push.{uri = push_uri},
+      length = {list.length(queue()) + list.length(s.queue())},
+      set_queue = set_queue,
+      queue = get_queue
     }
 
   s.on_wake_up(
@@ -239,8 +239,8 @@ def request.once(~id=null("request.once"), ~timeout=null, r) =
 
   s = source.dynamic(self_sync=false, track_sensitive=true, next)
   (s : source_methods).{
-    resolve=fun () -> request.resolve(r, timeout=timeout),
-    request=r
+    resolve = fun () -> request.resolve(r, timeout=timeout),
+    request = r
   }
 end
 
@@ -438,8 +438,8 @@ def request.player(~simultaneous=true) =
     end
 
     source.dynamic(s).{
-      play=play,
-      length=
+      play = play,
+      length =
         {
           collect(reload_source=true)
           list.length(l())
@@ -462,6 +462,6 @@ def request.player(~simultaneous=true) =
       next_source := r
     end
 
-    s.{play=play, length={1}}
+    s.{play = play, length = {1}}
   end
 end

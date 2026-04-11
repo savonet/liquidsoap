@@ -56,7 +56,7 @@ def f() =
     )
     x + 1
   end
-  test.equal(f(1.{foo="gni"}), 2)
+  test.equal(f(1.{foo = "gni"}), 2)
 
   test.pass()
 end

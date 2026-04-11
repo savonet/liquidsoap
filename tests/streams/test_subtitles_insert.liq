@@ -5,19 +5,26 @@ thread.run(
   delay=1.,
   {
     s.insert_subtitle(
-      {duration=2.0, text="Inserted subtitle", format="ass", forced=true}
+      {
+        duration = 2.0,
+        text =
+          "Inserted subtitle",
+        format = "ass",
+        forced = true
+      }
     )
   }
 )
 
 def check_subtitle(sub) =
-  print("Received subtitle: text=#{sub.text}")
-  if sub.text == "Inserted subtitle" then
-    if sub.format == "ass" and sub.forced then
-      test.pass()
-    else
-      test.fail()
-    end
+  print(
+    "Received subtitle: text=#{sub.text}"
+  )
+  if
+    sub.text ==
+      "Inserted subtitle"
+  then
+    if sub.format == "ass" and sub.forced then test.pass() else test.fail() end
   end
 end
 

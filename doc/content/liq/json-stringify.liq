@@ -1,2 +1,2 @@
-r = {artist="Bla", title="Blo"}
+r = {artist = "Bla", title = "Blo"}
 print(json.stringify(r))

@@ -19,7 +19,10 @@ s.on_metadata(
         s == "s1"
       then
         ref.incr(count_s1)
-      elsif s == "s2" then ref.incr(count_s2)
+      elsif
+        s == "s2"
+      then
+        ref.incr(count_s2)
       end
 
       if count_s1() > 2 and count_s2() > 2 then test.pass() end

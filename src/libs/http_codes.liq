@@ -234,7 +234,6 @@ let http.codes =
       407,
       "Proxy Authentication Required"
     ),
-
     (
       408,
       "Request Timeout"
@@ -434,7 +433,6 @@ let http.codes =
       507,
       "Insufficient Storage"
     ),
-
     (
       509,
       "Bandwidth Limit Exceeded"

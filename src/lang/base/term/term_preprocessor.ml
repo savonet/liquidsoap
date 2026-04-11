@@ -163,69 +163,142 @@ and expand_term tm =
           comments := expanded_comments;
           term
       | `Seq (t, t') -> `Seq (expand_term t, expand_term t')
-      | `If_def ({ if_def_then; if_def_else } as if_def) ->
+      | `If_def ({ if_def_then_block; if_def_else_block } as if_def) ->
           `If_def
             {
               if_def with
-              if_def_then = expand_term if_def_then;
-              if_def_else = Option.map expand_term if_def_else;
+              if_def_then_block =
+                {
+                  if_def_then_block with
+                  block_body = expand_term if_def_then_block.block_body;
+                };
+              if_def_else_block =
+                Option.map
+                  (fun b -> { b with block_body = expand_term b.block_body })
+                  if_def_else_block;
             }
-      | `If_version ({ if_version_then; if_version_else } as if_version) ->
+      | `If_version
+          ({ if_version_then_block; if_version_else_block } as if_version) ->
           `If_version
             {
               if_version with
-              if_version_then = expand_term if_version_then;
-              if_version_else = Option.map expand_term if_version_else;
+              if_version_then_block =
+                {
+                  if_version_then_block with
+                  block_body = expand_term if_version_then_block.block_body;
+                };
+              if_version_else_block =
+                Option.map
+                  (fun b -> { b with block_body = expand_term b.block_body })
+                  if_version_else_block;
             }
-      | `If_encoder ({ if_encoder_then; if_encoder_else } as if_encoder) ->
+      | `If_encoder
+          ({ if_encoder_then_block; if_encoder_else_block } as if_encoder) ->
           `If_encoder
             {
               if_encoder with
-              if_encoder_then = expand_term if_encoder_then;
-              if_encoder_else = Option.map expand_term if_encoder_else;
+              if_encoder_then_block =
+                {
+                  if_encoder_then_block with
+                  block_body = expand_term if_encoder_then_block.block_body;
+                };
+              if_encoder_else_block =
+                Option.map
+                  (fun b -> { b with block_body = expand_term b.block_body })
+                  if_encoder_else_block;
             }
-      | `If { if_condition; if_then; if_elsif; if_else } ->
+      | `If ({ if_condition; if_then_block; if_elsif; if_else_block; _ } as _if)
+        ->
           `If
             {
+              _if with
               if_condition = expand_term if_condition;
-              if_then = expand_term if_then;
+              if_then_block =
+                {
+                  if_then_block with
+                  block_body = expand_term if_then_block.block_body;
+                };
               if_elsif =
                 List.map
-                  (fun (t, t') -> (expand_term t, expand_term t'))
+                  (fun ({ elsif_condition; elsif_then_block; _ } as e) ->
+                    {
+                      e with
+                      elsif_condition = expand_term elsif_condition;
+                      elsif_then_block =
+                        {
+                          elsif_then_block with
+                          block_body = expand_term elsif_then_block.block_body;
+                        };
+                    })
                   if_elsif;
-              if_else = Option.map expand_term if_else;
+              if_else_block =
+                Option.map
+                  (fun b -> { b with block_body = expand_term b.block_body })
+                  if_else_block;
             }
-      | `Inline_if { if_condition; if_then; if_elsif; if_else } ->
+      | `Inline_if
+          ({ if_condition; if_then_block; if_elsif; if_else_block; _ } as _if)
+        ->
           `If
             {
+              _if with
               if_condition = expand_term if_condition;
-              if_then = expand_term if_then;
+              if_then_block =
+                {
+                  if_then_block with
+                  block_body = expand_term if_then_block.block_body;
+                };
               if_elsif =
                 List.map
-                  (fun (t, t') -> (expand_term t, expand_term t'))
+                  (fun ({ elsif_condition; elsif_then_block; _ } as e) ->
+                    {
+                      e with
+                      elsif_condition = expand_term elsif_condition;
+                      elsif_then_block =
+                        {
+                          elsif_then_block with
+                          block_body = expand_term elsif_then_block.block_body;
+                        };
+                    })
                   if_elsif;
-              if_else = Option.map expand_term if_else;
+              if_else_block =
+                Option.map
+                  (fun b -> { b with block_body = expand_term b.block_body })
+                  if_else_block;
             }
-      | `While { while_condition; while_loop } ->
+      | `While { while_condition; while_do_block } ->
           `While
             {
               while_condition = expand_term while_condition;
-              while_loop = expand_term while_loop;
+              while_do_block =
+                {
+                  while_do_block with
+                  block_body = expand_term while_do_block.block_body;
+                };
             }
-      | `For ({ for_from; for_to; for_loop } as _for) ->
+      | `For ({ for_from; for_to; for_do_block } as _for) ->
           `For
             {
               _for with
               for_from = expand_term for_from;
               for_to = expand_term for_to;
-              for_loop = expand_term for_loop;
+              for_do_block =
+                {
+                  for_do_block with
+                  block_body = expand_term for_do_block.block_body;
+                };
             }
-      | `Iterable_for ({ iterable_for_iterator; iterable_for_loop } as _for) ->
+      | `Iterable_for ({ iterable_for_iterator; iterable_for_do_block } as _for)
+        ->
           `Iterable_for
             {
               _for with
               iterable_for_iterator = expand_term iterable_for_iterator;
-              iterable_for_loop = expand_term iterable_for_loop;
+              iterable_for_do_block =
+                {
+                  iterable_for_do_block with
+                  block_body = expand_term iterable_for_do_block.block_body;
+                };
             }
       | `List l ->
           `List
@@ -234,15 +307,33 @@ and expand_term tm =
                  | `Term t -> `Term (expand_term t)
                  | `Ellipsis t -> `Ellipsis (expand_term t))
                l)
-      | `Try ({ try_body; try_errors_list; try_handler; try_finally } as _try)
-        ->
+      | `Try { try_body_block; try_handler; try_finally_block } ->
           `Try
             {
-              _try with
-              try_body = expand_term try_body;
-              try_errors_list = Option.map expand_term try_errors_list;
-              try_handler = Option.map expand_term try_handler;
-              try_finally = Option.map expand_term try_finally;
+              try_body_block =
+                {
+                  try_body_block with
+                  block_body = expand_term try_body_block.block_body;
+                };
+              try_handler =
+                Option.map
+                  (fun ({ try_handler_errors_list; try_handler_block; _ } as h)
+                     ->
+                    {
+                      h with
+                      try_handler_errors_list =
+                        Option.map expand_term try_handler_errors_list;
+                      try_handler_block =
+                        {
+                          try_handler_block with
+                          block_body = expand_term try_handler_block.block_body;
+                        };
+                    })
+                  try_handler;
+              try_finally_block =
+                Option.map
+                  (fun b -> { b with block_body = expand_term b.block_body })
+                  try_finally_block;
             }
       | `Regexp _ as ast -> ast
       | `Time_interval _ as ast -> ast

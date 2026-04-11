@@ -4,11 +4,11 @@ def f() =
       boundary="foobar",
       [
         {
-          name=
+          name =
             "the name",
-          contents=getter("foobarlol"),
-          headers=[("some", "headers")],
-          attributes=
+          contents = getter("foobarlol"),
+          headers = [("some", "headers")],
+          attributes =
             [
               (
                 "filename",
@@ -16,7 +16,12 @@ def f() =
               )
             ]
         },
-        {name="namez", contents=getter("gnigno"), headers=[], attributes=[]}
+        {
+          name = "namez",
+          contents = getter("gnigno"),
+          headers = [],
+          attributes = []
+        }
       ]
     )
 
@@ -34,11 +39,11 @@ def f() =
       boundary="foobar",
       [
         {
-          name=
+          name =
             "the name",
-          contents=getter("foobarlol"),
-          headers=[("some", "headers")],
-          attributes=
+          contents = getter("foobarlol"),
+          headers = [("some", "headers")],
+          attributes =
             [
               (
                 "filename",
@@ -46,7 +51,12 @@ def f() =
               )
             ]
         },
-        {name="namez", contents=getter("gnigno"), headers=[], attributes=[]}
+        {
+          name = "namez",
+          contents = getter("gnigno"),
+          headers = [],
+          attributes = []
+        }
       ]
     )
 

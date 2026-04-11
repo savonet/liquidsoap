@@ -9,7 +9,7 @@ settings.decoder.decoders := ["srt"]
 let {video = v} = source.tracks(video.testsrc.ffmpeg(duration=15.))
 let {subtitles = sub} = source.tracks(once(single("test-subtitle.srt")))
 
-s = source({video=v, subtitles=sub})
+s = source({video = v, subtitles = sub})
 s = once(s)
 
 clock.assign_new(id="test", sync="none", [s])

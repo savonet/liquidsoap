@@ -1,4 +1,4 @@
-let spinitron = {submit=()}
+let spinitron = {submit = ()}
 
 # Submit a track to the spinitron track system
 # and return the raw response.
@@ -37,7 +37,7 @@ def spinitron.submit.raw(
       fold_optional_string_params,
       params,
       [
-        ("live", null.map(fun (b) -> b ? "1" : "0" , (live : bool?))),
+        ("live", null.map(fun (b) -> b ? "1" : "0", (live : bool?))),
         ("start", start),
         ("duration", null.map(string, (duration : int?))),
         ("release", release),
@@ -177,10 +177,11 @@ def spinitron.submit.metadata(
   ~mapper=(
     fun (m) ->
       [
-        ...(m["song"] != "" or m["title"] == "" ? [] : [("song", m["title"])] ),
+        ...(m["song"] != "" or m["title"] == "" ? [] : [("song", m["title"])]),
         ...(
           m["release"] != "" or m["album"] == ""
-          ? [] : [("release", m["album"])]
+            ? []
+            : [("release", m["album"])]
         )
       ]
   ),

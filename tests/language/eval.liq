@@ -44,8 +44,8 @@ def f() =
 
   echo(string(f(14)))
   t("15", {list.remove(2, [2]) == []})
-  t("16", {"bla" == (true ? "bla" : "foo" )})
-  t("17", {"foo" == (false ? "bla" : "foo" )})
+  t("16", {"bla" == (true ? "bla" : "foo")})
+  t("17", {"foo" == (false ? "bla" : "foo")})
 
   # Generic eval
   let eval x =

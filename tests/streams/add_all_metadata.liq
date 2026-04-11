@@ -20,7 +20,10 @@ def check_metadata(m) =
       source_id == "s1"
     then
       received_from_s1 := true
-    elsif source_id == "s2" then received_from_s2 := true
+    elsif
+      source_id == "s2"
+    then
+      received_from_s2 := true
     end
     if
       received_from_s1() and received_from_s2()

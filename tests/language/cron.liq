@@ -13,7 +13,7 @@ def f() =
     fun ({crontab_entry, time = t, result}) ->
       begin
         let {test = test_fn} = cron.parse(crontab_entry)
-        secs = time.make(t.{dst=null, sec=0})
+        secs = time.make(t.{dst = null, sec = 0})
 
         if
           not (test_fn(time=secs) == result)

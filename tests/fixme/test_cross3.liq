@@ -6,7 +6,7 @@
 s = 3.
 
 def once((s:float)) =
-  s.{id="bla"}
+  s.{id = "bla"}
 end
 
 # Here, because of once, we infer that f should take as argument a source with

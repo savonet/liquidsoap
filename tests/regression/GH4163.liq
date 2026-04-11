@@ -44,7 +44,10 @@ def on_metadata(m) =
     seen_titles() == expected_titles
   then
     test.pass()
-  elsif list.length(seen_titles()) == 2 then test.fail()
+  elsif
+    list.length(seen_titles()) == 2
+  then
+    test.fail()
   end
 end
 

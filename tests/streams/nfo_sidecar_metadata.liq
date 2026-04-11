@@ -28,7 +28,10 @@ def f() =
 
   nfo_md = file.nfo.metadata(nfo_file)
   test.equal(list.assoc("nfo.root", nfo_md), "movie")
-  test.equal(list.assoc("nfo.title", nfo_md), "Robot Movie")
+  test.equal(
+    list.assoc("nfo.title", nfo_md),
+    "Robot Movie"
+  )
   test.equal(list.assoc("nfo.genre", nfo_md), "Action;Drama;Comedy")
   test.equal(list.assoc("nfo.uniqueid.tmdb", nfo_md), "98765")
   test.equal(list.assoc("nfo.uniqueid.imdb", nfo_md), "tt1234567;tt7654321")
@@ -40,10 +43,7 @@ def f() =
     file.nfo.metadata(
       rules=file.nfo.rules(
         extra_rules=[
-          (
-            "YeAr",
-            fun (_, txt) -> [("year", txt), ("release_year", txt)]
-          )
+          ("YeAr", fun (_, txt) -> [("year", txt), ("release_year", txt)])
         ]
       ),
       nfo_file
@@ -54,10 +54,7 @@ def f() =
     file.nfo.metadata(
       rules=file.nfo.rules(
         extra_rules=[
-          (
-            "UniqueID",
-            fun (_, txt) -> [("uniqueid.overridden", txt)]
-          )
+          ("UniqueID", fun (_, txt) -> [("uniqueid.overridden", txt)])
         ]
       ),
       nfo_file
@@ -74,16 +71,25 @@ def f() =
   m = file.metadata(media)
 
   test.equal(list.assoc("nfo.root", m), "movie")
-  test.equal(list.assoc("nfo.title", m), "Robot Movie")
+  test.equal(
+    list.assoc("nfo.title", m),
+    "Robot Movie"
+  )
   test.equal(list.assoc("nfo.year", m), "2024")
-  test.equal(list.assoc("nfo.plot", m), "A test plot.")
+  test.equal(
+    list.assoc("nfo.plot", m),
+    "A test plot."
+  )
   test.equal(list.assoc("nfo.genre", m), "Action;Drama;Comedy")
   test.equal(list.assoc("nfo.uniqueid.imdb", m), "tt1234567;tt7654321")
   test.equal(list.assoc("nfo.uniqueid.tmdb", m), "98765")
   test.equal(list.assoc("nfo.uniqueid.untyped", m), "home001;home002")
   test.equal(list.assoc("nfo.uniqueid.default", m), "98765")
   test.equal(list.assoc("nfo.uniqueid.default.type", m), "tmdb")
-  test.equal(list.assoc("title", m), "Test Title")
+  test.equal(
+    list.assoc("title", m),
+    "Test Title"
+  )
   test.pass()
 end
 

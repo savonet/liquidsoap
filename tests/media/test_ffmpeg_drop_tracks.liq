@@ -12,7 +12,7 @@ let {audio = audio_a} = source.tracks(input_a)
 let {audio = audio_b} = source.tracks(input_b)
 let {audio = audio_c} = source.tracks(input_c)
 
-muxed_input = source({audio_a=audio_a, audio_b=audio_b, audio_c=audio_c})
+muxed_input = source({audio_a = audio_a, audio_b = audio_b, audio_c = audio_c})
 
 streams =
   [
@@ -80,12 +80,9 @@ def check_stream() =
         )
 
       null.get(audio_stream.channel_layout) == "stereo"
-    and
-      null.get(audio_stream.codec_name) == "aac"
-    and
-      null.get(audio_stream.sample_fmt) == "fltp"
-    and
-      null.get(audio_stream.sample_rate) == "44100"
+      and null.get(audio_stream.codec_name) == "aac"
+      and null.get(audio_stream.sample_fmt) == "fltp"
+      and null.get(audio_stream.sample_rate) == "44100"
     end
 
     if

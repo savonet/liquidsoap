@@ -3,7 +3,7 @@ log.level.set(4)
 let {video = v} = source.tracks(video.testsrc.ffmpeg(duration=32.))
 let {subtitles = s} = source.tracks(single("test-subtitle.srt"))
 
-s = source({video=v, subtitles=s})
+s = source({video = v, subtitles = s})
 
 s = once(s)
 

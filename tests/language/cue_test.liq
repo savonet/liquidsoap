@@ -18,56 +18,56 @@ FILE "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3" MP3
   test.equal(
     playlist.parse.cue.full(cue_file),
     {
-      tracks=
+      tracks =
         [
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="mp3",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "mp3",
+                    filename =
                       "Bronski beat - Smalltown boy (12 extended).mp3"
                   }
                 )
               ],
-            title=
+            title =
               "Smalltown boy (12 extended)",
-            position=1,
-            track_type="audio",
-            performer=
+            position = 1,
+            track_type = "audio",
+            performer =
               "Bronski Beat"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="mp3",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "mp3",
+                    filename =
                       "Rihanna - Dont Stop The Music (Ed Marquis Remix).mp3"
                   }
                 )
               ],
-            title=
+            title =
               "Dont Stop The Music (Ed Marquis Remix)",
-            position=2,
-            track_type="audio",
-            performer="Rihanna"
+            position = 2,
+            track_type = "audio",
+            performer = "Rihanna"
           }
         ],
-      title=
+      title =
         "Musique a la carte",
-      rem=[("date", "2020"), ("genre", "Electronica")],
-      performer=
+      rem = [("date", "2020"), ("genre", "Electronica")],
+      performer =
         "Electronic Mix"
     }
   )
@@ -141,78 +141,78 @@ FILE "Block Party - Silent Alarm.flac" WAVE
   test.equal(
     playlist.parse.cue.full(cue_file),
     {
-      tracks=
+      tracks =
         [
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "Block Party - Silent Alarm.flac"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=70,
-                    seconds=22,
-                    minutes=3,
-                    file_type="wave",
-                    filename=
+                    frames = 70,
+                    seconds = 22,
+                    minutes = 3,
+                    file_type = "wave",
+                    filename =
                       "Block Party - Silent Alarm.flac"
                   }
                 )
               ],
-            performer=
+            performer =
               "Block Party",
-            track_type="audio",
-            position=1,
-            title=
+            track_type = "audio",
+            position = 1,
+            title =
               "Like Eating Glass"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=69,
-                    seconds=42,
-                    minutes=7,
-                    file_type="wave",
-                    filename=
+                    frames = 69,
+                    seconds = 42,
+                    minutes = 7,
+                    file_type = "wave",
+                    filename =
                       "Block Party - Silent Alarm.flac"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=69,
-                    seconds=44,
-                    minutes=7,
-                    file_type="wave",
-                    filename=
+                    frames = 69,
+                    seconds = 44,
+                    minutes = 7,
+                    file_type = "wave",
+                    filename =
                       "Block Party - Silent Alarm.flac"
                   }
                 )
               ],
-            performer=
+            performer =
               "Block Party",
-            track_type="audio",
-            position=2,
-            title="Helicopter"
+            track_type = "audio",
+            position = 2,
+            title = "Helicopter"
           }
         ],
-      title=
+      title =
         "Silent Alarm",
-      rem=[],
-      performer=
+      rem = [],
+      performer =
         "Block Party"
     }
   )
@@ -368,525 +368,525 @@ FILE "The Specials - Singles.wav" WAVE
   test.equal(
     playlist.parse.cue.full(cue_file),
     {
-      tracks=
+      tracks =
         [
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            title="Gangsters",
-            position=1,
-            track_type="audio",
-            performer=
+            title = "Gangsters",
+            position = 1,
+            track_type = "audio",
+            performer =
               "The Specials"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=74,
-                    seconds=47,
-                    minutes=2,
-                    file_type="wave",
-                    filename=
+                    frames = 74,
+                    seconds = 47,
+                    minutes = 2,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=27,
-                    seconds=48,
-                    minutes=2,
-                    file_type="wave",
-                    filename=
+                    frames = 27,
+                    seconds = 48,
+                    minutes = 2,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=2,
-            title=
+            track_type = "audio",
+            position = 2,
+            title =
               "Rudi, A Message To You"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=50,
-                    seconds=41,
-                    minutes=5,
-                    file_type="wave",
-                    filename=
+                    frames = 50,
+                    seconds = 41,
+                    minutes = 5,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=27,
-                    seconds=42,
-                    minutes=5,
-                    file_type="wave",
-                    filename=
+                    frames = 27,
+                    seconds = 42,
+                    minutes = 5,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=3,
-            title=
+            track_type = "audio",
+            position = 3,
+            title =
               "Nite Klub"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=47,
-                    seconds=53,
-                    minutes=8,
-                    file_type="wave",
-                    filename=
+                    frames = 47,
+                    seconds = 53,
+                    minutes = 8,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=37,
-                    seconds=54,
-                    minutes=8,
-                    file_type="wave",
-                    filename=
+                    frames = 37,
+                    seconds = 54,
+                    minutes = 8,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=4,
-            title=
+            track_type = "audio",
+            position = 4,
+            title =
               "Too Much Too Young"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=20,
-                    seconds=59,
-                    minutes=10,
-                    file_type="wave",
-                    filename=
+                    frames = 20,
+                    seconds = 59,
+                    minutes = 10,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=17,
-                    seconds=0,
-                    minutes=11,
-                    file_type="wave",
-                    filename=
+                    frames = 17,
+                    seconds = 0,
+                    minutes = 11,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=5,
-            title=
+            track_type = "audio",
+            position = 5,
+            title =
               "Guns Of Navarone"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=55,
-                    seconds=20,
-                    minutes=13,
-                    file_type="wave",
-                    filename=
+                    frames = 55,
+                    seconds = 20,
+                    minutes = 13,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=67,
-                    seconds=20,
-                    minutes=13,
-                    file_type="wave",
-                    filename=
+                    frames = 67,
+                    seconds = 20,
+                    minutes = 13,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=6,
-            title=
+            track_type = "audio",
+            position = 6,
+            title =
               "Rat Race"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=67,
-                    seconds=29,
-                    minutes=16,
-                    file_type="wave",
-                    filename=
+                    frames = 67,
+                    seconds = 29,
+                    minutes = 16,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=30,
-                    seconds=30,
-                    minutes=16,
-                    file_type="wave",
-                    filename=
+                    frames = 30,
+                    seconds = 30,
+                    minutes = 16,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=7,
-            title="Stereotype"
+            track_type = "audio",
+            position = 7,
+            title = "Stereotype"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=27,
-                    seconds=19,
-                    minutes=20,
-                    file_type="wave",
-                    filename=
+                    frames = 27,
+                    seconds = 19,
+                    minutes = 20,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=20,
-                    seconds=20,
-                    minutes=20,
-                    file_type="wave",
-                    filename=
+                    frames = 20,
+                    seconds = 20,
+                    minutes = 20,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=8,
-            title=
+            track_type = "audio",
+            position = 8,
+            title =
               "International Jet Set"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=70,
-                    seconds=30,
-                    minutes=24,
-                    file_type="wave",
-                    filename=
+                    frames = 70,
+                    seconds = 30,
+                    minutes = 24,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=27,
-                    seconds=32,
-                    minutes=24,
-                    file_type="wave",
-                    filename=
+                    frames = 27,
+                    seconds = 32,
+                    minutes = 24,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=9,
-            title=
+            track_type = "audio",
+            position = 9,
+            title =
               "Do Nothing"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=30,
-                    seconds=23,
-                    minutes=28,
-                    file_type="wave",
-                    filename=
+                    frames = 30,
+                    seconds = 23,
+                    minutes = 28,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=42,
-                    seconds=23,
-                    minutes=28,
-                    file_type="wave",
-                    filename=
+                    frames = 42,
+                    seconds = 23,
+                    minutes = 28,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=10,
-            title=
+            track_type = "audio",
+            position = 10,
+            title =
               "Ghost Town"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=37,
-                    seconds=21,
-                    minutes=34,
-                    file_type="wave",
-                    filename=
+                    frames = 37,
+                    seconds = 21,
+                    minutes = 34,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=47,
-                    seconds=21,
-                    minutes=34,
-                    file_type="wave",
-                    filename=
+                    frames = 47,
+                    seconds = 21,
+                    minutes = 34,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=11,
-            title="Why?"
+            track_type = "audio",
+            position = 11,
+            title = "Why?"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=50,
-                    seconds=16,
-                    minutes=38,
-                    file_type="wave",
-                    filename=
+                    frames = 50,
+                    seconds = 16,
+                    minutes = 38,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=55,
-                    seconds=16,
-                    minutes=38,
-                    file_type="wave",
-                    filename=
+                    frames = 55,
+                    seconds = 16,
+                    minutes = 38,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=12,
-            title=
+            track_type = "audio",
+            position = 12,
+            title =
               "Friday Night, Saturday Morning"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=7,
-                    seconds=50,
-                    minutes=41,
-                    file_type="wave",
-                    filename=
+                    frames = 7,
+                    seconds = 50,
+                    minutes = 41,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=51,
-                    minutes=41,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 51,
+                    minutes = 41,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=13,
-            title=
+            track_type = "audio",
+            position = 13,
+            title =
               "War Crimes"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=55,
-                    seconds=50,
-                    minutes=45,
-                    file_type="wave",
-                    filename=
+                    frames = 55,
+                    seconds = 50,
+                    minutes = 45,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=72,
-                    seconds=51,
-                    minutes=45,
-                    file_type="wave",
-                    filename=
+                    frames = 72,
+                    seconds = 51,
+                    minutes = 45,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=14,
-            title=
+            track_type = "audio",
+            position = 14,
+            title =
               "Racist Friend"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=55,
-                    seconds=35,
-                    minutes=49,
-                    file_type="wave",
-                    filename=
+                    frames = 55,
+                    seconds = 35,
+                    minutes = 49,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=22,
-                    seconds=38,
-                    minutes=49,
-                    file_type="wave",
-                    filename=
+                    frames = 22,
+                    seconds = 38,
+                    minutes = 49,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=15,
-            title=
+            track_type = "audio",
+            position = 15,
+            title =
               "Nelson Mandela"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=0,
-                    seconds=11,
-                    minutes=54,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 11,
+                    minutes = 54,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=40,
-                    seconds=12,
-                    minutes=54,
-                    file_type="wave",
-                    filename=
+                    frames = 40,
+                    seconds = 12,
+                    minutes = 54,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=16,
-            title=
+            track_type = "audio",
+            position = 16,
+            title =
               "(What I Like Most About You Is Your) Girlfriend"
           }
         ],
-      title="Singles",
-      rem=
+      title = "Singles",
+      rem =
         [
           (
             "comment",
@@ -896,7 +896,7 @@ FILE "The Specials - Singles.wav" WAVE
           ("date", "1991"),
           ("genre", "Ska")
         ],
-      performer=
+      performer =
         "The Specials"
     }
   )
@@ -1435,54 +1435,54 @@ FILE "The Specials - Singles - 02 - Rudi, A Message To You.wav" WAVE
   test.equal(
     playlist.parse.cue.full(cue_file),
     {
-      tracks=
+      tracks =
         [
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles - 01 - Gangsters.wav"
                   }
                 )
               ],
-            title="Gangsters",
-            position=1,
-            track_type="audio",
-            performer=
+            title = "Gangsters",
+            position = 1,
+            track_type = "audio",
+            performer =
               "The Specials"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "The Specials - Singles - 02 - Rudi, A Message To You.wav"
                   }
                 )
               ],
-            performer=
+            performer =
               "The Specials",
-            track_type="audio",
-            position=2,
-            title=
+            track_type = "audio",
+            position = 2,
+            title =
               "Rudi, A Message To You",
-            pregap={minutes=0, seconds=0, frames=28}
+            pregap = {minutes = 0, seconds = 0, frames = 28}
           }
         ],
-      rem=[]
+      rem = []
     }
   )
 
@@ -1601,328 +1601,328 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
   test.equal(
     playlist.parse.cue.full(cue_file),
     {
-      tracks=
+      tracks =
         [
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "01 People Of The Sun.flac"
                   }
                 )
               ],
-            performer=
+            performer =
               "Rage Against The Machine",
-            track_type="audio",
-            position=1,
-            title=
+            track_type = "audio",
+            position = 1,
+            title =
               "People Of The Sun",
-            isrc="USSM19502587"
+            isrc = "USSM19502587"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "02 Bulls On Parade.flac"
                   }
                 )
               ],
-            performer=
+            performer =
               "Rage Against The Machine",
-            track_type="audio",
-            position=2,
-            title=
+            track_type = "audio",
+            position = 2,
+            title =
               "Bulls On Parade",
-            isrc="USSM19502563"
+            isrc = "USSM19502563"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=52,
-                    seconds=49,
-                    minutes=3,
-                    file_type="wave",
-                    filename=
+                    frames = 52,
+                    seconds = 49,
+                    minutes = 3,
+                    file_type = "wave",
+                    filename =
                       "02 Bulls On Parade.flac"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "03 Vietnow.flac"
                   }
                 )
               ],
-            isrc="USSM19502588",
-            title="Vietnow",
-            position=3,
-            track_type="audio",
-            performer=
+            isrc = "USSM19502588",
+            title = "Vietnow",
+            position = 3,
+            track_type = "audio",
+            performer =
               "Rage Against The Machine"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=42,
-                    seconds=37,
-                    minutes=4,
-                    file_type="wave",
-                    filename=
+                    frames = 42,
+                    seconds = 37,
+                    minutes = 4,
+                    file_type = "wave",
+                    filename =
                       "03 Vietnow.flac"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "04 Revolver.flac"
                   }
                 )
               ],
-            isrc="USSM19502589",
-            title="Revolver",
-            position=4,
-            track_type="audio",
-            performer=
+            isrc = "USSM19502589",
+            title = "Revolver",
+            position = 4,
+            track_type = "audio",
+            performer =
               "Rage Against The Machine"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=18,
-                    seconds=29,
-                    minutes=5,
-                    file_type="wave",
-                    filename=
+                    frames = 18,
+                    seconds = 29,
+                    minutes = 5,
+                    file_type = "wave",
+                    filename =
                       "04 Revolver.flac"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "05 Snakecharmer.flac"
                   }
                 )
               ],
-            isrc="USSM19502590",
-            title="Snakecharmer",
-            position=5,
-            track_type="audio",
-            performer=
+            isrc = "USSM19502590",
+            title = "Snakecharmer",
+            position = 5,
+            track_type = "audio",
+            performer =
               "Rage Against The Machine"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=43,
-                    seconds=54,
-                    minutes=3,
-                    file_type="wave",
-                    filename=
+                    frames = 43,
+                    seconds = 54,
+                    minutes = 3,
+                    file_type = "wave",
+                    filename =
                       "05 Snakecharmer.flac"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "06 Tire Me.flac"
                   }
                 )
               ],
-            isrc="USSM19502591",
-            title=
+            isrc = "USSM19502591",
+            title =
               "Tire Me",
-            position=6,
-            track_type="audio",
-            performer=
+            position = 6,
+            track_type = "audio",
+            performer =
               "Rage Against The Machine"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=73,
-                    seconds=57,
-                    minutes=2,
-                    file_type="wave",
-                    filename=
+                    frames = 73,
+                    seconds = 57,
+                    minutes = 2,
+                    file_type = "wave",
+                    filename =
                       "06 Tire Me.flac"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "07 Down Rodeo.flac"
                   }
                 )
               ],
-            isrc="USSM19502592",
-            title=
+            isrc = "USSM19502592",
+            title =
               "Down Rodeo",
-            position=7,
-            track_type="audio",
-            performer=
+            position = 7,
+            track_type = "audio",
+            performer =
               "Rage Against The Machine"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "08 Without A Face.flac"
                   }
                 )
               ],
-            performer=
+            performer =
               "Rage Against The Machine",
-            track_type="audio",
-            position=8,
-            title=
+            track_type = "audio",
+            position = 8,
+            title =
               "Without A Face",
-            isrc="USSM19502594"
+            isrc = "USSM19502594"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "09 Wind Below.flac"
                   }
                 )
               ],
-            performer=
+            performer =
               "Rage Against The Machine",
-            track_type="audio",
-            position=9,
-            title=
+            track_type = "audio",
+            position = 9,
+            title =
               "Wind Below",
-            isrc="USSM19502593"
+            isrc = "USSM19502593"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "10 Roll Right.flac"
                   }
                 )
               ],
-            performer=
+            performer =
               "Rage Against The Machine",
-            track_type="audio",
-            position=10,
-            title=
+            track_type = "audio",
+            position = 10,
+            title =
               "Roll Right",
-            isrc="USSM19502595"
+            isrc = "USSM19502595"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   0,
                   {
-                    frames=38,
-                    seconds=20,
-                    minutes=4,
-                    file_type="wave",
-                    filename=
+                    frames = 38,
+                    seconds = 20,
+                    minutes = 4,
+                    file_type = "wave",
+                    filename =
                       "10 Roll Right.flac"
                   }
                 ),
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="wave",
-                    filename=
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "wave",
+                    filename =
                       "11 Year Of Tha Boomerang.flac"
                   }
                 )
               ],
-            isrc="USSM19502596",
-            title=
+            isrc = "USSM19502596",
+            title =
               "Year Of Tha Boomerang",
-            position=11,
-            track_type="audio",
-            performer=
+            position = 11,
+            track_type = "audio",
+            performer =
               "Rage Against The Machine"
           }
         ],
-      performer=
+      performer =
         "Rage Against The Machine",
-      rem=
+      rem =
         [
           (
             "comment",
@@ -1932,7 +1932,7 @@ FILE "11 Year Of Tha Boomerang.flac" WAVE
           ("date", "1996"),
           ("genre", "Rap/Metal")
         ],
-      title=
+      title =
         "Evil Empire"
     }
   )
@@ -2477,834 +2477,834 @@ INDEX 01 117:19:00'
   test.equal(
     playlist.parse.cue.full(cue_file),
     {
-      tracks=
+      tracks =
         [
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=0,
-                    minutes=0,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 0,
+                    minutes = 0,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Big Bands In Hi-Fi",
-            track_type="audio",
-            position=1,
-            title=
+            track_type = "audio",
+            position = 1,
+            title =
               "Moonlight Serenade",
-            album=
+            album =
               "Volume 1 : Let's Dance - (Disc2"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=42,
-                    minutes=3,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 42,
+                    minutes = 3,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            title=
+            title =
               "The Laughs are on me from Frank Sinatra Balids",
-            position=2,
-            track_type="audio",
-            performer=
+            position = 2,
+            track_type = "audio",
+            performer =
               "frank sinatra"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=9,
-                    minutes=7,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 9,
+                    minutes = 7,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Frank Sinatra",
-            track_type="audio",
-            position=3,
-            title=
+            track_type = "audio",
+            position = 3,
+            title =
               "It Was A Very Good Year",
-            album=
+            album =
               "Anthology - Frank Sinatra: Collection"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=7,
-                    minutes=12,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 7,
+                    minutes = 12,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer="",
-            track_type="audio",
-            position=4,
-            title=
+            performer = "",
+            track_type = "audio",
+            position = 4,
+            title =
               "It Was A Very Good Year",
-            album=
+            album =
               "The Capitol Years (Disc 2)"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=42,
-                    minutes=15,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 42,
+                    minutes = 15,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Marian McPartland",
-            track_type="audio",
-            position=5,
-            title=
+            track_type = "audio",
+            position = 5,
+            title =
               "I'm Old Fashioned (Kern-Mercer)",
-            album=
+            album =
               "Personal Choice"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=16,
-                    minutes=19,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 16,
+                    minutes = 19,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Rosemary Clooney",
-            track_type="audio",
-            position=6,
-            title=
+            track_type = "audio",
+            position = 6,
+            title =
               "You Took Advantage Of Me",
-            album=
+            album =
               "Rosie Solves The Swingin' Riddle! (Vinyl)"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=12,
-                    minutes=22,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 12,
+                    minutes = 22,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Rosemary Clooney",
-            track_type="audio",
-            position=7,
-            title=
+            track_type = "audio",
+            position = 7,
+            title =
               "Pennies from Heaven",
-            album=
+            album =
               "From Bing to Billie"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=42,
-                    minutes=26,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 42,
+                    minutes = 26,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Billie Holiday",
-            track_type="audio",
-            position=8,
-            title=
+            track_type = "audio",
+            position = 8,
+            title =
               "Getting Some Fun Out Of Life",
-            album=
+            album =
               "Live - Billie Holiday: 1936-1949 - Just Jazz with Ed Beach"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=47,
-                    minutes=29,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 47,
+                    minutes = 29,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Bing Crosby",
-            track_type="audio",
-            position=9,
-            title=
+            track_type = "audio",
+            position = 9,
+            title =
               "It's Been A Long, Long Time",
-            album=
+            album =
               "The Definitive Collection"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=43,
-                    minutes=32,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 43,
+                    minutes = 32,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Louis Armstrong",
-            track_type="audio",
-            position=10,
-            title=
+            track_type = "audio",
+            position = 10,
+            title =
               "Gone Fishin' (Duet With Bing Crosby)",
-            album=
+            album =
               "The Definitive Collection"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=53,
-                    minutes=35,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 53,
+                    minutes = 35,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Diana Krall",
-            track_type="audio",
-            position=11,
-            title="Moonglow",
-            album=
+            track_type = "audio",
+            position = 11,
+            title = "Moonglow",
+            album =
               "Turn Up The Quiet"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=39,
-                    minutes=41,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 39,
+                    minutes = 41,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            title=
+            title =
               "Hello, Young Lovers",
-            position=12,
-            track_type="audio",
-            performer=
+            position = 12,
+            track_type = "audio",
+            performer =
               "Perry Como"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=16,
-                    minutes=44,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 16,
+                    minutes = 44,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            title=
+            title =
               "I'd be but a slave to you perry como",
-            position=13,
-            track_type="audio",
-            performer=
+            position = 13,
+            track_type = "audio",
+            performer =
               "Perry Como"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=36,
-                    minutes=47,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 36,
+                    minutes = 47,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Dinah Washington",
-            track_type="audio",
-            position=14,
-            title=
+            track_type = "audio",
+            position = 14,
+            title =
               "It Isn't Fair",
-            album=
+            album =
               "The Dinah Washington Story"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=7,
-                    minutes=51,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 7,
+                    minutes = 51,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Tommy Emmanuel",
-            track_type="audio",
-            position=15,
-            title=
+            track_type = "audio",
+            position = 15,
+            title =
               "Mona Lisa",
-            album=
+            album =
               "Endless Road"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=4,
-                    minutes=55,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 4,
+                    minutes = 55,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "June Christy",
-            track_type="audio",
-            position=16,
-            title=
+            track_type = "audio",
+            position = 16,
+            title =
               "Don't Explain",
-            album=
+            album =
               "Anthology - VA: Lady Sings The Blues"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=48,
-                    minutes=57,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 48,
+                    minutes = 57,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Bobby Darin",
-            track_type="audio",
-            position=17,
-            title="Milord",
-            album=
+            track_type = "audio",
+            position = 17,
+            title = "Milord",
+            album =
               "The Bobby Darin Collection (Disc 2) - The Pop Years - Part One"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=49,
-                    minutes=59,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 49,
+                    minutes = 59,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Fred Astaire",
-            track_type="audio",
-            position=18,
-            title=
+            track_type = "audio",
+            position = 18,
+            title =
               "A Fine Romance",
-            album=
+            album =
               "Steppin'Out: Astaire Sings"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=58,
-                    minutes=63,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 58,
+                    minutes = 63,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Stacey Kent",
-            track_type="audio",
-            position=19,
-            title="Dreamer",
-            album=
+            track_type = "audio",
+            position = 19,
+            title = "Dreamer",
+            album =
               "Dreamer In Concert"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=4,
-                    minutes=69,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 4,
+                    minutes = 69,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Stacey Kent",
-            track_type="audio",
-            position=20,
-            title=
+            track_type = "audio",
+            position = 20,
+            title =
               "Jardin D'hiver",
-            album=
+            album =
               "Dreamer In Concert"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=30,
-                    minutes=73,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 30,
+                    minutes = 73,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Tony Bennett",
-            track_type="audio",
-            position=21,
-            title=
+            track_type = "audio",
+            position = 21,
+            title =
               "Maybe This Time [From Cabaret]",
-            album=
+            album =
               "Forty Years: The Artistry of Tony Bennett Disc 4"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=33,
-                    minutes=77,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 33,
+                    minutes = 77,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Tony Bennett",
-            track_type="audio",
-            position=22,
-            title=
+            track_type = "audio",
+            position = 22,
+            title =
               "If I Ruled The World 3:00",
-            album=
+            album =
               "Very Best of"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=49,
-                    minutes=80,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 49,
+                    minutes = 80,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Tommy Dorsey",
-            track_type="audio",
-            position=23,
-            title=
+            track_type = "audio",
+            position = 23,
+            title =
               "Be Careful It's My Heart",
-            album=
+            album =
               "Sentimental Memories With Vocals By Frank Sinatra"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=55,
-                    minutes=83,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 55,
+                    minutes = 83,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Day, Doris",
-            track_type="audio",
-            position=24,
-            title=
+            track_type = "audio",
+            position = 24,
+            title =
               "You Made Me Love You (I Didn't Want To Do It)",
-            album=
+            album =
               "The Essential Love Songs"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=41,
-                    minutes=86,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 41,
+                    minutes = 86,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Frank Capp",
-            track_type="audio",
-            position=25,
-            title=
+            track_type = "audio",
+            position = 25,
+            title =
               "Li'l Darlin'",
-            album=
+            album =
               "In a Hefti Bag"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=37,
-                    minutes=91,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 37,
+                    minutes = 91,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            title=
+            title =
               "Standard Time",
-            position=26,
-            track_type="audio",
-            performer=""
+            position = 26,
+            track_type = "audio",
+            performer = ""
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=41,
-                    minutes=91,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 41,
+                    minutes = 91,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            title=
+            title =
               "Soundtrack Of Your Life",
-            position=27,
-            track_type="audio",
-            performer=""
+            position = 27,
+            track_type = "audio",
+            performer = ""
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=46,
-                    minutes=91,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 46,
+                    minutes = 91,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Johnny Mathis",
-            track_type="audio",
-            position=28,
-            title="Misty",
-            album=
+            track_type = "audio",
+            position = 28,
+            title = "Misty",
+            album =
               "The Essential Johnny Mathis Disc 1"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=19,
-                    minutes=95,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 19,
+                    minutes = 95,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            title=
+            title =
               "Soundtrack Of Your Life",
-            position=29,
-            track_type="audio",
-            performer=""
+            position = 29,
+            track_type = "audio",
+            performer = ""
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=25,
-                    minutes=95,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 25,
+                    minutes = 95,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            title=
+            title =
               "Standard Time",
-            position=30,
-            track_type="audio",
-            performer=""
+            position = 30,
+            track_type = "audio",
+            performer = ""
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=39,
-                    minutes=95,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 39,
+                    minutes = 95,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            title=
+            title =
               "Don't worry bout me",
-            position=31,
-            track_type="audio",
-            performer=
+            position = 31,
+            track_type = "audio",
+            performer =
               "Tierny Sutton"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=23,
-                    minutes=100,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 23,
+                    minutes = 100,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Steve Lawrence, Eydie Gorme",
-            track_type="audio",
-            position=32,
-            title=
+            track_type = "audio",
+            position = 32,
+            title =
               "What I Did For Love",
-            album=
+            album =
               "The Hits of Steve Lawrence & Eydie Gorme"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=47,
-                    minutes=104,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 47,
+                    minutes = 104,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Woody Herman",
-            track_type="audio",
-            position=33,
-            title=
+            track_type = "audio",
+            position = 33,
+            title =
               "Woodchopper's Ball",
-            album=
+            album =
               "Woodchopper's Ball"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=12,
-                    minutes=108,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 12,
+                    minutes = 108,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Jo Stafford",
-            track_type="audio",
-            position=34,
-            title=
+            track_type = "audio",
+            position = 34,
+            title =
               "There's No You",
-            album=
+            album =
               "Fools Rush In"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=33,
-                    minutes=111,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 33,
+                    minutes = 111,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Dean Martin",
-            track_type="audio",
-            position=35,
-            title=
+            track_type = "audio",
+            position = 35,
+            title =
               "It Looks Like Love",
-            album=
+            album =
               "Essential Love Songs [+digital booklet]"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=56,
-                    minutes=113,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 56,
+                    minutes = 113,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer="",
-            track_type="audio",
-            position=36,
-            title="12-sammy_davis_jr-too_close_for_comfort",
-            album=
+            performer = "",
+            track_type = "audio",
+            position = 36,
+            title = "12-sammy_davis_jr-too_close_for_comfort",
+            album =
               "The Reprise Years"
           },
           {
-            indexes=
+            indexes =
               [
                 (
                   1,
                   {
-                    frames=0,
-                    seconds=19,
-                    minutes=117,
-                    file_type="mp3",
-                    filename="/home/radio/firepit/StandardTime.mp3"
+                    frames = 0,
+                    seconds = 19,
+                    minutes = 117,
+                    file_type = "mp3",
+                    filename = "/home/radio/firepit/StandardTime.mp3"
                   }
                 )
               ],
-            performer=
+            performer =
               "Pete Fountain",
-            track_type="audio",
-            position=37,
-            title=
+            track_type = "audio",
+            position = 37,
+            title =
               "La Vie En Rose",
-            album=
+            album =
               "A Touch Of Class"
           }
         ],
-      rem=[]
+      rem = []
     }
   )
 

@@ -5,14 +5,14 @@ let audio.encode = ()
 # @category Source / Audio processing
 def audio.encode.pcm_s16(~id=null("audio.encode.pcm_s16"), s) =
   let {audio, ...tracks} = source.tracks(s)
-  source(id=id, tracks.{audio=track.encode.audio.pcm_s16(audio)})
+  source(id=id, tracks.{audio = track.encode.audio.pcm_s16(audio)})
 end
 
 # Encode audio track to pcm_f32
 # @category Source / Audio processing
 def audio.encode.pcm_f32(~id=null("audio.encode.pcm_f32"), s) =
   let {audio, ...tracks} = source.tracks(s)
-  source(id=id, tracks.{audio=track.encode.audio.pcm_f32(audio)})
+  source(id=id, tracks.{audio = track.encode.audio.pcm_f32(audio)})
 end
 
 let audio.decode = ()
@@ -21,14 +21,14 @@ let audio.decode = ()
 # @category Source / Audio processing
 def audio.decode.pcm_s16(~id=null("audio.decode.pcm_s16"), s) =
   let {audio, ...tracks} = source.tracks(s)
-  source(id=id, tracks.{audio=track.decode.audio.pcm_s16(audio)})
+  source(id=id, tracks.{audio = track.decode.audio.pcm_s16(audio)})
 end
 
 # Decode audio track to pcm_f32
 # @category Source / Audio processing
 def audio.decode.pcm_f32(~id=null("audio.decode.pcm_f32"), s) =
   let {audio, ...tracks} = source.tracks(s)
-  source(id=id, tracks.{audio=track.decode.audio.pcm_f32(audio)})
+  source(id=id, tracks.{audio = track.decode.audio.pcm_f32(audio)})
 end
 
 # Samplerate for audio.
@@ -52,7 +52,7 @@ def amplify(~id=null("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
   source(
     id=id,
     tracks.{
-      audio=
+      audio =
         track.audio.amplify(
           id=null("track.audio.amplify"),
           %argsof(track.audio.amplify[!id]),
@@ -72,7 +72,7 @@ def clip(~id=null("clip"), %argsof(track.audio.clip[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,
-    tracks.{audio=track.audio.clip(%argsof(track.audio.clip), tracks.audio)}
+    tracks.{audio = track.audio.clip(%argsof(track.audio.clip), tracks.audio)}
   )
 end
 
@@ -189,9 +189,9 @@ def replaces normalize(
   s.on_frame(synchronous=true, update)
   if track_sensitive then s.on_track(synchronous=true, fun (_) -> v := 1.) end
   amplify(id=id, {v()}, delay_line(lookahead, s)).{
-    rms=rms,
-    gain={v()},
-    target_gain=target_gain
+    rms = rms,
+    gain = {v()},
+    target_gain = target_gain
   }
 end
 
@@ -199,7 +199,7 @@ end
 # @category Source / Conversion
 def swap(id=null("swap"), s) =
   tracks = source.tracks(s)
-  source(id=id, tracks.{audio=track.audio.swap(tracks.audio)})
+  source(id=id, tracks.{audio = track.audio.swap(tracks.audio)})
 end
 
 # Produce mono audio by taking the mean of all audio channels.
@@ -209,7 +209,7 @@ def mean(~id=null("mean"), %argsof(track.audio.mean[!id]), s) =
   tracks = source.tracks(s)
   source(
     id=id,
-    tracks.{audio=track.audio.mean(%argsof(track.audio.mean), tracks.audio)}
+    tracks.{audio = track.audio.mean(%argsof(track.audio.mean), tracks.audio)}
   )
 end
 
@@ -217,7 +217,7 @@ end
 # @category Source / Conversion
 def stereo(~id=null("stereo"), s) =
   tracks = source.tracks(s)
-  source(id=id, tracks.{audio=track.audio.stereo(tracks.audio)})
+  source(id=id, tracks.{audio = track.audio.stereo(tracks.audio)})
 end
 
 # Extract the left channel of a stereo track
@@ -237,7 +237,7 @@ end
 # @param s Source to extract from
 def stereo.left(~id=null("stereo.left"), s) =
   tracks = source.tracks(s)
-  source(id=id, tracks.{audio=track.audio.stereo.left(tracks.audio)})
+  source(id=id, tracks.{audio = track.audio.stereo.left(tracks.audio)})
 end
 
 # Extract the right channel of a stereo track
@@ -257,7 +257,7 @@ end
 # @param s Source to extract from
 def stereo.right(~id=null("stereo.right"), s) =
   tracks = source.tracks(s)
-  source(id=id, tracks.{audio=track.audio.stereo.right(tracks.audio)})
+  source(id=id, tracks.{audio = track.audio.stereo.right(tracks.audio)})
 end
 
 # Spacializer which allows controlling the width of the signal.
@@ -265,7 +265,7 @@ end
 # @param w Width of the signal (-1: mono, 0.: original, 1.: wide stereo).
 def stereo.width(~id=null("stereo.width"), w=getter(0.), (s:source)) =
   tracks = source.tracks(s)
-  source(id=id, tracks.{audio=track.audio.stereo.width(w, tracks.audio)})
+  source(id=id, tracks.{audio = track.audio.stereo.width(w, tracks.audio)})
 end
 
 # Pan a stereo sound.
@@ -282,7 +282,7 @@ def stereo.pan(
   source(
     id=id,
     tracks.{
-      audio=
+      audio =
         track.audio.stereo.pan(
           %argsof(track.audio.stereo.pan),
           pan,
@@ -321,7 +321,7 @@ def stereo.ms.decode(
   source(
     id=id,
     tracks.{
-      audio=
+      audio =
         track.audio.stereo.ms.decode(
           %argsof(track.audio.stereo.ms.decode),
           tracks.audio
@@ -342,7 +342,7 @@ def stereo.ms.encode(
   source(
     id=id,
     tracks.{
-      audio=
+      audio =
         track.audio.stereo.ms.encode(
           %argsof(track.audio.stereo.ms.encode),
           tracks.audio
@@ -363,7 +363,10 @@ def stereotool(
   let {audio, metadata, track_marks, ..._} = source.tracks(s)
   s = track.audio.stereotool(%argsof(track.audio.stereotool[!id]), audio)
   let replaces s =
-    source(id=id, {audio=(s : pcm), metadata=metadata, track_marks=track_marks})
+    source(
+      id=id,
+      {audio = (s : pcm), metadata = metadata, track_marks = track_marks}
+    )
 
   s
 end
@@ -402,7 +405,11 @@ def defer(~id=null("defer"), %argsof(track.audio.defer[!id]), s) =
 
   source(
     id=id,
-    {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
+    {
+      audio = a,
+      metadata = track.metadata(a),
+      track_marks = track.track_marks(a)
+    }
   )
 end
 
@@ -429,7 +436,11 @@ def defer.pcm_s16(
 
   source(
     id=id,
-    {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
+    {
+      audio = a,
+      metadata = track.metadata(a),
+      track_marks = track.track_marks(a)
+    }
   )
 end
 

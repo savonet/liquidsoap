@@ -12,12 +12,12 @@ def f() =
   s =
     source(
       {
-        en=audio,
-        audio_fr=audio_2,
-        fr=track.audio.mean(audio_2),
-        encoded_fr=track.audio.mean(audio_2),
-        encoded_director_cut=video,
-        director_cut_video=video
+        en = audio,
+        audio_fr = audio_2,
+        fr = track.audio.mean(audio_2),
+        encoded_fr = track.audio.mean(audio_2),
+        encoded_director_cut = video,
+        director_cut_video = video
       }
     )
 

@@ -10,7 +10,7 @@ def f() =
   track.audio.amplify(1., a)
 end
 
-s = source({audio=f()})
+s = source({audio = f()})
 
 o = output.file(fallible=true, %mp3(mono), tmp, s)
 o.on_stop(synchronous=true, test.pass)

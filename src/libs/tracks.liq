@@ -4,13 +4,13 @@ let source.mux.track = ()
 # Replace the audio track of a source.
 # @category Source / Track processing
 def source.mux.track.audio(~id=null, ~audio, s) =
-  source(id=id, source.tracks(s).{audio=audio})
+  source(id=id, source.tracks(s).{audio = audio})
 end
 
 # Replace the video track of a source.
 # @category Source / Track processing
 def source.mux.track.video(~id=null, ~video, s) =
-  source(id=id, source.tracks(s).{video=video})
+  source(id=id, source.tracks(s).{video = video})
 end
 
 # Replace the audio track of a source by the one of another source.
@@ -31,7 +31,7 @@ end
 # @category Source / Track processing
 # @param ~midi Source whose midi track is to be taken.
 def source.mux.midi(~id=null, ~(midi:source), s) =
-  source(id=id, source.tracks(s).{midi=source.tracks(midi).midi})
+  source(id=id, source.tracks(s).{midi = source.tracks(midi).midi})
 end
 
 let source.drop = ()

@@ -53,8 +53,8 @@ end
 s =
   source(
     {
-      audio=source.tracks(s).audio,
-      metadata=
+      audio = source.tracks(s).audio,
+      metadata =
         track.metadata.merge(
           [source.tracks(s).metadata, source.tracks(s').metadata]
         )
