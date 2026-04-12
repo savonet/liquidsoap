@@ -39,6 +39,56 @@
 
 ---
 
+# 2.4.3 (2024-04-11)
+
+## New:
+
+- Added raw string syntax `{|...|}` and `{id|...|id}` for strings
+  with no escape sequences (#4959)
+- Added optional `replay_metadata` and `add_new_track` to
+  the `buffer` operator to replay latest metadata and insert
+  track marks when the buffer becomes available again.
+- Added support for array options in ffmpeg filters (#4799)
+
+## Changed:
+
+- DEPRECATED telnet/server `request.on_air` command is enabled when
+  `settings.request.deprecated_on_air_metadata` is `true`.
+- Add back missing `"status"` telnet/server command for outputs.
+- Reduced default buffer size throughout the app to improve memory efficiency
+  (#4919)
+- Refactored XML parsing to be type-driven, support optional fields with
+  custom element name aliases (#4926, #4927)
+- Removed `self_sync` parameter from `input.jack` and `output.jack` (#5017)
+- Make posix build target paths configurable via env vars (#5046)
+
+## Fixed:
+
+- Fixed clicks/glitches when combining `liq_cue_in` with `liq_fade_in` due to `fade.in` firing too late on new tracks (#5019)
+- Prevent crashing when getting out-of-bound mark in `split_frame` (#5054)
+- Fixed clock source detach when clock is running (#5051)
+- Fixed `??` operator type inference in conditional branches (#4922)
+- Prevent double nullable types (#4925)
+- Make active `stereotool` really be active.. (#4882)
+- Fixed `fMP4` HLS support for audio+video streams (#4841)
+- Fixed crossfade clocks inconsistencies leading to weird caching audio glitches (#4851)
+- Fixed first frame of new track getting lost when crossfading with `fade.in` duration is set to `0.` (#4887)
+- Fixed crash with concurrent `stop`/`start` operations (#4849)
+- Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
+  decoder (#4848)
+- Fixed performance regression when initializing `playlist` (#4913)
+- Make sure that we read all stdout/stderr before considering a process closed. (#4918, #4934, #4941)
+- Fixed `EINTR` signal interruption in process I/O, read, and flush operations (#4947, #4949, #4951)
+- Improved string binary detection heuristics by checking for valid UTF-8 and max length; added `settings.string.max_printable_length` configuration key
+- Make sure `output.file` does not create files without data (#4899)
+- Fixed content type propagation through free type variables (#4988)
+- Improved runtime error reporting by wrapping low-level exceptions into proper
+  runtime errors (#5004)
+- Fixed `syslog` support and added it to build configuration detection (#5009)
+- Fixed sub-clock accumulation causing gradual CPU growth over time (#5032)
+
+---
+
 # 2.4.2 (2025-01-17)
 
 ## New:
