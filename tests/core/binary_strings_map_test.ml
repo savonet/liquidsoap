@@ -1,4 +1,4 @@
-open Liquidsoap_lang.Binary_strings_map
+open Liquidsoap_lang.Builtings_string
 
 (* Valid short UTF-8 strings are not binary. *)
 let () =

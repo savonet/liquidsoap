@@ -52,7 +52,7 @@ let () =
       "Maximum byte length for a string to be considered printable (not binary)"
   in
   conf_max_printable_length#on_change (fun v ->
-      Liquidsoap_lang.Binary_strings_map.max_printable_length := v)
+      Liquidsoap_lang.Lang_string.max_printable_length := v)
 
 let string = Liquidsoap_lang.Builtins_string.string
 let string_annotate = Lang.add_module ~base:string "annotate"

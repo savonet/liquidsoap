@@ -84,3 +84,5 @@ val url_encode : ?plus:bool -> string -> string
 val url_decode : ?plus:bool -> string -> string
 val split : encoding:[ `Ascii | `Utf8 ] -> string -> string list
 val length : encoding:[ `Ascii | `Utf8 ] -> string -> int
+val is_binary : string -> bool
+val max_printable_length : int ref

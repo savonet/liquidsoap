@@ -25,7 +25,7 @@ let string =
       let print_binary = Lang.to_bool (List.assoc "print_binary" p) in
       match v with
         | String { value = s } ->
-            if (not (Binary_strings_map.is_binary s)) || print_binary then
+            if (not (Lang_string.is_binary s)) || print_binary then
               Lang.string s
             else Lang.string (Value.to_string v)
         | v -> Lang.string (Value.to_string v))

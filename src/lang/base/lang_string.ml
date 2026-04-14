@@ -598,3 +598,11 @@ let length ~encoding s =
         let n = ref 0 in
         String.iter (fun c -> if Char.code c land 0xC0 <> 0x80 then incr n) s;
         !n
+
+(** Strings longer than this or containing invalid UTF-8 are treated as binary.
+*)
+let max_printable_length = ref 4096
+
+let is_binary value =
+  String.length value > !max_printable_length
+  || not (String.is_valid_utf_8 value)
