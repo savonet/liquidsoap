@@ -8,7 +8,6 @@ APK_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
 COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export LIQUIDSOAP_BUILD_TARGET=posix
-export ABUILD_APK_INDEX_OPTS="--allow-untrusted"
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
   APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_TAG}-${ALPINE_ARCH}"
@@ -30,7 +29,6 @@ sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" liquidsoap/.github/alpine/APKBUILD.in |
 
 cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post-install"
 
-abuild-keygen -a -n
 abuild
 
 mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "${LIQ_TMP_DIR}"
@@ -76,7 +74,6 @@ sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" liquidsoap/.github/alpine/APKBU
 
 cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}-minimal.post-install"
 
-abuild-keygen -a -n
 abuild
 
 mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "${LIQ_TMP_DIR}"
