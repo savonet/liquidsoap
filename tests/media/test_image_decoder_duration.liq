@@ -11,6 +11,6 @@ s.on_track(
     end
 )
 
-s = (s : source(video=canvas))
+s = (s : source(video=yuv420p))
 
 output.dummy(s)

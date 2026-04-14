@@ -218,7 +218,7 @@ let () =
       | _ -> assert false)
 
 let () =
-  (* { audio: pcm('a), video?: canvas } *)
+  (* { audio: pcm('a), video?: yuv420p } *)
   let f =
     Type.meth "audio"
       ([], Format_type.audio ())

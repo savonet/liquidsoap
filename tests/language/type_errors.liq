@@ -76,7 +76,7 @@ def f() =
 
   # Next one requires the inference of a subtype (fixed vs. variable arity)
   correct('ignore(stereo(add([])))')
-  correct('ignore((blank():source(audio=pcm,video=canvas)))')
+  correct('ignore((blank():source(audio=pcm,video=yuv420p)))')
   section("CONSTRAINTS")
   incorrect('"bl"+"a"')
   incorrect('(fun(a,b)->a+b)==(fun(a,b)->a+b)')
@@ -146,7 +146,7 @@ def f() =
     "TRACK TYPES"
   )
   correct('(source.tracks(blank()).audio:pcm)')
-  correct('(source.tracks(blank()).audio:canvas)')
+  correct('(source.tracks(blank()).audio:yuv420p)')
   correct('(source.tracks(single("")).midi:midi)')
   correct('(source.tracks(single("")).audio:ffmpeg.copy)')
   section("PATTERNS")

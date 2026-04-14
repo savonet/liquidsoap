@@ -73,6 +73,8 @@ module Specs = struct
 
   let copy d = { d with data = List.map (fun (pos, x) -> (pos, x)) d.data }
   let params _ = ()
+  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
+  let params_to_value () = Liquidsoap_lang.Lang_core.string ""
 
   let checksum d =
     let entries =

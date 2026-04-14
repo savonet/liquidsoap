@@ -37,6 +37,8 @@ module Specs = struct
   let string_of_kind = function `Pcm_f32 -> "pcm_f32"
   let copy = copy ~fmt:Bigarray.float32
   let make = make ~fmt:Bigarray.float32
+  let content_lang_typ = Content_audio.Specs.content_lang_typ
+  let params_to_value = Content_audio.Specs.params_to_value
 
   let checksum d =
     let len =

@@ -137,3 +137,31 @@ module Midi = struct
 
   type midi_params = Content_midi.Specs.params = { channels : int }
 end
+
+(* Custom Liquidsoap value type for Content.format *)
+module Format_val = Liquidsoap_lang.Lang_core.MkCustom (struct
+  type content = Contents.format
+
+  let name = "content_format"
+  let to_string = string_of_format
+
+  let to_json ~pos _ =
+    Liquidsoap_lang.Runtime_error.raise ~pos
+      ~message:"Formats cannot be represented as JSON" "json"
+
+  let compare = Stdlib.compare
+end)
+
+let content_types () =
+  List.fold_right
+    (fun { method_name; content_typ; _ } acc ->
+      Liquidsoap_lang.Type.meth ~optional:true method_name ([], content_typ) acc)
+    !content_lang_specs
+    (Liquidsoap_lang.Type.make Liquidsoap_lang.Type.unit)
+
+let value_of_format fmt =
+  let name = fst fmt in
+  Option.map
+    (fun { method_name; format_to_value; _ } ->
+      (method_name, format_to_value fmt))
+    (List.find_opt (fun s -> s.format_name = name) !content_lang_specs)

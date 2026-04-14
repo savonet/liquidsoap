@@ -541,6 +541,25 @@
   (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
 
 (rule
+ (alias test_source_content)
+ (package liquidsoap)
+ (deps
+  source_content.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   source_content.liq
+   liquidsoap
+   %{test_liq}
+   source_content.liq)))
+
+(rule
  (alias test_sqlite)
  (package liquidsoap)
  (deps
@@ -735,6 +754,7 @@
   (alias test_regexp)
   (alias test_replaygain)
   (alias test_socket)
+  (alias test_source_content)
   (alias test_sqlite)
   (alias test_stdlib)
   (alias test_string)

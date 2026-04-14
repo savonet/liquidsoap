@@ -3,6 +3,8 @@
 ## New:
 
 - Added `getter(t)` type annotation syntax for getter types (#TODO).
+- Added `source.content` operator returning an associative list of frame field names to their content format, `track.format` returning the content format of a single track, and `format.description` returning a typed record description of a content format.
+- Renamed internal video content type from `canvas` to `yuv420p` to better reflect the actual content. The video content remains organized as a canvas (superposition of `yuv420p` layers) internally. Type annotations such as `source(video=canvas)` must be updated to `source(video=yuv420p)`.
 - Added subtitles support as a dedicated content type. Includes native SRT decoding,
   FFmpeg subtitle encoding/decoding (`%subtitle`), passthrough for bitmap subtitles
   (`%subtitle.copy`), callbacks (`on_subtitle`), transformations (`subtitles.map`),

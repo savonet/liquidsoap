@@ -112,6 +112,24 @@ module Specs = struct
         done)
       d;
     Digest.bytes buf |> Digest.to_hex
+
+  let content_lang_typ =
+    let open Liquidsoap_lang in
+    Lang_core.record_t
+      [
+        ("channels", Type.make Type.Int);
+        ("channel_layout", Type.make Type.String);
+      ]
+
+  let params_to_value ({ channel_layout } as p) =
+    let open Liquidsoap_lang in
+    let channels = channels_of_param (Lazy.force channel_layout) in
+    let layout = string_of_params p in
+    Lang_core.record
+      [
+        ("channels", Lang_core.mk (`Int channels));
+        ("channel_layout", Lang_core.mk (`String layout));
+      ]
 end
 
 include MkContentBase (Specs)

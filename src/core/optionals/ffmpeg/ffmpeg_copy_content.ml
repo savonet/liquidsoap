@@ -213,6 +213,9 @@ module Specs = struct
         d.chunks
     in
     Digest.string (String.concat "||" chunk_checksums) |> Digest.to_hex
+
+  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
+  let params_to_value p = Liquidsoap_lang.Lang_core.string (string_of_params p)
 end
 
 include Content.MkContent (Specs)

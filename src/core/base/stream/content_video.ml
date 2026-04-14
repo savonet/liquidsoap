@@ -83,9 +83,9 @@ module Specs = struct
   type params = { width : int Lazy.t option; height : int Lazy.t option }
   type data = (params, Video.Canvas.image) content
 
-  let name = "canvas"
+  let name = "yuv420p"
   let internal_content_type = Some `Video
-  let string_of_kind = function `Canvas -> "canvas"
+  let string_of_kind = function `Canvas -> "yuv420p"
 
   let string_of_params { width; height } =
     print_optional
@@ -148,7 +148,7 @@ module Specs = struct
 
   let kind = `Canvas
   let default_params _ = { width = None; height = None }
-  let kind_of_string = function "canvas" -> Some `Canvas | _ -> None
+  let kind_of_string = function "yuv420p" -> Some `Canvas | _ -> None
 
   let checksum d =
     (* Hash the video frame positions and render each frame to get pixel data *)
@@ -172,6 +172,22 @@ module Specs = struct
         d.data
     in
     Digest.string (String.concat "|" frames_info) |> Digest.to_hex
+
+  let content_lang_typ =
+    let open Liquidsoap_lang in
+    Lang_core.record_t
+      [("width", Type.make Type.Int); ("height", Type.make Type.Int)]
+
+  let params_to_value { width; height } =
+    let open Liquidsoap_lang in
+    let default_width, default_height = Frame_settings.video_dimensions () in
+    let width = Lazy.force (Option.value ~default:default_width width) in
+    let height = Lazy.force (Option.value ~default:default_height height) in
+    Lang_core.record
+      [
+        ("width", Lang_core.mk (`Int width));
+        ("height", Lang_core.mk (`Int height));
+      ]
 end
 
 include MkContentBase (Specs)
