@@ -1,71 +1,94 @@
-# 🎚️ Multitrack Support in Liquidsoap
+# Multitrack
 
-Starting in version 2.2.0, Liquidsoap gained support for **multitrack operations** — a powerful addition that lets you work with individual tracks inside your media files. Whether it's audio, video, or metadata, you can now demux, remux, encode, decode, apply filters, and more — all at the track level!
+Liquidsoap supports working with individual tracks inside a source. Audio, video, metadata and track marks can each be extracted,
+manipulated independently, and recombined into a new source. This unlocks
+workflows like keeping multiple language audio tracks, remuxing streams without
+re-encoding, or applying different processing chains to audio and video.
 
-This unlocks advanced media workflows, like keeping multiple language tracks, adding a default video stream to audio-only files, or even mixing and matching content across sources.
+## What is a track?
 
-Let’s walk through what this means, step by step 👇
+A source produces a _frame_ on each streaming cycle. A frame is a collection of
+typed fields — typically `audio`, `video`, `metadata` and `track_marks`, though
+you can have any number of named audio or video fields (e.g. `audio_2`). Each
+field is what Liquidsoap calls a _track_.
 
-## 🧠 What is a Track?
-
-A media file can contain multiple “tracks.” Think of a movie file with:
-
-- 🎧 English and French audio tracks
-- 🎥 One video track
-- 📝 Metadata like title and artist
-
-In Liquidsoap, these tracks are made accessible through operators that let you manipulate them individually. This opens up many possibilities — but also introduces a few new concepts and conventions to learn.
-
-## 🔧 Requirements: When You Need FFmpeg
-
-Some multitrack features rely on FFmpeg, while others don't:
-
-| Feature                                         | Requires FFmpeg?                 |
-| ----------------------------------------------- | -------------------------------- |
-| Track-level encode/decode                       | ✅ Yes                           |
-| Encode or decode multiple audio or video tracks | ✅ Yes                           |
-| Demuxing/remuxing tracks                        | ❌ No                            |
-| Source track manipulation                       | ❌ No (unless decoding/encoding) |
-
-To fully unlock multitrack functionality, make sure your Liquidsoap is compiled with FFmpeg support.
-
-## 🎬 Using Multitrack Media
-
-Let’s say you have a media file with multiple tracks, like:
-
-```sh
-movie.mkv
-├── audio (English)
-├── audio_2 (French)
-└── video
-```
-
-You can create a source with this file like so:
+The type of a source describes its tracks. For example:
 
 ```liquidsoap
-s = single("/path/to/movie.mkv")
+source(audio=pcm(stereo), video=yuv420p)
 ```
 
-By default, only the first audio and video track will be used:
+describes a source with a stereo PCM audio track and a YUV420P video track.
+
+## Content types drive what you get
+
+An important subtlety: **what tracks a source exposes depends on how you use
+it**. Liquidsoap uses type inference to determine the content type of each
+source. The expected content is inferred from the downstream operators and
+propagated back to the source.
+
+For instance, if you write:
 
 ```liquidsoap
+s = single("movie.mkv")
 output.file(%ffmpeg(%audio.copy, %video.copy), "/path/to/copy.mkv", s)
 ```
 
-🪵 **Logs will confirm the detected tracks:**
+then the encoder tells Liquidsoap that it needs `audio` and `video` in FFmpeg
+copy format. That requirement propagates back to `s`, which then instructs the
+decoder to provide exactly those tracks.
 
+If you do not request a track, the decoder will not decode it. A file with three
+audio tracks will only produce `audio` (and discard `audio_2`, `audio_3`) unless
+you explicitly ask for them.
+
+You can force a particular content type with a type annotation:
+
+```liquidsoap
+s = (single("movie.mkv") : source(audio=pcm(stereo), video=yuv420p))
 ```
-[output_file:3] Content type is {audio=ffmpeg.copy,video=ffmpeg.copy}.
-[decoder.ffmpeg:3] Requested content-type for "/path/to/movie.mkv": {audio=ffmpeg.copy,video=ffmpeg.copy}
-[decoder.ffmpeg:3] FFmpeg recognizes "/path/to/movie.mkv" as video: {codec: h264, 1920x1038, yuv420p}, audio: {codec: aac, 48000Hz, 6 channel(s)}, audio_2: {codec: aac, 48000Hz, 6 channel(s)}
-[decoder.ffmpeg:3] Decoded content-type for "/path/to/movie.mkv": {audio=ffmpeg.copy(codec="aac",channel_layout="5.1",sample_format=fltp,sample_rate=48000),video=ffmpeg.copy(codec="h264",width=1920,height=1038,aspect_ratio=1/1,pixel_format=yuv420p)}
+
+## Demuxing and remuxing tracks
+
+Use `source.tracks` to split a source into its individual tracks:
+
+```liquidsoap
+s = single("movie.mkv")
+let {audio, video, metadata, track_marks} = source.tracks(s)
 ```
 
-Here, `audio_2` is present but unused. Let’s fix that 👇
+Each extracted value is a _track_ — a typed handle tied to the underlying
+source. You can then recombine tracks into a new source:
 
-## 🎛️ Custom Track Handling
+```liquidsoap
+s = source({audio = audio, video = video, metadata = metadata, track_marks = track_marks})
+```
 
-What if you want to **keep both audio tracks**, re-encoding the second one to stereo?
+Or replace one track while keeping the others:
+
+```liquidsoap
+image = single("logo.png")
+s = source(source.tracks(s).{video = source.tracks(image).video})
+```
+
+To drop a track entirely, use the `_` pattern or the dedicated `source.drop.*`
+operators:
+
+```liquidsoap
+# Drop track_marks by pattern
+let {track_marks = _, ...tracks} = source.tracks(s)
+s = source(tracks)
+
+# Or equivalently
+s = source.drop.track_marks(s)
+```
+
+## Track naming conventions
+
+When decoding a file with multiple tracks of the same type, the decoder names
+them `audio`, `audio_2`, `audio_3`, ... and `video`, `video_2`, `video_3`, ...
+These names are assigned by the decoder and cannot be changed at the input side.
+You can however give them any name when remuxing:
 
 ```liquidsoap
 output.file(
@@ -79,167 +102,155 @@ output.file(
 )
 ```
 
-🪵 Logs now show `audio_2` being processed:
+Only files containing all requested tracks will be accepted when using a
+playlist. Files missing any of the required tracks will be skipped.
 
-```
-[output_file:3] Content type is {audio=ffmpeg.copy,audio_2=pcm(stereo),video=ffmpeg.copy}.
-[decoder.ffmpeg:3] Requested content-type for "/path/to/movie.mkv": {audio=ffmpeg.copy,audio_2=pcm(stereo),video=ffmpeg.copy}
-[decoder.ffmpeg:3] FFmpeg recognizes "/path/to/movie.mkv" as video: {codec: h264, 1920x1038, yuv420p}, audio: {codec: aac, 48000Hz, 6 channel(s)}, audio_2: {codec: aac, 48000Hz, 6 channel(s)}
-[decoder.ffmpeg:3] Decoded content-type for "/path/to/movie.mkv": {audio=ffmpeg.copy(codec="aac",channel_layout="5.1",sample_format=fltp,sample_rate=48000),audio_2=pcm(5.1),video=ffmpeg.copy(codec="h264",width=1920,height=1038,aspect_ratio=1/1,pixel_format=yuv420p)}
-```
+## Track-level operators
 
-You now have a file with two audio tracks (one copied, one re-encoded) and one video track 🎉
-
-## ⚠️ Playlist Caveats
-
-If your source is a playlist:
+Many processing operators work directly on tracks rather than full sources. This
+lets you apply different processing to each track independently:
 
 ```liquidsoap
-s = playlist("/path/to/playlist")
+let {audio, video} = source.tracks(s)
+
+# Convert to mono
+mono = track.audio.mean(audio)
+
+# Encode audio to AAC via FFmpeg
+encoded = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio)
 ```
 
-…and you request multiple tracks:
+### Clocks and cross-clock composition
+
+Some track operators — in particular FFmpeg encoders — assign the track to a
+new clock. This becomes relevant when you want to recombine encoded tracks with
+other tracks derived from a different source.
+
+When rebuilding a source from tracks that live on different clocks, you also
+need to re-derive `metadata` and `track_marks` from a track on the same clock.
+`track.metadata` and `track.track_marks` extract those special tracks from any
+content track, making it straightforward to reassemble a full source:
 
 ```liquidsoap
-output.file(
-  fallible=true,
-  %ffmpeg(%audio.copy, %audio_2(...), %video.copy),
-  "/path/to/copy.mkv",
-  s
+let {audio} = source.tracks(s)
+
+encoded = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio)
+
+# Re-derive metadata and track_marks from the encoded track,
+# which now lives on the encoder's clock
+s = source({
+  audio = encoded,
+  metadata = track.metadata(encoded),
+  track_marks = track.track_marks(encoded)
+})
+```
+
+This pattern is the standard way to rebuild a complete source on the encoder's
+clock. All tracks in a source must share the same clock, so `metadata` and
+`track_marks` must also be derived from the encoded track rather than from the
+original source.
+
+## Inspecting content types at runtime
+
+### source.content
+
+`source.content` returns the content type of a source as an associative list
+mapping field names to their format values:
+
+```liquidsoap
+s = (noise() : source(audio=pcm, video=yuv420p))
+
+list.iter(
+  fun (entry) ->
+    let (field, fmt) = entry
+    print("#{field}: #{format.description(fmt)}"),
+  source.content(s)
 )
 ```
 
-Then **only files with all requested tracks** (audio + audio_2 + video) will be accepted. Others will be skipped.
+The returned list reflects what the type checker has determined the source will
+produce — which, as explained above, depends on how the source is used.
 
-## 🧭 Track Naming Conventions
+### track.format
 
-When decoding, track names follow this pattern:
-
-- `audio`, `audio_2`, `audio_3`, ...
-- `video`, `video_2`, `video_3`, ...
-
-These names are fixed by the decoder — you **can’t** rename them directly when reading media.
-
-For example, this will fail:
+`track.format` returns the content format of a single track:
 
 ```liquidsoap
-output.file(%ffmpeg(%audio_fr.copy, %audio_en(...), "/path/to/file.mkv", playlist("...")))
+let {audio, video} = source.tracks(s)
+
+print("audio format: #{format.description(track.format(audio))}")
+print("video format: #{format.description(track.format(video))}")
 ```
 
-Why? Because the decoder doesn’t know what `audio_fr` or `audio_en` means. Track names must match what the decoder emits: `audio`, `audio_2`, etc.
+### format.description
 
-Once you're remuxing tracks, however, you can assign **any name** you want!
+`format.description` converts a `content_format` value into a record with one
+optional method per content type. Its full type is:
 
-## 🔄 Demuxing and Remuxing Tracks
+```
+(content_format) -> {
+  ffmpeg_copy? : string,
+  ffmpeg_raw_audio? : string,
+  ffmpeg_raw_video? : string,
+  metadata? : string,
+  midi? : {channels : int},
+  pcm? : {channel_layout : string, channels : int},
+  pcm_f32? : {channel_layout : string, channels : int},
+  pcm_s16? : {channel_layout : string, channels : int},
+  subtitle? : string,
+  track_marks? : string,
+  yuv420p? : {height : int, width : int}
+}
+```
 
-To extract and rebuild track sets:
+The main content types and their fields are:
+
+| Format           | Method              | Fields                         |
+| ---------------- | ------------------- | ------------------------------ |
+| `pcm`            | `pcm?`              | `{ channels, channel_layout }` |
+| `pcm_s16`        | `pcm_s16?`          | `{ channels, channel_layout }` |
+| `pcm_f32`        | `pcm_f32?`          | `{ channels, channel_layout }` |
+| `yuv420p`        | `yuv420p?`          | `{ width, height }`            |
+| `midi`           | `midi?`             | `{ channels }`                 |
+| FFmpeg copy      | `ffmpeg_copy?`      | string description             |
+| FFmpeg raw audio | `ffmpeg_raw_audio?` | string description             |
+| FFmpeg raw video | `ffmpeg_raw_video?` | string description             |
+
+Methods are optional (marked `?`) because a given format will only populate one
+of them. Use safe navigation to access them:
 
 ```liquidsoap
-s = playlist(...)
+fmt = track.format(audio)
+desc = format.description(fmt)
 
-let {audio, video, metadata, track_marks} = source.tracks(s)
+if null.defined(desc?.pcm) then
+  pcm = null.get(desc?.pcm)
+  print("PCM: #{pcm.channels} channels, layout: #{pcm.channel_layout}")
+end
 ```
 
-You can then remix these into a new source:
+## Encoder track type hints
 
-```liquidsoap
-s = source({
-  audio = audio,
-  video = video,
-  metadata = metadata,
-  track_marks = track_marks
-})
-```
+When writing an FFmpeg encoder with custom track names, Liquidsoap needs to know
+whether each track is audio or video. It determines this from, in priority order:
 
-Tracks can also be added or replaced:
+1. `%audio.copy` or `%video.copy` — type is inferred from the format
+2. An explicit `audio_content` or `video_content` hint in the encoder spec
+3. The track name containing `"audio"` or `"video"` as a substring
+4. The codec name implying a type
 
-```liquidsoap
-s = source(source.tracks(s).{video = source.tracks(image).video})
-```
-
-One limitation is that it is not currently possible to add default tracks.
-
-The following **won't work**:
-
-```liquidsoap
-video = source.tracks(s).video ?? source.tracks(image).video
-```
-
-## 🧹 Cleaning Up Tracks
-
-Want to remove `track_marks`?
-
-```liquidsoap
-let {track_marks=_, ...tracks} = source.tracks(s)
-s = source(tracks)
-```
-
-This is equivalent to the older `drop_tracks` operator.
-
-## 🔌 Track-Level Operators
-
-Many operators now work directly on tracks. Examples:
-
-```liquidsoap
-mono = track.audio.mean(audio_track)
-encoded = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio_track)
-```
-
-🚨 But beware: some operators (like inline encoders) put the track on a new **clock**. You’ll need to re-derive metadata and track marks from the new track to avoid clock conflicts:
-
-```liquidsoap
-let encoded_audio = track.ffmpeg.encode.audio(..., audio)
-
-s = source({
-  audio = encoded_audio,
-  metadata = track.metadata(encoded_audio),
-  track_marks = track.track_marks(encoded_audio)
-})
-```
-
-## 🏷️ How Encoders Detect Track Types
-
-Liquidsoap uses **naming conventions** and **hints** to determine what kind of data each track holds:
-
-Priority order:
-
-1. `%audio.copy` or `%video.copy` → auto-detect
-2. Named content type (`audio_content` or `video_content`)
-3. Track name contains “audio” or “video”
-4. Codec implies type
-
-### ✅ Example: Explicit typing
+For full control, use explicit hints:
 
 ```liquidsoap
 output.file(
   %ffmpeg(
     %en(audio_content, codec=audio_codec),
-    %fr(codec="aac"),
     %director_cut(video_content, codec=video_codec)
   ),
-  "/path/to/copy.mkv",
+  "/path/to/output.mkv",
   s
 )
 ```
 
-### ✅ Or by naming convention
-
-```liquidsoap
-%audio_en(codec=...)
-%director_cut_video(codec=...)
-```
-
-Internally, Liquidsoap maps this to content-type info. Once handed off to FFmpeg, **track names are lost** — FFmpeg just sees numbered tracks in order.
-
-## 🚀 Summary
-
-Multitrack support opens up powerful new workflows:
-
-- 🔄 Mix and match audio/video/metadata across sources
-- 🧱 Build custom media containers
-- 🎯 Target different formats per track
-- 🧪 Combine synchronous and asynchronous operations (with care!)
-
-We’ve only scratched the surface — go ahead and explore the code, experiment, and let your creativity flow! 💡
-
-And if there’s an operator you wish worked at the track level, don’t hesitate to [open a feature request](https://github.com/savonet/liquidsoap)!
+Note that once tracks are handed to FFmpeg for muxing, their Liquidsoap names
+are lost — FFmpeg sees them as numbered streams in the order they appear.

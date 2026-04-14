@@ -168,3 +168,24 @@ let _ =
       let wrap_f () = ignore (Lang.apply f []) in
       s#on_sleep wrap_f;
       Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:source "content" ~category:(`Source `Liquidsoap)
+    ~descr:
+      "Return the content type of the source as an associative list mapping \
+       frame field names (e.g. `\"audio\"`, `\"video\"`) to their content \
+       format. Use `format.description` to introspect a format value."
+    [("", Lang.source_t (Lang.univ_t ()), None, None)]
+    (Lang.list_t (Lang.product_t Lang.string_t Content.Format_val.t))
+    (fun p ->
+      let s = Lang.to_source (List.assoc "" p) in
+      let entries =
+        Frame.Fields.fold
+          (fun field fmt acc ->
+            let field_name = Frame.Fields.string_of_field field in
+            Lang.product (Lang.string field_name)
+              (Content.Format_val.to_value fmt)
+            :: acc)
+          s#content_type []
+      in
+      Lang.list (List.rev entries))

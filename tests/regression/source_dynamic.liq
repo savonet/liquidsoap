@@ -12,7 +12,7 @@ end
 
 s =
   (source.dynamic(id="image", track_sensitive=true, next) :
-    source(video=canvas)
+    source(video=yuv420p)
   )
 
 s_ref := s

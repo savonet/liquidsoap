@@ -75,6 +75,8 @@ module type ContentSpecs = sig
   val default_params : kind -> params
   val string_of_kind : kind -> string
   val kind_of_string : string -> kind option
+  val content_lang_typ : Liquidsoap_lang.Type.t
+  val params_to_value : params -> Liquidsoap_lang.Value.t
 end
 
 module type Content = sig
@@ -225,6 +227,23 @@ let duplicate p = (get_format_handler p).duplicate ()
 let compatible p p' = (get_format_handler p).compatible p'
 let string_of_kind k = (get_kind_handler k).string_of_kind ()
 let content_names = ref []
+
+type content_lang_spec = {
+  format_name : string;
+  method_name : string;
+  content_typ : Liquidsoap_lang.Type.t;
+  format_to_value : Contents.format -> Liquidsoap_lang.Value.t;
+}
+
+let content_lang_specs : content_lang_spec list ref = ref []
+
+let register_content_lang format_name lang_name content_typ format_to_value =
+  let method_name =
+    String.map (fun c -> if c = '.' then '_' else c) lang_name
+  in
+  content_lang_specs :=
+    { format_name; method_name; content_typ; format_to_value }
+    :: !content_lang_specs
 
 module MkContentBase (C : ContentSpecs) :
   Content
@@ -461,4 +480,8 @@ module MkContentBase (C : ContentSpecs) :
       | _ -> raise Invalid
 
   include C
+
+  let () =
+    register_content_lang C.name C.name C.content_lang_typ (fun fmt ->
+        C.params_to_value (get_params fmt))
 end

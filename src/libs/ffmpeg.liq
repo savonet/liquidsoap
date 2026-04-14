@@ -203,7 +203,7 @@ end
 # @param ~device V4L2 device to use.
 def input.v4l2(~id=null, ~max_buffer=0.5, ~device="/dev/video0") =
   (input.ffmpeg(id=id, format="v4l2", max_buffer=max_buffer, device) :
-    source(video=canvas)
+    source(video=yuv420p)
   )
 end
 
@@ -223,7 +223,7 @@ def video.testsrc.ffmpeg(
   duration = if null.defined(duration) then ":duration=#{duration}" else "" end
   src = "#{pattern}=#{size}:#{rate}#{duration}"
   (input.ffmpeg(id=id, max_buffer=max_buffer, format="lavfi", src) :
-    source(video=canvas)
+    source(video=yuv420p)
   )
 end
 

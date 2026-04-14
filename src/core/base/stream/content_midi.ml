@@ -83,6 +83,14 @@ module Specs = struct
       (Printf.sprintf "%d:%d:%s" channels duration
          (String.concat "|" channel_info))
     |> Digest.to_hex
+
+  let content_lang_typ =
+    let open Liquidsoap_lang in
+    Lang_core.record_t [("channels", Type.make Type.Int)]
+
+  let params_to_value { channels } =
+    let open Liquidsoap_lang in
+    Lang_core.record [("channels", Lang_core.mk (`Int channels))]
 end
 
 include MkContentBase (Specs)

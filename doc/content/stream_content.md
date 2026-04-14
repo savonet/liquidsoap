@@ -40,7 +40,11 @@ For audio, the default internal content is `pcm` floats
 using OCaml native 64-bits float array representations. This is the format that allows the
 fastest manipulation.
 
-For video, the default is a C in-memory arrays of plannar YUV420 data.
+For video, the default internal content type is `yuv420p`: planar YUV420 images
+stored in C in-memory arrays. Internally, the content is structured as a _canvas_
+— a superposition of layers, each containing a `yuv420p` image placed at a given
+position. This canvas model makes compositing operations (overlaying a logo,
+assembling multi-camera video, etc.) efficient without unnecessary copies.
 
 For users concerned with memory consumption, we also support two additional audio formats,
 `pcm_s16` and `pcm_f32` using, resp., signed 16-bit integers and 32-bit floating point numbers.
@@ -97,7 +101,7 @@ At line 1, char 22-23:
   this value has type
     source(audio=pcm('a))
   but it should be a subtype of
-    source(video=canvas)
+    source(video=yuv420p)
 ```
 
 It means that a source with a video channel was expected

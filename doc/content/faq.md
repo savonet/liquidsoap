@@ -29,7 +29,7 @@ A type error can also indicate that you're trying to use a source of a certain c
 ```
 At ...:
 Error 5: this value has type
-  source(video=canvas(_),...)
+  source(video=yuv420p(_),...)
 but it should be a subtype of
   source(audio=pcm(_),...)
 ```

@@ -165,6 +165,9 @@ module AudioSpecs = struct
       sample_rate =
         Content.merge_param ~name:"sample_rate" (p.sample_rate, p'.sample_rate);
     }
+
+  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
+  let params_to_value p = Liquidsoap_lang.Lang_core.string (string_of_params p)
 end
 
 module Audio = struct
@@ -313,6 +316,9 @@ module VideoSpecs = struct
         Content.merge_param ~name:"pixel_aspect"
           (p.pixel_aspect, p'.pixel_aspect);
     }
+
+  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
+  let params_to_value p = Liquidsoap_lang.Lang_core.string (string_of_params p)
 end
 
 module Video = struct

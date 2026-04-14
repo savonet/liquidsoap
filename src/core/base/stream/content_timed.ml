@@ -97,6 +97,8 @@ module Metadata_specs = struct
   let default_params _ = ()
   let parse_param _ _ = Some ()
   let merge _ _ = ()
+  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
+  let params_to_value () = Liquidsoap_lang.Lang_core.string ""
   let copy = copy ~copy:(fun x -> x)
 
   let checksum d =
@@ -148,6 +150,8 @@ module Track_marks_specs = struct
   let default_params _ = ()
   let parse_param _ _ = Some ()
   let merge _ _ = ()
+  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
+  let params_to_value () = Liquidsoap_lang.Lang_core.string ""
   let copy = copy ~copy:(fun () -> ())
 
   let checksum d =

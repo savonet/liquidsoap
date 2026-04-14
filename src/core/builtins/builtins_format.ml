@@ -20,25 +20,19 @@
 
  *****************************************************************************)
 
-let _ =
-  let track_t = Lang.univ_t ~constraints:[Format_type.track] () in
-  Lang.add_builtin ~base:Modules.track "clock" ~category:`Liquidsoap
-    ~descr:"Return the clock associated with the given track."
-    [("", track_t, None, None)]
-    Lang_clock.ClockValue.base_t
-    (fun p ->
-      let _, s = Lang.to_track (List.assoc "" p) in
-      Lang_clock.ClockValue.to_base_value s#clock)
+let format = Lang.add_module "format"
 
 let _ =
-  let track_t = Lang.univ_t ~constraints:[Format_type.track] () in
-  Lang.add_builtin ~base:Modules.track "format" ~category:`Liquidsoap
+  Lang.add_builtin ~base:format "description" ~category:(`Source `Liquidsoap)
     ~descr:
-      "Return the content format of a track. Use `format.description` to \
-       introspect the returned value."
-    [("", track_t, None, None)]
-    Content.Format_val.t
+      "Return a description of the given format as a record with optional \
+       methods. For PCM audio: `{ channels, channel_layout }`. For YUV420P \
+       video: `{ width, height }`. For MIDI: `{ channels }`. Returns an empty \
+       record for formats without a description (e.g. metadata, track marks)."
+    [("", Content.Format_val.t, None, None)]
+    (Content.content_types ())
     (fun p ->
-      let field, s = Lang.to_track (List.assoc "" p) in
-      let fmt = Frame.Fields.find field s#content_type in
-      Content.Format_val.to_value fmt)
+      let fmt = Content.Format_val.of_value (List.assoc "" p) in
+      match Content.value_of_format fmt with
+        | Some (name, v) -> Lang.meth (Lang.record []) [(name, v)]
+        | None -> Lang.record [])

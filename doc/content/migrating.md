@@ -15,6 +15,22 @@ always do a trial run before putting things into production.
 
 ## From 2.4.x to 2.5.x
 
+### Video content type renamed from `canvas` to `yuv420p`
+
+The internal video content type has been renamed from `canvas` to `yuv420p` to
+better reflect what it actually contains: planar YUV420 images. Internally the
+content is still organized as a _canvas_ (a superposition of layers), but the
+type name visible in type annotations and error messages is now `yuv420p`.
+
+If your scripts use type annotations with `canvas`, rename them:
+
+| Old                                       | New                                        |
+| ----------------------------------------- | ------------------------------------------ |
+| `source(video=canvas)`                    | `source(video=yuv420p)`                    |
+| `source(video=canvas(width=W, height=H))` | `source(video=yuv420p(width=W, height=H))` |
+
+The `video.canvas` API (for positioning video elements) is unaffected by this change.
+
 ### Automatic video dimensions detection
 
 Video dimensions (`video.frame.width`/`height`) are now automatically detected from the first decoded video file. This means you no longer need to manually set dimensions in most cases.
