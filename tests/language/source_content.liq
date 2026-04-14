@@ -25,13 +25,34 @@ def f() =
   # Video part should be yuv420p
   video_desc = format.description(video_fmt)
   test.equal(null.defined(video_desc?.yuv420p), true)
-  test.equal((null.get(video_desc?.yuv420p)).width, settings.frame.video.width())
-  test.equal((null.get(video_desc?.yuv420p)).height, settings.frame.video.height())
+  test.equal(
+    (null.get(video_desc?.yuv420p)).width,
+    settings.frame.video.width()
+  )
+  test.equal(
+    (null.get(video_desc?.yuv420p)).height,
+    settings.frame.video.height()
+  )
 
   # Test track.format gives the same result as source.content
   let {audio, video} = source.tracks(s)
   test.equal(null.defined(format.description(track.format(audio))?.pcm), true)
-  test.equal(null.defined(format.description(track.format(video))?.yuv420p), true)
+  test.equal(
+    null.defined(format.description(track.format(video))?.yuv420p),
+    true
+  )
+
+  # Test JSON serialization of content_format via json.stringify
+  test.equal(
+    json.stringify(compact=true, audio_fmt),
+    '{"pcm":{"channel_layout":"stereo","channels":2}}'
+  )
+  test.equal(
+    json.stringify(compact=true, video_fmt),
+    '{"yuv420p":{"height":#{settings.frame.video.height()},"width":#{
+      settings.frame.video.width()
+    }}}'
+  )
 
   test.pass()
 end

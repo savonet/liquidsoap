@@ -138,6 +138,13 @@ module Midi = struct
   type midi_params = Content_midi.Specs.params = { channels : int }
 end
 
+let value_of_format fmt =
+  let name = fst fmt in
+  Option.map
+    (fun { method_name; format_to_value; _ } ->
+      (method_name, format_to_value fmt))
+    (List.find_opt (fun s -> s.format_name = name) !content_lang_specs)
+
 (* Custom Liquidsoap value type for Content.format *)
 module Format_val = Liquidsoap_lang.Lang_core.MkCustom (struct
   type content = Contents.format
@@ -145,9 +152,12 @@ module Format_val = Liquidsoap_lang.Lang_core.MkCustom (struct
   let name = "content_format"
   let to_string = string_of_format
 
-  let to_json ~pos _ =
-    Liquidsoap_lang.Runtime_error.raise ~pos
-      ~message:"Formats cannot be represented as JSON" "json"
+  let to_json ~pos fmt =
+    match value_of_format fmt with
+      | Some (method_name, v) ->
+          `Assoc
+            [(method_name, Liquidsoap_lang.Builtins_json.json_of_value ~pos v)]
+      | None -> `Assoc []
 
   let compare = Stdlib.compare
 end)
@@ -158,10 +168,3 @@ let content_types () =
       Liquidsoap_lang.Type.meth ~optional:true method_name ([], content_typ) acc)
     !content_lang_specs
     (Liquidsoap_lang.Type.make Liquidsoap_lang.Type.unit)
-
-let value_of_format fmt =
-  let name = fst fmt in
-  Option.map
-    (fun { method_name; format_to_value; _ } ->
-      (method_name, format_to_value fmt))
-    (List.find_opt (fun s -> s.format_name = name) !content_lang_specs)

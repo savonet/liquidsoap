@@ -48,6 +48,8 @@ module DummySpecs = struct
   let parse_param _ _ = None
   let string_of_kind = function `Dummy -> "ffmpeg.dummy"
   let kind_of_string = function "ffmpeg.dummy" -> Some `Dummy | _ -> None
+  let content_lang_typ = Lang.unit_t
+  let params_to_value _ = Lang.unit
 
   let string_of_params = function
     | None -> "none"
