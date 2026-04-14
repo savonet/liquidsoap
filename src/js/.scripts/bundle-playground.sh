@@ -16,9 +16,8 @@ cd "$TMPDIR"
 
 npm init -y > /dev/null 2>&1
 npm install --silent \
-  liquidsoap-playground@1.1.3 \
-  esbuild@0.24.2 \
-  @babel/runtime@7.26.0
+  liquidsoap-playground@1.1.4 \
+  esbuild@0.24.2
 
 # Exclude Node.js built-ins that prettier conditionally imports but doesn't use in browser
 npx esbuild node_modules/liquidsoap-playground/index.js \
