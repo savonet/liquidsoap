@@ -121,6 +121,8 @@ jobs:
           mkdir -p "${LIQ_TMP_DIR}"
           chown -R opam "${LIQ_TMP_DIR}"
           chown -R opam "${GITHUB_OUTPUT}"
+          sudo -u opam -E abuild-keygen -a -n
+          cp /home/opam/.abuild/*.pub /etc/apk/keys/
           sudo -u opam -E ./.github/scripts/build-apk.sh
       - name: Upload alpine packages artifacts
         if: matrix.os == 'alpine'
