@@ -60,8 +60,8 @@ usage, so we have not released any of ours.
 
 Another simple way to test the telnet server consists in using the
 
-```liquidsoap
-server.harbor()
+```{.liquidsoap include="liq/server-harbor.liq" from=1}
+
 ```
 
 server.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference-extras.html#server.harbor
@@ -75,46 +75,28 @@ Sometimes it is useful to control a variable using telnet. A simple way to
 achieve this is to use the `interactive.float` function. For instance, in order
 to dynamically the volume of a source:
 
-```liquidsoap
-# Register a telnet variable named volume with 1 as initial value
-v = interactive.float("volume", 1.)
+```{.liquidsoap include="liq/server-interactive-float.liq" from=2}
 
-# Change the volume accordingly
-source = amplify(v, source)
 ```
 
 The first line registers the variable volume on the telnet. Its value can be
 changed using the telnet command
 
-```liquidsoap
+```
 var.set volume = 0.5
 ```
 
 and it can be retrieved using
 
-```liquidsoap
+```
 var.get volume
 ```
 
 Similarly, we can switch between two tracks using `interactive.bool` and
 `switch` as follows:
 
-```liquidsoap
-# Activate the telnet server
-settings.server.telnet := true
+```{.liquidsoap include="liq/server-switch.liq" from=1}
 
-# The two sources
-s1 = playlist("~/Music")
-s2 = sine()
-
-# Create an interactive boolean
-b = interactive.bool("button", true)
-
-# Switch between the tracks depending on the boolean
-s = switch(track_sensitive=false,[(b,s1), ({true},s2)])
-
-# Output the result
-output.pulseaudio(s)
 ```
 
 By default the source s1 is played. To switch to s2, you can connect on
@@ -124,8 +106,8 @@ the telnet server and type `var.set button = false`.
 
 A nice web interface can be obtained by running
 
-```liquidsoap
-interactive.harbor()
+```{.liquidsoap include="liq/server-interactive-harbor.liq" from=1}
+
 ```
 
 interactive.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference.html#interactive.harbor
@@ -139,8 +121,8 @@ the values for the interactive variables.
 By default, interactive variables are not _persistent_, which means that their
 values are lost if you restart the script. This can be changed by running the command
 
-```liquidsoap
-interactive.persistent("vars.json")
+```{.liquidsoap include="liq/server-interactive-persistent.liq" from=1}
+
 ```
 
 after all the interactive variables have been defined. This will store the
@@ -174,16 +156,15 @@ through SSH, has only access to the command server.
 
 First, we enable the unix socket for the command server in Liquidsoap:
 
-```liquidsoap
-settings.server.socket := true
-settings.server.socket.path := "/path/to/socket"
+```{.liquidsoap include="liq/server-socket.liq" from=1}
+
 ```
 
 When started, liquidsoap will create a socket file `/path/to/socket`
 that can be used to interact with the command server. For instance,
 if your user has read and write rights on the socket file, you can do
 
-```liquidsoap
+```
 socat /path/to/socket -
 ```
 

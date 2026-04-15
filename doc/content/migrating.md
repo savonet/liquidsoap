@@ -123,7 +123,7 @@ s = switch([({cond1}, s1.{single = true}), ({cond2}, s2)])
 
 The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source:
 
-- `on_select`: called when the source is selected. Receives `{starting, ending, replay_metadata}` and returns the source to play. `ending` is `null` when the ending source reached a track boundary; non-null when it was preempted mid-track. `replay_metadata` mirrors the per-source `replay_metadata` method (default `true`). By default, both file and live profiles replay the latest metadata when `replay_metadata` is `true` and fade out `ending` when non-null.
+- `on_select`: called when the source is selected. Receives `{starting, ending, replay_metadata}` and returns the source to play. `ending` is `null` when the ending source reached a track boundary; non-null when it was preempted mid-track. `replay_metadata` mirrors the per-source `replay_metadata` method (default `true`). By default, both file and live profiles replay the latest metadata when `replay_metadata` is `true` and fade out `ending` when non-null and the source has only PCM audio content (no video, no encoded audio such as `ffmpeg.copy`).
 - `on_leave`: called when switching away from this source. Receives `{source, track_sensitive}`. By default, skips the source when it was preempted mid-track (`track_sensitive = false`) so it starts fresh on next selection.
 - `track_sensitive`: whether to wait for a track boundary before switching. Defaults to `true` for file-based sources, `false` for live inputs.
 - `single`: forbid selecting this source for two consecutive tracks.
