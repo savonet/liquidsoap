@@ -20,6 +20,51 @@
 
  *****************************************************************************)
 
+(** Clocks drive the streaming loop in Liquidsoap. Each clock owns a set of
+    sources and ticks them forward in lockstep, one frame at a time.
+
+    {1 Clock hierarchy}
+
+    Clocks form a tree. The top-level clocks each run in their own thread and
+    determine the overall timing (CPU-bound, wall-clock, or free-running). Each
+    top-level clock may have passive {e sub-clocks} that it ticks as part of its
+    own tick, after processing its own sources. Sub-clocks are used by operators
+    that need to control a child source at a different rate or in a separate
+    scheduling domain (see [Child_support]).
+
+    Sub-clocks are registered and deregistered dynamically via
+    [register_sub_clock] / [deregister_sub_clock]. Operators that use a
+    sub-clock should register it when they wake up and deregister it when they
+    sleep, so that idle sub-clocks do not accumulate in the parent's tick loop.
+
+    {1 Source activation}
+
+    Sources are not directly added to a clock. Instead they are {e activated}:
+    [source#wake_up activating_source] pushes the source into the clock's
+    [pending_activations] queue and returns an [activation] token. The token
+    must be passed back to [source#sleep] to deactivate the source. A clock
+    drains its [pending_activations] queue at the start of each tick via
+    [_activate_pending_sources].
+
+    {1 Clock unification}
+
+    Every source carries a clock cell (a [Unifier.t]). When an operator is
+    constructed it calls [Clock.unify] on its own clock and each child's clock,
+    merging them into a single cell. This ensures that all sources in a
+    connected graph share the same clock. Unification checks that the clocks'
+    {e controllers} are compatible; incompatible controllers (e.g. two different
+    self-syncing sources) raise [Clock_main].
+
+    {1 Tick sequence}
+
+    On each tick a clock:
+    + drains [pending_activations], waking up newly added sources;
+    + calls [output] on every active and output source;
+    + fires [on_tick] callbacks;
+    + ticks each registered sub-clock that has not yet advanced this cycle;
+    + increments its tick counter;
+    + fires [after_tick] callbacks and handles timing/sleep. *)
+
 exception Invalid_state
 exception Has_stopped
 

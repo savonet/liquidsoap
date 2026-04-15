@@ -178,17 +178,6 @@ let string_of_controller = function
   | `Clock c -> Printf.sprintf "clock %s" (id c)
   | `Other (c, o) -> Printf.sprintf "%s %s" c o#id
 
-let unifiable_controller ~unify c c' =
-  match (c, c') with
-    | `None, _ | _, `None -> true
-    | `Other (c, o), `Other (c', o') -> c = c' && o == o'
-    | `Clock c, `Clock c' -> (
-        try
-          unify c c';
-          true
-        with _ -> false)
-    | _ -> false
-
 let _set_id _clock new_id =
   if Unifier.deref _clock.id <> Some new_id then
     Unifier.set _clock.id (Some (generate_id new_id))
@@ -308,63 +297,66 @@ let rec check_sub_clocks ~pos _c _c' =
         raise (Liquidsoap_lang.Error.Clock_loop (pos, _descr _c, _descr _c'));
       check_sub_clocks ~pos _x _c')
 
-let unify =
-  let _unify ~pos c c' =
-    let clock = Unifier.deref c in
-    let clock' = Unifier.deref c' in
-    check_sub_clocks ~pos clock clock';
-    check_sub_clocks ~pos clock' clock;
-    (match
-       (Unifier.deref clock.controller, Unifier.deref clock'.controller)
-     with
-      | _, `None -> Unifier.(clock'.controller <-- clock.controller)
-      | _ -> ());
-    Queue.flush_iter clock.pending_activations
-      (Queue.push clock'.pending_activations);
-    Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
-    Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
-    (match (Unifier.deref clock.id, Unifier.deref clock'.id) with
-      | None, None -> Unifier.(clock.id <-- clock'.id)
-      | Some _, None -> Unifier.(clock'.id <-- clock.id)
-      | None, Some _ -> Unifier.(clock.id <-- clock'.id)
-      | Some _, Some id ->
-          log#info "Clocks %s and %s both have id already set. Setting id to %s"
-            (descr c) (descr c') id;
-          Unifier.(clock.id <-- clock'.id));
-    Unifier.(c <-- c');
-    Queue.filter_out clocks (fun el -> el == c);
-    WeakQueue.filter_out pending_clocks (fun el -> el == c)
-  in
-  let rec unify ~pos c c' =
-    let _c = Unifier.deref c in
-    let _c' = Unifier.deref c' in
-    let _controller = Unifier.deref _c.controller in
-    let _controller' = Unifier.deref _c'.controller in
-    if not (unifiable_controller ~unify:(unify ~pos) _controller _controller')
-    then
+let do_merge ~pos ~loser ~winner =
+  let l = Unifier.deref loser and w = Unifier.deref winner in
+  check_sub_clocks ~pos l w;
+  check_sub_clocks ~pos w l;
+  (if Unifier.deref w.controller = `None then
+     Unifier.(w.controller <-- l.controller));
+  Queue.flush_iter l.pending_activations (Queue.push w.pending_activations);
+  Queue.flush_iter l.sub_clocks (Queue.push w.sub_clocks);
+  Queue.flush_iter l.on_error (Queue.push w.on_error);
+  (match (Unifier.deref l.id, Unifier.deref w.id) with
+    | None, _ -> Unifier.(l.id <-- w.id)
+    | Some _, None -> Unifier.(w.id <-- l.id)
+    | Some _, Some id ->
+        log#info "Clocks %s and %s both have id already set. Setting id to %s"
+          (descr loser) (descr winner) id;
+        Unifier.(l.id <-- w.id));
+  Unifier.(loser <-- winner);
+  Queue.filter_out clocks (fun el -> el == loser);
+  WeakQueue.filter_out pending_clocks (fun el -> el == loser)
+
+let rec unify ~pos c c' =
+  let clock = Unifier.deref c and clock' = Unifier.deref c' in
+  if clock == clock' then ()
+  else begin
+    let raise_clock_main () =
       raise
         Liquidsoap_lang.Error.(
           Clock_main
             {
               pos;
-              left_main = string_of_controller _controller;
+              left_main = string_of_controller (Unifier.deref clock.controller);
               left_child = descr c;
-              right_main = string_of_controller _controller';
+              right_main =
+                string_of_controller (Unifier.deref clock'.controller);
               right_child = descr c';
-            });
-    match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
-      | true, _, _ -> ()
-      | _, `Stopped s, `Stopped s' when s = s' -> _unify ~pos c c'
-      | _, `Stopped s, _
-        when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
-          _unify ~pos c c'
-      | _, _, `Stopped s'
-        when s' = `Automatic || _sync ~pending:true _c = (s' :> sync_mode) ->
-          _unify ~pos c' c
+            })
+    in
+    (match
+       (Unifier.deref clock.controller, Unifier.deref clock'.controller)
+     with
+      | `None, _ | _, `None -> ()
+      | `Other (k, o), `Other (k', o') when k = k' && o == o' -> ()
+      | `Clock ctl, `Clock ctl' -> (
+          try unify ~pos ctl ctl' with _ -> raise_clock_main ())
+      | _ -> raise_clock_main ());
+    let can_absorb ~winner ~candidate =
+      match Atomic.get candidate.state with
+        | `Stopped `Automatic -> true
+        | `Stopped s -> (s :> sync_mode) = _sync ~pending:true winner
+        | _ -> false
+    in
+    match (Atomic.get clock.state, Atomic.get clock'.state) with
+      | `Stopped s, `Stopped s' when s = s' -> do_merge ~pos ~loser:c ~winner:c'
+      | _ when can_absorb ~winner:clock' ~candidate:clock ->
+          do_merge ~pos ~loser:c ~winner:c'
+      | _ when can_absorb ~winner:clock ~candidate:clock' ->
+          do_merge ~pos ~loser:c' ~winner:c
       | _ ->
           raise (Liquidsoap_lang.Error.Clock_conflict (pos, descr c, descr c'))
-  in
-  unify
+  end
 
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
