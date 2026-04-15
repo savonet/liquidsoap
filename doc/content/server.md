@@ -60,7 +60,7 @@ usage, so we have not released any of ours.
 
 Another simple way to test the telnet server consists in using the
 
-```{.liquidsoap include="liq/server-harbor.liq" from=1}
+```{.liquidsoap include="server-harbor.liq" from=1}
 
 ```
 
@@ -75,7 +75,7 @@ Sometimes it is useful to control a variable using telnet. A simple way to
 achieve this is to use the `interactive.float` function. For instance, in order
 to dynamically the volume of a source:
 
-```{.liquidsoap include="liq/server-interactive-float.liq" from=2}
+```{.liquidsoap include="server-interactive-float.liq" from=2}
 
 ```
 
@@ -95,7 +95,7 @@ var.get volume
 Similarly, we can switch between two tracks using `interactive.bool` and
 `switch` as follows:
 
-```{.liquidsoap include="liq/server-switch.liq" from=1}
+```{.liquidsoap include="server-switch.liq" from=1}
 
 ```
 
@@ -106,7 +106,7 @@ the telnet server and type `var.set button = false`.
 
 A nice web interface can be obtained by running
 
-```{.liquidsoap include="liq/server-interactive-harbor.liq" from=1}
+```{.liquidsoap include="server-interactive-harbor.liq" from=1}
 
 ```
 
@@ -121,7 +121,7 @@ the values for the interactive variables.
 By default, interactive variables are not _persistent_, which means that their
 values are lost if you restart the script. This can be changed by running the command
 
-```{.liquidsoap include="liq/server-interactive-persistent.liq" from=1}
+```{.liquidsoap include="server-interactive-persistent.liq" from=1}
 
 ```
 
@@ -156,7 +156,7 @@ through SSH, has only access to the command server.
 
 First, we enable the unix socket for the command server in Liquidsoap:
 
-```{.liquidsoap include="liq/server-socket.liq" from=1}
+```{.liquidsoap include="server-socket.liq" from=1}
 
 ```
 
