@@ -35,6 +35,14 @@ end
 
 type implementation = (module T)
 
+let set_offset (module M : T) off : implementation =
+  (module struct
+    include M
+
+    let time () = M.(time () |-| off)
+    let sleep_until t = M.sleep_until M.(t |+| off)
+  end)
+
 let unix : implementation = (module Unix)
 let implementations : (string, implementation) Hashtbl.t = Hashtbl.create 2
 let () = Hashtbl.replace implementations "ocaml" unix

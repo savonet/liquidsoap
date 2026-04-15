@@ -85,7 +85,7 @@ let build_config =
    - ALSA              : %{Alsa_option.detected}
    - AO                : %{Ao_option.detected}
    - FFmpeg            : %{Ffmpeg_option.detected}
-   - JACK              : %{Bjack_option.detected}
+   - JACK              : %{Jack_option.detected}
    - NDI               : %{Ndi_option.detected}
    - OSS               : %{Oss_option.detected}
    - Portaudio         : %{Portaudio_option.detected}

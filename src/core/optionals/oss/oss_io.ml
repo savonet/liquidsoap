@@ -29,7 +29,10 @@ external set_rate : Unix.file_descr -> int -> int = "caml_oss_dsp_speed"
 module SyncSource = Clock.MkSyncSource (struct
   type t = unit
 
+  let time_implementation () = Clock.unconstrained_time
   let to_string _ = "oss"
+  let latency () = Clock.conf_latency#get
+  let max_latency () = Clock.conf_max_latency#get
 end)
 
 let sync_source = SyncSource.make ()
