@@ -64,29 +64,6 @@
 
 set_settings_ref(settings)
 
-# Legacy on_select for switch operators. Replays the latest metadata on the
-# starting source when `replay_metadata` is `true`, then returns it directly
-# with no fade-out of the ending source. Use this to restore the pre-2.5.x
-# behavior when the new default fade-out transition is not desired.
-# @category Source / Track processing
-def source.composition.legacy_on_select(
-  (
-  {starting, ending = _, replay_metadata}:
-  {starting: source, ending: source?, replay_metadata: bool}
-  )
-) =
-  let {insert_metadata, last_metadata} = source.methods(starting)
-  last_metadata = last_metadata()
-
-  if
-    replay_metadata and null.defined(last_metadata)
-  then
-    insert_metadata(null.get(last_metadata))
-  end
-
-  starting
-end
-
 # Default on_select for both file and live composition profiles. When `ending`
 # is non-null (the ending source was preempted mid-track), fades it out (up to
 # 1s or remaining time). When `replay_metadata` is true, replays the latest
