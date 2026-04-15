@@ -1,0 +1,53 @@
+(executable
+ (name gen_stubs)
+ (libraries datachannel_stubs ctypes.stubs))
+
+(executable
+ (name gen_constants_c)
+ (libraries datachannel_constants ctypes.stubs))
+
+(executable
+ (name gen_types_c)
+ (libraries datachannel_types ctypes.stubs))
+
+(rule
+ (targets gen_constants.c)
+ (deps gen_constants_c.exe)
+ (action
+  (run %{deps} %{targets})))
+
+(rule
+ (targets gen_types.c)
+ (deps gen_types_c.exe)
+ (action
+  (run %{deps} %{targets})))
+
+(rule
+ (targets c_flags c_flags.sexp c_library_flags.sexp)
+ (action
+  (run ../config/discover.exe)))
+
+(rule
+ (targets ctypes_dir)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run dirname %{lib:ctypes:ctypes_cstubs_internals.h}))))
+
+(rule
+ (targets gen_constants_c_target.exe)
+ (deps
+  (:c_file gen_constants.c)
+  (:ctypes_dir ctypes_dir))
+ (action
+  (system
+   "%{cc} %{read-lines:c_flags} -I %{read-lines:ctypes_dir} -I %{ocaml-config:standard_library} -o %{targets} %{c_file}")))
+
+(rule
+ (targets gen_types_c_target.exe)
+ (deps
+  (:c_file gen_types.c)
+  (:ctypes_dir ctypes_dir))
+ (action
+  (system
+   "%{cc} %{read-lines:c_flags} -I %{read-lines:ctypes_dir} -I %{ocaml-config:standard_library} -o %{targets} %{c_file}")))
