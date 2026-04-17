@@ -265,8 +265,12 @@ let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
 let rec has_stopped ~clear_controller ~clock ~c x =
+  (* Snapshot sub_clocks before sleeping outputs: on_sleep callbacks may
+     deregister sub-clocks (e.g. ffmpeg filter graphs), which would prevent
+     them from being stopped here. *)
+  let sub_clocks = Queue.elements clock.sub_clocks in
   Queue.iter x.outputs (fun (a, o) -> try o#sleep a with _ -> ());
-  Queue.iter clock.sub_clocks stop;
+  List.iter stop sub_clocks;
   Queue.filter_out clocks (fun c -> Unifier.deref c == clock);
   if clear_controller then Unifier.set clock.controller `None;
   Atomic.set clock.state (`Stopped x.sync);
