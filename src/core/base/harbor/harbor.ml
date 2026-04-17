@@ -157,6 +157,7 @@ module type T = sig
       (string * string) list ->
       ?read:(socket -> bytes -> int -> int -> int) ->
       socket ->
+      unit ->
       unit
 
     method virtual encode_metadata : Frame.metadata -> unit
@@ -217,6 +218,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             (string * string) list ->
             ?read:(socket -> bytes -> int -> int -> int) ->
             socket ->
+            unit ->
             unit
 
       method virtual encode_metadata : Frame.metadata -> unit
@@ -547,7 +549,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Some read)
         else None
       in
-      let f () = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
+      let f = s#relay ?read stype headers h.Duppy.Monad.Io.socket in
       log#info "Adding source on mountpoint %S with type %S." uri stype;
       log#debug "Relaying %s." (string_of_protocol hprotocol);
       let protocol =
@@ -669,7 +671,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       Utils.buffer_drop binary_data len;
       len
     in
-    let f () = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
+    let f = source#relay stype headers ~read h.Duppy.Monad.Io.socket in
     relayed "" f
 
   exception Handled of (http_verb * (string * string) list * http_handler)

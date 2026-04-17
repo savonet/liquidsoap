@@ -213,7 +213,8 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
                 (Printexc.to_string e))
         | None -> ()
       end;
-      ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")
+      fun () ->
+        ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")
 
     method disconnect =
       match Atomic.exchange relay_socket None with
