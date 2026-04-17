@@ -336,6 +336,20 @@
 
 
 (executable
+ (name sub_clock_stop_test)
+ (modules sub_clock_stop_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias sub_clock_stop_test)
+ (package liquidsoap)
+ (deps
+  
+  (:sub_clock_stop_test sub_clock_stop_test.exe))
+ (action (run %{sub_clock_stop_test} )))
+
+
+(executable
  (name timezone)
  (modules timezone)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -445,6 +459,7 @@
     (alias stream_decoder_test)
     (alias string_test)
     (alias strings_test)
+    (alias sub_clock_stop_test)
     (alias timezone)
     (alias types)
     (alias unifier_test)
