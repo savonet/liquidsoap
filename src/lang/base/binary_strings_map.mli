@@ -24,6 +24,7 @@
     Defaults to [4096]. *)
 val max_printable_length : int ref
 
-(** Return [true] if [s] should be treated as binary: either it is longer than
-    [max_printable_length] bytes or contains invalid UTF-8. *)
-val is_binary : string -> bool
+(** Return [true] if [s] should be treated as binary. When [utf8] is [true]
+    (default), any non-UTF-8 string is considered binary. When [utf8] is
+    [false], only the length is checked. *)
+val is_binary : ?utf8:bool -> string -> bool

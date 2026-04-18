@@ -24,6 +24,10 @@
 *)
 let max_printable_length = ref 4096
 
-let is_binary value =
-  String.length value > !max_printable_length
-  || not (String.is_valid_utf_8 value)
+(** Detect binary blobs. When [utf8] is [true] (default), any non-UTF-8 string
+    is considered binary — suitable for internally-managed strings that should
+    always be UTF-8. When [utf8] is [false], only the length is checked —
+    suitable for externally-sourced strings that may be in any text encoding. *)
+let is_binary ?(utf8 = true) value =
+  if String.length value > !max_printable_length then true
+  else utf8 && not (String.is_valid_utf_8 value)
