@@ -9,16 +9,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: Setup OCaml
-      run: sudo apt-get install -y ocaml ocaml-dune ocaml-odoc
-    - name: Build doc
-      run: dune build @doc
-    - name: Upload website artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: _build/default/_doc/_html
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup OCaml
+        run: sudo apt-get install -y ocaml ocaml-dune ocaml-odoc
+      - name: Build doc
+        run: dune build @doc
+      - name: Upload website artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _build/default/_doc/_html
 
   deploy:
     if: github.ref == 'refs/heads/main'
@@ -34,4 +34,3 @@ jobs:
       - name: Deploy website
         id: deployment
         uses: actions/deploy-pages@v4
-

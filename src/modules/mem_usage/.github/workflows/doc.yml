@@ -9,20 +9,20 @@ jobs:
   build_doc:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v1
-    - name: Setup OCaml
-      uses: ocaml/setup-ocaml@v3
-      with:
-        ocaml-compiler: 4.14.x
-    - name: Pin locally
-      run: opam pin -y add --no-action .
-    - name: Install locally
-      run: opam install -y --with-doc mem_usage
-    - name: Build doc
-      run: opam exec dune build @doc
-    - name: Deploy doc
-      uses: JamesIves/github-pages-deploy-action@4.1.4
-      with:
-        branch: gh-pages
-        folder: _build/default/_doc/_html
+      - name: Checkout code
+        uses: actions/checkout@v1
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 4.14.x
+      - name: Pin locally
+        run: opam pin -y add --no-action .
+      - name: Install locally
+        run: opam install -y --with-doc mem_usage
+      - name: Build doc
+        run: opam exec dune build @doc
+      - name: Deploy doc
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: gh-pages
+          folder: _build/default/_doc/_html

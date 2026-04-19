@@ -32,8 +32,8 @@ let unterminate encoding s =
         else s
     | _ -> failwith (Printf.sprintf "Unknown encoding: %d." encoding)
 
-(** Find the index of the substring after the first null-terminated
-    substring. *)
+(** Find the index of the substring after the first null-terminated substring.
+*)
 let next_substring encoding ?(offset = 0) s =
   let ans = ref 0 in
   let utf16 = encoding = 1 || encoding = 2 in
@@ -557,7 +557,7 @@ let render_frames ~version frames =
            (fun flags flag ->
              flags
              lor
-             match flag with
+               match flag with
                | `Tag_alter_perservation true -> 0b10000000 lsl 8
                | `File_alter_preservation true -> 0b01000000 lsl 8
                | _ -> 0)

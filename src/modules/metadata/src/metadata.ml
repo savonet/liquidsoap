@@ -1,5 +1,4 @@
 module CharEncoding = MetadataCharEncoding
-
 module MIME = MetadataMIME
 
 module Make (E : CharEncoding.T) = struct
@@ -78,7 +77,9 @@ module Make (E : CharEncoding.T) = struct
   end
 
   module Any = struct
-    let parsers = Audio.parsers @ Image.parsers @ Video.parsers @ Text.parsers @ [RIFF.parse]
+    let parsers =
+      Audio.parsers @ Image.parsers @ Video.parsers @ Text.parsers
+      @ [RIFF.parse]
 
     (** Genering parsing of metadata. *)
     let parse = first_valid parsers

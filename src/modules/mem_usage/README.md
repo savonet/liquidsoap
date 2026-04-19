@@ -1,5 +1,4 @@
-ocaml-mem_usage
-============
+# ocaml-mem_usage
 
 ![GitHub](https://img.shields.io/github/license/savonet/ocaml-mem_usage)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/savonet/ocaml-mem_usage/.github/workflows/main.yml?branch=main)
@@ -7,34 +6,31 @@ ocaml-mem_usage
 
 A cross-platform OCaml module for reporting memory usage, with a focus on distinguishing **private memory** (allocated by the process itself) from **shared memory** (e.g., shared libraries, memory-mapped files).
 
-Overview
-========
+# Overview
 
 The module reports both system-wide and per-process memory statistics:
 
-| Field | Description |
-|-------|-------------|
-| `total_physical_memory` | Total RAM installed on the system |
-| `total_virtual_memory` | Total virtual memory (RAM + swap) |
-| `total_used_physical_memory` | RAM currently in use system-wide |
-| `total_used_virtual_memory` | Virtual memory in use system-wide |
-| `process_virtual_memory` | Virtual address space of the process |
-| `process_physical_memory` | Resident set size (RSS) - pages in RAM |
-| `process_private_memory` | Private pages unique to this process (USS) |
-| `process_swapped_memory` | Process pages swapped to disk |
+| Field                        | Description                                |
+| ---------------------------- | ------------------------------------------ |
+| `total_physical_memory`      | Total RAM installed on the system          |
+| `total_virtual_memory`       | Total virtual memory (RAM + swap)          |
+| `total_used_physical_memory` | RAM currently in use system-wide           |
+| `total_used_virtual_memory`  | Virtual memory in use system-wide          |
+| `process_virtual_memory`     | Virtual address space of the process       |
+| `process_physical_memory`    | Resident set size (RSS) - pages in RAM     |
+| `process_private_memory`     | Private pages unique to this process (USS) |
+| `process_swapped_memory`     | Process pages swapped to disk              |
 
 The key metric is `process_private_memory` which represents memory that would be freed if this process terminates, excluding shared libraries and other shared mappings.
 
-Supported Platforms
-===================
+# Supported Platforms
 
 - Linux
 - macOS
 - Windows
 - FreeBSD
 
-Example
-=======
+# Example
 
 ```ocaml
 let () =
@@ -44,12 +40,12 @@ let () =
 ```
 
 Output:
+
 ```
 Process private memory: 1.25 MiB
 ```
 
-Installation
-============
+# Installation
 
 ```
 opam install mem_usage
@@ -63,12 +59,10 @@ cd ocaml-mem_usage
 opam install .
 ```
 
-Documentation
-=============
+# Documentation
 
 [API documentation](https://www.liquidsoap.info/ocaml-mem_usage/mem_usage/index.html)
 
-License
-=======
+# License
 
 MIT

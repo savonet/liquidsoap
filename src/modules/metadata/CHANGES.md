@@ -1,16 +1,13 @@
-0.3.2 (2025-01-04)
-=====
+# 0.3.2 (2025-01-04)
 
 - Improve mp4 parsing (#7).
 - Add support for pdf metadata (#8).
 
-0.3.1 (2024-04-01) 🃏
-=====
+  # 0.3.1 (2024-04-01) 🃏
 
 - Add support for `ogg/flac` metadata.
 
-0.3.0 (2024-03-24)
-=====
+  # 0.3.0 (2024-03-24)
 
 - Add basic example.
 - Add optional custom parser argument to override the default parsing mechanism.
@@ -19,8 +16,7 @@
 - Add `MIME` module to guess MIME type of files (#4).
 - Generic RIFF format parser, adds support for wave files (#6).
 
-0.2.0 (2023-07-01)
-=====
+  # 0.2.0 (2023-07-01)
 
 - Add support for FLAC.
 - id3v2: use "bpm" instead of "tempo".
@@ -29,7 +25,6 @@
 - Fix charset conversion from utf16.
 - Fixed MP4 parsing.
 
-0.1.0 (2023-02-08)
-=====
+  # 0.1.0 (2023-02-08)
 
 - Initial release.

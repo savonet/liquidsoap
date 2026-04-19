@@ -11,48 +11,40 @@ end
 
 let prefixes =
   [
-    "ID3", "audio/mpeg";
-    "OggS", "audio/ogg";
-    "%PDF-", "application/pdf";
-    "\137PNG\013\010\026\010", "image/png";
+    ("ID3", "audio/mpeg");
+    ("OggS", "audio/ogg");
+    ("%PDF-", "application/pdf");
+    ("\137PNG\013\010\026\010", "image/png");
   ]
 
 let advanced =
   let wav s =
-    String.starts_with ~prefix:"RIFF" s &&
-    String.contains_at 8 ~substring:"WAVEfmt " s
+    String.starts_with ~prefix:"RIFF" s
+    && String.contains_at 8 ~substring:"WAVEfmt " s
   in
   let avi s =
-    String.starts_with ~prefix:"RIFF" s &&
-    String.contains_at 8 ~substring:"AVI " s
+    String.starts_with ~prefix:"RIFF" s
+    && String.contains_at 8 ~substring:"AVI " s
   in
-  [
-    wav, "audio/wav";
-    avi, "video/x-msvideo"
-  ]
+  [(wav, "audio/wav"); (avi, "video/x-msvideo")]
 
 let of_string s =
   let ans = ref "" in
   try
     List.iter
       (fun (f, mime) ->
-         if f s then
-           (
-             ans := mime;
-             raise Exit
-           )
-      ) advanced;
+        if f s then (
+          ans := mime;
+          raise Exit))
+      advanced;
     List.iter
       (fun (prefix, mime) ->
-         if String.starts_with ~prefix s then
-           (
-             ans := mime;
-             raise Exit
-           )
-      ) prefixes;
+        if String.starts_with ~prefix s then (
+          ans := mime;
+          raise Exit))
+      prefixes;
     raise Not_found
-  with
-  | Exit -> !ans
+  with Exit -> !ans
 
 let of_file fname =
   let len = 16 in

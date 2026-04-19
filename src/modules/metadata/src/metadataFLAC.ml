@@ -34,7 +34,7 @@ let parse f : metadata =
           R.drop f (len - !n)
       | 6 -> (
           (* Picture *)
-          match R.read_tag ~length:len ~label:"metadata_block_picture" f with
+            match R.read_tag ~length:len ~label:"metadata_block_picture" f with
             | None -> ()
             | Some picture ->
                 tags := ("metadata_block_picture", picture) :: !tags)

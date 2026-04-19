@@ -11,7 +11,7 @@ let parse f : metadata =
     let kind = R.byte f in
     let len = R.int16_be f in
     (* Printf.printf "Marker: %x (len: %d)\n%!" kind len; *)
-    match kind with
+      match kind with
       (* | 0xe0 -> *)
       (* Printf.printf "JFIF\n%!"; *)
       (* if R.read f 5 <> "JFIF\x00" then raise Invalid; *)

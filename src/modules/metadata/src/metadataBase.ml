@@ -29,8 +29,8 @@ module Reader = struct
     reset : unit -> unit;
   }
 
-  (** Make a reading function retry until buffer is filled (or an error
-      occurs). *)
+  (** Make a reading function retry until buffer is filled (or an error occurs).
+  *)
   let retry read buf off len =
     let r = ref 0 in
     let loop = ref true in
@@ -122,20 +122,21 @@ module Reader = struct
 
   let size f = f.size ()
 
-  (** Reset state like after the file was just opened (position is at the beginning in particular). *)
+  (** Reset state like after the file was just opened (position is at the
+      beginning in particular). *)
   let reset f = f.reset ()
 
-  (** Try to find a specific string starting from current position in the file. *)
+  (** Try to find a specific string starting from current position in the file.
+  *)
   let find f s =
     (* TODO: more efficient implementation. *)
     let n = String.length s in
     try
       while read f n <> s do
-        f.seek (-(n-1))
+        f.seek (-(n - 1))
       done;
       true
-    with
-    | _ -> false
+    with _ -> false
 
   (** Return the contents until we reach a specific string (not included). *)
   let until f s =

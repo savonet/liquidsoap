@@ -59,4 +59,5 @@ let parse ?format f : metadata =
     assert false
   with _ -> List.rev !ans
 
-let parse_file ?format ?custom_parser file = R.with_file ?custom_parser (parse ?format) file
+let parse_file ?format ?custom_parser file =
+  R.with_file ?custom_parser (parse ?format) file

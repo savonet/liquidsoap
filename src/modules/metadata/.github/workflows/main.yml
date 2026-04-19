@@ -4,13 +4,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Setup OCaml
-      run: sudo apt install -y ocaml ocaml-dune
-    - name: Install FFmpeg
-      run: sudo apt install -y ffmpeg
-    - name: Build
-      run: dune build
-    - name: Run tests
-      run: dune build @citest
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup OCaml
+        run: sudo apt install -y ocaml ocaml-dune
+      - name: Install FFmpeg
+        run: sudo apt install -y ffmpeg
+      - name: Build
+        run: dune build
+      - name: Run tests
+        run: dune build @citest

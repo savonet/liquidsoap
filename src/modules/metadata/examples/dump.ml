@@ -9,8 +9,7 @@ let () =
          ( "-o",
            Arg.String (fun s -> outfile := Some s),
            " Output file (default is standard output)." );
-       ]
-    )
+       ])
     (fun f -> fname := f)
     "dump [options] file";
   let dump =

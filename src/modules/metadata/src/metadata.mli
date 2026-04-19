@@ -25,12 +25,12 @@ module Make : functor (_ : CharEncoding.T) -> sig
   type bigarray =
     (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-  (** When used, a custom parser can override the default parsing mechanism.
-      It is passed the metadata label (without normalization), the expected
-      length of the data, a regular read function an an optional bigarray read
+  (** When used, a custom parser can override the default parsing mechanism. It
+      is passed the metadata label (without normalization), the expected length
+      of the data, a regular read function an an optional bigarray read
       function. The custom parser can call any of the read function to get the
-      corresponding tag's value. After doing so, the tag is ignored by the regular
-      parsing process. 
+      corresponding tag's value. After doing so, the tag is ignored by the
+      regular parsing process.
 
       Currently only supported for: ID3v2, MP4 and [metadata_block_picture] in
       FLAC metadata. *)
@@ -97,7 +97,7 @@ module Make : functor (_ : CharEncoding.T) -> sig
   (** WAV metadata. *)
   module WAV = MetadataWAV
 
-  (** RIFF metdata. *)
+  (** RIFF metadata. *)
   module RIFF = MetadataRIFF
 
   (** PDF metadata. *)
