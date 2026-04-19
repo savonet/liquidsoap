@@ -1,0 +1,34 @@
+name: Subtree push
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/modules/mem_usage/**"
+      - "src/modules/metadata/**"
+
+jobs:
+  subtree-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - prefix: src/modules/mem_usage
+            remote: https://github.com/savonet/ocaml-mem_usage
+          - prefix: src/modules/metadata
+            remote: https://github.com/savonet/ocaml-metadata
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global url."https://x-access-token:${{ secrets.SUBTREE_PUSH_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git checkout main
+
+      - name: Push subtree
+        run: git subtree push --prefix=${{ matrix.prefix }} ${{ matrix.remote }} main

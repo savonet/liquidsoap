@@ -65,10 +65,3 @@ repos:
         entry: opam exec dune -- build @gendune --auto-promote
         pass_filenames: false
         always_run: true
-
-      - id: subtree-push
-        name: subtree-push
-        language: script
-        entry: scripts/subtree-push.sh
-        pass_filenames: false
-        stages: [pre-push]
