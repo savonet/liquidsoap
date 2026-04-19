@@ -264,10 +264,17 @@ let sync c = _sync (Unifier.deref c)
 let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
+let compare_clock_identity c c' =
+  Int.compare (Obj.magic c : int) (Obj.magic c' : int)
+
 let _sub_clocks c =
-  List.sort_uniq
-    (fun (_, c) (_, c') -> if c == c' then 0 else Stdlib.compare c c')
-    (List.map (fun c -> (c, Unifier.deref c)) (Queue.elements c.sub_clocks))
+  let all = ref [] in
+  Queue.flush_iter c.sub_clocks (fun x -> all := (x, Unifier.deref x) :: !all);
+  let deduped =
+    List.sort_uniq (fun (_, c) (_, c') -> compare_clock_identity c c') !all
+  in
+  List.iter (fun (ref, _) -> Queue.push c.sub_clocks ref) deduped;
+  deduped
 
 let sub_clocks c = List.map fst (_sub_clocks (Unifier.deref c))
 
@@ -767,7 +774,9 @@ let time c =
 let start_pending () =
   let c = WeakQueue.flush_elements pending_clocks in
   let c = List.map (fun c -> (c, Unifier.deref c)) c in
-  let c = List.sort_uniq (fun (_, c) (_, c') -> Stdlib.compare c c') c in
+  let c =
+    List.sort_uniq (fun (_, c) (_, c') -> compare_clock_identity c c') c
+  in
   List.iter
     (fun (c, clock) ->
       match Atomic.get clock.state with
@@ -811,10 +820,7 @@ let set_stack c stack =
   ignore (Atomic.compare_and_set (Unifier.deref c).stack [] stack)
 
 let register_sub_clock parent sub =
-  let _sub = Unifier.deref sub in
-  let sub_clocks = (Unifier.deref parent).sub_clocks in
-  if not (Queue.exists sub_clocks (fun c -> Unifier.deref c == _sub)) then
-    Queue.push sub_clocks sub
+  Queue.push (Unifier.deref parent).sub_clocks sub
 
 let deregister_sub_clock parent sub =
   let _sub = Unifier.deref sub in
@@ -826,7 +832,7 @@ let create ?stack ?controller ?on_error ?id ?sync () =
 
 let clocks () =
   List.sort_uniq
-    (fun c c' -> Stdlib.compare (Unifier.deref c) (Unifier.deref c'))
+    (fun c c' -> compare_clock_identity (Unifier.deref c) (Unifier.deref c'))
     (WeakQueue.elements pending_clocks @ Queue.elements clocks)
 
 let dump () =
