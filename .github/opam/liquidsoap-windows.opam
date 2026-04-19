@@ -20,8 +20,8 @@ depends: [
   "re" {>= "1.11.0" & < "1.14.0"}
   "re-windows" {>= "1.11.0" & < "1.14.0"}
   "curl-windows"
-  "camomile" {>= "2.0.0"}
-  "camomile-windows" {>= "2.0.0"}
+  "camomile-embedded" {>= "2.1.0"}
+  "camomile-embedded-windows" {>= "2.1.0"}
   "uri"
   "uri-windows"
   "domain_shims"

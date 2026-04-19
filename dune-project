@@ -26,7 +26,7 @@
     (mm (>= 0.8.6))
     (re (and (>= 1.11.0) (< 1.14.0)))
     curl
-    (camomile (>= 2.0.0))
+    (camomile-embedded (>= 2.1.0))
     uri
     (mem_usage (>= 0.1.1))
     (metadata (>= 0.3.0))
@@ -83,7 +83,6 @@
  (conflicts
     (alsa (< 0.3.0))
     (ao (< 0.2.0))
-    (camomile (< 1.0.0))
     (dssi (< 0.1.3))
     (faad (< 0.5.0))
     (fdkaac (< 0.3.1))

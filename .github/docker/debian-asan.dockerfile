@@ -62,7 +62,7 @@ ENV OPTIONAL_OPAM_PACKAGES="\
     flac ogg opus speex theora vorbis"
 
 ENV EXT_PACKAGES="\
-    camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap \
+    camomile-embedded ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap \
     tls-liquidsoap syslog memtrace ssl posix-time2 \
     yaml js_of_ocaml js_of_ocaml-ppx re sqlite3"
 

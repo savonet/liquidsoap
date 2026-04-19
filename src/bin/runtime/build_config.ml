@@ -46,7 +46,6 @@ let build_config =
    - logdir            : %{Liquidsoap_paths.logdir_descr}
    - user cache        : %{Liquidsoap_paths.user_cache_override_descr} (override with $LIQ_CACHE_USER_DIR)
    - system cache      : %{Liquidsoap_paths.system_cache_override_descr} (override with $LIQ_CACHE_SYSTEM_DIR)
-   - camomile files    : %{Liquidsoap_paths.camomile_dir_descr}
 
  * Supported input formats
    - MP3               : %{Mad_option.detected}
