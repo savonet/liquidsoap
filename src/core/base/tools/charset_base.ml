@@ -25,11 +25,6 @@ let conf_charset =
     ~p:(Configure.conf#plug "charset")
     "Settings related to charset conversion."
 
-let conf_path =
-  Dtools.Conf.string ~p:(conf_charset#plug "path")
-    ~d:(Liquidsoap_paths.camomile_dir ())
-    "Directory where charset files are to be found."
-
 let conf_encoding =
   Dtools.Conf.list
     ~p:(conf_charset#plug "encodings")
@@ -41,14 +36,7 @@ let conf_max_string_length =
     ~p:(conf_charset#plug "max_string_length")
     ~d:1024 "Do not recode strings over that length."
 
-module C = CamomileLib.CharEncoding.Configure (struct
-  let basedir = conf_path#get
-  let datadir = Filename.concat basedir "database"
-  let localedir = Filename.concat basedir "locales"
-  let charmapdir = Filename.concat basedir "charmaps"
-  let unimapdir = Filename.concat basedir "mappings"
-end)
-
+module C = Camomile_embedded.Camomile.CharEncoding
 include C
 
 exception Unknown_encoding of string

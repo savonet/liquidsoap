@@ -68,7 +68,7 @@ RUN \
       fi; \
     done && cd liquidsoap && opam pin add -y --no-action .
 
-ENV EXT_PACKAGES="$EXTRA_PACKAGES camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace mem_usage ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
+ENV EXT_PACKAGES="$EXTRA_PACKAGES camomile-embedded ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace mem_usage ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
 
 RUN eval $(opam env) && opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,`cat /tmp/packages | while read i; do printf "$i,"; done`,liquidsoap" > /tmp/deps
 
