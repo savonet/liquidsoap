@@ -1,0 +1,22 @@
+name: CI
+
+on: [push]
+
+jobs:
+  cancel_previous_run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.4.0
+        with:
+          access_token: ${{ github.token }}
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+    - name: Build and test module
+      uses: savonet/build-and-test-ocaml-module@main
