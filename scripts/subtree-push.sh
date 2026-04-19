@@ -1,25 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-declare -A SUBTREES=(
-       ["src/modules/metadata"]="https://github.com/savonet/ocaml-metadata main"
-       ["src/modules/mem_usage"]="https://github.com/savonet/ocaml-mem_usage main"
-)
+currentBranch=$(git rev-parse --abbrev-ref HEAD)
 
-while read -r _local_ref local_sha _remote_ref remote_sha; do
-  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
-    range="$local_sha"
-  else
-    range="$remote_sha..$local_sha"
-  fi
-
-  changed=$(git diff --name-only "$range")
-
-  for prefix in "${!SUBTREES[@]}"; do
-    if echo "$changed" | grep -q "^${prefix}/"; then
-      read -r remote branch <<< "${SUBTREES[$prefix]}"
-      echo "Pushing subtree $prefix to $remote ($branch)..."
-      git subtree push --prefix="$prefix" "$remote" "$branch"
-    fi
+if [ "$currentBranch" = "main" ]; then
+  git diff-tree --no-commit-id --name-only -r "HEAD..origin/main" | cut -d'/' -f 1-4 | sort -u | grep src/modules/subtree | while read -r dir; do
+      echo "Changes detected in subtree $dir. Syncing..."
+      git subtree push --prefix="$dir" subtree-remote main
   done
-done
+fi
