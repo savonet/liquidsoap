@@ -264,11 +264,18 @@ let sync c = _sync (Unifier.deref c)
 let pending_clocks = WeakQueue.create ()
 let clocks = Queue.create ()
 
+let _sub_clocks c =
+  List.sort_uniq
+    (fun (_, c) (_, c') -> if c == c' then 0 else Stdlib.compare c c')
+    (List.map (fun c -> (c, Unifier.deref c)) (Queue.elements c.sub_clocks))
+
+let sub_clocks c = List.map fst (_sub_clocks (Unifier.deref c))
+
 let rec has_stopped ~clear_controller ~clock ~c x =
   (* Snapshot sub_clocks before sleeping outputs: on_sleep callbacks may
      deregister sub-clocks (e.g. ffmpeg filter graphs), which would prevent
      them from being stopped here. *)
-  let sub_clocks = Queue.elements clock.sub_clocks in
+  let sub_clocks = List.map fst (_sub_clocks clock) in
   Queue.iter x.outputs (fun (a, o) -> try o#sleep a with _ -> ());
   List.iter stop sub_clocks;
   Queue.filter_out clocks (fun c -> Unifier.deref c == clock);
@@ -494,13 +501,12 @@ let pretty_sources ~clock x =
   let rec build_entry clock x =
     let sub_clocks =
       List.filter_map
-        (fun sub ->
-          let sub_clock = Unifier.deref sub in
+        (fun (_, sub_clock) ->
           match Atomic.get sub_clock.state with
             | `Started sub_x | `Stopping sub_x ->
                 Some (build_entry sub_clock sub_x)
             | _ -> None)
-        (Queue.elements clock.sub_clocks)
+        (_sub_clocks clock)
     in
     let src s =
       Clock_utils.
@@ -553,7 +559,7 @@ and _activate_pending_sources ~clock x =
 
 and _tick ~clock x =
   let sub_clocks =
-    List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
+    List.map (fun (c, clock) -> (c, ticks c, clock)) (_sub_clocks clock)
   in
   _activate_pending_sources ~clock x;
   let sources = _animated_sources x in
@@ -569,9 +575,8 @@ and _tick ~clock x =
   let self_sync = _self_sync ~clock x in
   check_stopped ();
   List.iter
-    (fun (c, old_ticks) ->
-      if ticks c = old_ticks then
-        _tick ~clock:(Unifier.deref c) (active_params c))
+    (fun (c, old_ticks, clock) ->
+      if ticks c = old_ticks then _tick ~clock (active_params c))
     sub_clocks;
   Atomic.incr x.ticks;
   check_stopped ();
@@ -812,7 +817,9 @@ let register_sub_clock parent sub =
     Queue.push sub_clocks sub
 
 let deregister_sub_clock parent sub =
-  Queue.filter_out (Unifier.deref parent).sub_clocks (fun c -> c == sub)
+  let _sub = Unifier.deref sub in
+  Queue.filter_out (Unifier.deref parent).sub_clocks (fun c ->
+      Unifier.deref c == _sub)
 
 let create ?stack ?controller ?on_error ?id ?sync () =
   create ?stack ?controller ?on_error ?id ?sync ()
@@ -821,10 +828,6 @@ let clocks () =
   List.sort_uniq
     (fun c c' -> Stdlib.compare (Unifier.deref c) (Unifier.deref c'))
     (WeakQueue.elements pending_clocks @ Queue.elements clocks)
-
-let sub_clocks c =
-  let clock = Unifier.deref c in
-  Queue.elements clock.sub_clocks
 
 let dump () =
   let rec build_entry c =
