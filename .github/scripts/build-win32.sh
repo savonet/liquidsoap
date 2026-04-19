@@ -72,7 +72,6 @@ cp -R "${BASE_DIR}/.github/win32" "liquidsoap-$BUILD"
 cp -R "${BASE_DIR}/src/libs" "liquidsoap-$BUILD"
 cd "liquidsoap-$BUILD"
 cp "${OPAM_PREFIX}"/windows-sysroot/bin/liquidsoap ./liquidsoap.exe
-cp -R "$(ocamlfind -toolchain windows ocamlc -where)/../../share/camomile" .
 cd ..
 zip -r "liquidsoap-$BUILD.zip" "liquidsoap-$BUILD"
 

@@ -42,6 +42,8 @@ echo "::group::Setting up specific dependencies"
 opam update
 opam pin -y add re 1.13.2
 opam upgrade -y posix-socket
+opam pin -y add camomile https://github.com/ocaml-community/Camomile.git#embed-data
+opam pin -y add camomile-embedded https://github.com/ocaml-community/Camomile.git#embed-data
 opam install -y domain_shims syslog
 
 cd /tmp/liquidsoap-full/liquidsoap
@@ -75,7 +77,6 @@ touch liquidsoap/configure
   --infodir="\${prefix}/share/info" \
   --sysconfdir=/etc \
   --localstatedir=/var \
-  --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
   CFLAGS=-g
 
 # Workaround
