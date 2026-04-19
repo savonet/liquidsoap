@@ -2,6 +2,8 @@
 
 ## Fixed:
 
+- Fixed crash when sharing encoders between streams due to incorrect child clock controller initialization (#5110)
+- Fixed `is_binary` incorrectly skipping charset conversion for non-UTF-8 text (#5108)
 - Fixed sub-clock leak when `on_sleep` deregisters a source during `has_stopped` (#5103)
 - Fixed `input.harbor` returning an "Unknown error" instead of a proper 403 when a mountpoint is already taken (#5098)
 
