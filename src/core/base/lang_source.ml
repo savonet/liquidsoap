@@ -106,6 +106,18 @@ end)
 
 type callback_param = { name : string; typ : t; default : value option }
 
+(** Method description for source methods. The [scheme] field is a function of
+    the source's frame type so that composition methods can wire their source
+    type arguments to the operator's own frame type, avoiding global type
+    variable pollution across call sites. Non-composition methods ignore the
+    argument. *)
+type source_meth = {
+  name : string;
+  scheme : Type.t -> Type.scheme;
+  descr : string;
+  value : Source.source -> value;
+}
+
 type 'a callback = {
   name : string;
   params : callback_param list;
@@ -115,7 +127,7 @@ type 'a callback = {
   register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
 }
 
-let callback { name; params; descr; arg_t; register } =
+let callback { name; params; descr; arg_t; register } : _ Lang.meth =
   {
     name;
     scheme =
@@ -314,17 +326,17 @@ let source_callbacks =
     };
   ]
 
-let source_methods =
+let source_methods : source_meth list =
   [
     {
       name = "id";
-      scheme = ([], fun_t [] string_t);
+      scheme = (fun _ -> ([], fun_t [] string_t));
       descr = "Identifier of the source.";
       value = (fun s -> val_fun [] (fun _ -> string s#id));
     };
     {
       name = "is_ready";
-      scheme = ([], fun_t [] bool_t);
+      scheme = (fun _ -> ([], fun_t [] bool_t));
       descr =
         "Indicate if a source is ready to stream. This does not mean that the \
          source is currently streaming, just that its resources are all \
@@ -333,7 +345,7 @@ let source_methods =
     };
     {
       name = "generate_frame";
-      scheme = ([], fun_t [] unit_t);
+      scheme = (fun _ -> ([], fun_t [] unit_t));
       descr =
         "Generate a frame from the source without consuming it. This can be \
          useful in advanced cases where generating a frame is required to \
@@ -350,10 +362,11 @@ let source_methods =
     {
       name = "insert_metadata";
       scheme =
-        ( [],
-          Lang.fun_t
-            [(true, "new_track", Lang.bool_t); (false, "", metadata_t)]
-            Lang.unit_t );
+        (fun _ ->
+          ( [],
+            Lang.fun_t
+              [(true, "new_track", Lang.bool_t); (false, "", metadata_t)]
+              Lang.unit_t ));
       descr =
         "Dynamically insert metadata in a stream. Inserts a new track with the \
          given metadata if `new_track` is `true`.";
@@ -369,7 +382,7 @@ let source_methods =
     };
     {
       name = "reset_last_metadata_on_track";
-      scheme = ([], ref_t bool_t);
+      scheme = (fun _ -> ([], ref_t bool_t));
       descr =
         "If `true`, the source's `last_metadata` is reset on each new track. \
          If a metadata is present along with the track mark, then it becomes \
@@ -382,7 +395,7 @@ let source_methods =
     };
     {
       name = "buffered";
-      scheme = ([], fun_t [] (list_t (product_t string_t float_t)));
+      scheme = (fun _ -> ([], fun_t [] (list_t (product_t string_t float_t))));
       descr = "Length of buffered data.";
       value =
         (fun s ->
@@ -400,7 +413,7 @@ let source_methods =
     };
     {
       name = "last_metadata";
-      scheme = ([], fun_t [] (nullable_t metadata_t));
+      scheme = (fun _ -> ([], fun_t [] (nullable_t metadata_t)));
       descr = "Return the last metadata from the source.";
       value =
         (fun s ->
@@ -410,17 +423,30 @@ let source_methods =
                 | Some (_, m) -> metadata m));
     };
     {
+      name = "clear_last_metadata";
+      scheme = (fun _ -> ([], fun_t [] unit_t));
+      descr = "Clear the last metadata from the source.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              s#clear_last_metadata;
+              Lang.unit));
+    };
+    {
       name = "register_command";
       scheme =
-        ( [],
-          fun_t
-            [
-              (true, "usage", Lang.nullable_t Lang.string_t);
-              (false, "description", Lang.string_t);
-              (false, "", Lang.string_t);
-              (false, "", Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t);
-            ]
-            unit_t );
+        (fun _ ->
+          ( [],
+            fun_t
+              [
+                (true, "usage", Lang.nullable_t Lang.string_t);
+                (false, "description", Lang.string_t);
+                (false, "", Lang.string_t);
+                ( false,
+                  "",
+                  Lang.fun_t [(false, "", Lang.string_t)] Lang.string_t );
+              ]
+              unit_t ));
       descr =
         "Register a server command for this source. Command is registered \
          under the source's id namespace when it gets up and de-registered \
@@ -447,7 +473,7 @@ let source_methods =
     };
     {
       name = "remaining";
-      scheme = ([], fun_t [] float_t);
+      scheme = (fun _ -> ([], fun_t [] float_t));
       descr = "Estimation of remaining time in the current track.";
       value =
         (fun s ->
@@ -458,7 +484,7 @@ let source_methods =
     };
     {
       name = "elapsed";
-      scheme = ([], fun_t [] float_t);
+      scheme = (fun _ -> ([], fun_t [] float_t));
       descr = "Elapsed time in the current track.";
       value =
         (fun s ->
@@ -469,7 +495,7 @@ let source_methods =
     };
     {
       name = "duration";
-      scheme = ([], fun_t [] float_t);
+      scheme = (fun _ -> ([], fun_t [] float_t));
       descr = "Estimation of the duration of the current track.";
       value =
         (fun s ->
@@ -480,13 +506,13 @@ let source_methods =
     };
     {
       name = "self_sync";
-      scheme = ([], fun_t [] bool_t);
+      scheme = (fun _ -> ([], fun_t [] bool_t));
       descr = "Is the source currently controlling its own real-time loop.";
       value = (fun s -> val_fun [] (fun _ -> bool (snd s#self_sync <> None)));
     };
     {
       name = "self_sync_description";
-      scheme = ([], fun_t [] string_t);
+      scheme = (fun _ -> ([], fun_t [] string_t));
       descr = "";
       value =
         (fun s ->
@@ -504,7 +530,7 @@ let source_methods =
     };
     {
       name = "log";
-      scheme = ([], record_t [("level", ref_t int_t)]);
+      scheme = (fun _ -> ([], record_t [("level", ref_t int_t)]));
       descr = "Get or set the source's log level, from `1` to `5`.";
       value =
         (fun s ->
@@ -518,7 +544,7 @@ let source_methods =
     };
     {
       name = "is_up";
-      scheme = ([], fun_t [] bool_t);
+      scheme = (fun _ -> ([], fun_t [] bool_t));
       descr =
         "Indicate that the source can be asked to produce some data at any \
          time. This is `true` when the source is currently being used or if it \
@@ -527,7 +553,7 @@ let source_methods =
     };
     {
       name = "is_active";
-      scheme = ([], fun_t [] bool_t);
+      scheme = (fun _ -> ([], fun_t [] bool_t));
       descr =
         "`true` if the source is active, i.e. it is continuously animated by \
          its own clock whenever it is ready. Typically, `true` for outputs and \
@@ -539,7 +565,7 @@ let source_methods =
     };
     {
       name = "seek";
-      scheme = ([], fun_t [(false, "", float_t)] float_t);
+      scheme = (fun _ -> ([], fun_t [(false, "", float_t)] float_t));
       descr =
         "Seek forward, in seconds (returns the amount of time effectively \
          seeked).";
@@ -554,7 +580,7 @@ let source_methods =
     };
     {
       name = "skip";
-      scheme = ([], fun_t [] unit_t);
+      scheme = (fun _ -> ([], fun_t [] unit_t));
       descr = "Skip to the next track.";
       value =
         (fun s ->
@@ -564,19 +590,19 @@ let source_methods =
     };
     {
       name = "fallible";
-      scheme = ([], bool_t);
+      scheme = (fun _ -> ([], bool_t));
       descr = "Indicate if a source may fail, i.e. may not be ready to stream.";
       value = (fun s -> bool s#fallible);
     };
     {
       name = "clock";
-      scheme = ([], Lang_clock.ClockValue.base_t);
+      scheme = (fun _ -> ([], Lang_clock.ClockValue.base_t));
       descr = "The source's clock";
       value = (fun s -> Lang_clock.ClockValue.to_base_value s#clock);
     };
     {
       name = "time";
-      scheme = ([], fun_t [] float_t);
+      scheme = (fun _ -> ([], fun_t [] float_t));
       descr = "Get a source's time, based on its assigned clock.";
       value =
         (fun s ->
@@ -594,19 +620,284 @@ let source_methods =
     };
   ]
 
-let source_methods =
+(** Default composition profile values for file and live sources. These are
+    mutable so that stdlib.liq can update the live defaults (e.g. to install a
+    fade-based on_select) after all operators load. *)
+
+type composition_profile = {
+  on_leave : value;
+  on_select : value;
+  track_sensitive : bool;
+  replay_metadata : bool;
+}
+
+let noop_on_leave =
+  eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> ()"
+
+let passthrough_on_select =
+  eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (x) -> x.starting"
+
+let file_profile =
+  ref
+    {
+      on_leave = noop_on_leave;
+      on_select = passthrough_on_select;
+      track_sensitive = true;
+      replay_metadata = true;
+    }
+
+let live_profile =
+  ref
+    {
+      on_leave = noop_on_leave;
+      on_select = passthrough_on_select;
+      track_sensitive = false;
+      replay_metadata = true;
+    }
+
+let profile_of s =
+  if s#resolved_composition = `File then !file_profile else !live_profile
+
+let profile_to_value p =
+  record
+    [
+      ("on_leave", p.on_leave);
+      ("on_select", p.on_select);
+      ("track_sensitive", bool p.track_sensitive);
+      ("replay_metadata", bool p.replay_metadata);
+    ]
+
+let profile_of_value v =
+  {
+    on_leave = Value.invoke v "on_leave";
+    on_select = Value.invoke v "on_select";
+    track_sensitive = to_bool (Value.invoke v "track_sensitive");
+    replay_metadata = to_bool (Value.invoke v "replay_metadata");
+  }
+
+let source_composition_methods : source_meth list =
+  [
+    {
+      name = "track_sensitive";
+      scheme = (fun _ -> ([], getter_t bool_t));
+      descr =
+        "Whether this source is track-sensitive by default in switch \
+         operators. File-based sources default to `true`; live network and \
+         hardware inputs default to `false`. The value is looked up at runtime \
+         from the active composition profile (`source.composition.file` or \
+         `source.composition.live` depending on `composition_type`).";
+      value =
+        (fun s -> val_fun [] (fun _ -> bool (profile_of s).track_sensitive));
+    };
+    {
+      name = "single";
+      scheme = (fun _ -> ([], bool_t));
+      descr =
+        "Forbid the selection of this source for two consecutive tracks in \
+         switch operators. Defaults to `false`.";
+      value = (fun _ -> bool false);
+    };
+    {
+      name = "replay_metadata";
+      scheme = (fun _ -> ([], bool_t));
+      descr =
+        "Whether to replay the latest metadata on this source when it is \
+         selected in a switch operator. Defaults to `true`.";
+      value = (fun s -> bool (profile_of s).replay_metadata);
+    };
+    {
+      name = "on_leave";
+      scheme =
+        (fun source_t ->
+          let arg_t =
+            record_t [("source", source_t); ("track_sensitive", bool_t)]
+          in
+          ([], fun_t [(false, "", arg_t)] unit_t));
+      descr =
+        "Called after switching away from this source in a switch operator, \
+         once the transition using the ending source has completed. Receives a \
+         record with `source` (the source being left) and `track_sensitive` \
+         (`true` if the ending source's last frame had a track mark, i.e. it \
+         finished naturally; `false` if it was preempted mid-track). This \
+         function must return quickly as it runs in the streaming thread. The \
+         default depends on the active composition profile: file sources \
+         (`source.composition.file`) skip the source when preempted mid-track \
+         so it starts fresh on its next selection, and do nothing when it \
+         finished naturally; live sources (`source.composition.live`) do \
+         nothing.";
+      value =
+        (fun s ->
+          val_fun
+            [("", "", None)]
+            (fun p ->
+              let x = List.assoc "" p in
+              apply (profile_of s).on_leave [("", x)]));
+    };
+    {
+      name = "on_select";
+      scheme =
+        (fun source_t ->
+          let arg_t =
+            record_t
+              [
+                ("ending", nullable_t source_t);
+                ("replay_metadata", bool_t);
+                ("starting", source_t);
+              ]
+          in
+          ([], fun_t [(false, "", arg_t)] source_t));
+      descr =
+        "Called when selecting this source in a switch operator. Receives a \
+         record with `starting` (the incoming source) and `ending` (the \
+         previous source, or `null` when the ending source reached a track \
+         boundary). Returns the source to use. By default, both file and live \
+         profiles fade out `ending` when non-null (up to 1 second). The \
+         default is looked up at runtime from the active composition profile \
+         (`source.composition.file` or `source.composition.live` depending on \
+         `composition_type`).";
+      value =
+        (fun s ->
+          val_fun
+            [("", "", None)]
+            (fun p ->
+              let x = List.assoc "" p in
+              apply (profile_of s).on_select [("", x)]));
+    };
+  ]
+
+let non_composition_source_methods =
   List.map (fun m -> (m, `Method)) source_methods
-  @ List.map (fun c -> (callback c, `Callback)) source_callbacks
+  @ List.map
+      (fun c ->
+        let { Lang.name; scheme; descr; value } = callback c in
+        ({ name; scheme = (fun _ -> scheme); descr; value }, `Callback))
+      source_callbacks
+
+let source_methods =
+  non_composition_source_methods
+  @ List.map (fun m -> (m, `Composition)) source_composition_methods
+
+(** Returns the composition tag to set and an optional description for the
+    composition_type method. Outputs get neither; live inputs get `Live; passive
+    inputs get `File; all other operators are passthrough and inherit from their
+    effective source. *)
+let composition_setup_of_category = function
+  | `Output -> (None, None)
+  | `Input `Active ->
+      (Some `Live, Some "This source uses live composition by default.")
+  | `Input `Passive | `Synthesis ->
+      (Some `File, Some "This source uses file composition by default.")
+  | _ ->
+      (None, Some "This source inherits composition from its effective source.")
+
+(** Set [src]'s composition tag based on [category] and return the
+    [(name, value)] pair for the [composition_type] method, or [] for outputs.
+*)
+let setup_composition ~category src =
+  let tag_opt, descr_opt = composition_setup_of_category category in
+  Option.iter src#set_composition tag_opt;
+  match descr_opt with
+    | None -> []
+    | Some _ ->
+        let src = (src :> Source.source) in
+        [
+          ( "composition_type",
+            reference
+              (fun () ->
+                string
+                  (if src#resolved_composition = `File then "file" else "live"))
+              (fun v ->
+                src#set_composition
+                  (match to_string v with
+                    | "file" -> `File
+                    | "live" -> `Live
+                    | s ->
+                        Runtime_error.raise ~pos:[]
+                          ~message:
+                            (Printf.sprintf "Invalid composition type: %S" s)
+                          "invalid")) );
+        ]
+
+(** Register source.composition.{file,live}.{on_leave,on_select,track_sensitive}
+    as mutable Liquidsoap references. Must be called after the [source] module
+    exists in the environment.  Pass the string returned by
+    [Lang.add_operator "source" ...] as [~base]. *)
+let register_composition_module ~base () =
+  let composition = add_module ~base "composition" in
+  let frame_t = Type.var () in
+  let source_frame_t =
+    Type.make
+      (Type.Constr
+         { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
+  in
+  let on_leave_t =
+    fun_t
+      [
+        ( false,
+          "",
+          record_t [("source", source_frame_t); ("track_sensitive", bool_t)] );
+      ]
+      unit_t
+  in
+  let on_select_t =
+    fun_t
+      [
+        ( false,
+          "",
+          record_t
+            [
+              ("ending", nullable_t source_frame_t);
+              ("replay_metadata", Lang.bool_t);
+              ("starting", source_frame_t);
+            ] );
+      ]
+      source_frame_t
+  in
+  let profile_t =
+    record_t
+      [
+        ("on_leave", on_leave_t);
+        ("on_select", on_select_t);
+        ("track_sensitive", bool_t);
+        ("replay_metadata", bool_t);
+      ]
+  in
+  List.iter
+    (fun (name, profile_ref) ->
+      ignore
+        (add_builtin_value ~base:composition ~category:`Liquidsoap
+           ~descr:
+             (Printf.sprintf
+                "Set the default composition profile for %s sources. The \
+                 profile record contains `on_leave`, `on_select`, \
+                 `track_sensitive`, and `replay_metadata` defaults used by \
+                 switch operators."
+                name)
+           name
+           (val_fun
+              [("", "", None)]
+              (fun p ->
+                profile_ref := profile_of_value (List.assoc "" p);
+                unit))
+           (fun_t [(false, "", profile_t)] unit_t)))
+    [("file", file_profile); ("live", live_profile)]
 
 let make_t ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
 
 let _method_t t l =
   List.fold_left
-    (fun t ({ name; scheme; descr = doc }, category) ->
+    (fun t ({ Lang.name; scheme; descr = doc }, category) ->
       Type.meth ~doc ~category name scheme t)
     t l
 
-let source_methods_t t = _method_t t source_methods
+let _source_method_t t l =
+  let source_t = t in
+  List.fold_left
+    (fun t ({ name; scheme; descr = doc }, category) ->
+      Type.meth ~doc ~category name (scheme source_t) t)
+    t l
+
+let source_methods_t t = _source_method_t t source_methods
 
 let source_t ?(pos : Liquidsoap_lang.Term_base.parsed_pos option)
     ?(methods = false) frame_t =
@@ -633,6 +924,18 @@ let source_methods ~base s =
     (List.map (fun ({ name; value }, _) -> (name, value s)) source_methods)
 
 let source s = source_methods ~base:(Source_val.to_value s) s
+
+(** Like [source_methods ~base:unit] but omits composition methods (for outputs,
+    which cannot participate in composition). *)
+let output_source_value s =
+  meth unit
+    (List.map
+       (fun ({ name; value }, _) -> (name, value s))
+       non_composition_source_methods)
+
+let output_source_methods_t t =
+  _source_method_t t non_composition_source_methods
+
 let track = Track.to_value ?pos:None
 let to_source = Source_val.of_value
 let to_source_list l = List.map to_source (to_list l)
@@ -856,7 +1159,7 @@ let deprecated_callback_registration_arguments callbacks =
                           source method."
                          name) )
                 in
-                let { value = register_callback } = callback cb in
+                let { Lang.value = register_callback } = callback cb in
                 let register_deprecated_callback s p =
                   match Lang.to_option (List.assoc name p) with
                     | None -> ()
@@ -953,6 +1256,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     let src : < Source.source ; .. > = f env in
     List.iter (fun register -> register src env) register_deprecated_callbacks;
     src#set_stack (Liquidsoap_lang.Lang_core.pos env);
+    let composition_meths = setup_composition ~category src in
     Typing.(src#frame_type <: return_t);
     ignore
       (Option.map
@@ -960,15 +1264,32 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
          (to_valued_option to_string (List.assoc "id" env)));
     let v =
       let src = (src :> Source.source) in
-      if category = `Output then source_methods ~base:unit src else source src
+      if category = `Output then output_source_value src else source src
     in
-    _meth v (List.map (fun ({ name; value }, _) -> (name, value src)) meth)
+    let v =
+      _meth v
+        (List.map (fun ({ Lang.name; value }, _) -> (name, value src)) meth)
+    in
+    _meth v composition_meths
   in
   let base_t =
     if category = `Output then unit_t else source_t ~methods:false return_t
   in
-  let return_t = source_methods_t base_t in
-  let return_t = _method_t return_t meth in
+  let return_t =
+    (if category = `Output then output_source_methods_t else source_methods_t)
+      base_t
+  in
+  let composition_scheme_meths =
+    match snd (composition_setup_of_category category) with
+      | None -> []
+      | Some descr -> [("composition_type", ([], ref_t string_t), descr)]
+  in
+  let return_t =
+    List.fold_left
+      (fun t (name, scheme, doc) ->
+        Type.meth ~doc ~category:`Composition name scheme t)
+      (_method_t return_t meth) composition_scheme_meths
+  in
   let category = `Source category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
@@ -995,11 +1316,13 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
          (fun id -> src#set_id id)
          (to_valued_option to_string (List.assoc "id" env)));
     let v = Track.to_value (field, (src :> Source.source)) in
-    _meth v (List.map (fun { name; value } -> (name, value src)) meth)
+    _meth v (List.map (fun { Lang.name; value } -> (name, value src)) meth)
   in
   let return_t =
     method_t return_t
-      (List.map (fun { name; scheme; descr } -> (name, scheme, descr)) meth)
+      (List.map
+         (fun { Lang.name; scheme; descr } -> (name, scheme, descr))
+         meth)
   in
   let category = `Track category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f

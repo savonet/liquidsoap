@@ -125,6 +125,21 @@ object
   (** The source type. Defaults to [`Passive] *)
   method source_type : source_type
 
+  (** Raw composition tag. `` `Passthrough `` means "delegate to
+      [effective_source]". Use [resolved_composition] for the fully resolved
+      tag. *)
+  method composition : [ `File | `Live | `Passthrough ]
+
+  (** Set the composition tag. *)
+  method set_composition : [ `File | `Live | `Passthrough ] -> unit
+
+  (** Direct read of the stored tag, bypassing any override. *)
+  method raw_composition : [ `File | `Live | `Passthrough ]
+
+  (** Resolved composition tag: follows [effective_source] recursively until a
+      non-passthrough tag is found. *)
+  method resolved_composition : [ `File | `Live ]
+
   (** Remove the given source from the list of controlled sources. For advanced
       use only! *)
   method release_source : source -> unit
@@ -402,6 +417,14 @@ end
       [generate_from_multiple_sources] implements a [can_reselect] that can be
       called with the currently selected source to validate this logic. *)
 type reselect = [ `Ok | `Force | `After_position of int ]
+
+(** Mix-in for sources that compute composition from a list of children.
+    Respects an explicit tag set via [set_composition]. *)
+class virtual multi_source_composition : object
+  method virtual raw_composition : [ `File | `Live | `Passthrough ]
+  method virtual private source_list : source list
+  method composition : [ `File | `Live | `Passthrough ]
+end
 
 (* Helper to generate data from a sequence of source.
    Data generation calls [get_source] on track marks.

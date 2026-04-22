@@ -170,6 +170,19 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method virtual fallible : bool
     method source_type : source_type = `Passive
+    val mutable _composition : [ `File | `Live | `Passthrough ] = `Passthrough
+    method composition = _composition
+    method set_composition c = _composition <- c
+    method raw_composition = _composition
+
+    method resolved_composition : [ `File | `Live ] =
+      match self#composition with
+        | `Passthrough ->
+            let eff = self#effective_source in
+            if Oo.id eff = Oo.id self then `Live else eff#resolved_composition
+        | `File -> `File
+        | `Live -> `Live
+
     val mutable registered_commands = Queue.create ()
 
     method register_command ?usage ~descr name cmd =
@@ -793,6 +806,21 @@ and virtual source ?stack ?clock ~name () =
 class virtual active_source ?stack ?clock ~name () =
   object
     inherit active_operator ?stack ?clock ~name []
+  end
+
+class virtual multi_source_composition =
+  object (self)
+    method virtual raw_composition : [ `File | `Live | `Passthrough ]
+    method virtual private source_list : source list
+
+    method composition : [ `File | `Live | `Passthrough ] =
+      match self#raw_composition with
+        | (`File | `Live) as tag -> tag
+        | `Passthrough ->
+            let tags =
+              List.map (fun s -> s#resolved_composition) self#source_list
+            in
+            if List.for_all (fun t -> t = `File) tags then `File else `Live
   end
 
 (* Reselect type. This drives the choice of next source.

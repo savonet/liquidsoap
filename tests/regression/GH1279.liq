@@ -18,7 +18,7 @@ def f(m) =
   selected := list.add(m["id"], !selected)
 end
 
-s = rotate(weights=[2, 1], [s1, s2])
+s = rotate([s1.{weight = 2}, s2.{weight = 1}])
 s.on_track(synchronous=true, f)
 output.dummy(s)
 
