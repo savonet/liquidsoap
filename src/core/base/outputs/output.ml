@@ -232,19 +232,16 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
     method virtual private send : 'a -> unit
 
     method private send_metadata frame start stop =
-      let m =
+      match
         List.find_map
-          (fun (pos, m) ->
-            if start <= pos && pos < stop then (
-              let m =
-                Frame.Metadata.Export.from_metadata ~cover:export_cover_metadata
-                  m
-              in
-              if Frame.Metadata.Export.is_empty m then None else Some m)
-            else None)
+          (fun (pos, m) -> if start <= pos && pos < stop then Some m else None)
           (Frame.get_all_metadata frame)
-      in
-      Option.iter self#encode_metadata m
+      with
+        | None -> ()
+        | Some m ->
+            self#encode_metadata
+              (Frame.Metadata.Export.from_metadata ~cover:export_cover_metadata
+                 m)
 
     method private send_frame frame =
       let rec output_chunks frame =
