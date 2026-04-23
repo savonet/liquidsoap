@@ -230,6 +230,8 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
     method virtual private encode_metadata : Frame.Metadata.Export.t -> unit
     method virtual private encode : Frame.t -> 'a
     method virtual private send : 'a -> unit
+    val mutable encoding_order : [ `Data_first | `Metadata_first ] = `Data_first
+    method private set_encoding_order v = encoding_order <- v
 
     method private send_metadata frame start stop =
       match
@@ -246,9 +248,12 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
     method private send_frame frame =
       let rec output_chunks frame =
         let f start stop =
-          self#send_metadata frame start stop;
+          if encoding_order = `Metadata_first then
+            self#send_metadata frame start stop;
           let data = self#encode (Frame.sub frame start (stop - start)) in
-          self#send data
+          self#send data;
+          if encoding_order = `Data_first then
+            self#send_metadata frame start stop
         in
         function
         | [] -> assert false

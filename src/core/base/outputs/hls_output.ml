@@ -610,6 +610,8 @@ class hls_output p =
         ~infallible ~register_telnet ~autostart ~export_cover_metadata:false
           ~output_kind:"output.file" ~name:main_playlist_filename source_val
 
+    initializer self#set_encoding_order `Metadata_first
+
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
 
