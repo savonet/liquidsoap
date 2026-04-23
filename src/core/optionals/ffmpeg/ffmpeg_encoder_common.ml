@@ -163,10 +163,10 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
     let seek = if is_mp4_hls then Some (Strings.Mutable.seek buf) else None in
     let format = mk_format ffmpeg in
     let interleaved =
-      match (ffmpeg.interleaved, ffmpeg.Ffmpeg_format.format) with
-        | `Default, _ -> 1 < List.length ffmpeg.streams
-        | `True, _ -> true
-        | `False, _ -> false
+      match ffmpeg.interleaved with
+        | `Default -> 1 < List.length ffmpeg.streams
+        | `True -> true
+        | `False -> false
     in
     let output =
       match ffmpeg.Ffmpeg_format.output with
