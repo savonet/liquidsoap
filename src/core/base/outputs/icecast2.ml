@@ -477,6 +477,11 @@ class output p =
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false ~name source_val
 
+    initializer
+      (* When sending ICY metadata, the update requires an active connection,
+         so metadata must come after send (which establishes the connection). *)
+      if send_icy_metadata then self#set_encoding_order `Data_first
+
     (** In this operator, we don't exactly follow the start/stop mechanism of
         Output.encoded because we want to control in a more subtle way the
         connection/disconnection with icecast. So we have specific

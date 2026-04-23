@@ -230,7 +230,10 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
     method virtual private encode_metadata : Frame.Metadata.Export.t -> unit
     method virtual private encode : Frame.t -> 'a
     method virtual private send : 'a -> unit
-    val mutable encoding_order : [ `Data_first | `Metadata_first ] = `Data_first
+
+    val mutable encoding_order : [ `Data_first | `Metadata_first ] =
+      `Metadata_first
+
     method private set_encoding_order v = encoding_order <- v
 
     method private send_metadata frame start stop =
