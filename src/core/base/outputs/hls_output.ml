@@ -722,6 +722,21 @@ class hls_output p =
             self#write_main_playlist)
       | _ -> ()
 
+    method private write_metadata ~s ~current_position out_channel =
+      if s.id3_enabled then (
+        let m =
+          match s.metadata with
+            | `Todo m ->
+                s.metadata <- `Sent m;
+                Frame.Metadata.Export.to_list m
+            | `Sent m when s.replay_id3 -> Frame.Metadata.Export.to_list m
+            | `Sent _ | `None -> []
+        in
+        let frame_position, sample_position = current_position in
+        match s.encoder.hls.insert_id3 ~frame_position ~sample_position m with
+          | None -> ()
+          | Some s -> out_channel#output_string s)
+
     method private open_segment s =
       self#log#debug "Opening segment %d for stream %s." s.position s.name;
       let discontinuous, current_discontinuity =
@@ -751,24 +766,12 @@ class hls_output p =
         segment_name ~position ~extname ~duration ~ticks s.name
       in
       let out_channel = self#open_out filename in
+      self#write_metadata ~s ~current_position out_channel;
       Strings.iter out_channel#output_substring (s.encoder.Encoder.header ());
       segment.out_channel <- Some out_channel;
       s.current_segment <- Some segment;
       s.discontinuity_count <- current_discontinuity;
-      s.position <- s.position + 1;
-      if s.id3_enabled then (
-        let m =
-          match s.metadata with
-            | `Todo m ->
-                s.metadata <- `Sent m;
-                Frame.Metadata.Export.to_list m
-            | `Sent m when s.replay_id3 -> Frame.Metadata.Export.to_list m
-            | `Sent _ | `None -> []
-        in
-        let frame_position, sample_position = current_position in
-        match s.encoder.hls.insert_id3 ~frame_position ~sample_position m with
-          | None -> ()
-          | Some s -> out_channel#output_string s)
+      s.position <- s.position + 1
 
     method reopen_segment ~position:(len, offset) =
       function
@@ -910,7 +913,7 @@ class hls_output p =
 
     method start =
       stopped <- false;
-      (match persist_at with
+      match persist_at with
         | Some persist_at when Sys.file_exists persist_at -> (
             try
               self#log#info "Resuming from saved state";
@@ -920,8 +923,7 @@ class hls_output p =
             with exn when not strict_persist ->
               self#log#info "Failed to resume from saved state: %s"
                 (Printexc.to_string exn))
-        | _ -> ());
-      List.iter self#open_segment streams
+        | _ -> ()
 
     method stop =
       stopped <- true;
@@ -1069,7 +1071,10 @@ class hls_output p =
         (frame_pos + (samples_pos / frame_size), samples_pos mod frame_size);
       List.map
         (fun s ->
-          let segment = Option.get s.current_segment in
+          let segment =
+            if s.current_segment = None then self#open_segment s;
+            Option.get s.current_segment
+          in
           let b =
             if s.init_state = `Todo then (
               try
