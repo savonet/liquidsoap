@@ -30,6 +30,8 @@
 
 ## Fixed:
 
+- Fixed ID3 timed metadata missing from first mpegts HLS segment: metadata is
+  now registered before the segment is opened and before audio data is encoded (#5084).
 - Make active `stereotool` really be active.. (#4882)
 - Fixed `fMP4` HLS support for audio+video streams (#4841)
 - Fixed crossfade clocks inconsistencies leading to weird caching audio glitches (#4851)
