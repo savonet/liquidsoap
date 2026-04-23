@@ -163,10 +163,10 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
     let seek = if is_mp4_hls then Some (Strings.Mutable.seek buf) else None in
     let format = mk_format ffmpeg in
     let interleaved =
-      match ffmpeg.interleaved with
-        | `Default -> 1 < List.length ffmpeg.streams
-        | `True -> true
-        | `False -> false
+      match (ffmpeg.interleaved, ffmpeg.Ffmpeg_format.format) with
+        | `Default, _ -> 1 < List.length ffmpeg.streams
+        | `True, _ -> true
+        | `False, _ -> false
     in
     let output =
       match ffmpeg.Ffmpeg_format.output with
@@ -240,20 +240,20 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
             let stream =
               Av.new_data_stream ~time_base ~codec:`Timed_id3 encoder.output
             in
+            let write_id3 packet = Av.write_packet stream time_base packet in
             encoder.insert_id3 <-
               (fun ~frame_position ~sample_position m ->
-                if Atomic.get encoder.started then (
-                  let tag = Utils.id3v2_of_metadata ~version:id3_version m in
-                  let packet = Avcodec.Packet.create tag in
-                  let position =
-                    Int64.of_int
-                      (Frame.audio_of_main
-                         ((frame_position * Lazy.force Frame.size)
-                         + sample_position))
-                  in
-                  Avcodec.Packet.set_pts packet (Some position);
-                  Avcodec.Packet.set_dts packet (Some position);
-                  Av.write_packet stream time_base packet);
+                let tag = Utils.id3v2_of_metadata ~version:id3_version m in
+                let packet = Avcodec.Packet.create tag in
+                let position =
+                  Int64.of_int
+                    (Frame.audio_of_main
+                       ((frame_position * Lazy.force Frame.size)
+                       + sample_position))
+                in
+                Avcodec.Packet.set_pts packet (Some position);
+                Avcodec.Packet.set_dts packet (Some position);
+                write_id3 packet;
                 None);
             true)
           else false

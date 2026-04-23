@@ -773,9 +773,10 @@ class hls_output p =
             | `Sent _ | `None -> []
         in
         let frame_position, sample_position = current_position in
-        match s.encoder.hls.insert_id3 ~frame_position ~sample_position m with
-          | None -> ()
-          | Some s -> out_channel#output_string s)
+        if m <> [] then (
+          match s.encoder.hls.insert_id3 ~frame_position ~sample_position m with
+            | None -> ()
+            | Some s -> out_channel#output_string s))
 
     method reopen_segment ~position:(len, offset) =
       function
@@ -928,7 +929,6 @@ class hls_output p =
                 (Printexc.to_string exn);
               self#toggle_state `Start)
         | _ -> self#toggle_state `Start);
-      List.iter self#open_segment streams;
       self#toggle_state `Streaming
 
     method stop =
@@ -1071,6 +1071,9 @@ class hls_output p =
       else (false, "", false)
 
     method encode frame =
+      List.iter
+        (fun s -> if s.current_segment = None then self#open_segment s)
+        streams;
       let len = Frame.position frame in
       let frame_pos, samples_pos = current_position in
       let frame_size = Lazy.force Frame.size in
@@ -1104,7 +1107,9 @@ class hls_output p =
         | None -> ()
         | Some b ->
             Strings.iter oc#output_substring b;
-            segment.last_segmentable_position <- Some (segment.len, oc#position));
+            if oc#position > 0 then
+              segment.last_segmentable_position <-
+                Some (segment.len, oc#position));
       (match
          (self#should_reopen ~segment ~len s, segment.last_segmentable_position)
        with
@@ -1120,7 +1125,8 @@ class hls_output p =
                     (segment.len, oc#position)
                 | Some p -> p
             in
-            self#log#info "%s" reason;
+            self#log#info "%s (position: %d, %d)" reason (fst position)
+              (snd position);
             self#reopen_segment ~position s);
       let { out_channel } = Option.get s.current_segment in
       let oc = Option.get out_channel in
