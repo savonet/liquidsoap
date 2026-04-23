@@ -1125,8 +1125,7 @@ class hls_output p =
                     (segment.len, oc#position)
                 | Some p -> p
             in
-            self#log#info "%s (position: %d, %d)" reason (fst position)
-              (snd position);
+            self#log#info "%s" reason;
             self#reopen_segment ~position s);
       let { out_channel } = Option.get s.current_segment in
       let oc = Option.get out_channel in
