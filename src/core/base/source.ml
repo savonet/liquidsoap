@@ -341,6 +341,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private actual_sleep =
       if Atomic.compare_and_set is_up `True `False then (
         source_log#info "Source %s gets down." self#id;
+        (match self#source_type with
+          | `Passive | `Active _ ->
+              Clock.detach self#clock (self :> Clock.source)
+          | `Output _ -> ());
         List.iter (fun fn -> fn ()) on_sleep)
 
     method sleep (src : Clock.activation) =
