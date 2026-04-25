@@ -3,6 +3,7 @@ settings.init.force_start := true
 
 test = ()
 let test.done = ref(false)
+let test.failed = ref(false)
 
 runtime.gc.set(runtime.gc.get().{space_overhead = 20, allocation_policy = 2})
 
@@ -19,21 +20,30 @@ def test.pass() =
   end
 end
 
-# End test with a failure.
+# End test with a failure. Idempotent: subsequent calls are no-ops, and
+# overrides any previous test.pass. Initiates a graceful shutdown with
+# exit code 1, and force-exits after a 10s timeout.
 def test.fail(reason=null) =
-  reason =
-    if
-      null.defined(reason)
-    then
-      ": #{null.get(reason)}"
-    else
-      "!"
-    end
-  print(
-    "Test failed#{reason}"
-  )
-  log.flush()
-  exit(1)
+  if
+    not !test.failed
+  then
+    test.failed := true
+    test.done := true
+    reason =
+      if
+        null.defined(reason)
+      then
+        ": #{null.get(reason)}"
+      else
+        "!"
+      end
+    print(
+      "Test failed#{reason}"
+    )
+    log.flush()
+    shutdown(code=1)
+    thread.run(delay=10., {exit(1)})
+  end
 end
 
 # End test with signal 2
