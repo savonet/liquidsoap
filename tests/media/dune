@@ -254,12 +254,36 @@
    video-with-subtitle.mkv)))
 
 (rule
+ (alias test_ffmpeg_distributed_hls_setup)
+ (package liquidsoap)
+ (target hls_resume_output.done)
+ (deps
+  long-video.mp4
+  test_ffmpeg_distributed_hls_setup.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (progn
+   (run
+    %{run_test}
+    "FFmpeg distributed HLS setup"
+    liquidsoap
+    %{test_liq}
+    test_ffmpeg_distributed_hls_setup.liq
+    --
+    long-video.mp4)
+   (bash "touch hls_resume_output.done"))))
+
+(rule
  (alias test_ffmpeg_distributed_hls)
  (package liquidsoap)
  (deps
   long-video.mp4
   test_ffmpeg_distributed_hls.liq
-  ffmpeg_distributed_hls_state.json
+  hls_resume_output.done
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/lib)
@@ -314,28 +338,6 @@
    liquidsoap
    %{test_liq}
    test_ffmpeg_hls_copy_mp4.liq
-   --
-   long-video.mp4)))
-
-(rule
- (alias mediatest)
- (package liquidsoap)
- (deps
-  long-video.mp4
-  test_ffmpeg_distributed_hls.liq
-  ffmpeg_distributed_hls_state.json
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/lib)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   "FFmpeg distributed HLS encoding"
-   liquidsoap
-   %{test_liq}
-   test_ffmpeg_distributed_hls.liq
    --
    long-video.mp4)))
 
