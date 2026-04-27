@@ -26,6 +26,15 @@ let log = Log.make ["ffmpeg"]
 let () = Avdevice.init ()
 
 let () =
+  Lifecycle.on_init ~name:"FFmpeg init" (fun () ->
+      let v = Avutil.version_string in
+      log#important
+        "libavutil %s, libavformat %s, libavcodec %s, libswresample %s, \
+         libswscale %s"
+        (v Avutil.version) (v Av.avformat_version) (v Avcodec.version)
+        (v Swresample.version) (v Swscale.version))
+
+let () =
   Printexc.register_printer (function
     | Avutil.Error `Encoder_not_found ->
         Some
