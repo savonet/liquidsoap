@@ -2,24 +2,44 @@ name: Build CI Docker Images
 
 on:
   workflow_dispatch:
+    inputs:
+      build_debian:
+        description: "Build Debian/Ubuntu CI images"
+        required: false
+        default: true
+        type: boolean
+      build_alpine:
+        description: "Build Alpine CI images"
+        required: false
+        default: true
+        type: boolean
+      debian_base_images:
+        description: "Debian/Ubuntu base images (JSON array)"
+        required: false
+        default: '["debian:forky","debian:trixie","ubuntu:resolute","ubuntu:plucky","ubuntu:noble"]'
+        type: string
+      debian_ocaml_versions:
+        description: "OCaml versions for Debian/Ubuntu (JSON array)"
+        required: false
+        default: '["4.14.2","5.4.0"]'
+        type: string
+      alpine_ocaml_versions:
+        description: "OCaml versions for Alpine (JSON array)"
+        required: false
+        default: '["4.14.2","5.4.0"]'
+        type: string
 
 jobs:
   build-debian-ci:
+    if: ${{ inputs.build_debian }}
     runs-on: depot-ubuntu-24.04-32
     strategy:
       fail-fast: false
       matrix:
         # 2.5.x targets: debian:trixie/forky, ubuntu:resolute/plucky
         # 2.4.x targets: debian:trixie/forky, ubuntu:noble/plucky
-        base_image:
-          [
-            debian:forky,
-            debian:trixie,
-            ubuntu:resolute,
-            ubuntu:plucky,
-            ubuntu:noble,
-          ]
-        ocaml_version: ["4.14.2", "5.4.0"]
+        base_image: ${{ fromJSON(inputs.debian_base_images) }}
+        ocaml_version: ${{ fromJSON(inputs.debian_ocaml_versions) }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Login to GitHub Container Registry
@@ -63,11 +83,12 @@ jobs:
           sbom: false
 
   build-alpine-ci:
+    if: ${{ inputs.build_alpine }}
     runs-on: depot-ubuntu-24.04-32
     strategy:
       fail-fast: false
       matrix:
-        ocaml_version: ["4.14.2", "5.4.0"]
+        ocaml_version: ${{ fromJSON(inputs.alpine_ocaml_versions) }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Login to GitHub Container Registry

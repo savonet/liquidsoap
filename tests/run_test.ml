@@ -14,6 +14,28 @@ let warning_prefix, error_prefix =
       Printf.sprintf "::error file=%s,title=Test failed::" test )
   else ("", "")
 
+let signal_name s =
+  let names =
+    [
+      (Sys.sigabrt, "SIGABRT");
+      (Sys.sigalrm, "SIGALRM");
+      (Sys.sigfpe, "SIGFPE");
+      (Sys.sighup, "SIGHUP");
+      (Sys.sigill, "SIGILL");
+      (Sys.sigint, "SIGINT");
+      (Sys.sigkill, "SIGKILL");
+      (Sys.sigpipe, "SIGPIPE");
+      (Sys.sigquit, "SIGQUIT");
+      (Sys.sigsegv, "SIGSEGV");
+      (Sys.sigterm, "SIGTERM");
+      (Sys.sigusr1, "SIGUSR1");
+      (Sys.sigusr2, "SIGUSR2");
+    ]
+  in
+  match List.assoc_opt s names with
+    | Some name -> name
+    | None -> Printf.sprintf "signal %d" s
+
 let () = Console.color_conf := `Always
 let colorized_test = Console.colorize [`white; `bold] test
 let colorized_timeout = Console.colorize [`magenta; `bold] "[timeout]"
@@ -24,26 +46,37 @@ let colorized_failed = Console.colorize [`red; `bold] "[failed]"
 let run_process ~action cmd args =
   let start_time = Unix.time () in
   let logfile = Filename.temp_file "test" test in
-  log_files := logfile :: !log_files;
+  let errfile = Filename.temp_file "test_err" test in
+  log_files := logfile :: errfile :: !log_files;
   let stdin = Unix.openfile stdin_file [Unix.O_RDWR] 0o644 in
   let stdout = Unix.openfile logfile [Unix.O_RDWR; Unix.O_TRUNC] 0o644 in
+  let stderr = Unix.openfile errfile [Unix.O_RDWR; Unix.O_TRUNC] 0o644 in
+
+  let print_fd label fd =
+    let buffer_size = 1024 in
+    let buffer = Bytes.create buffer_size in
+    let rec loop () =
+      match Unix.read fd buffer 0 buffer_size with
+        | 0 -> ()
+        | _ ->
+            Printf.eprintf "%s" (Bytes.unsafe_to_string buffer);
+            loop ()
+    in
+    Printf.eprintf "\n--- %s ---\n" label;
+    loop ();
+    print_newline ()
+  in
 
   let print_log () =
     try
       Unix.close stdout;
-      let buffer_size = 1024 in
-      let buffer = Bytes.create buffer_size in
-      let fd = Unix.openfile logfile [Unix.O_RDONLY] 0 in
-      let rec loop () =
-        match Unix.read fd buffer 0 buffer_size with
-          | 0 -> ()
-          | _ ->
-              Printf.eprintf "%s" (Bytes.unsafe_to_string buffer);
-              loop ()
-      in
-      loop ();
-      print_newline ();
-      Unix.close fd
+      Unix.close stderr;
+      let out_fd = Unix.openfile logfile [Unix.O_RDONLY] 0 in
+      print_fd "stdout" out_fd;
+      Unix.close out_fd;
+      let err_fd = Unix.openfile errfile [Unix.O_RDONLY] 0 in
+      print_fd "stderr" err_fd;
+      Unix.close err_fd
     with _ -> ()
   in
 
@@ -75,7 +108,7 @@ let run_process ~action cmd args =
          on_timeout ())
        ());
 
-  let pid = Unix.create_process cmd args stdin stdout stdout in
+  let pid = Unix.create_process cmd args stdin stdout stderr in
   running := true;
   pid_ref := Some pid;
 
@@ -92,11 +125,26 @@ let run_process ~action cmd args =
         Printf.eprintf "%s%s test %s: %s\n" warning_prefix action colorized_test
           colorized_skipped;
         exit 0
-    | _ ->
+    | _, Unix.WEXITED n ->
         running := false;
         let min, sec = runtime () in
-        Printf.eprintf "%s%s test %s: %s (time: %02dm:%02ds)\n" error_prefix
-          action colorized_test colorized_failed min sec;
+        Printf.eprintf "%s%s test %s: %s (exit code: %d, time: %02dm:%02ds)\n"
+          error_prefix action colorized_test colorized_failed n min sec;
+        print_log ();
+        exit 1
+    | _, Unix.WSIGNALED s ->
+        running := false;
+        let min, sec = runtime () in
+        Printf.eprintf "%s%s test %s: %s (%s, time: %02dm:%02ds)\n" error_prefix
+          action colorized_test colorized_failed (signal_name s) min sec;
+        print_log ();
+        exit 1
+    | _, Unix.WSTOPPED s ->
+        running := false;
+        let min, sec = runtime () in
+        Printf.eprintf "%s%s test %s: %s (stopped by %s, time: %02dm:%02ds)\n"
+          error_prefix action colorized_test colorized_failed (signal_name s)
+          min sec;
         print_log ();
         exit 1
 

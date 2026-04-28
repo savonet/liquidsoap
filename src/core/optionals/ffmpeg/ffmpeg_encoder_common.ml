@@ -43,6 +43,7 @@ type handler = {
     (string * string) list ->
     string option;
   started : bool Atomic.t;
+  pending_on_start : (unit -> unit) Queue.t;
 }
 
 type stream_data = {
@@ -99,10 +100,20 @@ let mk_format ffmpeg =
     | Some short_name, _ -> Av.Format.guess_output_format ~short_name ()
     | _ -> None
 
+let flush_pending_on_start ~encoder =
+  if
+    (not (Queue.is_empty encoder.pending_on_start))
+    && Av.output_started encoder.output
+  then
+    while not (Queue.is_empty encoder.pending_on_start) do
+      (Queue.pop encoder.pending_on_start) ()
+    done
+
 let encode ~encoder frame =
   if not (Atomic.exchange encoder.started true) then
     Frame.Fields.iter (fun _ { mk_stream } -> mk_stream frame) encoder.streams;
-  Frame.Fields.iter (fun _ { encode } -> encode frame) encoder.streams
+  Frame.Fields.iter (fun _ { encode } -> encode frame) encoder.streams;
+  flush_pending_on_start ~encoder
 
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
@@ -193,6 +204,7 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
       streams;
       insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
       started = Atomic.make false;
+      pending_on_start = Queue.create ();
     }
   in
   let encoder = Atomic.make (make ()) in
@@ -240,10 +252,11 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
             let stream =
               Av.new_data_stream ~time_base ~codec:`Timed_id3 encoder.output
             in
+            let write_id3 packet = Av.write_packet stream time_base packet in
             encoder.insert_id3 <-
               (fun ~frame_position ~sample_position m ->
-                if Atomic.get encoder.started then (
-                  let tag = Utils.id3v2_of_metadata ~version:id3_version m in
+                let tag = Utils.id3v2_of_metadata ~version:id3_version m in
+                let write () =
                   let packet = Avcodec.Packet.create tag in
                   let position =
                     Int64.of_int
@@ -253,7 +266,10 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
                   in
                   Avcodec.Packet.set_pts packet (Some position);
                   Avcodec.Packet.set_dts packet (Some position);
-                  Av.write_packet stream time_base packet);
+                  write_id3 packet
+                in
+                if Av.output_started encoder.output then write ()
+                else Queue.push write encoder.pending_on_start;
                 None);
             true)
           else false
@@ -348,7 +364,7 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
     let m = Frame.Metadata.append ffmpeg.metadata m in
     let m = Frame.Metadata.to_list m in
     match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
-      | _ when not (Atomic.get (Atomic.get encoder).started) ->
+      | _ when not (Av.output_started (Atomic.get encoder).output) ->
           Av.set_output_metadata (Atomic.get encoder).output m
       | `Stream, Some "ogg" ->
           flush ();
