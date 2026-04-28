@@ -7,7 +7,7 @@ aac_flags = ref(false)
 mp4_flags = ref(false)
 aac_insert_flags = ref(false)
 
-test.skip()
+#test.skip()
 
 def on_file_change({state, path = p}) =
   fname = path.basename(p)
