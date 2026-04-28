@@ -445,17 +445,21 @@ let toplevel_add ?doc pat ~t v =
                 List.fold_left
                   (fun (methods, callbacks) m ->
                     let l = m.Type.meth in
-                    (* Override description by the one given in comment if it exists. *)
-                    let d =
-                      match List.assoc_opt l doc.Doc.Value.methods with
-                        | Some m -> m.meth_description
-                        | None -> Some m.doc.meth_descr
+                    (* Override description and category by the one given in comment if it exists. *)
+                    let d, category =
+                      match List.assoc_opt l doc.Doc.Value.callbacks with
+                        | Some cb -> (cb.meth_description, `Callback)
+                        | None -> (
+                            match List.assoc_opt l doc.Doc.Value.methods with
+                              | Some entry ->
+                                  (entry.meth_description, m.doc.category)
+                              | None -> (Some m.doc.meth_descr, m.doc.category))
                     in
                     let t = Repr.string_of_scheme m.scheme in
                     let entry =
                       (l, Doc.Value.{ meth_type = t; meth_description = d })
                     in
-                    match m.doc.category with
+                    match category with
                       | `Method -> (entry :: methods, callbacks)
                       | `Callback -> (methods, entry :: callbacks))
                   ([], []) methods

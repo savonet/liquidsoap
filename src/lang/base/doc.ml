@@ -540,7 +540,7 @@ let parse_doc ~pos doc =
               Re.Pcre.exec
                 ~rex:
                   (Re.Pcre.regexp
-                     "^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$")
+                     "^\\s*@(category|docof|flag|param|method|callback|argsof)\\s*(.*)$")
                 line
             in
             let s = Re.Pcre.get_substring sub 2 in
