@@ -100,16 +100,17 @@ let mk_format ffmpeg =
     | Some short_name, _ -> Av.Format.guess_output_format ~short_name ()
     | _ -> None
 
-let delayed_start ~encoder frame =
-  if not (Atomic.exchange encoder.started true) then (
-    Frame.Fields.iter (fun _ { mk_stream } -> mk_stream frame) encoder.streams;
-    while not (Queue.is_empty encoder.pending_on_start) do
-      (Queue.pop encoder.pending_on_start) ()
-    done)
+let flush_pending_on_start ~encoder =
+  while not (Queue.is_empty encoder.pending_on_start) do
+    (Queue.pop encoder.pending_on_start) ()
+  done
 
 let encode ~encoder frame =
-  delayed_start ~encoder frame;
-  Frame.Fields.iter (fun _ { encode } -> encode frame) encoder.streams
+  let first_encode = not (Atomic.exchange encoder.started true) in
+  if first_encode then
+    Frame.Fields.iter (fun _ { mk_stream } -> mk_stream frame) encoder.streams;
+  Frame.Fields.iter (fun _ { encode } -> encode frame) encoder.streams;
+  if first_encode then flush_pending_on_start ~encoder
 
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
