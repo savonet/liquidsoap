@@ -843,8 +843,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         (Re.Pcre.get_substring sub 1, Re.Pcre.get_substring sub 2)
       with Not_found -> (uri, "")
     in
+    let protocol_name = protocol_name h in
     let smethod = string_of_verb hmethod in
-    log#info "%s %s request on %s." (protocol_name h) smethod base_uri;
+    log#info "%s request on %s (protocol: %s)." smethod base_uri protocol_name;
     let args = Http.args_split args in
     (* Filter out password *)
     let log_args =
@@ -854,7 +855,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Hashtbl.remove log_args "pass";
         log_args)
     in
-    Hashtbl.iter (log#info "%s Arg: %s, value: %s." (protocol_name h)) log_args;
+    Hashtbl.iter
+      (fun key value ->
+        log#info "Arg: %s, value: %s (protocol: %s)." key value protocol_name)
+      log_args;
 
     (* First, try with a registered handler. *)
     let { handler; _ } = find_handler port in
@@ -974,8 +978,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | e ->
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
-            (Printf.sprintf "%s %s request on uri '%s' failed: %s"
-               (protocol_name h) smethod (Printexc.to_string e) uri);
+            (Printf.sprintf "%s request on uri '%s' with protocol %s failed: %s"
+               smethod protocol_name (Printexc.to_string e) uri);
           ans_500 uri
 
   let handle_client ~port ~icy h =

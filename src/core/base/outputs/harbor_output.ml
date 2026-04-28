@@ -24,25 +24,11 @@ let ( let* ) = Duppy.Monad.bind
 
 module Http = Liq_http
 
-let log = Log.make ["lang"]
+let log = Log.make ["harbor"; "output"]
 
-(** Output to an harbor server. *)
-module type T = sig
-  include Harbor.Transport_t
+(** Output to harbor listeners. *)
 
-  val source_name : string
-  val source_description : string
-end
-
-module Mutex_control = struct
-  type priority = Tutils.priority
-
-  let scheduler = Tutils.scheduler
-  let priority = `Non_blocking
-end
-
-module Duppy_m = Duppy.Monad.Mutex.Factory (Mutex_control)
-module Duppy_c = Duppy.Monad.Condition.Factory (Duppy_m)
+module Task = Duppy.Task
 module Duppy = Harbor.Http_transport.Duppy
 
 module Icecast = struct
@@ -62,15 +48,160 @@ end
 module M = Icecast_utils.Icecast_v (Icecast)
 open M
 
-(* Max total length for ICY metadata is 255*16
+(* ICY metadata constants.
+   Max total length for ICY metadata is 255*16.
    Format is: "StreamTitle='%s';StreamUrl='%s'"
    "StreamTitle='';"; is 15 chars long, "StreamUrl='';"
-   is 13 chars long, leaving 4052 chars remaining.
-   Splitting those in:
-     max title length = 3852
-     max url length = 200 *)
-let max_title = 3852
-let max_url = 200
+   is 13 chars long, leaving 4052 chars remaining. *)
+let max_icy_title = 3852
+let max_icy_url = 200
+
+(* Listener record parameterized over the encoder type:
+   - shared_listener = unit listener  (one shared encoder for all listeners)
+   - dedicated_listener = Encoder.encoder listener (fresh encoder per listener) *)
+type 'a listener = {
+  id : string;
+  socket : Harbor.Http_transport.socket;
+  close : unit -> unit;
+  encoder : 'a;
+  pending_data : Strings.Mutable.t;
+  write_buffer : bytes;
+  mutable metadata_position : int;
+  mutable last_sent_metadata : Frame.metadata option;
+  metadata_interval : int;
+  stream_url : string option;
+  closed : bool Atomic.t;
+  encoder_mutex : Mutex.t;
+  timeout : float;
+}
+
+let format_icy_title ~artist ~title =
+  match (artist, title) with
+    | Some a, Some t -> Some (Printf.sprintf "%s - %s" a t)
+    | Some s, None | None, Some s -> Some s
+    | None, None -> None
+
+let format_icy_metadata ~url metadata =
+  let title_info =
+    format_icy_title
+      ~artist:(Frame.Metadata.find_opt "artist" metadata)
+      ~title:(Frame.Metadata.find_opt "title" metadata)
+  in
+  let title_part =
+    match title_info with
+      | Some s when String.length s > max_icy_title ->
+          Printf.sprintf "StreamTitle='%s...';"
+            (String.sub s 0 (max_icy_title - 3))
+      | Some s -> Printf.sprintf "StreamTitle='%s';" s
+      | None -> ""
+  in
+  let url_part =
+    match url with
+      | Some s when String.length s > max_icy_url ->
+          Printf.sprintf "StreamUrl='%s...';" (String.sub s 0 (max_icy_url - 3))
+      | Some s -> Printf.sprintf "StreamUrl='%s';" s
+      | None -> ""
+  in
+  let meta = title_part ^ url_part in
+  (* Pad string to a multiple of 16 bytes *)
+  let len = String.length meta in
+  let pad = (len / 16) + 1 in
+  let result = Bytes.make ((pad * 16) + 1) '\000' in
+  Bytes.set result 0 (Char.chr pad);
+  String.blit meta 0 result 1 len;
+  Bytes.unsafe_to_string result
+
+let insert_icy_metadata ~metadata listener data =
+  if listener.metadata_interval <= 0 then data
+  else (
+    let rec insert_at_intervals accumulated remaining =
+      let remaining_len = Strings.length remaining in
+      let bytes_until_next_meta =
+        listener.metadata_interval - listener.metadata_position
+      in
+      if bytes_until_next_meta <= remaining_len then begin
+        (* Insert metadata at this position *)
+        let meta_string =
+          match metadata with
+            | Some m when metadata != listener.last_sent_metadata ->
+                listener.last_sent_metadata <- metadata;
+                format_icy_metadata ~url:listener.stream_url m
+            | _ -> "\000"
+        in
+        let before = Strings.sub remaining 0 bytes_until_next_meta in
+        let after =
+          Strings.sub remaining bytes_until_next_meta
+            (remaining_len - bytes_until_next_meta)
+        in
+        let with_meta =
+          Strings.concat [accumulated; before; Strings.of_string meta_string]
+        in
+        listener.metadata_position <- 0;
+        insert_at_intervals with_meta after
+      end
+      else begin
+        listener.metadata_position <- listener.metadata_position + remaining_len;
+        Strings.concat [accumulated; remaining]
+      end
+    in
+    insert_at_intervals Strings.empty data)
+
+let create_listener ~id ~encoder ~socket ~close ~metadata_interval ~stream_url
+    ~timeout =
+  {
+    id;
+    socket;
+    close;
+    encoder;
+    pending_data = Strings.Mutable.empty ();
+    write_buffer = Bytes.create 1024;
+    metadata_position = 0;
+    last_sent_metadata = None;
+    metadata_interval;
+    stream_url;
+    closed = Atomic.make false;
+    encoder_mutex = Mutex.create ();
+    timeout;
+  }
+
+let append_data_to_listener ~buffer_limit listener data =
+  let data_len = Strings.length data in
+  let new_length = Strings.Mutable.length listener.pending_data + data_len in
+  if new_length > buffer_limit then
+    Strings.Mutable.drop listener.pending_data (new_length - buffer_limit);
+  Strings.Mutable.append_strings listener.pending_data data
+
+let try_write_to_socket listener =
+  let to_write =
+    Strings.Mutable.fold
+      (fun total s src_ofs len ->
+        let n = min (1024 - total) len in
+        if n > 0 then (
+          Bytes.blit_string s src_ofs listener.write_buffer total n;
+          total + n)
+        else total)
+      0 listener.pending_data
+  in
+  if to_write = 0 then 0
+  else (
+    match Harbor.write listener.socket listener.write_buffer 0 to_write with
+      | written ->
+          if written > 0 then Strings.Mutable.drop listener.pending_data written;
+          written
+      | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) -> 0
+      | exception exn ->
+          (match exn with
+            | Unix.Unix_error ((Unix.EPIPE | Unix.ECONNRESET), _, _) -> ()
+            | _ ->
+                log#info "Write error for %s: %s" listener.id
+                  (Printexc.to_string exn));
+          -1)
+
+let update_burst_buffer burst_buffer ~max_size data =
+  Strings.Mutable.append_strings burst_buffer data;
+  Strings.Mutable.keep burst_buffer max_size
+
+let get_burst_data burst_buffer = Strings.Mutable.to_strings burst_buffer
 
 let proto frame_t =
   Output.proto
@@ -85,18 +216,6 @@ let proto frame_t =
           "Http transport. Use `http.transport.ssl` or \
            `http.transport.secure_transport`, when available, to enable HTTPS \
            output" );
-      ( "user",
-        Lang.nullable_t Lang.string_t,
-        Some Lang.null,
-        Some "User for client connection. You also need to setup a `password`."
-      );
-      ( "password",
-        Lang.nullable_t Lang.string_t,
-        Some Lang.null,
-        Some
-          "Password for client connection. A `user` must also be set. We check \
-           for this password is checked unless an `auth` function is defined, \
-           which is used in this case." );
       ( "timeout",
         Lang.float_t,
         Some (Lang.float 30.),
@@ -115,25 +234,32 @@ let proto frame_t =
         Lang.nullable_t
           (Lang.fun_t
              [
-               (false, "address", Lang.string_t);
-               (false, "", Lang.string_t);
-               (false, "", Lang.string_t);
+               ( false,
+                 "",
+                 Lang.record_t
+                   [
+                     ("address", Lang.string_t);
+                     ("login", Lang.string_t);
+                     ("password", Lang.string_t);
+                   ] );
              ]
              Lang.bool_t),
         Some Lang.null,
         Some
-          "Authentication function. `f(~address,login,password)` returns \
-           `true` if the user should be granted access for this login. When \
-           defined, `user` and `password` arguments are not taken in account."
-      );
+          "Authentication function. Receives a record with `address`, `login`, \
+           and `password` fields. Returns `true` to grant access. When `null`, \
+           no authentication is required." );
       ( "buffer",
         Lang.int_t,
         Some (Lang.int (5 * 65535)),
         Some "Maximum buffer per-client." );
       ( "burst",
-        Lang.int_t,
+        Lang.nullable_t Lang.int_t,
         Some (Lang.int 65534),
-        Some "Initial burst of data sent to the client." );
+        Some
+          "Initial burst of data sent to the client. Set to `null` to disable \
+           burst. This feature is only available when `dedicated_encoder` is \
+           `false`." );
       ( "chunk",
         Lang.int_t,
         Some (Lang.int Utils.buflen),
@@ -146,471 +272,555 @@ let proto frame_t =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "Dump stream to file, for debugging purpose. Disabled if null." );
+      ( "dedicated_encoder",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "When `true`, create a separate encoder instance for each listener, \
+           ensuring each gets a clean encoder state. For copy-only formats \
+           (e.g. `%ffmpeg` in copy mode) this has minimal overhead. For \
+           encoded formats (e.g. mp3, aac) this adds a full encoder per \
+           client, which can be significant under load." );
       ("", Lang.source_t frame_t, None, None);
     ]
 
-type client_state = Hello | Sending | Done
-
-type metadata = {
-  mutable metadata : Frame.metadata option;
-  metadata_m : Mutex.t;
-}
-
-type client = {
-  buffer : Strings.Mutable.t;
-  condition : Duppy_c.condition;
-  condition_m : Duppy_m.mutex;
-  mutex : Mutex.t;
-  meta : metadata;
-  mutable latest_meta : string;
-  metaint : int;
-  timeout : float;
-  url : string option;
-  mutable metapos : int;
-  chunk : int;
-  mutable state : client_state;
-  close : unit -> unit;
-  handler : (Tutils.priority, Harbor.reply) Duppy.Monad.Io.handler;
-}
-
-let add_meta c data =
-  let mk_icy_meta meta =
-    let meta_info =
-      match
-        ( Frame.Metadata.find_opt "artist" meta,
-          Frame.Metadata.find_opt "title" meta )
-      with
-        | Some a, Some t -> Some (Printf.sprintf "%s - %s" a t)
-        | Some s, None | None, Some s -> Some s
-        | None, None -> None
-    in
-    let meta =
-      match meta_info with
-        | Some s when String.length s > max_title ->
-            Printf.sprintf "StreamTitle='%s...';"
-              (String.sub s 0 (max_title - 3))
-        | Some s -> Printf.sprintf "StreamTitle='%s';" s
-        | None -> ""
-    in
-    let meta =
-      match c.url with
-        | Some s when String.length s > max_url ->
-            Printf.sprintf "%sStreamURL='%s...';" meta
-              (String.sub s 0 (max_url - 3))
-        | Some s -> Printf.sprintf "%sStreamURL='%s';" meta s
-        | None -> meta
-    in
-    (* Pad string to a multiple of 16 bytes. *)
-    let len = String.length meta in
-    let pad = (len / 16) + 1 in
-    let ret = Bytes.make ((pad * 16) + 1) '\000' in
-    Bytes.set ret 0 (Char.chr pad);
-    String.blit meta 0 ret 1 len;
-    let ret = Bytes.unsafe_to_string ret in
-    if ret <> c.latest_meta then (
-      c.latest_meta <- ret;
-      ret)
-    else "\000"
-  in
-  let get_meta () =
-    let meta =
-      Mutex_utils.mutexify c.meta.metadata_m
-        (fun () ->
-          let meta = c.meta.metadata in
-          c.meta.metadata <- None;
-          meta)
-        ()
-    in
-    match meta with Some meta -> mk_icy_meta meta | None -> "\000"
-  in
-  let rec process cur data =
-    let len = Strings.length data in
-    if c.metaint <= c.metapos + len then (
-      let meta = get_meta () in
-      let next_meta_pos = c.metaint - c.metapos in
-      let before = Strings.sub data 0 next_meta_pos in
-      let after = Strings.sub data next_meta_pos (len - next_meta_pos) in
-      let cur = Strings.concat [cur; before; Strings.of_string meta] in
-      c.metapos <- 0;
-      process cur after)
-    else (
-      c.metapos <- c.metapos + len;
-      Strings.concat [cur; data])
-  in
-  if c.metaint > 0 then process Strings.empty data else data
-
-let rec client_task c =
-  let* data =
-    Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
-      (Mutex_utils.mutexify c.mutex
-         (fun () ->
-           let buflen = Strings.Mutable.length c.buffer in
-           let data =
-             if buflen > c.chunk then
-               add_meta c (Strings.Mutable.flush c.buffer)
-             else Strings.empty
-           in
-           Duppy.Monad.return data)
-         ())
-  in
-  let* () =
-    if Strings.is_empty data then
-      let* () = Duppy_m.lock c.condition_m in
-      let* () = Duppy_c.wait c.condition c.condition_m in
-      Duppy_m.unlock c.condition_m
-    else
-      Duppy.Monad.Io.write ?timeout:(Some c.timeout) ~priority:`Non_blocking
-        c.handler (Strings.to_bytes data)
-  in
-  let* state =
-    Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
-      (let ret = Mutex_utils.mutexify c.mutex (fun () -> c.state) () in
-       Duppy.Monad.return ret)
-  in
-  if state <> Done then client_task c else Duppy.Monad.return ()
-
-let client_task c =
-  Mutex_utils.mutexify c.mutex
-    (fun () ->
-      assert (c.state = Hello);
-      c.state <- Sending)
-    ();
-  Duppy.Monad.catch (client_task c) (fun _ -> Duppy.Monad.raise ())
-
-(** Sending encoded data to a shout-compatible server. It directly takes the
-    Lang param list and extracts stuff from it. *)
-class output p =
+class virtual ['a] base p =
   let pos = Lang.pos p in
-  let e f v = f (List.assoc v p) in
-  let s v = e Lang.to_string v in
-  let metaint = Lang.to_int (List.assoc "metaint" p) in
-  let data = encoder_data p in
-  let encoding = Lang.to_string (List.assoc "encoding" p) in
-  let recode m =
-    let out_enc =
+  let get_param name = List.assoc name p in
+  let metaint = Lang.to_int (get_param "metaint") in
+  let encoder_data = encoder_data p in
+  let encoding = Lang.to_string (get_param "encoding") in
+  let recode_metadata m =
+    let target_encoding =
       match encoding with "" -> Charset.utf8 | s -> Charset.of_string s
     in
-    let f = Charset.convert ~target:out_enc in
+    let convert_value = Charset.convert ~target:target_encoding in
     Frame.Metadata.fold
-      (fun a b m -> Frame.Metadata.add a (f b) m)
+      (fun key value acc -> Frame.Metadata.add key (convert_value value) acc)
       Frame.Metadata.empty m
   in
-  let timeout = Lang.to_float (List.assoc "timeout" p) in
-  let buflen = Lang.to_int (List.assoc "buffer" p) in
-  let burst = Lang.to_int (List.assoc "burst" p) in
-  let chunk = Lang.to_int (List.assoc "chunk" p) in
+  let timeout = Lang.to_float (get_param "timeout") in
+  let buffer_limit = Lang.to_int (get_param "buffer") in
+  let burst_size = Lang.to_valued_option Lang.to_int (get_param "burst") in
+  let chunk_size = Lang.to_int (get_param "chunk") in
   let () =
-    if chunk > buflen then
+    if chunk_size > buffer_limit then
       raise
         (Error.Invalid_value
-           ( List.assoc "buffer" p,
-             "Maximum buffering inferior to chunk length",
-             [] ))
-    else ();
-    if burst > buflen then
-      raise
-        (Error.Invalid_value
-           ( List.assoc "buffer" p,
-             "Maximum buffering inferior to burst length",
-             [] ))
-    else ()
+           (get_param "buffer", "Maximum buffering inferior to chunk length", []));
+    Option.iter
+      (fun burst ->
+        if burst > buffer_limit then
+          raise
+            (Error.Invalid_value
+               ( get_param "buffer",
+                 "Maximum buffering inferior to burst length",
+                 [] )))
+      burst_size
   in
   let source_val = Lang.assoc "" 2 p in
   let source = Lang.to_source source_val in
-  let mount = s "mount" in
+  let mount = Lang.to_string (get_param "mount") in
   let uri =
-    match mount.[0] with '/' -> mount | _ -> Printf.sprintf "%c%s" '/' mount
-  in
-  let uri =
-    let regexp = [%string {|^%{uri}$|}] in
+    let mount_path = match mount.[0] with '/' -> mount | _ -> "/" ^ mount in
+    let regexp = [%string {|^%{mount_path}$|}] in
     Liquidsoap_lang.Builtins_regexp.
       { descr = regexp; flags = []; regexp = Re.Pcre.regexp regexp }
   in
-  let autostart = Lang.to_bool (List.assoc "start" p) in
-  let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
-  let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
-  let url = List.assoc "url" p |> Lang.to_option |> Option.map Lang.to_string in
-  let port = e Lang.to_int "port" in
-  let transport = e Lang.to_http_transport "transport" in
-  let default_user =
-    List.assoc "user" p |> Lang.to_option |> Option.map Lang.to_string
+  let autostart = Lang.to_bool (get_param "start") in
+  let infallible = not (Lang.to_bool (get_param "fallible")) in
+  let register_telnet = Lang.to_bool (get_param "register_telnet") in
+  let stream_url =
+    get_param "url" |> Lang.to_option |> Option.map Lang.to_string
   in
-  let default_password =
-    List.assoc "password" p |> Lang.to_option |> Option.map Lang.to_string
-  in
-  let address_resolver s =
-    let s = Harbor.file_descr_of_socket s in
-    Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
-      (Unix.getpeername s)
-  in
-  let auth_function = List.assoc "auth" p |> Lang.to_option in
-  let login { Harbor.socket; user; password } =
-    let address = address_resolver socket in
-    let user, password =
-      let f = Charset.convert in
-      (f user, f password)
-    in
-    match auth_function with
-      | Some f ->
+  let port = Lang.to_int (get_param "port") in
+  let transport = Lang.to_http_transport (get_param "transport") in
+  let auth_function = Lang.to_option (get_param "auth") in
+  let login =
+    Option.map
+      (fun auth_function ->
+        let resolve_client_address socket =
+          let fd = Harbor.file_descr_of_socket socket in
+          Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
+            (Unix.getpeername fd)
+        in
+        let authenticate socket user password =
+          let address = resolve_client_address socket in
+          let user = Charset.convert user in
+          let password = Charset.convert password in
           Lang.to_bool
-            (Lang.apply f
+            (Lang.apply auth_function
                [
-                 ("address", Lang.string address);
-                 ("", Lang.string user);
-                 ("", Lang.string password);
+                 ( "",
+                   Lang.record
+                     [
+                       ("address", Lang.string address);
+                       ("login", Lang.string user);
+                       ("password", Lang.string password);
+                     ] );
                ])
-      | None -> (
-          match (default_user, default_password) with
-            | _, None -> false
-            | None, _ -> false
-            | Some default_user, Some default_password ->
-                user = default_user && password = default_password)
+        in
+        ( "",
+          fun { Harbor.socket; uri = _; user; password } ->
+            authenticate socket user password ))
+      auth_function
   in
-  let dumpfile =
-    Lang.to_valued_option Lang.to_string (List.assoc "dumpfile" p)
-  in
+  let dumpfile = Lang.to_valued_option Lang.to_string (get_param "dumpfile") in
   let extra_headers =
     List.map
       (fun v ->
-        let f (x, y) = (Lang.to_string x, Lang.to_string y) in
-        f (Lang.to_product v))
-      (Lang.to_list (List.assoc "headers" p))
+        let key, value = Lang.to_product v in
+        (Lang.to_string key, Lang.to_string value))
+      (Lang.to_list (get_param "headers"))
   in
   object (self)
-    (** File descriptor where to dump. *)
     inherit
       [Strings.t] Output.encoded
         ~output_kind:"output.harbor" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false ~name:mount source_val
 
-    val mutable dump = None
-    val mutable encoder = None
-    val encoder_m = Mutex.create ()
+    (* Immutable parameters exposed to subclasses via inheritance. *)
+    val burst_size = burst_size
+    val buffer_limit = buffer_limit
+    val chunk_size = chunk_size
+    val encoder_data = encoder_data
+    val recode_metadata = recode_metadata
+    val pos = pos
+    val uri = uri
+    val port = port
+    val transport = transport
+    val dumpfile = dumpfile
+    val listeners : 'a listener list Atomic.t = Atomic.make []
+    val write_task_active : bool Atomic.t = Atomic.make false
+    val burst_buffer = Strings.Mutable.empty ()
+    val shared_metadata : Frame.metadata option Atomic.t = Atomic.make None
+    val mutable dump_channel : out_channel option = None
+    val mutable on_connect_callbacks = []
+    val mutable on_disconnect_callbacks = []
+    val start_stop_mutex = Mutex.create ()
+    method on_connect fn = on_connect_callbacks <- fn :: on_connect_callbacks
 
-    method private encoder =
-      Mutex_utils.mutexify encoder_m (fun () -> Option.get encoder) ()
+    method on_disconnect fn =
+      on_disconnect_callbacks <- fn :: on_disconnect_callbacks
 
-    val mutable clients = Queue.create ()
-    val clients_m = Mutex.create ()
-    val duppy_c = Duppy_c.create ()
-    val duppy_m = Duppy_m.create ()
-    val mutable chunk_len = 0
-    val burst_data = Strings.Mutable.empty ()
-    val metadata = { metadata = None; metadata_m = Mutex.create () }
-    method encode frame = self#encoder.Encoder.encode frame
     method self_sync = source#self_sync
-    val mutable on_connect = []
-    method on_connect fn = on_connect <- on_connect @ [fn]
-    val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
+    method private get_metadata = Atomic.get shared_metadata
 
-    method encode_metadata m =
-      let m = Frame.Metadata.Export.to_metadata m in
-      let m = recode m in
-      Mutex_utils.mutexify metadata.metadata_m
-        (fun () -> metadata.metadata <- Some m)
-        ();
-      self#encoder.Encoder.encode_metadata
-        (Frame.Metadata.Export.from_metadata ~cover:false m)
+    (* Called synchronously when a listener connects. Subclasses populate the
+       listener's initial pending_data with the codec header and burst data. *)
+    method virtual private connect_listener : 'a listener -> unit
 
-    method add_client ~protocol ~headers ~uri ~query s =
-      let ip =
-        (* Show port = true to catch different clients from same ip *)
-        let fd = Harbor.file_descr_of_socket s in
+    method virtual private create_listener
+        : protocol:string ->
+          id:string ->
+          socket:Harbor.Http_transport.socket ->
+          close:(unit -> unit) ->
+          metadata_interval:int ->
+          stream_url:string option ->
+          timeout:float ->
+          ('a listener, Harbor.reply) Duppy.Monad.t
+
+    (* Called when a listener disconnects. Subclasses stop any per-listener
+       encoder. *)
+    method virtual private stop_listener_encoder : 'a listener -> unit
+
+    method private get_listeners =
+      List.filter (fun l -> not (Atomic.get l.closed)) (Atomic.get listeners)
+
+    method private handle_disconnect listener =
+      if Atomic.compare_and_set listener.closed false true then begin
+        self#log#info "Listener %s disconnected" listener.id;
+        self#stop_listener_encoder listener;
+        listener.close ();
+        List.iter (fun fn -> fn listener.id) on_disconnect_callbacks
+      end
+
+    method private write_task_handler events =
+      let ready_fds =
+        List.filter_map (function `Write fd -> Some fd | _ -> None) events
+      in
+      let to_disconnect =
+        List.filter_map
+          (fun listener ->
+            let fd = Harbor.file_descr_of_socket listener.socket in
+            if List.mem fd ready_fds then
+              if try_write_to_socket listener < 0 then Some listener else None
+            else None)
+          self#get_listeners
+      in
+      List.iter self#handle_disconnect to_disconnect;
+      (* CAS loop: only one write task runs at a time, but concurrent
+         add_listener calls may race on the list. Contention is minimal. *)
+      let rec filter_closed () =
+        let current = Atomic.get listeners in
+        let filtered =
+          List.filter (fun l -> not (Atomic.get l.closed)) current
+        in
+        if not (Atomic.compare_and_set listeners current filtered) then
+          filter_closed ()
+      in
+      filter_closed ();
+      self#write_task_next
+
+    method private write_task_next =
+      let active = self#get_listeners in
+      (* Only watch fds that have data waiting; polling writable fds with nothing
+         to send causes a busy-loop since they are always select-ready. *)
+      let with_data =
+        List.filter_map
+          (fun l ->
+            if Atomic.get l.closed || Strings.Mutable.is_empty l.pending_data
+            then None
+            else Some (`Write (Harbor.file_descr_of_socket l.socket)))
+          active
+      in
+      match with_data with
+        | [] ->
+            (* No pending data right now. Stop the task, then re-check for data
+               that may have arrived while we were deciding to stop, so we don't
+               miss a concurrent send() whose ensure_write_task was a no-op. *)
+            Atomic.set write_task_active false;
+            let fresh = self#get_listeners in
+            let any_data =
+              List.exists
+                (fun l -> not (Strings.Mutable.is_empty l.pending_data))
+                fresh
+            in
+            if any_data && Atomic.compare_and_set write_task_active false true
+            then (
+              let events =
+                List.filter_map
+                  (fun l ->
+                    if
+                      Atomic.get l.closed
+                      || Strings.Mutable.is_empty l.pending_data
+                    then None
+                    else Some (`Write (Harbor.file_descr_of_socket l.socket)))
+                  fresh
+              in
+              match events with
+                | [] ->
+                    Atomic.set write_task_active false;
+                    []
+                | _ ->
+                    [
+                      {
+                        Task.priority = `Non_blocking;
+                        events;
+                        handler = self#write_task_handler;
+                      };
+                    ])
+            else []
+        | events ->
+            [
+              {
+                Task.priority = `Non_blocking;
+                events;
+                handler = self#write_task_handler;
+              };
+            ]
+
+    method private ensure_write_task =
+      if Atomic.compare_and_set write_task_active false true then (
+        match self#write_task_next with
+          | [] -> Atomic.set write_task_active false
+          | [task] -> Task.add Tutils.scheduler task
+          | _ -> assert false)
+
+    method private add_listener ~protocol ~headers ~uri:request_uri ~query
+        socket =
+      let client_id =
+        let fd = Harbor.file_descr_of_socket socket in
         Utils.name_of_sockaddr ~show_port:true (Unix.getpeername fd)
       in
-      let metaint, icyheader =
+      let metadata_interval, icy_header =
         try
           assert (List.assoc "Icy-MetaData" headers = "1");
           (metaint, Printf.sprintf "icy-metaint: %d\r\n" metaint)
         with _ -> (-1, "")
       in
-      let extra_headers =
+      let extra_headers_str =
         String.concat ""
           (List.map
-             (fun (x, y) -> Printf.sprintf "%s: %s\r\n" x y)
+             (fun (k, v) -> Printf.sprintf "%s: %s\r\n" k v)
              extra_headers)
       in
-      let reply =
+      let http_response =
         Printf.sprintf "HTTP/%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" protocol
-          data.format icyheader extra_headers
+          encoder_data.format icy_header extra_headers_str
       in
-      let buffer =
-        Strings.Mutable.of_strings (self#encoder.Encoder.header ())
-      in
-      let close () = try Harbor.close s with _ -> () in
-      let rec client =
-        {
-          buffer;
-          condition = duppy_c;
-          condition_m = duppy_m;
-          metaint;
-          meta = metadata;
-          latest_meta = "\000";
-          metapos = 0;
-          url;
-          timeout;
-          mutex = Mutex.create ();
-          state = Hello;
-          chunk;
-          close;
-          handler;
-        }
-      and handler =
+      let close () = try Harbor.close socket with _ -> () in
+      let handler =
         {
           Duppy.Monad.Io.scheduler = Tutils.scheduler;
-          socket = s;
+          socket;
           data = "";
           on_error =
             (fun e ->
-              let bt = Printexc.get_backtrace () in
-              let msg, bt =
+              let error_msg =
                 match e with
                   | Duppy.Io.Timeout ->
-                      (Printf.sprintf "Timeout error for %s" ip, bt)
+                      Printf.sprintf "Timeout for %s" client_id
                   | Duppy.Io.Io_error ->
-                      (Printf.sprintf "I/O error for %s" ip, bt)
-                  | Duppy.Io.Unix (c, p, m, bt) ->
-                      ( Printf.sprintf "Unix error for %s: %s" ip
-                          (Printexc.to_string (Unix.Unix_error (c, p, m))),
-                        Printexc.raw_backtrace_to_string bt )
-                  | Duppy.Io.Unknown (e, bt) ->
-                      ( Printf.sprintf "%s" (Printexc.to_string e),
-                        Printexc.raw_backtrace_to_string bt )
+                      Printf.sprintf "I/O error for %s" client_id
+                  | Duppy.Io.Unix (c, p, m, _) ->
+                      Printf.sprintf "Unix error for %s: %s" client_id
+                        (Printexc.to_string (Unix.Unix_error (c, p, m)))
+                  | Duppy.Io.Unknown (e, _) -> Printexc.to_string e
               in
-              Utils.log_exception ~log:self#log ~bt msg;
-              self#log#info "Client %s disconnected" ip;
-              Mutex_utils.mutexify client.mutex
-                (fun () ->
-                  client.state <- Done;
-                  ignore (Strings.Mutable.flush client.buffer))
-                ();
-              List.iter (fun fn -> fn ip) on_disconnect;
+              self#log#info "%s" error_msg;
+              List.find_opt (fun l -> l.id = client_id) (Atomic.get listeners)
+              |> Option.iter self#handle_disconnect;
               Harbor.Close (Harbor.mk_simple ""));
         }
       in
-      self#log#info "Serving client %s." ip;
+      self#log#info "New listener connection from %s" client_id;
       let* () =
-        Duppy.Monad.catch
-          (if
-             (default_user <> None && default_password <> None)
-             || auth_function <> None
-           then (
-             let default_user = Option.value default_user ~default:"" in
-             Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-               (Harbor.http_auth_check ~query ~uri ~login:(default_user, login)
-                  s headers))
-           else Duppy.Monad.return ())
-          (function
-            | Harbor.Close s ->
-                self#log#info "Client %s failed to authenticate!" ip;
-                client.state <- Done;
-                Harbor.reply s
-            | _ -> assert false)
+        match login with
+          | Some login ->
+              Duppy.Monad.catch
+                (Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
+                   (Harbor.http_auth_check ~query ~uri:request_uri ~login socket
+                      headers))
+                (function
+                  | Harbor.Close s ->
+                      self#log#info "Listener %s failed to authenticate"
+                        client_id;
+                      Harbor.reply s
+                  | _ -> assert false)
+          | None -> Duppy.Monad.return ()
       in
-      self#log#info "Client %s connected" ip;
-      Mutex_utils.mutexify clients_m (fun () -> Queue.push client clients) ();
-      List.iter (fun fn -> fn ~headers ~uri ~protocol ip) on_connect;
-      Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-        (Harbor.relayed reply)
+      let* listener =
+        self#create_listener ~protocol ~id:client_id ~socket ~close
+          ~metadata_interval ~stream_url ~timeout
+      in
+      Strings.Mutable.append_strings listener.pending_data
+        (Strings.of_string http_response);
+      self#connect_listener listener;
+      (* CAS loop: concurrent connects are rare, and the write task's
+         filter_closed may also race on the list. Contention is minimal. *)
+      let rec add_listener_atomic () =
+        let current = Atomic.get listeners in
+        if not (Atomic.compare_and_set listeners current (listener :: current))
+        then add_listener_atomic ()
+      in
+      add_listener_atomic ();
+      self#ensure_write_task;
+      self#log#info "Listener %s connected" client_id;
+      List.iter
+        (fun fn -> fn ~headers ~uri:request_uri ~protocol client_id)
+        on_connect_callbacks;
+      Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler (Harbor.custom ())
 
-    method send b =
-      let slen = Strings.length b in
-      if slen > 0 then (
-        chunk_len <- chunk_len + slen;
-        let wake_up =
-          if chunk_len >= chunk then (
-            chunk_len <- 0;
-            true)
-          else false
-        in
-        Strings.Mutable.append_strings burst_data b;
-        Strings.Mutable.keep burst_data burst;
-        let new_clients = Queue.create () in
-        (match dump with
-          | Some s -> Strings.iter (output_substring s) b
-          | None -> ());
-        Mutex_utils.mutexify clients_m
-          (fun () ->
-            Queue.iter
-              (fun c ->
-                let start =
-                  Mutex_utils.mutexify c.mutex
-                    (fun () ->
-                      match c.state with
-                        | Hello ->
-                            Strings.Mutable.append c.buffer burst_data;
-                            Queue.push c new_clients;
-                            true
-                        | Sending ->
-                            let buf = Strings.Mutable.length c.buffer in
-                            if buf + slen > buflen then
-                              Strings.Mutable.drop c.buffer (min buf slen);
-                            Strings.Mutable.append_strings c.buffer b;
-                            Queue.push c new_clients;
-                            false
-                        | Done -> false)
-                    ()
-                in
-                if start then
-                  Duppy.Monad.run ~return:c.close ~raise:c.close (client_task c)
-                else ())
-              clients;
-            if wake_up && Queue.length new_clients > 0 then
-              Duppy.Monad.run
-                ~return:(fun () -> ())
-                ~raise:(fun () -> ())
-                (Duppy_c.broadcast duppy_c)
-            else ();
-            clients <- new_clients)
-          ())
-      else ()
+    method private register_http_handler =
+      Harbor.add_http_handler ~pos ~transport ~port ~verb:`Get ~uri
+        (fun ~protocol ~meth:_ ~data:_ ~headers ~query ~socket request_uri ->
+          self#add_listener ~protocol ~headers ~uri:request_uri ~query socket)
+
+    method private disconnect_all_listeners =
+      List.iter self#handle_disconnect (Atomic.exchange listeners [])
+  end
+
+(* Shared encoder: one instance started at output startup, distributed to all
+   listeners. connect_listener seeds each new listener with the codec header
+   and any accumulated burst data. *)
+class shared_output p =
+  object (self)
+    inherit [unit] base p
+    val mutable enc : Encoder.encoder option = None
+    val mutable chunk_accumulator = 0
+
+    method private create_listener ~protocol ~id ~socket ~close
+        ~metadata_interval ~stream_url ~timeout =
+      match enc with
+        | None ->
+            Harbor.reply (fun () ->
+                Printf.sprintf "HTTP/%s 404 Not found\r\n" protocol)
+        | Some _ ->
+            Duppy.Monad.return
+              (create_listener ~encoder:() ~id ~socket ~close ~metadata_interval
+                 ~stream_url ~timeout)
+
+    method private connect_listener listener =
+      let e = Option.get enc in
+      let burst =
+        match burst_size with
+          | Some _ -> get_burst_data burst_buffer
+          | None -> Strings.empty
+      in
+      let data =
+        insert_icy_metadata ~metadata:self#get_metadata listener
+          (Strings.concat [e.Encoder.header (); burst])
+      in
+      Strings.Mutable.append_strings listener.pending_data data
+
+    method private stop_listener_encoder _ = ()
+
+    method encode frame =
+      match enc with Some e -> e.Encoder.encode frame | None -> Strings.empty
+
+    method encode_metadata m =
+      let recoded = recode_metadata (Frame.Metadata.Export.to_metadata m) in
+      Atomic.set shared_metadata (Some recoded);
+      Option.iter
+        (fun e ->
+          e.Encoder.encode_metadata
+            (Frame.Metadata.Export.from_metadata ~cover:false recoded))
+        enc
+
+    method send data =
+      let len = Strings.length data in
+      if len > 0 then begin
+        Option.iter
+          (fun max_size -> update_burst_buffer burst_buffer ~max_size data)
+          burst_size;
+        Option.iter
+          (fun ch -> Strings.iter (output_substring ch) data)
+          dump_channel;
+        let metadata = self#get_metadata in
+        List.iter
+          (fun listener ->
+            append_data_to_listener ~buffer_limit listener
+              (insert_icy_metadata ~metadata listener data))
+          self#get_listeners;
+        chunk_accumulator <- chunk_accumulator + len;
+        if chunk_accumulator >= chunk_size then begin
+          chunk_accumulator <- 0;
+          self#ensure_write_task
+        end
+      end
 
     method start =
-      Mutex_utils.mutexify encoder_m
+      Mutex_utils.mutexify start_stop_mutex
         (fun () ->
-          match encoder with
+          match enc with
             | Some _ -> ()
-            | None -> (
-                let enc = data.factory self#id in
-                encoder <- Some (enc Frame.Metadata.Export.empty);
-                let handler ~protocol ~meth:_ ~data:_ ~headers ~query ~socket
-                    uri =
-                  self#add_client ~protocol ~headers ~uri ~query socket
-                in
-                Harbor.add_http_handler ~pos ~transport ~port ~verb:`Get ~uri
-                  handler;
-                match dumpfile with
-                  | Some f -> dump <- Some (open_out_bin f)
-                  | None -> ()))
+            | None ->
+                let factory = encoder_data.factory self#id in
+                enc <- Some (factory Frame.Metadata.Export.empty);
+                self#register_http_handler;
+                Option.iter
+                  (fun path -> dump_channel <- Some (open_out_bin path))
+                  dumpfile)
         ()
 
     method stop =
-      Mutex_utils.mutexify encoder_m
+      Mutex_utils.mutexify start_stop_mutex
         (fun () ->
-          match encoder with
+          match enc with
             | None -> ()
-            | Some enc -> (
-                ignore (enc.Encoder.stop ());
-                encoder <- None;
+            | Some e ->
+                ignore (e.Encoder.stop ());
+                enc <- None;
                 Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
-                let new_clients = Queue.create () in
-                Mutex_utils.mutexify clients_m
-                  (fun () ->
-                    Queue.iter
-                      (fun c ->
-                        Mutex_utils.mutexify c.mutex
-                          (fun () ->
-                            c.state <- Done;
-                            Duppy.Monad.run
-                              ~return:(fun () -> ())
-                              ~raise:(fun () -> ())
-                              (Duppy_c.broadcast duppy_c))
-                          ())
-                      clients;
-                    clients <- new_clients)
-                  ();
-                match dump with Some f -> close_out f | None -> ()))
+                self#disconnect_all_listeners;
+                Option.iter close_out dump_channel;
+                dump_channel <- None)
+        ()
+
+    method! reset =
+      self#stop;
+      self#start
+  end
+
+(* Dedicated encoder: a fresh instance is created per listener at connect time,
+   ensuring each gets a clean stream from the first byte. encode() stores the
+   current frame; send() encodes it independently per listener. *)
+class dedicated_output p =
+  object (self)
+    inherit [Encoder.encoder] base p
+
+    val mutable encoder_factory
+        : (Frame.Metadata.Export.t -> Encoder.encoder) option =
+      None
+
+    val mutable current_frame : Frame.t option = None
+
+    method private create_listener ~protocol ~id ~socket ~close
+        ~metadata_interval ~stream_url ~timeout =
+      match encoder_factory with
+        | None ->
+            Harbor.reply (fun () ->
+                Printf.sprintf "HTTP/%s 404 Not found\r\n" protocol)
+        | Some factory ->
+            let encoder = factory Frame.Metadata.Export.empty in
+            Duppy.Monad.return
+              (create_listener ~encoder ~id ~socket ~close ~metadata_interval
+                 ~stream_url ~timeout)
+
+    method private connect_listener listener =
+      let burst =
+        match burst_size with
+          | Some _ -> get_burst_data burst_buffer
+          | None -> Strings.empty
+      in
+      let data =
+        insert_icy_metadata ~metadata:self#get_metadata listener
+          (Strings.concat [listener.encoder.Encoder.header (); burst])
+      in
+      Strings.Mutable.append_strings listener.pending_data data
+
+    (* Encode frame into listener under encoder_mutex. The double-checked lock
+       on closed ensures mutual exclusion with stop_listener_encoder: closed is
+       set (atomically) before stop is called, so any encode that wins the mutex
+       after a stop will see closed=true and bail out without touching the
+       encoder. *)
+    method private listener_encode ~metadata ~frame listener =
+      if not (Atomic.get listener.closed) then
+        Mutex_utils.mutexify listener.encoder_mutex
+          (fun () ->
+            if not (Atomic.get listener.closed) then
+              append_data_to_listener ~buffer_limit listener
+                (insert_icy_metadata ~metadata listener
+                   (listener.encoder.Encoder.encode frame)))
+          ()
+
+    method private stop_listener_encoder listener =
+      Mutex_utils.mutexify listener.encoder_mutex
+        (fun () -> ignore (listener.encoder.Encoder.stop ()))
+        ()
+
+    method encode frame =
+      current_frame <- Some frame;
+      Strings.empty
+
+    method encode_metadata m =
+      let recoded = recode_metadata (Frame.Metadata.Export.to_metadata m) in
+      Atomic.set shared_metadata (Some recoded)
+
+    method send _ =
+      Option.iter
+        (fun frame ->
+          let metadata = self#get_metadata in
+          List.iter (self#listener_encode ~metadata ~frame) self#get_listeners;
+          current_frame <- None;
+          self#ensure_write_task)
+        current_frame
+
+    method start =
+      Mutex_utils.mutexify start_stop_mutex
+        (fun () ->
+          match encoder_factory with
+            | Some _ -> ()
+            | None ->
+                encoder_factory <- Some (encoder_data.factory self#id);
+                self#register_http_handler;
+                Option.iter
+                  (fun path -> dump_channel <- Some (open_out_bin path))
+                  dumpfile)
+        ()
+
+    method stop =
+      Mutex_utils.mutexify start_stop_mutex
+        (fun () ->
+          match encoder_factory with
+            | None -> ()
+            | Some _ ->
+                encoder_factory <- None;
+                Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
+                self#disconnect_all_listeners;
+                Option.iter close_out dump_channel;
+                dump_channel <- None)
         ()
 
     method! reset =
@@ -628,8 +838,8 @@ let _ =
            Lang_source.name = "on_connect";
            params = [];
            descr =
-             "when connection is established (takes headers, connection uri, \
-              protocol and client's IP as arguments).";
+             "Callback when a listener connects. Receives a record with \
+              headers, uri, protocol, and ip fields.";
            register_deprecated_argument = true;
            arg_t =
              [
@@ -645,7 +855,7 @@ let _ =
              ];
            register =
              (fun ~params:_ s on_connect ->
-               let on_connect ~headers ~uri ~protocol ip =
+               let callback ~headers ~uri ~protocol ip =
                  on_connect
                    [
                      ( "",
@@ -658,25 +868,23 @@ let _ =
                          ] );
                    ]
                in
-               s#on_connect on_connect);
+               s#on_connect callback);
          };
          {
            name = "on_disconnect";
            params = [];
-           descr = "when a source is disconnected.";
+           descr = "Callback when a listener disconnects.";
            register_deprecated_argument = true;
            arg_t = [(false, "", Lang.string_t)];
            register =
-             (fun ~params:_ s f ->
-               s#on_disconnect (fun ip -> f [("", Lang.string ip)]));
+             (fun ~params:_ s callback ->
+               s#on_disconnect (fun ip -> callback [("", Lang.string ip)]));
          };
        ]
       @ Start_stop.callbacks ~label:"output")
     ~meth:(Start_stop.meth ()) ~base:Modules.output "harbor" (proto return_t)
     ~return_t
     (fun p ->
-      log#important
-        "`output.harbor` code has not been update in a long while. Please \
-         reach if you wish to contribute to it otherwise we suggest using \
-         `icecast`!";
-      new output p)
+      if Lang.to_bool (List.assoc "dedicated_encoder" p) then
+        new dedicated_output p
+      else new shared_output p)

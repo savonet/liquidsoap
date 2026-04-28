@@ -195,3 +195,72 @@ directly. Named capture groups (`(?<name>...)`) are available by name in
 
 For now, `copy_encoder` is the most reliable approach and covers the majority
 of use cases.
+
+## `output.harbor`
+
+`output.harbor` turns Liquidsoap into an HTTP streaming server for listeners,
+serving the encoded stream over HTTP in a way compatible with Icecast/Shoutcast
+clients.
+
+### Authentication
+
+Authentication is configured via the `auth` function. It receives a record with
+`address`, `login`, and `password` fields and must return a boolean:
+
+```liquidsoap
+output.harbor(
+  mount="/stream",
+  auth=fun({address, login, password}) ->
+    login == "source" and password == "secret",
+  %mp3,
+  s
+)
+```
+
+When `auth` is `null` (the default), all connections are accepted without
+authentication.
+
+### Dedicated encoder mode
+
+By default, `output.harbor` uses a **shared encoder**: a single encoder
+instance is started at output startup and its output is distributed to all
+connected listeners. Each listener receives the codec header and any buffered
+burst data on connection.
+
+When `dedicated_encoder=true`, a **fresh encoder is created for each
+listener** at connection time. This ensures every listener starts from a clean
+encoder state:
+
+```liquidsoap
+output.harbor(
+  mount="/stream",
+  dedicated_encoder=true,
+  %ffmpeg(format="mp3", %audio.copy),
+  s
+)
+```
+
+Dedicated encoder mode is particularly useful for copy-only formats such as
+`%ffmpeg` in copy mode, where starting mid-stream can cause decoding issues on
+the client side. For encoded formats (e.g. `%mp3`, `%aac`), it adds one full
+encoder instance per connected listener, which may be significant under load.
+
+### Listener callbacks
+
+`on_connect` is called when a listener connects and receives a record:
+
+| Field      | Type                  | Description                          |
+| ---------- | --------------------- | ------------------------------------ |
+| `ip`       | `string`              | Client address                       |
+| `uri`      | `string`              | Requested URI                        |
+| `protocol` | `string`              | HTTP protocol version (e.g. `"1.1"`) |
+| `headers`  | `[(string * string)]` | HTTP headers from the client         |
+
+`on_disconnect` is called when a listener disconnects and receives the client
+address as a string.
+
+```liquidsoap
+o = output.harbor(mount="/stream", %mp3, s)
+o.on_connect(fun(c) -> log("#{c.ip} connected"))
+o.on_disconnect(fun(ip) -> log("#{ip} disconnected"))
+```

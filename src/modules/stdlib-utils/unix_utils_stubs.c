@@ -50,6 +50,7 @@ CAMLprim value caml_liquidsoap_poll(value _read, value _write, value _err,
   nfds_t nread = 0;
   nfds_t nwrite = 0;
   nfds_t nerr = 0;
+  nfds_t write_start, write_end;
   int timeout;
   size_t last = 0;
   int n, ret;
@@ -72,12 +73,14 @@ CAMLprim value caml_liquidsoap_poll(value _read, value _write, value _err,
     fds[last + n].events = POLLIN;
   }
   last += Wosize_val(_read);
+  write_start = last;
 
   for (n = 0; n < Wosize_val(_write); n++) {
     fds[last + n].fd = Fd_val(Field(_write, n));
     fds[last + n].events = POLLOUT;
   }
   last += Wosize_val(_write);
+  write_end = last;
 
   for (n = 0; n < Wosize_val(_err); n++) {
     fds[last + n].fd = Fd_val(Field(_err, n));
@@ -98,7 +101,11 @@ CAMLprim value caml_liquidsoap_poll(value _read, value _write, value _err,
   for (n = 0; n < nfds; n++) {
     if (fds[n].revents & POLLIN)
       nread++;
-    if (fds[n].revents & POLLOUT)
+    /* POLLHUP on a write fd means the peer closed the connection; treat it as
+       write-ready so the caller can detect the error (e.g. EPIPE on next write). */
+    if ((fds[n].revents & POLLOUT) ||
+        ((nfds_t)n >= write_start && (nfds_t)n < write_end &&
+         (fds[n].revents & POLLHUP)))
       nwrite++;
     if (fds[n].revents & POLLERR)
       nerr++;
@@ -118,7 +125,9 @@ CAMLprim value caml_liquidsoap_poll(value _read, value _write, value _err,
       Store_field(_pread, nread, Val_fd(fds[n].fd));
       nread++;
     }
-    if (fds[n].revents & POLLOUT) {
+    if ((fds[n].revents & POLLOUT) ||
+        ((nfds_t)n >= write_start && (nfds_t)n < write_end &&
+         (fds[n].revents & POLLHUP))) {
       Store_field(_pwrite, nwrite, Val_fd(fds[n].fd));
       nwrite++;
     }

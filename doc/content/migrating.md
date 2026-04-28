@@ -70,6 +70,32 @@ Previously, only metadata from the first source effectively added was relayed. T
 
 If you were relying on the old behavior of only getting metadata from the first source, you may need to filter or prioritize metadata manually using `metadata.map`.
 
+### `output.harbor` authentication
+
+The `user` and `password` parameters have been removed from `output.harbor`.
+Authentication must now be configured exclusively through the `auth` function:
+
+```liquidsoap
+# Old
+output.harbor(mount="stream", user="source", password="hackme", ...)
+
+# New
+output.harbor(
+  mount="stream",
+  auth=fun({address, login, password}) ->
+    login == "source" and password == "hackme",
+  ...
+)
+```
+
+When no authentication is needed, simply omit the `auth` parameter (it defaults to `null`).
+
+The `burst` parameter is now nullable. Pass `null` to disable the initial burst:
+
+```liquidsoap
+output.harbor(mount="stream", burst=null, ...)
+```
+
 ### Crossfade simplification
 
 The `cross` and `crossfade` operators have been simplified. The separate `start_duration` and `end_duration` parameters have been replaced by a single unified `duration` parameter. The crossfade now buffers the same duration from both ending and starting tracks.
