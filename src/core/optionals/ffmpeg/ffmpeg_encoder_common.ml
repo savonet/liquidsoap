@@ -101,16 +101,19 @@ let mk_format ffmpeg =
     | _ -> None
 
 let flush_pending_on_start ~encoder =
-  while not (Queue.is_empty encoder.pending_on_start) do
-    (Queue.pop encoder.pending_on_start) ()
-  done
+  if
+    (not (Queue.is_empty encoder.pending_on_start))
+    && Av.output_started encoder.output
+  then
+    while not (Queue.is_empty encoder.pending_on_start) do
+      (Queue.pop encoder.pending_on_start) ()
+    done
 
 let encode ~encoder frame =
-  let first_encode = not (Atomic.exchange encoder.started true) in
-  if first_encode then
+  if not (Atomic.exchange encoder.started true) then
     Frame.Fields.iter (fun _ { mk_stream } -> mk_stream frame) encoder.streams;
   Frame.Fields.iter (fun _ { encode } -> encode frame) encoder.streams;
-  if first_encode then flush_pending_on_start ~encoder
+  flush_pending_on_start ~encoder
 
 (* Convert ffmpeg-specific options. *)
 let convert_options opts =
@@ -265,7 +268,7 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
                   Avcodec.Packet.set_dts packet (Some position);
                   write_id3 packet
                 in
-                if Atomic.get encoder.started then write ()
+                if Av.output_started encoder.output then write ()
                 else Queue.push write encoder.pending_on_start;
                 None);
             true)
@@ -361,7 +364,7 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
     let m = Frame.Metadata.append ffmpeg.metadata m in
     let m = Frame.Metadata.to_list m in
     match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
-      | _ when not (Atomic.get (Atomic.get encoder).started) ->
+      | _ when not (Av.output_started (Atomic.get encoder).output) ->
           Av.set_output_metadata (Atomic.get encoder).output m
       | `Stream, Some "ogg" ->
           flush ();
