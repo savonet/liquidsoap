@@ -329,9 +329,8 @@ type stream = {
   mutable position : int;
   mutable current_segment : segment option;
   mutable discontinuity_count : int;
+  mutable needs_discontinuity : bool;
 }
-
-type hls_state = [ `Idle | `Started | `Stopped | `Restarted | `Streaming ]
 
 open Extralib
 
@@ -579,6 +578,7 @@ class hls_output p =
         position = 1;
         current_segment = None;
         discontinuity_count = 0;
+        needs_discontinuity = false;
       }
     in
     let mk_streams () = List.map f streams in
@@ -616,17 +616,10 @@ class hls_output p =
     val mutable streams = streams
     method streams = streams
     val mutable current_position = (0, 0)
-    val mutable state : hls_state = `Idle
+    val mutable stopped = false
     method self_sync = source#self_sync
     val mutable on_file_change : (state:file_state -> string -> unit) list = []
     method on_file_change fn = on_file_change <- on_file_change @ [fn]
-
-    method private toggle_state event =
-      match (event, state) with
-        | `Restart, _ | `Resumed, _ | `Start, `Stopped -> state <- `Restarted
-        | `Stop, _ -> state <- `Stopped
-        | `Start, _ -> state <- `Started
-        | `Streaming, _ -> state <- `Streaming
 
     method private open_out filename =
       let temp_dir = Option.value ~default:hls_directory temp_dir in
@@ -724,7 +717,7 @@ class hls_output p =
                             !segments)
                   then self#unlink filename);
           s.current_segment <- None;
-          if state <> `Stopped then (
+          if not stopped then (
             self#write_playlist s;
             self#write_main_playlist)
       | _ -> ()
@@ -732,10 +725,10 @@ class hls_output p =
     method private open_segment s =
       self#log#debug "Opening segment %d for stream %s." s.position s.name;
       let discontinuous, current_discontinuity =
-        if state = `Restarted then (true, s.discontinuity_count + 1)
+        if s.needs_discontinuity then (true, s.discontinuity_count + 1)
         else (false, s.discontinuity_count)
       in
-      state <- `Started;
+      s.needs_discontinuity <- false;
       let segment_extra_tags = Atomic.exchange s.pending_extra_tags [] in
       let segment =
         {
@@ -916,23 +909,22 @@ class hls_output p =
       main_playlist_written <- false
 
     method start =
+      stopped <- false;
       (match persist_at with
         | Some persist_at when Sys.file_exists persist_at -> (
             try
               self#log#info "Resuming from saved state";
               self#read_state persist_at;
-              self#toggle_state `Resumed;
-              try Unix.unlink persist_at with _ -> ()
+              (try Unix.unlink persist_at with _ -> ());
+              List.iter (fun s -> s.needs_discontinuity <- true) streams
             with exn when not strict_persist ->
               self#log#info "Failed to resume from saved state: %s"
-                (Printexc.to_string exn);
-              self#toggle_state `Start)
-        | _ -> self#toggle_state `Start);
-      List.iter self#open_segment streams;
-      self#toggle_state `Streaming
+                (Printexc.to_string exn))
+        | _ -> ());
+      List.iter self#open_segment streams
 
     method stop =
-      self#toggle_state `Stop;
+      stopped <- true;
       (try
          let data =
            List.map (fun s -> (0, None, s.encoder.Encoder.stop ())) streams
@@ -949,8 +941,6 @@ class hls_output p =
             self#cleanup_streams;
             self#cleanup_playlists);
       streams <- mk_streams ()
-
-    method! reset = self#toggle_state `Restart
 
     method private write_state persist_at =
       let fd = open_out_bin persist_at in
