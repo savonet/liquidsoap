@@ -30,7 +30,10 @@ fi
 
 LOG_FILE="/tmp/liquidsoap-scale-${PORT}.log"
 T0=$(date +%s%3N)
-ts() { ms=$(( $(date +%s%3N) - T0 )); printf "[+%d.%ds] " "$((ms / 1000))" "$((ms % 1000 / 100))"; }
+ts() {
+       ms=$(($( date +%s%3N) - T0))
+                                      printf "[+%d.%ds] " "$((ms / 1000))" "$((ms % 1000 / 100))"
+}
 
 cleanup() {
     kill "$SERVER_PID" 2> /dev/null || true
