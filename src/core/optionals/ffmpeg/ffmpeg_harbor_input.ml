@@ -83,7 +83,7 @@ let stream_to_record (stream : Ffmpeg_stream_description.stream) =
     | `Subtitle params -> subtitle_stream_to_record params stream.field
     | `Data params -> data_stream_to_record params stream.field
 
-let copy_encoder_of_description ?format
+let copy_encoder_of_description ?format ?mime_type
     (desc : Ffmpeg_stream_description.container) =
   let streams =
     List.filter_map
@@ -97,6 +97,7 @@ let copy_encoder_of_description ?format
   let ffmpeg_format =
     {
       Ffmpeg_format.format = (match format with None -> desc.format | v -> v);
+      mime_type;
       output = `Stream;
       streams;
       interleaved = `Default;
@@ -226,13 +227,20 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
         Lang.meth base (meth_values @ callback_values)
       in
       let copy_encoder =
+        let mime_type =
+          match (mime, desc.Ffmpeg_stream_description.format) with
+            | m, _ when String.contains m '/' -> Some m
+            | _, Some f -> Utils.mime_of_container_format f
+            | _ -> None
+        in
         Lang.val_fun
           [("", "", Some Lang.null)]
           (fun p ->
             let format =
               Lang.to_valued_option Lang.to_string (List.assoc "" p)
             in
-            Lang_encoder.L.format (copy_encoder_of_description ?format desc))
+            Lang_encoder.L.format
+              (copy_encoder_of_description ?format ?mime_type desc))
       in
       let callback_record =
         Lang.record

@@ -94,11 +94,12 @@ let mk_stream_store total_count =
   (add, remove)
 
 let mk_format ffmpeg =
-  match (ffmpeg.Ffmpeg_format.format, ffmpeg.Ffmpeg_format.output) with
-    | short_name, `Url filename ->
-        Av.Format.guess_output_format ~filename ?short_name ()
-    | Some short_name, _ -> Av.Format.guess_output_format ~short_name ()
-    | _ -> None
+  let short_name = ffmpeg.Ffmpeg_format.format in
+  let mime = ffmpeg.Ffmpeg_format.mime_type in
+  let filename =
+    match ffmpeg.Ffmpeg_format.output with `Url f -> Some f | _ -> None
+  in
+  Av.Format.guess_output_format ?short_name ?filename ?mime ()
 
 let flush_pending_on_start ~encoder =
   if

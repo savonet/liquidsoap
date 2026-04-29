@@ -300,6 +300,7 @@ let ffmpeg_gen params =
   let defaults =
     {
       Ffmpeg_format.format = None;
+      mime_type = None;
       output = `Stream;
       streams = [];
       metadata = Frame.Metadata.empty;
