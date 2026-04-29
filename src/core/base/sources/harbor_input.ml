@@ -56,6 +56,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
     val relay_socket = Atomic.make None
     val mutable pending_headers : (string * string) list = []
+    val mutable pending_metadata : Frame.Metadata.t option = None
 
     (** Function to read on socket. *)
     val mutable relay_read = fun _ _ _ -> assert false
@@ -94,20 +95,20 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
 
     (* Insert metadata *)
     method encode_metadata m =
-      if self#is_up then (
-        (* Metadata may contain only the "song" value
-         * or "artist" and "title". Here, we use "song"
-         * as the "title" field if "title" is not provided. *)
-        let m =
-          if not (Frame.Metadata.mem "title" m) then (
-            try Frame.Metadata.add "title" (Frame.Metadata.find "song" m) m
-            with _ -> m)
-          else m
-        in
-        self#log#important "New metadata chunk %s -- %s."
-          (try Frame.Metadata.find "artist" m with _ -> "?")
-          (try Frame.Metadata.find "title" m with _ -> "?");
-        Generator.add_metadata self#buffer m)
+      (* Metadata may contain only the "song" value
+       * or "artist" and "title". Here, we use "song"
+       * as the "title" field if "title" is not provided. *)
+      let m =
+        if not (Frame.Metadata.mem "title" m) then (
+          try Frame.Metadata.add "title" (Frame.Metadata.find "song" m) m
+          with _ -> m)
+        else m
+      in
+      self#log#important "New metadata chunk %s -- %s."
+        (try Frame.Metadata.find "artist" m with _ -> "?")
+        (try Frame.Metadata.find "title" m with _ -> "?");
+      if self#is_up then Generator.add_metadata self#buffer m
+      else pending_metadata <- Some m
 
     method get_mime_type = Atomic.get mime_type
 
@@ -181,6 +182,8 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
 
     method private start_feed =
       self#register_decoder (Option.get (Atomic.get mime_type));
+      Option.iter (Generator.add_metadata self#buffer) pending_metadata;
+      pending_metadata <- None;
       List.iter (fun fn -> fn pending_headers) on_connect;
       begin match dumpfile with
         | Some f -> (
