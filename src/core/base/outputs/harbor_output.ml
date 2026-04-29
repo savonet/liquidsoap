@@ -580,8 +580,8 @@ class virtual ['a] base p =
           | Some login ->
               Duppy.Monad.catch
                 (Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-                   (Harbor.http_auth_check ~query ~uri:request_uri ~login socket
-                      headers))
+                   (Harbor.http_auth_check ~query ~meth:"GET" ~uri:request_uri
+                      ~login socket headers))
                 (function
                   | Harbor.Close s ->
                       self#log#info "Listener %s failed to authenticate"

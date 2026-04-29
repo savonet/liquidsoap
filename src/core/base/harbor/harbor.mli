@@ -52,7 +52,9 @@ module Http_transport : Transport_t with type socket = Http.socket
 
 type login_args = {
   socket : Http.socket;
+  meth : string;
   uri : string;
+  query : (string * string) list;
   user : string;
   password : string;
 }
@@ -135,6 +137,7 @@ module type T = sig
 
   val http_auth_check :
     ?query:(string * string) list ->
+    meth:string ->
     uri:string ->
     login:string * (login_args -> bool) ->
     socket ->
