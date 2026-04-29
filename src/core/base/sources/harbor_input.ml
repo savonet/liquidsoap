@@ -355,7 +355,9 @@ let proto ?(buffer_default = 12.) mountpoint_t =
                Lang.record_t
                  [
                    ("address", Lang.string_t);
+                   ("method", Lang.string_t);
                    ("uri", Lang.string_t);
+                   ("query", Lang.metadata_t);
                    ("user", Lang.string_t);
                    ("password", Lang.string_t);
                  ] );
@@ -364,9 +366,14 @@ let proto ?(buffer_default = 12.) mountpoint_t =
       Some Lang.null,
       Some
         "Authentication function. Receives a record with: `user`, `password`, \
-         `uri` (mountpoint) and `address` (client network address) and returns \
-         `true` if the user should be granted access for this login. Override \
-         any other method if used." );
+         `uri` (request URI), `query` (URL query parameters as a list of \
+         key-value pairs), `address` (client network address) and `method` \
+         (connection method: `\"PUT\"` or `\"POST\"` for HTTP source \
+         connections, `\"SOURCE\"` for Xaudiocast/ICE sources, `\"ICY\"` for \
+         Shoutcast/ICY sources, `\"WEBSOCKET\"` for WebSocket sources, \
+         `\"GET\"` for ICY metadata updates) and returns `true` if the user \
+         should be granted access for this login. Override any other method if \
+         used." );
     ( "dumpfile",
       Lang.nullable_t Lang.string_t,
       Some Lang.null,
@@ -423,7 +430,7 @@ let parse_args ~parse_mountpoint p =
   let port = Lang.to_int (List.assoc "port" p) in
   let transport = Lang.to_http_transport (List.assoc "transport" p) in
   let auth_function = Lang.to_option (List.assoc "auth" p) in
-  let login { Harbor.socket; uri; user; password } =
+  let login { Harbor.socket; meth; uri; query; user; password } =
     let user, password =
       let f = Charset.convert in
       (f user, f password)
@@ -438,7 +445,14 @@ let parse_args ~parse_mountpoint p =
                    Lang.record
                      [
                        ("address", Lang.string (address_resolver socket));
+                       ("method", Lang.string meth);
                        ("uri", Lang.string uri);
+                       ( "query",
+                         Lang.list
+                           (List.map
+                              (fun (k, v) ->
+                                Lang.product (Lang.string k) (Lang.string v))
+                              query) );
                        ("user", Lang.string user);
                        ("password", Lang.string password);
                      ] );
