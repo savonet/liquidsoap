@@ -1327,7 +1327,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let exec () =
       let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
       let suri = Lang.descr_of_regexp uri in
-      let handlers, removed =
+      let removed, remaining =
         List.partition
           (fun (v, u, _) -> v = verb && suri = Lang.descr_of_regexp u)
           (Atomic.get handler.http)
@@ -1335,7 +1335,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       if removed <> [] then
         log#important "Removing handler for '%s %s' on port %i"
           (string_of_verb verb) suri port;
-      Atomic.set handler.http handlers;
+      Atomic.set handler.http remaining;
       if
         List.length (Atomic.get handler.sources) = 0
         && List.length (Atomic.get handler.http) = 0
