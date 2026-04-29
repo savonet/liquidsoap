@@ -6,6 +6,7 @@ let () =
   let vorbis_enc =
     {
       format = Some "ogg";
+      mime_type = None;
       interleaved = `Default;
       output = `Stream;
       metadata = Frame.Metadata.empty;
@@ -38,6 +39,7 @@ let () =
   let mixed_enc =
     {
       format = Some "ogg";
+      mime_type = None;
       interleaved = `Default;
       output = `Stream;
       metadata = Frame.Metadata.empty;

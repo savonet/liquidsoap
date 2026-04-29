@@ -70,6 +70,7 @@ type stream = [ `Copy of copy_opt | `Encode of encoded_stream | `Drop ]
 
 type t = {
   format : string option;
+  mime_type : string option;
   output : output;
   streams : (Frame.field * stream) list;
   interleaved : [ `Default | `True | `False ];
