@@ -72,7 +72,7 @@ module Icecast_v (M : Icecast_t) = struct
     | Encoder.Shine _ -> Some mpeg
     | Encoder.Ffmpeg e ->
         Option.map M.format_of_content
-          (match e.Ffmpeg_format.mime_type, e.Ffmpeg_format.format with
+          (match (e.Ffmpeg_format.mime_type, e.Ffmpeg_format.format) with
             | Some m, _ -> Some m
             | None, Some v -> Utils.mime_of_container_format v
             | _ -> None)
