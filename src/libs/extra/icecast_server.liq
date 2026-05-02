@@ -10,12 +10,6 @@ let error.icecast.server.mount_taken =
   error.register("error.icecast.server.mount_taken")
 
 # @flag hidden
-let settings.icecast =
-  settings.make.void(
-    "Icecast server emulation settings"
-  )
-
-# @flag hidden
 let settings.icecast.server =
   settings.make.void(
     "Icecast server settings"
