@@ -348,7 +348,7 @@ let _ =
        receives the source. A `copy_encoder` is provided for passthrough \
        remuxing."
     ~category:(`Source (`Input `Active))
-    (Harbor_input.proto ~buffer_default:0.2 Lang.regexp_t @ extra_proto)
+    (Harbor_input.proto ~buffer_default:2. Lang.regexp_t @ extra_proto)
     Lang.unit_t
     (fun p ->
       Configure.conf_force_start#set true;

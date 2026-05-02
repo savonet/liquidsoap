@@ -65,7 +65,6 @@ type 'a listener = {
   close : unit -> unit;
   encoder : 'a;
   pending_data : Strings.Mutable.t;
-  write_buffer : bytes;
   mutable metadata_position : int;
   mutable last_sent_metadata : Frame.metadata option;
   metadata_interval : int;
@@ -154,7 +153,6 @@ let create_listener ~id ~encoder ~socket ~close ~metadata_interval ~stream_url
     close;
     encoder;
     pending_data = Strings.Mutable.empty ();
-    write_buffer = Bytes.create 1024;
     metadata_position = 0;
     last_sent_metadata = None;
     metadata_interval;
@@ -172,30 +170,36 @@ let append_data_to_listener ~buffer_limit listener data =
   Strings.Mutable.append_strings listener.pending_data data
 
 let try_write_to_socket listener =
-  let to_write =
-    Strings.Mutable.fold
-      (fun total s src_ofs len ->
-        let n = min (1024 - total) len in
-        if n > 0 then (
-          Bytes.blit_string s src_ofs listener.write_buffer total n;
-          total + n)
-        else total)
-      0 listener.pending_data
-  in
-  if to_write = 0 then 0
-  else (
-    match Harbor.write listener.socket listener.write_buffer 0 to_write with
-      | written ->
-          if written > 0 then Strings.Mutable.drop listener.pending_data written;
-          written
-      | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) -> 0
-      | exception exn ->
-          (match exn with
-            | Unix.Unix_error ((Unix.EPIPE | Unix.ECONNRESET), _, _) -> ()
-            | _ ->
-                log#info "Write error for %s: %s" listener.id
-                  (Printexc.to_string exn));
-          -1)
+  (* Get the first available chunk from pending_data and write it directly. *)
+    match
+      Strings.Mutable.fold
+        (fun first s src_ofs len ->
+          match first with Some _ -> first | None -> Some (s, src_ofs, len))
+        None listener.pending_data
+    with
+    | None -> 0
+    | Some (chunk, chunk_ofs, chunk_len) -> (
+        match
+          Harbor.write listener.socket
+            (Bytes.unsafe_of_string chunk)
+            chunk_ofs chunk_len
+        with
+          | written ->
+              if written > 0 then
+                Strings.Mutable.drop listener.pending_data written;
+              written
+          | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _)
+            ->
+              0
+          | exception exn ->
+              (match exn with
+                | Unix.Unix_error ((Unix.EPIPE | Unix.ECONNRESET), _, _) ->
+                    log#info "Socket write for %s: %s (disconnecting)"
+                      listener.id (Printexc.to_string exn)
+                | _ ->
+                    log#info "Socket write error for %s: %s" listener.id
+                      (Printexc.to_string exn));
+              -1)
 
 let update_burst_buffer burst_buffer ~max_size data =
   Strings.Mutable.append_strings burst_buffer data;
