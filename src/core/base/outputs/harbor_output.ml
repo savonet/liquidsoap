@@ -25,6 +25,11 @@ let ( let* ) = Duppy.Monad.bind
 module Http = Liq_http
 
 let log = Log.make ["harbor"; "output"]
+let stopped = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"Harbor stop" (fun () ->
+      Atomic.set stopped true)
 
 (** Output to harbor listeners. *)
 
@@ -432,6 +437,15 @@ class virtual ['a] base p =
         listener.close ();
         List.iter (fun fn -> fn listener.id) on_disconnect_callbacks
       end
+
+    initializer
+      let has_stopped = ref false in
+      self#on_frame
+        (`Before_frame
+           (fun _ ->
+             if Atomic.get stopped && not !has_stopped then (
+               has_stopped := true;
+               List.iter self#handle_disconnect self#get_listeners)))
 
     method private write_task_handler events =
       (* Guard: if anything throws, reset write_task_active so ensure_write_task
