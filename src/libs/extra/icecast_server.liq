@@ -1273,9 +1273,9 @@ def icecast.server.serve(
      class=stat-l>Listeners</div></div><div class=stat><div class=stat-n \
      dyn-peak></div><div \
      class=stat-l>Peak</div></div></div>${m.mime_type&&m.mime_type.startsWith('video/')?`<video \
-     controls src='${m.mount}' type='${m.mime_type}' \
+     controls preload='none' src='${m.mount}' type='${m.mime_type}' \
      style='width:100%;margin-top:1rem'></video>`:`<audio controls \
-     src='${m.mount}'${m.mime_type?` type='${m.mime_type}'`:''} \
+     preload='none' src='${m.mount}'${m.mime_type?` type='${m.mime_type}'`:''} \
      style='width:100%;margin-top:1rem;accent-color:#16213e'></audio>`}`;el.appendChild(card);}const \
      title=meta(m.current_metadata,'title');const \
      artist=meta(m.current_metadata,'artist');const \
