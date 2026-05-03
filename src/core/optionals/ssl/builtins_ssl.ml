@@ -246,8 +246,8 @@ let _ =
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
           | None ->
-              Runtime_error.raise ~pos:(Lang.pos p) "Cannot find "
-              ^ name ^ "file!"
+              Runtime_error.raise ~pos:(Lang.pos p)
+                ("Cannot find " ^ name ^ "file!")
           | Some path -> Utils.check_readable ~pos:(Lang.pos p) path
       in
       let certificate = find "certificate" in
