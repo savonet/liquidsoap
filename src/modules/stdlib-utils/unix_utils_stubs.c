@@ -85,9 +85,13 @@ CAMLprim value caml_liquidsoap_poll(value _read, value _write, value _err,
   }
 
   caml_release_runtime_system();
-  do {
+  ret = poll(fds, nfds, timeout);
+  while (ret == -1 && errno == EINTR) {
+    caml_acquire_runtime_system();
+    caml_process_pending_actions();
+    caml_release_runtime_system();
     ret = poll(fds, nfds, timeout);
-  } while (ret == -1 && errno == EINTR);
+  }
   caml_acquire_runtime_system();
 
   if (ret == -1) {
