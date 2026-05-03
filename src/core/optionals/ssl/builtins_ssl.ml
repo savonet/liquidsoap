@@ -91,7 +91,9 @@ let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
   Option.iter
     (fun password -> Ssl.set_password_callback context (fun _ -> password))
     password;
-  Ssl.use_certificate context (certificate ()) (key ());
+  let cert_path = certificate () in
+  let key_path = Option.value ~default:cert_path (key ()) in
+  Ssl.use_certificate context cert_path key_path;
 
   object
     method transport = transport
@@ -216,7 +218,8 @@ let _ =
         Some Lang.null,
         Some
           "Path to certificate private key. Required in server mode, e.g. \
-           `input.harbor`, etc." );
+           `input.harbor`, etc., unless the certificate file also contains the \
+           private key." );
     ]
     Lang.http_transport_t
     (fun p ->
@@ -243,15 +246,20 @@ let _ =
         Option.map protocol_of_value
           (Lang.to_option (List.assoc "max_protocol" p))
       in
-      let find name () =
-        match Lang.to_valued_option Lang.to_string (List.assoc name p) with
+      let certificate () =
+        match
+          Lang.to_valued_option Lang.to_string (List.assoc "certificate" p)
+        with
           | None ->
               Runtime_error.raise ~pos:(Lang.pos p)
-                ("Cannot find " ^ name ^ "file!")
+                "Cannot find certificate file!"
           | Some path -> Utils.check_readable ~pos:(Lang.pos p) path
       in
-      let certificate = find "certificate" in
-      let key = find "key" in
+      let key () =
+        match Lang.to_valued_option Lang.to_string (List.assoc "key" p) with
+          | None -> None
+          | Some path -> Some (Utils.check_readable ~pos:(Lang.pos p) path)
+      in
       Lang.http_transport
         (transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
            ~password ~certificate ~key ()))
