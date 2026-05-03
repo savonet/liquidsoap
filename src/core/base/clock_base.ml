@@ -44,20 +44,35 @@ module WeakQueue = struct
   let push q v = if not (exists q (fun v' -> v == v')) then push q v
 end
 
-exception Sync_source_name of string
+type sync_source_handler = {
+  to_string : sync_source -> string option;
+  time_implementation : sync_source -> Liq_time.implementation option;
+  latency : sync_source -> float option;
+  max_latency : sync_source -> float option;
+}
 
-let sync_sources_handlers = Queue.create ()
+let sync_source_handlers : sync_source_handler list ref = ref []
+
+let find_sync_source fn s =
+  List.find_map (fun h -> fn h s) !sync_source_handlers
 
 let string_of_sync_source s =
-  try
-    Queue.iter sync_sources_handlers (fun fn -> fn s);
-    assert false
-  with Sync_source_name s -> s
+  Option.value ~default:"unknown" (find_sync_source (fun h -> h.to_string) s)
+
+let time_of_sync_source s =
+  Option.value ~default:Liq_time.unix
+    (find_sync_source (fun h -> h.time_implementation) s)
+
+let latency_of_sync_source s = find_sync_source (fun h -> h.latency) s
+let max_latency_of_sync_source s = find_sync_source (fun h -> h.max_latency) s
 
 module type SyncSource = sig
   type t
 
+  val time_implementation : t -> Liq_time.implementation
   val to_string : t -> string
+  val latency : t -> float
+  val max_latency : t -> float
 end
 
 module MkSyncSource (S : SyncSource) = struct
@@ -66,9 +81,19 @@ module MkSyncSource (S : SyncSource) = struct
   let make v = Sync_source v
 
   let () =
-    Queue.push sync_sources_handlers (function
-      | Sync_source v -> raise (Sync_source_name (S.to_string v))
-      | _ -> ())
+    sync_source_handlers :=
+      {
+        to_string =
+          (function Sync_source v -> Some (S.to_string v) | _ -> None);
+        time_implementation =
+          (function
+          | Sync_source v -> Some (S.time_implementation v)
+          | _ -> None);
+        latency = (function Sync_source v -> Some (S.latency v) | _ -> None);
+        max_latency =
+          (function Sync_source v -> Some (S.max_latency v) | _ -> None);
+      }
+      :: !sync_source_handlers
 end
 
 type sync_source_entry = {
