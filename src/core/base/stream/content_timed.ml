@@ -118,7 +118,7 @@ module Metadata = struct
   let lift_data m =
     lift_data
       {
-        Specs.length = Finite (List.fold_left (fun l (p, _) -> max l p) 0 m);
+        Specs.length = Finite (List.fold_left (fun l (p, _) -> Int.max l p) 0 m);
         data = m;
       }
 
@@ -131,7 +131,7 @@ module Metadata = struct
     let length = match length with Infinite -> max_int | Finite len -> len in
     List.filter
       (fun (p, _) -> 0 <= p && p < length)
-      (List.stable_sort (fun (p, _) (p', _) -> compare p p') data)
+      (List.stable_sort (fun (p, _) (p', _) -> Int.compare p p') data)
 end
 
 module Track_marks_specs = struct
@@ -167,7 +167,7 @@ module Track_marks = struct
   let lift_data p =
     lift_data
       {
-        Specs.length = Finite (List.fold_left (fun l p -> max l p) 0 p);
+        Specs.length = Finite (List.fold_left (fun l p -> Int.max l p) 0 p);
         data = List.map (fun p -> (p, ())) p;
       }
 

@@ -75,7 +75,7 @@ let length gen =
     (Frame_base.Fields.fold
        (fun _ c -> function
          | None -> Some (Content.length c)
-         | Some l' -> Some (min (Content.length c) l'))
+         | Some l' -> Some (Int.min (Content.length c) l'))
        (media_content gen) None)
 
 let _length = length
@@ -85,7 +85,7 @@ let buffered_length gen =
     (Frame_base.Fields.fold
        (fun _ c -> function
          | None -> Some (Content.length c)
-         | Some l' -> Some (max (Content.length c) l'))
+         | Some l' -> Some (Int.max (Content.length c) l'))
        (media_content gen) None)
 
 let remaining gen =
@@ -102,7 +102,7 @@ let _truncate ?(allow_desync = false) gen len =
     (Frame_base.Fields.map
        (fun content ->
          let len =
-           if allow_desync then min len (Content.length content)
+           if allow_desync then Int.min len (Content.length content)
            else (
              assert (len <= Content.length content);
              len)
@@ -126,7 +126,7 @@ let _slice gen len =
   let content = Atomic.get gen.content in
   let len =
     Frame_base.Fields.fold
-      (fun _ c len -> min (Content.length c) len)
+      (fun _ c len -> Int.min (Content.length c) len)
       content len
   in
   let slice = Frame_base.Fields.map (fun c -> Content.sub c 0 len) content in
@@ -198,7 +198,7 @@ let _put gen field new_content =
       "Generator max buffered length exceeded (%d < %d)! Dropping content.."
       max_length buffered_length;
     let excess = buffered_length - max_length in
-    let dropped = min (length gen) excess in
+    let dropped = Int.min (length gen) excess in
     let dropped, allow_desync =
       if dropped = 0 then (
         gen.log#severe

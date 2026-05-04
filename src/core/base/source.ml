@@ -490,10 +490,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method get_partial_frame cb =
       let data = cb self#peek_frame in
-      consumed <- max consumed (Frame.position data);
+      consumed <- Int.max consumed (Frame.position data);
       data
 
-    method consumed n = consumed <- max consumed n
+    method consumed n = consumed <- Int.max consumed n
     method get_frame = self#get_partial_frame (fun f -> f)
 
     method get_mutable_content field =
