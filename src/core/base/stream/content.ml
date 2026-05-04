@@ -139,7 +139,7 @@ module Midi = struct
 end
 
 let value_of_format fmt =
-  let name = fst fmt in
+  let name = fmt.Contents.name in
   Option.map
     (fun { method_name; format_to_value; _ } ->
       (method_name, format_to_value fmt))
