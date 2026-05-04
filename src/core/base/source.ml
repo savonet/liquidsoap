@@ -116,7 +116,14 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       in
       sources <- filter_source sources
 
-    method add_watcher w = watchers <- w :: watchers
+    method add_watcher w =
+      if watchers = [] then (
+        self#on_before_streaming_cycle (fun () ->
+            self#iter_watchers (fun w -> w.before_streaming_cycle ()));
+        self#on_after_streaming_cycle (fun () ->
+            self#iter_watchers (fun w -> w.after_streaming_cycle ())));
+      watchers <- w :: watchers
+
     method private iter_watchers fn = List.iter fn watchers
     method clock = clock
 
@@ -418,18 +425,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method on_before_streaming_cycle fn =
       on_before_streaming_cycle <- on_before_streaming_cycle @ [fn]
 
-    initializer
-      self#on_before_streaming_cycle (fun () ->
-          self#iter_watchers (fun w -> w.before_streaming_cycle ()))
-
     val mutable on_after_streaming_cycle = []
 
     method on_after_streaming_cycle fn =
       on_after_streaming_cycle <- on_after_streaming_cycle @ [fn]
-
-    initializer
-      self#on_after_streaming_cycle (fun () ->
-          self#iter_watchers (fun w -> w.after_streaming_cycle ()))
 
     method private cache =
       match _cache with None -> self#empty_frame | Some c -> c
