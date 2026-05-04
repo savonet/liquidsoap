@@ -147,7 +147,10 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
           events = [`Delay 0.];
           handler =
             (fun _ ->
-              self#do_open_container;
+              (try self#do_open_container
+               with exn ->
+                 self#log#severe "Error while opening container: %s!"
+                   (Printexc.to_string exn));
               []);
         }
       in
