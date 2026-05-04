@@ -153,6 +153,19 @@ object
 
   method source_sync : bool -> Clock.sync_source option
 
+  (** Cached sync source of this source, updated at wake_up and on changes. *)
+  method source_state : Clock.sync_source option
+
+  (** Register a callback fired when the source's sync source changes. Returns a
+      deregistration thunk. *)
+  method on_sync_source_change :
+    (old:Clock.sync_source option -> Clock.sync_source option -> unit) ->
+    unit ->
+    unit
+
+  (** Update the cached sync source and notify registered callbacks. *)
+  method private notify_sync_source : Clock.sync_source option -> unit
+
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit
 
