@@ -134,12 +134,12 @@ type format_handler = {
   duplicate : unit -> format;
 }
 
-let dummy_format_handler_fn (_ : Contents.format_content Unifier.t) : format_handler
-    =
+let dummy_format_handler_fn (_ : Contents.format_content Unifier.t) :
+    format_handler =
   raise Invalid
 
-let format_handler_fns : (Contents.format_content Unifier.t -> format_handler) array
-    =
+let format_handler_fns :
+    (Contents.format_content Unifier.t -> format_handler) array =
   Array.make 16 dummy_format_handler_fn
 
 let get_format_handler { Contents.id; content } =
@@ -265,14 +265,14 @@ module MkContentBase (C : ContentSpecs) :
 
   let length { chunks } =
     match chunks with
-    | [] -> 0
-    | [chunk] -> chunk_length chunk
-    | _ ->
-      List.fold_left
-        (fun cur chunk ->
-          let n = chunk_length chunk in
-          if cur = max_int || n = max_int then max_int else cur + n)
-        0 chunks
+      | [] -> 0
+      | [chunk] -> chunk_length chunk
+      | _ ->
+          List.fold_left
+            (fun cur chunk ->
+              let n = chunk_length chunk in
+              if cur = max_int || n = max_int then max_int else cur + n)
+            0 chunks
 
   let is_empty d = length d = 0
 
