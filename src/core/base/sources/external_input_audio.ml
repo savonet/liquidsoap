@@ -27,8 +27,8 @@ open Mm
 
 exception Finished of string * bool
 
-class external_input ~name ~restart ~bufferize ~restart_on_error ~max ~converter
-  ?read_header command =
+class external_input ~name ~restart ~bufferize ~restart_on_error ~restart_delay
+  ~max ~converter ?read_header command =
   let abg_max_len = Frame.audio_of_seconds max in
   let buflen = Utils.buflen in
   let buf = Bytes.create buflen in
@@ -46,7 +46,8 @@ class external_input ~name ~restart ~bufferize ~restart_on_error ~max ~converter
   object
     inherit
       External_input.base
-        ~name ?read_header ~restart ~restart_on_error ~on_data command
+        ~name ?read_header ~restart ~restart_on_error ~restart_delay ~on_data
+          command
 
     inherit! Generated.source ~empty_on_abort:false ~bufferize ()
   end
@@ -69,6 +70,12 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool false),
       Some "Restart process when exited with error." );
+    ( "restart_delay",
+      Lang.float_t,
+      Some (Lang.float 1.),
+      Some
+        "Delay (in seconds) before restarting the process. Prevents \
+         busy-looping when the command exits immediately." );
     ("", Lang.getter_t Lang.string_t, None, Some "Command to execute.");
   ]
 
@@ -104,10 +111,11 @@ let _ =
       in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
+      let restart_delay = Lang.to_float (List.assoc "restart_delay" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       let s =
         new external_input
-          ~restart ~bufferize ~restart_on_error ~max
+          ~restart ~bufferize ~restart_on_error ~restart_delay ~max
           ~name:"input.external.rawaudio" ~converter command
       in
       let frame_t =
@@ -148,7 +156,8 @@ let _ =
       in
       let restart = Lang.to_bool (List.assoc "restart" p) in
       let restart_on_error = Lang.to_bool (List.assoc "restart_on_error" p) in
+      let restart_delay = Lang.to_float (List.assoc "restart_delay" p) in
       let max = Lang.to_float (List.assoc "max" p) in
       new external_input
-        ~restart ~bufferize ~read_header ~restart_on_error ~max
+        ~restart ~bufferize ~read_header ~restart_on_error ~restart_delay ~max
         ~name:"input.external.wav" ~converter command)

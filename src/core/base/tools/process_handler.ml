@@ -242,7 +242,11 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         if !last_read = 0 then raise Pipe_flushed;
         loop ()
       in
-      try loop () with Pipe_flushed -> ()
+      try loop () with
+        | Pipe_flushed -> ()
+        | exn ->
+            log
+              (Printf.sprintf "Cannot drain pipe: %s" (Printexc.to_string exn))
     in
     Option.iter (drain_fd stdout) on_stdout;
     Option.iter (drain_fd stderr) on_stderr
@@ -331,7 +335,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           log descr;
           t.process <- None;
           restart_decision (on_stop status)
-      | e -> (
+      | e ->
           let bt = Printexc.get_backtrace () in
           let f e =
             log
@@ -340,7 +344,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           in
           let e = match e with Wrapped e -> e | e -> e in
           f e;
-          restart_decision (on_stop (`Exception e)))
+          restart_decision (on_stop (`Exception e))
   in
   let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
   Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
