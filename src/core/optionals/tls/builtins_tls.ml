@@ -207,12 +207,14 @@ let server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
     transport =
   let server =
     try
-      let certificate = Utils.read_all (certificate ()) in
+      let certificate_path = certificate () in
+      let key_path = Option.value ~default:certificate_path (key ()) in
+      let certificate = Utils.read_all certificate_path in
       let certificates =
         Result.get_ok (X509.Certificate.decode_pem_multiple certificate)
       in
       let key =
-        Result.get_ok (X509.Private_key.decode_pem (Utils.read_all (key ())))
+        Result.get_ok (X509.Private_key.decode_pem (Utils.read_all key_path))
       in
       let authenticator =
         match client_certificate () with
@@ -333,7 +335,8 @@ let _ =
         Some Lang.null,
         Some
           "Path to certificate private key. Required in server mode, e.g. \
-           `input.harbor`, etc. Unused in client mode." );
+           `input.harbor`, etc., unless the certificate file also contains the \
+           private key. Unused in client mode." );
       ( "client_certificate",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
@@ -366,17 +369,17 @@ let _ =
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
           | None ->
-              Runtime_error.raise ~pos:(Lang.pos p) "Cannot find "
-              ^ name ^ "file!"
+              Runtime_error.raise ~pos:(Lang.pos p)
+                ("Cannot find " ^ name ^ "file!")
           | Some path -> Utils.check_readable ~pos:(Lang.pos p) path
       in
-      let certificate = find "certificate" in
-      let key = find "key" in
       let find_opt name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
           | None -> None
           | Some path -> Some (Utils.check_readable ~pos:(Lang.pos p) path)
       in
+      let certificate = find "certificate" in
+      let key = find_opt "key" in
       let client_certificate = find_opt "client_certificate" in
       let client_key = find "client_key" in
       Lang.http_transport

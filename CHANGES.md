@@ -17,6 +17,7 @@
 
 ## Changed:
 
+- `http.transport.ssl` and `http.transport.tls`: `key` parameter is now optional in server mode when the certificate file also contains the private key.
 - Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
   with a single unified `duration` parameter. Removed autocue-specific code and
   `assume_autocue` setting. Metadata overrides `liq_cross_start_duration` and
