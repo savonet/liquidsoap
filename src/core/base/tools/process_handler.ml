@@ -338,13 +338,9 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
               (Printf.sprintf "Error while running process: %s\n%s"
                  (Printexc.to_string e) bt)
           in
-          match e with
-            | Wrapped e ->
-                f e;
-                raise e
-            | _ ->
-                f e;
-                restart_decision (on_stop (`Exception e)))
+          let e = match e with Wrapped e -> e | e -> e in
+          f e;
+          restart_decision (on_stop (`Exception e)))
   in
   let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
   Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
