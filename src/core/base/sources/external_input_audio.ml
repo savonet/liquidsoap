@@ -72,7 +72,7 @@ let proto =
       Some "Restart process when exited with error." );
     ( "restart_delay",
       Lang.float_t,
-      Some (Lang.float 1.),
+      Some (Lang.float 0.1),
       Some
         "Delay (in seconds) before restarting the process. Prevents \
          busy-looping when the command exits immediately." );

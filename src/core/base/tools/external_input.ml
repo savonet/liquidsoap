@@ -65,9 +65,7 @@ class virtual base ~name ~restart ~restart_on_error ?(restart_delay = 0.)
                 | `Status (Unix.WEXITED 0) -> restart
                 | _ -> restart_on_error
             in
-            if should_restart && restart_delay > 0. then
-              Thread.delay restart_delay;
-            should_restart
+            if should_restart then restart_delay else -1.
           in
           let log s = self#log#important "%s" s in
           process <-
