@@ -819,7 +819,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             exec_http_auth_check ~args ~meth:"GET" ~uri ~login:s.login h headers
           in
           let* () =
-            match s.get_mime_type ~mount:uri with
+            match s.get_mime_type ~mount with
               | None ->
                   log#critical
                     "No mime-type found for source at %s, this should not \
