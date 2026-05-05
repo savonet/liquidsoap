@@ -253,15 +253,17 @@ module MkContentBase (C : ContentSpecs) :
 
   let _type = Contents.register_type ()
 
-  let of_content : Contents.data -> chunked_data = function
+  let[@inline] of_content : Contents.data -> chunked_data = function
     | t, d when t = _type -> Obj.magic d
     | _ -> raise Invalid
 
-  let to_content : chunked_data -> Contents.data = fun d -> (_type, Obj.magic d)
-  let params { params } = params
+  let[@inline] to_content : chunked_data -> Contents.data =
+   fun d -> (_type, Obj.magic d)
+
+  let[@inline] params { params } = params
   let[@inline] chunk_length { length; _ } = length
-  let length { total_length; _ } = total_length
-  let is_empty { total_length; _ } = total_length = 0
+  let[@inline] length { total_length; _ } = total_length
+  let[@inline] is_empty { total_length; _ } = total_length = 0
 
   let sub data ofs len =
     let stop = ofs + len in
@@ -420,7 +422,7 @@ module MkContentBase (C : ContentSpecs) :
           C.compatible (deref p) (deref content)
       | _ -> false
 
-  let is_kind { Contents.id; _ } = id = _type
+  let[@inline] is_kind { Contents.id; _ } = id = _type
 
   let lift_kind k : Contents.kind =
     { Contents.id = _type; name = C.name; content = to_kind_content k }
@@ -428,7 +430,7 @@ module MkContentBase (C : ContentSpecs) :
   let get_kind { Contents.id; content } =
     if id = _type then to_kind content else raise Invalid
 
-  let is_format { Contents.id; _ } = id = _type
+  let[@inline] is_format { Contents.id; _ } = id = _type
 
   let lift_params p : Contents.format =
     {
@@ -440,7 +442,7 @@ module MkContentBase (C : ContentSpecs) :
   let get_params { Contents.id; content } =
     if id = _type then deref content else raise Invalid
 
-  let is_data = function t, _ -> t = _type
+  let[@inline] is_data = function t, _ -> t = _type
   let kind_of_string s = Option.map lift_kind (C.kind_of_string s)
 
   let () =
