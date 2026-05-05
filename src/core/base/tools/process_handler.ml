@@ -227,13 +227,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
         [get_task handler (on_start (pusher fd))]
       in
-      [
-        {
-          Duppy.Task.priority;
-          events = [`Delay delay];
-          handler = spawn;
-        };
-      ]
+      [{ Duppy.Task.priority; events = [`Delay delay]; handler = spawn }]
     end
   in
   (* Read any remaining data from stdout/stderr pipes. Called when the process
@@ -346,14 +340,14 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           log descr;
           t.process <- None;
           restart_decision (on_stop status)
-      | e ->
+      | e -> (
           let bt = Printexc.get_backtrace () in
           let f e =
             log
               (Printf.sprintf "Error while running process: %s\n%s"
                  (Printexc.to_string e) bt)
           in
-          (match e with
+          match e with
             | Wrapped e ->
                 f e;
                 cleanup ~log t;
