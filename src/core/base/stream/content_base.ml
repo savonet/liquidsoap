@@ -279,6 +279,39 @@ module MkContentBase (C : ContentSpecs) :
                else []);
             total_length = len;
           }
+      | [chunk1; chunk2] ->
+          (* Common case: Frame.append produces a 2-chunk frame, then Frame.slice
+             calls sub on it. Avoid fold_left and tuple allocation per chunk. *)
+          let len1 = chunk_length chunk1 in
+          let chunks =
+            if stop <= len1 then
+              if ofs < stop then
+                [
+                  {
+                    chunk1 with
+                    offset = chunk1.offset + ofs;
+                    length = stop - ofs;
+                  };
+                ]
+              else []
+            else if ofs >= len1 then (
+              let local_ofs = ofs - len1 in
+              let local_stop = stop - len1 in
+              if local_ofs < local_stop then
+                [
+                  {
+                    chunk2 with
+                    offset = chunk2.offset + local_ofs;
+                    length = local_stop - local_ofs;
+                  };
+                ]
+              else [])
+            else (
+              let c2_len = stop - len1 in
+              { chunk1 with offset = chunk1.offset + ofs; length = len1 - ofs }
+              :: (if c2_len > 0 then [{ chunk2 with length = c2_len }] else []))
+          in
+          { data with chunks; total_length = len }
       | _ ->
           {
             data with
