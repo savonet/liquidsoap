@@ -113,7 +113,7 @@ let dummy_kind_handler_fn (_ : Contents.kind_content) : kind_handler =
 let kind_handler_fns : (Contents.kind_content -> kind_handler) array =
   Array.make 16 dummy_kind_handler_fn
 
-let get_kind_handler { Contents.id; content } =
+let[@inline] get_kind_handler { Contents.id; content } =
   (Array.unsafe_get kind_handler_fns id) content
 
 let kind_parsers = Queue.create ()
@@ -147,7 +147,7 @@ let format_handler_fns :
     (Contents.format_content Unifier.t -> format_handler) array =
   Array.make 16 dummy_format_handler_fn
 
-let get_format_handler { Contents.id; content } =
+let[@inline] get_format_handler { Contents.id; content } =
   (Array.unsafe_get format_handler_fns id) content
 
 let format_param_parsers : (string -> string -> Contents.format option) array =
@@ -188,7 +188,7 @@ let register_data_handler t h =
     failwith "Please increase media content array length!";
   Array.unsafe_set data_handlers t h
 
-let get_data_handler (t, _) = Array.unsafe_get data_handlers t
+let[@inline] get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ?length k = (get_format_handler k).make length
 let sub d = (get_data_handler d).sub d
 let truncate d = (get_data_handler d).truncate d
