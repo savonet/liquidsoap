@@ -95,7 +95,7 @@ let position frame =
     (Fields.fold
        (fun _ c -> function
          | None -> Some (Content_base.length c)
-         | Some p -> Some (min p (Content_base.length c)))
+         | Some p -> Some (Int.min p (Content_base.length c)))
        frame None)
 
 let remaining b = Lazy.force Frame_settings.size - position b

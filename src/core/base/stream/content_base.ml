@@ -283,8 +283,8 @@ module MkContentBase (C : ContentSpecs) :
                   let length = chunk_length chunk in
                   let cur =
                     (* This is essentially a segment overlap calculation. *)
-                    let start = max 0 (start - pos) in
-                    let stop = min length (stop - pos) in
+                    let start = Int.max 0 (start - pos) in
+                    let stop = Int.min length (stop - pos) in
                     if start < stop then (
                       let offset = offset + start in
                       let length = Some (stop - start) in
@@ -437,7 +437,7 @@ module MkContentBase (C : ContentSpecs) :
                   let length =
                     match length with
                       | Some len -> len
-                      | None -> max 0 (C.length data - offset)
+                      | None -> Int.max 0 (C.length data - offset)
                   in
                   Printf.sprintf "%d:%d:%s" offset length (C.checksum data))
                 d.chunks
