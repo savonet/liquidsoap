@@ -314,20 +314,13 @@ module MkContentBase (C : ContentSpecs) :
           if chunk_len <= len then f (len - chunk_len) chunks
           else (
             let { data; offset; length } = chunk in
-            {
-              data;
-              offset = offset + len;
-              length = (if length = max_int then max_int else length - len);
-            }
-            :: chunks)
+            { data; offset = offset + len; length = length - len } :: chunks)
       | [] -> raise Invalid
     in
     {
       data with
       chunks = f len data.chunks;
-      total_length =
-        (if data.total_length = max_int then max_int
-         else data.total_length - len);
+      total_length = data.total_length - len;
     }
 
   let append d d' =
