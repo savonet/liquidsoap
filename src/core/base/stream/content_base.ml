@@ -340,7 +340,12 @@ module MkContentBase (C : ContentSpecs) :
         if chunk_len <= len then truncate_chunks (len - chunk_len) chunks
         else (
           let { data; offset; length } = chunk in
-          { data; offset = offset + len; length = length - len } :: chunks)
+          {
+            data;
+            offset = offset + len;
+            length = (if length = max_int then max_int else length - len);
+          }
+          :: chunks)
     | [] -> raise Invalid
 
   let truncate data len =
@@ -348,7 +353,9 @@ module MkContentBase (C : ContentSpecs) :
     {
       data with
       chunks = truncate_chunks len data.chunks;
-      total_length = data.total_length - len;
+      total_length =
+        (if data.total_length = max_int then max_int
+         else data.total_length - len);
     }
 
   let append d d' =
@@ -371,8 +378,13 @@ module MkContentBase (C : ContentSpecs) :
     let rec blit buf pos = function
       | [] -> ()
       | { data; offset; length } :: rest ->
-          if length > 0 then C.blit data offset buf pos length;
-          blit buf (pos + length) rest
+          (* When length = max_int (infinite sentinel), cap to actual data
+             capacity to avoid integer overflow in C.blit arithmetic. *)
+          let blit_len =
+            if length = max_int then C.length data - offset else length
+          in
+          if blit_len > 0 then C.blit data offset buf pos blit_len;
+          blit buf (pos + blit_len) rest
     in
     fun ~copy d ->
       match (d.total_length, d.chunks) with
