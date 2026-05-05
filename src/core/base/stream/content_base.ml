@@ -451,6 +451,13 @@ module MkContentBase (C : ContentSpecs) :
     register_data_handler _type data_handler
 
   let lift_data ?(offset = 0) ?length d =
+    let length =
+      match length with
+        | Some _ -> length
+        | None ->
+            let l = C.length d in
+            if l = max_int then None else Some (l - offset)
+    in
     to_content { params = C.params d; chunks = [{ offset; length; data = d }] }
 
   let get_data d =
