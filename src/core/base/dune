@@ -51,6 +51,7 @@
   mm
   cron
   dtools
+  domain_shims
   dune-build-info
   duppy
   liquidsoap-lang
