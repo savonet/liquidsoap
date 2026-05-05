@@ -38,9 +38,9 @@ let encoder id ext =
     Mutex_utils.mutexify mutex (fun () ->
         let decision =
           match (!is_metadata_restart, !is_stop) with
-            | _, true -> false
-            | true, false -> true
-            | false, false -> ext.restart_on_crash
+            | _, true -> -1.
+            | true, false -> 0.
+            | false, false -> if ext.restart_on_crash then 0. else -1.
         in
         is_metadata_restart := false;
         decision)

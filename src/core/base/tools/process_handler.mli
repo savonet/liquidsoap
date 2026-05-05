@@ -72,8 +72,8 @@ exception Finished
 
 (** Create a process handler. Decisions returned by the callbacks are applied
     synchronously, i.e. when returning [`Stop], the process' stdin is closed
-    immediately after the callback has returned. The process is restarted when
-    the function [on_stop] returns [true]. *)
+    immediately after the callback has returned. [on_stop] returns the delay in
+    seconds before restarting the process; negative means do not restart.*)
 val run :
   ?priority:Tutils.priority ->
   ?env:string array ->
@@ -81,7 +81,7 @@ val run :
   ?on_stdin:push callback ->
   ?on_stdout:pull callback ->
   ?on_stderr:pull callback ->
-  ?on_stop:(status -> bool) ->
+  ?on_stop:(status -> float) ->
   ?log:(string -> unit) ->
   string ->
   t
