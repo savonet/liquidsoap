@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Queue = Queues.Queue
+
 let log = Log.make ["input"; "harbor"; "dynamic"]
 let shutdown = Atomic.make false
 
@@ -376,7 +378,7 @@ let _ =
       in
       let mountpoint_s = Lang.descr_of_regexp mountpoint in
       let on_connect = List.assoc "on_connect" p in
-      let current_source = Atomic.make None in
+      let sources = Queue.create () in
       let handler =
         {
           Harbor.relay =
@@ -386,27 +388,33 @@ let _ =
                   ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                   ~mountpoint:mountpoint_s ~login ~debug ~timeout ~on_connect ()
               in
+              Queue.push sources (relay.Harbor.uri, s);
+              s#on_sleep (fun () ->
+                  Queue.filter_out sources (fun (_, s') -> s == s'));
               s#set_id
                 (if String.length relay.uri > 1 && relay.uri.[0] = '/' then
                    String.sub relay.uri 1 (String.length relay.uri - 1)
                  else if relay.uri = "" || relay.uri = "/" then
                    "input.harbor.dynamic"
                  else relay.uri);
-              Atomic.set current_source (Some s);
               s#set_stack (Liquidsoap_lang.Lang_core.pos p);
               s#relay relay);
           login;
           icy_charset;
           meta_charset;
           encode_metadata =
-            (fun m ->
-              match Atomic.get current_source with
-                | Some s -> s#encode_metadata m
+            (fun ~mount m ->
+              match
+                List.find_opt (fun (m, _) -> m = mount) (Queue.elements sources)
+              with
+                | Some (_, s) -> s#encode_metadata m
                 | None -> ());
           get_mime_type =
-            (fun () ->
-              match Atomic.get current_source with
-                | Some s -> s#get_mime_type
+            (fun ~mount ->
+              match
+                List.find_opt (fun (m, _) -> m = mount) (Queue.elements sources)
+              with
+                | Some (_, s) -> s#get_mime_type
                 | None -> None);
         }
       in
