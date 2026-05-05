@@ -23,11 +23,11 @@
 (* Atomic queues with slow lock for mutable operations. Queues are order-preserving. *)
 
 module Queue = struct
-  type 'a t = { m : Mutex.t; l : 'a List.t Atomic.t }
+  type 'a t = { state : Mutex_utils.state; l : 'a List.t Atomic.t }
 
-  let create () = { m = Mutex.create (); l = Atomic.make [] }
-  let mutate q fn = Mutex_utils.mutexify q.m fn q
-  let get q fn = fn (Atomic.get q.l)
+  let create () = { state = Mutex_utils.mk_state (); l = Atomic.make [] }
+  let mutate q fn = Mutex_utils.mutable_lock ~state:q.state fn q
+  let get q fn = Mutex_utils.atomic_lock ~state:q.state fn (Atomic.get q.l)
   let is_empty q = get q (function [] -> true | _ -> false)
   let push q v = mutate q (fun q -> Atomic.set q.l (Atomic.get q.l @ [v]))
   let append q v = mutate q (fun q -> Atomic.set q.l (v :: Atomic.get q.l))
@@ -71,115 +71,130 @@ module Queue = struct
 end
 
 module WeakQueue = struct
-  type 'a t = { m : Mutex.t; a : 'a Weak.t Atomic.t }
+  (* Backing store: a weak array with a fill-mark [size].
+     Slots 0..size-1 may be Some or None (dead weak refs); slots size.. are
+     unused.  This lets push be O(1) in the fast path — we just write into the
+     next free slot without touching the rest of the array.  When the array is
+     full (size = capacity) we compact live entries and grow geometrically only
+     when every slot is truly occupied. *)
+  type 'a store = { arr : 'a Weak.t; size : int }
+  type 'a t = { state : Mutex_utils.state; s : 'a store Atomic.t }
 
-  let create () = { m = Mutex.create (); a = Atomic.make (Weak.create 0) }
-  let mutate q fn = Mutex_utils.mutexify q.m fn q
-  let get q fn = fn (Atomic.get q.a)
+  let create () =
+    {
+      state = Mutex_utils.mk_state ();
+      s = Atomic.make { arr = Weak.create 0; size = 0 };
+    }
 
-  let rec count_live arr len i acc =
-    if i >= len then acc
-    else count_live arr len (i + 1) (if Weak.check arr i then acc + 1 else acc)
+  let mutate q fn = Mutex_utils.mutable_lock ~state:q.state fn q
+  let get q fn = Mutex_utils.atomic_lock ~state:q.state fn (Atomic.get q.s)
 
-  let rec copy_live src dst len i j =
-    if i >= len then ()
+  let rec count_live arr size i acc =
+    if i >= size then acc
+    else count_live arr size (i + 1) (if Weak.check arr i then acc + 1 else acc)
+
+  (* Copy live entries from src[0..src_size-1] into dst starting at dst_i. *)
+  let rec copy_live src src_size dst src_i dst_i =
+    if src_i >= src_size then ()
     else (
-      match Weak.get src i with
-        | Some el ->
-            Weak.set dst j (Some el);
-            copy_live src dst len (i + 1) (j + 1)
-        | None -> copy_live src dst len (i + 1) j)
-
-  let compact_and_push arr v =
-    let len = Weak.length arr in
-    let live_count = count_live arr len 0 0 in
-    let new_arr = Weak.create (live_count + 1) in
-    if live_count = len then Weak.blit arr 0 new_arr 0 len
-    else copy_live arr new_arr len 0 0;
-    Weak.set new_arr live_count (Some v);
-    new_arr
+      match Weak.get src src_i with
+        | Some _ as v ->
+            Weak.set dst dst_i v;
+            copy_live src src_size dst (src_i + 1) (dst_i + 1)
+        | None -> copy_live src src_size dst (src_i + 1) dst_i)
 
   let push q v =
     mutate q (fun q ->
-        let arr = Atomic.get q.a in
-        let len = Weak.length arr in
-        let new_arr =
-          if (len + 1) mod 100 = 0 then compact_and_push arr v
-          else begin
-            let new_arr = Weak.create (len + 1) in
-            Weak.blit arr 0 new_arr 0 len;
-            Weak.set new_arr len (Some v);
-            new_arr
-          end
-        in
-        Atomic.set q.a new_arr)
+        let { arr; size } = Atomic.get q.s in
+        let capacity = Weak.length arr in
+        if size < capacity then begin
+          (* Fast path: next slot is free, write directly without any copy. *)
+          Weak.set arr size (Some v);
+          Atomic.set q.s { arr; size = size + 1 }
+        end
+        else begin
+          (* Slow path: array is full — compact live entries into a new array,
+             growing geometrically only when all slots are occupied. *)
+          let live_count = count_live arr size 0 0 in
+          let new_capacity =
+            if live_count + 1 <= capacity then capacity else max 1 (capacity * 2)
+          in
+          let new_arr = Weak.create new_capacity in
+          copy_live arr size new_arr 0 0;
+          Weak.set new_arr live_count (Some v);
+          Atomic.set q.s { arr = new_arr; size = live_count + 1 }
+        end)
 
-  let rec find_fn fn arr len i =
-    if i >= len then false
+  let rec find_fn fn arr size i =
+    if i >= size then false
     else (
       match Weak.get arr i with
         | Some el when fn el -> true
-        | _ -> find_fn fn arr len (i + 1))
+        | _ -> find_fn fn arr size (i + 1))
 
-  let exists q fn = get q (fun arr -> find_fn fn arr (Weak.length arr) 0)
-  let length q = get q (fun arr -> count_live arr (Weak.length arr) 0 0)
+  let exists q fn = get q (fun { arr; size } -> find_fn fn arr size 0)
+  let length q = get q (fun { arr; size } -> count_live arr size 0 0)
 
-  let rec iter_fn fn arr len i =
-    if i >= len then ()
+  let rec iter_fn fn arr size i =
+    if i >= size then ()
     else (
       (match Weak.get arr i with Some el -> fn el | None -> ());
-      iter_fn fn arr len (i + 1))
+      iter_fn fn arr size (i + 1))
 
-  let iter q fn = get q (fun arr -> iter_fn fn arr (Weak.length arr) 0)
+  let iter q fn = get q (fun { arr; size } -> iter_fn fn arr size 0)
 
-  let rec fold_fn fn arr len i acc =
-    if i >= len then acc
+  let rec fold_fn fn arr size i acc =
+    if i >= size then acc
     else
-      fold_fn fn arr len (i + 1)
+      fold_fn fn arr size (i + 1)
         (match Weak.get arr i with Some el -> fn el acc | None -> acc)
 
-  let fold q fn v = get q (fun arr -> fold_fn fn arr (Weak.length arr) 0 v)
+  let fold q fn v = get q (fun { arr; size } -> fold_fn fn arr size 0 v)
 
-  let rec get_elements arr len i acc =
-    if i >= len then List.rev acc
+  let rec get_elements arr size i acc =
+    if i >= size then List.rev acc
     else
-      get_elements arr len (i + 1)
+      get_elements arr size (i + 1)
         (match Weak.get arr i with Some el -> el :: acc | None -> acc)
 
-  let elements q = get q (fun arr -> get_elements arr (Weak.length arr) 0 [])
+  let elements q = get q (fun { arr; size } -> get_elements arr size 0 [])
 
-  let rec flush_elements_fn arr len i acc =
-    if i >= len then List.rev acc
+  let rec flush_elements_fn arr size i acc =
+    if i >= size then List.rev acc
     else
-      flush_elements_fn arr len (i + 1)
+      flush_elements_fn arr size (i + 1)
         (match Weak.get arr i with Some el -> el :: acc | None -> acc)
 
   let flush_elements q =
-    let arr = mutate q (fun q -> Atomic.exchange q.a (Weak.create 0)) in
-    flush_elements_fn arr (Weak.length arr) 0 []
+    let { arr; size } =
+      mutate q (fun q -> Atomic.exchange q.s { arr = Weak.create 0; size = 0 })
+    in
+    flush_elements_fn arr size 0 []
 
-  let rec flush_iter_fn fn arr len i =
-    if i >= len then ()
+  let rec flush_iter_fn fn arr size i =
+    if i >= size then ()
     else (
       (match Weak.get arr i with Some el -> fn el | None -> ());
-      flush_iter_fn fn arr len (i + 1))
+      flush_iter_fn fn arr size (i + 1))
 
   let flush_iter q fn =
-    let arr = mutate q (fun q -> Atomic.exchange q.a (Weak.create 0)) in
-    flush_iter_fn fn arr (Weak.length arr) 0
+    let { arr; size } =
+      mutate q (fun q -> Atomic.exchange q.s { arr = Weak.create 0; size = 0 })
+    in
+    flush_iter_fn fn arr size 0
 
-  let rec filter_fn fn arr len i =
-    if i >= len then ()
+  let rec filter_fn fn arr size i =
+    if i >= size then ()
     else (
       (match Weak.get arr i with
         | Some el when not (fn el) -> Weak.set arr i None
         | _ -> ());
-      filter_fn fn arr len (i + 1))
+      filter_fn fn arr size (i + 1))
 
   let filter q fn =
     mutate q (fun q ->
-        let arr = Atomic.get q.a in
-        filter_fn fn arr (Weak.length arr) 0)
+        let { arr; size } = Atomic.get q.s in
+        filter_fn fn arr size 0)
 
   let filter_out q fn = filter q (fun el -> not (fn el))
 end
