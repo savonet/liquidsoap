@@ -21,7 +21,12 @@
  *****************************************************************************)
 
 type 'a chunk = { data : 'a; offset : int; length : int option }
-type ('a, 'b) chunks = { params : 'a; mutable chunks : 'b chunk list }
+
+type ('a, 'b) chunks = {
+  params : 'a;
+  mutable chunks : 'b chunk list;
+  mutable total_length : int;
+}
 
 module Contents = struct
   type format_content
@@ -244,52 +249,62 @@ module MkContentBase (C : ContentSpecs) :
           let len = C.length data in
           if len = max_int then max_int else len - offset
 
-  let length { chunks } =
-    match chunks with
-      | [] -> 0
-      | [chunk] -> chunk_length chunk
-      | _ ->
-          List.fold_left
-            (fun cur chunk ->
-              let n = chunk_length chunk in
-              if cur = max_int || n = max_int then max_int else cur + n)
-            0 chunks
-
-  let is_empty d = length d = 0
+  let length { total_length; _ } = total_length
+  let is_empty { total_length; _ } = total_length = 0
 
   let sub data ofs len =
-    let start = ofs in
-    let stop = start + len in
-    let data_length = length data in
-    if data_length < start || data_length < stop then
+    let stop = ofs + len in
+    if data.total_length < ofs || data.total_length < stop then
       raise (Invalid_argument "Content.sub");
-    {
-      data with
-      chunks =
-        List.rev
-          (snd
-             (List.fold_left
-                (fun (pos, cur) ({ data; offset } as chunk) ->
-                  let length = chunk_length chunk in
-                  let cur =
-                    (* This is essentially a segment overlap calculation. *)
-                    let start = Int.max 0 (start - pos) in
-                    let stop = Int.min length (stop - pos) in
-                    if start < stop then (
-                      let offset = offset + start in
-                      let length = Some (stop - start) in
-                      { data; offset; length } :: cur)
-                    else cur
-                  in
-                  (pos + length, cur))
-                (0, []) data.chunks));
-    }
+    match data.chunks with
+      | [({ offset; _ } as chunk)] ->
+          let chunk_len = chunk_length chunk in
+          let new_stop = Int.min chunk_len stop in
+          {
+            data with
+            chunks =
+              (if ofs < new_stop then
+                 [
+                   {
+                     chunk with
+                     offset = offset + ofs;
+                     length = Some (new_stop - ofs);
+                   };
+                 ]
+               else []);
+            total_length = len;
+          }
+      | _ ->
+          {
+            data with
+            chunks =
+              List.rev
+                (snd
+                   (List.fold_left
+                      (fun (pos, cur) ({ data; offset } as chunk) ->
+                        let length = chunk_length chunk in
+                        let cur =
+                          let start = Int.max 0 (ofs - pos) in
+                          let stop = Int.min length (stop - pos) in
+                          if start < stop then
+                            {
+                              data;
+                              offset = offset + start;
+                              length = Some (stop - start);
+                            }
+                            :: cur
+                          else cur
+                        in
+                        (pos + length, cur))
+                      (0, []) data.chunks));
+            total_length = len;
+          }
 
   let truncate data len =
-    assert (len <= length data);
+    assert (len <= data.total_length);
     let rec f len = function
       | chunks when len = 0 -> chunks
-      | chunk :: chunks when chunk_length chunk < len ->
+      | chunk :: chunks when chunk_length chunk <= len ->
           f (len - chunk_length chunk) chunks
       | { data; offset; length } :: chunks ->
           {
@@ -300,12 +315,22 @@ module MkContentBase (C : ContentSpecs) :
           :: chunks
       | [] -> raise Invalid
     in
-    { data with chunks = f len data.chunks }
+    {
+      data with
+      chunks = f len data.chunks;
+      total_length =
+        (if data.total_length = max_int then max_int
+         else data.total_length - len);
+    }
 
   let append d d' =
     let d = of_content d in
     let d' = of_content d' in
-    to_content { d with chunks = d.chunks @ d'.chunks }
+    let total_length =
+      if d.total_length = max_int || d'.total_length = max_int then max_int
+      else d.total_length + d'.total_length
+    in
+    to_content { d with chunks = d.chunks @ d'.chunks; total_length }
 
   let consolidate_chunks =
     let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
@@ -314,7 +339,7 @@ module MkContentBase (C : ContentSpecs) :
       pos + length
     in
     fun ~copy d ->
-      match (length d, d.chunks) with
+      match (d.total_length, d.chunks) with
         | 0, _ ->
             d.chunks <- [];
             { d with chunks = [] }
@@ -337,7 +362,8 @@ module MkContentBase (C : ContentSpecs) :
   let copy = consolidate_chunks ~copy:true
 
   let make ?length params =
-    { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
+    let chunk = { data = C.make ?length params; offset = 0; length } in
+    { params; chunks = [chunk]; total_length = chunk_length chunk }
 
   let deref : Contents.format_content Unifier.t -> params =
    fun p -> Obj.magic (Unifier.deref p)
@@ -460,7 +486,13 @@ module MkContentBase (C : ContentSpecs) :
             let l = C.length d in
             if l = max_int then None else Some (l - offset)
     in
-    to_content { params = C.params d; chunks = [{ offset; length; data = d }] }
+    let chunk = { offset; length; data = d } in
+    to_content
+      {
+        params = C.params d;
+        chunks = [chunk];
+        total_length = chunk_length chunk;
+      }
 
   let get_data d =
     let d = of_content d in
