@@ -3,6 +3,16 @@ name: Backport
 on:
   pull_request_target:
     types: [closed, labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to backport"
+        required: true
+        type: number
+      target_branch:
+        description: "Target branch (e.g. rolling)"
+        required: true
+        type: string
 
 jobs:
   notify:
@@ -10,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Comment on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const label = context.payload.label.name;
@@ -23,9 +33,57 @@ jobs:
             });
 
   backport:
-    if: github.event.action == 'closed' && github.event.pull_request.merged == true && contains(toJSON(github.event.pull_request.labels.*.name), 'backport ')
+    if: github.event_name == 'workflow_dispatch' || (github.event.action == 'closed' && github.event.pull_request.merged == true && contains(toJSON(github.event.pull_request.labels.*.name), 'backport '))
     runs-on: ubuntu-latest
     steps:
-      - uses: tibdex/backport@v2
+      - name: Get copy of source for merge purposes
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          path: .liq-cache
+      - name: Install dune
+        run: sudo apt-get install -y ocaml-nox ocaml-dune
+      - name: Configure dune.inc merge driver
+        run: |
+          git config --global merge.gendune.name "Regenerate dune.inc via gendune"
+          git config --global merge.gendune.driver ".liq-cache/.scripts/merge-dune-inc.sh %O %A %B %L %P"
+      - uses: tibdex/backport@9565281eda0731b1d20c4025c43339fb0a23812e # v2.0.4
+        with:
+          github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          pull_request_number: ${{ inputs.pr_number }}
+          target_branches: ${{ inputs.target_branch }}
+      - name: Enable auto-merge on backport PRs
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          script: |
+            const isManual = context.eventName === 'workflow_dispatch';
+            const prNumber = isManual
+              ? parseInt(context.payload.inputs.pr_number)
+              : context.payload.pull_request.number;
+            const targetBranches = isManual
+              ? [context.payload.inputs.target_branch]
+              : context.payload.pull_request.labels
+                  .filter(l => l.name.startsWith('backport '))
+                  .map(l => l.name.replace('backport ', ''));
+            for (const targetBranch of targetBranches) {
+              const headBranch = `backport-${prNumber}-to-${targetBranch}`;
+              const { data: prs } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                head: `${context.repo.owner}:${headBranch}`
+              });
+              if (prs.length === 0) {
+                console.log(`No open PR found for branch ${headBranch}, skipping.`);
+                continue;
+              }
+              const backportPr = prs[0];
+              await github.graphql(`
+                mutation EnableAutoMerge($prId: ID!) {
+                  enablePullRequestAutoMerge(input: {pullRequestId: $prId}) {
+                    pullRequest { autoMergeRequest { enabledAt } }
+                  }
+                }
+              `, { prId: backportPr.node_id });
+              console.log(`Enabled auto-merge for PR #${backportPr.number} (${headBranch})`);
+            }

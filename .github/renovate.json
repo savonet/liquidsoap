@@ -1,10 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:best-practices",
-    "helpers:pinGitHubActionDigestsToSemver",
-    ":automergeMinor"
-  ],
+  "extends": ["config:best-practices", ":automergeMinor"],
   "packageRules": [
     {
       "matchDepNames": [

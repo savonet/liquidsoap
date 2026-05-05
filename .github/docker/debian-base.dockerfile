@@ -20,8 +20,8 @@ RUN if [ "$OS" = "debian" ]; then \
       echo "deb http://deb.$OS.org/$OS $DISTRIBUTION non-free" >> /etc/apt/sources.list; \
     fi
 
-# We need an up-to date ffmpeg on bookworm
-RUN if [ "$DISTRIBUTION" = "forky" -o "$DISTRIBUTION" = "bookworm" ]; then \
+# We need an up-to date ffmpeg on all debian distributions
+RUN if [ "$OS" = "debian" ]; then \
       apt-get update && apt install -y ca-certificates && \
       echo "deb https://www.deb-multimedia.org $DISTRIBUTION main non-free" >> /etc/apt/sources.list && \
       apt-get update -oAcquire::AllowInsecureRepositories=true && \
@@ -31,12 +31,14 @@ RUN if [ "$DISTRIBUTION" = "forky" -o "$DISTRIBUTION" = "bookworm" ]; then \
 RUN \
     apt-get update && \
     apt-get install -y --no-install-recommends aspcud autoconf automake rsync \
-            build-essential ca-certificates curl debhelper devscripts sudo opam \
+            build-essential ca-certificates curl debhelper devscripts sudo \
             ffmpeg pandoc fakeroot git openssh-client unzip gnupg dirmngr apt-transport-https && \
     apt-get -y autoclean && \
     apt-get -y clean
 
-RUN adduser opam
+RUN printf "\ny\n" | bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
+
+RUN useradd -m opam
 
 USER opam
 

@@ -3,6 +3,13 @@ description: Document issues or problems encountered in the software to facilita
 labels:
   - bug
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report your issue! Please fill out every section below — every piece of information helps us understand and reproduce your problem.
+
+        > [!IMPORTANT]
+        > Reports without logs and a script extract cannot be investigated until those are provided. Please **set the log level to `4`** (`log.level := 4` at the top of your script) before capturing your logs.
   - type: textarea
     id: description
     attributes:
@@ -29,9 +36,9 @@ body:
     attributes:
       label: Log extracts
       description: |
-        Please provide extracts from your logs. Make sure to set `log.level := 4`.
+        Please provide extracts from your logs. Make sure to set `log.level := 4` at the top of your script before capturing them.
       placeholder: |
-        If unavailable just write N/A.
+        Paste your log output here. If logs are truly not applicable to your issue, explain why.
     validations:
       required: true
   - type: textarea
@@ -183,6 +190,26 @@ body:
       default: 0
     validations:
       required: true
+  - type: textarea
+    id: ffmpeg-cli
+    attributes:
+      label: FFmpeg CLI reproduction (if applicable)
+      description: |
+        If this issue is related to an FFmpeg feature (encoding, decoding, filters, etc.),
+        have you tried reproducing it with the `ffmpeg` CLI directly? If so, please provide
+        the command line you used and its output.
+      placeholder: |
+        If not applicable, just write N/A.
+
+        Filter example:
+          Liquidsoap: ffmpeg.filter.audio(s, filter="equalizer=f=1000:width_type=o:width=2:g=-6")
+          FFmpeg CLI: ffmpeg -i input.wav -af "equalizer=f=1000:width_type=o:width=2:g=-6" output.wav
+
+        Encoder example:
+          Liquidsoap: output.file(%ffmpeg(%audio(codec="aac"), %video(codec="libx264")), "output.mp4", s)
+          FFmpeg CLI: ffmpeg -i input.mp4 -c:a aac -c:v libx264 output.mp4
+    validations:
+      required: false
   - type: textarea
     id: additional
     attributes:

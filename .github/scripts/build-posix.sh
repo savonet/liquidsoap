@@ -41,6 +41,10 @@ echo "::group::Setting up specific dependencies"
 
 opam update
 opam pin -y add re 1.13.2
+# tsdl-ttf 0.7 regressed the Linux dlopen path back to the unversioned
+# libSDL2_ttf.so, which is only in the dev package on Alpine. Pin to 0.6
+# until https://github.com/sanette/tsdl-ttf/issues/14 is resolved.
+opam pin -y add tsdl-ttf 0.6
 opam upgrade -y posix-socket
 opam install -y domain_shims syslog
 

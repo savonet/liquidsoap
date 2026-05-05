@@ -32,10 +32,10 @@ RUN --mount=type=bind,from=downloader,source=/downloads,target=/downloads \
         /downloads/deb-multimedia-keyring.deb \
         ca-certificates \
       ; \
-      cat <<EOF > /etc/apt/sources.list.d/dmo.sources
+      cat > /etc/apt/sources.list.d/dmo.sources <<EOF
 Types: deb
 URIs: https://www.deb-multimedia.org
-Suites: trixie
+Suites: $(. /etc/os-release && echo $VERSION_CODENAME)
 Components: main non-free
 Signed-By: /usr/share/keyrings/deb-multimedia-keyring.pgp
 Enabled: yes

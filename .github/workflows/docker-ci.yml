@@ -2,65 +2,111 @@ name: Build CI Docker Images
 
 on:
   workflow_dispatch:
+    inputs:
+      build_debian:
+        description: "Build Debian/Ubuntu CI images"
+        required: false
+        default: true
+        type: boolean
+      build_alpine:
+        description: "Build Alpine CI images"
+        required: false
+        default: true
+        type: boolean
+      debian_base_images:
+        description: "Debian/Ubuntu base images (JSON array)"
+        required: false
+        default: '["debian:forky","debian:trixie","ubuntu:resolute","ubuntu:plucky","ubuntu:noble"]'
+        type: string
+      debian_ocaml_versions:
+        description: "OCaml versions for Debian/Ubuntu (JSON array)"
+        required: false
+        default: '["4.14.2","5.4.0"]'
+        type: string
+      alpine_ocaml_versions:
+        description: "OCaml versions for Alpine (JSON array)"
+        required: false
+        default: '["4.14.2","5.4.0"]'
+        type: string
 
 jobs:
   build-debian-ci:
-    runs-on: depot-ubuntu-24.04-4
+    if: ${{ inputs.build_debian }}
+    runs-on: depot-ubuntu-24.04-32
     strategy:
       fail-fast: false
       matrix:
-        base_image:
-          [debian:forky, debian:trixie, ubuntu:resolute, ubuntu:plucky]
-        ocaml_version: ["4.14.2", "5.4.0"]
+        # 2.5.x targets: debian:trixie/forky, ubuntu:resolute/plucky
+        # 2.4.x targets: debian:trixie/forky, ubuntu:noble/plucky
+        base_image: ${{ fromJSON(inputs.debian_base_images) }}
+        ocaml_version: ${{ fromJSON(inputs.debian_ocaml_versions) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
+      - name: Compute build args
+        id: build_args
         env:
           BASE_IMAGE: ${{ matrix.base_image }}
           OCAML_VERSION: ${{ matrix.ocaml_version }}
         run: |
           TAG=$(echo ${BASE_IMAGE} | sed -e 's#/#_#g' -e 's#:#_#g')
-          BUILD_IMAGE=ghcr.io/savonet/liquidsoap:ci-${TAG}-${OCAML_VERSION}
-          OS=$(echo ${BASE_IMAGE} | cut -d':' -f 1)
+          echo "tag=ghcr.io/savonet/liquidsoap:ci-${TAG}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "os=$(echo ${BASE_IMAGE} | cut -d':' -f 1)" >> "${GITHUB_OUTPUT}"
+          echo "distribution=$(echo ${BASE_IMAGE} | cut -d':' -f 2)" >> "${GITHUB_OUTPUT}"
           DISTRIBUTION=$(echo ${BASE_IMAGE} | cut -d':' -f 2)
           if [ "${DISTRIBUTION}" = "focal" ]; then
-            EXTRA_PACKAGES="conf-srt.1"
+            echo "extra_packages=conf-srt.1" >> "${GITHUB_OUTPUT}"
           else
-            EXTRA_PACKAGES="conf-srt-gnutls"
+            echo "extra_packages=conf-srt-gnutls" >> "${GITHUB_OUTPUT}"
           fi
-          depot build -t ${BUILD_IMAGE} --platform linux/amd64,linux/arm64 --push \
-            --build-arg OCAML_VERSION \
-            --build-arg EXTRA_PACKAGES \
-            --build-arg BASE_IMAGE \
-            --build-arg OS \
-            --build-arg DISTRIBUTION \
-            -f .github/docker/debian-base.dockerfile .
+      - name: Build and push
+        uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
+        with:
+          token: ${{ secrets.DEPOT_TOKEN }}
+          build-args: |
+            OCAML_VERSION=${{ matrix.ocaml_version }}
+            EXTRA_PACKAGES=${{ steps.build_args.outputs.extra_packages }}
+            BASE_IMAGE=${{ matrix.base_image }}
+            OS=${{ steps.build_args.outputs.os }}
+            DISTRIBUTION=${{ steps.build_args.outputs.distribution }}
+          context: .
+          file: .github/docker/debian-base.dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.build_args.outputs.tag }}
+          push: true
+          provenance: false
+          sbom: false
 
   build-alpine-ci:
-    runs-on: depot-ubuntu-24.04-4
+    if: ${{ inputs.build_alpine }}
+    runs-on: depot-ubuntu-24.04-32
     strategy:
       fail-fast: false
       matrix:
-        ocaml_version: ["4.14.2", "5.4.0"]
+        ocaml_version: ${{ fromJSON(inputs.alpine_ocaml_versions) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push
-        env:
-          OCAML_VERSION: ${{ matrix.ocaml_version }}
-        run: |
-          BUILD_IMAGE=ghcr.io/savonet/liquidsoap:ci-alpine-${OCAML_VERSION}
-          depot build -t ${BUILD_IMAGE} --platform linux/amd64,linux/arm64 --push \
-            --build-arg OCAML_VERSION \
-            -f .github/docker/alpine-base.dockerfile .
+        uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
+        with:
+          token: ${{ secrets.DEPOT_TOKEN }}
+          build-args: |
+            OCAML_VERSION=${{ matrix.ocaml_version }}
+          context: .
+          file: .github/docker/alpine-base.dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/savonet/liquidsoap:ci-alpine-${{ matrix.ocaml_version }}
+          push: true
+          provenance: false
+          sbom: false

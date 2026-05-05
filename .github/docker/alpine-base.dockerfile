@@ -15,7 +15,7 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/reposi
       aspcud autoconf automake bash build-base curl git \
       openssh-client openssl unzip gnupg sudo musl-dbg rsync
 
-RUN printf "\ny\n" |  bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
+RUN printf "\ny\n" | bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
 
 RUN adduser -D opam
 

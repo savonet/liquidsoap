@@ -9,6 +9,9 @@ on:
       branch:
         required: true
         type: string
+      is_fork:
+        required: true
+        type: string
       publish_docker_image:
         required: true
         type: string
@@ -36,7 +39,8 @@ on:
         required: true
 
 jobs:
-  build_docker:
+  actual_build:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -48,7 +52,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Download all artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
       - name: Get debian package
@@ -60,7 +64,7 @@ jobs:
           echo "deb-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -80,7 +84,8 @@ jobs:
           provenance: false
           sbom: false
 
-  build_docker_alpine:
+  actual_build_docker_alpine:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -94,7 +99,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Download all artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
       - name: Get alpine package
@@ -102,7 +107,7 @@ jobs:
           echo "apk-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -122,6 +127,7 @@ jobs:
           sbom: false
 
   build_docker_minimal:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -133,7 +139,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Download all artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
       - name: Get debian package
@@ -145,7 +151,7 @@ jobs:
           echo "deb-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -166,6 +172,7 @@ jobs:
           sbom: false
 
   build_docker_alpine_minimal:
+    if: inputs.is_fork != 'true'
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -179,7 +186,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Download all artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
       - name: Get alpine package
@@ -187,7 +194,7 @@ jobs:
           echo "apk-file=$(find artifacts/${{ inputs.sha }} -type f | grep minimal | grep ${{ matrix.ocaml_version }} | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -208,13 +215,13 @@ jobs:
 
   build_docker_release:
     runs-on: depot-ubuntu-24.04-4
-    needs: [build_docker, build_docker_alpine]
+    needs: [actual_build, actual_build_docker_alpine]
     if: inputs.docker_release == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       - name: Push consolidated manifest
         env:
           TAG: ${{ inputs.branch }}
@@ -234,7 +241,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       - name: Push consolidated manifest
         env:
           TAG: ${{ inputs.branch }}-minimal
@@ -245,3 +252,31 @@ jobs:
           GITHUB_SHA: ${{ inputs.sha }}
           OCAML_DOCKER_RELEASE_VERSION: ocaml${{ inputs.ocaml_docker_release_version }}
         run: .github/scripts/push-docker.sh
+
+  build_docker:
+    runs-on: depot-ubuntu-24.04-4
+    needs: actual_build
+    if: always()
+    steps:
+      - name: Check build result
+        run: |
+          if [[ "${{ inputs.is_fork }}" == "true" ]]; then
+            echo "Fork PR, skipping build_docker requirement"
+          elif [[ "${{ needs.actual_build.result }}" != "success" ]]; then
+            echo "build_docker failed or was cancelled"
+            exit 1
+          fi
+
+  build_docker_alpine:
+    runs-on: depot-ubuntu-24.04-4
+    needs: actual_build_docker_alpine
+    if: always()
+    steps:
+      - name: Check build result
+        run: |
+          if [[ "${{ inputs.is_fork }}" == "true" ]]; then
+            echo "Fork PR, skipping build_docker_alpine requirement"
+          elif [[ "${{ needs.actual_build_docker_alpine.result }}" != "success" ]]; then
+            echo "build_docker_alpine failed or was cancelled"
+            exit 1
+          fi
