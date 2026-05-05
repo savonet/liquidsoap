@@ -59,6 +59,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       self#log#info "Switching to source %s" s#id;
       let a = match activation with None -> self#prepare s | Some a -> a in
       Atomic.set current_source (Some (a, s));
+      self#notify_sync_source (snd self#self_sync);
       if s#is_ready then Some s else self#no_source (Some s#id)
 
     method private exchange ~activation s =

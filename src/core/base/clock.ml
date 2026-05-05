@@ -104,6 +104,7 @@ module Unifier = Liquidsoap_lang.Unifier
 type active_params = {
   sync : active_sync_mode;
   mutable is_self_sync : bool;
+  mutable sync_source_entries : sync_source_entry list;
   log : Log.t;
   time_implementation : Liq_time.implementation;
   t0 : Liq_time.t;
@@ -398,39 +399,40 @@ let () =
 let _animated_sources { outputs; active_sources } =
   List.map snd (Queue.elements outputs) @ WeakQueue.elements active_sources
 
-let _self_sync ~clock x =
-  let self_sync_sources =
-    List.fold_left
-      (fun self_sync_sources s ->
-        match s#self_sync with
-          | _, None -> self_sync_sources
-          | _, Some sync_source ->
-              { sync_source; name = s#id; stack = s#stack } :: self_sync_sources)
-      [] (_animated_sources x)
+let _update_clock_sync_source ~clock x ~name ~stack new_sync =
+  let entries =
+    List.filter
+      (fun (e : sync_source_entry) -> e.name <> name)
+      x.sync_source_entries
   in
-  let self_sync_sources =
+  let entries =
+    match new_sync with
+      | None -> entries
+      | Some sync_source -> { sync_source; name; stack } :: entries
+  in
+  let deduped =
     List.sort_uniq
-      (fun { sync_source = s } { sync_source = s' } -> Stdlib.compare s s')
-      self_sync_sources
+      (fun { sync_source = a } { sync_source = b } -> Stdlib.compare a b)
+      entries
   in
-  if List.length self_sync_sources > 1 then
+  if List.length deduped > 1 then
     raise
       (Sync_error
          {
            name = Printf.sprintf "clock %s" (_id clock);
            stack = Atomic.get clock.stack;
-           sync_sources = self_sync_sources;
+           sync_sources = deduped;
          });
-  let is_self_sync = List.length self_sync_sources = 1 in
+  let is_self_sync = List.length deduped = 1 in
   if x.is_self_sync <> is_self_sync && x.sync = `Automatic then (
     x.log#important "Switching to %sself-sync mode%s"
       (if is_self_sync then "" else "non ")
       (if is_self_sync then
          Printf.sprintf " with sync source: %s"
-           (string_of_sync_source (List.hd self_sync_sources).sync_source)
+           (string_of_sync_source (List.hd deduped).sync_source)
        else "");
     x.is_self_sync <- is_self_sync);
-  is_self_sync
+  x.sync_source_entries <- entries
 
 let ticks c =
   match Atomic.get (Unifier.deref c).state with
@@ -544,15 +546,26 @@ let rec active_params c =
         log#critical "Clock %s has invalid state: %s" (id c) (string_of_state s);
         raise Invalid_state
 
+and _register_clock_callback ~clock x s =
+  let name = s#id and stack = s#stack in
+  let _ : unit -> unit =
+    s#on_sync_source_change (fun ~old:_ new_sync_source ->
+        _update_clock_sync_source ~clock x ~name ~stack new_sync_source)
+  in
+  _update_clock_sync_source ~clock x ~name ~stack s#source_state
+
 and _activate_pending_sources ~clock x =
   let pending_sources = Queue.length clock.pending_activations in
   Queue.flush_iter clock.pending_activations
     (wrap_errors clock (fun s ->
          match s#source_type with
-           | `Active _ -> WeakQueue.push x.active_sources s
+           | `Active _ ->
+               WeakQueue.push x.active_sources s;
+               _register_clock_callback ~clock x s
            | `Output _ ->
                let a = s#wake_up (s :> source) in
-               Queue.push x.outputs (a, s)
+               Queue.push x.outputs (a, s);
+               _register_clock_callback ~clock x s
            | `Passive -> WeakQueue.push x.passive_sources s));
   if 0 < pending_sources then (
     let total_sources =
@@ -585,7 +598,6 @@ and _tick ~clock x =
   Queue.flush_iter x.on_tick (fun fn ->
       check_stopped ();
       fn ());
-  let self_sync = _self_sync ~clock x in
   check_stopped ();
   List.iter
     (fun (c, old_ticks, clock) ->
@@ -593,7 +605,7 @@ and _tick ~clock x =
     sub_clocks;
   Atomic.incr x.ticks;
   check_stopped ();
-  _after_tick ~self_sync x;
+  _after_tick ~self_sync:x.is_self_sync x;
   check_stopped ()
 
 and _clock_thread ~clock ~c x =
@@ -697,6 +709,7 @@ and _start ?force ~sync ~c clock =
     {
       frame_duration;
       is_self_sync = false;
+      sync_source_entries = [];
       log_delay;
       log_delay_threshold;
       max_latency;
@@ -814,7 +827,7 @@ let after_eval () = if not (Atomic.get global_stop) then start_pending ()
 let self_sync c =
   let clock = Unifier.deref c in
   match Atomic.get clock.state with
-    | `Started params -> _self_sync ~clock params
+    | `Started params -> params.is_self_sync
     | _ -> false
 
 let activate_pending_sources clock =
