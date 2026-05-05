@@ -206,6 +206,37 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method source_sync self_sync =
       if self_sync then Some self#self_sync_source else None
 
+    val mutable source_state : Clock.sync_source option = None
+    method source_state = source_state
+
+    val state_callbacks
+        : (int
+          * (old:Clock.sync_source option -> Clock.sync_source option -> unit))
+          Queue.t =
+      Queue.create ()
+
+    val callback_id_counter = Atomic.make 0
+
+    method on_sync_source_change fn =
+      let id = Atomic.fetch_and_add callback_id_counter 1 in
+      Queue.push state_callbacks (id, fn);
+      fun () -> Queue.filter_out state_callbacks (fun (i, _) -> i = id)
+
+    method private notify_sync_source new_state =
+      if new_state <> source_state then (
+        let old = source_state in
+        source_state <- new_state;
+        Queue.iter state_callbacks (fun (_, fn) -> fn ~old new_state))
+
+    method private on_child_state_change ~child:_ ~old:_ _ =
+      self#notify_sync_source (snd self#self_sync)
+
+    initializer
+      self#on_before_streaming_cycle (fun () ->
+          let sync_source = snd self#self_sync in
+          if sync_source <> source_state then
+            self#notify_sync_source sync_source)
+
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
        have (e.g. {audio : pcm}). *)
@@ -383,6 +414,22 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                 (None, s))
               sources;
           self#iter_watchers (fun w -> w.sleep ()))
+
+    val mutable child_state_deregisters : (unit -> unit) list = []
+
+    initializer
+      self#on_wake_up (fun () ->
+          self#notify_sync_source (snd self#self_sync);
+          child_state_deregisters <-
+            List.map
+              (fun (_, s) ->
+                s#on_sync_source_change (fun ~old new_state ->
+                    self#on_child_state_change ~child:s ~old new_state))
+              sources);
+      self#on_sleep (fun () ->
+          List.iter (fun d -> d ()) child_state_deregisters;
+          child_state_deregisters <- [];
+          self#notify_sync_source None)
 
     (** Streaming *)
 

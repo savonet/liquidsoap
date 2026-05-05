@@ -135,7 +135,10 @@ type source =
   ; wake_up : source -> activation
   ; sleep : activation -> unit
   ; is_ready : bool
-  ; get_frame : Frame.t >
+  ; get_frame : Frame.t
+  ; source_state : sync_source option
+  ; on_sync_source_change :
+      (old:sync_source option -> sync_source option -> unit) -> unit -> unit >
 
 let self_sync_type sources =
   Lazy.from_fun (fun () ->
