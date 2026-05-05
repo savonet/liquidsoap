@@ -365,13 +365,21 @@ module MkContentBase (C : ContentSpecs) :
       if d.total_length = max_int || d'.total_length = max_int then max_int
       else d.total_length + d'.total_length
     in
-    to_content { d with chunks = d.chunks @ d'.chunks; total_length }
+    let chunks =
+      match (d.chunks, d'.chunks) with
+        | chunks, [] -> chunks
+        | [], chunks -> chunks
+        | [c], [c'] -> [c; c']
+        | _ -> d.chunks @ d'.chunks
+    in
+    to_content { d with chunks; total_length }
 
   let consolidate_chunks =
-    let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
-      let length = chunk_length chunk in
-      if length > 0 then C.blit data offset buf pos length;
-      pos + length
+    let rec blit buf pos = function
+      | [] -> ()
+      | { data; offset; length } :: rest ->
+          if length > 0 then C.blit data offset buf pos length;
+          blit buf (pos + length) rest
     in
     fun ~copy d ->
       match (d.total_length, d.chunks) with
@@ -384,7 +392,7 @@ module MkContentBase (C : ContentSpecs) :
             d
         | length, _ ->
             let buf = C.make ~length d.params in
-            ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
+            blit buf 0 d.chunks;
             if copy then
               { d with chunks = [{ offset = 0; length; data = buf }] }
             else (
@@ -395,7 +403,9 @@ module MkContentBase (C : ContentSpecs) :
 
   let make ?length params =
     let data = C.make ?length params in
-    let stored_length = Option.value ~default:(C.length data) length in
+    let stored_length =
+      match length with Some l -> l | None -> C.length data
+    in
     let chunk = { data; offset = 0; length = stored_length } in
     { params; chunks = [chunk]; total_length = stored_length }
 
