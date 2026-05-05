@@ -25,9 +25,10 @@ type ('a, 'b) chunks = { params : 'a; mutable chunks : 'b chunk list }
 
 module Contents = struct
   type format_content
-  type format = string * format_content Unifier.t
   type kind_content
-  type kind = string * kind_content
+  type 'a entry = { id : int; name : string; content : 'a }
+  type format = format_content Unifier.t entry
+  type kind = kind_content entry
   type _type = int
   type content
   type data = _type * content
@@ -99,18 +100,14 @@ type kind_handler = {
   string_of_kind : unit -> string;
 }
 
-let kind_handlers = Queue.create ()
-let register_kind_handler fn = Queue.add fn kind_handlers
+let dummy_kind_handler_fn (_ : Contents.kind_content) : kind_handler =
+  raise Invalid
 
-exception Found_kind of kind_handler
+let kind_handler_fns : (Contents.kind_content -> kind_handler) array =
+  Array.make 16 dummy_kind_handler_fn
 
-let get_kind_handler f =
-  try
-    Queue.iter
-      (fun fn -> match fn f with Some h -> raise (Found_kind h) | None -> ())
-      kind_handlers;
-    raise Invalid
-  with Found_kind h -> h
+let get_kind_handler { Contents.id; content } =
+  (Array.unsafe_get kind_handler_fns id) content
 
 let kind_parsers = Queue.create ()
 
@@ -135,34 +132,24 @@ type format_handler = {
   duplicate : unit -> format;
 }
 
-let format_handlers = Queue.create ()
-let register_format_handler fn = Queue.add fn format_handlers
+let dummy_format_handler_fn (_ : Contents.format_content Unifier.t) :
+    format_handler =
+  raise Invalid
 
-exception Found_format of format_handler
+let format_handler_fns :
+    (Contents.format_content Unifier.t -> format_handler) array =
+  Array.make 16 dummy_format_handler_fn
 
-let get_format_handler p =
-  try
-    Queue.iter
-      (fun fn ->
-        match fn p with Some h -> raise (Found_format h) | None -> ())
-      format_handlers;
-    raise Invalid
-  with Found_format h -> h
+let get_format_handler { Contents.id; content } =
+  (Array.unsafe_get format_handler_fns id) content
 
-let format_parsers = Queue.create ()
+let format_param_parsers : (string -> string -> Contents.format option) array =
+  Array.make 16 (fun _ _ -> None)
 
-exception Parsed_format of format
-
-let parse_param kind label value =
-  try
-    Queue.iter
-      (fun fn ->
-        match fn kind label value with
-          | Some p -> raise (Parsed_format p)
-          | None -> ())
-      format_parsers;
-    raise Invalid
-  with Parsed_format p -> p
+let parse_param { Contents.id } label value =
+  match (Array.unsafe_get format_param_parsers id) label value with
+    | Some p -> p
+    | None -> raise Invalid
 
 type data_handler = {
   sub : data -> int -> int -> data;
@@ -357,71 +344,83 @@ module MkContentBase (C : ContentSpecs) :
   let to_kind : Contents.kind_content -> kind = Obj.magic
 
   let merge p p' =
-    let p' = match p' with n, p' when n = C.name -> p' | _ -> raise Invalid in
+    let p' =
+      match p' with
+        | { Contents.id; content } when id = _type -> content
+        | _ -> raise Invalid
+    in
     let m = C.merge (deref p) (deref p') in
     Unifier.set p' (to_format_content m);
     Unifier.(p <-- p')
 
   let compatible p p' =
     match p' with
-      | n, p' when n = C.name -> C.compatible (deref p) (deref p')
+      | { Contents.id; content } when id = _type ->
+          C.compatible (deref p) (deref content)
       | _ -> false
 
-  let is_kind (n, _) = n = C.name
-  let lift_kind k : Contents.kind = (C.name, to_kind_content k)
+  let is_kind { Contents.id; _ } = id = _type
 
-  let get_kind = function
-    | n, k when n = C.name -> to_kind k
-    | _ -> raise Invalid
+  let lift_kind k : Contents.kind =
+    { Contents.id = _type; name = C.name; content = to_kind_content k }
 
-  let is_format (n, _) = n = C.name
+  let get_kind { Contents.id; content } =
+    if id = _type then to_kind content else raise Invalid
+
+  let is_format { Contents.id; _ } = id = _type
 
   let lift_params p : Contents.format =
-    (C.name, Unifier.make (to_format_content p))
+    {
+      Contents.id = _type;
+      name = C.name;
+      content = Unifier.make (to_format_content p);
+    }
 
-  let get_params = function
-    | n, p when n = C.name -> deref p
-    | _ -> raise Invalid
+  let get_params { Contents.id; content } =
+    if id = _type then deref content else raise Invalid
 
   let is_data = function t, _ -> t = _type
   let kind_of_string s = Option.map lift_kind (C.kind_of_string s)
 
-  let format_of_string kind label value =
-    match (kind : Contents.kind) with
-      | n, _ when n = C.name ->
-          Option.map lift_params (C.parse_param label value)
-      | _ -> None
-
   let () =
-    register_kind_handler (function
-      | n, k when n = C.name ->
-          let k = to_kind k in
-          Some
+    let kind_fn (k : Contents.kind_content) : kind_handler =
+      let k = to_kind k in
+      {
+        default_format = (fun () -> lift_params (C.default_params k));
+        string_of_kind = (fun () -> C.string_of_kind k);
+      }
+    in
+    if Array.length kind_handler_fns <= _type then
+      failwith "Please increase kind handler array length!";
+    Array.unsafe_set kind_handler_fns _type kind_fn;
+    let format_fn (p : Contents.format_content Unifier.t) : format_handler =
+      {
+        kind = (fun () -> lift_kind C.kind);
+        make = (fun length -> to_content (make ?length (deref p)));
+        merge = (fun p' -> merge p p');
+        duplicate =
+          (fun () ->
             {
-              default_format = (fun () -> lift_params (C.default_params k));
-              string_of_kind = (fun () -> C.string_of_kind k);
-            }
-      | _ -> None);
-    register_format_handler (function
-      | n, p when n = C.name ->
-          Some
-            {
-              kind = (fun () -> lift_kind C.kind);
-              make = (fun length -> to_content (make ?length (deref p)));
-              merge = (fun p' -> merge p p');
-              duplicate = (fun () -> (C.name, Unifier.(make (deref p))));
-              compatible = (fun p' -> compatible p p');
-              string_of_format =
-                (fun () ->
-                  let kind = C.string_of_kind C.kind in
-                  let params = C.string_of_params (deref p) in
-                  match params with
-                    | "" -> kind
-                    | _ -> Printf.sprintf "%s(%s)" kind params);
-            }
-      | _ -> None);
+              Contents.id = _type;
+              name = C.name;
+              content = Unifier.(make (deref p));
+            });
+        compatible = (fun p' -> compatible p p');
+        string_of_format =
+          (fun () ->
+            let kind = C.string_of_kind C.kind in
+            let params = C.string_of_params (deref p) in
+            match params with
+              | "" -> kind
+              | _ -> Printf.sprintf "%s(%s)" kind params);
+      }
+    in
+    if Array.length format_handler_fns <= _type then
+      failwith "Please increase format handler array length!";
+    Array.unsafe_set format_handler_fns _type format_fn;
+    Array.unsafe_set format_param_parsers _type (fun label value ->
+        Option.map lift_params (C.parse_param label value));
     Queue.push kind_of_string kind_parsers;
-    Queue.push format_of_string format_parsers;
     let data_handler =
       {
         sub = (fun d ofs len -> to_content (sub (of_content d) ofs len));
