@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type 'a chunk = { data : 'a; offset : int; length : int option }
+type 'a chunk = { data : 'a; offset : int; length : int }
 
 type ('a, 'b) chunks = {
   params : 'a;
@@ -259,15 +259,7 @@ module MkContentBase (C : ContentSpecs) :
 
   let to_content : chunked_data -> Contents.data = fun d -> (_type, Obj.magic d)
   let params { params } = params
-
-  let chunk_length { data; offset; length } =
-    match length with
-      | Some len -> len
-      | None ->
-          (* This is a hack ok. *)
-          let len = C.length data in
-          if len = max_int then max_int else len - offset
-
+  let[@inline] chunk_length { length; _ } = length
   let length { total_length; _ } = total_length
   let is_empty { total_length; _ } = total_length = 0
 
@@ -283,13 +275,7 @@ module MkContentBase (C : ContentSpecs) :
             data with
             chunks =
               (if ofs < new_stop then
-                 [
-                   {
-                     chunk with
-                     offset = offset + ofs;
-                     length = Some (new_stop - ofs);
-                   };
-                 ]
+                 [{ chunk with offset = offset + ofs; length = new_stop - ofs }]
                else []);
             total_length = len;
           }
@@ -309,7 +295,7 @@ module MkContentBase (C : ContentSpecs) :
                             {
                               data;
                               offset = offset + start;
-                              length = Some (stop - start);
+                              length = stop - start;
                             }
                             :: cur
                           else cur
@@ -323,15 +309,17 @@ module MkContentBase (C : ContentSpecs) :
     assert (len <= data.total_length);
     let rec f len = function
       | chunks when len = 0 -> chunks
-      | chunk :: chunks when chunk_length chunk <= len ->
-          f (len - chunk_length chunk) chunks
-      | { data; offset; length } :: chunks ->
-          {
-            data;
-            offset = offset + len;
-            length = Option.map (fun l -> l - len) length;
-          }
-          :: chunks
+      | chunk :: chunks ->
+          let chunk_len = chunk_length chunk in
+          if chunk_len <= len then f (len - chunk_len) chunks
+          else (
+            let { data; offset; length } = chunk in
+            {
+              data;
+              offset = offset + len;
+              length = (if length = max_int then max_int else length - len);
+            }
+            :: chunks)
       | [] -> raise Invalid
     in
     {
@@ -362,27 +350,26 @@ module MkContentBase (C : ContentSpecs) :
         | 0, _ ->
             d.chunks <- [];
             { d with chunks = [] }
-        | _, [{ offset = 0; length = None }] when not copy -> d
-        | _, [{ offset = 0; length = Some l; data }]
-          when l = C.length data && not copy ->
+        | _, [{ offset = 0; length; _ }] when length = max_int && not copy -> d
+        | _, [{ offset = 0; length; data }]
+          when length = C.length data && not copy ->
             d
         | length, _ ->
             let buf = C.make ~length d.params in
             ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
             if copy then
-              {
-                d with
-                chunks = [{ offset = 0; length = Some length; data = buf }];
-              }
+              { d with chunks = [{ offset = 0; length; data = buf }] }
             else (
-              d.chunks <- [{ offset = 0; length = Some length; data = buf }];
+              d.chunks <- [{ offset = 0; length; data = buf }];
               d)
 
   let copy = consolidate_chunks ~copy:true
 
   let make ?length params =
-    let chunk = { data = C.make ?length params; offset = 0; length } in
-    { params; chunks = [chunk]; total_length = chunk_length chunk }
+    let data = C.make ?length params in
+    let stored_length = Option.value ~default:(C.length data) length in
+    let chunk = { data; offset = 0; length = stored_length } in
+    { params; chunks = [chunk]; total_length = stored_length }
 
   let deref : Contents.format_content Unifier.t -> params =
    fun p -> Obj.magic (Unifier.deref p)
@@ -482,9 +469,8 @@ module MkContentBase (C : ContentSpecs) :
               List.map
                 (fun { data; offset; length } ->
                   let length =
-                    match length with
-                      | Some len -> len
-                      | None -> Int.max 0 (C.length data - offset)
+                    if length = max_int then Int.max 0 (C.length data - offset)
+                    else length
                   in
                   Printf.sprintf "%d:%d:%s" offset length (C.checksum data))
                 d.chunks
@@ -500,10 +486,10 @@ module MkContentBase (C : ContentSpecs) :
   let lift_data ?(offset = 0) ?length d =
     let length =
       match length with
-        | Some _ -> length
+        | Some l -> l
         | None ->
             let l = C.length d in
-            if l = max_int then None else Some (l - offset)
+            if l = max_int then max_int else l - offset
     in
     let chunk = { offset; length; data = d } in
     to_content
