@@ -333,21 +333,21 @@ module MkContentBase (C : ContentSpecs) :
             total_length = len;
           }
 
+  let rec truncate_chunks len = function
+    | chunks when len = 0 -> chunks
+    | chunk :: chunks ->
+        let chunk_len = chunk_length chunk in
+        if chunk_len <= len then truncate_chunks (len - chunk_len) chunks
+        else (
+          let { data; offset; length } = chunk in
+          { data; offset = offset + len; length = length - len } :: chunks)
+    | [] -> raise Invalid
+
   let truncate data len =
     assert (len <= data.total_length);
-    let rec f len = function
-      | chunks when len = 0 -> chunks
-      | chunk :: chunks ->
-          let chunk_len = chunk_length chunk in
-          if chunk_len <= len then f (len - chunk_len) chunks
-          else (
-            let { data; offset; length } = chunk in
-            { data; offset = offset + len; length = length - len } :: chunks)
-      | [] -> raise Invalid
-    in
     {
       data with
-      chunks = f len data.chunks;
+      chunks = truncate_chunks len data.chunks;
       total_length = data.total_length - len;
     }
 
