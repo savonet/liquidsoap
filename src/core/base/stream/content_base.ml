@@ -265,6 +265,18 @@ module MkContentBase (C : ContentSpecs) :
   let[@inline] length { total_length; _ } = total_length
   let[@inline] is_empty { total_length; _ } = total_length = 0
 
+  (* Not tail-recursive, but chunk lists are always tiny in practice. *)
+  let rec sub_chunks ofs stop pos = function
+    | [] -> []
+    | ({ data; offset } as chunk) :: rest ->
+        let length = chunk_length chunk in
+        let start = Int.max 0 (ofs - pos) in
+        let chunk_stop = Int.min length (stop - pos) in
+        let tail = sub_chunks ofs stop (pos + length) rest in
+        if start < chunk_stop then
+          { data; offset = offset + start; length = chunk_stop - start } :: tail
+        else tail
+
   let sub data ofs len =
     let stop = ofs + len in
     if data.total_length < ofs || data.total_length < stop then
@@ -317,26 +329,7 @@ module MkContentBase (C : ContentSpecs) :
       | _ ->
           {
             data with
-            chunks =
-              List.rev
-                (snd
-                   (List.fold_left
-                      (fun (pos, cur) ({ data; offset } as chunk) ->
-                        let length = chunk_length chunk in
-                        let cur =
-                          let start = Int.max 0 (ofs - pos) in
-                          let stop = Int.min length (stop - pos) in
-                          if start < stop then
-                            {
-                              data;
-                              offset = offset + start;
-                              length = stop - start;
-                            }
-                            :: cur
-                          else cur
-                        in
-                        (pos + length, cur))
-                      (0, []) data.chunks));
+            chunks = sub_chunks ofs stop 0 data.chunks;
             total_length = len;
           }
 
