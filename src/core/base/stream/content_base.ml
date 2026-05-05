@@ -245,12 +245,15 @@ module MkContentBase (C : ContentSpecs) :
           if len = max_int then max_int else len - offset
 
   let length { chunks } =
-    List.fold_left
-      (fun cur chunk ->
-        let chunk_length = chunk_length chunk in
-        if cur = max_int || chunk_length = max_int then max_int
-        else cur + chunk_length)
-      0 chunks
+    match chunks with
+      | [] -> 0
+      | [chunk] -> chunk_length chunk
+      | _ ->
+          List.fold_left
+            (fun cur chunk ->
+              let n = chunk_length chunk in
+              if cur = max_int || n = max_int then max_int else cur + n)
+            0 chunks
 
   let is_empty d = length d = 0
 

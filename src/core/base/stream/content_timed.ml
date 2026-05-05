@@ -60,19 +60,32 @@ module Specs = struct
 
   let blit : 'a. 'a content -> int -> 'a content -> int -> int -> unit =
    fun src src_pos dst dst_pos len ->
-    let head = (sub dst 0 (Finite dst_pos)).data in
-    let middle =
-      List.map
-        (fun (pos, x) -> (dst_pos + pos, x))
-        (sub src src_pos (Finite len)).data
-    in
-    let tail_length =
-      match dst.length with
-        | Infinite -> Infinite
-        | Finite dst_len -> Finite (dst_len - len - dst_pos)
-    in
-    let tail = (sub dst (dst_pos + len) tail_length).data in
-    dst.data <- sort (head @ middle @ tail)
+    match (src.data, dst.data) with
+      | [], [] -> ()
+      | [], dst_data ->
+          let head = List.filter (fun (pos, _) -> pos < dst_pos) dst_data in
+          let tail =
+            let dst_end = dst_pos + len in
+            List.filter_map
+              (fun (pos, x) ->
+                if pos >= dst_end then Some (pos - len, x) else None)
+              dst_data
+          in
+          dst.data <- sort (head @ tail)
+      | _ ->
+          let head = (sub dst 0 (Finite dst_pos)).data in
+          let middle =
+            List.map
+              (fun (pos, x) -> (dst_pos + pos, x))
+              (sub src src_pos (Finite len)).data
+          in
+          let tail_length =
+            match dst.length with
+              | Infinite -> Infinite
+              | Finite dst_len -> Finite (dst_len - len - dst_pos)
+          in
+          let tail = (sub dst (dst_pos + len) tail_length).data in
+          dst.data <- sort (head @ middle @ tail)
 
   let copy ~copy d =
     { d with data = List.map (fun (pos, x) -> (pos, copy x)) d.data }
