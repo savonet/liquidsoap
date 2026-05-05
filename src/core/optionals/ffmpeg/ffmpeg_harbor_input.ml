@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Queue = Queues.Queue
+
 let log = Log.make ["input"; "harbor"; "dynamic"]
 let shutdown = Atomic.make false
 
@@ -147,7 +149,10 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
           events = [`Delay 0.];
           handler =
             (fun _ ->
-              self#do_open_container;
+              (try self#do_open_container
+               with exn ->
+                 self#log#severe "Error while opening container: %s!"
+                   (Printexc.to_string exn));
               []);
         }
       in
@@ -348,7 +353,7 @@ let _ =
        receives the source. A `copy_encoder` is provided for passthrough \
        remuxing."
     ~category:(`Source (`Input `Active))
-    (Harbor_input.proto ~buffer_default:2. Lang.regexp_t @ extra_proto)
+    (Harbor_input.proto ~buffer_default:12. Lang.regexp_t @ extra_proto)
     Lang.unit_t
     (fun p ->
       Configure.conf_force_start#set true;
@@ -373,7 +378,20 @@ let _ =
       in
       let mountpoint_s = Lang.descr_of_regexp mountpoint in
       let on_connect = List.assoc "on_connect" p in
-      let current_source = Atomic.make None in
+      let trim_mount m =
+        if String.length m > 1 && m.[0] = '/' then
+          String.sub m 1 (String.length m - 1)
+        else m
+      in
+      let sources = Queue.create () in
+      let find mount =
+        let mount = trim_mount mount in
+        match
+          List.find_opt (fun (m, _) -> m = mount) (Queue.elements sources)
+        with
+          | Some (_, s) -> Some s
+          | None -> None
+      in
       let handler =
         {
           Harbor.relay =
@@ -383,28 +401,26 @@ let _ =
                   ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                   ~mountpoint:mountpoint_s ~login ~debug ~timeout ~on_connect ()
               in
+              Queue.push sources (trim_mount relay.Harbor.uri, s);
+              s#on_sleep (fun () ->
+                  Queue.filter_out sources (fun (_, s') -> s == s'));
               s#set_id
                 (if String.length relay.uri > 1 && relay.uri.[0] = '/' then
                    String.sub relay.uri 1 (String.length relay.uri - 1)
                  else if relay.uri = "" || relay.uri = "/" then
                    "input.harbor.dynamic"
                  else relay.uri);
-              Atomic.set current_source (Some s);
               s#set_stack (Liquidsoap_lang.Lang_core.pos p);
               s#relay relay);
           login;
           icy_charset;
           meta_charset;
           encode_metadata =
-            (fun m ->
-              match Atomic.get current_source with
-                | Some s -> s#encode_metadata m
-                | None -> ());
+            (fun ~mount m ->
+              match find mount with Some s -> s#encode_metadata m | None -> ());
           get_mime_type =
-            (fun () ->
-              match Atomic.get current_source with
-                | Some s -> s#get_mime_type
-                | None -> None);
+            (fun ~mount ->
+              match find mount with Some s -> s#get_mime_type | None -> None);
         }
       in
       Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy handler;

@@ -25,6 +25,11 @@ let ( let* ) = Duppy.Monad.bind
 module Http = Liq_http
 
 let log = Log.make ["harbor"; "output"]
+let stopped = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"Harbor stop" (fun () ->
+      Atomic.set stopped true)
 
 (** Output to harbor listeners. *)
 
@@ -72,6 +77,7 @@ type 'a listener = {
   closed : bool Atomic.t;
   encoder_mutex : Mutex.t;
   timeout : float;
+  mutable last_write_time : float;
 }
 
 let format_icy_title ~artist ~title =
@@ -160,6 +166,7 @@ let create_listener ~id ~encoder ~socket ~close ~metadata_interval ~stream_url
     closed = Atomic.make false;
     encoder_mutex = Mutex.create ();
     timeout;
+    last_write_time = Unix.gettimeofday ();
   }
 
 let append_data_to_listener ~buffer_limit listener data =
@@ -185,8 +192,10 @@ let try_write_to_socket listener =
             chunk_ofs chunk_len
         with
           | written ->
-              if written > 0 then
+              if written > 0 then begin
                 Strings.Mutable.drop listener.pending_data written;
+                listener.last_write_time <- Unix.gettimeofday ()
+              end;
               written
           | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _)
             ->
@@ -264,10 +273,6 @@ let proto frame_t =
           "Initial burst of data sent to the client. Set to `null` to disable \
            burst. This feature is only available when `dedicated_encoder` is \
            `false`." );
-      ( "chunk",
-        Lang.int_t,
-        Some (Lang.int Utils.buflen),
-        Some "Send data to clients using chunks of at least this length." );
       ( "headers",
         Lang.metadata_t,
         Some (Lang.list []),
@@ -306,12 +311,7 @@ class virtual ['a] base p =
   let timeout = Lang.to_float (get_param "timeout") in
   let buffer_limit = Lang.to_int (get_param "buffer") in
   let burst_size = Lang.to_valued_option Lang.to_int (get_param "burst") in
-  let chunk_size = Lang.to_int (get_param "chunk") in
   let () =
-    if chunk_size > buffer_limit then
-      raise
-        (Error.Invalid_value
-           (get_param "buffer", "Maximum buffering inferior to chunk length", []));
     Option.iter
       (fun burst ->
         if burst > buffer_limit then
@@ -386,7 +386,6 @@ class virtual ['a] base p =
     (* Immutable parameters exposed to subclasses via inheritance. *)
     val burst_size = burst_size
     val buffer_limit = buffer_limit
-    val chunk_size = chunk_size
     val encoder_data = encoder_data
     val recode_metadata = recode_metadata
     val pos = pos
@@ -439,31 +438,61 @@ class virtual ['a] base p =
         List.iter (fun fn -> fn listener.id) on_disconnect_callbacks
       end
 
+    initializer
+      let has_stopped = ref false in
+      self#on_frame
+        (`Before_frame
+           (fun _ ->
+             if Atomic.get stopped && not !has_stopped then (
+               has_stopped := true;
+               List.iter self#handle_disconnect self#get_listeners)))
+
     method private write_task_handler events =
-      let ready_fds =
-        List.filter_map (function `Write fd -> Some fd | _ -> None) events
-      in
-      let to_disconnect =
-        List.filter_map
-          (fun listener ->
-            let fd = Harbor.file_descr_of_socket listener.socket in
-            if List.mem fd ready_fds then
-              if try_write_to_socket listener < 0 then Some listener else None
-            else None)
-          self#get_listeners
-      in
-      List.iter self#handle_disconnect to_disconnect;
-      (* CAS loop: only one write task runs at a time, but concurrent
-         add_listener calls may race on the list. Contention is minimal. *)
-      let rec filter_closed () =
-        let current = Atomic.get listeners in
-        let filtered =
-          List.filter (fun l -> not (Atomic.get l.closed)) current
-        in
-        if not (Atomic.compare_and_set listeners current filtered) then
-          filter_closed ()
-      in
-      filter_closed ();
+      (* Guard: if anything throws, reset write_task_active so ensure_write_task
+         can restart the task rather than leaving it permanently stuck. *)
+      (try
+         let ready_fds =
+           List.filter_map (function `Write fd -> Some fd | _ -> None) events
+         in
+         let now = Unix.gettimeofday () in
+         let to_disconnect =
+           List.filter_map
+             (fun listener ->
+               let fd = Harbor.file_descr_of_socket listener.socket in
+               (* Write to ready fds; disconnect on hard error. *)
+               let write_error =
+                 List.mem fd ready_fds && try_write_to_socket listener < 0
+               in
+               (* Timeout check applies to all listeners regardless of fd
+                  readiness: catches both unresponsive clients and those that
+                  keep causing EAGAIN without making progress. *)
+               let timed_out =
+                 (not (Strings.Mutable.is_empty listener.pending_data))
+                 && now -. listener.last_write_time > listener.timeout
+               in
+               if write_error then Some listener
+               else if timed_out then (
+                 self#log#info "Listener %s timed out (no progress for %.0fs)"
+                   listener.id listener.timeout;
+                 Some listener)
+               else None)
+             self#get_listeners
+         in
+         List.iter self#handle_disconnect to_disconnect;
+         (* CAS loop: only one write task runs at a time, but concurrent
+            add_listener calls may race on the list. Contention is minimal. *)
+         let rec filter_closed () =
+           let current = Atomic.get listeners in
+           let filtered =
+             List.filter (fun l -> not (Atomic.get l.closed)) current
+           in
+           if not (Atomic.compare_and_set listeners current filtered) then
+             filter_closed ()
+         in
+         filter_closed ()
+       with exn ->
+         self#log#important "Write task error: %s" (Printexc.to_string exn);
+         Atomic.set write_task_active false);
       self#write_task_next
 
     method private write_task_next =
@@ -515,7 +544,23 @@ class virtual ['a] base p =
                       };
                     ])
             else []
-        | events ->
+        | write_events ->
+            (* Add a Delay firing at the earliest pending timeout deadline, so
+               the handler wakes up to disconnect a slow client even when no fd
+               becomes writable. *)
+            let now = Unix.gettimeofday () in
+            let next_deadline =
+              List.fold_left
+                (fun acc l ->
+                  if Strings.Mutable.is_empty l.pending_data then acc
+                  else min acc (l.timeout -. (now -. l.last_write_time)))
+                infinity active
+            in
+            let events =
+              if Float.is_finite next_deadline then
+                `Delay (max 0. next_deadline) :: write_events
+              else write_events
+            in
             [
               {
                 Task.priority = `Non_blocking;
@@ -608,6 +653,7 @@ class virtual ['a] base p =
         if not (Atomic.compare_and_set listeners current (listener :: current))
         then add_listener_atomic ()
       in
+      Unix.set_nonblock (Harbor.file_descr_of_socket socket);
       add_listener_atomic ();
       self#ensure_write_task;
       self#log#info "Listener %s connected" client_id;
@@ -632,7 +678,6 @@ class shared_output p =
   object (self)
     inherit [unit] base p
     val mutable enc : Encoder.encoder option = None
-    val mutable chunk_accumulator = 0
 
     method private create_listener ~protocol ~id ~socket ~close
         ~metadata_interval ~stream_url ~timeout =
@@ -686,13 +731,12 @@ class shared_output p =
           (fun listener ->
             append_data_to_listener ~buffer_limit listener
               (insert_icy_metadata ~metadata listener data))
-          self#get_listeners;
-        chunk_accumulator <- chunk_accumulator + len;
-        if chunk_accumulator >= chunk_size then begin
-          chunk_accumulator <- 0;
-          self#ensure_write_task
-        end
-      end
+          self#get_listeners
+      end;
+      (* Always attempt to restart the write task, even when no new data was
+         produced (len=0). This ensures pending data for slow listeners is
+         flushed and the timeout mechanism stays alive after any exception. *)
+      self#ensure_write_task
 
     method start =
       Mutex_utils.mutexify start_stop_mutex

@@ -164,6 +164,7 @@ def http.response(
       else
         ("Transfer-Encoding", "chunked")::headers
       end
+    headers = ("Connection", "close")::headers
 
     headers =
       if
