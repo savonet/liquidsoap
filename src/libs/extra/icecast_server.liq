@@ -741,7 +741,7 @@ def icecast.server.default_prepare(
       o.on_connect(synchronous=true, on_listener_connect)
       o.on_disconnect(synchronous=true, on_listener_disconnect)
 
-      {clock = o.clock, shutdown = o.shutdown}
+      {clock = o.clock, shutdown = o.shutdown, last_metadata = o.last_metadata}
     end
 end
 
@@ -1158,14 +1158,7 @@ def icecast.server.source_manager(
             started = entry.start_time(),
             listeners = entry.listeners(),
             peak_listeners = entry.peak_listeners(),
-            current_metadata =
-              if
-                null.defined(entry.source())
-              then
-                source.methods(null.get(entry.source())).last_metadata() ?? []
-              else
-                []
-              end
+            current_metadata = entry.output.last_metadata() ?? []
           }
         ),
       entries.all()
