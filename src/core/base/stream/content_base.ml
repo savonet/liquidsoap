@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type 'a chunk = { data : 'a; offset : int; length : int option }
+type 'a chunk = { data : 'a; offset : int; length : int }
 
 type ('a, 'b) chunks = {
   params : 'a;
@@ -113,7 +113,7 @@ let dummy_kind_handler_fn (_ : Contents.kind_content) : kind_handler =
 let kind_handler_fns : (Contents.kind_content -> kind_handler) array =
   Array.make 16 dummy_kind_handler_fn
 
-let get_kind_handler { Contents.id; content } =
+let[@inline] get_kind_handler { Contents.id; content } =
   (Array.unsafe_get kind_handler_fns id) content
 
 let kind_parsers = Queue.create ()
@@ -147,7 +147,7 @@ let format_handler_fns :
     (Contents.format_content Unifier.t -> format_handler) array =
   Array.make 16 dummy_format_handler_fn
 
-let get_format_handler { Contents.id; content } =
+let[@inline] get_format_handler { Contents.id; content } =
   (Array.unsafe_get format_handler_fns id) content
 
 let format_param_parsers : (string -> string -> Contents.format option) array =
@@ -188,7 +188,7 @@ let register_data_handler t h =
     failwith "Please increase media content array length!";
   Array.unsafe_set data_handlers t h
 
-let get_data_handler (t, _) = Array.unsafe_get data_handlers t
+let[@inline] get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ?length k = (get_format_handler k).make length
 let sub d = (get_data_handler d).sub d
 let truncate d = (get_data_handler d).truncate d
@@ -253,23 +253,29 @@ module MkContentBase (C : ContentSpecs) :
 
   let _type = Contents.register_type ()
 
-  let of_content : Contents.data -> chunked_data = function
+  let[@inline] of_content : Contents.data -> chunked_data = function
     | t, d when t = _type -> Obj.magic d
     | _ -> raise Invalid
 
-  let to_content : chunked_data -> Contents.data = fun d -> (_type, Obj.magic d)
-  let params { params } = params
+  let[@inline] to_content : chunked_data -> Contents.data =
+   fun d -> (_type, Obj.magic d)
 
-  let chunk_length { data; offset; length } =
-    match length with
-      | Some len -> len
-      | None ->
-          (* This is a hack ok. *)
-          let len = C.length data in
-          if len = max_int then max_int else len - offset
+  let[@inline] params { params } = params
+  let[@inline] chunk_length { length; _ } = length
+  let[@inline] length { total_length; _ } = total_length
+  let[@inline] is_empty { total_length; _ } = total_length = 0
 
-  let length { total_length; _ } = total_length
-  let is_empty { total_length; _ } = total_length = 0
+  (* Not tail-recursive, but chunk lists are always tiny in practice. *)
+  let rec sub_chunks ofs stop pos = function
+    | [] -> []
+    | ({ data; offset } as chunk) :: rest ->
+        let length = chunk_length chunk in
+        let start = Int.max 0 (ofs - pos) in
+        let chunk_stop = Int.min length (stop - pos) in
+        let tail = sub_chunks ofs stop (pos + length) rest in
+        if start < chunk_stop then
+          { data; offset = offset + start; length = chunk_stop - start } :: tail
+        else tail
 
   let sub data ofs len =
     let stop = ofs + len in
@@ -283,60 +289,70 @@ module MkContentBase (C : ContentSpecs) :
             data with
             chunks =
               (if ofs < new_stop then
-                 [
-                   {
-                     chunk with
-                     offset = offset + ofs;
-                     length = Some (new_stop - ofs);
-                   };
-                 ]
+                 [{ chunk with offset = offset + ofs; length = new_stop - ofs }]
                else []);
             total_length = len;
           }
+      | [chunk1; chunk2] ->
+          (* Common case: Frame.append produces a 2-chunk frame, then Frame.slice
+             calls sub on it. Avoid fold_left and tuple allocation per chunk. *)
+          let len1 = chunk_length chunk1 in
+          let chunks =
+            if stop <= len1 then
+              if ofs < stop then
+                [
+                  {
+                    chunk1 with
+                    offset = chunk1.offset + ofs;
+                    length = stop - ofs;
+                  };
+                ]
+              else []
+            else if ofs >= len1 then (
+              let local_ofs = ofs - len1 in
+              let local_stop = stop - len1 in
+              if local_ofs < local_stop then
+                [
+                  {
+                    chunk2 with
+                    offset = chunk2.offset + local_ofs;
+                    length = local_stop - local_ofs;
+                  };
+                ]
+              else [])
+            else (
+              let c2_len = stop - len1 in
+              { chunk1 with offset = chunk1.offset + ofs; length = len1 - ofs }
+              :: (if c2_len > 0 then [{ chunk2 with length = c2_len }] else []))
+          in
+          { data with chunks; total_length = len }
       | _ ->
           {
             data with
-            chunks =
-              List.rev
-                (snd
-                   (List.fold_left
-                      (fun (pos, cur) ({ data; offset } as chunk) ->
-                        let length = chunk_length chunk in
-                        let cur =
-                          let start = Int.max 0 (ofs - pos) in
-                          let stop = Int.min length (stop - pos) in
-                          if start < stop then
-                            {
-                              data;
-                              offset = offset + start;
-                              length = Some (stop - start);
-                            }
-                            :: cur
-                          else cur
-                        in
-                        (pos + length, cur))
-                      (0, []) data.chunks));
+            chunks = sub_chunks ofs stop 0 data.chunks;
             total_length = len;
           }
 
-  let truncate data len =
-    assert (len <= data.total_length);
-    let rec f len = function
-      | chunks when len = 0 -> chunks
-      | chunk :: chunks when chunk_length chunk <= len ->
-          f (len - chunk_length chunk) chunks
-      | { data; offset; length } :: chunks ->
+  let rec truncate_chunks len = function
+    | chunks when len = 0 -> chunks
+    | chunk :: chunks ->
+        let chunk_len = chunk_length chunk in
+        if chunk_len <= len then truncate_chunks (len - chunk_len) chunks
+        else (
+          let { data; offset; length } = chunk in
           {
             data;
             offset = offset + len;
-            length = Option.map (fun l -> l - len) length;
+            length = (if length = max_int then max_int else length - len);
           }
-          :: chunks
-      | [] -> raise Invalid
-    in
+          :: chunks)
+    | [] -> raise Invalid
+
+  let truncate data len =
+    assert (len <= data.total_length);
     {
       data with
-      chunks = f len data.chunks;
+      chunks = truncate_chunks len data.chunks;
       total_length =
         (if data.total_length = max_int then max_int
          else data.total_length - len);
@@ -349,40 +365,54 @@ module MkContentBase (C : ContentSpecs) :
       if d.total_length = max_int || d'.total_length = max_int then max_int
       else d.total_length + d'.total_length
     in
-    to_content { d with chunks = d.chunks @ d'.chunks; total_length }
+    let chunks =
+      match (d.chunks, d'.chunks) with
+        | chunks, [] -> chunks
+        | [], chunks -> chunks
+        | [c], [c'] -> [c; c']
+        | _ -> d.chunks @ d'.chunks
+    in
+    to_content { d with chunks; total_length }
 
   let consolidate_chunks =
-    let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
-      let length = chunk_length chunk in
-      if length > 0 then C.blit data offset buf pos length;
-      pos + length
+    let rec blit buf pos = function
+      | [] -> ()
+      | { data; offset; length } :: rest ->
+          (* When length = max_int (infinite sentinel), cap to actual data
+             capacity to avoid integer overflow in C.blit arithmetic. *)
+          let blit_len =
+            if length = max_int then C.length data - offset else length
+          in
+          if blit_len > 0 then C.blit data offset buf pos blit_len;
+          blit buf (pos + blit_len) rest
     in
     fun ~copy d ->
       match (d.total_length, d.chunks) with
         | 0, _ ->
             d.chunks <- [];
             { d with chunks = [] }
-        | _, [{ offset = 0; length = None }] when not copy -> d
-        | _, [{ offset = 0; length = Some l; data }]
-          when l = C.length data && not copy ->
+        | _, [{ offset = 0; length; _ }] when length = max_int && not copy -> d
+        | _, [{ offset = 0; length; data }]
+          when length = C.length data && not copy ->
             d
         | length, _ ->
             let buf = C.make ~length d.params in
-            ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
+            blit buf 0 d.chunks;
             if copy then
-              {
-                d with
-                chunks = [{ offset = 0; length = Some length; data = buf }];
-              }
+              { d with chunks = [{ offset = 0; length; data = buf }] }
             else (
-              d.chunks <- [{ offset = 0; length = Some length; data = buf }];
+              d.chunks <- [{ offset = 0; length; data = buf }];
               d)
 
   let copy = consolidate_chunks ~copy:true
 
   let make ?length params =
-    let chunk = { data = C.make ?length params; offset = 0; length } in
-    { params; chunks = [chunk]; total_length = chunk_length chunk }
+    let data = C.make ?length params in
+    let stored_length =
+      match length with Some l -> l | None -> C.length data
+    in
+    let chunk = { data; offset = 0; length = stored_length } in
+    { params; chunks = [chunk]; total_length = stored_length }
 
   let deref : Contents.format_content Unifier.t -> params =
    fun p -> Obj.magic (Unifier.deref p)
@@ -407,7 +437,7 @@ module MkContentBase (C : ContentSpecs) :
           C.compatible (deref p) (deref content)
       | _ -> false
 
-  let is_kind { Contents.id; _ } = id = _type
+  let[@inline] is_kind { Contents.id; _ } = id = _type
 
   let lift_kind k : Contents.kind =
     { Contents.id = _type; name = C.name; content = to_kind_content k }
@@ -415,7 +445,7 @@ module MkContentBase (C : ContentSpecs) :
   let get_kind { Contents.id; content } =
     if id = _type then to_kind content else raise Invalid
 
-  let is_format { Contents.id; _ } = id = _type
+  let[@inline] is_format { Contents.id; _ } = id = _type
 
   let lift_params p : Contents.format =
     {
@@ -427,7 +457,7 @@ module MkContentBase (C : ContentSpecs) :
   let get_params { Contents.id; content } =
     if id = _type then deref content else raise Invalid
 
-  let is_data = function t, _ -> t = _type
+  let[@inline] is_data = function t, _ -> t = _type
   let kind_of_string s = Option.map lift_kind (C.kind_of_string s)
 
   let () =
@@ -482,9 +512,8 @@ module MkContentBase (C : ContentSpecs) :
               List.map
                 (fun { data; offset; length } ->
                   let length =
-                    match length with
-                      | Some len -> len
-                      | None -> Int.max 0 (C.length data - offset)
+                    if length = max_int then Int.max 0 (C.length data - offset)
+                    else length
                   in
                   Printf.sprintf "%d:%d:%s" offset length (C.checksum data))
                 d.chunks
@@ -500,10 +529,10 @@ module MkContentBase (C : ContentSpecs) :
   let lift_data ?(offset = 0) ?length d =
     let length =
       match length with
-        | Some _ -> length
+        | Some l -> l
         | None ->
             let l = C.length d in
-            if l = max_int then None else Some (l - offset)
+            if l = max_int then max_int else l - offset
     in
     let chunk = { offset; length; data = d } in
     to_content
