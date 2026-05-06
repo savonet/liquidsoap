@@ -134,22 +134,11 @@ module WeakQueue = struct
 
   let exists q fn = get q (fun { arr; size } -> find_fn fn arr size 0)
   let length q = get q (fun { arr; size } -> count_live arr size 0 0)
+  let iter q fn = get q (fun { arr; _ } -> Weak_utils.iter arr fn)
 
-  let rec iter_fn fn arr size i =
-    if i >= size then ()
-    else (
-      (match Weak.get arr i with Some el -> fn el | None -> ());
-      iter_fn fn arr size (i + 1))
-
-  let iter q fn = get q (fun { arr; size } -> iter_fn fn arr size 0)
-
-  let rec fold_fn fn arr size i acc =
-    if i >= size then acc
-    else
-      fold_fn fn arr size (i + 1)
-        (match Weak.get arr i with Some el -> fn el acc | None -> acc)
-
-  let fold q fn v = get q (fun { arr; size } -> fold_fn fn arr size 0 v)
+  let fold q fn v =
+    get q (fun { arr; _ } ->
+        Weak_utils.fold_left (fun acc el -> fn el acc) v arr)
 
   let rec get_elements arr size i acc =
     if i >= size then List.rev acc

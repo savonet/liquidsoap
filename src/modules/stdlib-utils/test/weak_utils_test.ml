@@ -42,7 +42,8 @@ let () =
        (object
           method id = 99
        end));
-  Gc.full_major ();
+  Gc.compact ();
+  Gc.compact ();
   let count = ref 0 in
   Weak_utils.iter w2 (fun _ -> incr count);
   assert (!count = 0);
