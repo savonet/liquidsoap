@@ -31,14 +31,28 @@
 #include <caml/mlvalues.h>
 #include <caml/weak.h>
 
+#if OCAML_VERSION_MAJOR >= 5
+#include <caml/major_gc.h>
+
+/* In OCaml 5, marking is active in all phases except Phase_sweep_ephe. */
+Caml_inline int marking_started(void)
+{
+  return caml_gc_phase != Phase_sweep_ephe;
+}
+#endif
+
 /* Read key i (0-based) from weak array w without allocating.
-   Returns 1 and sets *out to the live value, or 0 if the slot is dead. */
+   Returns 1 and sets *out to the live value, or 0 if the slot is dead.
+   On OCaml 5: uses Ephe_key (atomic read, handles caml_ephe_locked), then
+   darkens the value during marking to preserve the tri-color invariant. */
 static int weak_get(value w, mlsize_t i, value *out)
 {
 #if OCAML_VERSION_MAJOR >= 5
   value v = Ephe_key(w, CAML_EPHE_FIRST_KEY + i);
   if (v == caml_ephe_none)
     return 0;
+  if (marking_started())
+    caml_darken(Caml_state, v, 0);
   *out = v;
   return 1;
 #else
