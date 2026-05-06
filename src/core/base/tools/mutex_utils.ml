@@ -52,7 +52,12 @@ let[@inline always] on_mutex_done state =
 
 let rec mutable_wait state =
   if not (Atomic.compare_and_set state.lock `None `Mutating) then (
-    Domain.cpu_relax ();
+    (match Atomic.get state.lock with
+      | `Mutating ->
+          mutexify state.mutex
+            (fun () -> Condition.wait state.condition state.mutex)
+            ()
+      | _ -> Domain.cpu_relax ());
     mutable_wait state)
 
 let mutable_lock ~state fn v =
