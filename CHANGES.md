@@ -1,5 +1,10 @@
 # 2.4.5 (unreleased)
 
+## Fixed:
+
+- Fixed crash when external input (`input.process`, `input.ffmpeg`, etc.) encounters an EOF (thanks to @MikaSappi, #5139)
+- Fixed `harbor.remove_http_handler` discarding all registered handlers except the one being removed
+
 ## Optimized:
 
 - Clock sync-source propagation is now push-based and O(1) per tick instead of scanning all sources (#5133)
