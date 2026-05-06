@@ -24,8 +24,8 @@ open Extralib
 
 (* {1 External Input handling} *)
 
-class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
-  command =
+class virtual base ~name ~restart ~restart_on_error
+  ?(restart_delay_on_error = 0.) ~on_data ?read_header command =
   let no_header, read_header =
     match read_header with
       | None -> (true, fun _ -> assert false)
@@ -61,8 +61,8 @@ class virtual base ~name ~restart ~restart_on_error ~on_data ?read_header
             Generator.add_track_mark self#buffer;
             header_read <- false;
             match status with
-              | `Status (Unix.WEXITED 0) -> restart
-              | _ -> restart_on_error
+              | `Status (Unix.WEXITED 0) -> if restart then 0. else -1.
+              | _ -> if restart_on_error then restart_delay_on_error else -1.
           in
           let log s = self#log#important "%s" s in
           process <-

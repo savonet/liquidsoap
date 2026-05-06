@@ -39,7 +39,7 @@ let on_stop _ =
   test_finished := true;
   Condition.signal finished;
   Mutex.unlock m;
-  false
+  -1.
 
 let () =
   let media_file =

@@ -225,19 +225,19 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
               | _ -> true
           in
           match (should_restart, ret) with
-            | false, _ -> false
-            | _, `Sleep -> false
+            | false, _ -> -1.
+            | _, `Sleep -> -1.
             | _, `Break_and_metadata m ->
                 Generator.add_metadata self#buffer m;
                 Generator.add_track_mark self#buffer;
-                true
+                0.
             | _, `Metadata m ->
                 Generator.add_metadata self#buffer m;
-                true
+                0.
             | _, `Break ->
                 Generator.add_track_mark self#buffer;
-                true
-            | _, `Nothing -> restart)
+                0.
+            | _, `Nothing -> if restart then 0. else -1.)
 
     initializer
       let a = ref None in
