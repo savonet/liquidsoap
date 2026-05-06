@@ -1,0 +1,17 @@
+(executable
+ (name weak_utils_test)
+ (modules weak_utils_test)
+ (libraries stdlib_utils))
+
+(rule
+ (alias weak_utils_test)
+ (package liquidsoap)
+ (deps
+  (:weak_utils_test weak_utils_test.exe))
+ (action
+  (run %{weak_utils_test})))
+
+(alias
+ (name citest)
+ (deps
+  (alias weak_utils_test)))

@@ -1,6 +1,6 @@
 (library
  (name stdlib_utils)
- (libraries unix threads)
+ (libraries domain_shims unix threads)
  (wrapped false)
  (foreign_stubs
   (language c)
