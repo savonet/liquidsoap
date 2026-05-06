@@ -4,22 +4,20 @@
    field 2+i : weak pointer i *)
 let ephe_first_key = 2
 
-(* caml_ephe_none: static sentinel written into empty slots by the GC.
-   Captured at startup by reading an unset slot from a fresh weak array. *)
-let ephe_none = Obj.field (Obj.repr (Weak.create 1)) ephe_first_key
-
+(* Use Weak.check for liveness (no allocation), then Obj.field to read the raw
+   value without boxing it into Some.  No allocation happens between check and
+   read, so the GC cannot clear the slot in that window. *)
 let iter w f =
   let raw = Obj.repr w in
   for i = 0 to Weak.length w - 1 do
-    let v = Obj.field raw (ephe_first_key + i) in
-    if v != ephe_none then f (Obj.obj v)
+    if Weak.check w i then f (Obj.obj (Obj.field raw (ephe_first_key + i)))
   done
 
 let fold_left f init w =
   let raw = Obj.repr w in
   let acc = ref init in
   for i = 0 to Weak.length w - 1 do
-    let v = Obj.field raw (ephe_first_key + i) in
-    if v != ephe_none then acc := f !acc (Obj.obj v)
+    if Weak.check w i then
+      acc := f !acc (Obj.obj (Obj.field raw (ephe_first_key + i)))
   done;
   !acc
