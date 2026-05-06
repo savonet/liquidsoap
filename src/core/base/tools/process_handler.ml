@@ -145,7 +145,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
   let env = with_default (Unix.environment ()) env in
   let log = with_default (fun _ -> ()) log in
   let on_start = with_default (fun _ -> `Continue) on_start in
-  let on_stop = with_default (fun _ -> false) on_stop in
+  let on_stop = with_default (fun _ -> -1.) on_stop in
   let mutex = Mutex.create () in
   let create () =
     log "Starting process";
@@ -216,14 +216,19 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     in
     { Duppy.Task.priority = Atomic.get process.priority; events; handler }
   in
-  let restart_decision handler = function
-    | true ->
+  let restart_decision handler delay =
+    if delay < 0. then begin
+      cleanup ~log t;
+      []
+    end
+    else begin
+      let spawn _ =
         create ();
         let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
         [get_task handler (on_start (pusher fd))]
-    | false ->
-        cleanup ~log t;
-        []
+      in
+      [{ Duppy.Task.priority; events = [`Delay delay]; handler = spawn }]
+    end
   in
   (* Read any remaining data from stdout/stderr pipes. Called when the process
      exits to ensure we don't miss any output. Reads until EOF on each pipe. *)
@@ -242,7 +247,11 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         if !last_read = 0 then raise Pipe_flushed;
         loop ()
       in
-      try loop () with Pipe_flushed -> ()
+      try loop () with
+        | Pipe_flushed -> ()
+        | exn ->
+            log
+              (Printf.sprintf "Cannot drain pipe: %s" (Printexc.to_string exn))
     in
     Option.iter (drain_fd stdout) on_stdout;
     Option.iter (drain_fd stderr) on_stderr
@@ -341,7 +350,8 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           match e with
             | Wrapped e ->
                 f e;
-                raise e
+                cleanup ~log t;
+                []
             | _ ->
                 f e;
                 restart_decision (on_stop (`Exception e)))

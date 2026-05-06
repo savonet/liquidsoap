@@ -246,7 +246,7 @@ let _ =
                 ignore (Unix_utils.write in_pipe (Bytes.of_string " ") 0 1)
               with _ -> ()
               end;
-              false
+              -1.
             in
             let on_start _ = `Stop in
             let p =

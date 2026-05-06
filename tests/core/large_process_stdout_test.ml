@@ -61,7 +61,7 @@ let run_test () =
     test_finished := true;
     Condition.signal finished;
     Mutex.unlock m;
-    false
+    -1.
   in
   Tutils.start ();
   let exe = Sys.executable_name in
