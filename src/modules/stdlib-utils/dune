@@ -4,5 +4,5 @@
  (wrapped false)
  (foreign_stubs
   (language c)
-  (names unix_utils_stubs))
+  (names unix_utils_stubs weak_utils_stubs))
  (synopsis "Stdlib utilities"))

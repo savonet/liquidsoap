@@ -1,24 +1,4 @@
-(* Weak array internal layout (ephemeron with n keys, unused data field):
-   field 0   : GC ephemeron list link
-   field 1   : ephemeron data (unused in Weak.t)
-   field 2+i : weak pointer i *)
-let ephe_first_key = 2
+external iter : 'a Weak.t -> ('a -> unit) -> unit = "caml_weak_utils_iter"
 
-(* Use Weak.check for liveness (no allocation), then Obj.field to read the raw
-   value without boxing it into Some.  No allocation happens between check and
-   read, so the GC cannot clear the slot in that window. *)
-let iter w f =
-  let raw = Obj.repr w in
-  for i = 0 to Weak.length w - 1 do
-    let v = Obj.obj (Obj.field raw (ephe_first_key + i)) in
-    if Weak.check w i then f v
-  done
-
-let fold_left f init w =
-  let raw = Obj.repr w in
-  let acc = ref init in
-  for i = 0 to Weak.length w - 1 do
-    let v = Obj.obj (Obj.field raw (ephe_first_key + i)) in
-    if Weak.check w i then acc := f !acc v
-  done;
-  !acc
+external fold_left : ('acc -> 'a -> 'acc) -> 'acc -> 'a Weak.t -> 'acc
+  = "caml_weak_utils_fold_left"
