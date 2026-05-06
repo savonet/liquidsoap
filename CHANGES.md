@@ -1,3 +1,18 @@
+# 2.4.5 (unreleased)
+
+## Optimized:
+
+- Clock sync-source propagation is now push-based and O(1) per tick instead of scanning all sources (#5133)
+- Stream format/kind dispatch now uses O(1) int-indexed array lookup instead of iterating a queue (#5136)
+- Optimized `content_length` and timed blit hot paths (#5137)
+- Chunk total length is now cached in the chunks record to avoid recomputation (#5140)
+- Chunk length is now pre-computed on lift (#5135)
+- Watcher before/after cycle callbacks are only registered when watchers are actually present
+- `WeakQueue` now uses geometric doubling and a RW-lock for faster concurrent access (#5118)
+- Use direct `Int` comparison functions in stream hot paths
+
+---
+
 # 2.4.4 (2024-04-20)
 
 ## Fixed:
