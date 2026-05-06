@@ -89,19 +89,20 @@ module WeakQueue = struct
   let mutate q fn = Mutex_utils.mutable_lock ~state:q.state fn q
   let get q fn = Mutex_utils.atomic_lock ~state:q.state fn (Atomic.get q.s)
 
-  let rec count_live arr size i acc =
-    if i >= size then acc
-    else count_live arr size (i + 1) (if Weak.check arr i then acc + 1 else acc)
+  let count_live { arr; size } =
+    let n = ref 0 in
+    for i = 0 to size - 1 do
+      if Weak.check arr i then incr n
+    done;
+    !n
 
-  (* Copy live entries from src[0..src_size-1] into dst starting at dst_i. *)
-  let rec copy_live src src_size dst src_i dst_i =
-    if src_i >= src_size then ()
-    else (
-      match Weak.get src src_i with
-        | Some _ as v ->
-            Weak.set dst dst_i v;
-            copy_live src src_size dst (src_i + 1) (dst_i + 1)
-        | None -> copy_live src src_size dst (src_i + 1) dst_i)
+  (* Copy live entries from src into dst starting at slot 0; return count copied. *)
+  let copy_live src dst =
+    let dst_i = ref 0 in
+    Weak_utils.iter src (fun el ->
+        Weak.set dst !dst_i (Some el);
+        incr dst_i);
+    !dst_i
 
   let push q v =
     mutate q (fun q ->
@@ -115,75 +116,54 @@ module WeakQueue = struct
         else begin
           (* Slow path: array is full — compact live entries into a new array,
              growing geometrically only when all slots are occupied. *)
-          let live_count = count_live arr size 0 0 in
+          let live_count = count_live { arr; size } in
           let new_capacity =
             if live_count + 1 <= capacity then capacity else max 1 (capacity * 2)
           in
           let new_arr = Weak.create new_capacity in
-          copy_live arr size new_arr 0 0;
-          Weak.set new_arr live_count (Some v);
-          Atomic.set q.s { arr = new_arr; size = live_count + 1 }
+          let copied = copy_live arr new_arr in
+          Weak.set new_arr copied (Some v);
+          Atomic.set q.s { arr = new_arr; size = copied + 1 }
         end)
 
-  let rec find_fn fn arr size i =
-    if i >= size then false
-    else (
-      match Weak.get arr i with
-        | Some el when fn el -> true
-        | _ -> find_fn fn arr size (i + 1))
+  let exists q fn =
+    get q (fun { arr; _ } ->
+        Weak_utils.fold_left (fun found el -> found || fn el) false arr)
 
-  let exists q fn = get q (fun { arr; size } -> find_fn fn arr size 0)
-  let length q = get q (fun { arr; size } -> count_live arr size 0 0)
+  let length q = get q count_live
   let iter q fn = get q (fun { arr; _ } -> Weak_utils.iter arr fn)
 
   let fold q fn v =
     get q (fun { arr; _ } ->
         Weak_utils.fold_left (fun acc el -> fn el acc) v arr)
 
-  let rec get_elements arr size i acc =
-    if i >= size then List.rev acc
-    else
-      get_elements arr size (i + 1)
-        (match Weak.get arr i with Some el -> el :: acc | None -> acc)
-
-  let elements q = get q (fun { arr; size } -> get_elements arr size 0 [])
-
-  let rec flush_elements_fn arr size i acc =
-    if i >= size then List.rev acc
-    else
-      flush_elements_fn arr size (i + 1)
-        (match Weak.get arr i with Some el -> el :: acc | None -> acc)
+  let elements q = List.rev (fold q (fun v elements -> v :: elements) [])
 
   let flush_elements q =
-    let { arr; size } =
+    let { arr; _ } =
       mutate q (fun q -> Atomic.exchange q.s { arr = Weak.create 0; size = 0 })
     in
-    flush_elements_fn arr size 0 []
-
-  let rec flush_iter_fn fn arr size i =
-    if i >= size then ()
-    else (
-      (match Weak.get arr i with Some el -> fn el | None -> ());
-      flush_iter_fn fn arr size (i + 1))
+    List.rev (Weak_utils.fold_left (fun acc el -> el :: acc) [] arr)
 
   let flush_iter q fn =
-    let { arr; size } =
+    let { arr; _ } =
       mutate q (fun q -> Atomic.exchange q.s { arr = Weak.create 0; size = 0 })
     in
-    flush_iter_fn fn arr size 0
-
-  let rec filter_fn fn arr size i =
-    if i >= size then ()
-    else (
-      (match Weak.get arr i with
-        | Some el when not (fn el) -> Weak.set arr i None
-        | _ -> ());
-      filter_fn fn arr size (i + 1))
+    Weak_utils.iter arr fn
 
   let filter q fn =
     mutate q (fun q ->
-        let { arr; size } = Atomic.get q.s in
-        filter_fn fn arr size 0)
+        let { arr; _ } = Atomic.get q.s in
+        let live =
+          List.rev
+            (Weak_utils.fold_left
+               (fun acc el -> if fn el then el :: acc else acc)
+               [] arr)
+        in
+        let new_size = List.length live in
+        let new_arr = Weak.create new_size in
+        List.iteri (fun i el -> Weak.set new_arr i (Some el)) live;
+        Atomic.set q.s { arr = new_arr; size = new_size })
 
   let filter_out q fn = filter q (fun el -> not (fn el))
 end
