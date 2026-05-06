@@ -10,14 +10,15 @@ let ephe_first_key = 2
 let iter w f =
   let raw = Obj.repr w in
   for i = 0 to Weak.length w - 1 do
-    if Weak.check w i then f (Obj.obj (Obj.field raw (ephe_first_key + i)))
+    let v = Obj.obj (Obj.field raw (ephe_first_key + i)) in
+    if Weak.check w i then f v
   done
 
 let fold_left f init w =
   let raw = Obj.repr w in
   let acc = ref init in
   for i = 0 to Weak.length w - 1 do
-    if Weak.check w i then
-      acc := f !acc (Obj.obj (Obj.field raw (ephe_first_key + i)))
+    let v = Obj.obj (Obj.field raw (ephe_first_key + i)) in
+    if Weak.check w i then acc := f !acc v
   done;
   !acc
