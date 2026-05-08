@@ -1,0 +1,8 @@
+x-maintenance-intent: ["(latest)"]
+x-ci-accept-failures: [ "debian-11" "opensuse-15.6" "ubuntu-22.04" "freebsd-14.3"]
+post-messages: [
+  """\
+We're sorry that your install failed. Make sure to check the README.md file
+to check what minimal version of FFmpeg this package requires."""
+    {failure}
+]

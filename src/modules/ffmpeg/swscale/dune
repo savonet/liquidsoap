@@ -1,0 +1,14 @@
+(library
+ (name swscale)
+ (public_name ffmpeg-swscale)
+ (synopsis "Bindings to ffmpeg's swscale library")
+ (enabled_if
+  (= %{read:../detect/swscale_available} "true"))
+ (foreign_stubs
+  (language c)
+  (names swscale_stubs)
+  (flags
+   (:include ../detect/swscale_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/swscale_c_library_flags.sexp))
+ (libraries ffmpeg-avutil))

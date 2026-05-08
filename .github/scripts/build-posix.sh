@@ -57,7 +57,7 @@ opam pin -y add re 1.13.2
 # until https://github.com/sanette/tsdl-ttf/issues/14 is resolved.
 opam pin -y add tsdl-ttf 0.6
 opam upgrade -y posix-socket
-opam install -y domain_shims syslog
+opam install -y domain_shims syslog dune.3.23.1
 
 cd /tmp/liquidsoap-full/liquidsoap
 
@@ -79,6 +79,7 @@ cd /tmp/liquidsoap-full
 
 test -f PACKAGES || cp PACKAGES.default PACKAGES
 sed -i '/ocaml-xiph/d' PACKAGES
+sed -i '/ocaml-ffmpeg/d' PACKAGES
 
 # Workaround
 touch liquidsoap/configure
