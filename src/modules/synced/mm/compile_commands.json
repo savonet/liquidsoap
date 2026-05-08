@@ -1,0 +1,151 @@
+[
+  {
+    "directory": "_build/default/src",
+    "file": "image_data.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-Wall",
+      "-fdiagnostics-color=always",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "image_data.o",
+      "-c",
+      "image_data.c"
+    ]
+  },
+  {
+    "directory": "_build/default/src",
+    "file": "image_pixel.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-Wall",
+      "-fdiagnostics-color=always",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "image_pixel.o",
+      "-c",
+      "image_pixel.c"
+    ]
+  },
+  {
+    "directory": "_build/default/src",
+    "file": "image_rgb.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-Wall",
+      "-fdiagnostics-color=always",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "image_rgb.o",
+      "-c",
+      "image_rgb.c"
+    ]
+  },
+  {
+    "directory": "_build/default/src",
+    "file": "image_yuv420.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-Wall",
+      "-fdiagnostics-color=always",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "image_yuv420.o",
+      "-c",
+      "image_yuv420.c"
+    ]
+  },
+  {
+    "directory": "_build/default/src",
+    "file": "audio_c.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-Wall",
+      "-fdiagnostics-color=always",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-I",
+      ".",
+      "-o",
+      "audio_c.o",
+      "-c",
+      "audio_c.c"
+    ]
+  },
+  {
+    "directory": "_build/default/src/config",
+    "file": "endianess_setup.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-Wall",
+      "-fdiagnostics-color=always",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "endianess_setup.o",
+      "-c",
+      "endianess_setup.c"
+    ]
+  },
+  {
+    "directory": "_build/default/src/config",
+    "file": "endianness.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-Wall",
+      "-fdiagnostics-color=always",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "endianness.o",
+      "-c",
+      "endianness.c"
+    ]
+  }
+]

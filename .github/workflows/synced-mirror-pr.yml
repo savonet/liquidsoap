@@ -1,0 +1,59 @@
+name: Synced mirror PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "src/modules/synced/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mirror-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Mirror changed modules as PRs
+        env:
+          GH_TOKEN: ${{ secrets.SUBTREE_PUSH_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          branch="mirror/pr-${PR_NUMBER}"
+
+          for dir in src/modules/synced/*/; do
+            name=$(basename "$dir")
+            if git diff --quiet "origin/${BASE_REF}" HEAD -- "src/modules/synced/$name/"; then
+              continue
+            fi
+
+            upstream="https://x-access-token:${GH_TOKEN}@github.com/savonet/ocaml-$name"
+            git clone "$upstream" /tmp/synced-$name
+            cd /tmp/synced-$name
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout -b "$branch"
+            rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/src/modules/synced/$name/" .
+            git add -A
+            git commit -m "Mirror of savonet/liquidsoap#${PR_NUMBER}: ${PR_TITLE}"
+            git push origin "$branch" --force
+            cd -
+
+            if ! gh pr list --repo "savonet/ocaml-$name" --head "$branch" --json number --jq 'length > 0' | grep -q true; then
+              printf 'Mirror of savonet/liquidsoap#%s\n\n%s' "$PR_NUMBER" "$PR_BODY" > /tmp/pr-body.md
+              gh pr create \
+                --repo "savonet/ocaml-$name" \
+                --head "$branch" \
+                --base main \
+                --title "$PR_TITLE" \
+                --body-file /tmp/pr-body.md
+            fi
+          done
