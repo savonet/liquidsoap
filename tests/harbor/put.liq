@@ -117,7 +117,7 @@ def f() =
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)
   test.equal(resp.http_version, "1.1")
-  test.equal(resp.headers, [])
+  test.equal(resp.headers, [("connection", "close")])
   test.equal("#{resp}", "")
 
   # Test in-memory file upload
@@ -173,7 +173,7 @@ def f() =
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)
   test.equal(resp.http_version, "1.1")
-  test.equal(resp.headers, [])
+  test.equal(resp.headers, [("connection", "close")])
   test.equal("#{resp}", "")
 
   # Test JSON put
@@ -216,7 +216,7 @@ def f() =
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)
   test.equal(resp.http_version, "1.1")
-  test.equal(resp.headers, [])
+  test.equal(resp.headers, [("connection", "close")])
   test.equal("#{resp}", "")
   test.pass()
 end
