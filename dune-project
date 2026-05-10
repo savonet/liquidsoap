@@ -30,6 +30,7 @@
     (mem_usage (>= 0.1.1))
     (metadata (>= 0.3.0))
     magic-mime
+    menhir
     dune-build-info
     (liquidsoap-lang (= :version))
     (ppx_string :build))
