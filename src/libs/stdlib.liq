@@ -53,6 +53,11 @@
 %include_extra "extra/externals.liq"
 %include_extra "extra/audioscrobbler.liq"
 %include_extra "extra/server.liq"
+
+%ifdef input.harbor.dynamic
+%include_extra "extra/icecast_server.liq"
+%endif
+
 %include_extra "extra/telnet.liq"
 %include_extra "extra/interactive.liq"
 %include_extra "extra/visualization.liq"

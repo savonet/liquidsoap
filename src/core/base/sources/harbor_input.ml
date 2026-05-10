@@ -266,8 +266,8 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
               login = self#login;
               icy_charset;
               meta_charset;
-              encode_metadata = self#encode_metadata;
-              get_mime_type = (fun () -> self#get_mime_type);
+              encode_metadata = (fun ~mount:_ -> self#encode_metadata);
+              get_mime_type = (fun ~mount:_ -> self#get_mime_type);
             };
           is_registered <- true);
 
