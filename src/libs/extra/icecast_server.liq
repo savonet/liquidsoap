@@ -874,7 +874,6 @@ def icecast.server.source_manager(
   ~x_forwarded_for=null,
   ~global_headers,
   ~default_mount,
-  ~prepare,
   ~mount_configs
 ) =
   # TODO: max_clients not yet implemented
@@ -1096,7 +1095,7 @@ def icecast.server.source_manager(
               list.filter(fun (l) -> l.ip != real_ip, listeners_ref())
           end
 
-          prepare = prepare ?? icecast.server.default_prepare
+          prepare = icecast.server.default_prepare
           connector =
             prepare(
               {
@@ -1539,7 +1538,6 @@ end
 # @param ~name Telnet command namespace
 # @param ~port Port to listen on
 # @param ~password Source password for authentication
-# @param ~prepare When provided, called with `{source, fallback, config, headers, burst, timeout, port, transport, dumpfile, dedicated_encoder}` and must return the output (typically by calling `output.harbor`). When `null`, a default output is created using `copy_encoder` and a standard fallback.
 # @param ~dedicated_encoder When `true`, create a separate encoder instance for each listener. This uses more resources but ensures each listener gets a clean encoder state.
 # @param ~config Optional path to an icecast XML configuration file
 # @param ~serve When `false`, disable the status page at `/` and JSON stats at `/status.json`.
@@ -1558,7 +1556,6 @@ def icecast.server(
   ~dedicated_encoder=false,
   ~x_forwarded_for_proxy_ips=null,
   ~x_forwarded_for=null,
-  ~prepare=null,
   ~config=null,
   ~serve=true,
   ~serve_auth=null,
@@ -1707,7 +1704,6 @@ def icecast.server(
       x_forwarded_for=x_forwarded_for,
       global_headers=global_headers,
       default_mount=default_mount,
-      prepare=prepare,
       mount_configs=mount_configs
     )
 
