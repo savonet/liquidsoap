@@ -786,7 +786,6 @@ def icecast.server.default_prepare(
           (
             fallback(
               id="#{mount_id}.selector",
-              track_sensitive=false,
               [(s : source), (null.get(f) : source)]
             )
           :
