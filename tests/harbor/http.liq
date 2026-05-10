@@ -13,7 +13,7 @@ def f() =
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)
   test.equal(resp.http_version, "1.1")
-  test.equal(resp.headers, [])
+  test.equal(resp.headers, [("connection", "close")])
   test.equal("#{resp}", "")
 
   # Endpoint are executed in the order they are declared
@@ -27,7 +27,7 @@ def f() =
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)
   test.equal(resp.http_version, "1.1")
-  test.equal(resp.headers, [])
+  test.equal(resp.headers, [("connection", "close")])
   test.equal("#{resp}", "")
 
   # String response with matches
@@ -44,7 +44,7 @@ def f() =
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)
   test.equal(resp.http_version, "1.1")
-  test.equal(resp.headers, [])
+  test.equal(resp.headers, [("connection", "close")])
   test.equal("#{resp}", "")
 
   # Full query
@@ -114,6 +114,7 @@ def f() =
     [
       ("some", "value"),
       ("transfer-encoding", "chunked"),
+      ("connection", "close"),
       ("content-type", "liquidsoap/test")
     ]
   )
@@ -150,7 +151,7 @@ def f() =
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)
   test.equal(resp.http_version, "1.1")
-  test.equal(resp.headers, [])
+  test.equal(resp.headers, [("connection", "close")])
   test.equal("#{resp}", "")
 
   # Chunked query
@@ -193,7 +194,7 @@ def f() =
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)
   test.equal(resp.http_version, "1.1")
-  test.equal(resp.headers, [])
+  test.equal(resp.headers, [("connection", "close")])
   test.equal("#{resp}", "")
 
   # Large chunked query
@@ -275,7 +276,11 @@ def f() =
   test.equal(resp.status_code, 200)
   test.equal(
     resp.headers,
-    [("access-control-allow-origin", "foo.com"), ("vary", "Origin")]
+    [
+      ("access-control-allow-origin", "foo.com"),
+      ("vary", "Origin"),
+      ("connection", "close")
+    ]
   )
 
   test.equal("#{resp}", "")

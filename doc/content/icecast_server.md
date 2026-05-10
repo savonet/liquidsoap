@@ -50,7 +50,7 @@ With copy-based encoders (e.g. `copy_encoder("matroska")` or `%ffmpeg` with `%au
 
 ```
 
-Each listener that connects will get its own MKV stream, properly initialised, regardless of when they join.
+Each listener that connects will get their own stream, properly initialised from a clean frame boundary, regardless of when they join.
 
 > **Note:** With full re-encoding (e.g. `%mp3`, `%aac`), `dedicated_encoder=true` creates a complete encoder per listener, which can be costly under load. Prefer copy-based encoders when using `dedicated_encoder`.
 

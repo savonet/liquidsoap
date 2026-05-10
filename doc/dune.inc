@@ -174,8 +174,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -342,8 +340,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -510,8 +506,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -678,8 +672,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -846,8 +838,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -1014,8 +1004,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -1182,8 +1170,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -1350,8 +1336,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -1518,8 +1502,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -1686,8 +1668,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -1854,8 +1834,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -2022,8 +2000,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -2190,8 +2166,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -2358,8 +2332,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -2526,8 +2498,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -2694,8 +2664,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -2862,8 +2830,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -3030,8 +2996,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -3198,8 +3162,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -3366,8 +3328,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -3534,8 +3494,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -3702,8 +3660,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -3870,8 +3826,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -4038,8 +3992,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -4206,8 +4158,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -4374,8 +4324,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -4542,8 +4490,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -4710,8 +4656,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -4878,8 +4822,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -5046,8 +4988,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -5214,8 +5154,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -5382,8 +5320,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -5550,8 +5486,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -5718,8 +5652,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -5886,8 +5818,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -6054,8 +5984,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -6222,8 +6150,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -6390,8 +6316,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -6558,8 +6482,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -6726,8 +6648,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -6894,8 +6814,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -7062,8 +6980,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -7230,8 +7146,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -7398,8 +7312,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -7566,8 +7478,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -7734,8 +7644,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -7902,8 +7810,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -8070,8 +7976,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -8238,8 +8142,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -8406,8 +8308,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -8574,8 +8474,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -8742,8 +8640,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -8910,8 +8806,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -9078,8 +8972,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -9246,8 +9138,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -9414,8 +9304,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -9582,8 +9470,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -9750,8 +9636,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -9918,8 +9802,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -10086,8 +9968,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -10254,8 +10134,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -10422,8 +10300,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -10590,8 +10466,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -10758,8 +10632,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -10926,8 +10798,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -11094,8 +10964,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -11262,8 +11130,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -11430,8 +11296,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -11598,8 +11462,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -11766,8 +11628,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -11934,8 +11794,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -12102,8 +11960,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -12270,8 +12126,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -12438,8 +12292,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -12606,8 +12458,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -12774,8 +12624,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -12942,8 +12790,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -13110,8 +12956,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -13278,8 +13122,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -13446,8 +13288,6 @@
   content/liq/icecast-server-complete.liq
   content/liq/icecast-server-config.liq
   content/liq/icecast-server-dedicated-encoder.liq
-  content/liq/icecast-server-prepare-remux.liq
-  content/liq/icecast-server-prepare-video.liq
   content/liq/icecast-server-serve-auth.liq
   content/liq/icecast-server-serve-json.liq
   content/liq/icy-update.liq
@@ -14476,34 +14316,6 @@
    content/liq/icecast-server-dedicated-encoder.liq)))
 
 (rule
- (alias test-doc-icecast-server-prepare-remux)
- (package liquidsoap)
- (deps
-  (alias_rec ../install)
-  (source_tree ../src/libs)
-  (:test_liq content/liq/icecast-server-prepare-remux.liq))
- (action
-  (run
-   %{bin:liquidsoap}
-   --check
-   --no-fallible-check
-   content/liq/icecast-server-prepare-remux.liq)))
-
-(rule
- (alias test-doc-icecast-server-prepare-video)
- (package liquidsoap)
- (deps
-  (alias_rec ../install)
-  (source_tree ../src/libs)
-  (:test_liq content/liq/icecast-server-prepare-video.liq))
- (action
-  (run
-   %{bin:liquidsoap}
-   --check
-   --no-fallible-check
-   content/liq/icecast-server-prepare-video.liq)))
-
-(rule
  (alias test-doc-icecast-server-serve-auth)
  (package liquidsoap)
  (deps
@@ -15512,8 +15324,6 @@
   (alias test-doc-icecast-server-complete)
   (alias test-doc-icecast-server-config)
   (alias test-doc-icecast-server-dedicated-encoder)
-  (alias test-doc-icecast-server-prepare-remux)
-  (alias test-doc-icecast-server-prepare-video)
   (alias test-doc-icecast-server-serve-auth)
   (alias test-doc-icecast-server-serve-json)
   (alias test-doc-icy-update)
