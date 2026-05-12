@@ -240,7 +240,15 @@ class switch ~all_predicates children =
                            (match reselect with
                            | `After_position _ -> `Force
                            | v -> v)
-                       s.effective_source) ->
+                       s.effective_source)
+               (* Even during a transition, a depleted effective source must
+                  not be returned: if it has no data beyond the current
+                  position we must let the else branch re-evaluate. *)
+               &&
+                 match reselect with
+                 | `After_position _ ->
+                     self#can_reselect ~reselect s.effective_source
+                 | _ -> true ->
             Some s.effective_source
         | _ -> (
             begin match
