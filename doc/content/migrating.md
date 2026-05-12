@@ -178,6 +178,14 @@ end
 s = fallback([s1.{on_select = my_on_select}, s2])
 ```
 
+**Adjusting the maximum fade duration:**
+
+The default `on_select` handles the ending source as follows: if it has between `0.` and `settings.source.composition.max_fade` seconds remaining (inclusive), it is sequenced with the starting source so it finishes naturally; if it has enough remaining time and carries only PCM audio, it is faded out for `max_fade` seconds; otherwise switching is immediate. The default `max_fade` is `1.`. To change it globally:
+
+```liquidsoap
+settings.source.composition.max_fade := 2.
+```
+
 **Restoring the legacy (no-fade) switching behavior:**
 
 If your script relied on the old behavior where switching did not fade out the
