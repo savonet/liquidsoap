@@ -89,11 +89,7 @@ def source.composition.default_on_select(
           "Ending #{id()} with a #{max_fade}s fade out.."
         )
 
-        leaving =
-          fade.out(
-            duration=max_fade,
-            max_duration(max_fade, sequence([leaving, switch([])]))
-          )
+        leaving = fade.out(duration=max_fade, max_duration(max_fade, leaving))
 
         count = ref(0)
         def next() =
