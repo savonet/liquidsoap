@@ -186,6 +186,39 @@ The default `on_select` handles the ending source as follows: if it has between 
 settings.source.composition.max_fade := 2.
 ```
 
+**`on_leave` and source release in custom transitions:**
+
+`on_leave` is called on the ending source only after it has been fully released — once it is no longer being consumed by the transition. This means that in a custom `on_select`, you must ensure the ending source is eventually discarded. If it is not, `on_leave` never fires and the ending source's cleanup (e.g. `skip`/`clear_last_metadata`) never runs.
+
+A common mistake is passing `ending` into a mix with no duration bound:
+
+```liquidsoap
+# Wrong: add([fade.out(ending), ...]) runs forever because add keeps pulling
+# from ending indefinitely — it is never discarded and on_leave never fires.
+def my_on_select({ending, starting, replay_metadata=_}) =
+  if null.defined(ending) then
+    let old = null.get(ending)
+    (add([fade.out(duration=3., old), fade.in(duration=3., starting)]) : source)
+  else
+    starting
+  end
+end
+```
+
+The fix is to bound `ending` with `max_duration` before passing it into the mix. Once the duration is exhausted, `max_duration` discards the source, which triggers `on_leave`:
+
+```liquidsoap
+# Correct: max_duration discards ending after 3s, so on_leave fires.
+def my_on_select({ending, starting, replay_metadata=_}) =
+  if null.defined(ending) then
+    let old = max_duration(3., null.get(ending))
+    (add([fade.out(duration=3., old), fade.in(duration=3., starting)]) : source)
+  else
+    starting
+  end
+end
+```
+
 **Restoring the legacy (no-fade) switching behavior:**
 
 If your script relied on the old behavior where switching did not fade out the
