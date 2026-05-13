@@ -1,0 +1,30 @@
+opam-version: "2.0"
+synopsis: "Camomile Unicode library with data files embedded at compile time (Windows cross-compilation)"
+maintainer: "romain.beauxis@gmail.com"
+authors: "Yoriyuki Yamagata"
+license: "LGPL-2.0-or-later WITH OCaml-LGPL-linking-exception"
+homepage: "https://github.com/ocaml-community/Camomile"
+bug-reports: "https://github.com/ocaml-community/Camomile/issues"
+depends: [
+  "ocaml-windows" {>= "4.13"}
+  "dune" {>= "3.4"}
+  "camomile-windows" {= version}
+  "crunch" {build}
+]
+build: [
+  [
+    "dune"
+    "build"
+    "-p"
+    "camomile-embedded"
+    "-x"
+    "windows"
+    "-j"
+    jobs
+    "@install"
+  ]
+]
+dev-repo: "git+https://github.com/ocaml-community/Camomile.git"
+url {
+  src: "https://github.com/ocaml-community/Camomile/archive/embed-data.tar.gz"
+}

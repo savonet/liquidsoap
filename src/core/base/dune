@@ -28,9 +28,6 @@
     (echo
      "let bin_dir () = \"%{env:LIQUIDSOAP_BIN_DIR=/usr/share/liquidsoap/bin}\"\n")
     (echo "let bin_dir_descr = bin_dir ()\n")
-    (echo
-     "let camomile_dir () = \"%{env:LIQUIDSOAP_CAMOMILE_DIR=/usr/share/liquidsoap/camomile}\"\n")
-    (echo "let camomile_dir_descr = camomile_dir ()\n")
     (echo "let user_cache_override () = None\n")
     (echo "let user_cache_override_descr = \"$HOME/.cache/liquidsoap\"\n")
     (echo
@@ -57,7 +54,7 @@
   liquidsoap-lang
   liquidsoap_memtrace
   menhirLib
-  camomile.lib
+  camomile-embedded
   curl
   cry
   re
