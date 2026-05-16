@@ -31,19 +31,9 @@ If you are installing via [opam](https://opam.ocaml.org/), installing the `ffmpe
 
 ### fdk-aac support in ffmpeg
 
-A common question is how to install `ffmpeg` with `fdk-aac` support. This requires the _ffmpeg shared libraries_ compiled with `libfdk-aac` — installing `libfdk-aac` alone is not enough. You may need to recompile `ffmpeg` to enable it.
+**Since `2.5.x`**, all binary releases and Docker images ship with a static FFmpeg build that includes `fdk-aac` out of the box. No extra steps are needed.
 
-When recompiling, pass `--enable-shared` to the `configure` script. Note that most `ffmpeg` downloads are _static builds_ and do not provide shared libraries.
-
-On Linux, check which dynamic libraries liquidsoap uses with:
-
-```shell
-ldd /path/to/liquidsopap
-```
-
-On macOS, use `otool -L`. Look for `libavcodec` in the output, then run the same command on that library. If `libfdk-aac` appears, you're good to go.
-
-On Debian, [deb-multimedia.org](https://www.deb-multimedia.org/) may provide an `ffmpeg` build with `libfdk-aac` enabled. Follow the instructions on that site for the latest guide. See also [this discussion](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
+For releases prior to `2.5.x`, `fdk-aac` support requires the FFmpeg shared libraries compiled with `libfdk-aac`. On Debian, [deb-multimedia.org](https://www.deb-multimedia.org/) provided such a build. See also [this discussion](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
 
 ## Decoders
 

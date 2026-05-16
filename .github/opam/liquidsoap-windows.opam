@@ -78,7 +78,6 @@ depopts: [
   "pulseaudio-windows"
   "prometheus-liquidsoap-windows"
   "samplerate-windows"
-  "shine-windows"
   "soundtouch-windows"
   "speex-windows"
   "srt-windows"
@@ -116,7 +115,6 @@ conflicts: [
   "posix-socket-windows" {< "2.1.0"}
   "pulseaudio-windows" {< "0.1.4"}
   "samplerate-windows" {< "0.1.5"}
-  "shine-windows" {< "0.2.0"}
   "soundtouch-windows" {< "0.1.9"}
   "speex-windows" {< "0.4.0"}
   "srt-windows" {< "0.3.3"}

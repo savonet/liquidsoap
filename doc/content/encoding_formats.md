@@ -62,8 +62,6 @@ You must be missing an optional dependency.
 
 In this case, you might need to enable an external dependency (if you are installing via `opam`) or rebuild liquidsoap.
 
-On our Windows build, only `%ffmpeg` is included due to linking limitations. Luckily, `%ffmpeg` supports many common formats.
-
 ## 🔍 Format Reference
 
 ### MP3

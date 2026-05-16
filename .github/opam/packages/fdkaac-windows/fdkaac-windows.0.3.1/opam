@@ -1,0 +1,24 @@
+opam-version: "2.0"
+synopsis: "Fraunhofer FDK AAC Codec Library"
+description:
+  "Bindings for the FDK AAC codec library"
+maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+license: "GPL-2.0"
+homepage: "https://github.com/savonet/ocaml-fdkaac"
+bug-reports: "https://github.com/savonet/ocaml-fdkaac/issues"
+dev-repo: "git+https://github.com/savonet/ocaml-fdkaac.git"
+depends: [
+  "dune" {>= "2.0"}
+  "dune-configurator"
+  "ocaml-windows"
+]
+build: [
+  ["dune" "build" "-p" "fdkaac" "-x" "windows" "-j" jobs "@install"]
+]
+depexts: [
+  ["fdk-aac"] {os-distribution = "mxe"}
+]
+url {
+  src: "https://github.com/savonet/ocaml-fdkaac/archive/main.tar.gz"
+}
