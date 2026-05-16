@@ -28,6 +28,11 @@ on:
         required: false
         default: '["4.14.2","5.4.0"]'
         type: string
+      push:
+        description: "Push images to registry"
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build-debian-ci:
@@ -78,7 +83,7 @@ jobs:
           file: .github/docker/debian-base.dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.build_args.outputs.tag }}
-          push: true
+          push: ${{ inputs.push }}
           provenance: false
           sbom: false
 
@@ -107,6 +112,6 @@ jobs:
           file: .github/docker/alpine-base.dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/savonet/liquidsoap:ci-alpine-${{ matrix.ocaml_version }}
-          push: true
+          push: ${{ inputs.push }}
           provenance: false
           sbom: false
