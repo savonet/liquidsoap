@@ -60,7 +60,7 @@ jobs:
           OCAML_VERSION: ${{ matrix.ocaml_version }}
         run: |
           TAG=$(echo ${BASE_IMAGE} | sed -e 's#/#_#g' -e 's#:#_#g')
-          echo "tag=ghcr.io/savonet/liquidsoap:ci-static-ffmpeg-${TAG}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=ghcr.io/savonet/liquidsoap:ci-v2-${TAG}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
       - name: Build and push
         uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
         with:
@@ -100,7 +100,7 @@ jobs:
           context: .
           file: .github/docker/alpine-base.dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/savonet/liquidsoap:ci-alpine-${{ matrix.ocaml_version }}
+          tags: ghcr.io/savonet/liquidsoap:ci-v2-alpine-${{ matrix.ocaml_version }}
           push: ${{ inputs.push }}
           provenance: false
           sbom: false
