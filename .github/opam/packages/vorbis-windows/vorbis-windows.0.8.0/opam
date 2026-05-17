@@ -1,0 +1,23 @@
+opam-version: "2.0"
+synopsis: "Bindings to libvorbis"
+maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+license: "GPL-2.0-only"
+homepage: "https://github.com/savonet/ocaml-vorbis"
+bug-reports: "https://github.com/savonet/ocaml-vorbis/issues"
+dev-repo: "git+https://github.com/savonet/ocaml-vorbis.git"
+depends: [
+  "dune" {>= "2.0"}
+  "dune-configurator"
+  "ogg-windows" {>= "0.7.0"}
+  "ocaml-windows" {>= "4.03.0"}
+]
+build: [
+  ["dune" "build" "-p" "vorbis" "-j" jobs "-x" "windows" "@install"]
+]
+depexts: [
+  ["vorbis"] {os-distribution = "mxe"}
+]
+url {
+  src: "https://github.com/savonet/ocaml-vorbis/archive/main.tar.gz"
+}

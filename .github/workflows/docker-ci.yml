@@ -60,25 +60,14 @@ jobs:
           OCAML_VERSION: ${{ matrix.ocaml_version }}
         run: |
           TAG=$(echo ${BASE_IMAGE} | sed -e 's#/#_#g' -e 's#:#_#g')
-          echo "tag=ghcr.io/savonet/liquidsoap:ci-${TAG}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
-          echo "os=$(echo ${BASE_IMAGE} | cut -d':' -f 1)" >> "${GITHUB_OUTPUT}"
-          echo "distribution=$(echo ${BASE_IMAGE} | cut -d':' -f 2)" >> "${GITHUB_OUTPUT}"
-          DISTRIBUTION=$(echo ${BASE_IMAGE} | cut -d':' -f 2)
-          if [ "${DISTRIBUTION}" = "focal" ]; then
-            echo "extra_packages=conf-srt.1" >> "${GITHUB_OUTPUT}"
-          else
-            echo "extra_packages=conf-srt-gnutls" >> "${GITHUB_OUTPUT}"
-          fi
+          echo "tag=ghcr.io/savonet/liquidsoap:ci-v2-${TAG}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
       - name: Build and push
         uses: depot/build-push-action@5f3b3c2e5a00f0093de47f657aeaefcedff27d18 # v1.17.0
         with:
           token: ${{ secrets.DEPOT_TOKEN }}
           build-args: |
             OCAML_VERSION=${{ matrix.ocaml_version }}
-            EXTRA_PACKAGES=${{ steps.build_args.outputs.extra_packages }}
             BASE_IMAGE=${{ matrix.base_image }}
-            OS=${{ steps.build_args.outputs.os }}
-            DISTRIBUTION=${{ steps.build_args.outputs.distribution }}
           context: .
           file: .github/docker/debian-base.dockerfile
           platforms: linux/amd64,linux/arm64
@@ -111,7 +100,7 @@ jobs:
           context: .
           file: .github/docker/alpine-base.dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/savonet/liquidsoap:ci-alpine-${{ matrix.ocaml_version }}
+          tags: ghcr.io/savonet/liquidsoap:ci-v2-alpine-${{ matrix.ocaml_version }}
           push: ${{ inputs.push }}
           provenance: false
           sbom: false

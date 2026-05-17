@@ -35,7 +35,7 @@ WORKDIR /tmp/liquidsoap-full
 RUN make init && make update
 
 RUN cat PACKAGES.default | grep '^ocaml' | grep -v dssi > /tmp/modules && \
-    cat /tmp/modules | while read i; do find $i | grep '\.opam$'; done | while read i; do basename $i | cut -d'.' -f 1; done > /tmp/packages
+    cat /tmp/modules | while read i; do find $i | grep '\.opam$'; done | while read i; do basename $i | cut -d'.' -f 1; done | grep -Ev "^(speex|theora)$" > /tmp/packages
 
 RUN \
     cat /tmp/modules | while read module; do \

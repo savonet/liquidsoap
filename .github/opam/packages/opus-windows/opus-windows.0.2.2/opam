@@ -1,0 +1,23 @@
+opam-version: "2.0"
+synopsis: "Bindings to libopus"
+maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+license: "GPL-2.0"
+homepage: "https://github.com/savonet/ocaml-opus"
+bug-reports: "https://github.com/savonet/ocaml-opus/issues"
+dev-repo: "git+https://github.com/savonet/ocaml-opus.git"
+depends: [
+  "ocaml-windows"
+  "dune" {>= "2.8"}
+  "dune-configurator"
+  "ogg-windows" {>= "0.7.1"}
+]
+build: [
+  ["dune" "build" "-p" "opus" "-x" "windows" "-j" jobs "@install"]
+]
+depexts: [
+  ["opus"] {os-distribution = "mxe"}
+]
+url {
+  src: "https://github.com/savonet/ocaml-opus/archive/main.tar.gz"
+}

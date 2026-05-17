@@ -1,0 +1,22 @@
+opam-version: "2.0"
+synopsis: "Bindings to libogg"
+maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+license: "GPL-2.0"
+homepage: "https://github.com/savonet/ocaml-ogg"
+bug-reports: "https://github.com/savonet/ocaml-ogg/issues"
+dev-repo: "git+https://github.com/savonet/ocaml-ogg.git"
+depends: [
+  "dune" {>= "2.8"}
+  "dune-configurator"
+  "ocaml-windows"
+]
+build: [
+  ["dune" "build" "-p" "ogg" "-x" "windows" "-j" jobs "@install"]
+]
+depexts: [
+  ["ogg"] {os-distribution = "mxe"}
+]
+url {
+  src: "https://github.com/savonet/ocaml-ogg/archive/main.tar.gz"
+}

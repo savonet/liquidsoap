@@ -37,8 +37,9 @@ Lastly, compiling from source should be reserved to developers.
 We generate debian and ubuntu packages automatically as part of our [release process](https://github.com/savonet/liquidsoap/releases). Otherwise, you
 can check out the official [debian](https://packages.debian.org/liquidsoap) and [ubuntu](https://packages.ubuntu.com/liquidsoap) packages.
 
-When installing our own packages on debian, you will also need to use the [deb-multimedia.org](https://www.deb-multimedia.org/) packages.
-These packages provide up-to date libraries and also support for `fdk-aac` encoding in `ffmpeg`!
+Starting from version `2.5.x`, our Debian/Ubuntu packages bundle a static FFmpeg build with full codec support, including `fdk-aac`. No third-party repositories are required.
+
+For Debian releases prior to `2.5.x`, you also need the [deb-multimedia.org](https://www.deb-multimedia.org/) packages, which provide up-to-date FFmpeg libraries with `fdk-aac` support. Note that deb-multimedia.org is Debian-only and does not apply to Ubuntu.
 
 ## Alpine
 
