@@ -71,7 +71,7 @@ RUN apt-get update && apt-get install -y ca-certificates curl gnupg && \
       | gpg --dearmor -o /etc/apt/trusted.gpg.d/liquidsoap-ffmpeg.gpg && \
     echo "deb https://liquidsoap.info/ffmpeg-static-build stable main" \
       > /etc/apt/sources.list.d/liquidsoap-ffmpeg.list && \
-    apt-get update && apt-get install -y ffmpeg-liquidsoap libffi-dev
+    apt-get update && apt-get install -y libffi-dev ffmpeg-liquidsoap
 
 # Wrap ld to inject -Bsymbolic when building shared objects.
 # Needed on ARM64: FFmpeg/x265 NEON assembly uses non-GOT ADRP relocations

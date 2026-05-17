@@ -140,6 +140,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -306,6 +313,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -472,6 +486,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -638,6 +659,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -804,6 +832,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -970,6 +1005,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -1136,6 +1178,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -1302,6 +1351,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -1468,6 +1524,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -1634,6 +1697,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -1800,6 +1870,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -1966,6 +2043,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -2132,6 +2216,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -2298,6 +2389,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -2464,6 +2562,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -2630,6 +2735,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -2796,6 +2908,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -2962,6 +3081,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -3128,6 +3254,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -3294,6 +3427,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -3460,6 +3600,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -3626,6 +3773,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -3792,6 +3946,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -3958,6 +4119,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -4124,6 +4292,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -4290,6 +4465,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -4456,6 +4638,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -4622,6 +4811,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -4788,6 +4984,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -4954,6 +5157,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -5120,6 +5330,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -5286,6 +5503,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -5452,6 +5676,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -5618,6 +5849,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -5784,6 +6022,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -5950,6 +6195,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -6116,6 +6368,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -6282,6 +6541,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -6448,6 +6714,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -6614,6 +6887,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -6780,6 +7060,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -6946,6 +7233,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -7112,6 +7406,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -7278,6 +7579,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -7444,6 +7752,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -7610,6 +7925,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -7776,6 +8098,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -7942,6 +8271,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -8108,6 +8444,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -8274,6 +8617,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -8440,6 +8790,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -8606,6 +8963,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -8772,6 +9136,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -8938,6 +9309,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -9104,6 +9482,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -9270,6 +9655,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -9436,6 +9828,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -9602,6 +10001,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -9768,6 +10174,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -9934,6 +10347,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -10100,6 +10520,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -10266,6 +10693,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -10432,6 +10866,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -10598,6 +11039,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -10764,6 +11212,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -10930,6 +11385,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -11096,6 +11558,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -11262,6 +11731,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -11428,6 +11904,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -11594,6 +12077,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -11760,6 +12250,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -11926,6 +12423,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -12092,6 +12596,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -12258,6 +12769,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -12424,6 +12942,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -12590,6 +13115,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -12756,6 +13288,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -12922,6 +13461,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -13088,6 +13634,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -13254,6 +13807,13 @@
   content/liq/dump-hourly.liq
   content/liq/dump-hourly2.liq
   content/liq/dynamic-source.liq
+  content/liq/enc-fdkaac.liq
+  content/liq/enc-ffmpeg.liq
+  content/liq/enc-flac.liq
+  content/liq/enc-mp3.liq
+  content/liq/enc-opus.liq
+  content/liq/enc-vorbis.liq
+  content/liq/enc-wav.liq
   content/liq/external-output.file.liq
   content/liq/fallback.liq
   content/liq/ffmpeg-filter-dynamic-volume.liq
@@ -13838,6 +14398,96 @@
    --check
    --no-fallible-check
    content/liq/dynamic-source.liq)))
+
+(rule
+ (alias test-doc-enc-fdkaac)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/enc-fdkaac.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/enc-fdkaac.liq)))
+
+(rule
+ (alias test-doc-enc-ffmpeg)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/enc-ffmpeg.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/enc-ffmpeg.liq)))
+
+(rule
+ (alias test-doc-enc-flac)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/enc-flac.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/enc-flac.liq)))
+
+(rule
+ (alias test-doc-enc-mp3)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/enc-mp3.liq))
+ (action
+  (run %{bin:liquidsoap} --check --no-fallible-check content/liq/enc-mp3.liq)))
+
+(rule
+ (alias test-doc-enc-opus)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/enc-opus.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/enc-opus.liq)))
+
+(rule
+ (alias test-doc-enc-vorbis)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/enc-vorbis.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/enc-vorbis.liq)))
+
+(rule
+ (alias test-doc-enc-wav)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/enc-wav.liq))
+ (action
+  (run %{bin:liquidsoap} --check --no-fallible-check content/liq/enc-wav.liq)))
 
 (rule
  (alias test-doc-external-output.file)
@@ -15290,6 +15940,13 @@
   (alias test-doc-dump-hourly)
   (alias test-doc-dump-hourly2)
   (alias test-doc-dynamic-source)
+  (alias test-doc-enc-fdkaac)
+  (alias test-doc-enc-ffmpeg)
+  (alias test-doc-enc-flac)
+  (alias test-doc-enc-mp3)
+  (alias test-doc-enc-opus)
+  (alias test-doc-enc-vorbis)
+  (alias test-doc-enc-wav)
   (alias test-doc-external-output.file)
   (alias test-doc-fallback)
   (alias test-doc-ffmpeg-filter-dynamic-volume)
