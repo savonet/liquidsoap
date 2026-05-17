@@ -73,14 +73,6 @@ RUN apt-get update && apt-get install -y ca-certificates curl gnupg && \
       > /etc/apt/sources.list.d/liquidsoap-ffmpeg.list && \
     apt-get update && apt-get install -y libffi-dev ffmpeg-liquidsoap
 
-# Wrap ld to inject -Bsymbolic when building shared objects.
-# Needed on ARM64: FFmpeg/x265 NEON assembly uses non-GOT ADRP relocations
-# against globally-visible symbols, which ld rejects when making a .so.
-RUN mv /usr/bin/ld /usr/bin/ld.real && \
-    printf '#!/bin/sh\nfor a; do [ "$a" = "-shared" ] && exec /usr/bin/ld.real -Bsymbolic "$@"; done\nexec /usr/bin/ld.real "$@"\n' \
-      > /usr/bin/ld && \
-    chmod +x /usr/bin/ld
-
 USER opam
 
 RUN eval $(opam env) && \
@@ -88,8 +80,6 @@ RUN eval $(opam env) && \
     opam clean
 
 USER root
-
-RUN mv /usr/bin/ld.real /usr/bin/ld
 
 # Stage 4: Install remaining external and opam dependencies
 FROM static-packages AS build
