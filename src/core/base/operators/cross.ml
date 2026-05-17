@@ -475,13 +475,16 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         | `Idle -> self#source#effective_source
         | `Before (_, s) | `After (_, s) -> s#effective_source
 
+    val pending_abort_track = Atomic.make false
+
     method abort_track =
-      match status with
-        | `Idle -> self#source#abort_track
-        | `Before s | `After s ->
-            self#source#abort_track;
-            status <- `After s;
-            ignore self#prepare_before
+      self#source#abort_track;
+      if not (Atomic.exchange pending_abort_track true) then
+        Clock.on_tick self#clock (fun () ->
+            Atomic.set pending_abort_track false;
+            match status with
+              | `Idle -> ()
+              | `Before _ | `After _ -> ignore self#prepare_before)
   end
 
 let _ =
