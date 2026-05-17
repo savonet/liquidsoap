@@ -92,6 +92,15 @@ jobs:
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh
+      - name: Print debian package info
+        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
+        env:
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
+        run: |
+          for f in "${LIQ_TMP_DIR}"/*.deb; do
+            echo "=== $f ==="
+            dpkg-deb --info "$f"
+          done
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu'))
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -124,6 +133,15 @@ jobs:
           sudo -u opam -E abuild-keygen -a -n
           cp /home/opam/.abuild/*.pub /etc/apk/keys/
           sudo -u opam -E ./.github/scripts/build-apk.sh
+      - name: Print alpine package info
+        if: matrix.os == 'alpine'
+        env:
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
+        run: |
+          for f in "${LIQ_TMP_DIR}"/*.apk; do
+            echo "=== $f ==="
+            tar -xOf "$f" .PKGINFO 2>/dev/null || true
+          done
       - name: Upload alpine packages artifacts
         if: matrix.os == 'alpine'
         uses: savonet/artifact-upload-docker-action@b3ed1eeaf18859b6f53c026bf7476aee7e8bd735 # main
