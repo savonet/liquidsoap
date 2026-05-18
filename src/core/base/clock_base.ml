@@ -41,6 +41,7 @@ end
 module WeakQueue = struct
   include Queues.WeakQueue
 
+  let push_raw = push
   let push q v = if not (exists q (fun v' -> v == v')) then push q v
 end
 
@@ -134,6 +135,7 @@ type source =
   ; activations : activation list
   ; wake_up : source -> activation
   ; sleep : activation -> unit
+  ; on_sleep : (unit -> unit) -> unit
   ; is_ready : bool
   ; get_frame : Frame.t
   ; source_state : sync_source option

@@ -529,10 +529,11 @@ let rec active_params c =
 
 and _register_clock_callback ~clock x s =
   let name = s#id and stack = s#stack in
-  let _ : unit -> unit =
+  let deregister =
     s#on_sync_source_change (fun ~old:_ new_sync_source ->
         _update_clock_sync_source ~clock x ~name ~stack new_sync_source)
   in
+  s#on_sleep deregister;
   _update_clock_sync_source ~clock x ~name ~stack s#source_state
 
 and _activate_pending_sources ~clock x =
@@ -785,7 +786,7 @@ let start_pending () =
               | `True sync ->
                   _start ~sync ~c clock;
                   Queue.push clocks c
-              | `False -> WeakQueue.push pending_clocks c)
+              | `False -> WeakQueue.push_raw pending_clocks c)
         | _ -> ())
     c
 
