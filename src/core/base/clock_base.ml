@@ -135,7 +135,6 @@ type source =
   ; activations : activation list
   ; wake_up : source -> activation
   ; sleep : activation -> unit
-  ; on_sleep : (unit -> unit) -> unit
   ; is_ready : bool
   ; get_frame : Frame.t
   ; source_state : sync_source option
