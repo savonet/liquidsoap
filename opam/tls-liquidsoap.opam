@@ -9,12 +9,13 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "3.18"}
+  "dune" {>= "3.23"}
   "tls"
   "ca-certs"
   "mirage-crypto-rng"
   "cstruct"
   "odoc" {with-doc}
+  "menhir" {>= "20180523"}
 ]
 build: [
   [
