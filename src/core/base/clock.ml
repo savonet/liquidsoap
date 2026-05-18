@@ -116,6 +116,7 @@ type active_params = {
   outputs : (activation * source) Queue.t;
   active_sources : source WeakQueue.t;
   passive_sources : source WeakQueue.t;
+  sync_source_deregisters : (unit -> unit) Queue.t;
   on_tick : (unit -> unit) Queue.t;
   after_tick : (unit -> unit) Queue.t;
   ticks : int Atomic.t;
@@ -271,6 +272,8 @@ let rec has_stopped ~clear_controller ~clock ~c x =
      them from being stopped here. *)
   let sub_clocks = Queue.elements clock.sub_clocks in
   Queue.iter x.outputs (fun (a, o) -> try o#sleep a with _ -> ());
+  Queue.flush_iter x.sync_source_deregisters (fun deregister ->
+      try deregister () with _ -> ());
   List.iter stop sub_clocks;
   Queue.filter_out clocks (fun c -> Unifier.deref c == clock);
   if clear_controller then Unifier.set clock.controller `None;
@@ -533,7 +536,7 @@ and _register_clock_callback ~clock x s =
     s#on_sync_source_change (fun ~old:_ new_sync_source ->
         _update_clock_sync_source ~clock x ~name ~stack new_sync_source)
   in
-  s#on_sleep deregister;
+  Queue.push x.sync_source_deregisters deregister;
   _update_clock_sync_source ~clock x ~name ~stack s#source_state
 
 and _activate_pending_sources ~clock x =
@@ -703,6 +706,7 @@ and _start ?force ~sync ~c clock =
       sync;
       active_sources = WeakQueue.create ();
       passive_sources = WeakQueue.create ();
+      sync_source_deregisters = Queue.create ();
       on_tick = Queue.create ();
       after_tick = Queue.create ();
       outputs = Queue.create ();
