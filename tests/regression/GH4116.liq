@@ -1,3 +1,6 @@
+# theora encoder/decoder is deprecated
+test.skip()
+
 s = single("./theora-test.mp4")
 
 enc = %theora
