@@ -40,6 +40,9 @@ module SourceSync = Clock.MkSyncSource (struct
   let to_string s = Printf.sprintf "source(id=%s)" s#id
 end)
 
+let sync_source_changed a b =
+  match (a, b) with None, None -> false | Some a, Some b -> a != b | _ -> true
+
 (** {1 Sources} *)
 
 (** Instrumentation. *)
@@ -226,7 +229,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       fun () -> Queue.filter_out state_callbacks (fun (i, _) -> i = id)
 
     method private notify_sync_source new_state =
-      if new_state <> source_state then (
+      if sync_source_changed new_state source_state then (
         let old = source_state in
         source_state <- new_state;
         Queue.iter state_callbacks (fun (_, fn) -> fn ~old new_state))
@@ -237,7 +240,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     initializer
       self#on_before_streaming_cycle (fun () ->
           let sync_source = snd self#self_sync in
-          if sync_source <> source_state then
+          if sync_source_changed sync_source source_state then
             self#notify_sync_source sync_source)
 
     (* Type describing the contents of the frame: this should be a record
