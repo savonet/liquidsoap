@@ -67,4 +67,6 @@
 %include_extra "extra/fades.liq"
 %include_extra "extra/video.liq"
 
+%include "composition.liq"
+
 set_settings_ref(settings)

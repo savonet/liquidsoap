@@ -123,6 +123,123 @@ The `add` operator now relays metadata from all sources being summed (see above)
 
 Also, remember that the `add` operator removes all track marks.
 
+### Per-source methods on `switch`, `fallback`, `rotate`, `random`
+
+The `switch` operator (and its wrappers `fallback`, `rotate`, `random`) now uses per-source methods instead of parallel list parameters. This gives fine-grained control per branch.
+
+#### `replay_metadata` (removed)
+
+The `replay_metadata` parameter has been removed. The `starting` source passed to `on_select` has a `last_metadata` method for accessing its most recent metadata if needed.
+
+#### `single` (deprecated parameter on `switch`)
+
+**Before:**
+
+```liquidsoap
+s = switch(single=[true, false], [({cond1}, s1), ({cond2}, s2)])
+```
+
+**After:**
+
+```liquidsoap
+s = switch([({cond1}, s1.{single = true}), ({cond2}, s2)])
+```
+
+#### `transitions`, `transition_length`, `override` (breaking change)
+
+The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source:
+
+- `on_select`: called when the source is selected. Receives `{starting, ending, replay_metadata}` and returns the source to play. `ending` is `null` when the ending source reached a track boundary; non-null when it was preempted mid-track. `replay_metadata` mirrors the per-source `replay_metadata` method (default `true`). By default, both file and live profiles replay the latest metadata when `replay_metadata` is `true` and fade out `ending` when non-null and the source has only PCM audio content (no video, no encoded audio such as `ffmpeg.copy`).
+- `on_leave`: called when switching away from this source. Receives `{source, track_sensitive}`. By default, skips the source when it was preempted mid-track (`track_sensitive = false`) so it starts fresh on next selection.
+- `track_sensitive`: whether to wait for a track boundary before switching. Defaults to `true` for file-based sources, `false` for live inputs.
+- `single`: forbid selecting this source for two consecutive tracks.
+- `composition_type`: `"file"` or `"live"`. Controls which global profile (`source.composition.file` / `source.composition.live`) provides the defaults for the above methods. Can be overridden per source with `:=`.
+
+**Before:**
+
+```liquidsoap
+def my_transition(old, new) =
+  add([fade.out(old), fade.in(new)])
+end
+s = fallback(transitions=[my_transition], transition_length=3., [s1, s2])
+```
+
+**After:**
+
+```liquidsoap
+def my_on_select({ending, starting, replay_metadata}) =
+  if null.defined(ending) then
+    let old = null.get(ending)
+    (sequence([(fade.out(duration=3., old) : source), starting]) : source)
+  else
+    starting
+  end
+end
+s = fallback([s1.{on_select = my_on_select}, s2])
+```
+
+**Adjusting the maximum fade duration:**
+
+The default `on_select` handles the ending source as follows: if it has between `0.` and `settings.source.composition.max_fade` seconds remaining (inclusive), it is sequenced with the starting source so it finishes naturally; if it has enough remaining time and carries only PCM audio, it is faded out for `max_fade` seconds; otherwise switching is immediate. The default `max_fade` is `1.`. To change it globally:
+
+```liquidsoap
+settings.source.composition.max_fade := 2.
+```
+
+**`on_leave` and source release in custom transitions:**
+
+`on_leave` is called on the ending source only after it has been fully released — once it is no longer being consumed by the transition. This means that in a custom `on_select`, you must ensure the ending source is eventually discarded. If it is not, `on_leave` never fires and the ending source's cleanup (e.g. `skip`/`clear_last_metadata`) never runs.
+
+A common mistake is passing `ending` into a mix with no duration bound:
+
+```liquidsoap
+# Wrong: add([fade.out(ending), ...]) runs forever because add keeps pulling
+# from ending indefinitely — it is never discarded and on_leave never fires.
+def my_on_select({ending, starting, replay_metadata=_}) =
+  if null.defined(ending) then
+    let old = null.get(ending)
+    (add([fade.out(duration=3., old), fade.in(duration=3., starting)]) : source)
+  else
+    starting
+  end
+end
+```
+
+The fix is to bound `ending` with `max_duration` before passing it into the mix. Once the duration is exhausted, `max_duration` discards the source, which triggers `on_leave`:
+
+```liquidsoap
+# Correct: max_duration discards ending after 3s, so on_leave fires.
+def my_on_select({ending, starting, replay_metadata=_}) =
+  if null.defined(ending) then
+    let old = max_duration(3., null.get(ending))
+    (add([fade.out(duration=3., old), fade.in(duration=3., starting)]) : source)
+  else
+    starting
+  end
+end
+```
+
+**Restoring the legacy (no-fade) switching behavior:**
+
+If your script relied on the old behavior where switching did not fade out the
+ending source, use `source.composition.legacy_on_select`. It replays metadata
+when `replay_metadata` is `true` but passes `starting` through immediately with
+no transition:
+
+```liquidsoap
+s = fallback([s1.{on_select = source.composition.legacy_on_select}, s2])
+```
+
+**Changing the composition type of a live relay:**
+
+```liquidsoap
+# input.http defaults to live composition (immediate switching with fade).
+# For a relay carrying a playlist, wait for track boundaries instead.
+s = input.http("https://relay.example.com/stream")
+s.composition_type := "file"
+s = fallback([live_show, s, backup])
+```
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation

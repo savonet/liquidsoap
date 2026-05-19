@@ -30,8 +30,7 @@ fallback_sine =
 s =
   fallback(
     id="main_source",
-    track_sensitive=false,
-    [blank_strip, fallback_sine]
+    [blank_strip.{track_sensitive=false}, fallback_sine.{track_sensitive=false}]
   )
 
 # We want to make sure that blank.strip keeps eating the blank source before switching back:

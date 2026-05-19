@@ -2,7 +2,7 @@ radio = single("../media/@wav[stereo].wav")
 
 append = request.queue()
 
-radio = fallback(track_sensitive=true, [append, radio])
+radio = fallback([append, radio])
 
 thread.run(
   delay=3.,
