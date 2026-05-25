@@ -340,7 +340,7 @@ def subtitles.map(
 end
 
 # Allow inserting subtitles into the source.
-# subtitles track is created is the source does
+# subtitles track is created if the source does
 # not have one.
 # @category Source / Track processing
 # @argsof track.subtitles.insert
