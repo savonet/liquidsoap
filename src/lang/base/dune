@@ -40,16 +40,15 @@
 
 (rule
  (target git_sha)
+ (deps
+  (glob_files_rec %{workspace_root}/.git/**)
+  (sandbox preserve_file_kind))
  (action
-  (chdir
-   %{workspace_root}
-   (progn
-    (run rm -rf ../../.git)
-    (with-stdout-to
-     %{target}
-     (with-accepted-exit-codes
-      (or 0 128)
-      (run git rev-parse --short HEAD)))))))
+  (with-stdout-to
+   %{target}
+   (with-accepted-exit-codes
+    (or 0 128)
+    (run git rev-parse --short HEAD)))))
 
 (rule
  (target build_config.ml)
