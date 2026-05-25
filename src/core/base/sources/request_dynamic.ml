@@ -72,12 +72,24 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
     method current = Atomic.get current
     method self_sync = (`Static, None)
     val should_skip = Atomic.make false
+
+    initializer
+      self#on_before_streaming_cycle (fun () ->
+          if Atomic.exchange should_skip false then (
+            self#after_streaming_cycle;
+            self#end_request;
+            if self#is_ready then (
+              let f = self#peek_frame in
+              (match Frame.track_marks f with
+                | p :: _ -> self#consumed p
+                | _ -> self#consumed (Frame.position f));
+              self#after_streaming_cycle)))
+
     method is_synchronous = synchronous
     method prefetch = prefetch
 
     (** How to unload a request. *)
     method private end_request =
-      Atomic.set should_skip false;
       remaining <- 0;
       match Atomic.exchange current None with
         | None -> ()
@@ -161,7 +173,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
           let buf =
             Frame.append buf (self#generate_from_current_request (size - pos))
           in
-          if Atomic.get should_skip || Frame.is_partial buf then (
+          if Frame.is_partial buf then (
             self#end_request;
             let buf = Frame.add_track_mark buf (Frame.position buf) in
             if self#fetch_request then fill buf else buf)
