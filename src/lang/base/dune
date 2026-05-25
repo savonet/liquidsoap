@@ -39,7 +39,21 @@
   SLASH))
 
 (rule
+ (target git_sha)
+ (action
+  (chdir
+   %{workspace_root}
+   (progn
+    (run rm -rf ../../.git)
+    (with-stdout-to
+     %{target}
+     (with-accepted-exit-codes
+      (or 0 128)
+      (run git rev-parse --short HEAD)))))))
+
+(rule
  (target build_config.ml)
+ (deps git_sha)
  (action
   (with-stdout-to
    %{target}
@@ -48,9 +62,7 @@
     (echo "let version = \"%{version:liquidsoap-lang}\"\n")
     (echo "let version_len = String.length version\n")
     (echo "let parsed_sha = String.trim \"")
-    (with-accepted-exit-codes
-     (or 0 128)
-     (run git rev-parse --short HEAD))
+    (cat git_sha)
     (echo "\"\n")
     (echo "let parsed_sha_len = String.length parsed_sha\n")
     (echo "let dune_sha_len = 7\n")
