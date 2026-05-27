@@ -1422,11 +1422,14 @@ def icecast.server.serve(
      class=empty>No active mounts.</p>';return;}const ids=new \
      Set(mounts.map(m=>m.mount));Array.from(el.children).forEach(c=>{if(!c.dataset.mount)c.remove();});Array.from(el.querySelectorAll('[data-mount]')).forEach(c=>{if(!ids.has(c.dataset.mount))c.remove();});mounts.forEach(m=>{let \
      card=el.querySelector('[data-mount=\"'+m.mount+'\"]');if(!card){card=document.createElement('div');card.className='card';card.dataset.mount=m.mount;card.innerHTML=`<div \
-     class=card-title>${m.mount}</div><div class=now-playing></div><div \
-     class=meta><div class=meta-item><span class=meta-label>Name</span><span \
-     class=dyn-name></span></div><div class=meta-item><span \
-     class=meta-label>Format</span><span class=dyn-format></span></div><div \
-     class=meta-item><span class=meta-label>Started</span><span \
+     class=card-title><a href='${m.mount}' target='_blank' rel='noopener \
+     noreferrer' \
+     style='color:inherit;text-decoration:none'>${m.mount}</a></div><div \
+     class=now-playing></div><div class=meta><div class=meta-item><span \
+     class=meta-label>Name</span><span class=dyn-name></span></div><div \
+     class=meta-item><span class=meta-label>Format</span><span \
+     class=dyn-format></span></div><div class=meta-item><span \
+     class=meta-label>Started</span><span \
      class=dyn-started></span></div></div><hr><div class=stats-row><div \
      class=stat><div class=stat-n dyn-listeners></div><div \
      class=stat-l>Listeners</div></div><div class=stat><div class=stat-n \
