@@ -143,9 +143,8 @@ module Specs = struct
     && Audio.get_sample_format p = Audio.get_sample_format p'
     && Audio.get_sample_rate p = Audio.get_sample_rate p'
 
-  let compatible_video (r, p) (r', p') =
-    r = r'
-    && Video.get_width p = Video.get_width p'
+  let compatible_video p p' =
+    Video.get_width p = Video.get_width p'
     && Video.get_height p = Video.get_height p'
     && compatible_aspect_ratio
          (Video.get_sample_aspect_ratio p)
@@ -162,10 +161,10 @@ module Specs = struct
       | Some (`Audio p), Some (`Audio p') ->
           Audio.get_params_id p = Audio.get_params_id p'
           && (conf_ffmpeg_copy_relaxed#get || compatible_audio p p')
-      | ( Some (`Video { avg_frame_rate = r; codec_params = p }),
-          Some (`Video { avg_frame_rate = r'; codec_params = p' }) ) ->
+      | ( Some (`Video { avg_frame_rate = _; codec_params = p }),
+          Some (`Video { avg_frame_rate = _; codec_params = p' }) ) ->
           Video.get_params_id p = Video.get_params_id p'
-          && (conf_ffmpeg_copy_relaxed#get || compatible_video (r, p) (r', p'))
+          && (conf_ffmpeg_copy_relaxed#get || compatible_video p p')
       | Some (`Subtitle p), Some (`Subtitle p') ->
           conf_ffmpeg_copy_relaxed#get || compatible_subtitle p p'
       | _ -> false
