@@ -116,7 +116,7 @@ type active_params = {
   outputs : (activation * source) Queue.t;
   active_sources : source WeakQueue.t;
   passive_sources : source WeakQueue.t;
-  sync_source_deregisters : (unit -> unit) Queue.t;
+  sync_source_deregisters : (source * (unit -> unit)) Queue.t;
   on_tick : (unit -> unit) Queue.t;
   after_tick : (unit -> unit) Queue.t;
   ticks : int Atomic.t;
@@ -203,14 +203,20 @@ let attach c s =
 
 let _detach x s =
   Queue.filter_out x.pending_activations (fun s' -> s == s');
-  let do_detach { outputs; active_sources; passive_sources } =
+  let do_detach
+      { outputs; active_sources; passive_sources; sync_source_deregisters } =
     Queue.filter_out outputs (fun (a, s') ->
         if s == s' then (
           s#sleep a;
           true)
         else false);
     WeakQueue.filter_out active_sources (fun s' -> s == s');
-    WeakQueue.filter_out passive_sources (fun s' -> s == s')
+    WeakQueue.filter_out passive_sources (fun s' -> s == s');
+    Queue.filter_out sync_source_deregisters (fun (s', deregister) ->
+        if s == s' then (
+          (try deregister () with _ -> ());
+          true)
+        else false)
   in
   match Atomic.get x.state with
     | `Stopped _ -> ()
@@ -288,7 +294,7 @@ let rec has_stopped ~clear_controller ~clock ~c x =
      them from being stopped here. *)
   let sub_clocks = List.map fst (_sub_clocks clock) in
   Queue.iter x.outputs (fun (a, o) -> try o#sleep a with _ -> ());
-  Queue.flush_iter x.sync_source_deregisters (fun deregister ->
+  Queue.flush_iter x.sync_source_deregisters (fun (_, deregister) ->
       try deregister () with _ -> ());
   List.iter stop sub_clocks;
   Queue.filter_out clocks (fun c -> Unifier.deref c == clock);
@@ -555,7 +561,7 @@ and _register_clock_callback ~clock x s =
     s#on_sync_source_change (fun ~old:_ new_sync_source ->
         _update_clock_sync_source ~clock x ~name ~stack new_sync_source)
   in
-  Queue.push x.sync_source_deregisters deregister;
+  Queue.push x.sync_source_deregisters ((s :> source), deregister);
   _update_clock_sync_source ~clock x ~name ~stack s#source_state
 
 and _activate_pending_sources ~clock x =
