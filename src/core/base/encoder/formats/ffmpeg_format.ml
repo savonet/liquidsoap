@@ -47,6 +47,7 @@ type video_options = {
   width : int Lazy.t;
   height : int Lazy.t;
   pixel_format : string option;
+  alpha : bool option;
   hwaccel : hwaccel;
   hwaccel_device : string option;
   hwaccel_pixel_format : string option;

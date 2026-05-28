@@ -204,27 +204,35 @@ let decode_video_frame ~field ~mode generator =
     let current_format = ref None in
 
     let mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-        ~stream_idx () =
+        ?color_range ~stream_idx () =
       current_format :=
-        Some (width, height, pixel_format, time_base, pixel_aspect, stream_idx);
+        Some
+          ( width,
+            height,
+            pixel_format,
+            time_base,
+            pixel_aspect,
+            color_range,
+            stream_idx );
       let scaler =
         InternalScaler.create [] width height pixel_format internal_width
-          internal_height Ffmpeg_utils.liq_frame_pixel_format
+          internal_height
+          (Ffmpeg_utils.liq_frame_pixel_format_for pixel_format)
       in
       let fps_converter =
         Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base
-          ?pixel_aspect ~target_fps ()
+          ?pixel_aspect ?color_range ~target_fps ()
       in
       converter := Some (scaler, fps_converter);
       (scaler, fps_converter)
     in
 
-    let get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
-        ~stream_idx () =
+    let get_converter ?pixel_aspect ?color_range ~pixel_format ~time_base ~width
+        ~height ~stream_idx () =
       match !converter with
         | None ->
             mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-              ~stream_idx ()
+              ?color_range ~stream_idx ()
         | Some _
           when !current_format
                <> Some
@@ -233,10 +241,11 @@ let decode_video_frame ~field ~mode generator =
                       pixel_format,
                       time_base,
                       pixel_aspect,
+                      color_range,
                       stream_idx ) ->
             log#info "Video frame format change detected..";
             mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-              ~stream_idx ()
+              ?color_range ~stream_idx ()
         | Some v -> v
     in
 
@@ -255,9 +264,13 @@ let decode_video_frame ~field ~mode generator =
           let height = Avutil.Video.frame_get_height frame in
           let pixel_format = Avutil.Video.frame_get_pixel_format frame in
           let pixel_aspect = Avutil.Video.frame_get_pixel_aspect frame in
+          let color_range = Avutil.Video.frame_get_color_range frame in
+          let color_range =
+            match color_range with `Unspecified -> None | cr -> Some cr
+          in
           let scaler, fps_converter =
-            get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
-              ~stream_idx ()
+            get_converter ?pixel_aspect ?color_range ~pixel_format ~time_base
+              ~width ~height ~stream_idx ()
           in
           Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (put ~scaler)
       | `Flush ->

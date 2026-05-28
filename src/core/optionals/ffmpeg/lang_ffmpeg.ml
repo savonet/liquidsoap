@@ -325,6 +325,7 @@ let ffmpeg_gen params =
       width = video_width;
       height = video_height;
       pixel_format = None;
+      alpha = None;
       hwaccel = `Auto;
       hwaccel_device = None;
       hwaccel_pixel_format = None;
@@ -418,11 +419,21 @@ let ffmpeg_gen params =
           args
     | ("pixel_format", String { value = "guess" }) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.pixel_format = None }
+          { options with Ffmpeg_format.pixel_format = None; alpha = None }
           args
     | ("pixel_format", t) :: args ->
+        let pixel_format = to_string t in
+        let alpha =
+          match Avutil.Pixel_format.of_string pixel_format with
+            | pixel_format ->
+                let { Avutil.Pixel_format.flags } =
+                  Avutil.Pixel_format.descriptor pixel_format
+                in
+                Some (List.mem `Alpha flags)
+            | exception _ -> None
+        in
         parse_video_args ~opts
-          { options with Ffmpeg_format.pixel_format = Some (to_string t) }
+          { options with Ffmpeg_format.pixel_format = Some pixel_format; alpha }
           args
     | ("hwaccel", String { value = "auto" }) :: args ->
         parse_video_args ~opts

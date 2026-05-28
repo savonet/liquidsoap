@@ -1076,12 +1076,27 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
               in
               ignore (Frame.video_dimensions ~ideal_size ());
               let width, height = Content.Video.dimensions_of_format format in
+              let format_params = Content.Video.get_params format in
+              let () =
+                if !(format_params.Content.Video.alpha) = None then (
+                  let has_alpha =
+                    match Avcodec.Video.get_pixel_format params with
+                      | None -> false
+                      | Some pf ->
+                          let { Avutil.Pixel_format.flags } =
+                            Avutil.Pixel_format.descriptor pf
+                          in
+                          List.mem `Alpha flags
+                  in
+                  format_params.Content.Video.alpha := Some has_alpha)
+              in
+              let alpha = Content.Video.alpha_of_format format in
               ( add_stream ~sparse:`False idx stream
                   (`Video_frame
                      ( stream,
                        tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_video_decoder ~width
-                            ~height ~stream ~field params) ))
+                            ~height ~alpha ~stream ~field params) ))
                   streams,
                 pos + 1 )
           | _ -> (streams, pos + 1))
