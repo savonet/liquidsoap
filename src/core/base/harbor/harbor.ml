@@ -557,6 +557,34 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
       (http_auth_check ?query ~meth ~uri ~login h.Duppy.Monad.Io.socket headers)
 
+  let socket_with_remaining h =
+    let rem_data = h.Duppy.Monad.Io.data in
+    let rem_len = String.length rem_data in
+    let rem_ofs = Atomic.make 0 in
+    let socket = h.Duppy.Monad.Io.socket in
+    object
+      method typ = socket#typ
+      method transport = socket#transport
+      method file_descr = socket#file_descr
+      method write = socket#write
+      method close = socket#close
+      method closed = socket#closed
+
+      method wait_for ?log event timeout =
+        match (event, Atomic.get rem_ofs) with
+          | `Read, ofs when ofs < rem_len -> ()
+          | _ -> socket#wait_for ?log event timeout
+
+      method read buf dst_ofs len =
+        if Atomic.get rem_ofs < rem_len then (
+          let src_ofs = Atomic.get rem_ofs in
+          let len = min (rem_len - src_ofs) len in
+          Bytes.blit_string rem_data src_ofs buf dst_ofs len;
+          Atomic.set rem_ofs (src_ofs + len);
+          len)
+        else socket#read buf dst_ofs len
+    end
+
   (* We do not implement anything with this handler for now. *)
   let handle_asterisk_options_request ~hprotocol:_ ~headers:_ _ =
     log#info "Returned 405: Method Not Allowed";
@@ -628,8 +656,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Some read)
         else None
       in
-      s.relay
-        { stype; headers; read; groups; uri; socket = h.Duppy.Monad.Io.socket };
+      let socket = socket_with_remaining h in
+      s.relay { stype; headers; read; groups; uri; socket };
       log#info "Adding source on mountpoint %S with type %S." uri stype;
       log#debug "Relaying %s." (string_of_protocol hprotocol);
       let protocol =
@@ -965,34 +993,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             try Some (assoc_uppercase "TRANSFER-ENCODING" headers)
             with _ -> None
           in
-          let socket : Http.socket =
-            let rem_data = h.Duppy.Monad.Io.data in
-            let rem_len = String.length rem_data in
-            let rem_ofs = Atomic.make 0 in
-            let socket = h.Duppy.Monad.Io.socket in
-            object
-              method typ = socket#typ
-              method transport = socket#transport
-              method file_descr = socket#file_descr
-              method write = socket#write
-              method close = socket#close
-              method closed = socket#closed
-
-              method wait_for ?log event timeout =
-                match (event, Atomic.get rem_ofs) with
-                  | `Read, ofs when ofs < rem_len -> ()
-                  | _ -> socket#wait_for ?log event timeout
-
-              method read buf dst_ofs len =
-                if Atomic.get rem_ofs < rem_len then (
-                  let src_ofs = Atomic.get rem_ofs in
-                  let len = min (rem_len - src_ofs) len in
-                  Bytes.blit_string rem_data src_ofs buf dst_ofs len;
-                  Atomic.set rem_ofs (src_ofs + len);
-                  len)
-                else socket#read buf dst_ofs len
-            end
-          in
+          let socket = socket_with_remaining h in
 
           let data =
             match (content_type, content_length, transfer_encoding) with
