@@ -85,7 +85,7 @@ let stream_to_record (stream : Ffmpeg_stream_description.stream) =
     | `Subtitle params -> subtitle_stream_to_record params stream.field
     | `Data params -> data_stream_to_record params stream.field
 
-let copy_encoder_of_description ?format ?mime_type
+let copy_encoder_of_description ?format ?mime_type ~opts
     (desc : Ffmpeg_stream_description.container) =
   let streams =
     List.filter_map
@@ -104,7 +104,7 @@ let copy_encoder_of_description ?format ?mime_type
       streams;
       interleaved = `Default;
       metadata = Frame.Metadata.empty;
-      opts = Hashtbl.create 0;
+      opts;
     }
   in
   Encoder.Ffmpeg ffmpeg_format
@@ -243,13 +243,25 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
             | _ -> None
         in
         Lang.val_fun
-          [("", "", Some Lang.null)]
+          [
+            ("", "", Some Lang.null); ("options", "options", Some (Lang.list []));
+          ]
           (fun p ->
             let format =
               Lang.to_valued_option Lang.to_string (List.assoc "" p)
             in
+            let opts =
+              List.fold_left
+                (fun opts v ->
+                  let lbl, v = Lang.to_product v in
+                  Hashtbl.replace opts (Lang.to_string lbl)
+                    (`String (Lang.to_string v));
+                  opts)
+                (Hashtbl.create 0)
+                (Lang.to_list (List.assoc "options" p))
+            in
             Lang_encoder.L.format
-              (copy_encoder_of_description ?format ?mime_type desc))
+              (copy_encoder_of_description ?format ?mime_type ~opts desc))
       in
       let callback_record =
         Lang.record
@@ -325,7 +337,12 @@ let on_connect_t =
         ("headers", Lang.metadata_t);
         ( "copy_encoder",
           Lang.fun_t
-            [(true, "", Lang.nullable_t Lang.string_t)]
+            [
+              (true, "", Lang.nullable_t Lang.string_t);
+              ( true,
+                "options",
+                Lang.list_t (Lang.product_t Lang.string_t Lang.string_t) );
+            ]
             (Lang.format_t frame_t) );
       ]
   in

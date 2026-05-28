@@ -28,6 +28,7 @@ This starts a server on port 8000 with the default password "hackme".
 - `serve_html`: Optional callback `(stats) -> string` to replace the built-in HTML renderer
 - `x_forwarded_for_proxy_ips`: List of known reverse-proxy IPs for real-IP extraction (see [below](#reverse-proxy-and-x-forwarded-for))
 - `x_forwarded_for`: Advanced callback to fully override real-IP extraction logic (see [below](#reverse-proxy-and-x-forwarded-for))
+- `format_options`: Optional callback `(string) -> [(string * string)]` that returns muxer options for a given container format name. When `null`, falls back to `settings.icecast.server.default_muxer_options` (see [below](#live-streaming-muxer-options))
 
 ### Return Value
 
@@ -119,6 +120,43 @@ Use `serve_json` to replace the built-in `/status.json` output. The callback rec
 ```
 
 The stats list passed to both `serve_json` and `serve_html` is a list of `(mount, stats)` pairs where each `stats` record contains: `name`, `content_type`, `mime_type`, `started`, `listeners`, `peak_listeners`, and `current_metadata`.
+
+## Live Streaming Muxer Options
+
+Some container formats require specific muxer flags to produce a valid live stream. For example, Matroska and WebM streams need their muxer told that there will be no seekable index at the end.
+
+`icecast.server` automatically applies these options when remuxing an incoming stream via `copy_encoder`. The defaults are controlled by `settings.icecast.server.default_muxer_options`, which maps container format names to lists of FFmpeg muxer options:
+
+| Format     | Default options    | Effect                                                              |
+| ---------- | ------------------ | ------------------------------------------------------------------- |
+| `matroska` | `dash=1`, `live=1` | Disables index/cues, writes streaming-compatible cluster timestamps |
+| `webm`     | `dash=1`, `live=1` | Same as matroska (WebM is a subset)                                 |
+
+To override the defaults globally, set the setting before starting the server:
+
+```liquidsoap
+settings.icecast.server.default_muxer_options :=
+  [("matroska", [("dash", "1"), ("live", "1")]),
+   ("webm",     [("dash", "1"), ("live", "1")])]
+```
+
+To override per-server instance, use the `format_options` parameter. The callback receives the detected container format name and returns the options list to apply:
+
+```liquidsoap
+# Disable all extra muxer options
+icecast.server(format_options=fun (_) -> [], password="hackme")
+
+# Custom options for matroska, defaults for everything else
+icecast.server(
+  format_options=fun (fmt) ->
+    if fmt == "matroska" then [("dash", "1"), ("live", "1"), ("cluster_size_limit", "1000000")]
+    else list.assoc(default=[], fmt, settings.icecast.server.default_muxer_options())
+    end,
+  password="hackme"
+)
+```
+
+When `format_options` is `null` (the default), `settings.icecast.server.default_muxer_options` is used. When provided, it fully replaces the settings lookup — the callback is responsible for returning all options for every format.
 
 ## Key Differences from Icecast
 
