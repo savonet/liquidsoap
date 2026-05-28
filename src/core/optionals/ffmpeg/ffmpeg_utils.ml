@@ -111,11 +111,20 @@ let liq_frame_time_base () =
 let liq_frame_pixel_format = `Yuv420p
 let liq_frame_pixel_format_with_alpha = `Yuva420p
 
+let liq_frame_pixel_format_for pixel_format =
+  let { Avutil.Pixel_format.flags } =
+    Avutil.Pixel_format.descriptor pixel_format
+  in
+  if List.mem `Alpha flags then liq_frame_pixel_format_with_alpha
+  else liq_frame_pixel_format
+
 let pack_image f =
   let y, u, v = Image.YUV420.data f in
   let sy = Image.YUV420.y_stride f in
   let s = Image.YUV420.uv_stride f in
-  [| (y, sy); (u, s); (v, s) |]
+  match Image.YUV420.alpha f with
+    | None -> [| (y, sy); (u, s); (v, s) |]
+    | Some a -> [| (y, sy); (u, s); (v, s); (a, sy) |]
 
 let unpack_image ~width ~height = function
   | [| (y, sy); (u, su); (v, sv) |] ->
@@ -362,15 +371,25 @@ module Duration = struct
     (max_duration, packets)
 end
 
-let find_pixel_format codec =
+let find_pixel_format ?(alpha = false) codec =
   let formats = Avcodec.Video.get_supported_pixel_formats codec in
-  if List.mem liq_frame_pixel_format formats then liq_frame_pixel_format
+  let preferred =
+    if alpha then liq_frame_pixel_format_with_alpha else liq_frame_pixel_format
+  in
+  if List.mem preferred formats then preferred
   else (
-    match
+    let non_hwaccel =
       List.filter
         (fun f ->
           not (List.mem `Hwaccel Avutil.Pixel_format.((descriptor f).flags)))
         formats
+    in
+    match
+      if alpha then
+        List.filter
+          (fun f -> List.mem `Alpha Avutil.Pixel_format.((descriptor f).flags))
+          non_hwaccel
+      else non_hwaccel
     with
       | p :: _ -> p
       (* Hardware accelerated codecs list hardware-specific pixel_formats
@@ -378,9 +397,9 @@ let find_pixel_format codec =
          we use the internal pixel_format. *)
       | [] -> liq_frame_pixel_format)
 
-let pixel_format codec = function
+let pixel_format ?(alpha = false) codec = function
   | Some p -> Avutil.Pixel_format.of_string p
-  | None -> find_pixel_format codec
+  | None -> find_pixel_format ~alpha codec
 
 let mk_subtitle_decoder ~output ~process () =
   let current_position = ref None in

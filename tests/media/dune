@@ -566,6 +566,38 @@
    %{test_liq}
    test_subtitle_text_to_ass.liq)))
 
+(rule
+ (alias test_ffmpeg_vp9_alpha)
+ (target alarm-clock-alpha.webm)
+ (action
+  (run
+   curl
+   -L
+   -o
+   %{target}
+   "https://upload.wikimedia.org/wikipedia/commons/a/a7/Alarm_Clock_Animation_High_Res_alpha_transparency.webm")))
+
+(rule
+ (alias test_ffmpeg_vp9_alpha)
+ (package liquidsoap)
+ (deps
+  alarm-clock-alpha.webm
+  test_ffmpeg_vp9_alpha.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg VP9 alpha transparency encoding"
+   liquidsoap
+   %{test_liq}
+   test_ffmpeg_vp9_alpha.liq
+   --
+   alarm-clock-alpha.webm)))
+
 (alias
  (name mediatest)
  (deps
@@ -581,4 +613,5 @@
   (alias test_lufs_integrated)
   (alias test_image_decoder_duration)
   (alias test_bitmap_subtitle_to_video)
-  (alias test_subtitle_text_to_ass)))
+  (alias test_subtitle_text_to_ass)
+  (alias test_ffmpeg_vp9_alpha)))

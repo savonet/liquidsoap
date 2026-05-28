@@ -287,10 +287,22 @@ let build_video_content_type ~ctype content_type video_streams =
               (Content.merge format
                  Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params p)));
             Frame.Fields.add field format content_type
-        | _, Some _ ->
-            Frame.Fields.add field
-              Content.(default_format Video.kind)
-              content_type
+        | codec_params, Some format ->
+            let format_params = Content.Video.get_params format in
+            let () =
+              if !(format_params.Content.Video.alpha) = None then (
+                let has_alpha =
+                  match Avcodec.Video.get_pixel_format codec_params with
+                    | None -> false
+                    | Some pf ->
+                        let { Avutil.Pixel_format.flags } =
+                          Avutil.Pixel_format.descriptor pf
+                        in
+                        List.mem `Alpha flags
+                in
+                format_params.Content.Video.alpha := Some has_alpha)
+            in
+            Frame.Fields.add field format content_type
         | _ -> content_type)
     content_type video_streams
 
