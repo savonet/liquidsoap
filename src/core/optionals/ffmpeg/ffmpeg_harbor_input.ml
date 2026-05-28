@@ -174,7 +174,11 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
             | Harbor.Retry -> 0
             | Tutils.Exit -> 0
             | exn ->
-                log#info "Read error: %s" (Printexc.to_string exn);
+                let bt = Printexc.get_raw_backtrace () in
+                Utils.log_exception ~log:self#log
+                  ~bt:(Printexc.raw_backtrace_to_string bt)
+                  (Printf.sprintf "Connection failed: %s"
+                     (Printexc.to_string exn));
                 0)
       in
       let opts = Hashtbl.create 10 in
