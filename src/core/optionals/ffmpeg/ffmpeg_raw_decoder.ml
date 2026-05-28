@@ -43,7 +43,6 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~mk_content ~lift_data
           | None -> ())
 
 let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
-  Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   let dst_params = Ffmpeg_raw_content.Audio.get_params format in
   let converter =
     let src_channel_layout = Avcodec.Audio.get_channel_layout src_params in
@@ -81,7 +80,6 @@ let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
             decoder ~buffer (`Frame frame))
 
 let mk_video_decoder ~stream_idx ~format ~stream ~field params =
-  Ffmpeg_decoder_common.set_video_stream_decoder stream;
   ignore
     (Content.merge format
        Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params params)));

@@ -87,37 +87,34 @@ let conf_codecs =
       (name, conf) :: l)
     codecs []
 
-let set_stream_decoder ~get_name ~get_codec stream =
-  let params = Av.get_codec_params stream in
+let configure_stream ~get_name ~find_decoder params =
   let name = get_name params in
   match List.assoc_opt name conf_codecs with
     | Some conf -> (
         try
           let preferred = conf#get in
           log#info "Trying preferred decoder %s for codec %s" preferred name;
-          try Av.set_decoder stream (get_codec preferred)
+          try { Av.codec = Some (find_decoder preferred); opts = None }
           with exn ->
             let bt = Printexc.get_backtrace () in
             Utils.log_exception ~log ~bt
               (Printf.sprintf "Failed to set decoder %s for codec %s: %s"
-                 preferred name (Printexc.to_string exn))
-        with _ -> ())
-    | None -> ()
+                 preferred name (Printexc.to_string exn));
+            { Av.codec = None; opts = None }
+        with _ -> { Av.codec = None; opts = None })
+    | None -> { Av.codec = None; opts = None }
 
-let set_audio_stream_decoder (type a)
-    (stream : (Avutil.input, Avutil.audio, a) Av.stream) =
-  set_stream_decoder
+let configure_audio_stream params =
+  configure_stream
     ~get_name:(fun p -> Avcodec.Audio.(string_of_id (get_params_id p)))
-    ~get_codec:Avcodec.Audio.find_decoder_by_name stream
+    ~find_decoder:Avcodec.Audio.find_decoder_by_name params
 
-let set_video_stream_decoder (type a)
-    (stream : (Avutil.input, Avutil.video, a) Av.stream) =
-  set_stream_decoder
+let configure_video_stream params =
+  configure_stream
     ~get_name:(fun p -> Avcodec.Video.(string_of_id (get_params_id p)))
-    ~get_codec:Avcodec.Video.find_decoder_by_name stream
+    ~find_decoder:Avcodec.Video.find_decoder_by_name params
 
-let set_subtitle_stream_decoder (type a)
-    (stream : (Avutil.input, Avutil.subtitle, a) Av.stream) =
-  set_stream_decoder
+let configure_subtitle_stream params =
+  configure_stream
     ~get_name:(fun p -> Avcodec.Subtitle.(string_of_id (get_params_id p)))
-    ~get_codec:Avcodec.Subtitle.find_decoder_by_name stream
+    ~find_decoder:Avcodec.Subtitle.find_decoder_by_name params
