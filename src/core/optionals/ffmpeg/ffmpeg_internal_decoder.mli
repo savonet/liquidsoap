@@ -22,7 +22,6 @@
 
 val mk_audio_decoder :
   channels:int ->
-  stream:(Avutil.input, Avutil.audio, [ `Frame ]) Av.stream ->
   field:Frame.field ->
   pcm_kind:Content.kind ->
   Avutil.audio Avcodec.params ->
@@ -41,13 +40,11 @@ val mk_video_decoder :
   unit
 
 val mk_text_subtitle_decoder :
-  stream:(Avutil.input, [ `Subtitle ], [ `Frame ]) Av.stream ->
   field:Frame.field ->
   [ `Subtitle of Avutil.Subtitle.frame | `Flush ]
   Ffmpeg_decoder_common.sparse_decoder
 
 val mk_bitmap_subtitle_decoder :
-  stream:(Avutil.input, [ `Subtitle ], [ `Frame ]) Av.stream ->
   field:Frame.field ->
   width:int ->
   height:int ->

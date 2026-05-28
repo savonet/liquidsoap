@@ -135,7 +135,11 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let container =
           Av.open_input
             ~interrupt:(fun () -> Atomic.get shutdown || Atomic.get closed)
-            ?format ~opts url
+            ?format ~opts
+            ~configure_audio_stream:Ffmpeg_decoder_common.configure_audio_stream
+            ~configure_video_stream:Ffmpeg_decoder_common.configure_video_stream
+            ~configure_subtitle_stream:
+              Ffmpeg_decoder_common.configure_subtitle_stream url
         in
         if Hashtbl.length opts > 0 then
           failwith

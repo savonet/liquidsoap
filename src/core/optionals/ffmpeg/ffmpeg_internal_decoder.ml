@@ -69,7 +69,7 @@ end
 module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 module SubScaler = Swscale.Make (Swscale.PackedBigArray) (Swscale.BigArray)
 
-let mk_audio_decoder ~channels ~stream ~field ~pcm_kind codec =
+let mk_audio_decoder ~channels ~field ~pcm_kind codec =
   let converter =
     match pcm_kind with
       | _ when Content_audio.is_kind pcm_kind ->
@@ -81,7 +81,6 @@ let mk_audio_decoder ~channels ~stream ~field ~pcm_kind codec =
       | _ -> raise Content_base.Invalid
   in
   let module Converter = (val converter : Converter_type) in
-  Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   let in_sample_rate = ref (Avcodec.Audio.get_sample_rate codec) in
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
@@ -124,7 +123,6 @@ let mk_audio_decoder ~channels ~stream ~field ~pcm_kind codec =
             (Frame.Metadata.from_list metadata)
 
 let mk_video_decoder ~width ~height ~stream ~field codec =
-  Ffmpeg_decoder_common.set_video_stream_decoder stream;
   let pixel_format =
     match Avcodec.Video.get_pixel_format codec with
       | None -> failwith "Pixel format unknown!"
@@ -181,8 +179,7 @@ let mk_video_decoder ~width ~height ~stream ~field codec =
 
 let main_of_subtitle_time time = Frame.main_of_seconds (float time /. 1000.)
 
-let mk_text_subtitle_decoder ~stream ~field =
-  Ffmpeg_decoder_common.set_subtitle_stream_decoder stream;
+let mk_text_subtitle_decoder ~field =
   let avutil_time_base = Avutil.time_base () in
   let liq_main_ticks_time_base = Ffmpeg_utils.liq_main_ticks_time_base () in
   let to_ticks ts =
@@ -228,8 +225,7 @@ let mk_text_subtitle_decoder ~stream ~field =
   in
   Ffmpeg_utils.mk_subtitle_decoder ~output ~process ()
 
-let mk_bitmap_subtitle_decoder ~stream ~field ~width ~height =
-  Ffmpeg_decoder_common.set_subtitle_stream_decoder stream;
+let mk_bitmap_subtitle_decoder ~field ~width ~height =
   let cached_scaler = ref None in
   let get_scaler w h =
     match !cached_scaler with

@@ -68,7 +68,6 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_packet ~put_data params =
         with Empty | Corrupt (* Might want to change that later. *) -> ())
 
 let mk_audio_decoder ~stream_idx ~format ~field ~stream params =
-  Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   let params = `Audio params in
   ignore (Content.merge format (Ffmpeg_copy_content.lift_params (Some params)));
   let stream_time_base = Av.get_time_base stream in
@@ -79,7 +78,6 @@ let mk_audio_decoder ~stream_idx ~format ~field ~stream params =
     params
 
 let mk_video_decoder ~stream_idx ~format ~stream ~field params =
-  Ffmpeg_decoder_common.set_video_stream_decoder stream;
   let params =
     `Video
       {
@@ -96,7 +94,6 @@ let mk_video_decoder ~stream_idx ~format ~stream ~field params =
     params
 
 let mk_subtitle_decoder ~stream_idx ~format ~stream ~field params =
-  Ffmpeg_decoder_common.set_subtitle_stream_decoder stream;
   let stream_time_base = Av.get_time_base stream in
   let params =
     `Subtitle

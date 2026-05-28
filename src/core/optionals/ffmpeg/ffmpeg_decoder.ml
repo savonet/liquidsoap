@@ -1003,8 +1003,7 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
                      ( stream,
                        tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
-                            ~stream ~field ~pcm_kind:Content.Audio.kind params)
-                     ))
+                            ~field ~pcm_kind:Content.Audio.kind params) ))
                   streams,
                 pos + 1 )
           | Some format when Content_pcm_s16.is_format format ->
@@ -1014,8 +1013,7 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
                      ( stream,
                        tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
-                            ~stream ~field ~pcm_kind:Content_pcm_s16.kind params)
-                     ))
+                            ~field ~pcm_kind:Content_pcm_s16.kind params) ))
                   streams,
                 pos + 1 )
           | Some format when Content_pcm_f32.is_format format ->
@@ -1025,8 +1023,7 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
                      ( stream,
                        tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
-                            ~stream ~field ~pcm_kind:Content_pcm_f32.kind params)
-                     ))
+                            ~field ~pcm_kind:Content_pcm_f32.kind params) ))
                   streams,
                 pos + 1 )
           | _ -> (streams, pos + 1))
@@ -1116,7 +1113,7 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
         match Frame.Fields.find_opt field ctype with
           | Some format when Subtitle_content.is_format format ->
               let { Ffmpeg_decoder_common.decoder; advance } =
-                Ffmpeg_internal_decoder.mk_text_subtitle_decoder ~stream ~field
+                Ffmpeg_internal_decoder.mk_text_subtitle_decoder ~field
               in
               ( add_stream ~sparse:(`True advance) idx stream
                   (`Subtitle_frame (stream, decoder))
@@ -1125,8 +1122,8 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
           | Some format when Content.Video.is_format format ->
               let width, height = Content.Video.dimensions_of_format format in
               let { Ffmpeg_decoder_common.decoder; advance } =
-                Ffmpeg_internal_decoder.mk_bitmap_subtitle_decoder ~stream
-                  ~field ~width ~height
+                Ffmpeg_internal_decoder.mk_bitmap_subtitle_decoder ~field ~width
+                  ~height
               in
               ( add_stream ~sparse:(`True advance) idx stream
                   (`Subtitle_frame (stream, decoder))
@@ -1244,7 +1241,13 @@ let create_decoder ~ctype ~metadata fname =
   if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then (
     Hashtbl.replace opts "loop" (`Int 1);
     Hashtbl.replace opts "framerate" (`Int (Lazy.force Frame.video_rate)));
-  let container = Av.open_input ?format ~opts fname in
+  let container =
+    Av.open_input ?format ~opts
+      ~configure_audio_stream:Ffmpeg_decoder_common.configure_audio_stream
+      ~configure_video_stream:Ffmpeg_decoder_common.configure_video_stream
+      ~configure_subtitle_stream:Ffmpeg_decoder_common.configure_subtitle_stream
+      fname
+  in
   if Hashtbl.length opts > 0 then
     Runtime_error.raise ~pos:[]
       ~message:
@@ -1300,7 +1303,13 @@ let get_file_type ~metadata ~ctype filename =
         let args, format = parse_file_decoder_args metadata in
         let opts = Hashtbl.create 10 in
         List.iter (fun (k, v) -> Hashtbl.replace opts k v) args;
-        let container = Av.open_input ?format ~opts filename in
+        let container =
+          Av.open_input ?format ~opts
+            ~configure_audio_stream:Ffmpeg_decoder_common.configure_audio_stream
+            ~configure_video_stream:Ffmpeg_decoder_common.configure_video_stream
+            ~configure_subtitle_stream:
+              Ffmpeg_decoder_common.configure_subtitle_stream filename
+        in
         Fun.protect
           ~finally:(fun () -> Av.close container)
           (fun () -> get_type ?format ~ctype ~url:filename container)
