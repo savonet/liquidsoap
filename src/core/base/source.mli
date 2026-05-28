@@ -282,6 +282,8 @@ object
 
   method on_before_streaming_cycle : (unit -> unit) -> unit
   method on_after_streaming_cycle : (unit -> unit) -> unit
+  method private before_streaming_cycle : unit
+  method private after_streaming_cycle : unit
 
   (** Sources must implement this method. It should return the data produced
       during the current streaming cycle. Sources are responsible for producing
