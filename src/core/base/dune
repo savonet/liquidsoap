@@ -1,8 +1,10 @@
 (env
  (release
   (ocamlopt_flags
-   (:standard -w -9 -alert --deprecated -O2)))
+   (:standard -w -9-58 -alert --deprecated -O2)))
  (_
+  (ocamlopt_flags
+   (:standard -w -58))
   (flags
    (:standard -w -9 -alert --deprecated))))
 
