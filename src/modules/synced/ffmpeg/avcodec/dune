@@ -1,9 +1,18 @@
+(rule
+ (alias install)
+ (package ffmpeg-avcodec)
+ (action
+  (with-stdin-from
+   ../detect/avcodec_available
+   (run ../detect/check.exe avcodec))))
+
 (library
  (name avcodec)
  (public_name ffmpeg-avcodec)
  (synopsis "Bindings to ffmpeg's avcodec library")
  (enabled_if
   (= %{read:../detect/avcodec_available} "true"))
+ (optional)
  (foreign_stubs
   (language c)
   (names avcodec_stubs)

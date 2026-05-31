@@ -2,6 +2,7 @@
  (name ffmpeg)
  (public_name ffmpeg)
  (synopsis "Top-level ffmpeg library")
+ (optional)
  (libraries
   ffmpeg-avutil
   ffmpeg-avcodec

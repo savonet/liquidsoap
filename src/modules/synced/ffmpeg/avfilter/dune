@@ -1,3 +1,11 @@
+(rule
+ (alias install)
+ (package ffmpeg-avfilter)
+ (action
+  (with-stdin-from
+   ../detect/avfilter_available
+   (run ../detect/check.exe avfilter))))
+
 (library
  (name avfilter)
  (public_name ffmpeg-avfilter)

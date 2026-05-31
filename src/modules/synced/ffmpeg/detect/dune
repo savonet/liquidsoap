@@ -2,6 +2,9 @@
  (name detect)
  (libraries dune-configurator))
 
+(executable
+ (name check))
+
 (rule
  (targets
   avutil_available

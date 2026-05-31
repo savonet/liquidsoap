@@ -3,27 +3,9 @@
  (modules test_runner)
  (libraries unix))
 
-; Test executables
+; Test executables — generated conditionally based on library availability
 
-(executable
- (name test_resample)
- (modules test_resample)
- (libraries ffmpeg-av ffmpeg-swresample))
-
-(executable
- (name test_info)
- (modules test_info)
- (libraries ffmpeg-av ffmpeg-swresample))
-
-(executable
- (name test_subtitle_read)
- (modules test_subtitle_read)
- (libraries ffmpeg-av))
-
-(executable
- (name test_unhandled_packet)
- (modules test_unhandled_packet)
- (libraries ffmpeg-av))
+(dynamic_include ../gen/test_executables.inc)
 
 (executable
  (name normalize_line_endings)
@@ -383,34 +365,8 @@
   (alias test_unhandled_packet)))
 
 ; ============================================
-; Subtitle tests
+; Subtitle tests (generated when ffmpeg libraries available)
 ; ============================================
-
-(rule
- (targets test_with_subs.mkv)
- (deps fixtures/sample.srt)
- (action
-  (run
-   ffmpeg
-   -y
-   -f
-   lavfi
-   -i
-   "color=c=blue:s=320x240:d=25"
-   -f
-   lavfi
-   -i
-   "anullsrc=r=44100:cl=stereo:d=25"
-   -i
-   %{deps}
-   -c:v
-   mpeg4
-   -c:a
-   aac
-   -c:s
-   srt
-   -shortest
-   %{targets})))
 
 (rule
  (alias test_subtitle_read)
@@ -431,28 +387,3 @@
   test_with_subs.mkv)
  (action
   (run %{runner} "unhandled_packet" %{exe} test_with_subs.mkv)))
-
-(rule
- (targets raw_remuxed_subs.srt)
- (deps
-  (:exe ../examples/subtitle_remux.exe)
-  test_with_subs.mkv)
- (action
-  (run %{exe} test_with_subs.mkv %{targets} subrip)))
-
-(rule
- (targets remuxed_subs.srt)
- (deps
-  (:exe normalize_line_endings.exe)
-  (:input raw_remuxed_subs.srt))
- (action
-  (with-stdout-to
-   %{targets}
-   (run %{exe} %{input}))))
-
-(rule
- (alias test_subtitle_remux)
- (package ffmpeg)
- (deps remuxed_subs.srt fixtures/sample.srt)
- (action
-  (diff fixtures/sample.srt remuxed_subs.srt)))

@@ -1,0 +1,23 @@
+(executables
+ (names gen_test gen_examples)
+ (modules gen_test gen_examples has_ffmpeg)
+ (libraries
+  (select
+   has_ffmpeg.ml
+   from
+   (ffmpeg -> has_ffmpeg.yes.ml)
+   (-> has_ffmpeg.no.ml))))
+
+(rule
+ (target test_executables.inc)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./gen_test.exe))))
+
+(rule
+ (target examples_executables.inc)
+ (action
+  (with-stdout-to
+   %{target}
+   (run ./gen_examples.exe))))

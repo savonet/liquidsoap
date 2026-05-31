@@ -1,3 +1,11 @@
+(rule
+ (alias install)
+ (package ffmpeg-av)
+ (action
+  (with-stdin-from
+   ../detect/av_available
+   (run ../detect/check.exe av))))
+
 (library
  (name av)
  (public_name ffmpeg-av)

@@ -1,3 +1,11 @@
+(rule
+ (alias install)
+ (package ffmpeg-avdevice)
+ (action
+  (with-stdin-from
+   ../detect/avdevice_available
+   (run ../detect/check.exe avdevice))))
+
 (library
  (name avdevice)
  (public_name ffmpeg-avdevice)

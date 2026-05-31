@@ -1,3 +1,11 @@
+(rule
+ (alias install)
+ (package ffmpeg-swresample)
+ (action
+  (with-stdin-from
+   ../detect/swresample_available
+   (run ../detect/check.exe swresample))))
+
 (library
  (name swresample)
  (public_name ffmpeg-swresample)

@@ -1,4 +1,19 @@
-(alias
- (name default)
- (deps
-  (alias_rec install)))
+(rule
+ (target ffmpeg.config)
+ (mode
+  (promote
+   (only ffmpeg.config)
+   (until-clean)))
+ (action
+  (progn
+   (echo "ffmpeg library availability:\n")
+   (echo "  avutil:     %{read:detect/avutil_available}\n")
+   (echo "  avcodec:    %{read:detect/avcodec_available}\n")
+   (echo "  avfilter:   %{read:detect/avfilter_available}\n")
+   (echo "  avdevice:   %{read:detect/avdevice_available}\n")
+   (echo "  av:         %{read:detect/av_available}\n")
+   (echo "  swscale:    %{read:detect/swscale_available}\n")
+   (echo "  swresample: %{read:detect/swresample_available}\n")
+   (with-stdout-to
+    %{target}
+    (echo "")))))

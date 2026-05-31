@@ -1,3 +1,11 @@
+(rule
+ (alias install)
+ (package ffmpeg-swscale)
+ (action
+  (with-stdin-from
+   ../detect/swscale_available
+   (run ../detect/check.exe swscale))))
+
 (library
  (name swscale)
  (public_name ffmpeg-swscale)
