@@ -39,16 +39,24 @@
   SLASH))
 
 (rule
- (target git_sha)
+ (target fakeroot)
  (deps
   (glob_files_rec %{workspace_root}/.git/**)
   (sandbox preserve_file_kind))
+ (action
+  (progn
+   (run mkdir -p fakeroot)
+   (run cp -rf %{workspace_root}/.git/ fakeroot/.git))))
+
+(rule
+ (target git_sha)
+ (deps fakeroot)
  (action
   (with-stdout-to
    %{target}
    (with-accepted-exit-codes
     (or 0 128)
-    (run git rev-parse --short HEAD)))))
+    (run git -C fakeroot rev-parse --short HEAD)))))
 
 (rule
  (target build_config.ml)
