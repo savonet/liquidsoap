@@ -147,7 +147,7 @@
  (alias test_ffmpeg_raw_implicit_conversion)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   test_ffmpeg_raw_implicit_conversion.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -166,7 +166,7 @@
  (alias test_ffmpeg_complex_filter)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   test_ffmpeg_complex_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -345,7 +345,7 @@
  (alias test_ffmpeg_transparency_filter)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   background.jpg
   logo.png
   test_ffmpeg_transparency_filter.liq
@@ -366,7 +366,7 @@
  (alias test_ffmpeg_filter_changing_rate)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   background.jpg
   logo.png
   test_ffmpeg_filter_changing_rate.liq
@@ -390,7 +390,7 @@
  (alias test_lufs_integrated)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   test_lufs_integrated.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)

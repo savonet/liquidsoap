@@ -99,10 +99,12 @@ let mk_encoder ?(deps = []) source format =
     (escaped_format format)
 
 let mk_encoded_file format =
+  let filename = filename format in
+  let alias = String.sub filename 1 (String.length filename - 1) in
   Printf.printf
     {|
 (rule
- (alias mediatest)
+ (alias %s)
  (package liquidsoap)
  (target %s)
  (deps
@@ -117,7 +119,7 @@ let mk_encoded_file format =
    (run %%{run_test} %%{encoder} liquidsoap %%{test_liq} %%{encoder} -- %S)))
 
 |}
-    (filename format) (encoder_script format) (encoder_format format)
+    alias filename (encoder_script format) (encoder_format format)
 
 let () =
   List.iter (mk_encoder "audio_only") audio_formats;
@@ -138,7 +140,7 @@ let () =
   Printf.printf
     {|
 (alias
-  (name all_media_files)
+  (name media_files)
   (deps
     %s))
 |}
@@ -154,7 +156,7 @@ let file_test ?(deps = []) ~label ~test fname =
  (alias %s)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (alias media_files)
   %s%s
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -208,6 +210,7 @@ let () =
     {|(alias
   (name mediatest)
   (deps
+    (alias media_files)
     %s))
 |}
     (String.concat "\n    " (List.sort_uniq Stdlib.compare !mediatests))

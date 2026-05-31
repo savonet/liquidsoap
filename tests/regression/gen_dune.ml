@@ -43,7 +43,7 @@ let () =
  %s
  (deps
   %s
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png

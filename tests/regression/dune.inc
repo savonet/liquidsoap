@@ -3,7 +3,7 @@
  (package liquidsoap)
  (deps
   115-1.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -21,7 +21,7 @@
  (package liquidsoap)
  (deps
   115-2.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -39,7 +39,7 @@
  (package liquidsoap)
  (deps
   3553.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -57,7 +57,7 @@
  (package liquidsoap)
  (deps
   AC5109.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -75,7 +75,7 @@
  (package liquidsoap)
  (deps
   BUG403.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -93,7 +93,7 @@
  (package liquidsoap)
  (deps
   GH-action-919422659.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -116,7 +116,7 @@
  (package liquidsoap)
  (deps
   GH1129.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -134,7 +134,7 @@
  (package liquidsoap)
  (deps
   GH1146.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -152,7 +152,7 @@
  (package liquidsoap)
  (deps
   GH1151.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -170,7 +170,7 @@
  (package liquidsoap)
  (deps
   GH1159.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -188,7 +188,7 @@
  (package liquidsoap)
  (deps
   GH1279.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -206,7 +206,7 @@
  (package liquidsoap)
  (deps
   GH1327.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -224,7 +224,7 @@
  (package liquidsoap)
  (deps
   GH2585.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -242,7 +242,7 @@
  (package liquidsoap)
  (deps
   GH2602.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -260,7 +260,7 @@
  (package liquidsoap)
  (deps
   GH2756-2.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -278,7 +278,7 @@
  (package liquidsoap)
  (deps
   GH2756.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -296,7 +296,7 @@
  (package liquidsoap)
  (deps
   GH2758.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -314,7 +314,7 @@
  (package liquidsoap)
  (deps
   GH2842.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -332,7 +332,7 @@
  (package liquidsoap)
  (deps
   GH2850.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -350,7 +350,7 @@
  (package liquidsoap)
  (deps
   GH2867.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -368,7 +368,7 @@
  (package liquidsoap)
  (deps
   GH2871.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -386,7 +386,7 @@
  (package liquidsoap)
  (deps
   GH2872.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -404,7 +404,7 @@
  (package liquidsoap)
  (deps
   GH2897.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -422,7 +422,7 @@
  (package liquidsoap)
  (deps
   GH2902.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -440,7 +440,7 @@
  (package liquidsoap)
  (deps
   GH2926.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -458,7 +458,7 @@
  (package liquidsoap)
  (deps
   GH3093.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -476,7 +476,7 @@
  (package liquidsoap)
  (deps
   GH3132.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -494,7 +494,7 @@
  (package liquidsoap)
  (deps
   GH3134.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -512,7 +512,7 @@
  (package liquidsoap)
  (deps
   GH3224.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -530,7 +530,7 @@
  (package liquidsoap)
  (deps
   GH3239-2.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -548,7 +548,7 @@
  (package liquidsoap)
  (deps
   GH3239-bis.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -566,7 +566,7 @@
  (package liquidsoap)
  (deps
   GH3239.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -584,7 +584,7 @@
  (package liquidsoap)
  (deps
   GH3276.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -602,7 +602,7 @@
  (package liquidsoap)
  (deps
   GH3303.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -620,7 +620,7 @@
  (package liquidsoap)
  (deps
   GH3316.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -638,7 +638,7 @@
  (package liquidsoap)
  (deps
   GH3645.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -656,7 +656,7 @@
  (package liquidsoap)
  (deps
   GH3675.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -674,7 +674,7 @@
  (package liquidsoap)
  (deps
   GH3813.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -692,7 +692,7 @@
  (package liquidsoap)
  (deps
   GH3840.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -710,7 +710,7 @@
  (package liquidsoap)
  (deps
   GH3881.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -728,7 +728,7 @@
  (package liquidsoap)
  (deps
   GH3960.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -746,7 +746,7 @@
  (package liquidsoap)
  (deps
   GH4071.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -764,7 +764,7 @@
  (package liquidsoap)
  (deps
   GH4090.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -782,7 +782,7 @@
  (package liquidsoap)
  (deps
   GH4116.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -800,7 +800,7 @@
  (package liquidsoap)
  (deps
   GH4124.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -818,7 +818,7 @@
  (package liquidsoap)
  (deps
   GH4140.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -836,7 +836,7 @@
  (package liquidsoap)
  (deps
   GH4144.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -854,7 +854,7 @@
  (package liquidsoap)
  (deps
   GH4159.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -872,7 +872,7 @@
  (package liquidsoap)
  (deps
   GH4163.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -890,7 +890,7 @@
  (package liquidsoap)
  (deps
   GH4246.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -908,7 +908,7 @@
  (package liquidsoap)
  (deps
   GH4281-2.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -926,7 +926,7 @@
  (package liquidsoap)
  (deps
   GH4281.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -944,7 +944,7 @@
  (package liquidsoap)
  (deps
   GH4395.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -962,7 +962,7 @@
  (package liquidsoap)
  (deps
   GH4499.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -980,7 +980,7 @@
  (package liquidsoap)
  (deps
   GH4629.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -998,7 +998,7 @@
  (package liquidsoap)
  (deps
   GH4711.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1016,7 +1016,7 @@
  (package liquidsoap)
  (deps
   GH4745.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1034,7 +1034,7 @@
  (package liquidsoap)
  (deps
   GH4748.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1052,7 +1052,7 @@
  (package liquidsoap)
  (deps
   GH4819-bis.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1070,7 +1070,7 @@
  (package liquidsoap)
  (deps
   GH4819.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1088,7 +1088,7 @@
  (package liquidsoap)
  (deps
   GH4828.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1106,7 +1106,7 @@
  (package liquidsoap)
  (deps
   GH4840.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1124,7 +1124,7 @@
  (package liquidsoap)
  (deps
   GH4882.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1144,7 +1144,7 @@
  (package liquidsoap)
  (deps
   GH4922.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1162,7 +1162,7 @@
  (package liquidsoap)
  (deps
   GH4995.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1184,7 +1184,7 @@
  (targets GH5019.wav)
  (deps
   GH5019.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1202,7 +1202,7 @@
  (package liquidsoap)
  (deps
   GH5084.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1220,7 +1220,7 @@
  (package liquidsoap)
  (deps
   GH5110.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1238,7 +1238,7 @@
  (package liquidsoap)
  (deps
   LS268.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1256,7 +1256,7 @@
  (package liquidsoap)
  (deps
   LS354-1.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1274,7 +1274,7 @@
  (package liquidsoap)
  (deps
   LS354-2.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1292,7 +1292,7 @@
  (package liquidsoap)
  (deps
   LS460.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1310,7 +1310,7 @@
  (package liquidsoap)
  (deps
   LS503.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1328,7 +1328,7 @@
  (package liquidsoap)
  (deps
   append-merge.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1346,7 +1346,7 @@
  (package liquidsoap)
  (deps
   append-merge2.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1364,7 +1364,7 @@
  (package liquidsoap)
  (deps
   append.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1382,7 +1382,7 @@
  (package liquidsoap)
  (deps
   default_format.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1400,7 +1400,7 @@
  (package liquidsoap)
  (deps
   double-nullable.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1423,7 +1423,7 @@
  (package liquidsoap)
  (deps
   eval-check-demeth.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1446,7 +1446,7 @@
  (package liquidsoap)
  (deps
   external-encoder.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1469,7 +1469,7 @@
  (package liquidsoap)
  (deps
   fallible_ogg.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1487,7 +1487,7 @@
  (package liquidsoap)
  (deps
   ffmpeg-copy-encode.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1510,7 +1510,7 @@
  (package liquidsoap)
  (deps
   ffmpeg-copy-input-http.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1533,7 +1533,7 @@
  (package liquidsoap)
  (deps
   ffmpeg-naming-convention.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1556,7 +1556,7 @@
  (package liquidsoap)
  (deps
   infallible-shutdown.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1579,7 +1579,7 @@
  (package liquidsoap)
  (deps
   init-error.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1597,7 +1597,7 @@
  (package liquidsoap)
  (deps
   initial_request_queue.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1620,7 +1620,7 @@
  (package liquidsoap)
  (deps
   input_rtmp.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1638,7 +1638,7 @@
  (package liquidsoap)
  (deps
   metadata-resolvers-metadata.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1661,7 +1661,7 @@
  (package liquidsoap)
  (deps
   metadata_cache.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1679,7 +1679,7 @@
  (package liquidsoap)
  (deps
   output_on_metadata.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1702,7 +1702,7 @@
  (package liquidsoap)
  (deps
   output_on_track.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1725,7 +1725,7 @@
  (package liquidsoap)
  (deps
   playlist-id.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1743,7 +1743,7 @@
  (package liquidsoap)
  (deps
   replaygain.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1761,7 +1761,7 @@
  (package liquidsoap)
  (deps
   seek_track_map.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1779,7 +1779,7 @@
  (package liquidsoap)
  (deps
   shoutcast-args.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1797,7 +1797,7 @@
  (package liquidsoap)
  (deps
   source_cleanup.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1815,7 +1815,7 @@
  (package liquidsoap)
  (deps
   source_dynamic.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1833,7 +1833,7 @@
  (package liquidsoap)
  (deps
   track_sensitive.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1856,7 +1856,7 @@
  (package liquidsoap)
  (deps
   unified-pcm-types.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
@@ -1879,7 +1879,7 @@
  (package liquidsoap)
  (deps
   video-only.liq
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
