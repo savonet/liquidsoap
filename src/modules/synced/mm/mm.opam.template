@@ -1,0 +1,3 @@
+depexts: [
+  ["linux-headers"] {os-family = "alpine"}
+]
