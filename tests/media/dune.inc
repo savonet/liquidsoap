@@ -532,6 +532,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -553,6 +554,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -574,6 +576,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -595,6 +598,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -616,6 +620,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -637,6 +642,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -658,6 +664,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -679,6 +686,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -700,6 +708,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -721,6 +730,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -742,6 +752,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -763,6 +774,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -784,6 +796,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -805,6 +818,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -826,6 +840,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -847,6 +862,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -869,6 +885,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -890,6 +907,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -911,6 +929,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -932,6 +951,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -955,6 +975,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -978,6 +999,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1001,6 +1023,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1022,6 +1045,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1045,6 +1069,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1068,6 +1093,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1091,6 +1117,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1114,6 +1141,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1137,6 +1165,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1160,6 +1189,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1183,6 +1213,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1206,6 +1237,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -1229,6 +1261,7 @@
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
