@@ -1,0 +1,31 @@
+(library
+ (name vorbis)
+ (public_name vorbis)
+ (synopsis "OCaml bindings for libvorbis")
+ (enabled_if
+  (= %{read:../detect/vorbis_available} true))
+ (libraries ogg)
+ (modules vorbis)
+ (foreign_stubs
+  (language c)
+  (names vorbis_stubs)
+  (flags
+   (:include ../detect/vorbis_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/vorbis_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package vorbis)
+ (action
+  (with-stdin-from
+   ../detect/vorbis_available
+   (run ../detect/check.exe vorbis))))
+
+(library
+ (name vorbis_decoder)
+ (public_name vorbis.decoder)
+ (synopsis "Vorbis decoder for the ogg-decoder library")
+ (optional)
+ (libraries ogg.decoder vorbis)
+ (modules vorbis_decoder))

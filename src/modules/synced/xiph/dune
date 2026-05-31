@@ -1,0 +1,19 @@
+(rule
+ (target xiph.config)
+ (mode
+  (promote
+   (only xiph.config)
+   (until-clean)))
+ (action
+  (progn
+   (echo "xiph library availability:\n")
+   (echo "  ogg:      %{read:detect/ogg_available}\n")
+   (echo "  vorbis:   %{read:detect/vorbis_available}\n")
+   (echo "  opus:     %{read:detect/opus_available}\n")
+   (echo "  speex:    %{read:detect/speex_available}\n")
+   (echo "  theora:   %{read:detect/theora_available}\n")
+   (echo "  flac:     %{read:detect/flac_available}\n")
+   (echo "  flac_ogg: %{read:detect/flac_ogg_available}\n")
+   (with-stdout-to
+    %{target}
+    (echo "")))))
