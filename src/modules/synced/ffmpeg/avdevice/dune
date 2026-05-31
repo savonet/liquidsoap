@@ -1,0 +1,14 @@
+(library
+ (name avdevice)
+ (public_name ffmpeg-avdevice)
+ (synopsis "Bindings to ffmpeg's avdevice library")
+ (enabled_if
+  (= %{read:../detect/avdevice_available} "true"))
+ (foreign_stubs
+  (language c)
+  (names avdevice_stubs)
+  (flags
+   (:include ../detect/avdevice_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/avdevice_c_library_flags.sexp))
+ (libraries ffmpeg-av))

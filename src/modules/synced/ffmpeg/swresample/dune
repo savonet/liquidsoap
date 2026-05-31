@@ -1,0 +1,43 @@
+(library
+ (name swresample)
+ (public_name ffmpeg-swresample)
+ (synopsis "Bindings to ffmpeg's swresample library")
+ (enabled_if
+  (= %{read:../detect/swresample_available} "true"))
+ (foreign_stubs
+  (language c)
+  (names swresample_stubs)
+  (flags
+   (:include ../detect/swresample_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/swresample_c_library_flags.sexp))
+ (libraries ffmpeg-avutil ffmpeg-avcodec))
+
+(rule
+ (targets swresample_stubs.c)
+ (mode fallback)
+ (deps swresample_options_stubs.h)
+ (action
+  (echo "this should not happen")))
+
+(rule
+ (targets swresample_options_stubs.h)
+ (deps ../detect/swresample_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   swresample_options
+   h
+   %{read-lines:../detect/swresample_c_flags})))
+
+(rule
+ (targets swresample_options.ml)
+ (deps ../detect/swresample_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   swresample_options
+   ml
+   %{read-lines:../detect/swresample_c_flags})))

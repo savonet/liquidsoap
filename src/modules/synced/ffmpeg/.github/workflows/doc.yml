@@ -1,0 +1,34 @@
+name: Doc build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_doc:
+    runs-on: ubuntu-latest
+    env:
+      OPAMASSUMEDEPEXTS: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Build FFmpeg
+        uses: ./.github/actions/build-ffmpeg
+        with:
+          os: ubuntu-latest
+      - name: Setup OCaml
+        uses: toots/setup-ocaml@master
+        with:
+          ocaml-compiler: 4.14.x
+      - name: Pin locally
+        run: opam pin -y add --no-action .
+      - name: Install locally
+        run: opam install -y --with-doc ffmpeg
+      - name: Build doc
+        run: opam exec dune build @doc
+      - name: Deploy doc
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: gh-pages
+          folder: _build/default/_doc/_html

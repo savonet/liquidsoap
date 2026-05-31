@@ -1,0 +1,12 @@
+(library
+ (name ffmpeg)
+ (public_name ffmpeg)
+ (synopsis "Top-level ffmpeg library")
+ (libraries
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  ffmpeg-avfilter
+  ffmpeg-avdevice
+  ffmpeg-av
+  ffmpeg-swscale
+  ffmpeg-swresample))

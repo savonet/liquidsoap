@@ -1,0 +1,13 @@
+(executable
+ (name gen_code)
+ (foreign_stubs
+  (language c)
+  (names gen_code_stubs))
+ (libraries unix str))
+
+(rule
+ (target config.ml)
+ (action
+  (with-stdout-to
+   config.ml
+   (run ./config/discover.exe))))
