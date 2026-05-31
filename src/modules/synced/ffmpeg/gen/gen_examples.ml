@@ -27,6 +27,7 @@ let () =
     stanza "webcam" ["ffmpeg-av"; "ffmpeg-avdevice"];
     stanza "bitmap_subtitle_to_jpeg" ["ffmpeg-av"; "ffmpeg-swscale"];
     stanza "encode_audio" ["ffmpeg-avcodec"; "ffmpeg-swresample"];
+    stanza "reenc_vp9" ["ffmpeg-av"; "ffmpeg-avcodec"];
     stanza "all_codecs" ["ffmpeg-avcodec"];
     stanza "all_bitstream_filters" ["ffmpeg-avcodec"];
     stanza "all_channel_layouts" ["ffmpeg-avutil"];

@@ -54,17 +54,42 @@ end
 
 external ocaml_av_cleanup_av : _ container -> unit = "ocaml_av_cleanup_av"
 
+type 'media stream_config = {
+  codec : ('media, Avcodec.decode) Avcodec.codec option;
+  opts : opts option;
+}
+
 (* Input *)
 external open_input :
   string ->
   (input, _) format option ->
   (unit -> bool) option ->
   (string * string) array ->
-  input container * string array = "ocaml_av_open_input"
+  (audio Avcodec.params ->
+  (audio, Avcodec.decode) Avcodec.codec option * (string * string) array)
+  option ->
+  (video Avcodec.params ->
+  (video, Avcodec.decode) Avcodec.codec option * (string * string) array)
+  option ->
+  (subtitle Avcodec.params ->
+  (subtitle, Avcodec.decode) Avcodec.codec option * (string * string) array)
+  option ->
+  input container * string array
+  = "ocaml_av_open_input_bytecode" "ocaml_av_open_input"
 
-let open_input ?interrupt ?format ?opts url =
+let wrap_configure_stream fn params =
+  match fn params with
+    | { codec; opts } -> (codec, mk_opts_array (opts_default opts))
+
+let open_input ?interrupt ?format ?opts ?configure_audio_stream
+    ?configure_video_stream ?configure_subtitle_stream url =
   let opts = opts_default opts in
-  let ret, unused = open_input url format interrupt (mk_opts_array opts) in
+  let ret, unused =
+    open_input url format interrupt (mk_opts_array opts)
+      (Option.map wrap_configure_stream configure_audio_stream)
+      (Option.map wrap_configure_stream configure_video_stream)
+      (Option.map wrap_configure_stream configure_subtitle_stream)
+  in
   Gc.finalise ocaml_av_cleanup_av ret;
   filter_opts unused opts;
   ret
@@ -138,15 +163,10 @@ external input_obj : input container -> 'a = "ocaml_av_input_obj"
 let input_obj c = Obj.magic (input_obj c, c)
 
 (* Input Stream *)
-type ('a, 'b, 'c) stream = {
-  container : 'a container;
-  index : int;
-  mutable decoder : ('b, Avcodec.decode) Avcodec.codec option;
-}
-
+type ('a, 'b, 'c) stream = { container : 'a container; index : int }
 type media_type = MT_audio | MT_video | MT_data | MT_subtitle
 
-let mk_stream container index = { container; index; decoder = None }
+let mk_stream container index = { container; index }
 
 external get_codec_params : (_, 'm, _) stream -> 'm Avcodec.params
   = "ocaml_av_get_stream_codec_parameters"
@@ -187,7 +207,6 @@ let get_audio_streams container = get_streams container MT_audio
 let get_video_streams container = get_streams container MT_video
 let get_subtitle_streams container = get_streams container MT_subtitle
 let get_data_streams container = get_streams container MT_data
-let set_decoder s decoder = s.decoder <- Some decoder
 
 external _find_best_stream : input container -> media_type -> int
   = "ocaml_av_find_best_stream"
@@ -225,21 +244,21 @@ type input_result = [ packet_result | frame_result ]
 external read_input :
   (packet_result -> unit) option ->
   (int * Avutil.media_type) array ->
-  (int * ('a, Avcodec.decode) Avcodec.codec option) array ->
+  int array ->
   input container ->
   input_result = "ocaml_av_read_input"
 
 let _get_packet media_type input =
-  List.map (fun { index; container; _ } ->
+  List.map (fun { index; container } ->
       if container != input then
         raise (Failure "Inconsistent stream and input!");
       (index, media_type))
 
 let _get_frame input =
-  List.map (fun { index; container; decoder } ->
+  List.map (fun { index; container } ->
       if container != input then
         raise (Failure "Inconsistent stream and input!");
-      (index, Obj.magic decoder))
+      index)
 
 let read_input ?on_unhandled_packet ?(audio_packet = []) ?(audio_frame = [])
     ?(video_packet = []) ?(video_frame = []) ?(subtitle_packet = [])

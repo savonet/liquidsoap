@@ -51,6 +51,7 @@ typedef struct {
 typedef struct av_t {
   AVFormatContext *format_context;
   stream_t **streams;
+  const AVCodec **stream_decoders;
   value control_message_callback;
   int is_input;
   value interrupt_cb;
@@ -125,6 +126,8 @@ static void close_av(av_t *av) {
       av_free(av->streams);
       av->streams = NULL;
     }
+
+    av_freep(&av->stream_decoders);
 
     if (av->format_context->iformat) {
       avformat_close_input(&av->format_context);
@@ -650,9 +653,9 @@ CAMLprim value ocaml_av_get_input_format(value _av) {
   CAMLreturn(ret);
 }
 
-static av_t *open_input(char *url, avioformat_const AVInputFormat *format,
-                        AVFormatContext *format_context, value _interrupt,
-                        AVDictionary **options) {
+static av_t *open_av(char *url, avioformat_const AVInputFormat *format,
+                     AVFormatContext *format_context, value _interrupt,
+                     AVDictionary **options) {
   int err;
   av_t *av = NULL;
 
@@ -677,6 +680,7 @@ static av_t *open_input(char *url, avioformat_const AVInputFormat *format,
   av->is_input = 1;
   av->pending_stream_idx = -1;
   av->streams = NULL;
+  av->stream_decoders = NULL;
 
   av->packet = av_packet_alloc();
   if (!av->packet) {
@@ -705,14 +709,6 @@ static av_t *open_input(char *url, avioformat_const AVInputFormat *format,
   if (err < 0)
     goto fail;
 
-  // retrieve stream information
-  caml_release_runtime_system();
-  err = avformat_find_stream_info(av->format_context, NULL);
-  caml_acquire_runtime_system();
-
-  if (err < 0)
-    goto fail;
-
   return av;
 
 fail:
@@ -729,18 +725,41 @@ fail:
   return NULL;
 }
 
+static av_t *open_input(char *url, avioformat_const AVInputFormat *format,
+                        AVFormatContext *format_context, value _interrupt,
+                        AVDictionary **options) {
+  av_t *av = open_av(url, format, format_context, _interrupt, options);
+
+  caml_release_runtime_system();
+  int err = avformat_find_stream_info(av->format_context, NULL);
+  caml_acquire_runtime_system();
+
+  if (err < 0) {
+    close_av(av);
+    av_free(av);
+    ocaml_avutil_raise_error(err);
+    return NULL;
+  }
+
+  return av;
+}
+
 CAMLprim value ocaml_av_open_input(value _url, value _format, value _interrupt,
-                                   value _opts) {
-  CAMLparam4(_url, _format, _interrupt, _opts);
-  CAMLlocal3(ret, ans, unused);
+                                   value _opts, value _configure_audio_stream,
+                                   value _configure_video_stream,
+                                   value _configure_subtitle_stream) {
+  CAMLparam5(_url, _format, _interrupt, _opts, _configure_audio_stream);
+  CAMLxparam2(_configure_video_stream, _configure_subtitle_stream);
+  CAMLlocal5(ret, ans, unused, _params, _config);
+  CAMLlocal2(_codec_opt, _configure);
   char *url = NULL;
   avioformat_const AVInputFormat *format = NULL;
   int ulen = caml_string_length(_url);
   AVDictionary *options = NULL;
   char *key, *val;
-  int len = Wosize_val(_opts);
   int i, err, count;
 
+  int len = Wosize_val(_opts);
   for (i = 0; i < len; i++) {
     // Dictionaries copy key/values by default!
     key = (char *)Bytes_val(Field(Field(_opts, i), 0));
@@ -763,25 +782,145 @@ CAMLprim value ocaml_av_open_input(value _url, value _format, value _interrupt,
     Fail("At least one format or url must be provided!");
   }
 
-  // open input url
-  av_t *av = open_input(url, format, NULL, _interrupt, &options);
+  av_t *av = open_av(url, format, NULL, _interrupt, &options);
 
   if (url)
     av_free(url);
 
-  // Return unused keys
-  count = av_dict_count(options);
+  // Configure per-stream decoders and build opts for
+  // avformat_find_stream_info
+  int nb_streams = av->format_context->nb_streams;
+  av->stream_decoders = av_calloc(nb_streams, sizeof(const AVCodec *));
+  AVDictionary **stream_opts = av_calloc(nb_streams, sizeof(AVDictionary *));
 
+  // Track format-level codec overrides for avformat_find_stream_info.
+  // Only set them if all streams of a given type agree on the same codec;
+  // conflicting preferences cancel each other out to avoid misdetection.
+  const AVCodec *audio_codec_override = NULL;
+  const AVCodec *video_codec_override = NULL;
+  const AVCodec *subtitle_codec_override = NULL;
+  int audio_conflict = 0, video_conflict = 0, subtitle_conflict = 0;
+
+  for (i = 0; i < nb_streams; i++) {
+    AVStream *stream = av->format_context->streams[i];
+    AVCodecParameters *par = stream->codecpar;
+
+    switch (par->codec_type) {
+    case AVMEDIA_TYPE_AUDIO:
+      _configure = _configure_audio_stream;
+      break;
+    case AVMEDIA_TYPE_VIDEO:
+      _configure = _configure_video_stream;
+      break;
+    case AVMEDIA_TYPE_SUBTITLE:
+      _configure = _configure_subtitle_stream;
+      break;
+    default:
+      _configure = Val_none;
+      break;
+    }
+
+    if (_configure == Val_none)
+      continue;
+
+    value_of_codec_parameters_copy(par, &_params);
+    _config = caml_callback(Some_val(_configure), _params);
+
+    _codec_opt = Field(_config, 0);
+    if (_codec_opt != Val_none) {
+      const AVCodec *codec = AvCodec_val(Some_val(_codec_opt));
+      av->stream_decoders[i] = codec;
+      switch (par->codec_type) {
+      case AVMEDIA_TYPE_AUDIO:
+        if (!audio_conflict) {
+          if (audio_codec_override == NULL)
+            audio_codec_override = codec;
+          else if (audio_codec_override != codec)
+            audio_conflict = 1;
+        }
+        break;
+      case AVMEDIA_TYPE_VIDEO:
+        if (!video_conflict) {
+          if (video_codec_override == NULL)
+            video_codec_override = codec;
+          else if (video_codec_override != codec)
+            video_conflict = 1;
+        }
+        break;
+      case AVMEDIA_TYPE_SUBTITLE:
+        if (!subtitle_conflict) {
+          if (subtitle_codec_override == NULL)
+            subtitle_codec_override = codec;
+          else if (subtitle_codec_override != codec)
+            subtitle_conflict = 1;
+        }
+        break;
+      default:
+        break;
+      }
+    }
+
+    value _stream_opts = Field(_config, 1);
+    int stream_opts_len = Wosize_val(_stream_opts);
+    for (int j = 0; j < stream_opts_len; j++) {
+      value _pair = Field(_stream_opts, j);
+      av_dict_set(&stream_opts[i], String_val(Field(_pair, 0)),
+                  String_val(Field(_pair, 1)), 0);
+    }
+  }
+
+  if (audio_codec_override) {
+    if (audio_conflict)
+      av_log(av->format_context, AV_LOG_WARNING,
+             "Multiple audio streams request different preferred decoders; "
+             "using %s for stream probing.\n", audio_codec_override->name);
+    av->format_context->audio_codec = audio_codec_override;
+  }
+
+  if (video_codec_override) {
+    if (video_conflict)
+      av_log(av->format_context, AV_LOG_WARNING,
+             "Multiple video streams request different preferred decoders; "
+             "using %s for stream probing.\n", video_codec_override->name);
+    av->format_context->video_codec = video_codec_override;
+  }
+
+  if (subtitle_codec_override) {
+    if (subtitle_conflict)
+      av_log(av->format_context, AV_LOG_WARNING,
+             "Multiple subtitle streams request different preferred decoders; "
+             "using %s for stream probing.\n", subtitle_codec_override->name);
+    av->format_context->subtitle_codec = subtitle_codec_override;
+  }
+
+  caml_release_runtime_system();
+  err = avformat_find_stream_info(av->format_context, stream_opts);
+  caml_acquire_runtime_system();
+
+  av->format_context->audio_codec = NULL;
+  av->format_context->video_codec = NULL;
+  av->format_context->subtitle_codec = NULL;
+
+  for (i = 0; i < nb_streams; i++)
+    av_dict_free(&stream_opts[i]);
+  av_freep(&stream_opts);
+
+  if (err < 0) {
+    close_av(av);
+    av_free(av);
+    ocaml_avutil_raise_error(err);
+  }
+
+  // Return unused format-level keys
+  count = av_dict_count(options);
   unused = caml_alloc_tuple(count);
   AVDictionaryEntry *entry = NULL;
   for (i = 0; i < count; i++) {
     entry = av_dict_get(options, "", entry, AV_DICT_IGNORE_SUFFIX);
     Store_field(unused, i, caml_copy_string(entry->key));
   }
-
   av_dict_free(&options);
 
-  // allocate format context
   ans = caml_alloc_custom(&av_ops, sizeof(av_t *), 0, 1);
   Av_base_val(ans) = av;
 
@@ -790,6 +929,12 @@ CAMLprim value ocaml_av_open_input(value _url, value _format, value _interrupt,
   Store_field(ret, 1, unused);
 
   CAMLreturn(ret);
+}
+
+CAMLprim value ocaml_av_open_input_bytecode(value *argv,
+                                            int argc __attribute__((unused))) {
+  return ocaml_av_open_input(argv[0], argv[1], argv[2], argv[3], argv[4],
+                             argv[5], argv[6]);
 }
 
 CAMLprim value ocaml_av_open_input_stream(value _avio, value _format,
@@ -975,6 +1120,8 @@ static stream_t *open_stream_index(av_t *av, int index, const AVCodec *dec) {
 
   // find decoder for the stream
   AVCodecParameters *dec_param = av->format_context->streams[index]->codecpar;
+  if (!dec && av->stream_decoders)
+    dec = av->stream_decoders[index];
   if (!dec) {
     caml_release_runtime_system();
     dec = avcodec_find_decoder(dec_param->codec_id);
@@ -1131,7 +1278,7 @@ static int read_packet(av_t *av) {
 CAMLprim value ocaml_av_read_input(value _unhandled_packet, value _packet,
                                    value _frame, value _av) {
   CAMLparam4(_unhandled_packet, _packet, _frame, _av);
-  CAMLlocal5(ans, decoded_content, frame_value, packet_value, _dec);
+  CAMLlocal4(ans, decoded_content, frame_value, packet_value);
   av_t *av = Av_val(_av);
   AVFrame *frame;
   AVSubtitle *subtitle;
@@ -1187,20 +1334,12 @@ CAMLprim value ocaml_av_read_input(value _unhandled_packet, value _packet,
         }
 
       for (i = 0; i < Wosize_val(_frame) && !stream; i++) {
-        if (Int_val(Field(Field(_frame, i), 0)) == av->packet->stream_index) {
+        if (Int_val(Field(_frame, i)) == av->packet->stream_index) {
           packet = av->packet;
           stream = streams[av->packet->stream_index];
 
-          if (stream == NULL) {
-            const AVCodec *dec = NULL;
-            _dec = Field(Field(_frame, i), 1);
-
-            if (_dec != Val_none) {
-              dec = AvCodec_val(Some_val(_dec));
-            }
-
-            stream = open_stream_index(av, av->packet->stream_index, dec);
-          }
+          if (stream == NULL)
+            stream = open_stream_index(av, av->packet->stream_index, NULL);
         }
       }
 
