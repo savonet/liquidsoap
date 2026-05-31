@@ -136,15 +136,9 @@ let () =
   List.iter
     (mk_encoder ~deps:subtitle_deps "audio_video_subtitle")
     audio_video_subtitle_formats;
-  List.iter mk_encoded_file formats;
-  Printf.printf
-    {|
-(alias
-  (name media_files)
-  (deps
-    %s))
-|}
-    (String.concat "\n" (List.map filename formats))
+  List.iter mk_encoded_file formats
+
+let all_media_files = String.concat "\n" (List.map filename formats)
 
 let file_test ?(deps = []) ~label ~test fname =
   let extra_deps =
@@ -156,7 +150,7 @@ let file_test ?(deps = []) ~label ~test fname =
  (alias %s)
  (package liquidsoap)
  (deps
-  (alias media_files)
+  %s
   %s%s
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -168,7 +162,7 @@ let file_test ?(deps = []) ~label ~test fname =
 
 |}
     (mediatest "%s" (Filename.remove_extension test))
-    test extra_deps label test fname
+    all_media_files test extra_deps label test fname
 
 let () =
   List.iter
@@ -210,7 +204,8 @@ let () =
     {|(alias
   (name mediatest)
   (deps
-    (alias media_files)
+    %s
     %s))
 |}
+    all_media_files
     (String.concat "\n    " (List.sort_uniq Stdlib.compare !mediatests))
