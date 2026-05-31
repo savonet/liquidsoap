@@ -1,0 +1,58 @@
+name: Synced push
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/modules/synced/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synced-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push synced modules
+        env:
+          GH_TOKEN: ${{ secrets.SUBTREE_PUSH_TOKEN }}
+        run: |
+          pr_number=$(gh api /repos/savonet/liquidsoap/commits/${{ github.sha }}/pulls --jq '.[0].number // empty')
+
+          for dir in src/modules/synced/*/; do
+            name=$(basename "$dir")
+            if git diff --quiet ${{ github.event.before }} HEAD -- "src/modules/synced/$name/"; then
+              continue
+            fi
+
+            upstream="https://x-access-token:${GH_TOKEN}@github.com/savonet/ocaml-$name"
+            git clone "$upstream" /tmp/synced-$name
+            cd /tmp/synced-$name
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            if [ -n "$pr_number" ]; then
+              mirror_branch="mirror/pr-${pr_number}"
+              if gh pr list --repo "savonet/ocaml-$name" --head "$mirror_branch" --json number --jq 'length > 0' | grep -q true; then
+                gh pr merge "$mirror_branch" --repo "savonet/ocaml-$name" --merge --delete-branch \
+                  --subject "Merged via savonet/liquidsoap#${pr_number}."
+                git pull origin main
+              fi
+            fi
+
+            rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/src/modules/synced/$name/" .
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "Synced from savonet/liquidsoap@${{ github.sha }}"
+              git push origin main
+            fi
+
+            cd -
+          done

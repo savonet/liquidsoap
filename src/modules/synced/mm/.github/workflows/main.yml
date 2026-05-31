@@ -1,0 +1,25 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ocaml-compiler: ["5.3"]
+        include:
+          - os: macos-latest
+            extra-packages: ao mad pulseaudio theora
+          - os: ubuntu-latest
+            extra-packages: alsa ao mad pulseaudio theora
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+      - run: opam pin add -n .
+      - run: opam install ${{ matrix.extra-packages }}
+      - run: opam depext -yt mm
+      - run: opam install -t .

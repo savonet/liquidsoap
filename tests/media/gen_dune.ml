@@ -99,10 +99,12 @@ let mk_encoder ?(deps = []) source format =
     (escaped_format format)
 
 let mk_encoded_file format =
+  let filename = filename format in
+  let alias = String.sub filename 1 (String.length filename - 1) in
   Printf.printf
     {|
 (rule
- (alias mediatest)
+ (alias %s)
  (package liquidsoap)
  (target %s)
  (deps
@@ -110,13 +112,14 @@ let mk_encoded_file format =
   (package liquidsoap)
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
+  test-subtitle.srt
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
    (run %%{run_test} %%{encoder} liquidsoap %%{test_liq} %%{encoder} -- %S)))
 
 |}
-    (filename format) (encoder_script format) (encoder_format format)
+    alias filename (encoder_script format) (encoder_format format)
 
 let () =
   List.iter (mk_encoder "audio_only") audio_formats;
@@ -133,15 +136,9 @@ let () =
   List.iter
     (mk_encoder ~deps:subtitle_deps "audio_video_subtitle")
     audio_video_subtitle_formats;
-  List.iter mk_encoded_file formats;
-  Printf.printf
-    {|
-(alias
-  (name all_media_files)
-  (deps
-    %s))
-|}
-    (String.concat "\n" (List.map filename formats))
+  List.iter mk_encoded_file formats
+
+let all_media_files = String.concat "\n" (List.map filename formats)
 
 let file_test ?(deps = []) ~label ~test fname =
   let extra_deps =
@@ -153,7 +150,7 @@ let file_test ?(deps = []) ~label ~test fname =
  (alias %s)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  %s
   %s%s
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -165,7 +162,7 @@ let file_test ?(deps = []) ~label ~test fname =
 
 |}
     (mediatest "%s" (Filename.remove_extension test))
-    test extra_deps label test fname
+    all_media_files test extra_deps label test fname
 
 let () =
   List.iter
@@ -207,6 +204,8 @@ let () =
     {|(alias
   (name mediatest)
   (deps
+    %s
     %s))
 |}
+    all_media_files
     (String.concat "\n    " (List.sort_uniq Stdlib.compare !mediatests))

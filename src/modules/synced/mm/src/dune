@@ -1,0 +1,84 @@
+(env
+ (dev
+  (flags
+   (:standard -w -69))))
+
+(library
+ (name mm_base)
+ (public_name mm.base)
+ (libraries unix)
+ (modules ringbuffer iO)
+ (synopsis
+  "High-level APIs to create and manipulate multimedia streams -- base modules"))
+
+(library
+ (name mm_audio)
+ (public_name mm.audio)
+ (libraries mm.base)
+ (modules audio)
+ (foreign_stubs
+  (extra_deps config.h)
+  (language c)
+  (names audio_c))
+ (synopsis
+  "High-level APIs to create and manipulate multimedia streams -- audio module"))
+
+(library
+ (name mm_image)
+ (public_name mm.image)
+ (libraries unix)
+ (modules
+  imageBase
+  imageBitmap
+  imageBGRA
+  imageRGBA32
+  imageYUV420
+  imageGeneric
+  imageCanvas
+  image)
+ (foreign_stubs
+  (extra_deps config.h)
+  (language c)
+  (names image_data image_pixel image_rgb image_yuv420))
+ (synopsis
+  "High-level APIs to create and manipulate multimedia streams -- image module"))
+
+(library
+ (name mm_video)
+ (public_name mm.video)
+ (libraries mm.base mm.image mm.audio)
+ (modules video)
+ (synopsis
+  "High-level APIs to create and manipulate multimedia streams -- video module"))
+
+(library
+ (name mm_midi)
+ (public_name mm.midi)
+ (libraries mm.base mm.audio)
+ (modules MIDI synth)
+ (synopsis
+  "High-level APIs to create and manipulate multimedia streams -- midi module"))
+
+(library
+ (name mm)
+ (public_name mm)
+ (libraries mm.audio mm.image mm.video mm.midi)
+ (modules mm)
+ (synopsis "High-level APIs to create and manipulate multimedia streams"))
+
+(rule
+ (targets config.h)
+ (action
+  (run ./config/discover.exe)))
+
+(rule
+ (targets mm.ml)
+ (mode fallback)
+ (deps config.print)
+ (action
+  (echo "this should not happen")))
+
+(rule
+ (targets config.print)
+ (action
+  (run ./config/setup.exe)))

@@ -24,6 +24,11 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-pin: false
           opam-depext: false
+      - name: Pin synced modules
+        run: |
+          for dir in src/modules/synced/*/; do
+            (cd "$dir" && opam pin -ny .)
+          done
       - name: Add local packages
         run: |
           ./.github/scripts/add-local-opam-packages.sh

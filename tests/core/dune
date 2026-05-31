@@ -101,7 +101,7 @@
  (alias ffmpeg_get_type_test)
  (package liquidsoap)
  (deps
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   (:test ffmpeg_get_type_test.exe))
  (action
   (run %{test} ../media)))
@@ -110,7 +110,7 @@
  (alias ffmpeg_stream_description_test)
  (package liquidsoap)
  (deps
-  (alias ../media/all_media_files)
+  (glob_files ../media/**)
   (:test ffmpeg_stream_description_test.exe))
  (target all_media_file_descriptions.json.gen)
  (action

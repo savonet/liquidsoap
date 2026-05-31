@@ -73,6 +73,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.build_args.outputs.tag }}
           push: ${{ inputs.push }}
+          no-cache: true
           provenance: false
           sbom: false
 
@@ -102,5 +103,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/savonet/liquidsoap:ci-v2-alpine-${{ matrix.ocaml_version }}
           push: ${{ inputs.push }}
+          no-cache: true
           provenance: false
           sbom: false

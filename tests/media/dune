@@ -132,7 +132,7 @@
   test_ffmpeg_copy_concat.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -147,11 +147,11 @@
  (alias test_ffmpeg_raw_implicit_conversion)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   test_ffmpeg_raw_implicit_conversion.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -166,11 +166,11 @@
  (alias test_ffmpeg_complex_filter)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   test_ffmpeg_complex_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -240,7 +240,7 @@
   test_ffmpeg_copy_subtitle.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -262,7 +262,7 @@
   test_ffmpeg_distributed_hls_setup.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -286,7 +286,7 @@
   hls_resume_output.done
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -307,7 +307,7 @@
   test_ffmpeg_hls_mp4.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -328,7 +328,7 @@
   test_ffmpeg_hls_copy_mp4.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -345,13 +345,13 @@
  (alias test_ffmpeg_transparency_filter)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   background.jpg
   logo.png
   test_ffmpeg_transparency_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -366,13 +366,13 @@
  (alias test_ffmpeg_filter_changing_rate)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   background.jpg
   logo.png
   test_ffmpeg_filter_changing_rate.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -390,11 +390,11 @@
  (alias test_lufs_integrated)
  (package liquidsoap)
  (deps
-  (alias all_media_files)
+  (glob_files ../media/**)
   test_lufs_integrated.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -429,7 +429,7 @@
   test_ffmpeg_filter_array_args.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -467,7 +467,7 @@
   test_image_decoder_duration.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -499,7 +499,7 @@
   test_bitmap_subtitle_to_video.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -555,7 +555,7 @@
   test_subtitle_text_to_ass.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (source_tree ../../src/lib)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
