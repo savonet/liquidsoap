@@ -3,3 +3,4 @@ _build/
 .*sw*
 .merlin
 *~
+ffmpeg.config

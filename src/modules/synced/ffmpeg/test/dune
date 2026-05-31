@@ -97,91 +97,127 @@
   (run %{runner} "info" %{exe})))
 
 ; ============================================
-; Encode tests
+; Encode tests — explicit file targets
 ; ============================================
 
 (rule
- (alias test_encode_audio_flac)
- (package ffmpeg)
+ (targets A4.flac)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/encode_audio.exe))
  (action
   (run %{runner} "encode_audio_flac" %{exe} A4.flac flac)))
 
-(rule
- (alias test_encode_audio_mp2)
+(alias
+ (name test_encode_audio_flac)
  (package ffmpeg)
+ (deps A4.flac))
+
+(rule
+ (targets A4.mp2)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/encode_audio.exe))
  (action
   (run %{runner} "encode_audio_mp2" %{exe} A4.mp2 mp2)))
 
-(rule
- (alias test_encode_video_ogg)
+(alias
+ (name test_encode_audio_mp2)
  (package ffmpeg)
+ (deps A4.mp2))
+
+(rule
+ (targets video.ogg)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/encode_video.exe))
  (action
   (run %{runner} "encode_video_ogg" %{exe} video.ogg yuv420p libtheora)))
 
-(rule
- (alias test_encode_video_webm)
+(alias
+ (name test_encode_video_ogg)
  (package ffmpeg)
+ (deps video.ogg))
+
+(rule
+ (targets video.webm)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/encode_video.exe))
  (action
   (run %{runner} "encode_video_webm" %{exe} video.webm yuva420p libvpx-vp9)))
 
-(rule
- (alias test_encode_stream_flac)
+(alias
+ (name test_encode_video_webm)
  (package ffmpeg)
+ (deps video.webm))
+
+(rule
+ (targets S4.flac)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/encode_stream.exe))
  (action
   (run %{runner} "encode_stream_flac" %{exe} S4.flac flac)))
 
-(rule
- (alias test_encode_stream_mp2)
+(alias
+ (name test_encode_stream_flac)
  (package ffmpeg)
+ (deps S4.flac))
+
+(rule
+ (targets S4.mp2)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/encode_stream.exe))
  (action
   (run %{runner} "encode_stream_mp2" %{exe} S4.mp2 mp2)))
 
-(rule
- (alias test_encoding)
+(alias
+ (name test_encode_stream_mp2)
  (package ffmpeg)
+ (deps S4.mp2))
+
+(rule
+ (targets out.mkv)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/encoding.exe))
  (action
   (run %{runner} "encoding" %{exe} out.mkv aac mpeg4 ass)))
 
-(rule
- (alias test_decode_stream_mp3)
+(alias
+ (name test_encoding)
  (package ffmpeg)
+ (deps out.mkv))
+
+(rule
+ (targets A4.mp3)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/decode_stream.exe)
-  (alias test_encode_audio_flac))
+  A4.flac)
  (action
   (run %{runner} "decode_stream_mp3" %{exe} A4.flac A4.mp3 libmp3lame)))
 
-(rule
- (alias test_decode_stream_ogg)
+(alias
+ (name test_decode_stream_mp3)
  (package ffmpeg)
+ (deps A4.mp3))
+
+(rule
+ (targets A4.ogg)
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/decode_stream.exe)
-  (alias test_encode_audio_mp2))
+  A4.mp2)
  (action
   (run %{runner} "decode_stream_ogg" %{exe} A4.mp2 A4.ogg libvorbis)))
+
+(alias
+ (name test_decode_stream_ogg)
+ (package ffmpeg)
+ (deps A4.ogg))
 
 (rule
  (alias test_audio_decoding_ogg)
@@ -189,7 +225,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/audio_decoding.exe)
-  (alias test_decode_stream_ogg))
+  A4.ogg)
  (action
   (run %{runner} "audio_decoding_ogg" %{exe} A4.ogg ogg A4)))
 
@@ -199,7 +235,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/audio_decoding.exe)
-  (alias test_encoding))
+  out.mkv)
  (action
   (run %{runner} "audio_decoding_mkv" %{exe} out.mkv matroska out)))
 
@@ -213,7 +249,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/remuxing.exe)
-  (alias test_encoding))
+  out.mkv)
  (action
   (run %{runner} "remuxing" %{exe} out.mkv out_remuxed.mp4)))
 
@@ -227,7 +263,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/transcode_aac.exe)
-  (alias test_decode_stream_ogg))
+  A4.ogg)
  (action
   (run %{runner} "transcode_aac" %{exe} A4.ogg A4_transcoded.mp4)))
 
@@ -237,7 +273,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/transcoding.exe)
-  (alias test_encoding))
+  out.mkv)
  (action
   (run %{runner} "transcoding" %{exe} out.mkv out_transcoded.mp4)))
 
@@ -251,7 +287,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/decoding.exe)
-  (alias test_encoding))
+  out.mkv)
  (action
   (run %{runner} "decoding" %{exe} out.mkv)))
 
@@ -265,7 +301,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/fps.exe)
-  (alias test_encoding))
+  out.mkv)
  (action
   (run %{runner} "fps" %{exe} out.mkv out_fps.mp4)))
 
@@ -279,7 +315,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/aresample.exe)
-  (alias test_encoding))
+  out.mkv)
  (action
   (run %{runner} "aresample" %{exe} out.mkv out_aresample.mp4)))
 
@@ -293,7 +329,7 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/demuxing_decoding.exe)
-  (alias test_encoding))
+  out.mkv)
  (action
   (run %{runner} "demuxing_decoding" %{exe} out.mkv vo.raw ao.raw)))
 
@@ -307,8 +343,8 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/read_metadata.exe)
-  (alias test_encode_audio_flac)
-  (alias test_decode_stream_mp3))
+  A4.flac
+  A4.mp3)
  (action
   (run %{runner} "read_metadata_flac" %{exe} A4.flac flac A4.mp3 libmp3lame)))
 
@@ -318,8 +354,8 @@
  (deps
   (:runner test_runner.exe)
   (:exe ../examples/read_metadata.exe)
-  (alias test_encode_audio_mp2)
-  (alias test_decode_stream_ogg))
+  A4.mp2
+  A4.ogg)
  (action
   (run %{runner} "read_metadata_mp2" %{exe} A4.mp2 mp2 A4.ogg libvorbis)))
 
