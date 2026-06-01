@@ -17,6 +17,7 @@
 (rule
  (alias install)
  (package vorbis)
+ (enabled_if (= %{profile} release))
  (action
   (with-stdin-from
    ../detect/vorbis_available

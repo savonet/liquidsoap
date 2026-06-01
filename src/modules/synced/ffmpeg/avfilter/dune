@@ -1,6 +1,7 @@
 (rule
  (alias install)
  (package ffmpeg-avfilter)
+ (enabled_if (= %{profile} release))
  (action
   (with-stdin-from
    ../detect/avfilter_available

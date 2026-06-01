@@ -17,6 +17,7 @@
 (rule
  (alias install)
  (package speex)
+ (enabled_if (= %{profile} release))
  (action
   (with-stdin-from
    ../detect/speex_available

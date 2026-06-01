@@ -1,6 +1,7 @@
 (rule
  (alias install)
  (package ffmpeg-swresample)
+ (enabled_if (= %{profile} release))
  (action
   (with-stdin-from
    ../detect/swresample_available

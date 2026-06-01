@@ -18,6 +18,7 @@
 (rule
  (alias install)
  (package ogg)
+ (enabled_if (= %{profile} release))
  (action
   (with-stdin-from
    ../detect/ogg_available

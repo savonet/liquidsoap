@@ -1,6 +1,7 @@
 (rule
  (alias install)
  (package ffmpeg-swscale)
+ (enabled_if (= %{profile} release))
  (action
   (with-stdin-from
    ../detect/swscale_available

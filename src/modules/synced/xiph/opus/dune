@@ -18,6 +18,7 @@
 (rule
  (alias install)
  (package opus)
+ (enabled_if (= %{profile} release))
  (action
   (with-stdin-from
    ../detect/opus_available

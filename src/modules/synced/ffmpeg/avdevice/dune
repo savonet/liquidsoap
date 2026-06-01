@@ -1,6 +1,7 @@
 (rule
  (alias install)
  (package ffmpeg-avdevice)
+ (enabled_if (= %{profile} release))
  (action
   (with-stdin-from
    ../detect/avdevice_available
