@@ -126,14 +126,14 @@ build: [
     "LIQUIDSOAP_BUILD_TARGET=standalone"
     "LIQUIDSOAP_SYS_CONFIG=mingw"
     "LIQUIDSOAP_ENABLE_BUILD_CONFIG=false"
+    "LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true"
     "LIQ_LDFLAGS=-lcurl -lwldap32 -ldl -lnghttp2 -lpsl -lssh2 -lidn2 -lzstd -lunistring -lbrotlicommon -lbrotlidec -lcrypt32 -liconv -lpthread -lz -lbcrypt -lwinmm -lksuser -link /usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/libavutil.a"
     "dune"
     "build"
     "-x"
     "windows"
-    "-p"
-    "liquidsoap-lang,liquidsoap"
     "@install"
+    "--release"
     "-j"
     jobs
   ]
