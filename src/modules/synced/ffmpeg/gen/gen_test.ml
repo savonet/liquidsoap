@@ -12,7 +12,7 @@ let () =
     print_string
       {|
 (rule
- (alias citest)
+ (alias ffmpeg_citest)
  (package ffmpeg)
  (deps
   (:runner test_runner.exe)
