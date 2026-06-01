@@ -15,19 +15,17 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "3.2"}
+  "dune" {>= "3.23.1"}
   "ocaml-windows" {>= "4.14"}
   "camomile-windows" {>= "2.0.0"}
   "camomile" {>= "2.0.0"}
-  "dtools-windows" {>= "0.4.5"}
-  "duppy-windows" {>= "0.9.4"}
+  "domain_shims"
   "domain_shims-windows"
-  "mm-windows" {>= "0.8.4"}
+  "re" {>= "1.11.0"}
   "re-windows" {>= "1.11.0"}
-  "cry-windows" {>= "1.0.1"}
-  "saturn_lockfree-windows" {>= "0.5.0"}
   "sedlex" {>= "3.2"}
   "sedlex-windows" {>= "3.2"}
+  "magic-mime"
   "magic-mime-windows"
   "menhir"
   "menhirLib-windows"
@@ -36,8 +34,11 @@ depends: [
   "fileutils"
   "fileutils-windows"
   "curl-windows"
+  "xml-light"
   "xml-light-windows"
+  "mem_usage" {>= "0.1.1"}
   "mem_usage-windows" {>= "0.1.1"}
+  "metadata" {>= "0.3.0"}
   "metadata-windows" {>= "0.3.0"}
   "dune-site-windows"
   "dune-build-info-windows"
@@ -53,8 +54,6 @@ depopts: [
   "camlimages-windows"
   "dssi-windows"
   "faad-windows"
-  "fdkaac-windows"
-  "ffmpeg-windows"
   "flac-windows"
   "frei0r-windows"
   "gd-windows"
@@ -96,8 +95,6 @@ conflicts: [
   "dssi-windows" {< "0.1.3"}
   "faad-windows" {< "0.5.0"}
   "fdkaac-windows" {< "0.3.1"}
-  "ffmpeg-windows" {< "1.2.5"}
-  "ffmpeg-avutil-windows" {< "1.2.5"}
   "flac-windows" {< "0.3.0"}
   "frei0r-windows" {< "0.1.0"}
   "inotify-windows" {< "1.0"}
@@ -130,14 +127,15 @@ build: [
     "LIQUIDSOAP_BUILD_TARGET=standalone"
     "LIQUIDSOAP_SYS_CONFIG=mingw"
     "LIQUIDSOAP_ENABLE_BUILD_CONFIG=false"
+    "LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true"
     "LIQ_LDFLAGS=-lcurl -lwldap32 -ldl -lnghttp2 -lpsl -lssh2 -lidn2 -lzstd -lunistring -lbrotlicommon -lbrotlidec -lcrypt32 -liconv -lpthread -lz -lbcrypt -lwinmm -lksuser -link /usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/libavutil.a"
+    "PKG_CONFIG_PATH_default_windows=/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig"
     "dune"
     "build"
     "-x"
     "windows"
-    "-p"
-    "liquidsoap-lang,liquidsoap"
     "@install"
+    "--release"
     "-j"
     jobs
   ]

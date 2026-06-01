@@ -1847,9 +1847,9 @@ CAMLprim value ocaml_avutil_av_opt_iter(value _cursor, value _class) {
 
     _tmp = caml_alloc_tuple(1);
 
-    if (option->min <= INT64_MIN)
+    if (option->min <= (double)INT64_MIN)
       Store_field(_tmp, 0, caml_copy_int64(INT64_MIN));
-    else if (option->min >= INT64_MAX)
+    else if (option->min >= (double)INT64_MAX)
       Store_field(_tmp, 0, caml_copy_int64(INT64_MAX));
     else
       Store_field(_tmp, 0, caml_copy_int64((int64_t)option->min));
@@ -1858,9 +1858,9 @@ CAMLprim value ocaml_avutil_av_opt_iter(value _cursor, value _class) {
 
     _tmp = caml_alloc_tuple(1);
 
-    if (option->max <= INT64_MIN)
+    if (option->max <= (double)INT64_MIN)
       Store_field(_tmp, 0, caml_copy_int64(INT64_MIN));
-    else if (option->max >= INT64_MAX)
+    else if (option->max >= (double)INT64_MAX)
       Store_field(_tmp, 0, caml_copy_int64(INT64_MAX));
     else
       Store_field(_tmp, 0, caml_copy_int64((int64_t)option->max));

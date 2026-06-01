@@ -14,6 +14,7 @@ package() {
         cd liquidsoap
 
         export LIQUIDSOAP_BUILD_TARGET=posix
+        export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
         eval "$(opam config env)"
         export OCAMLPATH=$(cat ../.ocamlpath)
         dune build @install --release

@@ -1,0 +1,16 @@
+(executable
+ (name gen)
+ (modules gen has_theora)
+ (libraries
+  (select
+   has_theora.ml
+   from
+   (theora -> has_theora.yes.ml)
+   (-> has_theora.no.ml))))
+
+(rule
+ (target examples.inc)
+ (action
+  (with-stdout-to
+   examples.inc
+   (run ./gen.exe))))

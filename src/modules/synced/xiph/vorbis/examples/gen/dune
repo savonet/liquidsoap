@@ -1,0 +1,16 @@
+(executable
+ (name gen)
+ (modules gen has_vorbis)
+ (libraries
+  (select
+   has_vorbis.ml
+   from
+   (vorbis -> has_vorbis.yes.ml)
+   (-> has_vorbis.no.ml))))
+
+(rule
+ (target examples.inc)
+ (action
+  (with-stdout-to
+   examples.inc
+   (run ./gen.exe))))

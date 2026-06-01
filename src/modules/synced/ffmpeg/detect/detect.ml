@@ -24,9 +24,23 @@ let filter_win32_libs os_type libs =
       libs
   else libs
 
+let is_excluded name =
+  match Sys.getenv_opt "LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS" with
+    | None -> false
+    | Some excluded -> List.mem name (String.split_on_char ' ' excluded)
+
+let set_pkg_config_path_for_context context_name =
+  let sanitized =
+    String.map (fun c -> if c = '.' then '_' else c) context_name
+  in
+  match Sys.getenv_opt ("PKG_CONFIG_PATH_" ^ sanitized) with
+    | Some path -> Unix.putenv "PKG_CONFIG_PATH" path
+    | None -> ()
+
 let usage () =
   Printf.eprintf
-    "Usage: detect [--os-type <type>] <name> <package> <expr> [extra-cflags...]\n";
+    "Usage: detect [--os-type <type>] [--context <context>] <name> <package> \
+     <expr> [extra-cflags...]\n";
   exit 1
 
 let () =
@@ -36,17 +50,26 @@ let () =
       | "--os-type" :: v :: rest -> (v, rest)
       | _ -> (Sys.os_type, argv)
   in
+  let argv =
+    match argv with
+      | "--context" :: context_name :: rest ->
+          set_pkg_config_path_for_context context_name;
+          rest
+      | _ -> argv
+  in
   match argv with
     | name :: package :: expr :: extra_cflags ->
         let open Configurator.V1 in
         let c = create "ffmpeg-detect" in
         let available, cflags, libs =
-          match Pkg_config.get c with
-            | None -> (false, [], [])
-            | Some pc -> (
-                match Pkg_config.query_expr_err pc ~package ~expr with
-                  | Error _ -> (false, [], [])
-                  | Ok conf -> (true, conf.cflags @ extra_cflags, conf.libs))
+          if is_excluded name then (false, [], [])
+          else (
+            match Pkg_config.get c with
+              | None -> (false, [], [])
+              | Some pc -> (
+                  match Pkg_config.query_expr_err pc ~package ~expr with
+                    | Error _ -> (false, [], [])
+                    | Ok conf -> (true, conf.cflags @ extra_cflags, conf.libs)))
         in
         let libs = filter_win32_libs os_type libs in
         write_bool (name ^ "_available") available;

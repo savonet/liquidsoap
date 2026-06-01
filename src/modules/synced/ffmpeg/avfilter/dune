@@ -1,6 +1,9 @@
 (rule
  (alias install)
  (package ffmpeg-avfilter)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
  (action
   (with-stdin-from
    ../detect/avfilter_available

@@ -8,6 +8,8 @@ export CPU_CORES
 
 eval "$(opam config env)"
 
+export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
+
 echo "::group::Preparing bindings"
 
 cd /tmp/liquidsoap-full
@@ -41,15 +43,7 @@ echo "::group::Setting up specific dependencies"
 
 opam update
 
-# Pin ocaml-xiph packages individually, excluding deprecated theora and speex,
-# then reinstall them. On Debian, PKG_CONFIG_PATH picks up the static FFmpeg
-# packages; --no-depexts skips system package checks.
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/share/pkgconfig/pkgconfig
-cd /tmp/liquidsoap-full
-for pkg in ogg vorbis opus flac; do
-  opam pin -y -n add "$pkg" ./ocaml-xiph
-done
-opam install -y --no-depexts ogg vorbis opus flac
 
 opam pin -y add re 1.13.2
 # tsdl-ttf 0.7 regressed the Linux dlopen path back to the unversioned

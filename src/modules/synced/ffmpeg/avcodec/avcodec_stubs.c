@@ -223,6 +223,7 @@ CAMLprim value ocaml_avcodec_packet_side_data(value _packet) {
     case AV_PKT_DATA_STRINGS_METADATA:
     case AV_PKT_DATA_REPLAYGAIN:
       len++;
+      break;
     default:
       break;
     }
@@ -230,7 +231,8 @@ CAMLprim value ocaml_avcodec_packet_side_data(value _packet) {
 
   ret = caml_alloc_tuple(len);
 
-  for (i = 0; i < len; i++) {
+  int j = 0;
+  for (i = 0; i < packet->side_data_elems; i++) {
     switch (packet->side_data[i].type) {
     case AV_PKT_DATA_METADATA_UPDATE:
     case AV_PKT_DATA_STRINGS_METADATA:
@@ -245,7 +247,7 @@ CAMLprim value ocaml_avcodec_packet_side_data(value _packet) {
       Store_field(tmp2, 0, type);
       Store_field(tmp2, 1, tmp);
 
-      Store_field(ret, i, tmp2);
+      Store_field(ret, j++, tmp2);
       break;
 
     case AV_PKT_DATA_REPLAYGAIN:
@@ -263,7 +265,7 @@ CAMLprim value ocaml_avcodec_packet_side_data(value _packet) {
       Store_field(tmp2, 0, PVV_Replaygain);
       Store_field(tmp2, 1, tmp);
 
-      Store_field(ret, i, tmp2);
+      Store_field(ret, j++, tmp2);
       break;
 
     default:

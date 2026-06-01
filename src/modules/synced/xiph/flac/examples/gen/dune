@@ -1,0 +1,16 @@
+(executable
+ (name gen)
+ (modules gen has_flac_ogg)
+ (libraries
+  (select
+   has_flac_ogg.ml
+   from
+   (flac.ogg -> has_flac_ogg.yes.ml)
+   (-> has_flac_ogg.no.ml))))
+
+(rule
+ (target examples.inc)
+ (action
+  (with-stdout-to
+   examples.inc
+   (run ./gen.exe))))

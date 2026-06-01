@@ -2,8 +2,6 @@
 
 set -e
 
-export PKG_CONFIG_PATH=/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig
-
 SYSTEM="$1"
 BRANCH="$2"
 CPU_CORES="$3"
@@ -45,14 +43,15 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
+opam remove -y ffmpeg-windows ffmpeg-avutil-windows
 opam update
 
-opam install -y posix-socket.3.0.0 srt-windows.0.3.4 prometheus-app-windows cohttp-lwt-unix-windows ffmpeg-avutil-windows.1.2.5 \
-  lame-windows fdkaac-windows ogg-windows vorbis-windows opus-windows
+opam install -y dune.3.23.1 posix-socket.3.0.0 srt-windows.0.3.4 prometheus-app-windows cohttp-lwt-unix-windows lame-windows fdkaac-windows
 
 echo "::endgroup::"
 
 echo "::group::Install liquidsoap-windows"
+unset PKG_CONFIG_PATH
 opam install -y liquidsoap-windows
 echo "::endgroup::"
 

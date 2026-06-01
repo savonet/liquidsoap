@@ -40,4 +40,4 @@ jobs:
           ocaml-compiler: ${{ matrix.compiler }}
       - name: Run CI tests
         run: |
-          opam exec dune build @citest
+          opam exec dune build @ffmpeg_citest
