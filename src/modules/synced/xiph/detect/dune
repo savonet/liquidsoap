@@ -1,16 +1,16 @@
 (executables
  (names detect check)
- (libraries dune-configurator))
+ (libraries dune-configurator unix))
 
 (rule
  (targets ogg_available ogg_c_flags.sexp ogg_c_library_flags.sexp)
  (action
-  (run ./detect.exe ogg ogg)))
+  (run ./detect.exe --context %{context_name} ogg ogg)))
 
 (rule
  (targets flac_available flac_c_flags.sexp flac_c_library_flags.sexp)
  (action
-  (run ./detect.exe flac flac)))
+  (run ./detect.exe --context %{context_name} flac flac)))
 
 (rule
  (targets
@@ -18,24 +18,31 @@
   flac_ogg_c_flags.sexp
   flac_ogg_c_library_flags.sexp)
  (action
-  (run ./detect.exe flac_ogg ogg flac)))
+  (run ./detect.exe --context %{context_name} flac_ogg ogg flac)))
 
 (rule
  (targets vorbis_available vorbis_c_flags.sexp vorbis_c_library_flags.sexp)
  (action
-  (run ./detect.exe vorbis vorbis vorbisfile vorbisenc)))
+  (run
+   ./detect.exe
+   --context
+   %{context_name}
+   vorbis
+   vorbis
+   vorbisfile
+   vorbisenc)))
 
 (rule
  (targets opus_available opus_c_flags.sexp opus_c_library_flags.sexp)
  (action
-  (run ./detect.exe opus opus ogg)))
+  (run ./detect.exe --context %{context_name} opus opus ogg)))
 
 (rule
  (targets speex_available speex_c_flags.sexp speex_c_library_flags.sexp)
  (action
-  (run ./detect.exe speex speex ogg)))
+  (run ./detect.exe --context %{context_name} speex speex ogg)))
 
 (rule
  (targets theora_available theora_c_flags.sexp theora_c_library_flags.sexp)
  (action
-  (run ./detect.exe theora theoradec theoraenc)))
+  (run ./detect.exe --context %{context_name} theora theoradec theoraenc)))
