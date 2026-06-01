@@ -49,7 +49,7 @@ cd /tmp/liquidsoap-full
 for pkg in ogg vorbis opus flac; do
   opam pin -y -n add "$pkg" ./ocaml-xiph
 done
-opam install -y --no-depexts ogg vorbis opus flac
+opam install -y --no-depexts ogg vorbis opus flac ffmpeg.1.4.0 ffmpeg-avutil.1.4.0
 
 opam pin -y add re 1.13.2
 # tsdl-ttf 0.7 regressed the Linux dlopen path back to the unversioned
@@ -81,6 +81,7 @@ cd /tmp/liquidsoap-full
 
 test -f PACKAGES || cp PACKAGES.default PACKAGES
 sed -i '/ocaml-xiph/d' PACKAGES
+sed -i '/ocaml-ffmpeg/d' PACKAGES
 
 # Workaround
 touch liquidsoap/configure
