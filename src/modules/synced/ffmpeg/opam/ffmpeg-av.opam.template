@@ -1,0 +1,7 @@
+x-maintenance-intent: ["(latest)"]
+post-messages: [
+  """\
+We're sorry that your install failed. Make sure to check the README.md file
+to check what minimal version of FFmpeg this package requires."""
+    {failure}
+]

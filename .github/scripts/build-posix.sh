@@ -80,6 +80,7 @@ cd /tmp/liquidsoap-full
 test -f PACKAGES || cp PACKAGES.default PACKAGES
 sed -i '/ocaml-xiph/d' PACKAGES
 sed -i '/ocaml-mm/d' PACKAGES
+sed -i '/ocaml-ffmpeg/d' PACKAGES
 
 # Workaround
 touch liquidsoap/configure

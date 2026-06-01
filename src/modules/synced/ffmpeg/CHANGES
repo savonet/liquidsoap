@@ -1,0 +1,207 @@
+1.4.0 (unreleased)
+======
+* TODO: rename ffmpeg-av into ffmpeg-avformat
+* Add version API
+
+1.3.0 (2026-04-10)
+=====
+* Add support for `color_space`, `color_range`, `color_primaries`,
+  `color_trc` and `chroma_location`.
+* Add support for array of values as filter parameters.
+* Add `tell` to `Av`.
+* Add `Av.set_input_metadata`
+* Add [on_unhandled_packet] to `Av.read_input`.
+* Cleaned up support for subtitles.
+* Add `Av.get_container_stream_time_base`
+* Add `Av.get_input_format`
+* Catch AV_NOPTS_VALUE in `get_duration` and return `None`
+* Cleaned up `PackedBa` data type in `Swscale`.
+
+1.2.8 (01-01-2026)
+=====
+* `avfilter`: Added `filter_name`.
+* `avfilter`: Fixed/tested complex use of `Avfilter.parse`
+* `avutil`: Reimplemented log callback support with a lock- and
+            ocaml- free C side.
+
+1.2.7 (2025-10-31)
+======
+* Add ffmpeg 8.0 support
+* Fix CAMLparam definitions in C stubs (avoids potential heap
+corruption)
+
+1.2.6 (2025-08-26)
+======
+* Fix memleak in `ocaml_avcodec_receive_frame` and
+  `ocaml_avcodec_receive_packet`
+
+1.2.5 (2025-05-26)
+======
+* Rename `Avutil.Channel_layout.get_native_id`
+  into `Avutil.Channel_layout.get_mask` with deprecated
+  backward-compatible function.
+* Fixed channel_layout allocation.
+
+1.2.4 (2025-04-16)
+======
+* Fix avio max buffer error (#72)
+
+1.2.3 (2025-04-13)
+======
+* Cleanup C allocations.
+
+1.2.2 (2025-02-04)
+======
+* Fixed memory leak when an exception is raised
+  while initializing a container with a `avio`
+  data source.
+
+1.2.1 (2024-10-29)
+======
+* Fixed plane size when allocating big array planes in `swscale`.
+* Added packed big array API to `swscale` where all planes are alloacted in
+  on contiguous memory region.
+
+1.2.0 (2024-09-24)
+=====
+* Removed unused `Av.write_audio_frame`/`Av.write_video_frame`.
+* Remove use of deprecated `av_packet_side_data_get`
+* Added support to get all streams from output container
+* Removed unreliable `Av.was_keyframe`
+* Added `on_keyframe` to `Av.write_frame`.
+* Switched to new channel layout API.
+
+1.1.11 (2024-03-19)
+======
+* Fix segfault with the new OCaml 5 concurrent GC.
+
+1.1.10 (2024-01-17)
+======
+* Fixed codec attribute for AAC.
+* Added non-interleaved API for Av.
+
+1.1.9 (2023-10-27)
+=====
+* Added support for AV_CODEC_ID_WRAPPED_AVFRAME
+  as valid audio/video codec.
+* Added AV_CODEC_ID_NONE to all codec id classes
+  to prevent unnecessary failures when passing it
+  as detected coded_id.
+
+1.1.8 (2023-07-01)
+=====
+* Added asynchronous stream copy creation API.
+* Added `pkt_dts` API for AVFrame.
+* Raise exception when re-using a closed container.
+* Move caml_remove_generational_global_root to ocaml finalizers
+  to follow OCaml 5 memory model.
+* Added `Avutil.Frame.{duration, set_duration}`
+* Reset metadata before setting new value.
+* Fix min/max filter option values for int and int64 type.
+* Add flush API to avfilter.
+* Add support for data streams.
+
+1.1.7 (2023-02-08)
+=====
+* Filter `NaN` when converting floats to and from
+  OCaml in `swresample`.
+
+1.1.6 (2022-09-26)
+======
+* Fix channel layout breakage with recent FFmpeg with new channel layout API.
+* Fix memory leak with streams.
+* Cleanup internal C binding.
+
+1.1.5 (2022-08-28)
+======
+* Fix segfault when flushing an encoder that
+  hasn't been started yet.
+* Added flac to codec_attr.
+
+1.1.4 (2022-06-18)
+=====
+* Added codec descriptor API.
+* Added bitstream filters API
+* Fixed issues with unimplements AvOptions types.
+* Fixed memory cleanup when raising exception in `open_input` (#55)
+
+1.1.3 (2022-04-06)
+=====
+* Use size of memory referred by AVFrame and AVPacket
+  when allocating OCaml frame custom block to make sure
+  the GC is diligent when cleaning up OCaml values
+  referring to AVFrame and AVPacket.
+
+1.1.2 (2022-03-13)
+=====
+* Change error returned on OCaml callback exception
+  to AVERROR_EXTERNAL, add log entry.
+* Get rid of naked pointers.
+* Adapt to most recent FFmpeg API.
+* Added offset/length to conversion functions.
+
+1.1.1 (2021-12-26)
+======
+* Added support for interruption callback.
+
+1.1.0 (2021-11-27)
+=====
+* Added support for filter commands.
+* Make [Av.get_pixel_aspect] optional.
+* Rename [Avfilter.sample_aspect_ratio] into [Avfilter.pixel_aspect], make it optional.
+
+1.0.2 (2021-11-19)
+=====
+* Fix deadlock when raising exceptions in callbacks.
+
+1.0.1 (2021-10-02)
+=====
+* Fixed segfault when using `Field(v, i) = v'` instead of `Store_field(v, i, v')`
+* Fixed memory leak when avio callback raised exception.
+
+1.0.0 (2021-09-14)
+=====
+* Switch to dune
+* Heavy rework of the whole API
+
+0.4.2 (2020-07-04)
+=====
+* Adapt to new 4.3 headers.
+
+0.4.1 (2019-09-26)
+=====
+* Added Avutil.Audio.frame_get_sample_format.
+
+0.4.0 (09-22-2019)
+=====
+* Added support for stream output.
+* Updated stream and container creation API to be able to use any arbitrary FFmpeg parameter.
+
+0.3.0 (08-22-2019)
+=====
+* Implement support for streams
+* Cleanup internal logic
+* Fix build on bytecode architecture (#27)
+
+0.2.1 (11-12-2018)
+=====
+* Fix dist.
+
+0.2.0 (09-09-2018)
+=====
+* Add support for demuxing and resampling (#2).
+* Add audio and video encoding.
+* Add avdevice.
+* Add codec parameters structure.
+
+0.1.2 (05-23-2016)
+=====
+* Compatibility with the latest ffmpeg.
+
+0.1.1 (03-08-2015)
+=====
+* Dummy github release
+
+0.1.0 (18-02-2013)
+=====
+* Initial release.

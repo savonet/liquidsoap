@@ -1,0 +1,23 @@
+(rule
+ (alias install)
+ (package ffmpeg-av)
+ (action
+  (with-stdin-from
+   ../detect/av_available
+   (run ../detect/check.exe av))))
+
+(library
+ (name av)
+ (public_name ffmpeg-av)
+ (synopsis "Bindings to ffmpeg's av library")
+ (enabled_if
+  (= %{read:../detect/av_available} "true"))
+ (foreign_stubs
+  (language c)
+  (names av_stubs)
+  (flags
+   (:include ../detect/av_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/av_c_library_flags.sexp))
+ (install_c_headers av_stubs)
+ (libraries ffmpeg-avutil ffmpeg-avcodec))

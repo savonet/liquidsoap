@@ -1,0 +1,6 @@
+_build/
+*.install
+.*sw*
+.merlin
+*~
+ffmpeg.config

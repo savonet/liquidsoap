@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES=$(.github/scripts/extract-changelog.sh "$VERSION")
+          if [ -z "$NOTES" ]; then
+            echo "No changelog entry found for version $VERSION" >&2
+            exit 1
+          fi
+          {
+            echo "notes<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create or update GitHub release
+        uses: actions/github-script@v7
+        env:
+          RELEASE_NOTES: ${{ steps.changelog.outputs.notes }}
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            const params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: tag,
+              body: `## ocaml-ffmpeg (${tag.replace(/^v/, '')})\n\n` + process.env.RELEASE_NOTES,
+            };
+            let existing;
+            try {
+              existing = await github.rest.repos.getReleaseByTag({ owner: params.owner, repo: params.repo, tag: tag });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+            }
+            if (existing) {
+              await github.rest.repos.updateRelease({ ...params, release_id: existing.data.id });
+            } else {
+              await github.rest.repos.createRelease(params);
+            }

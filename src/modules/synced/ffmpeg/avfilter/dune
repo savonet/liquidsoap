@@ -1,0 +1,22 @@
+(rule
+ (alias install)
+ (package ffmpeg-avfilter)
+ (action
+  (with-stdin-from
+   ../detect/avfilter_available
+   (run ../detect/check.exe avfilter))))
+
+(library
+ (name avfilter)
+ (public_name ffmpeg-avfilter)
+ (synopsis "Bindings to ffmpeg's avfilter library")
+ (enabled_if
+  (= %{read:../detect/avfilter_available} "true"))
+ (foreign_stubs
+  (language c)
+  (names avfilter_stubs)
+  (flags
+   (:include ../detect/avfilter_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/avfilter_c_library_flags.sexp))
+ (libraries ffmpeg-avutil))

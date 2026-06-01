@@ -1,0 +1,87 @@
+(executable
+ (name detect)
+ (libraries dune-configurator))
+
+(executable
+ (name check))
+
+(rule
+ (targets
+  avutil_available
+  avutil_c_flags
+  avutil_c_flags.sexp
+  avutil_c_library_flags.sexp)
+ (action
+  (run
+   ../detect/detect.exe
+   avutil
+   "libavutil libavcodec"
+   "libavutil >= 55.78.100, libavcodec >= 57.107.100")))
+
+(rule
+ (targets
+  avcodec_available
+  avcodec_c_flags
+  avcodec_c_flags.sexp
+  avcodec_c_library_flags.sexp)
+ (action
+  (run ../detect/detect.exe avcodec libavcodec "libavcodec >= 59.24.100")))
+
+(rule
+ (targets av_available av_c_flags av_c_flags.sexp av_c_library_flags.sexp)
+ (action
+  (run
+   ../detect/detect.exe
+   av
+   "libavutil libavformat"
+   "libavutil >= 57.24.100, libavformat >= 57.83.100"
+   -Wall
+   -Wextra
+   -Werror=unused-variable
+   -Werror=unused-parameter)))
+
+(rule
+ (targets
+  avfilter_available
+  avfilter_c_flags
+  avfilter_c_flags.sexp
+  avfilter_c_library_flags.sexp)
+ (action
+  (run ../detect/detect.exe avfilter libavfilter "libavfilter >= 8.28.100")))
+
+(rule
+ (targets
+  avdevice_available
+  avdevice_c_flags
+  avdevice_c_flags.sexp
+  avdevice_c_library_flags.sexp)
+ (action
+  (run
+   ../detect/detect.exe
+   --os-type
+   %{os_type}
+   avdevice
+   libavdevice
+   "libavdevice >= 57.10.100")))
+
+(rule
+ (targets
+  swscale_available
+  swscale_c_flags
+  swscale_c_flags.sexp
+  swscale_c_library_flags.sexp)
+ (action
+  (run ../detect/detect.exe swscale libswscale "libswscale >= 4.8.100")))
+
+(rule
+ (targets
+  swresample_available
+  swresample_c_flags
+  swresample_c_flags.sexp
+  swresample_c_library_flags.sexp)
+ (action
+  (run
+   ../detect/detect.exe
+   swresample
+   libswresample
+   "libswresample >= 2.9.100")))

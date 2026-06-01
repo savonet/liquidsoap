@@ -1,0 +1,24 @@
+1
+00:00:01,000 --> 00:00:04,000
+Hello! This is the first subtitle.
+
+2
+00:00:05,000 --> 00:00:08,000
+This is the second subtitle.
+Testing multiple lines support.
+
+3
+00:00:09,500 --> 00:00:12,000
+Third subtitle with some
+special characters: épiphénomène
+
+4
+00:00:13,000 --> 00:00:16,500
+Unicode test: Hello World!
+Japanese: こんにちは
+
+5
+00:00:17,000 --> 00:00:20,000
+This is the last subtitle in
+our test file. Goodbye!
+
