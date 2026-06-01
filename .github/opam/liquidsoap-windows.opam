@@ -15,7 +15,7 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "3.2"}
+  "dune" {>= "3.23.1"}
   "ocaml-windows" {>= "4.14"}
   "camomile-windows" {>= "2.0.0"}
   "camomile" {>= "2.0.0"}
