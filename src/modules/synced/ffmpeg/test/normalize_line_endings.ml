@@ -4,4 +4,6 @@ let () =
   let content = really_input_string ic len in
   close_in ic;
   let normalized = String.split_on_char '\r' content |> String.concat "" in
-  print_string normalized
+  let oc = open_out Sys.argv.(2) in
+  output_string oc normalized;
+  close_out oc
