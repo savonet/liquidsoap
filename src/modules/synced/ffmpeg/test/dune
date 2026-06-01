@@ -364,7 +364,7 @@
 ; ============================================
 
 (alias
- (name citest)
+ (name ffmpeg_citest)
  (package ffmpeg)
  (deps
   (alias test_list_filters)
