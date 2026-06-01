@@ -33,7 +33,6 @@ depends: [
   "uri-windows"
   "fileutils"
   "fileutils-windows"
-  "curl"
   "curl-windows"
   "xml-light"
   "xml-light-windows"
