@@ -1300,7 +1300,9 @@ static value value_of_pict(AVSubtitleRect *rect) {
     intnat dims[1];
     size_t buf_size = rect->type == SUBTITLE_BITMAP && i == 1
                           ? AVPALETTE_SIZE
-                          : rect->h * rect->linesize[i];
+                          : (rect->h > 0 && rect->linesize[i] > 0
+                             ? (size_t)rect->h * (size_t)rect->linesize[i]
+                             : 0);
     if (rect->data[i] && buf_size > 0) {
       dims[0] = buf_size;
     } else {
@@ -1453,7 +1455,7 @@ CAMLprim value ocaml_avutil_subtitle_create_frame(value _content) {
         for (int p = 0; p < 4; p++) {
           value ba = Field(data_arr, p);
           int linesize = Int_val(Field(linesize_arr, p));
-          int size = caml_ba_byte_size(Caml_ba_array_val(ba));
+          size_t size = caml_ba_byte_size(Caml_ba_array_val(ba));
 
           if (size > 0) {
             rect->data[p] = av_malloc(size);
