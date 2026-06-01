@@ -30,7 +30,7 @@
  (libraries metadata))
 
 (rule
- (alias citest)
+ (alias metadata_citest)
  (deps
   test.mp3
   test.png

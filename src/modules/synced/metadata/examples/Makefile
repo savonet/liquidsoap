@@ -4,7 +4,7 @@ all: test id3v2
 
 test:
 	@dune test
-	@dune build @citest
+	@dune build @metadata_citest
 
 id3v2:
 	@for i in id3v2/*.mp3; do \

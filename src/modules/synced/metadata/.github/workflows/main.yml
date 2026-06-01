@@ -15,4 +15,4 @@ jobs:
       - name: Build
         run: dune build
       - name: Run tests
-        run: dune build @citest
+        run: dune build @metadata_citest

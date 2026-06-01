@@ -3,6 +3,6 @@
  (libraries metadata))
 
 (rule
- (alias citest)
+ (alias metadata_citest)
  (action
   (run ./test.exe)))
