@@ -50,6 +50,8 @@ rm -rf APKBUILD /home/opam/packages/tmp/"${ALPINE_ARCH}"
 
 echo "::group:: building ${APK_PACKAGE}-minimal.."
 
+export LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS="$MINIMAL_EXCLUDE_DEPS"
+
 # shellcheck disable=SC2086
 opam remove -y --assume-depexts $MINIMAL_EXCLUDE_DEPS
 

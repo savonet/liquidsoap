@@ -24,6 +24,11 @@ let filter_win32_libs os_type libs =
       libs
   else libs
 
+let is_excluded name =
+  match Sys.getenv_opt "LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS" with
+    | None -> false
+    | Some excluded -> List.mem name (String.split_on_char ' ' excluded)
+
 let usage () =
   Printf.eprintf
     "Usage: detect [--os-type <type>] <name> <package> <expr> [extra-cflags...]\n";
@@ -41,12 +46,14 @@ let () =
         let open Configurator.V1 in
         let c = create "ffmpeg-detect" in
         let available, cflags, libs =
-          match Pkg_config.get c with
-            | None -> (false, [], [])
-            | Some pc -> (
-                match Pkg_config.query_expr_err pc ~package ~expr with
-                  | Error _ -> (false, [], [])
-                  | Ok conf -> (true, conf.cflags @ extra_cflags, conf.libs))
+          if is_excluded name then (false, [], [])
+          else (
+            match Pkg_config.get c with
+              | None -> (false, [], [])
+              | Some pc -> (
+                  match Pkg_config.query_expr_err pc ~package ~expr with
+                    | Error _ -> (false, [], [])
+                    | Ok conf -> (true, conf.cflags @ extra_cflags, conf.libs)))
         in
         let libs = filter_win32_libs os_type libs in
         write_bool (name ^ "_available") available;

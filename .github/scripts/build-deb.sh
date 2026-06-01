@@ -56,6 +56,8 @@ echo "::endgroup::"
 
 echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 
+export LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS="$MINIMAL_EXCLUDE_DEPS"
+
 # shellcheck disable=SC2086
 opam remove -y --verbose --assume-depexts $MINIMAL_EXCLUDE_DEPS
 
