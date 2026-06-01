@@ -17,7 +17,9 @@
 (rule
  (alias install)
  (package theora)
- (enabled_if (not (= %{env:LIQ_RELEASE_AVAILABLE_OPTIONALS=false} true)))
+ (enabled_if
+  (not
+   (= %{env:LIQ_RELEASE_AVAILABLE_OPTIONALS=false} true)))
  (action
   (with-stdin-from
    ../detect/theora_available

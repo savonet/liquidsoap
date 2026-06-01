@@ -1,7 +1,9 @@
 (rule
  (alias install)
  (package ffmpeg-av)
- (enabled_if (not (= %{env:LIQ_RELEASE_AVAILABLE_OPTIONALS=false} true)))
+ (enabled_if
+  (not
+   (= %{env:LIQ_RELEASE_AVAILABLE_OPTIONALS=false} true)))
  (action
   (with-stdin-from
    ../detect/av_available
