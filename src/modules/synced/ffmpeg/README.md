@@ -3,7 +3,7 @@
 > [!WARNING]
 > This repository is read-only. All changes must be made in
 > [savonet/liquidsoap](https://github.com/savonet/liquidsoap) under
-> `src/modules/synced/mm/` and will be mirrored here automatically.
+> `src/modules/synced/ffmpeg/` and will be mirrored here automatically.
 
 ![GitHub](https://img.shields.io/github/license/savonet/ocaml-ffmpeg)
 ![CI](https://github.com/savonet/ocaml-ffmpeg/workflows/CI/badge.svg)
