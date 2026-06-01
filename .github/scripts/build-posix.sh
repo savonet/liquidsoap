@@ -8,7 +8,7 @@ export CPU_CORES
 
 eval "$(opam config env)"
 
-export LIQUIDSOAP_INSTALL_ALLOW_OPTIONALS=true
+export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
 
 echo "::group::Preparing bindings"
 

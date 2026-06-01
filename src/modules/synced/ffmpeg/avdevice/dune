@@ -3,7 +3,7 @@
  (package ffmpeg-avdevice)
  (enabled_if
   (not
-   (= %{env:LIQUIDSOAP_INSTALL_ALLOW_OPTIONALS=false} true)))
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
  (action
   (with-stdin-from
    ../detect/avdevice_available
