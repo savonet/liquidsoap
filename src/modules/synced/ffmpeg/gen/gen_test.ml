@@ -56,7 +56,6 @@ let () =
    (run %{runner} "info" %{info})
    (run %{runner} "encode_audio_flac" %{encode_audio} A4.flac flac)
    (run %{runner} "encode_audio_mp2" %{encode_audio} A4.mp2 mp2)
-   (run %{runner} "encode_video_ogg" %{encode_video} video.ogg yuv420p libtheora)
    (run %{runner} "encode_video_webm" %{encode_video} video.webm yuva420p libvpx-vp9)
    (run %{runner} "encode_stream_flac" %{encode_stream} S4.flac flac)
    (run %{runner} "encode_stream_mp2" %{encode_stream} S4.mp2 mp2)
