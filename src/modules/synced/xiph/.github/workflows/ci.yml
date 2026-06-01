@@ -19,4 +19,6 @@ jobs:
         uses: savonet/build-and-test-ocaml-module@main
         with:
           ocaml-compiler: ${{ matrix.compiler }}
-          test-target: xiph_citest
+      - name: Run CI tests
+        run: |
+          opam exec dune build @xiph_citest

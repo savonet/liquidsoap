@@ -41,10 +41,11 @@ jobs:
             if [ -n "$pr_number" ]; then
               mirror_branch="mirror/pr-${pr_number}"
               if gh pr list --repo "savonet/ocaml-$name" --head "$mirror_branch" --json number --jq 'length > 0' | grep -q true; then
-                gh pr merge "$mirror_branch" --repo "savonet/ocaml-$name" --merge \
-                  --subject "Merged via savonet/liquidsoap#${pr_number}."
+                git fetch origin "$mirror_branch"
+                git merge --no-ff "origin/$mirror_branch" \
+                  -m "Merged via savonet/liquidsoap#${pr_number}."
+                git push origin main
                 git push "$upstream" --delete "$mirror_branch" || true
-                git pull origin main
               fi
             fi
 
