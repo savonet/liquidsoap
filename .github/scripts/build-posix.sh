@@ -45,6 +45,7 @@ opam update
 # then reinstall them. On Debian, PKG_CONFIG_PATH picks up the static FFmpeg
 # packages; --no-depexts skips system package checks.
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/share/pkgconfig/pkgconfig
+opam update
 cd /tmp/liquidsoap-full
 for pkg in ogg vorbis opus flac; do
   opam pin -y -n add "$pkg" ./ocaml-xiph
