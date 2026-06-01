@@ -17,7 +17,7 @@ let () =
     if has_ffmpeg then
       print_string
         {|(rule
- (alias citest)
+ (alias xiph_citest)
  (target src.wav)
  (action
   (run
@@ -34,7 +34,7 @@ let () =
    %{target})))
 
 (rule
- (alias citest)
+ (alias xiph_citest)
  (deps ./src.wav)
  (action
   (progn

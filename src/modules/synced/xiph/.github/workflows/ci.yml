@@ -19,3 +19,4 @@ jobs:
         uses: savonet/build-and-test-ocaml-module@main
         with:
           ocaml-compiler: ${{ matrix.compiler }}
+          test-target: xiph_citest
