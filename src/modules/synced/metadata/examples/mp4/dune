@@ -1,0 +1,11 @@
+(executable
+ (name base_tags)
+ (libraries metadata))
+
+(rule
+ (alias runtest)
+ (deps
+  (:base_tags ./base_tags.exe)
+  ./base_tags.m4a)
+ (action
+  (run %{base_tags} ./base_tags.m4a)))
