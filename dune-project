@@ -155,6 +155,7 @@
 
 (package
    (name liquidsoap-mode)
+   (allow_empty)
    (depends (liquidsoap (= :version)))
    (synopsis "Liquidosap emacs mode")
 )
