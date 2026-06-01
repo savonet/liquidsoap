@@ -8,6 +8,8 @@ export CPU_CORES
 
 eval "$(opam config env)"
 
+export LIQ_RELEASE_AVAILABLE_OPTIONALS=true
+
 echo "::group::Preparing bindings"
 
 cd /tmp/liquidsoap-full
