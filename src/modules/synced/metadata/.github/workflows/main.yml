@@ -6,6 +6,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Update packages
+        run: sudo apt update
       - name: Setup OCaml
         run: sudo apt install -y ocaml ocaml-dune
       - name: Install FFmpeg
