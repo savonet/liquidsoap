@@ -15,6 +15,8 @@ jobs:
         os: [macos-latest, ubuntu-24.04]
         compiler: [4.14.2, 5.2.0]
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Build and test module
         uses: savonet/build-and-test-ocaml-module@main
         with:
