@@ -77,6 +77,7 @@ sed -i '/ocaml-xiph/d' PACKAGES
 sed -i '/ocaml-metadata/d' PACKAGES
 sed -i '/ocaml-mm/d' PACKAGES
 sed -i '/ocaml-ffmpeg/d' PACKAGES
+sed -i '/ocaml-mad/d' PACKAGES
 
 # Workaround
 touch liquidsoap/configure

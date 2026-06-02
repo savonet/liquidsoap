@@ -1,0 +1,8 @@
+(executables
+ (names detect check)
+ (libraries dune-configurator unix))
+
+(rule
+ (targets mad_available mad_c_flags.sexp mad_c_library_flags.sexp)
+ (action
+  (run ./detect.exe --context %{context_name} mad mad libmad)))
