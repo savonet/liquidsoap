@@ -21,6 +21,14 @@ jobs:
         uses: savonet/build-and-test-ocaml-module@main
         with:
           ocaml-compiler: ${{ matrix.compiler }}
+      - name: Install ffmpeg
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            brew install ffmpeg
+          else
+            sudo apt-get install -y ffmpeg
+          fi
+        shell: bash
       - name: Run CI tests
         run: |
           opam exec dune build @xiph_citest
