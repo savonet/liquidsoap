@@ -17,12 +17,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Install ffmpeg, flac and ogg
+      - name: Install deps
         run: |
           if [ "$RUNNER_OS" = "macOS" ]; then
-            brew install ffmpeg flac libogg
+            brew install ffmpeg flac libogg libvorbis speex theora opus
           else
-            sudo apt-get update && sudo apt-get install -y ffmpeg libflac-dev libogg-dev
+            sudo apt-get update && sudo apt-get install -y ffmpeg libflac-dev libogg-dev libvorbis-dev libspeex-dev libtheora-dev libopus-dev
           fi
         shell: bash
       - name: Build and test module
