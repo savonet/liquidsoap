@@ -1,0 +1,26 @@
+name: CI
+
+on: [push]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        compiler: [4.14.2, 5.2.0]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+        shell: bash
+      - name: Build and test module
+        uses: savonet/build-and-test-ocaml-module@main
+        with:
+          ocaml-compiler: ${{ matrix.compiler }}

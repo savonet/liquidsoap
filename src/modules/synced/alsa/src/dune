@@ -1,0 +1,24 @@
+(library
+ (name alsa)
+ (public_name alsa)
+ (synopsis "OCaml bindings to alsa")
+ (enabled_if
+  (= %{read:./detect/alsa_available} true))
+ (foreign_stubs
+  (language c)
+  (names alsa_stubs)
+  (flags
+   (:include ./detect/alsa_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/alsa_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package alsa)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/alsa_available
+   (run ./detect/check.exe alsa))))
