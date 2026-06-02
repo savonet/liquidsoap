@@ -1,0 +1,25 @@
+(library
+ (name mad)
+ (public_name mad)
+ (synopsis "OCaml bindings for libmad")
+ (enabled_if
+  (= %{read:./detect/mad_available} true))
+ (modules mad)
+ (foreign_stubs
+  (language c)
+  (names mad_stubs)
+  (flags
+   (:include ./detect/mad_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/mad_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package mad)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/mad_available
+   (run ./detect/check.exe mad))))
