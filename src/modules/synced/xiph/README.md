@@ -5,48 +5,49 @@
 > [savonet/liquidsoap](https://github.com/savonet/liquidsoap) under
 > `src/modules/synced/xiph/` and will be mirrored here automatically.
 
-![GitHub](https://img.shields.io/github/license/savonet/ocaml-xiph)
-![CI](https://github.com/savonet/ocaml-xiph/workflows/CI/badge.svg)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/savonet/ocaml-xiph)
+[![GitHub license](https://img.shields.io/github/license/savonet/ocaml-xiph)](https://github.com/savonet/ocaml-xiph/blob/main/LICENSE)
+[![CI](https://github.com/savonet/ocaml-xiph/workflows/CI/badge.svg)](https://github.com/savonet/ocaml-xiph/actions)
+[![GitHub release](https://img.shields.io/github/v/release/savonet/ocaml-xiph)](https://github.com/savonet/ocaml-xiph/releases)
 
-This repository provides various OCaml bindings to the [xiph](https://xiph.org/) libraries.
+OCaml bindings to the [Xiph.Org](https://xiph.org/) codec libraries, providing
+support for **Ogg**, **Vorbis**, **Opus**, **Speex**, **Theora**, and **FLAC**
+in OCaml projects.
 
-# Documentation:
+## Packages
 
-The [API documentation is available here](http://www.liquidsoap.info/ocaml-xiph/).
+| Package  | Wraps                            | opam                                                                                              |
+| -------- | -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `ogg`    | libogg — Ogg bitstream container | [![opam](https://img.shields.io/badge/opam-ogg-blue)](https://opam.ocaml.org/packages/ogg/)       |
+| `vorbis` | libvorbis — Vorbis audio codec   | [![opam](https://img.shields.io/badge/opam-vorbis-blue)](https://opam.ocaml.org/packages/vorbis/) |
+| `opus`   | libopus — Opus audio codec       | [![opam](https://img.shields.io/badge/opam-opus-blue)](https://opam.ocaml.org/packages/opus/)     |
+| `speex`  | libspeex — Speex audio codec     | [![opam](https://img.shields.io/badge/opam-speex-blue)](https://opam.ocaml.org/packages/speex/)   |
+| `theora` | libtheora — Theora video codec   | [![opam](https://img.shields.io/badge/opam-theora-blue)](https://opam.ocaml.org/packages/theora/) |
+| `flac`   | libflac — FLAC lossless audio    | [![opam](https://img.shields.io/badge/opam-flac-blue)](https://opam.ocaml.org/packages/flac/)     |
 
-# Prerequisites:
+## Installation
 
-- ocaml
-- dune
-- findlib
-- libogg
-- libvorbis
-- libspeex
-- libflac
-- libtheora
-- libopus
+The recommended way is via [opam](https://opam.ocaml.org/):
 
-See [dune-project](dune-project) file for versions.
-
-# Installation:
-
-The preferred installation method is via [opam](http://opam.ocaml.org/):
-
-```
-opam install ogg vorbis ...
+```sh
+opam install ogg vorbis opus speex theora flac
 ```
 
-If you wish to install the latest code from this repository, you can do:
+To install the latest development version directly from this repository:
 
-```
+```sh
 opam install .
 ```
 
-From within this repository.
+## Building from source
 
-# Compilation:
-
-```
+```sh
 dune build
 ```
+
+## Documentation
+
+[API documentation](http://www.liquidsoap.info/ocaml-xiph/)
+
+## License
+
+LGPL-2.1-only — see [LICENSE](LICENSE).
