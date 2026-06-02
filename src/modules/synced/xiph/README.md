@@ -9,9 +9,8 @@
 [![CI](https://github.com/savonet/ocaml-xiph/workflows/CI/badge.svg)](https://github.com/savonet/ocaml-xiph/actions)
 [![GitHub release](https://img.shields.io/github/v/release/savonet/ocaml-xiph)](https://github.com/savonet/ocaml-xiph/releases)
 
-OCaml bindings to the [Xiph.Org](https://xiph.org/) codec libraries, providing
-support for **Ogg**, **Vorbis**, **Opus**, **Speex**, **Theora**, and **FLAC**
-in OCaml projects.
+OCaml bindings to the [Xiph.Org](https://xiph.org/) codec libraries. Provides
+support for **Ogg**, **Vorbis**, **Opus**, **Speex**, **Theora**, and **FLAC**.
 
 ## Packages
 
@@ -46,7 +45,7 @@ dune build
 
 ## Documentation
 
-[API documentation](http://www.liquidsoap.info/ocaml-xiph/)
+[API documentation](https://www.liquidsoap.info/ocaml-xiph/)
 
 ## License
 
