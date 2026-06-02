@@ -4,7 +4,6 @@
  (synopsis "OCaml bindings for ao")
  (enabled_if
   (= %{read:./detect/ao_available} true))
- (libraries ogg)
  (modules ao)
  (foreign_stubs
   (language c)
