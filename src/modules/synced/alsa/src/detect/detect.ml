@@ -39,7 +39,12 @@ let () =
                     Pkg_config.query pc ~package:(String.concat " " packages)
                   with
                     | None -> (false, [], [])
-                    | Some conf -> (true, conf.cflags, conf.libs)))
+                    | Some conf ->
+                        let cflags =
+                          if List.mem "-fPIC" conf.cflags then conf.cflags
+                          else "-fPIC" :: conf.cflags
+                        in
+                        (true, cflags, conf.libs)))
         in
         write_bool (name ^ "_available") available;
         write_sexp (name ^ "_c_flags.sexp") cflags;
