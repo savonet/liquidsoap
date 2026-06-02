@@ -38,32 +38,24 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
 
+            rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/src/modules/synced/$name/" .
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "Synced from savonet/liquidsoap@${{ github.sha }}"
+            fi
+
             if [ -n "$pr_number" ]; then
               mirror_branch="mirror/pr-${pr_number}"
               if gh pr list --repo "savonet/ocaml-$name" --head "$mirror_branch" --json number --jq 'length > 0' | grep -q true; then
-                git fetch origin "$mirror_branch"
-                git checkout -b "$mirror_branch" "origin/$mirror_branch"
-                rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/src/modules/synced/$name/" .
-                git add -A
-                if ! git diff --cached --quiet; then
-                  git commit -m "Synced from savonet/liquidsoap@${{ github.sha }}"
-                fi
-                git push origin "$mirror_branch"
-                git checkout main
-                git merge --no-ff "$mirror_branch" \
-                  -m "Merged via savonet/liquidsoap#${pr_number}."
+                git push origin HEAD:refs/heads/$mirror_branch
                 git push origin main
+                git push origin --delete "$mirror_branch"
                 cd -
                 continue
               fi
             fi
 
-            rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/src/modules/synced/$name/" .
-            git add -A
-            if ! git diff --cached --quiet; then
-              git commit -m "Synced from savonet/liquidsoap@${{ github.sha }}"
-              git push origin main
-            fi
+            git push origin main
 
             cd -
           done
