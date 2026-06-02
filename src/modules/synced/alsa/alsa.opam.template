@@ -1,0 +1,8 @@
+depexts: [
+  ["alsa-lib-dev"] {os-distribution = "alpine"}
+  ["alsa-lib-devel"] {os-distribution = "centos"}
+  ["alsa-lib-devel"] {os-distribution = "fedora"}
+  ["alsa-lib-devel"] {os-family = "suse"}
+  ["libasound2-dev"] {os-family = "debian"}
+]
+available: [os = "linux"]

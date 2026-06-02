@@ -1,0 +1,1 @@
+Play a sine wave.

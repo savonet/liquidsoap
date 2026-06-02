@@ -1,0 +1,44 @@
+(executable
+ (name gen)
+ (modules gen has_alsa)
+ (libraries
+  (select
+   has_alsa.ml
+   from
+   (alsa -> has_alsa.yes.ml)
+   (-> has_alsa.no.ml))))
+
+(rule
+ (targets devices.inc)
+ (action
+  (with-stdout-to
+   devices.inc
+   (run ./gen.exe devices devices alsa))))
+
+(rule
+ (targets midi-output.inc)
+ (action
+  (with-stdout-to
+   midi-output.inc
+   (run ./gen.exe output output alsa unix))))
+
+(rule
+ (targets recorder.inc)
+ (action
+  (with-stdout-to
+   recorder.inc
+   (run ./gen.exe recorder recorder alsa))))
+
+(rule
+ (targets sequencer.inc)
+ (action
+  (with-stdout-to
+   sequencer.inc
+   (run ./gen.exe sequencer sequencer alsa))))
+
+(rule
+ (targets sine.inc)
+ (action
+  (with-stdout-to
+   sine.inc
+   (run ./gen.exe sine sine alsa))))
