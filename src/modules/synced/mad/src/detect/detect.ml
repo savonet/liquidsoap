@@ -28,18 +28,21 @@ let () =
     | "--context" :: context_name :: name :: packages ->
         set_pkg_config_path_for_context context_name;
         let open Configurator.V1 in
-        let c = create "xiph-detect" in
+        let c = create "mad-detect" in
         let available, cflags, libs =
           if is_excluded name then (false, [], [])
           else (
             match Pkg_config.get c with
               | None -> (false, [], [])
-              | Some pc -> (
-                  match
-                    Pkg_config.query pc ~package:(String.concat " " packages)
-                  with
-                    | None -> (false, [], [])
-                    | Some conf -> (true, conf.cflags, conf.libs)))
+              | Some pc ->
+                  List.fold_left
+                    (fun (found, cflags, libs) package ->
+                      if found then (found, cflags, libs)
+                      else (
+                        match Pkg_config.query pc ~package with
+                          | None -> (false, cflags, libs)
+                          | Some conf -> (true, conf.cflags, conf.libs)))
+                    (false, [], []) packages)
         in
         write_bool (name ^ "_available") available;
         write_sexp (name ^ "_c_flags.sexp") cflags;
