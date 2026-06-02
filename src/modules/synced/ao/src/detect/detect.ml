@@ -28,7 +28,7 @@ let () =
     | "--context" :: context_name :: name :: packages ->
         set_pkg_config_path_for_context context_name;
         let open Configurator.V1 in
-        let c = create "xiph-detect" in
+        let c = create "ao-detect" in
         let available, cflags, libs =
           if is_excluded name then (false, [], [])
           else (
