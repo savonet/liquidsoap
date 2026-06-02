@@ -2,14 +2,25 @@
  (name ao)
  (public_name ao)
  (synopsis "OCaml bindings for ao")
+ (enabled_if
+  (= %{read:./detect/ao_available} true))
+ (libraries ogg)
+ (modules ao)
  (foreign_stubs
   (language c)
   (names ao_stubs)
   (flags
-   (:include c_flags.sexp)))
- (c_library_flags ((:include c_library_flags.sexp))))
+   (:include ./detect/ao_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/ao_c_library_flags.sexp)))
 
 (rule
- (targets c_flags.sexp c_library_flags.sexp)
+ (alias install)
+ (package ao)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
  (action
-  (run ./config/discover.exe)))
+  (with-stdin-from
+   ../detect/ao_available
+   (run ../detect/check.exe ao))))

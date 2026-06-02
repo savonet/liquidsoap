@@ -1,3 +1,0 @@
-(executable
- (name ao_test)
- (libraries ao))

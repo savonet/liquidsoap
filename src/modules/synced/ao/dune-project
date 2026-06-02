@@ -1,4 +1,4 @@
-(lang dune 2.8)
+(lang dune 3.23)
 (version 0.2.4)
 (name ao)
 (source (github savonet/ocaml-ao))
@@ -11,6 +11,7 @@
 (package
  (name ao)
  (synopsis "Bindings for the AO library which provides high-level functions for using soundcards")
+ (allow_empty)
  (depends
   conf-ao
   conf-pkg-config
