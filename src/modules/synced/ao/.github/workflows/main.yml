@@ -1,15 +1,23 @@
-name: Build
+name: CI
+
 on: [push]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
+        os: [macos-latest, ubuntu-24.04]
+        compiler: [4.14.2, 5.2.0]
     steps:
-      - name: Checkout latest code
-        uses: actions/checkout@v1
-      - name: Install ocaml
-        uses: ocaml/setup-ocaml@v2
-      - name: Install module
-        run: opam install --cli=2.1 --with-test --confirm-level=unsafe-yes .
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Build and test module
+        uses: savonet/build-and-test-ocaml-module@main
+        with:
+          ocaml-compiler: ${{ matrix.compiler }}
