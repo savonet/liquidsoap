@@ -133,7 +133,7 @@ static void set_format(ao_sample_format *format, value bits, value rate,
   if (channels_matrix == Val_none)
     format->matrix = NULL;
   else
-    format->matrix = (char *)Bytes_val(Field(channels_matrix, 1));
+    format->matrix = (char *)String_val(Some_val(channels_matrix));
 
   if (byte_format == get_var(LITTLE_ENDIAN)) {
     format->byte_format = AO_FMT_LITTLE;
