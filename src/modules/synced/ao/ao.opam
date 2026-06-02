@@ -11,7 +11,7 @@ bug-reports: "https://github.com/savonet/ocaml-ao/issues"
 depends: [
   "conf-ao"
   "conf-pkg-config"
-  "dune" {>= "2.8"}
+  "dune" {>= "3.23"}
   "dune-configurator"
   "odoc" {with-doc}
 ]
@@ -30,3 +30,4 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/savonet/ocaml-ao.git"
+x-maintenance-intent: ["(latest)"]
