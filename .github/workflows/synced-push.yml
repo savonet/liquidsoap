@@ -42,10 +42,19 @@ jobs:
               mirror_branch="mirror/pr-${pr_number}"
               if gh pr list --repo "savonet/ocaml-$name" --head "$mirror_branch" --json number --jq 'length > 0' | grep -q true; then
                 git fetch origin "$mirror_branch"
-                git merge --no-ff "origin/$mirror_branch" \
+                git checkout -b "$mirror_branch" "origin/$mirror_branch"
+                rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/src/modules/synced/$name/" .
+                git add -A
+                if ! git diff --cached --quiet; then
+                  git commit -m "Synced from savonet/liquidsoap@${{ github.sha }}"
+                fi
+                git push origin "$mirror_branch"
+                git checkout main
+                git merge --no-ff "$mirror_branch" \
                   -m "Merged via savonet/liquidsoap#${pr_number}."
                 git push origin main
-                git push "$upstream" --delete "$mirror_branch" || true
+                cd -
+                continue
               fi
             fi
 
