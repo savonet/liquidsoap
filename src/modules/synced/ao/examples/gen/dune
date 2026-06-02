@@ -1,0 +1,16 @@
+(executable
+ (name gen)
+ (modules gen has_ao)
+ (libraries
+  (select
+   has_ao.ml
+   from
+   (ao -> has_ao.yes.ml)
+   (-> has_ao.no.ml))))
+
+(rule
+ (target examples.inc)
+ (action
+  (with-stdout-to
+   examples.inc
+   (run ./gen.exe))))
