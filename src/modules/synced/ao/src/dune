@@ -1,0 +1,15 @@
+(library
+ (name ao)
+ (public_name ao)
+ (synopsis "OCaml bindings for ao")
+ (foreign_stubs
+  (language c)
+  (names ao_stubs)
+  (flags
+   (:include c_flags.sexp)))
+ (c_library_flags ((:include c_library_flags.sexp))))
+
+(rule
+ (targets c_flags.sexp c_library_flags.sexp)
+ (action
+  (run ./config/discover.exe)))

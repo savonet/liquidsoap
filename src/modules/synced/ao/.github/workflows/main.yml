@@ -1,0 +1,15 @@
+name: Build
+on: [push]
+jobs:
+  build:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v1
+      - name: Install ocaml
+        uses: ocaml/setup-ocaml@v2
+      - name: Install module
+        run: opam install --cli=2.1 --with-test --confirm-level=unsafe-yes .

@@ -72,6 +72,7 @@ echo "::group::Compiling"
 cd /tmp/liquidsoap-full
 
 test -f PACKAGES || cp PACKAGES.default PACKAGES
+sed -i '/ocaml-ao/d' PACKAGES
 sed -i '/ocaml-xiph/d' PACKAGES
 sed -i '/ocaml-metadata/d' PACKAGES
 sed -i '/ocaml-mm/d' PACKAGES
