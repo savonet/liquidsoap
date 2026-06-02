@@ -24,9 +24,9 @@ jobs:
       - name: Install ffmpeg
         run: |
           if [ "$RUNNER_OS" = "macOS" ]; then
-            brew install ffmpeg
+            brew install ffmpeg flac
           else
-            sudo apt-get update && sudo apt-get install -y ffmpeg
+            sudo apt-get update && sudo apt-get install -y ffmpeg flac
           fi
         shell: bash
       - name: Run CI tests
