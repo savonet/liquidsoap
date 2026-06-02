@@ -26,7 +26,7 @@ jobs:
           if [ "$RUNNER_OS" = "macOS" ]; then
             brew install ffmpeg flac
           else
-            sudo apt-get update && sudo apt-get install -y ffmpeg flac
+            sudo apt-get update && sudo apt-get install -y ffmpeg libflac-dev
           fi
         shell: bash
       - name: Run CI tests
