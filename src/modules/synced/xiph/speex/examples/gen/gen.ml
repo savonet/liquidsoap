@@ -9,7 +9,7 @@ let () =
     executable "wav2speex" "wav2speex" ["speex"];
     print_string
       {|(rule
- (alias runtest)
+ (alias xiph_citest)
  (package speex)
  (deps
   (:speex test.ogg)

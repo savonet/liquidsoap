@@ -17,10 +17,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Install deps
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            brew install ffmpeg flac libogg libvorbis speex theora opus
+          else
+            sudo apt-get update && sudo apt-get install -y ffmpeg libflac-dev libogg-dev libvorbis-dev libspeex-dev libtheora-dev libopus-dev
+          fi
+        shell: bash
       - name: Build and test module
         uses: savonet/build-and-test-ocaml-module@main
         with:
           ocaml-compiler: ${{ matrix.compiler }}
-      - name: Run CI tests
-        run: |
-          opam exec dune build @xiph_citest
+          test-target: xiph_citest
