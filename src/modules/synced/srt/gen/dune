@@ -5,7 +5,7 @@
   (select
    has_srt_deps.ml
    from
-   (srt.deps -> has_srt_deps.yes.ml)
+   (srt_deps -> has_srt_deps.yes.ml)
    (-> has_srt_deps.no.ml))))
 
 (rule
