@@ -1,0 +1,53 @@
+0.1.9 (02-12-2020)
+=====
+* Add `put_samples_ba` and `get_samples_ba`.
+* Switch to dune.
+
+0.1.8 (03-08-2015)
+=====
+* Dummy github release.
+
+0.1.7 (04-10-2011)
+=====
+* Really detect if -lBPM is needed at link time.
+* Fix compilation on Win32.
+* Improved autoconf.
+
+0.1.6 (03-03-2011)
+=====
+* Detect in configure if -lBPM is needed at link time.
+* Add -lstdc++ to linker flags.
+
+0.1.5 (12-10-2009)
+=====
+* Added support for --enable-debugging configure option
+* Added a check for g++ in configure script.
+* Makefile now honnors LIBDIRS
+  variable for linking against libraries
+  located in other places than then standard
+  ones.
+* Added prefix to main compilation variables
+  if passed to configure.
+* Added NO_CUSTOM to build
+  in standard mode.
+
+0.1.4 (06-05-2008)
+=====
+* Fix pkg-config file name inconsistency between upstream
+  and debian..
+
+0.1.3 (05-05-2008)
+=====
+* Fixed build system
+
+0.1.2 (16-04-2008)
+=====
+* Install .cmx file
+
+0.1.1 (13-11-2007)
+=====
+* Added linking exception to license
+
+0.1.0 (17-10-2007)
+=====
+* Initial release

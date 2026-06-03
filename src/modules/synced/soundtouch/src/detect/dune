@@ -1,0 +1,11 @@
+(executables
+ (names detect check)
+ (libraries dune-configurator unix))
+
+(rule
+ (targets
+  soundtouch_available
+  soundtouch_c_flags.sexp
+  soundtouch_c_library_flags.sexp)
+ (action
+  (run ./detect.exe --context %{context_name} soundtouch soundtouch)))
