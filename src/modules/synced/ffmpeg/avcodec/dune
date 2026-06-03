@@ -1,0 +1,126 @@
+(rule
+ (alias install)
+ (package ffmpeg-avcodec)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ../detect/avcodec_available
+   (run ../detect/check.exe avcodec))))
+
+(library
+ (name avcodec)
+ (public_name ffmpeg-avcodec)
+ (synopsis "Bindings to ffmpeg's avcodec library")
+ (enabled_if
+  (= %{read:../detect/avcodec_available} "true"))
+ (optional)
+ (foreign_stubs
+  (language c)
+  (names avcodec_stubs)
+  (flags
+   (:include ../detect/avcodec_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/avcodec_c_library_flags.sexp))
+ (install_c_headers avcodec_stubs)
+ (libraries ffmpeg-avutil))
+
+(rule
+ (targets avcodec_stubs.c)
+ (mode fallback)
+ (deps
+  hw_config_method_stubs.h
+  codec_capabilities_stubs.h
+  codec_properties_stubs.h
+  codec_id_stubs.h)
+ (action
+  (echo "this should not happen")))
+
+(rule
+ (targets hw_config_method_stubs.h)
+ (deps ../detect/avcodec_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   hw_config_method
+   h
+   %{read-lines:../detect/avcodec_c_flags})))
+
+(rule
+ (targets hw_config_method.ml)
+ (deps hw_config_method_stubs.h ../detect/avcodec_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   hw_config_method
+   ml
+   %{read-lines:../detect/avcodec_c_flags})))
+
+(rule
+ (targets codec_capabilities_stubs.h)
+ (deps ../detect/avcodec_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   codec_capabilities
+   h
+   %{read-lines:../detect/avcodec_c_flags})))
+
+(rule
+ (targets codec_capabilities.ml)
+ (deps codec_capabilities_stubs.h ../detect/avcodec_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   codec_capabilities
+   ml
+   %{read-lines:../detect/avcodec_c_flags})))
+
+(rule
+ (targets codec_properties_stubs.h)
+ (deps ../detect/avcodec_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   codec_properties
+   h
+   %{read-lines:../detect/avcodec_c_flags})))
+
+(rule
+ (targets codec_properties.ml)
+ (deps codec_properties_stubs.h ../detect/avcodec_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   codec_properties
+   ml
+   %{read-lines:../detect/avcodec_c_flags})))
+
+(rule
+ (targets codec_id_stubs.h)
+ (deps ../detect/avcodec_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   codec_id
+   h
+   %{read-lines:../detect/avcodec_c_flags})))
+
+(rule
+ (targets codec_id.ml)
+ (deps codec_id_stubs.h ../detect/avcodec_c_flags)
+ (action
+  (run
+   ../gen_code/gen_code.exe
+   "%{cc}"
+   codec_id
+   ml
+   %{read-lines:../detect/avcodec_c_flags})))

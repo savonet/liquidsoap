@@ -1,0 +1,6 @@
+depends: [
+  "conf-sysinfo" {os = "freebsd"}
+  "ocaml" {>= "4.08"}
+  "dune" {>= "3.23"}
+  "odoc" {with-doc}
+]

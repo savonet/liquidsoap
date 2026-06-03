@@ -1,0 +1,34 @@
+(library
+ (name speex)
+ (public_name speex)
+ (synopsis "OCaml bindings for libspeex")
+ (enabled_if
+  (= %{read:../detect/speex_available} true))
+ (libraries ogg)
+ (modules speex)
+ (foreign_stubs
+  (language c)
+  (names speex_stubs)
+  (flags
+   (:include ../detect/speex_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/speex_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package speex)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ../detect/speex_available
+   (run ../detect/check.exe speex))))
+
+(library
+ (name speex_decoder)
+ (public_name speex.decoder)
+ (synopsis "Speex decoder for the ogg-decoder library")
+ (optional)
+ (libraries ogg.decoder speex)
+ (modules speex_decoder))

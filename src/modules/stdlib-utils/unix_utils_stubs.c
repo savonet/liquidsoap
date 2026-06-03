@@ -20,11 +20,11 @@
  */
 
 #include <caml/alloc.h>
+#include <caml/fail.h>
+#include <caml/memory.h>
 #include <caml/signals.h>
 #include <caml/threads.h>
 #include <caml/unixsupport.h>
-#include <caml/memory.h>
-#include <caml/fail.h>
 
 #include <errno.h>
 #include <math.h> /* ceil() */
@@ -106,7 +106,8 @@ CAMLprim value caml_liquidsoap_poll(value _read, value _write, value _err,
     if (fds[n].revents & POLLIN)
       nread++;
     /* POLLHUP on a write fd means the peer closed the connection; treat it as
-       write-ready so the caller can detect the error (e.g. EPIPE on next write). */
+       write-ready so the caller can detect the error (e.g. EPIPE on next
+       write). */
     if ((fds[n].revents & POLLOUT) ||
         ((nfds_t)n >= write_start && (nfds_t)n < write_end &&
          (fds[n].revents & POLLHUP)))

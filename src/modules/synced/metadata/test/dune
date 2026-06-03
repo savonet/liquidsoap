@@ -1,0 +1,8 @@
+(executable
+ (name test)
+ (libraries metadata))
+
+(rule
+ (alias metadata_citest)
+ (action
+  (run ./test.exe)))

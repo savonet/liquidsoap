@@ -1,0 +1,3 @@
+[submodule "m4"]
+	path = m4
+	url = git://github.com/savonet/m4.git

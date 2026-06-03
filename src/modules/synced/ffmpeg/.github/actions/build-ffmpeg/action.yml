@@ -1,0 +1,73 @@
+name: "Build FFmpeg"
+description: "Build FFmpeg from source with required libraries"
+inputs:
+  version:
+    description: "FFmpeg version tag to build"
+    required: false
+    default: "n8.0.1"
+  os:
+    description: "OS running the action"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Restore FFmpeg cache
+      id: cache-ffmpeg
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+      with:
+        path: ffmpeg
+        key: ffmpeg-cache-${{ hashFiles('.github/actions/build-ffmpeg/action.yml') }}-${{ inputs.version }}-${{ runner.os }}
+    - name: Install ubuntu build dependencies
+      if: ${{ inputs.os == 'ubuntu-latest' }}
+      shell: bash
+      run: |
+        sudo add-apt-repository universe -y
+        sudo add-apt-repository multiverse -y
+        sudo add-apt-repository restricted -y
+        sudo sed -i 's/Types: deb$/Types: deb deb-src/g' /etc/apt/sources.list.d/*.sources || true
+        sudo apt-get update
+        sudo apt-get build-dep ffmpeg -y
+    - name: Install macos build dependencies
+      if: ${{ inputs.os == 'macos-latest' }}
+      shell: bash
+      run: |
+        brew install --only-dependencies ffmpeg
+        brew install lame theora libvpx libvorbis libsoxr libogg
+    - name: Build FFmpeg
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        if [ -d ffmpeg ]; then rm -rf ffmpeg; fi
+        git clone --depth 1 --branch ${{ inputs.version }} --single-branch https://git.ffmpeg.org/ffmpeg.git ffmpeg
+        cd ffmpeg
+        EXTRA_CFLAGS=""
+        EXTRA_LDFLAGS=""
+        PREFIX=/usr
+        if [ "${{ inputs.os }}" = "macos-latest" ]; then
+          PREFIX=/usr/local
+          LAME_PREFIX=$(brew --prefix lame)
+          SOXR_PREFIX=$(brew --prefix libsoxr)
+          THEORA_PREFIX=$(brew --prefix theora)
+          VPX_PREFIX=$(brew --prefix libvpx)
+          VORBIS_PREFIX=$(brew --prefix libvorbis)
+          OGG_PREFIX=$(brew --prefix libogg)
+          EXTRA_CFLAGS="-I${LAME_PREFIX}/include -I${SOXR_PREFIX}/include -I${THEORA_PREFIX}/include -I${VPX_PREFIX}/include -I${VORBIS_PREFIX}/include -I${OGG_PREFIX}/include"
+          EXTRA_LDFLAGS="-L${LAME_PREFIX}/lib -L${SOXR_PREFIX}/lib -L${THEORA_PREFIX}/lib -L${VPX_PREFIX}/lib -L${VORBIS_PREFIX}/lib -L${OGG_PREFIX}/lib"
+        fi
+        ./configure --prefix=$PREFIX --disable-x86asm --enable-gpl \
+                    --enable-nonfree --disable-doc --disable-xlib \
+                    --enable-shared --enable-libtheora --enable-libvpx \
+                    --enable-libmp3lame --enable-libvorbis --enable-libsoxr \
+                    --extra-cflags="$EXTRA_CFLAGS" --extra-ldflags="$EXTRA_LDFLAGS"
+        make -j4
+    - name: Save FFmpeg cache
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+      with:
+        path: ffmpeg
+        key: ffmpeg-cache-${{ hashFiles('.github/actions/build-ffmpeg/action.yml') }}-${{ inputs.version }}-${{ runner.os }}
+    - name: Install FFmpeg
+      shell: bash
+      run: |
+        cd ffmpeg
+        sudo make install

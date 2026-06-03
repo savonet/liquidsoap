@@ -1,0 +1,57 @@
+(library
+ (name flac)
+ (public_name flac)
+ (synopsis "OCaml bindings for libflac")
+ (enabled_if
+  (= %{read:../detect/flac_available} true))
+ (modules flac)
+ (libraries unix)
+ (foreign_stubs
+  (language c)
+  (names flac_stubs)
+  (extra_deps "flac_config.h")
+  (flags
+   (:include ../detect/flac_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/flac_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package flac)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ../detect/flac_available
+   (run ../detect/check.exe flac))))
+
+(library
+ (name flac_ogg)
+ (public_name flac.ogg)
+ (synopsis "API to decode flac data in ogg container")
+ (enabled_if
+  (= %{read:../detect/flac_ogg_available} true))
+ (libraries flac ogg)
+ (optional)
+ (modules flac_ogg)
+ (foreign_stubs
+  (language c)
+  (names flac_ogg_stubs)
+  (flags
+   (:include ../detect/flac_ogg_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/flac_ogg_c_library_flags.sexp)))
+
+(library
+ (name flac_decoder)
+ (public_name flac.decoder)
+ (synopsis "Flac decoder for the ogg-decoder library")
+ (libraries ogg.decoder flac.ogg)
+ (optional)
+ (modules flac_decoder))
+
+(rule
+ (targets flac_config.h)
+ (action
+  (run ./config/discover_flac.exe)))

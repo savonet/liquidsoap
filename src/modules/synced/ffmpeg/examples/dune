@@ -1,0 +1,6 @@
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
+
+(dynamic_include ../gen/examples_executables.inc)

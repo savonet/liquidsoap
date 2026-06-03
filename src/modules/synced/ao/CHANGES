@@ -1,0 +1,56 @@
+0.2.4 (2022-01-03)
+======
+* Get rid of naked pointers.
+
+0.2.3 (2020-01-09)
+=====
+* Fix channel matrix not being set, leading to a segfault of arm64_big_sur
+
+0.2.2 (2020-12-07)
+=====
+* Switch to dune!
+
+0.2.1 (2015-07-29)
+=====
+* Dummy github release.
+
+0.2.0 (2010-06-21)
+=====
+* Adapted to libao 1.0 API: added channels matrix parameter.
+* Wrapped all exported functions with the required
+  CAMLprim/CAMLparam/CAMLlocal/CAMLreturn..
+* Simplified a lot of internal things..
+* Changed driver's type to a record containing
+  the driver's properties.
+
+0.1.10 (2008-10-11)
+======
+* Added support for --enable-debugging configure option
+* Makefile now honnors LIBDIRS
+  variable for linking against libraries
+  located in other places than then standard
+  ones.
+* Added prefix to main compilation variables
+  if passed to configure.
+* Added NO_CUSTOM to build
+  in standard mode.
+
+0.1.9 (15-04-2008)
+=====
+* Install .cmx file
+* More portable make invocation
+* Fixed typo in META file
+
+0.1.8 (17-10-2007)
+=====
+* Updated configure support
+* Use only caml syntax
+0.1.7.1
+=====
+* Initial release on behalf of the savnet team
+* Rewritten autoconf support to match the others binding
+* Added function to get the default driver
+0.1.7
+=====
+* Released by Bárður Árantsson <bardur@imada.sdu.dk> at
+   http://www.imada.sdu.dk/~bardur/personal/45-programs

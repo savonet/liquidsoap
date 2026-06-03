@@ -1,13 +1,13 @@
 #ifdef _WIN32
 #include <processthreadsapi.h>
-#include <winsock2.h>
 #include <windows.h>
+#include <winsock2.h>
 #else
 #define _GNU_SOURCE
 
 #include <pthread.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <pthread_np.h>
@@ -99,13 +99,13 @@ CAMLprim value liquidsoap_set_current_thread_name(value _name) {
 #else
   char name[16];
   const char *str = String_val(_name);
-#  ifdef __linux__
+#ifdef __linux__
   if (caml_string_length(_name) > 15) {
     memcpy(name, str, 15);
     name[15] = 0;
     str = name;
   }
-# endif
+#endif
   pthread_setname_np(pthread_self(), str);
 #endif
   CAMLreturn(Val_unit);

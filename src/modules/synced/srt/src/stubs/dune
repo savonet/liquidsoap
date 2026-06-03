@@ -1,0 +1,13 @@
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
+
+(library
+ (name srt_stubs)
+ (public_name srt.stubs)
+ (enabled_if
+  (= %{read:../../detect/srt_available} true))
+ (libraries srt.types ctypes.foreign ctypes.stubs posix-socket))
+
+(dynamic_include ../../gen/stubs.inc)

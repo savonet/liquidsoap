@@ -1,0 +1,183 @@
+[
+  {
+    "directory": "_build/default/flac",
+    "file": "flac_ogg_stubs.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-I/opt/homebrew/Cellar/flac/1.5.0/include",
+      "-I/opt/homebrew/Cellar/libogg/1.3.6/include",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-I",
+      ".",
+      "-I",
+      "../ogg",
+      "-o",
+      "flac_ogg_stubs.o",
+      "-c",
+      "flac_ogg_stubs.c"
+    ]
+  },
+  {
+    "directory": "_build/default/flac",
+    "file": "flac_stubs.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-I/opt/homebrew/Cellar/flac/1.5.0/include",
+      "-I/opt/homebrew/Cellar/libogg/1.3.6/include",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "flac_stubs.o",
+      "-c",
+      "flac_stubs.c"
+    ]
+  },
+  {
+    "directory": "_build/default/flac/config",
+    "file": "endianness.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "endianness.o",
+      "-c",
+      "endianness.c"
+    ]
+  },
+  {
+    "directory": "_build/default/ogg",
+    "file": "ogg_stubs.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-I/opt/homebrew/Cellar/libogg/1.3.6/include",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "ogg_stubs.o",
+      "-c",
+      "ogg_stubs.c"
+    ]
+  },
+  {
+    "directory": "_build/default/opus",
+    "file": "opus_stubs.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-I/opt/homebrew/Cellar/opus/1.6.1/include/opus",
+      "-I/opt/homebrew/Cellar/libogg/1.3.6/include",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-I",
+      "../ogg",
+      "-o",
+      "opus_stubs.o",
+      "-c",
+      "opus_stubs.c"
+    ]
+  },
+  {
+    "directory": "_build/default/opus/config",
+    "file": "endianness.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-o",
+      "endianness.o",
+      "-c",
+      "endianness.c"
+    ]
+  },
+  {
+    "directory": "_build/default/theora",
+    "file": "theora_stubs.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-I/opt/homebrew/Cellar/theora/1.2.0/include",
+      "-I/opt/homebrew/Cellar/libogg/1.3.6/include",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-I",
+      "../ogg",
+      "-o",
+      "theora_stubs.o",
+      "-c",
+      "theora_stubs.c"
+    ]
+  },
+  {
+    "directory": "_build/default/vorbis",
+    "file": "vorbis_stubs.c",
+    "arguments": [
+      "cc",
+      "-O2",
+      "-fno-strict-aliasing",
+      "-fwrapv",
+      "-pthread",
+      "-D_FILE_OFFSET_BITS=64",
+      "-I/opt/homebrew/Cellar/libvorbis/1.3.7/include",
+      "-I/opt/homebrew/Cellar/libogg/1.3.6/include",
+      "-g",
+      "-I",
+      "/Users/toots/.opam/4.14.2/lib/ocaml",
+      "-I",
+      "../ogg",
+      "-o",
+      "vorbis_stubs.o",
+      "-c",
+      "vorbis_stubs.c"
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+(executable
+ (name discover_flac)
+ (modules discover_flac)
+ (foreign_stubs
+  (language c)
+  (names endianness))
+ (libraries dune-configurator))

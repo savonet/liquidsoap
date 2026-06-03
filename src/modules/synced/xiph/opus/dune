@@ -1,0 +1,40 @@
+(library
+ (name opus)
+ (public_name opus)
+ (synopsis "OCaml bindings for libopus")
+ (enabled_if
+  (= %{read:../detect/opus_available} true))
+ (libraries bigarray ogg)
+ (modules opus)
+ (foreign_stubs
+  (language c)
+  (names opus_stubs)
+  (extra_deps "config.h")
+  (flags
+   (:include ../detect/opus_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/opus_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package opus)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ../detect/opus_available
+   (run ../detect/check.exe opus))))
+
+(library
+ (name opus_decoder)
+ (public_name opus.decoder)
+ (synopsis "Opus decoder for the ogg-decoder library")
+ (optional)
+ (libraries ogg.decoder opus)
+ (modules opus_decoder))
+
+(rule
+ (targets config.h)
+ (action
+  (run ./config/discover.exe)))

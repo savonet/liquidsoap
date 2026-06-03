@@ -1,0 +1,12 @@
+(executable
+ (name test_runner)
+ (modules test_runner)
+ (libraries unix))
+
+(executable
+ (name normalize_line_endings)
+ (modules normalize_line_endings))
+
+; Test rules — generated conditionally based on library availability
+
+(dynamic_include ../gen/test_executables.inc)

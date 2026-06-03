@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  merge_group:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        compiler: [4.14, 5.3]
+        version: [n8.0.1]
+        include:
+          - os: ubuntu-latest
+            compiler: 4.14
+            version: n7.1
+    env:
+      OPAMASSUMEDEPEXTS: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Build FFmpeg
+        uses: ./.github/actions/build-ffmpeg
+        with:
+          version: ${{ matrix.version }}
+          os: ${{ matrix.os }}
+      - name: Build and test module
+        uses: savonet/build-and-test-ocaml-module@main
+        with:
+          ocaml-compiler: ${{ matrix.compiler }}
+      - name: Run CI tests
+        run: |
+          opam exec dune build @ffmpeg_citest

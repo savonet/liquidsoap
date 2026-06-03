@@ -20,20 +20,20 @@
  */
 
 #include <caml/alloc.h>
-#include <caml/signals.h>
-#include <caml/unixsupport.h>
-#include <caml/memory.h>
 #include <caml/bigarray.h>
 #include <caml/fail.h>
+#include <caml/memory.h>
+#include <caml/signals.h>
 #include <caml/threads.h>
+#include <caml/unixsupport.h>
 
 #include <errno.h>
 
 /* On native Windows platforms, many macros are not defined.  */
-# if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
 
 #ifndef EWOULDBLOCK
-#define EWOULDBLOCK     EAGAIN
+#define EWOULDBLOCK EAGAIN
 #endif
 
 #endif
@@ -46,9 +46,8 @@
 #define Val_fd(fd) Val_int(fd)
 #endif
 
-
-CAMLprim value ocaml_duppy_write_ba(value _fd, value ba, value _ofs, value _len)
-{
+CAMLprim value ocaml_duppy_write_ba(value _fd, value ba, value _ofs,
+                                    value _len) {
   CAMLparam4(_fd, ba, _ofs, _len);
   int fd = Fd_val(_fd);
   long ofs = Long_val(_ofs);
@@ -59,10 +58,11 @@ CAMLprim value ocaml_duppy_write_ba(value _fd, value ba, value _ofs, value _len)
   int written = 0;
   while (len > 0) {
     caml_enter_blocking_section();
-    ret = write(fd, buf+ofs, len);
+    ret = write(fd, buf + ofs, len);
     caml_leave_blocking_section();
     if (ret == -1) {
-      if ((errno == EAGAIN || errno == EWOULDBLOCK) && written > 0) break;
+      if ((errno == EAGAIN || errno == EWOULDBLOCK) && written > 0)
+        break;
       uerror("write", Nothing);
     }
     written += ret;

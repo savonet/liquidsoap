@@ -1,0 +1,48 @@
+(executable
+ (name gen)
+ (modules gen has_srt_deps)
+ (libraries
+  (select
+   has_srt_deps.ml
+   from
+   (srt_deps -> has_srt_deps.yes.ml)
+   (-> has_srt_deps.no.ml))))
+
+(rule
+ (target detect.inc)
+ (action
+  (with-stdout-to
+   detect.inc
+   (run ./gen.exe detect))))
+
+(rule
+ (target generator.inc)
+ (deps ../detect/srt_available)
+ (action
+  (with-stdout-to
+   generator.inc
+   (run ./gen.exe generator %{read:../detect/srt_available}))))
+
+(rule
+ (target types.inc)
+ (deps ../detect/srt_available)
+ (action
+  (with-stdout-to
+   types.inc
+   (run ./gen.exe types %{read:../detect/srt_available}))))
+
+(rule
+ (target stubs.inc)
+ (deps ../detect/srt_available)
+ (action
+  (with-stdout-to
+   stubs.inc
+   (run ./gen.exe stubs %{read:../detect/srt_available}))))
+
+(rule
+ (target src.inc)
+ (deps ../detect/srt_available)
+ (action
+  (with-stdout-to
+   src.inc
+   (run ./gen.exe src %{read:../detect/srt_available}))))
