@@ -38,6 +38,12 @@ repos:
         args: [-w, --ignore-words=.codespellignore]
         exclude: ^(doc/orig/fosdem2020|tests/language/cue_test.liq)
 
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v19.1.7
+    hooks:
+      - id: clang-format
+        types_or: [c, c++]
+
   - repo: local
     hooks:
       - id: shfmt

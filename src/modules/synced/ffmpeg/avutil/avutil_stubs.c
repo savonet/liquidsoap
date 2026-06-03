@@ -1301,8 +1301,8 @@ static value value_of_pict(AVSubtitleRect *rect) {
     size_t buf_size = rect->type == SUBTITLE_BITMAP && i == 1
                           ? AVPALETTE_SIZE
                           : (rect->h > 0 && rect->linesize[i] > 0
-                             ? (size_t)rect->h * (size_t)rect->linesize[i]
-                             : 0);
+                                 ? (size_t)rect->h * (size_t)rect->linesize[i]
+                                 : 0);
     if (rect->data[i] && buf_size > 0) {
       dims[0] = buf_size;
     } else {

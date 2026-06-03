@@ -107,30 +107,29 @@ CAMLprim value liquidsoap_lufs_process(value _stage1, value _stage2, value _x) {
 
 /* ---- True peak measurement (ITU-R BS.1770-4, Annex 2) ---- */
 
-#define TP_TAPS   12
-#define TP_PHASES  4
+#define TP_TAPS 12
+#define TP_PHASES 4
 
 /* Polyphase FIR coefficients from ITU-R BS.1770-4, Annex 2, Table 2.
    Four phases of 12 taps each, for 4x oversampling. */
 static const double tp_fir[TP_PHASES][TP_TAPS] = {
-  { 0.0017089843750,  0.0109863281250, -0.0196533203125,  0.0332031250000,
-   -0.0594482421875,  0.1373291015625,  0.4650878906250,  0.2177734375000,
-   -0.1015625000000,  0.0535888671875, -0.0244140625000,  0.0086059570313 },
-  { 0.0037841796875, -0.0296630859375,  0.0539550781250, -0.0932617187500,
-    0.1665039062500, -0.3999023437500,  0.8686523437500,  0.3940429687500,
-   -0.1665039062500,  0.0830078125000, -0.0354003906250,  0.0117187500000 },
-  { 0.0117187500000, -0.0354003906250,  0.0830078125000, -0.1665039062500,
-    0.3940429687500,  0.8686523437500, -0.3999023437500,  0.1665039062500,
-   -0.0932617187500,  0.0539550781250, -0.0296630859375,  0.0037841796875 },
-  { 0.0086059570313, -0.0244140625000,  0.0535888671875, -0.1015625000000,
-    0.2177734375000,  0.4650878906250,  0.1373291015625, -0.0594482421875,
-    0.0332031250000, -0.0196533203125,  0.0109863281250,  0.0017089843750 }
-};
+    {0.0017089843750, 0.0109863281250, -0.0196533203125, 0.0332031250000,
+     -0.0594482421875, 0.1373291015625, 0.4650878906250, 0.2177734375000,
+     -0.1015625000000, 0.0535888671875, -0.0244140625000, 0.0086059570313},
+    {0.0037841796875, -0.0296630859375, 0.0539550781250, -0.0932617187500,
+     0.1665039062500, -0.3999023437500, 0.8686523437500, 0.3940429687500,
+     -0.1665039062500, 0.0830078125000, -0.0354003906250, 0.0117187500000},
+    {0.0117187500000, -0.0354003906250, 0.0830078125000, -0.1665039062500,
+     0.3940429687500, 0.8686523437500, -0.3999023437500, 0.1665039062500,
+     -0.0932617187500, 0.0539550781250, -0.0296630859375, 0.0037841796875},
+    {0.0086059570313, -0.0244140625000, 0.0535888671875, -0.1015625000000,
+     0.2177734375000, 0.4650878906250, 0.1373291015625, -0.0594482421875,
+     0.0332031250000, -0.0196533203125, 0.0109863281250, 0.0017089843750}};
 
 typedef struct {
   uint8_t channels;
-  int     pos;
-  double  history[MAX_CHANNELS][TP_TAPS];
+  int pos;
+  double history[MAX_CHANNELS][TP_TAPS];
 } tp_state_t;
 
 #define TP_val(v) (*(tp_state_t **)Data_custom_val(v))
@@ -155,7 +154,7 @@ CAMLprim value liquidsoap_lufs_true_peak_create(value _channels) {
     caml_raise_out_of_memory();
 
   tp->channels = channels;
-  tp->pos      = 0;
+  tp->pos = 0;
 
   ans = caml_alloc_custom(&tp_ops, sizeof(tp_state_t *), 0, 1);
   TP_val(ans) = tp;
@@ -165,19 +164,21 @@ CAMLprim value liquidsoap_lufs_true_peak_create(value _channels) {
 CAMLprim value liquidsoap_lufs_true_peak_process(value _state, value _x) {
   CAMLparam2(_state, _x);
   tp_state_t *tp = TP_val(_state);
-  int samples    = Wosize_val(Field(_x, 0)) / Double_wosize;
-  double peak    = 0.0;
+  int samples = Wosize_val(Field(_x, 0)) / Double_wosize;
+  double peak = 0.0;
   int i, c, p, t;
 
   for (i = 0; i < samples; i++) {
     int wpos = tp->pos;
 
-    /* Calculate the true peak using the maximum of sample peak AND the True Peak. */
+    /* Calculate the true peak using the maximum of sample peak AND the True
+     * Peak. */
     for (c = 0; c < tp->channels; c++) {
       double s = Double_field(Field(_x, c), i);
       tp->history[c][wpos] = s;
       double abs_s = s < 0.0 ? -s : s;
-      if (abs_s > peak) peak = abs_s;
+      if (abs_s > peak)
+        peak = abs_s;
     }
 
     tp->pos = (tp->pos + 1) % TP_TAPS;
@@ -191,7 +192,8 @@ CAMLprim value liquidsoap_lufs_true_peak_process(value _state, value _x) {
           y += tp_fir[p][t] * tp->history[c][idx];
         }
         double abs_y = y < 0.0 ? -y : y;
-        if (abs_y > peak) peak = abs_y;
+        if (abs_y > peak)
+          peak = abs_y;
       }
     }
   }

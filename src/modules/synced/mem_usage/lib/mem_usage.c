@@ -16,18 +16,18 @@
 // PROCESS_MEMORY_COUNTERS_EX2 requires Windows 10 1607+ / SDK 10.0.14393.0+
 #if !defined(PROCESS_MEMORY_COUNTERS_EX2)
 typedef struct _PROCESS_MEMORY_COUNTERS_EX2 {
-  DWORD   cb;
-  DWORD   PageFaultCount;
-  SIZE_T  PeakWorkingSetSize;
-  SIZE_T  WorkingSetSize;
-  SIZE_T  QuotaPeakPagedPoolUsage;
-  SIZE_T  QuotaPagedPoolUsage;
-  SIZE_T  QuotaPeakNonPagedPoolUsage;
-  SIZE_T  QuotaNonPagedPoolUsage;
-  SIZE_T  PagefileUsage;
-  SIZE_T  PeakPagefileUsage;
-  SIZE_T  PrivateUsage;
-  SIZE_T  PrivateWorkingSetSize;
+  DWORD cb;
+  DWORD PageFaultCount;
+  SIZE_T PeakWorkingSetSize;
+  SIZE_T WorkingSetSize;
+  SIZE_T QuotaPeakPagedPoolUsage;
+  SIZE_T QuotaPagedPoolUsage;
+  SIZE_T QuotaPeakNonPagedPoolUsage;
+  SIZE_T QuotaNonPagedPoolUsage;
+  SIZE_T PagefileUsage;
+  SIZE_T PeakPagefileUsage;
+  SIZE_T PrivateUsage;
+  SIZE_T PrivateWorkingSetSize;
   ULONG64 SharedCommitUsage;
 } PROCESS_MEMORY_COUNTERS_EX2;
 #endif
@@ -225,7 +225,8 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
   uint64_t total_virtual_memory, total_physical_memory,
       total_used_virtual_memory, total_used_physical_memory;
   unsigned long long process_virtual_memory = 0, process_physical_memory = 0,
-      process_private_memory = 0, process_swapped_memory = 0, tmp;
+                     process_private_memory = 0, process_swapped_memory = 0,
+                     tmp;
   FILE *file;
   char buffer[1024] = "";
 

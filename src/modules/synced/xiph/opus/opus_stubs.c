@@ -27,9 +27,9 @@
 #ifdef BIGENDIAN
 // code from bits/byteswap.h (C) 1997, 1998 Free Software Foundation, Inc.
 #define int32le_to_native(x)                                                   \
-  ((((x)&0xff000000) >> 24) | (((x)&0x00ff0000) >> 8) |                        \
-   (((x)&0x0000ff00) << 8) | (((x)&0x000000ff) << 24))
-#define int16le_to_native(x) ((((x) >> 8) & 0xff) | (((x)&0xff) << 8))
+  ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >> 8) |                    \
+   (((x) & 0x0000ff00) << 8) | (((x) & 0x000000ff) << 24))
+#define int16le_to_native(x) ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
 #else
 #define int32le_to_native(x) x
 #define int16le_to_native(x) x

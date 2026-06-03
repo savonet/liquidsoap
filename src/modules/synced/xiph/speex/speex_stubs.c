@@ -75,7 +75,7 @@ The comment header is decoded as follows:
     buf[base + 3] = ((val) >> 24) & 0xff;                                      \
     buf[base + 2] = ((val) >> 16) & 0xff;                                      \
     buf[base + 1] = ((val) >> 8) & 0xff;                                       \
-    buf[base] = (val)&0xff;                                                    \
+    buf[base] = (val) & 0xff;                                                  \
   } while (0)
 
 void comment_init(char **comments, int *length, char *vendor_string) {

@@ -1,5 +1,5 @@
-#include <caml/mlvalues.h>
 #include <caml/memory.h>
+#include <caml/mlvalues.h>
 #include <ocaml-ogg.h>
 
 CAMLprim value liq_ocaml_ogg_stream_set_eos(value o_stream_state) {
