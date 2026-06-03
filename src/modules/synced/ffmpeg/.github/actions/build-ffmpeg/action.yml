@@ -13,7 +13,7 @@ runs:
   steps:
     - name: Restore FFmpeg cache
       id: cache-ffmpeg
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
       with:
         path: ffmpeg
         key: ffmpeg-cache-${{ hashFiles('.github/actions/build-ffmpeg/action.yml') }}-${{ inputs.version }}-${{ runner.os }}
@@ -62,7 +62,7 @@ runs:
         make -j4
     - name: Save FFmpeg cache
       if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
       with:
         path: ffmpeg
         key: ffmpeg-cache-${{ hashFiles('.github/actions/build-ffmpeg/action.yml') }}-${{ inputs.version }}-${{ runner.os }}
