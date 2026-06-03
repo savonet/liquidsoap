@@ -10,7 +10,8 @@
   (language cxx)
   (names soundtouch_stubs)
   (flags
-   (:include ./detect/soundtouch_c_flags.sexp)))
+   (-fPIC
+    (:include ./detect/soundtouch_c_flags.sexp))))
  (c_library_flags
   (-lstdc++
    (:include ./detect/soundtouch_c_library_flags.sexp))))
