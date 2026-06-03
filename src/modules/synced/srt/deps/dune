@@ -1,0 +1,4 @@
+(library
+ (name srt_deps)
+ (modules ())
+ (libraries ctypes ctypes.stubs ctypes.foreign posix-socket integers))
