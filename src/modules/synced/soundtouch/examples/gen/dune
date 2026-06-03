@@ -1,0 +1,16 @@
+(executable
+ (name gen)
+ (modules gen has_soundtouch)
+ (libraries
+  (select
+   has_soundtouch.ml
+   from
+   (soundtouch -> has_soundtouch.yes.ml)
+   (-> has_soundtouch.no.ml))))
+
+(rule
+ (target examples.inc)
+ (action
+  (with-stdout-to
+   examples.inc
+   (run ./gen.exe))))
