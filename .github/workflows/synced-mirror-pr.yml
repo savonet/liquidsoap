@@ -45,15 +45,15 @@ jobs:
             git add -A
             git commit -m "Mirror of savonet/liquidsoap#${PR_NUMBER}: ${PR_TITLE}"
             git push origin "$branch" --force
-            sleep 3
             cd -
 
+            default_branch=$(gh repo view "savonet/ocaml-$name" --json defaultBranchRef --jq '.defaultBranchRef.name')
             if ! gh pr list --repo "savonet/ocaml-$name" --head "$branch" --json number --jq 'length > 0' | grep -q true; then
               printf 'Mirror of savonet/liquidsoap#%s\n\n%s' "$PR_NUMBER" "$PR_BODY" > /tmp/pr-body.md
               gh pr create \
                 --repo "savonet/ocaml-$name" \
                 --head "$branch" \
-                --base main \
+                --base "$default_branch" \
                 --title "$PR_TITLE" \
                 --body-file /tmp/pr-body.md
             fi
