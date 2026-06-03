@@ -1,0 +1,7 @@
+(library
+ (name srt_constants)
+ (public_name srt.constants)
+ (enabled_if
+  (= %{read:../../detect/srt_available} true))
+ (optional)
+ (libraries ctypes.stubs))

@@ -1,0 +1,39 @@
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
+
+(library
+ (public_name srt)
+ (name srt)
+ (enabled_if
+  (= %{read:../detect/srt_available} true))
+ (optional)
+ (foreign_stubs
+  (language c)
+  (names srt_generated_stubs srt_generated_stubs_locked)
+  (flags
+   (:include ../detect/srt_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/srt_c_library_flags.sexp))
+ (synopsis "Binding for the Secure, Reliable, Transport protocol library")
+ (libraries
+  threads
+  integers
+  srt.stubs
+  srt.stubs.locked
+  ctypes.stubs
+  ctypes.foreign))
+
+(rule
+ (alias install)
+ (package srt)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ../detect/srt_available
+   (run ../detect/check.exe srt))))
+
+(dynamic_include ../gen/src.inc)
