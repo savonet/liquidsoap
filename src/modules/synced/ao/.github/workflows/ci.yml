@@ -16,7 +16,7 @@ jobs:
         compiler: [4.14.2, 5.2.0]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
       - name: Build and test module
         uses: savonet/build-and-test-ocaml-module@main
         with:
