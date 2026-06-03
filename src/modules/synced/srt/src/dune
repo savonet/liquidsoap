@@ -8,7 +8,6 @@
  (name srt)
  (enabled_if
   (= %{read:../detect/srt_available} true))
- (optional)
  (foreign_stubs
   (language c)
   (names srt_generated_stubs srt_generated_stubs_locked)

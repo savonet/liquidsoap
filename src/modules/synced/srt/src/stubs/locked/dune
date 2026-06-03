@@ -3,5 +3,4 @@
  (public_name srt.stubs.locked)
  (enabled_if
   (= %{read:../../../detect/srt_available} true))
- (optional)
  (libraries ctypes.stubs))

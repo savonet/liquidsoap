@@ -1,6 +1,4 @@
 (library
  (name srt_deps)
- (public_name srt.deps)
  (modules ())
- (synopsis "SRT OCaml dependency bundle")
  (libraries ctypes ctypes.stubs ctypes.foreign posix-socket integers))

@@ -8,7 +8,6 @@
  (public_name srt.stubs)
  (enabled_if
   (= %{read:../../detect/srt_available} true))
- (optional)
  (libraries srt.types ctypes.foreign ctypes.stubs posix-socket))
 
 (dynamic_include ../../gen/stubs.inc)
