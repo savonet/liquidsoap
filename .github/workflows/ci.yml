@@ -123,15 +123,7 @@ jobs:
 
   update_release:
     uses: ./.github/workflows/release.yml
-    needs:
-      [
-        build_details,
-        build_no_depopts,
-        build_js,
-        run_tests,
-        build_posix,
-        build_win32,
-      ]
+    needs: [build_details, build_js, run_tests, build_posix, build_win32]
     if: needs.build_details.outputs.is_release == 'true'
     with:
       sha: ${{ needs.build_details.outputs.sha }}
