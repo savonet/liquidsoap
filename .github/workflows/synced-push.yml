@@ -46,7 +46,7 @@ jobs:
 
             if [ -n "$pr_number" ]; then
               mirror_branch="mirror/pr-${pr_number}"
-              if gh pr list --repo "savonet/ocaml-$name" --head "$mirror_branch" --json number --jq 'length > 0' | grep -q true; then
+              if git ls-remote --exit-code origin "refs/heads/$mirror_branch" > /dev/null 2>&1; then
                 git push --force origin HEAD:refs/heads/$mirror_branch
                 git push origin main
                 git push origin --delete "$mirror_branch"
