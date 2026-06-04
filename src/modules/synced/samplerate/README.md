@@ -1,9 +1,9 @@
+# ocaml-samplerate
+
 > [!WARNING]
 > This repository is read-only. All changes must be made in
 > [savonet/liquidsoap](https://github.com/savonet/liquidsoap) under
 > `src/modules/synced/samplerate/` and will be mirrored here automatically.
-
-# ocaml-samplerate
 
 This package contains an OCaml interface for the [samplerate
 library](http://libsndfile.github.io/libsamplerate/).
