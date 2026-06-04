@@ -1,0 +1,16 @@
+(executable
+ (name gen)
+ (modules gen has_samplerate)
+ (libraries
+  (select
+   has_samplerate.ml
+   from
+   (samplerate -> has_samplerate.yes.ml)
+   (-> has_samplerate.no.ml))))
+
+(rule
+ (target examples.inc)
+ (action
+  (with-stdout-to
+   examples.inc
+   (run ./gen.exe))))
