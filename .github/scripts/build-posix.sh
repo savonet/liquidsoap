@@ -82,6 +82,7 @@ sed -i '/ocaml-mem_usage/d' PACKAGES
 sed -i '/ocaml-mad/d' PACKAGES
 sed -i '/ocaml-srt/d' PACKAGES
 sed -i '/ocaml-soundtouch/d' PACKAGES
+sed -i '/ocaml-samplerate/d' PACKAGES
 
 # Workaround
 touch liquidsoap/configure

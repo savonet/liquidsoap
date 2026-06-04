@@ -1,0 +1,26 @@
+(library
+ (name samplerate)
+ (public_name samplerate)
+ (synopsis "OCaml bindings for samplerate")
+ (enabled_if
+  (= %{read:./detect/samplerate_available} true))
+ (libraries bigarray)
+ (modules samplerate)
+ (foreign_stubs
+  (language c)
+  (names samplerate_stubs)
+  (flags
+   (:include ./detect/samplerate_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/samplerate_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package samplerate)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/samplerate_available
+   (run ./detect/check.exe samplerate))))

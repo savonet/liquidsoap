@@ -1,0 +1,11 @@
+(executables
+ (names detect check)
+ (libraries dune-configurator unix))
+
+(rule
+ (targets
+  samplerate_available
+  samplerate_c_flags.sexp
+  samplerate_c_library_flags.sexp)
+ (action
+  (run ./detect.exe --context %{context_name} samplerate samplerate)))
