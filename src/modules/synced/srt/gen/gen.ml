@@ -1,13 +1,11 @@
 let srt_available =
-  Has_srt_deps.available
-  && Array.length Sys.argv > 2
-  && String.trim Sys.argv.(2) = "true"
+  Array.length Sys.argv > 2 && String.trim Sys.argv.(2) = "true"
 
 let () =
   let mode = if Array.length Sys.argv > 1 then Sys.argv.(1) else "detect" in
   match mode with
     | "detect" ->
-        if Has_srt_deps.available then
+        if srt_available then
           print_string
             {|(executables
  (names detect check)

@@ -4,22 +4,26 @@ let executable name libraries =
     (String.concat " " libraries)
 
 let () =
-  if Has_alsa.available then executable "autotune" ["mm.audio"; "mm.alsa"];
-  if Has_mad.available && Has_oss.available then
+  let has_alsa = Sys.argv.(1) = "true" in
+  let has_mad = Sys.argv.(2) = "true" in
+  let has_oss = Sys.argv.(3) = "true" in
+  let has_ao = Sys.argv.(4) = "true" in
+  let has_graphics = Sys.argv.(5) = "true" in
+  if has_alsa then executable "autotune" ["mm.audio"; "mm.alsa"];
+  if has_mad && has_oss then
     executable "dictee" ["mm.audio"; "mm.midi"; "mm.mad"; "mm.oss"];
-  if Has_graphics.available then begin
+  if has_graphics then begin
     executable "display" ["graphics"; "mm.image"];
     executable "rotate" ["graphics"; "mm.image"];
     executable "graphics_test" ["graphics"; "mm"];
-    if Has_oss.available then
-      executable "fft" ["graphics"; "mm.audio"; "mm.oss"]
+    if has_oss then executable "fft" ["graphics"; "mm.audio"; "mm.oss"]
   end;
-  if Has_oss.available then begin
+  if has_oss then begin
     executable "drums" ["mm.audio"; "mm.oss"];
     executable "midiplayer" ["mm.audio"; "mm.oss"]
   end;
   executable "id" ["mm.audio"];
-  if Has_ao.available then executable "sine_wav" ["mm.audio"; "mm.ao"];
+  if has_ao then executable "sine_wav" ["mm.audio"; "mm.ao"];
   executable "replaygain" ["mm.audio"];
   executable "test" ["mm"];
   print_string "(rule\n (alias runtest)\n (action\n  (run ./test.exe)))\n"

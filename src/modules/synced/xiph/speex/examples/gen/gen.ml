@@ -4,7 +4,7 @@ let executable name modules libraries =
     (String.concat " " libraries)
 
 let () =
-  if Has_speex.available then begin
+  if Sys.argv.(1) = "true" then begin
     executable "speex2wav" "speex2wav" ["speex"; "speex.decoder"; "ogg.decoder"];
     executable "wav2speex" "wav2speex" ["speex"];
     print_string

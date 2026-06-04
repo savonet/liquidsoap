@@ -4,7 +4,7 @@ let stanza name libraries =
     (String.concat " " libraries)
 
 let () =
-  if Has_ffmpeg.available then begin
+  if Sys.argv.(1) = "true" then begin
     stanza "test_resample" ["ffmpeg-av"; "ffmpeg-swresample"];
     stanza "test_info" ["ffmpeg-av"; "ffmpeg-swresample"];
     stanza "test_subtitle_read" ["ffmpeg-av"];

@@ -1,16 +1,10 @@
 (executable
  (name gen)
- (modules gen has_speex)
- (libraries
-  (select
-   has_speex.ml
-   from
-   (speex -> has_speex.yes.ml)
-   (-> has_speex.no.ml))))
+ (modules gen))
 
 (rule
  (target examples.inc)
  (action
   (with-stdout-to
    examples.inc
-   (run ./gen.exe))))
+   (run ./gen.exe %{read:../../../detect/speex_available}))))

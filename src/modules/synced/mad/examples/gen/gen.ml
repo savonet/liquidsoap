@@ -1,5 +1,5 @@
 let () =
-  if Has_mad.available then
+  if Sys.argv.(1) = "true" then
     print_string
       {|(executable
  (name decode_msg)

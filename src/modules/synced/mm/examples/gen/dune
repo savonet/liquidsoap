@@ -1,36 +1,16 @@
 (executable
  (name gen_examples)
- (modules gen_examples has_alsa has_mad has_oss has_ao has_graphics)
- (libraries
-  (select
-   has_alsa.ml
-   from
-   (mm.alsa -> has_alsa.yes.ml)
-   (-> has_alsa.no.ml))
-  (select
-   has_mad.ml
-   from
-   (mm.mad -> has_mad.yes.ml)
-   (-> has_mad.no.ml))
-  (select
-   has_oss.ml
-   from
-   (mm.oss -> has_oss.yes.ml)
-   (-> has_oss.no.ml))
-  (select
-   has_ao.ml
-   from
-   (mm.ao -> has_ao.yes.ml)
-   (-> has_ao.no.ml))
-  (select
-   has_graphics.ml
-   from
-   (graphics -> has_graphics.yes.ml)
-   (-> has_graphics.no.ml))))
+ (modules gen_examples))
 
 (rule
  (target examples.inc)
  (action
   (with-stdout-to
    examples.inc
-   (run ./gen_examples.exe))))
+   (run
+    ./gen_examples.exe
+    %{lib-available:mm.alsa}
+    %{lib-available:mm.mad}
+    %{lib-available:mm.oss}
+    %{lib-available:mm.ao}
+    %{lib-available:graphics}))))

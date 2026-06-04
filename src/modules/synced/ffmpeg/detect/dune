@@ -5,6 +5,32 @@
 (executable
  (name check))
 
+(executable
+ (name all_available))
+
+(rule
+ (target all_libs_available)
+ (deps
+  avutil_available
+  avcodec_available
+  avfilter_available
+  av_available
+  swscale_available
+  swresample_available
+  avdevice_available)
+ (action
+  (with-stdout-to
+   %{target}
+   (run
+    ./all_available.exe
+    avutil_available
+    avcodec_available
+    avfilter_available
+    av_available
+    swscale_available
+    swresample_available
+    avdevice_available))))
+
 (rule
  (targets
   avutil_available

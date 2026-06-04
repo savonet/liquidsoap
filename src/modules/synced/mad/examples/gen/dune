@@ -1,16 +1,10 @@
 (executable
  (name gen)
- (modules gen has_mad)
- (libraries
-  (select
-   has_mad.ml
-   from
-   (mad -> has_mad.yes.ml)
-   (-> has_mad.no.ml))))
+ (modules gen))
 
 (rule
  (target examples.inc)
  (action
   (with-stdout-to
    examples.inc
-   (run ./gen.exe))))
+   (run ./gen.exe %{read:../../src/detect/mad_available}))))
