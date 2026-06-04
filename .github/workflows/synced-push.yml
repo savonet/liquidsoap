@@ -7,10 +7,6 @@ on:
     paths:
       - "src/modules/synced/**"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   synced-push:
     runs-on: ubuntu-latest
@@ -49,6 +45,7 @@ jobs:
               if git ls-remote --exit-code origin "refs/heads/$mirror_branch" > /dev/null 2>&1; then
                 git push --force origin HEAD:refs/heads/$mirror_branch
                 git push origin main
+                git push origin --delete "$mirror_branch"
                 cd -
                 continue
               fi
