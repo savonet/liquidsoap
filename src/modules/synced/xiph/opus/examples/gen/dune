@@ -1,16 +1,10 @@
 (executable
  (name gen)
- (modules gen has_opus)
- (libraries
-  (select
-   has_opus.ml
-   from
-   (opus -> has_opus.yes.ml)
-   (-> has_opus.no.ml))))
+ (modules gen))
 
 (rule
  (target examples.inc)
  (action
   (with-stdout-to
    examples.inc
-   (run ./gen.exe))))
+   (run ./gen.exe %{read:../../../detect/opus_available}))))

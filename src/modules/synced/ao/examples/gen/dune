@@ -1,16 +1,10 @@
 (executable
  (name gen)
- (modules gen has_ao)
- (libraries
-  (select
-   has_ao.ml
-   from
-   (ao -> has_ao.yes.ml)
-   (-> has_ao.no.ml))))
+ (modules gen))
 
 (rule
  (target examples.inc)
  (action
   (with-stdout-to
    examples.inc
-   (run ./gen.exe))))
+   (run ./gen.exe %{read:../../src/detect/ao_available}))))

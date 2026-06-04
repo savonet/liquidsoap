@@ -1,7 +1,7 @@
 let has_ffmpeg = Sys.command "which ffmpeg > /dev/null 2>&1" = 0
 
 let () =
-  if Has_flac_ogg.available then begin
+  if Sys.argv.(1) = "true" then begin
     print_string
       {|(executable
  (name decode)

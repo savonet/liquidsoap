@@ -4,7 +4,7 @@ let executable name modules libraries =
     (String.concat " " libraries)
 
 let () =
-  if Has_opus.available then begin
+  if Sys.argv.(1) = "true" then begin
     executable "opus2wav" "opus2wav" ["opus"];
     executable "wav2opus" "wav2opus" ["opus"]
   end

@@ -1,19 +1,13 @@
 (executable
  (name gen)
- (modules gen has_srt_deps)
- (libraries
-  (select
-   has_srt_deps.ml
-   from
-   (srt_deps -> has_srt_deps.yes.ml)
-   (-> has_srt_deps.no.ml))))
+ (modules gen))
 
 (rule
  (target detect.inc)
  (action
   (with-stdout-to
    detect.inc
-   (run ./gen.exe detect))))
+   (run ./gen.exe detect %{lib-available:srt_deps}))))
 
 (rule
  (target generator.inc)

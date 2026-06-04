@@ -4,7 +4,7 @@ let executable name modules libraries =
     (String.concat " " libraries)
 
 let () =
-  if Has_vorbis.available then begin
+  if Sys.argv.(1) = "true" then begin
     executable "ogg2wav" "ogg2wav" ["vorbis"];
     executable "stream2wav" "stream2wav" ["vorbis"];
     executable "wav2ogg" "wav2ogg" ["vorbis"]
