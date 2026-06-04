@@ -1,5 +1,5 @@
 (library
- (name ffmpeg_full)
+ (name ffmpeg)
  (public_name ffmpeg)
  (synopsis "Top-level ffmpeg library")
  (optional)
