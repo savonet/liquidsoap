@@ -36,8 +36,8 @@ jobs:
       - name: Build JS
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E opam update
           sudo -u opam -E opam remove -y conf-pkg-config
+          sudo -u opam -E opam update
           sudo -u opam -E opam upgrade -y
           sudo -u opam -E opam install domain_shims
           sudo -u opam -E opam exec -- dune build --profile release src/js --verbose
