@@ -20,8 +20,8 @@ support for **Ogg**, **Vorbis**, **Opus**, **Speex**, **Theora**, and **FLAC**.
 | `vorbis` | libvorbis — Vorbis audio codec   | [![opam](https://img.shields.io/badge/opam-vorbis-blue)](https://opam.ocaml.org/packages/vorbis/) |
 | `opus`   | libopus — Opus audio codec       | [![opam](https://img.shields.io/badge/opam-opus-blue)](https://opam.ocaml.org/packages/opus/)     |
 | `speex`  | libspeex — Speex audio codec     | [![opam](https://img.shields.io/badge/opam-speex-blue)](https://opam.ocaml.org/packages/speex/)   |
-| `theora` | libtheora — Theora video codec   | [![opam](https://img.shields.io/badge/opam-theora-blue)](https://opam.ocaml.org/packages/theora/) |
 | `flac`   | libflac — FLAC lossless audio    | [![opam](https://img.shields.io/badge/opam-flac-blue)](https://opam.ocaml.org/packages/flac/)     |
+| `theora` | libtheora — Theora video codec   | [![opam](https://img.shields.io/badge/opam-theora-blue)](https://opam.ocaml.org/packages/theora/) |
 
 ## Installation
 
