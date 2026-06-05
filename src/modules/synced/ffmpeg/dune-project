@@ -9,6 +9,7 @@
 
 (generate_opam_files true)
 (opam_file_location inside_opam_directory)
+(subst disabled)
 (use_standard_c_and_cxx_flags false)
 
 (package

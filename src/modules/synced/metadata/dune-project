@@ -7,6 +7,7 @@
 (maintainers "Samuel Mimram <smimram@gmail.com>")
 
 (generate_opam_files true)
+(subst disabled)
 
 (package
  (name metadata)

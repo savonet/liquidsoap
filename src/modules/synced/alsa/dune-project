@@ -7,6 +7,7 @@
 (maintainers "The Savonet Team <savonet-users@lists.sourceforge.net>")
 
 (generate_opam_files true)
+(subst disabled)
 
 (package
  (name alsa)
