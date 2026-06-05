@@ -87,7 +87,6 @@ type on_frame =
   | `After_frame of after_frame_payload -> unit ]
 
 let source_log = Log.make ["source"]
-let finalise s = source_log#info "Source %s is collected." s#id
 
 let check_sleep ~activations ~s =
  fun src ->
@@ -101,6 +100,7 @@ let check_sleep ~activations ~s =
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
+  let id = ref (Lang_string.generate_id ~category:"source" name) in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -151,8 +151,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable log = source_log
     method private create_log = log <- Log.make [self#id]
     method log = log
-    val mutable id = Lang_string.generate_id ~category:"source" name
-    method id = id
+    method id = !id
 
     method set_id ?(force = true) s =
       let s =
@@ -162,7 +161,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           s
       in
       if force && s <> self#id then (
-        id <- Lang_string.generate_id ~category:"source" s;
+        id := Lang_string.generate_id ~category:"source" s;
 
         (* Sometimes the ID is changed during initialization, in order to make it
          equal to the server name, which is only registered at initialization
@@ -343,8 +342,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method wake_up src =
       let activation =
+        let id = ref src#id in
         object
-          method id = src#id
+          method id = !id
         end
       in
       Gc.finalise (check_sleep ~activations ~s:self) activation;
@@ -408,7 +408,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | _ -> ()
 
     initializer
-      Gc.finalise finalise self;
+      Gc.finalise_last
+        (fun () -> source_log#info "Source %s is collected." !id)
+        self;
       self#on_sleep (fun () ->
           sources <-
             List.map
