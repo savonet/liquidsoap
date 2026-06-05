@@ -35,7 +35,7 @@ jobs:
           version: ${{ matrix.version }}
           os: ${{ matrix.os }}
       - name: Build and test module
-        uses: savonet/build-and-test-ocaml-module@main
+        uses: savonet/build-and-test-ocaml-module@681b8ba0c5f5e2e98869bb3672338c65c56e1b24 # main
         with:
           ocaml-compiler: ${{ matrix.compiler }}
       - name: Run CI tests
