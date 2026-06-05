@@ -18,7 +18,7 @@ jobs:
         with:
           os: ubuntu-latest
       - name: Setup OCaml
-        uses: toots/setup-ocaml@master
+        uses: toots/setup-ocaml@fc025b8adbeab94c857af17d6bc53ca55f082871 # master
         with:
           ocaml-compiler: 4.14.x
       - name: Pin locally

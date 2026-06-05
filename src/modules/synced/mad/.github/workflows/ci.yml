@@ -18,6 +18,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
       - name: Build module
-        uses: savonet/build-and-test-ocaml-module@main
+        uses: savonet/build-and-test-ocaml-module@681b8ba0c5f5e2e98869bb3672338c65c56e1b24 # main
         with:
           ocaml-compiler: ${{ matrix.compiler }}
