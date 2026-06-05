@@ -270,6 +270,9 @@ let _sync ?(pending = false) x =
 
 let sync c = _sync (Unifier.deref c)
 let pending_clocks = WeakQueue.create ()
+
+(* Strong references keeping pending clocks alive until the next call to [start_pending]. *)
+let retained_pending_clocks = Queue.create ()
 let clocks = Queue.create ()
 
 let compare_clock_identity c c' =
@@ -757,21 +760,9 @@ and start ?force c =
     | `True sync -> _start ?force ~sync ~c clock
     | `False -> ()
 
-let add_pending_clock =
-  (* Make sure that we're not collecting clocks between
-     the time they have sources attached to them and before
-     we get a chance to call [start_pending]. *)
-  let finalise c =
-    let clock = Unifier.deref c in
-    match _can_start clock with
-      | `True sync when sync <> `Passive ->
-          _start ~sync ~c clock;
-          Queue.push clocks c
-      | _ -> ()
-  in
-  fun c ->
-    Gc.finalise finalise c;
-    WeakQueue.push pending_clocks c
+let add_pending_clock c =
+  Queue.push retained_pending_clocks c;
+  WeakQueue.push pending_clocks c
 
 let create ?(stack = []) ?(controller = `None) ?on_error ?id
     ?(sync = `Automatic) () =
@@ -803,6 +794,7 @@ let time c =
 
 let start_pending () =
   let c = WeakQueue.flush_elements pending_clocks in
+  Queue.flush_iter retained_pending_clocks (fun _ -> ());
   let c = List.map (fun c -> (c, Unifier.deref c)) c in
   let c =
     List.sort_uniq (fun (_, c) (_, c') -> compare_clock_identity c c') c
