@@ -8,7 +8,6 @@ license: "MIT"
 homepage: "https://github.com/savonet/ocaml-mem_usage"
 bug-reports: "https://github.com/savonet/ocaml-mem_usage/issues"
 build: [
-  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

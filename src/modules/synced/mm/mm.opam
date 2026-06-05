@@ -20,7 +20,6 @@ conflicts: [
   "alsa" {< "0.3.0"}
 ]
 build: [
-  ["dune" "subst"] {dev}
   [
     "dune"
     "build"
