@@ -1,0 +1,10 @@
+(executable
+ (name gen)
+ (modules gen))
+
+(rule
+ (target examples.inc)
+ (action
+  (with-stdout-to
+   examples.inc
+   (run ./gen.exe %{read:../../detect/shine_available}))))
