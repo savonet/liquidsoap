@@ -13,14 +13,21 @@
 #include <string.h>
 
 #define JACK_MAX_PORTS 12
+#define JACK_MAX_WAITERS 8
+
+/* One slot per concurrent OCaml clock thread waiting on this server. */
+typedef struct {
+  _Atomic int in_use;
+  _Atomic double sleep_target; /* seconds; INFINITY when not waiting */
+  jack_sem_t semaphore;
+} jack_waiter_t;
 
 /* Per-server timing state: one instance shared by all sources on the same
  * server */
 typedef struct {
-  jack_sem_t semaphore;
+  jack_waiter_t waiters[JACK_MAX_WAITERS];
   _Atomic jack_time_t
-      current_usecs;           /* raw microseconds from jack_get_cycle_times */
-  _Atomic double sleep_target; /* seconds, set from OCaml */
+      current_usecs; /* raw microseconds from jack_get_cycle_times */
   _Atomic int stopped;
   _Atomic int active_client_count; /* number of registered clients */
   _Atomic int pending_callbacks;   /* countdown per cycle: last to zero posts */
@@ -45,7 +52,8 @@ typedef struct {
 
 static void server_state_finalize(value _server_state_block) {
   jack_server_state_t *state = ServerState_val(_server_state_block);
-  jack_sem_destroy(&state->semaphore);
+  for (int i = 0; i < JACK_MAX_WAITERS; i++)
+    jack_sem_destroy(&state->waiters[i].semaphore);
   free(state);
 }
 
@@ -136,13 +144,18 @@ static int jack_source_process_callback(jack_nframes_t nframes, void *arg) {
   if (atomic_fetch_sub_explicit(&state->pending_callbacks, 1,
                                 memory_order_acq_rel) == 1) {
     double next_sec = (double)next_usecs * 1e-6;
-    double target =
-        atomic_load_explicit(&state->sleep_target, memory_order_acquire);
-    if (atomic_load_explicit(&state->stopped, memory_order_relaxed) ||
-        next_sec >= target) {
-      atomic_store_explicit(&state->sleep_target, INFINITY,
-                            memory_order_relaxed);
-      jack_sem_post(&state->semaphore);
+    int stopped = atomic_load_explicit(&state->stopped, memory_order_relaxed);
+    for (int i = 0; i < JACK_MAX_WAITERS; i++) {
+      if (!atomic_load_explicit(&state->waiters[i].in_use,
+                                memory_order_acquire))
+        continue;
+      double waiter_target = atomic_load_explicit(
+          &state->waiters[i].sleep_target, memory_order_acquire);
+      if (stopped || next_sec >= waiter_target) {
+        atomic_store_explicit(&state->waiters[i].sleep_target, INFINITY,
+                              memory_order_relaxed);
+        jack_sem_post(&state->waiters[i].semaphore);
+      }
     }
   }
 
@@ -155,9 +168,12 @@ CAMLprim value caml_jack_server_state_create(value _unit) {
   jack_server_state_t *state = calloc(1, sizeof(jack_server_state_t));
   if (!state)
     caml_failwith("jack_server_state_create: out of memory");
-  jack_sem_init(&state->semaphore);
+  for (int i = 0; i < JACK_MAX_WAITERS; i++) {
+    jack_sem_init(&state->waiters[i].semaphore);
+    atomic_store(&state->waiters[i].in_use, 0);
+    atomic_store(&state->waiters[i].sleep_target, INFINITY);
+  }
   atomic_store(&state->current_usecs, (jack_time_t)0);
-  atomic_store(&state->sleep_target, INFINITY);
   atomic_store(&state->stopped, 0);
   atomic_store(&state->active_client_count, 0);
   atomic_store(&state->pending_callbacks, 0);
@@ -172,8 +188,12 @@ CAMLprim value caml_jack_server_state_set_stopped(value _server_state_block,
   jack_server_state_t *state = ServerState_val(_server_state_block);
   int stopped_val = Bool_val(_stopped);
   atomic_store_explicit(&state->stopped, stopped_val, memory_order_release);
-  if (stopped_val)
-    jack_sem_post(&state->semaphore);
+  if (stopped_val) {
+    for (int i = 0; i < JACK_MAX_WAITERS; i++) {
+      if (atomic_load_explicit(&state->waiters[i].in_use, memory_order_acquire))
+        jack_sem_post(&state->waiters[i].semaphore);
+    }
+  }
   return Val_unit;
 }
 
@@ -197,22 +217,51 @@ CAMLprim value caml_jack_server_state_wait_until(value _server_state_block,
   jack_server_state_t *state = ServerState_val(_server_state_block);
   double target = Double_val(_target);
 
+  /* Claim a free waiter slot. */
+  int slot = -1;
+  for (int i = 0; i < JACK_MAX_WAITERS; i++) {
+    int expected = 0;
+    if (atomic_compare_exchange_strong_explicit(
+            &state->waiters[i].in_use, &expected, 1, memory_order_acq_rel,
+            memory_order_relaxed)) {
+      slot = i;
+      break;
+    }
+  }
+  if (slot < 0)
+    caml_failwith("jack_server_state_wait_until: too many concurrent waiters");
+
   /* Store the sleep target before sampling current_usecs so that any RT
      callback firing between the two sees the target and posts if the cycle
      qualifies. */
-  atomic_store_explicit(&state->sleep_target, target, memory_order_release);
+  atomic_store_explicit(&state->waiters[slot].sleep_target, target,
+                        memory_order_release);
 
   jack_time_t usecs =
       atomic_load_explicit(&state->current_usecs, memory_order_acquire);
   if ((double)usecs * 1e-6 >= target ||
       atomic_load_explicit(&state->stopped, memory_order_relaxed)) {
-    atomic_store_explicit(&state->sleep_target, INFINITY, memory_order_relaxed);
+    atomic_store_explicit(&state->waiters[slot].sleep_target, INFINITY,
+                          memory_order_relaxed);
+    atomic_store_explicit(&state->waiters[slot].in_use, 0,
+                          memory_order_release);
     CAMLreturn(Val_unit);
   }
 
-  caml_release_runtime_system();
-  jack_sem_wait(&state->semaphore);
-  caml_acquire_runtime_system();
+  /* Wait for the RT callback to post this slot's semaphore.  Loop to handle
+     spurious wakeups (e.g., a leftover post from a previous waiter on this
+     slot). */
+  do {
+    caml_release_runtime_system();
+    jack_sem_wait(&state->waiters[slot].semaphore);
+    caml_acquire_runtime_system();
+    usecs = atomic_load_explicit(&state->current_usecs, memory_order_acquire);
+  } while ((double)usecs * 1e-6 < target &&
+           !atomic_load_explicit(&state->stopped, memory_order_relaxed));
+
+  atomic_store_explicit(&state->waiters[slot].sleep_target, INFINITY,
+                        memory_order_relaxed);
+  atomic_store_explicit(&state->waiters[slot].in_use, 0, memory_order_release);
   CAMLreturn(Val_unit);
 }
 
@@ -244,7 +293,10 @@ static void jack_server_shutdown_callback(void *arg) {
   jack_source_t *source = (jack_source_t *)arg;
   jack_server_state_t *state = source->server_state;
   atomic_store_explicit(&state->stopped, 1, memory_order_release);
-  jack_sem_post(&state->semaphore);
+  for (int i = 0; i < JACK_MAX_WAITERS; i++) {
+    if (atomic_load_explicit(&state->waiters[i].in_use, memory_order_acquire))
+      jack_sem_post(&state->waiters[i].semaphore);
+  }
 }
 
 CAMLprim value caml_jack_source_register_callback(value _client_block,

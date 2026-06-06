@@ -575,12 +575,7 @@ class output ~server ~infallible ~register_telnet source =
 
     method send_frame frame =
       Generator.append self#buffer frame;
-      self#feed_ringbuffer;
-      (* With next_usecs-based wakeup we have a full JACK period to write, so
-         the ringbuffer should always have space. Log if anything remains. *)
-      if Generator.length self#buffer > 0 then
-        self#log#important "output: ringbuffer full, %d samples pending"
-          (Generator.length self#buffer)
+      self#feed_ringbuffer
   end
 
 let jack_proto =
