@@ -46,7 +46,7 @@ opam repository set-url windows https://github.com/ocaml-cross/opam-cross-window
 opam remove -y ffmpeg-windows ffmpeg-avutil-windows
 opam update
 
-opam install -y dune.3.23.1 posix-socket.3.0.0 srt-windows.0.3.4 prometheus-app-windows cohttp-lwt-unix-windows lame-windows fdkaac-windows
+opam install -y dune.3.23.1 posix-socket.3.0.0 prometheus-app-windows cohttp-lwt-unix-windows fdkaac-windows
 
 echo "::endgroup::"
 
