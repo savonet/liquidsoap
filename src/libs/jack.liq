@@ -6,13 +6,19 @@
 def jack_connect(input_ports, output_ports) =
   n_in = list.length(input_ports)
   n_out = list.length(output_ports)
-  if n_in == 1 then
+  if
+    n_in == 1
+  then
     let [in_port] = input_ports
     list.iter(fun (out_port) -> out_port.connect(in_port), output_ports)
-  elsif n_out == 1 then
+  elsif
+    n_out == 1
+  then
     let [out_port] = output_ports
     list.iter(fun (in_port) -> out_port.connect(in_port), input_ports)
-  elsif n_in == n_out then
+  elsif
+    n_in == n_out
+  then
     ignore(
       list.fold(
         fun (remaining, out_port) ->
@@ -28,8 +34,8 @@ def jack_connect(input_ports, output_ports) =
   else
     error.raise(
       error.invalid,
-      "jack.connect: port count mismatch \
-       (#{n_out} output port(s) vs #{n_in} input port(s))"
+      "jack.connect: port count mismatch (#{n_out} output port(s) vs #{n_in} \
+       input port(s))"
     )
   end
 end
@@ -44,18 +50,22 @@ def replaces input.jack(%argsof(input.jack)) =
   def s.connect(o) =
     input_connected = ref(false)
     output_connected = ref(false)
-    s.on_wake_up(synchronous=true, fun () -> begin
-      input_connected := true
-      if output_connected() then
-        jack_connect(s.ports(), o.ports())
-      end
-    end)
-    o.on_wake_up(synchronous=true, fun () -> begin
-      output_connected := true
-      if input_connected() then
-        jack_connect(s.ports(), o.ports())
-      end
-    end)
+    s.on_wake_up(
+      synchronous=true,
+      fun () ->
+        begin
+          input_connected := true
+          if output_connected() then jack_connect(s.ports(), o.ports()) end
+        end
+    )
+    o.on_wake_up(
+      synchronous=true,
+      fun () ->
+        begin
+          output_connected := true
+          if input_connected() then jack_connect(s.ports(), o.ports()) end
+        end
+    )
   end
 
   s
@@ -72,18 +82,22 @@ def replaces output.jack(%argsof(output.jack), s) =
   def o.connect(s) =
     input_connected = ref(false)
     output_connected = ref(false)
-    s.on_wake_up(synchronous=false, fun () -> begin
-      input_connected := true
-      if output_connected() then
-        jack_connect(s.ports(), o.ports())
-      end
-    end)
-    o.on_wake_up(synchronous=false, fun () -> begin
-      output_connected := true
-      if input_connected() then
-        jack_connect(s.ports(), o.ports())
-      end
-    end)
+    s.on_wake_up(
+      synchronous=false,
+      fun () ->
+        begin
+          input_connected := true
+          if output_connected() then jack_connect(s.ports(), o.ports()) end
+        end
+    )
+    o.on_wake_up(
+      synchronous=false,
+      fun () ->
+        begin
+          output_connected := true
+          if input_connected() then jack_connect(s.ports(), o.ports()) end
+        end
+    )
   end
 
   o

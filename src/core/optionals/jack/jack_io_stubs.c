@@ -10,6 +10,7 @@
 #include <math.h>
 #include <stdatomic.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define JACK_MAX_PORTS 12
 
@@ -84,12 +85,13 @@ static void jack_source_process_ports(jack_source_t *source,
         atomic_fetch_add_explicit(&source->ports[i].dropped_frames, dropped,
                                   memory_order_relaxed);
     } else {
-      size_t got_frames = 0;
-      if (rb) {
-        size_t got =
-            jack_ringbuffer_read(rb, (char *)jack_buf, nframes * sizeof(float));
-        got_frames = got / sizeof(float);
+      if (!rb) {
+        memset(jack_buf, 0, nframes * sizeof(float));
+        continue;
       }
+      size_t got =
+          jack_ringbuffer_read(rb, (char *)jack_buf, nframes * sizeof(float));
+      size_t got_frames = got / sizeof(float);
       size_t dropped = (size_t)nframes - got_frames;
       if (dropped) {
         atomic_fetch_add_explicit(&source->ports[i].dropped_frames, dropped,

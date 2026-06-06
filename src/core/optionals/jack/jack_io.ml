@@ -425,11 +425,13 @@ class virtual base ~server () =
         buf 0
         (Frame.audio_of_main ticks)
 
-    method private start =
-      let frame_duration = Lazy.force Frame.duration in
+    method private start = ()
+    method private stop = Array.iter (fun p -> p#flush) ports
+
+    method private prefill_silence =
       let jack_client = self#jack_client in
       let n_samples =
-        int_of_float (frame_duration *. float jack_client#sample_rate)
+        int_of_float (Lazy.force Frame.duration *. float jack_client#sample_rate)
       in
       (* Add one JACK buffer of padding to cover reads and writes that land in
          the middle of a JACK buffer. This can be skipped when the sample rates
@@ -444,8 +446,6 @@ class virtual base ~server () =
       in
       let silence = Array.make n 0. in
       Array.iter (fun p -> ignore (p#write_from_buffer silence 0 n)) ports
-
-    method private stop = Array.iter (fun p -> p#flush) ports
 
     initializer
       self#on_wake_up (fun () ->
@@ -463,7 +463,9 @@ class virtual base ~server () =
           JackSource.register_callback (Option.get jack_client#client) src;
           jack_client#activate;
           _jack_source <- Some src);
-      self#on_start (fun () -> Array.iter (fun p -> p#enable) ports);
+      self#on_start (fun () ->
+          Array.iter (fun p -> p#enable) ports;
+          if not self#is_input then self#prefill_silence);
       self#on_stop (fun () -> Array.iter (fun p -> p#disable) ports);
       self#on_sleep (fun () ->
           let src = _jack_source in
@@ -528,10 +530,6 @@ class input ~server ~autostart =
 
     method private generate_frame =
       let frame_size = Lazy.force Frame.size in
-      (* Busy-wait for a full frame — only expected to spin for a few samples
-         at most when the JACK callback hasn't fully filled the buffer yet.
-         Check stopped on each iteration so we exit cleanly if the JACK server
-         disconnects while waiting. *)
       while Generator.length self#buffer < frame_size do
         if self#jack_stopped then raise Clock.Has_stopped;
         Domain.cpu_relax ();
