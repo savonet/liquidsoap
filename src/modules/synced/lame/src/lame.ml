@@ -95,7 +95,7 @@ external init_bitstream : encoder -> unit = "ocaml_lame_init_bitstream"
 external encode_buffer_part : encoder -> string -> int -> int -> string
   = "ocaml_lame_encode_buffer_interleaved"
 
-(** [encode_buffer_float_part enc left right offset samples] * encodes float
+(** [encode_buffer_float_part enc left right offset samples] encodes float
     samples, expected to be in [-1;1]. *)
 external encode_buffer_float_part :
   encoder -> float array -> float array -> int -> int -> string
@@ -108,8 +108,8 @@ external encode_buffer_float_ba :
   (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t ->
   string = "ocaml_lame_encode_buffer_float_ba"
 
-(** [encode_buffer enc buf smpl] encodes [smpl] samples of PCM audio into MP3. *
-    Input samples are expected to be 16bits little-endian, other input/output *
+(** [encode_buffer enc buf smpl] encodes [smpl] samples of PCM audio into MP3.
+    Input samples are expected to be 16bits little-endian, other input/output
     params are specified using [set_*] functions. *)
 let encode_buffer enc buf smpl = encode_buffer_part enc buf 0 smpl
 

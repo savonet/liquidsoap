@@ -49,7 +49,7 @@ type encoder
 (** Create a new lame encoder. *)
 val create_encoder : unit -> encoder
 
-(** Frame size. All audio frames submitted to the encoder * should have this
+(** Frame size. All audio frames submitted to the encoder should have this
     number of samples per channel. *)
 val frame_size : encoder -> int
 
@@ -61,16 +61,20 @@ val set_in_samplerate : encoder -> int -> unit
 (** Number of channels in input stream (default: 2). *)
 val set_num_channels : encoder -> int -> unit
 
-(** * Output sample rate in Hz (default: 0, which means LAME picks best value *
-    based on the amount of compression). MPEG only allows: * - MPEG1 (32, 44.1,
-    48 kHz) * - MPEG2 (16, 22.05, 24 kHz) * - MPEG2.5 (8, 11.025, 12 kHz) *)
+(** Output sample rate in Hz (default: 0, which means LAME picks best value
+    based on the amount of compression). MPEG only allows:
+    - MPEG1 (32, 44.1, 48 kHz)
+    - MPEG2 (16, 22.05, 24 kHz)
+    - MPEG2.5 (8, 11.025, 12 kHz) *)
 val set_out_samplerate : encoder -> int -> unit
 
-(** * Internal algorithm selection. True quality is determined by the bitrate *
-    but this variable will effect quality by selecting expensive or cheap *
-    algorithms. The quality is an integer between 0 and 9, where 0=best (very *
-    slow) and 9=worst. More precisely: * - 2: near-best quality, not too slow
-    (recommended) * - 5: good quality, fast * - 7: ok quality, really fast *)
+(** Internal algorithm selection. True quality is determined by the bitrate but
+    this variable will effect quality by selecting expensive or cheap
+    algorithms. The quality is an integer between 0 and 9, where 0=best (very
+    slow) and 9=worst. More precisely:
+    - 2: near-best quality, not too slow (recommended)
+    - 5: good quality, fast
+    - 7: ok quality, really fast *)
 val set_quality : encoder -> int -> unit
 
 (* Enable/disable the bit reservoir. *)
@@ -112,11 +116,11 @@ val set_vbr_min_bitrate : encoder -> int -> unit
 (** Set the maximal VBR bitrate in kbps. *)
 val set_vbr_max_bitrate : encoder -> int -> unit
 
-(** If [true], enforce the minimal VBR bitrate. Normally it will be violated *
-    for analog silence. *)
+(** If [true], enforce the minimal VBR bitrate. Normally it will be violated for
+    analog silence. *)
 val set_vbr_hard_min : encoder -> bool -> unit
 
-(** Set the bitrate of compressed data. You can either set this or use *
+(** Set the bitrate of compressed data. You can either set this or use
     [set_compression_ratio]. *)
 val set_brate : encoder -> int -> unit
 
@@ -141,13 +145,13 @@ val get_original : encoder -> bool
 (** A call to [init_params] failed for some reason. *)
 exception Init_params_failed
 
-(** Initialize lame's parameters. Should be called before encoding (and after *
+(** Initialize lame's parameters. Should be called before encoding (and after
     having set the parameters). Raises [Init_params_failed] on error. *)
 val init_params : encoder -> unit
 
-(** Write id3v2 and Xing headers into the front of the bitstream, and set *
-    frame counters and bitrate histogram data to 0. Normally, this is called by
-    * [init_params]. You can call this after [encode_flush_nogap]. *)
+(** Write id3v2 and Xing headers into the front of the bitstream, and set frame
+    counters and bitrate histogram data to 0. Normally, this is called by
+    [init_params]. You can call this after [encode_flush_nogap]. *)
 val init_bitstream : encoder -> unit
 
 (** {2 Encoding} *)
@@ -161,16 +165,16 @@ exception Psychoacoustic_problem
 (** This should not have happened. Please report. *)
 exception Unknown_error of int
 
-(** [encode_buffer_part enc buf ofs smpl] encodes [samples] * samples (per
+(** [encode_buffer_part enc buf ofs smpl] encodes [samples] samples (per
     channel) of [buf] starting at position [ofs]. *)
 val encode_buffer_part : encoder -> string -> int -> int -> string
 
 (** Same as [encode_buffer_part] but with [ofs = 0]. *)
 val encode_buffer : encoder -> string -> int -> string
 
-(** [encode_buffer_float_part enc left right ofs smpl] encodes [samples] *
-    samples of [left] and [right] channels starting at position [ofs]. * Floats
-    are expected to range over [-1;1]. *)
+(** [encode_buffer_float_part enc left right ofs smpl] encodes [samples] samples
+    of [left] and [right] channels starting at position [ofs]. Floats are
+    expected to range over [-1;1]. *)
 val encode_buffer_float_part :
   encoder -> float array -> float array -> int -> int -> string
 
@@ -186,11 +190,11 @@ val encode_buffer_float_ba :
   (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t ->
   string
 
-(** Flush the PCM buffers, padding with zeros if needed to make a complete *
+(** Flush the PCM buffers, padding with zeros if needed to make a complete
     frame. Will also write id3v1 tags (if any) into the bitstream. *)
 val encode_flush : encoder -> string
 
-(** Flush the PCM buffers, padding with zeros if needed to make a complete *
+(** Flush the PCM buffers, padding with zeros if needed to make a complete
     frame. This function will not write id3v1 tags into the bitstream. *)
 val encode_flush_nogap : encoder -> string
 
@@ -245,6 +249,6 @@ val get_nb_samples_to_encode : encoder -> int
 (** Number of frames encoded so far. *)
 val get_nb_encoded_frames : encoder -> int
 
-(** Estimate of the total number of frames to be encoded * (only valid if
+(** Estimate of the total number of frames to be encoded (only valid if
     [set_nb_samples] was called). *)
 val get_nb_frames : encoder -> int
