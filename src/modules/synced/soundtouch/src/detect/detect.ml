@@ -25,25 +25,23 @@ let set_pkg_config_path_for_context context_name =
 
 let () =
   match Array.to_list Sys.argv |> List.tl with
-    | "--context" :: context_name :: name :: packages ->
+    | "--context" :: context_name :: _ ->
         set_pkg_config_path_for_context context_name;
         let open Configurator.V1 in
         let c = create "soundtouch-detect" in
         let available, cflags, libs =
-          if is_excluded name then (false, [], [])
+          if is_excluded "soundtouch" then (false, [], [])
           else (
             match Pkg_config.get c with
               | None -> (false, [], [])
               | Some pc -> (
-                  match
-                    Pkg_config.query pc ~package:(String.concat " " packages)
-                  with
+                  match Pkg_config.query pc ~package:"soundtouch" with
                     | None -> (false, [], [])
                     | Some conf -> (true, conf.cflags, conf.libs)))
         in
-        write_bool (name ^ "_available") available;
-        write_sexp (name ^ "_c_flags.sexp") cflags;
-        write_sexp (name ^ "_c_library_flags.sexp") libs
+        write_bool "soundtouch_available" available;
+        write_sexp "soundtouch_c_flags.sexp" cflags;
+        write_sexp "soundtouch_c_library_flags.sexp" libs
     | _ ->
-        Printf.eprintf "Usage: detect --context <context> <name> <package...>\n";
+        Printf.eprintf "Usage: detect --context <context>\n";
         exit 1

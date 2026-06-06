@@ -1,0 +1,20 @@
+(executable
+ (name detect)
+ (modules detect)
+ (libraries dune-configurator unix)
+ (foreign_stubs
+  (language c)
+  (names endianness)))
+
+(executable
+ (name check)
+ (modules check))
+
+(rule
+ (targets
+  lame_available
+  lame_c_flags.sexp
+  lame_c_library_flags.sexp
+  lame_config)
+ (action
+  (run ./detect.exe --context %{context_name})))

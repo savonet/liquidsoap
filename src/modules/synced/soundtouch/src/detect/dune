@@ -8,4 +8,4 @@
   soundtouch_c_flags.sexp
   soundtouch_c_library_flags.sexp)
  (action
-  (run ./detect.exe --context %{context_name} soundtouch soundtouch)))
+  (run ./detect.exe --context %{context_name})))

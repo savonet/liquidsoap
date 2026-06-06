@@ -1,0 +1,31 @@
+(library
+ (name lame)
+ (public_name lame)
+ (synopsis "OCaml bindings for lame")
+ (enabled_if
+  (= %{read:../detect/lame_available} true))
+ (modules lame)
+ (foreign_stubs
+  (language c)
+  (names lame_stubs)
+  (extra_deps config.h)
+  (flags
+   (:include ../detect/lame_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/lame_c_library_flags.sexp)))
+
+(rule
+ (target config.h)
+ (action
+  (copy ../detect/lame_config config.h)))
+
+(rule
+ (alias install)
+ (package lame)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ../detect/lame_available
+   (run ../detect/check.exe lame))))
