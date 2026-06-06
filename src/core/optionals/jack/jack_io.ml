@@ -46,6 +46,7 @@ module ServerState = struct
 
   external get_stopped : t -> bool = "caml_jack_server_state_get_stopped"
   external get_elapsed : t -> float = "caml_jack_server_state_get_elapsed"
+  external wait : t -> unit = "caml_jack_server_wait"
   external wait_until : t -> float -> unit = "caml_jack_server_state_wait_until"
 end
 
@@ -383,6 +384,7 @@ class virtual base ~server () =
       None
 
     val mutable ports = [||]
+    method private server_state = server_state
     method private jack_client : jack_client = Option.get _jack_client
 
     method jack_ports =
@@ -532,8 +534,9 @@ class input ~server ~autostart =
       let frame_size = Lazy.force Frame.size in
       while Generator.length self#buffer < frame_size do
         if self#jack_stopped then raise Clock.Has_stopped;
-        Domain.cpu_relax ();
-        self#drain_ringbuffer
+        self#drain_ringbuffer;
+        if Generator.length self#buffer < frame_size then
+          ServerState.wait self#server_state
       done;
       Generator.slice self#buffer frame_size
   end

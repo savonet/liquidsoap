@@ -13,7 +13,7 @@
 #include <string.h>
 
 #define JACK_MAX_PORTS 12
-#define JACK_MAX_WAITERS 8
+#define JACK_MAX_WAITERS 12
 
 /* One slot per concurrent OCaml clock thread waiting on this server. */
 typedef struct {
@@ -211,13 +211,7 @@ CAMLprim value caml_jack_server_state_get_elapsed(value _server_state_block) {
   CAMLreturn(caml_copy_double((double)usecs * 1e-6));
 }
 
-CAMLprim value caml_jack_server_state_wait_until(value _server_state_block,
-                                                 value _target) {
-  CAMLparam2(_server_state_block, _target);
-  jack_server_state_t *state = ServerState_val(_server_state_block);
-  double target = Double_val(_target);
-
-  /* Claim a free waiter slot. */
+static inline int claim_free_spot(jack_server_state_t *state) {
   int slot = -1;
   for (int i = 0; i < JACK_MAX_WAITERS; i++) {
     int expected = 0;
@@ -230,6 +224,29 @@ CAMLprim value caml_jack_server_state_wait_until(value _server_state_block,
   }
   if (slot < 0)
     caml_failwith("jack_server_state_wait_until: too many concurrent waiters");
+
+  return slot;
+}
+
+static inline void wait_on_slot(jack_server_state_t *state, int slot) {
+  caml_release_runtime_system();
+  jack_sem_wait(&state->waiters[slot].semaphore);
+  caml_acquire_runtime_system();
+}
+
+CAMLprim value caml_jack_server_wait(value _server_state_block) {
+  CAMLparam1(_server_state_block);
+  jack_server_state_t *state = ServerState_val(_server_state_block);
+  wait_on_slot(state, claim_free_spot(state));
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value caml_jack_server_state_wait_until(value _server_state_block,
+                                                 value _target) {
+  CAMLparam2(_server_state_block, _target);
+  jack_server_state_t *state = ServerState_val(_server_state_block);
+  double target = Double_val(_target);
+  int slot = claim_free_spot(state);
 
   /* Store the sleep target before sampling current_usecs so that any RT
      callback firing between the two sees the target and posts if the cycle
@@ -252,9 +269,7 @@ CAMLprim value caml_jack_server_state_wait_until(value _server_state_block,
      spurious wakeups (e.g., a leftover post from a previous waiter on this
      slot). */
   do {
-    caml_release_runtime_system();
-    jack_sem_wait(&state->waiters[slot].semaphore);
-    caml_acquire_runtime_system();
+    wait_on_slot(state, slot);
     usecs = atomic_load_explicit(&state->current_usecs, memory_order_acquire);
   } while ((double)usecs * 1e-6 < target &&
            !atomic_load_explicit(&state->stopped, memory_order_relaxed));
