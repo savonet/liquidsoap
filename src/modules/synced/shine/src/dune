@@ -1,0 +1,31 @@
+(library
+ (name shine)
+ (public_name shine)
+ (synopsis "Fixed-point MP3 encoder.")
+ (enabled_if
+  (= %{read:../detect/shine_available} true))
+ (modules shine)
+ (foreign_stubs
+  (language c)
+  (names shine_stubs)
+  (extra_deps config.h)
+  (flags
+   (:include ../detect/shine_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/shine_c_library_flags.sexp)))
+
+(rule
+ (target config.h)
+ (action
+  (copy ../detect/shine_config config.h)))
+
+(rule
+ (alias install)
+ (package shine)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ../detect/shine_available
+   (run ../detect/check.exe shine))))
