@@ -117,6 +117,8 @@ external port_connect : client -> string -> string -> unit
   = "caml_jack_port_connect"
 [@@noalloc]
 
+external port_name : port -> string = "caml_jack_port_name"
+
 module Wait = struct
   type posix_sem
 

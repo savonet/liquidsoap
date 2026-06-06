@@ -152,6 +152,40 @@ Use `buffer()` to safely move audio between the JACK clock domain and another:
 
 ```
 
+## Programmatic port connections
+
+Each `input.jack` and `output.jack` exposes a `ports()` method that returns
+the list of JACK ports registered by that operator. The types are distinct:
+`input.jack` returns `[jack_input_port]` and `output.jack` returns
+`[jack_output_port]`. This distinction is enforced by the type system — you
+cannot accidentally connect two input ports or two output ports together.
+
+Each port value has two methods:
+
+- `name()` — returns the full JACK port name, e.g. `"out:out_0"`.
+- `connect(other)` — connects this port to another port of the opposite
+  direction. On an output port, `connect` takes a `jack_input_port`; on an
+  input port, `connect` takes a `jack_output_port`.
+
+For convenience, `input.jack` and `output.jack` both expose a high-level
+`connect` method that wires all their ports to another operator at once:
+
+```{.liquidsoap include="jack-connect.liq"}
+
+```
+
+The connection is **deferred**: registering it at script definition time is
+safe because the actual `jack_connect` call is only made once both operators
+have woken up and registered their JACK ports.
+
+Port counts are handled automatically:
+
+- If one side has a single port, it is connected to every port on the other
+  side (mono broadcast / fan-in).
+- If both sides have the same number of ports, they are connected pairwise
+  (channel 0 → channel 0, channel 1 → channel 1, etc.).
+- Any other combination raises `error.invalid` at connection time.
+
 ## Advanced: minimizing latency
 
 > **Note**: This section is for setups specifically tuned for minimum latency.

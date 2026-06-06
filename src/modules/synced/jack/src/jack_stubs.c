@@ -295,6 +295,11 @@ CAMLprim value caml_jack_port_connect(value _client, value _source_port,
   return Val_unit;
 }
 
+CAMLprim value caml_jack_port_name(value _port) {
+  CAMLparam1(_port);
+  CAMLreturn(caml_copy_string(jack_port_name(Port_val(_port))));
+}
+
 /* --- Semaphore custom block --- */
 
 #define Sem_val(v) (*((jack_sem_t **)Data_custom_val(v)))

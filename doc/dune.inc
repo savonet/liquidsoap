@@ -187,6 +187,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -365,6 +366,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -543,6 +545,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -721,6 +724,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -899,6 +903,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -1077,6 +1082,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -1255,6 +1261,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -1433,6 +1440,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -1611,6 +1619,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -1789,6 +1798,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -1967,6 +1977,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -2145,6 +2156,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -2323,6 +2335,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -2501,6 +2514,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -2679,6 +2693,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -2857,6 +2872,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -3035,6 +3051,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -3213,6 +3230,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -3391,6 +3409,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -3569,6 +3588,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -3747,6 +3767,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -3925,6 +3946,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -4103,6 +4125,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -4281,6 +4304,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -4459,6 +4483,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -4637,6 +4662,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -4815,6 +4841,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -4993,6 +5020,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -5171,6 +5199,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -5349,6 +5378,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -5527,6 +5557,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -5705,6 +5736,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -5883,6 +5915,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -6061,6 +6094,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -6239,6 +6273,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -6417,6 +6452,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -6595,6 +6631,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -6773,6 +6810,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -6951,6 +6989,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -7129,6 +7168,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -7307,6 +7347,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -7485,6 +7526,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -7663,6 +7705,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -7841,6 +7884,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -8019,6 +8063,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -8197,6 +8242,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -8375,6 +8421,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -8553,6 +8600,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -8731,6 +8779,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -8909,6 +8958,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -9087,6 +9137,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -9265,6 +9316,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -9443,6 +9495,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -9621,6 +9674,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -9799,6 +9853,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -9977,6 +10032,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -10155,6 +10211,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -10333,6 +10390,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -10511,6 +10569,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -10689,6 +10748,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -10867,6 +10927,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -11045,6 +11106,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -11223,6 +11285,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -11401,6 +11464,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -11579,6 +11643,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -11757,6 +11822,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -11935,6 +12001,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -12113,6 +12180,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -12291,6 +12359,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -12469,6 +12538,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -12647,6 +12717,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -12825,6 +12896,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -13003,6 +13075,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -13181,6 +13254,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -13359,6 +13433,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -13537,6 +13612,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -13715,6 +13791,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -13893,6 +13970,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -14071,6 +14149,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -14249,6 +14328,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -14427,6 +14507,7 @@
   content/liq/implicit-float-ok.liq
   content/liq/input.mplayer.liq
   content/liq/jack-buffer.liq
+  content/liq/jack-connect.liq
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
@@ -15628,6 +15709,20 @@
    content/liq/jack-buffer.liq)))
 
 (rule
+ (alias test-doc-jack-connect)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/jack-connect.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/jack-connect.liq)))
+
+(rule
  (alias test-doc-jack-low-latency)
  (package liquidsoap)
  (deps
@@ -16636,6 +16731,7 @@
   (alias test-doc-implicit-float-ok)
   (alias test-doc-input.mplayer)
   (alias test-doc-jack-buffer)
+  (alias test-doc-jack-connect)
   (alias test-doc-jack-low-latency)
   (alias test-doc-jack-passthrough)
   (alias test-doc-jack-record)

@@ -261,6 +261,109 @@ class jack_client ~id (server : string option) =
            /. float (Lazy.force Frame.audio_rate)))
   end
 
+type port_content = {
+  jack_port : jack_port;
+  get_client : unit -> Jack.client option;
+}
+
+module MkPortBase (Def : sig
+  val name : string
+end) =
+Value.MkCustom (struct
+  type content = port_content
+
+  let name = Def.name
+
+  let to_json ~pos _ =
+    Lang.raise_error ~pos
+      ~message:(Def.name ^ " cannot be represented as json")
+      "json"
+
+  let to_string v = Jack.port_name v.jack_port#port
+  let compare a b = String.compare (to_string a) (to_string b)
+end)
+
+(* [self_is_source] controls the order in [jack_connect(client, src, dst)]:
+   true  = self is src, other is dst  (output port calling connect)
+   false = other is src, self is dst  (input port calling connect) *)
+module MkPortValue (Base : sig
+  val t : Lang.t
+  val to_value : ?pos:Pos.t -> port_content -> Lang.value
+  val of_value : Lang.value -> port_content
+end) (Other : sig
+  val t : Lang.t
+  val of_value : Lang.value -> port_content
+  val connect_descr : string
+  val self_is_source : bool
+end) =
+struct
+  let meths =
+    [
+      ( "name",
+        ([], Lang.string_t),
+        "JACK port name.",
+        fun v -> Lang.string (Jack.port_name v.jack_port#port) );
+      ( "connect",
+        ([], Lang.fun_t [(false, "", Other.t)] Lang.unit_t),
+        Other.connect_descr,
+        fun v ->
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              let other = Other.of_value (List.assoc "" p) in
+              match v.get_client () with
+                | None ->
+                    Lang.raise_error ~pos:(Lang.pos p)
+                      ~message:"JACK client is not connected" "jack"
+                | Some c ->
+                    let src, dst =
+                      if Other.self_is_source then (v, other) else (other, v)
+                    in
+                    Jack.port_connect c
+                      (Jack.port_name src.jack_port#port)
+                      (Jack.port_name dst.jack_port#port);
+                    Lang.unit) );
+    ]
+
+  let t =
+    Lang.method_t Base.t
+      (List.map (fun (lbl, typ, descr, _) -> (lbl, typ, descr)) meths)
+
+  let to_value v =
+    Lang.meth (Base.to_value v)
+      (List.map (fun (lbl, _, _, m) -> (lbl, m v)) meths)
+
+  let of_value = Base.of_value
+end
+
+module Jack_input_port_base = MkPortBase (struct
+  let name = "jack_input_port"
+end)
+
+module Jack_output_port_base = MkPortBase (struct
+  let name = "jack_output_port"
+end)
+
+module Jack_input_port_value =
+  MkPortValue
+    (Jack_input_port_base)
+    (struct
+      include Jack_output_port_base
+
+      let connect_descr = "Connect a JACK output port to this input port."
+      let self_is_source = false
+    end)
+
+module Jack_output_port_value =
+  MkPortValue
+    (Jack_output_port_base)
+    (struct
+      include Jack_input_port_base
+
+      let connect_descr = "Connect this output port to a JACK input port."
+      let self_is_source = true
+    end)
+
 class virtual base ~server () =
   let { server_state; sync_source } = get_server_data server in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -281,6 +384,16 @@ class virtual base ~server () =
 
     val mutable ports = [||]
     method private jack_client : jack_client = Option.get _jack_client
+
+    method jack_ports =
+      let get_client () = Option.bind _jack_client (fun c -> c#client) in
+      let wrap =
+        if self#is_input then fun p ->
+          Jack_input_port_value.to_value { jack_port = p; get_client }
+        else fun p ->
+          Jack_output_port_value.to_value { jack_port = p; get_client }
+      in
+      Array.to_list (Array.map wrap ports)
 
     method private clear_jack_client =
       Option.iter (fun c -> c#close) _jack_client;
@@ -493,9 +606,17 @@ let _ =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
+  let ports_meth =
+    {
+      Lang.name = "ports";
+      scheme = ([], Lang.fun_t [] (Lang.list_t Jack_input_port_value.t));
+      descr = "List of JACK input ports for this source.";
+      value = (fun s -> Lang.val_fun [] (fun _ -> Lang.list s#jack_ports));
+    }
+  in
   Lang.add_operator ~base:Modules.input "jack"
     (Start_stop.active_source_proto ~fallible_opt:`Nope @ jack_proto)
-    ~meth:(Start_stop.meth ())
+    ~meth:(Start_stop.meth () @ [ports_meth])
     ~callbacks:(Start_stop.callbacks ~label:"source")
     ~return_t ~category:(`Input `Active) ~descr:"Get stream from JACK."
     (fun p ->
@@ -508,9 +629,18 @@ let _ =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
+  let ports_meth =
+    {
+      Lang.name = "ports";
+      scheme = ([], Lang.fun_t [] (Lang.list_t Jack_output_port_value.t));
+      descr = "List of JACK output ports for this output.";
+      value = (fun s -> Lang.val_fun [] (fun _ -> Lang.list s#jack_ports));
+    }
+  in
   Lang.add_operator ~base:Modules.output "jack"
     (Output.proto @ jack_proto @ [("", Lang.source_t frame_t, None, None)])
-    ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
+    ~return_t:frame_t ~category:`Output
+    ~meth:(Start_stop.meth () @ [ports_meth])
     ~callbacks:(Start_stop.callbacks ~label:"output")
     ~descr:"Output stream to JACK."
     (fun p ->

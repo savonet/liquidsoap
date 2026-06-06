@@ -37,6 +37,7 @@
 %include "ffmpeg.liq"
 %include "profiler.liq"
 %include "io.liq"
+%include "jack.liq"
 %include "sqlite.liq"
 %include "medialib.liq"
 %include "runtime.liq"
