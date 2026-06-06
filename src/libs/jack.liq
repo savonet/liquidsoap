@@ -83,7 +83,7 @@ def replaces output.jack(%argsof(output.jack), s) =
     input_connected = ref(false)
     output_connected = ref(false)
     s.on_wake_up(
-      synchronous=false,
+      synchronous=true,
       fun () ->
         begin
           input_connected := true
@@ -91,7 +91,7 @@ def replaces output.jack(%argsof(output.jack), s) =
         end
     )
     o.on_wake_up(
-      synchronous=false,
+      synchronous=true,
       fun () ->
         begin
           output_connected := true
