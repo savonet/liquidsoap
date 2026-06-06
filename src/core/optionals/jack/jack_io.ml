@@ -342,14 +342,14 @@ class virtual base ~server () =
           let src = JackSource.create () in
           JackSource.set_client src (Option.get jack_client#client);
           JackSource.set_server_state src server_state;
-          JackSource.register_callback (Option.get jack_client#client) src;
-          jack_client#activate;
-          _jack_source <- Some src;
           let is_input = self#is_input in
           ports <-
             Array.init self#audio_channels (fun i ->
                 let name = Printf.sprintf "%s_%d" self#id i in
-                jack_client#register_port ~source:src ~is_input name));
+                jack_client#register_port ~source:src ~is_input name);
+          JackSource.register_callback (Option.get jack_client#client) src;
+          jack_client#activate;
+          _jack_source <- Some src);
       self#on_start (fun () -> Array.iter (fun p -> p#enable) ports);
       self#on_stop (fun () -> Array.iter (fun p -> p#disable) ports);
       self#on_sleep (fun () ->
