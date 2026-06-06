@@ -4,13 +4,7 @@
 #include <jack/jack.h>
 #include <jack/ringbuffer.h>
 
-/* Client wrapper */
-typedef struct {
-  jack_client_t *client;
-  value _process_callback;
-} client_wrapper_t;
-
-#define Client_val(v) (*((client_wrapper_t **)Data_custom_val(v)))
+#define Client_val(v) (*((jack_client_t **)Data_custom_val(v)))
 
 /* Custom block accessors */
 #define Port_val(v) (*((jack_port_t **)Data_custom_val(v)))

@@ -43,8 +43,6 @@ val port_register :
   port_flag list ->
   port
 
-val set_process_callback : client -> (int -> unit) -> unit
-
 module Ringbuffer : sig
   type t
 

@@ -8,35 +8,14 @@
 #include <caml/threads.h>
 
 #include "jack_stubs.h"
-#include <pthread.h>
 #include <stdlib.h>
-
-/* --- OCaml thread registration for JACK callbacks --- */
-
-static pthread_key_t ocaml_jack_thread_key;
-static pthread_once_t ocaml_jack_thread_key_once = PTHREAD_ONCE_INIT;
-
-static void ocaml_jack_on_thread_exit(void *key) { caml_c_thread_unregister(); }
-
-static void ocaml_jack_make_key() {
-  pthread_key_create(&ocaml_jack_thread_key, ocaml_jack_on_thread_exit);
-}
-
-static void ocaml_jack_register_thread() {
-  static int registered_sentinel = 1;
-  pthread_once(&ocaml_jack_thread_key_once, ocaml_jack_make_key);
-  if (caml_c_thread_register() && !pthread_getspecific(ocaml_jack_thread_key))
-    pthread_setspecific(ocaml_jack_thread_key, (void *)&registered_sentinel);
-}
 
 /* --- jack_client_t custom block --- */
 
 static void client_finalize(value _client_block) {
-  client_wrapper_t *wrapper = Client_val(_client_block);
-  if (wrapper->client)
-    jack_client_close(wrapper->client);
-  caml_remove_generational_global_root(&wrapper->_process_callback);
-  free(wrapper);
+  jack_client_t *client = Client_val(_client_block);
+  if (client)
+    jack_client_close(client);
 }
 
 static struct custom_operations client_ops = {
@@ -53,60 +32,37 @@ static struct custom_operations port_ops = {
     custom_serialize_default,   custom_deserialize_default,
     custom_compare_ext_default, custom_fixed_length_default};
 
-/* --- process callback glue --- */
-
-static int process_callback(jack_nframes_t frame_count, void *arg) {
-  client_wrapper_t *wrapper = (client_wrapper_t *)arg;
-  if (wrapper->_process_callback == Val_unit)
-    return 0;
-  ocaml_jack_register_thread();
-  caml_acquire_runtime_system();
-  caml_callback_exn(wrapper->_process_callback, Val_int(frame_count));
-  caml_release_runtime_system();
-  return 0;
-}
-
 CAMLprim value caml_jack_client_open(value _name, value _flags, value _server) {
   CAMLparam3(_name, _flags, _server);
   CAMLlocal1(_client_block);
   jack_status_t status;
   jack_options_t options = (jack_options_t)Int_val(_flags);
-  client_wrapper_t *wrapper = malloc(sizeof(client_wrapper_t));
-  if (!wrapper)
-    caml_failwith("jack_client_open: out of memory");
+  jack_client_t *client;
   if (_server == Val_int(0))
-    wrapper->client = jack_client_open(String_val(_name), options, &status);
+    client = jack_client_open(String_val(_name), options, &status);
   else
-    wrapper->client = jack_client_open(String_val(_name), options, &status,
-                                       String_val(Field(_server, 0)));
-  if (!wrapper->client) {
-    free(wrapper);
+    client = jack_client_open(String_val(_name), options, &status,
+                              String_val(Field(_server, 0)));
+  if (!client)
     caml_failwith("jack_client_open: could not connect to JACK server");
-  }
-  wrapper->_process_callback = Val_unit;
-  caml_register_generational_global_root(&wrapper->_process_callback);
-  jack_set_process_callback(wrapper->client, process_callback, wrapper);
-  _client_block =
-      caml_alloc_custom(&client_ops, sizeof(client_wrapper_t *), 0, 1);
-  Client_val(_client_block) = wrapper;
+  _client_block = caml_alloc_custom(&client_ops, sizeof(jack_client_t *), 0, 1);
+  Client_val(_client_block) = client;
   CAMLreturn(_client_block);
 }
 
 CAMLprim value caml_jack_client_close(value _client) {
   CAMLparam1(_client);
-  client_wrapper_t *wrapper = Client_val(_client);
-  caml_modify_generational_global_root(&wrapper->_process_callback, Val_unit);
-  jack_client_close(wrapper->client);
-  wrapper->client = NULL;
+  jack_client_close(Client_val(_client));
+  Client_val(_client) = NULL;
   CAMLreturn(Val_unit);
 }
 
 CAMLprim value caml_jack_get_sample_rate(value _client) {
-  return Val_int(jack_get_sample_rate(Client_val(_client)->client));
+  return Val_int(jack_get_sample_rate(Client_val(_client)));
 }
 
 CAMLprim value caml_jack_get_buffer_size(value _client) {
-  return Val_int(jack_get_buffer_size(Client_val(_client)->client));
+  return Val_int(jack_get_buffer_size(Client_val(_client)));
 }
 
 CAMLprim value caml_jack_port_register(value _client, value _name,
@@ -115,7 +71,7 @@ CAMLprim value caml_jack_port_register(value _client, value _name,
   CAMLparam5(_client, _name, _port_type, _flags, _buffer_size);
   CAMLlocal1(_port_block);
   jack_port_t *port = jack_port_register(
-      Client_val(_client)->client, String_val(_name), String_val(_port_type),
+      Client_val(_client), String_val(_name), String_val(_port_type),
       (unsigned long)Int_val(_flags), (unsigned long)Int_val(_buffer_size));
   if (!port)
     caml_failwith("jack_port_register: failed to register port");
@@ -124,16 +80,9 @@ CAMLprim value caml_jack_port_register(value _client, value _name,
   CAMLreturn(_port_block);
 }
 
-CAMLprim value caml_jack_set_process_callback(value _client, value _callback) {
-  CAMLparam2(_client, _callback);
-  client_wrapper_t *wrapper = Client_val(_client);
-  caml_modify_generational_global_root(&wrapper->_process_callback, _callback);
-  CAMLreturn(Val_unit);
-}
-
 CAMLprim value caml_jack_activate(value _client) {
   CAMLparam1(_client);
-  int result = jack_activate(Client_val(_client)->client);
+  int result = jack_activate(Client_val(_client));
   if (result != 0)
     caml_failwith("jack_activate: failed");
   CAMLreturn(Val_unit);
@@ -154,7 +103,7 @@ CAMLprim value caml_jack_port_get_buffer(value _port, value _frame_count) {
 }
 
 CAMLprim value caml_jack_port_unregister(value _client, value _port) {
-  jack_port_unregister(Client_val(_client)->client, Port_val(_port));
+  jack_port_unregister(Client_val(_client), Port_val(_port));
   return Val_unit;
 }
 
@@ -341,7 +290,7 @@ CAMLprim value caml_jack_ringbuffer_read_advance(value _ringbuffer,
 
 CAMLprim value caml_jack_port_connect(value _client, value _source_port,
                                       value _destination_port) {
-  jack_connect(Client_val(_client)->client, String_val(_source_port),
+  jack_connect(Client_val(_client), String_val(_source_port),
                String_val(_destination_port));
   return Val_unit;
 }

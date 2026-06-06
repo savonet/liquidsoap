@@ -21,6 +21,8 @@ typedef struct {
       current_usecs;           /* raw microseconds from jack_get_cycle_times */
   _Atomic double sleep_target; /* seconds, set from OCaml */
   _Atomic int stopped;
+  _Atomic int active_client_count; /* number of registered clients */
+  _Atomic int pending_callbacks;   /* countdown per cycle: last to zero posts */
 } jack_server_state_t;
 
 typedef struct {
@@ -111,16 +113,26 @@ static int jack_source_process_callback(jack_nframes_t nframes, void *arg) {
 
   jack_source_process_ports(source, nframes);
 
-  /* Only the first source to advance current_usecs for this cycle posts the
-     semaphore. Others see the same integer value and the CAS fails.
-     We compare next_usecs (predicted start of next cycle) against the target so
-     the OCaml thread wakes a full period early and has time to prepare data. */
+  /* On a new cycle (current_usecs changed) the first callback to win the CAS
+     resets the per-cycle countdown to the number of active clients.  Every
+     callback then decrements the countdown; the one that reaches zero is the
+     last for this cycle and is the one that checks timing and posts the
+     semaphore.  This guarantees all clients have processed their ports before
+     the streaming thread is woken. */
   jack_time_t old_usecs =
       atomic_load_explicit(&state->current_usecs, memory_order_relaxed);
   if (old_usecs != current_usecs &&
       atomic_compare_exchange_strong_explicit(
           &state->current_usecs, &old_usecs, current_usecs,
           memory_order_release, memory_order_relaxed)) {
+    int client_count =
+        atomic_load_explicit(&state->active_client_count, memory_order_relaxed);
+    atomic_store_explicit(&state->pending_callbacks, client_count,
+                          memory_order_relaxed);
+  }
+
+  if (atomic_fetch_sub_explicit(&state->pending_callbacks, 1,
+                                memory_order_acq_rel) == 1) {
     double next_sec = (double)next_usecs * 1e-6;
     double target =
         atomic_load_explicit(&state->sleep_target, memory_order_acquire);
@@ -145,6 +157,8 @@ CAMLprim value caml_jack_server_state_create(value _unit) {
   atomic_store(&state->current_usecs, (jack_time_t)0);
   atomic_store(&state->sleep_target, INFINITY);
   atomic_store(&state->stopped, 0);
+  atomic_store(&state->active_client_count, 0);
+  atomic_store(&state->pending_callbacks, 0);
   _server_state_block =
       caml_alloc_custom(&server_state_ops, sizeof(jack_server_state_t *), 0, 1);
   ServerState_val(_server_state_block) = state;
@@ -153,8 +167,11 @@ CAMLprim value caml_jack_server_state_create(value _unit) {
 
 CAMLprim value caml_jack_server_state_set_stopped(value _server_state_block,
                                                   value _stopped) {
-  atomic_store_explicit(&ServerState_val(_server_state_block)->stopped,
-                        Bool_val(_stopped), memory_order_relaxed);
+  jack_server_state_t *state = ServerState_val(_server_state_block);
+  int stopped_val = Bool_val(_stopped);
+  atomic_store_explicit(&state->stopped, stopped_val, memory_order_release);
+  if (stopped_val)
+    jack_sem_post(&state->semaphore);
   return Val_unit;
 }
 
@@ -172,16 +189,25 @@ CAMLprim value caml_jack_server_state_get_elapsed(value _server_state_block) {
   CAMLreturn(caml_copy_double((double)usecs * 1e-6));
 }
 
-CAMLprim value caml_jack_server_state_set_sleep_target(
-    value _server_state_block, value _target) {
-  atomic_store_explicit(&ServerState_val(_server_state_block)->sleep_target,
-                        Double_val(_target), memory_order_release);
-  return Val_unit;
-}
-
-CAMLprim value caml_jack_server_state_wait(value _server_state_block) {
-  CAMLparam1(_server_state_block);
+CAMLprim value caml_jack_server_state_wait_until(value _server_state_block,
+                                                 value _target) {
+  CAMLparam2(_server_state_block, _target);
   jack_server_state_t *state = ServerState_val(_server_state_block);
+  double target = Double_val(_target);
+
+  /* Store the sleep target before sampling current_usecs so that any RT
+     callback firing between the two sees the target and posts if the cycle
+     qualifies. */
+  atomic_store_explicit(&state->sleep_target, target, memory_order_release);
+
+  jack_time_t usecs =
+      atomic_load_explicit(&state->current_usecs, memory_order_acquire);
+  if ((double)usecs * 1e-6 >= target ||
+      atomic_load_explicit(&state->stopped, memory_order_relaxed)) {
+    atomic_store_explicit(&state->sleep_target, INFINITY, memory_order_relaxed);
+    CAMLreturn(Val_unit);
+  }
+
   caml_release_runtime_system();
   jack_sem_wait(&state->semaphore);
   caml_acquire_runtime_system();
@@ -201,7 +227,7 @@ CAMLprim value caml_jack_source_create(value _unit) {
 
 CAMLprim value caml_jack_source_set_client(value _source_block,
                                            value _client_block) {
-  Source_val(_source_block)->jack_client = Client_val(_client_block)->client;
+  Source_val(_source_block)->jack_client = Client_val(_client_block);
   return Val_unit;
 }
 
@@ -212,16 +238,33 @@ CAMLprim value caml_jack_source_set_server_state(value _source_block,
   return Val_unit;
 }
 
+static void jack_server_shutdown_callback(void *arg) {
+  jack_source_t *source = (jack_source_t *)arg;
+  jack_server_state_t *state = source->server_state;
+  atomic_store_explicit(&state->stopped, 1, memory_order_release);
+  jack_sem_post(&state->semaphore);
+}
+
 CAMLprim value caml_jack_source_register_callback(value _client_block,
                                                   value _source_block) {
   CAMLparam2(_client_block, _source_block);
-  jack_client_t *client = Client_val(_client_block)->client;
+  jack_client_t *client = Client_val(_client_block);
   jack_source_t *source = Source_val(_source_block);
   int result =
       jack_set_process_callback(client, jack_source_process_callback, source);
   if (result != 0)
     caml_failwith("jack_source_register_callback: failed");
+  jack_on_shutdown(client, jack_server_shutdown_callback, source);
+  atomic_fetch_add_explicit(&source->server_state->active_client_count, 1,
+                            memory_order_relaxed);
   CAMLreturn(Val_unit);
+}
+
+CAMLprim value caml_jack_source_unregister_callback(value _source_block) {
+  jack_source_t *source = Source_val(_source_block);
+  atomic_fetch_sub_explicit(&source->server_state->active_client_count, 1,
+                            memory_order_relaxed);
+  return Val_unit;
 }
 
 CAMLprim value caml_jack_source_add_port(value _source_block, value _port_block,

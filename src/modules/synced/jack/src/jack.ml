@@ -67,9 +67,6 @@ let port_register ?(port_type = default_audio_type) ?(buffer_size = 0) client
   let flags_int = List.fold_left (fun acc f -> acc lor flag_to_int f) 0 flags in
   _port_register client name port_type flags_int buffer_size
 
-external set_process_callback : client -> (int -> unit) -> unit
-  = "caml_jack_set_process_callback"
-
 module Ringbuffer = struct
   type t
 

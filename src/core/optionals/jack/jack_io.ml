@@ -46,12 +46,7 @@ module ServerState = struct
 
   external get_stopped : t -> bool = "caml_jack_server_state_get_stopped"
   external get_elapsed : t -> float = "caml_jack_server_state_get_elapsed"
-
-  external set_sleep_target : t -> float -> unit
-    = "caml_jack_server_state_set_sleep_target"
-  [@@noalloc]
-
-  external wait : t -> unit = "caml_jack_server_state_wait"
+  external wait_until : t -> float -> unit = "caml_jack_server_state_wait_until"
 end
 
 module JackSource = struct
@@ -68,6 +63,10 @@ module JackSource = struct
 
   external register_callback : Jack.client -> t -> unit
     = "caml_jack_source_register_callback"
+
+  external unregister_callback : t -> unit
+    = "caml_jack_source_unregister_callback"
+  [@@noalloc]
 
   external add_port : t -> Jack.port -> bool -> int
     = "caml_jack_source_add_port"
@@ -106,11 +105,7 @@ let make_time_impl server_state : Liq_time.implementation =
 
     let sleep_until target =
       if ServerState.get_stopped server_state then raise Clock.Has_stopped;
-      let target_f = Time.to_float target in
-      if ServerState.get_elapsed server_state < target_f then begin
-        ServerState.set_sleep_target server_state target_f;
-        ServerState.wait server_state
-      end;
+      ServerState.wait_until server_state (Time.to_float target);
       if ServerState.get_stopped server_state then raise Clock.Has_stopped
   end)
 
@@ -296,6 +291,7 @@ class virtual base ~server () =
         match _jack_client with None -> None | Some _ -> Some sync_source )
 
     method private samples_per_second = samples_per_second
+    method private jack_stopped = ServerState.get_stopped server_state
 
     method private samplerate_converter =
       match samplerate_converter with
@@ -357,10 +353,12 @@ class virtual base ~server () =
       self#on_start (fun () -> Array.iter (fun p -> p#enable) ports);
       self#on_stop (fun () -> Array.iter (fun p -> p#disable) ports);
       self#on_sleep (fun () ->
+          let src = _jack_source in
           _jack_source <- None;
           Array.iter (fun p -> p#unregister) ports;
           ports <- [||];
-          self#clear_jack_client)
+          self#clear_jack_client;
+          Option.iter JackSource.unregister_callback src)
   end
 
 class input ~server ~autostart =
@@ -418,8 +416,11 @@ class input ~server ~autostart =
     method private generate_frame =
       let frame_size = Lazy.force Frame.size in
       (* Busy-wait for a full frame — only expected to spin for a few samples
-         at most when the JACK callback hasn't fully filled the buffer yet. *)
+         at most when the JACK callback hasn't fully filled the buffer yet.
+         Check stopped on each iteration so we exit cleanly if the JACK server
+         disconnects while waiting. *)
       while Generator.length self#buffer < frame_size do
+        if self#jack_stopped then raise Clock.Has_stopped;
         Domain.cpu_relax ();
         self#drain_ringbuffer
       done;
