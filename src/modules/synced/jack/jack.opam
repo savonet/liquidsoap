@@ -13,7 +13,6 @@ depends: [
   "conf-pkg-config"
   "dune" {>= "3.23"}
   "dune-configurator"
-  "threads"
   "odoc" {with-doc}
 ]
 build: [

@@ -19,5 +19,4 @@
   conf-jack
   conf-pkg-config
   dune
-  dune-configurator
-  threads))
+  dune-configurator))
