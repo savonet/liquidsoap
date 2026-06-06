@@ -311,6 +311,14 @@ CAMLprim value caml_jack_source_register_callback(value _client_block,
   jack_on_shutdown(client, jack_server_shutdown_callback, source);
   atomic_fetch_add_explicit(&source->server_state->active_client_count, 1,
                             memory_order_relaxed);
+  /* Seed current_usecs with the real JACK time so that the first call to
+     time() returns a sensible value rather than 0, avoiding a spurious
+     "Too much latency" warning on the first clock tick. */
+  jack_time_t now = jack_get_time();
+  jack_time_t zero = 0;
+  atomic_compare_exchange_strong_explicit(&source->server_state->current_usecs,
+                                          &zero, now, memory_order_release,
+                                          memory_order_relaxed);
   CAMLreturn(Val_unit);
 }
 
