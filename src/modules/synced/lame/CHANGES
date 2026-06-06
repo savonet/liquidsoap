@@ -1,0 +1,77 @@
+0.3.7 (05-07-2023)
+======
+* Add `frame_size`, `set_disable_bitreservoir` and `set_bWriteVbrTag`
+
+0.3.6 (03-21-2022)
+=====
+* Clip samples before encoding, filter out NaN values (#4)
+
+0.3.5 (12-16-2021)
+=====
+* Better endianness detection.
+* Avoid race condition between the GC and `encode_buffer_float_ba`
+
+0.3.4 (05-09-2020)
+=====
+* Add encode_buffer_float_ba.
+* Drop dynlink API
+* Switched to dune
+* Use stack-allocated buffers.
+
+0.3.3 (03-08-2015)
+=====
+* Dummy github release.
+
+0.3.2 (06-05-2013)
+=====
+* Correct binding for flush_nogap.
+
+0.3.1 (04-10-2011)
+=====
+* Support for setting special bits in MP3 frames: original, copyright and private.
+
+0.3.0 (14-06-2011)
+=====
+* Added dynamic Lame module and dynamic loading module.
+
+0.2.4 (12-10-2009)
+=====
+* Added support for --enable-debugging configure option
+* Added NO_CUSTOM to build
+  in standard mode.
+* Added prefix to main compilation variables
+  if passed to configure.
+* Makefile now honnors LIBDIRS
+  variable for linking against libraries
+  located in other places than then standard
+  ones.
+
+0.2.3 (05-01-2009)
+=====
+* Fixed compilation error when using big endian machine
+* Fixed bswap_16 to make sure it operates on signed integers
+
+0.2.2 (2008-04-16)
+=====
+* More portable make invocation
+* Install .cmx file
+
+0.2.1 (2007-10-17)
+=====
+* Avoid a double-free at finalize.
+
+0.2.0 (2007-06-05)
+=====
+* Added encode_buffer_float{,_part}.
+
+0.1.2 (2006-03-02)
+=====
+* Fixed endianness bug
+
+0.1.1 (2006-11-11)
+=====
+* Fixed some syntax errors in configure script.
+
+0.1.0 (2006-04-09)
+=====
+* Initial release.
