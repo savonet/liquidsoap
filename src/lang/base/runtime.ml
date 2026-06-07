@@ -68,7 +68,7 @@ let () =
     | Warning s -> Some (Printf.sprintf "Warning: %s" s)
     | _ -> None)
 
-let rec throw ?(formatter = Format.std_formatter) ~lexbuf ~bt () =
+let rec throw ?(formatter = Format.err_formatter) ~lexbuf ~bt () =
   let print_error ~formatter idx error =
     flush_all ();
     let pos =
