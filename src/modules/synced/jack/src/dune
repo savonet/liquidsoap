@@ -1,0 +1,26 @@
+(library
+ (name jack)
+ (public_name jack)
+ (synopsis "OCaml bindings for jack")
+ (enabled_if
+  (= %{read:./detect/jack_available} true))
+ (libraries threads.posix)
+ (modules jack)
+ (foreign_stubs
+  (language c)
+  (names jack_stubs)
+  (flags
+   (:include ./detect/jack_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/jack_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package jack)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/jack_available
+   (run ./detect/check.exe jack))))

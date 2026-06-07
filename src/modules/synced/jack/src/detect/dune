@@ -1,0 +1,8 @@
+(executables
+ (names detect check)
+ (libraries dune-configurator unix))
+
+(rule
+ (targets jack_available jack_c_flags.sexp jack_c_library_flags.sexp)
+ (action
+  (run ./detect.exe --context %{context_name} jack jack)))

@@ -17,10 +17,10 @@
    (liquidsoap_ao -> ao_option.enabled.ml)
    (-> ao_option.disabled.ml))
   (select
-   bjack_option.ml
+   jack_option.ml
    from
-   (liquidsoap_bjack -> bjack_option.enabled.ml)
-   (-> bjack_option.disabled.ml))
+   (liquidsoap_jack -> jack_option.enabled.ml)
+   (-> jack_option.disabled.ml))
   (select
    camlimages_option.ml
    from

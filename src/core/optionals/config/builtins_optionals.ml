@@ -13,7 +13,7 @@ let () =
     [
       ("alsa", Alsa_option.enabled);
       ("ao", Ao_option.enabled);
-      ("bjack", Bjack_option.enabled);
+      ("jack", Jack_option.enabled);
       ("camlimages", Camlimages_option.enabled);
       ("dssi", Dssi_option.enabled);
       ("faad", Faad_option.enabled);
