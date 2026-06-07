@@ -1,3 +1,4 @@
+%ifdef jack.server.connect
 # Connect JACK output ports to JACK input ports pairwise.
 # If there is only one input port, all output ports are connected to it.
 # If there is only one output port, all input ports are connected to it.
@@ -46,7 +47,6 @@ def jack_connect(input_ports, output_ports) =
   end
 end
 
-%ifdef input.jack
 # @docof input.jack
 # @argsof input.jack
 # @method connect Connect the ports of this JACK input to the ports of a JACK output.
@@ -80,9 +80,7 @@ def replaces input.jack(%argsof(input.jack)) =
 
   s
 end
-%endif
 
-%ifdef output.jack
 # @docof output.jack
 # @argsof output.jack
 # @method connect Connect the ports of this JACK output to the ports of a JACK input.
@@ -116,9 +114,7 @@ def replaces output.jack(%argsof(output.jack), s) =
 
   o
 end
-%endif
 
-%ifdef jack.server.get_input_ports
 # Return the capture interface of the JACK server suitable to connect to any jack input operator.
 # @param ~server JACK server to query. Uses default server if `null`.
 def jack.server.capture(~server=null) =
