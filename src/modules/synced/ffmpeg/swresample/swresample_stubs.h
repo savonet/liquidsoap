@@ -4,7 +4,7 @@
 
 /*
  * Enum representing different kinds of vectors used in swresample operations.
- * 
+ *
  * Members:
  *   Str   - Vector of strings
  *   P_Str - Vector of pointers to strings
