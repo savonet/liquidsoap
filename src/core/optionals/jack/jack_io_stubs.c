@@ -143,7 +143,7 @@ static int jack_source_process_callback(jack_nframes_t nframes, void *arg) {
 
   if (atomic_fetch_sub_explicit(&state->pending_callbacks, 1,
                                 memory_order_acq_rel) == 1) {
-    double next_sec = (double)next_usecs * 1e-6;
+    double current_sec = (double)current_usecs * 1e-6;
     int stopped = atomic_load_explicit(&state->stopped, memory_order_relaxed);
     for (int i = 0; i < JACK_MAX_WAITERS; i++) {
       if (!atomic_load_explicit(&state->waiters[i].in_use,
@@ -151,7 +151,7 @@ static int jack_source_process_callback(jack_nframes_t nframes, void *arg) {
         continue;
       double waiter_target = atomic_load_explicit(
           &state->waiters[i].sleep_target, memory_order_acquire);
-      if (stopped || next_sec >= waiter_target) {
+      if (stopped || current_sec >= waiter_target) {
         atomic_store_explicit(&state->waiters[i].sleep_target, INFINITY,
                               memory_order_relaxed);
         jack_sem_post(&state->waiters[i].semaphore);
