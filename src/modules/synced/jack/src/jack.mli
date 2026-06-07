@@ -33,7 +33,15 @@ val get_buffer_size : client -> int
 type port_flag =
   [ `IsInput | `IsOutput | `IsPhysical | `CanMonitor | `IsTerminal ]
 
+val get_ports :
+  pattern:string ->
+  ?port_type:string ->
+  flags:port_flag list ->
+  client ->
+  string list
+
 val default_audio_type : string
+val default_midi_type : string
 
 val port_register :
   ?port_type:string ->

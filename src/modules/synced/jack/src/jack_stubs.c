@@ -32,6 +32,14 @@ static struct custom_operations port_ops = {
     custom_serialize_default,   custom_deserialize_default,
     custom_compare_ext_default, custom_fixed_length_default};
 
+CAMLprim value caml_jack_default_audio_type() {
+  return caml_copy_string(JACK_DEFAULT_AUDIO_TYPE);
+}
+
+CAMLprim value caml_jack_default_midi_type() {
+  return caml_copy_string(JACK_DEFAULT_MIDI_TYPE);
+}
+
 CAMLprim value caml_jack_client_open(value _name, value _flags, value _server) {
   CAMLparam3(_name, _flags, _server);
   CAMLlocal1(_client_block);
@@ -48,6 +56,30 @@ CAMLprim value caml_jack_client_open(value _name, value _flags, value _server) {
   _client_block = caml_alloc_custom(&client_ops, sizeof(jack_client_t *), 0, 1);
   Client_val(_client_block) = client;
   CAMLreturn(_client_block);
+}
+
+CAMLprim value caml_jack_get_ports(value _client, value _pattern,
+                                   value _port_type, value _flags) {
+  CAMLparam4(_client, _pattern, _port_type, _flags);
+  CAMLlocal1(_ports);
+  const char *pattern = String_val(_pattern);
+  if (pattern[0] == '\0')
+    pattern = NULL;
+  const char *port_type = String_val(_port_type);
+  if (port_type[0] == '\0')
+    port_type = NULL;
+  const char **ports = jack_get_ports(Client_val(_client), pattern, port_type,
+                                      (unsigned long)Int_val(_flags));
+  int len = 0;
+  if (ports)
+    while (ports[len])
+      len++;
+  _ports = caml_alloc(len, 0);
+  for (int i = 0; i < len; i++)
+    Store_field(_ports, i, caml_copy_string(ports[i]));
+  if (ports)
+    jack_free(ports);
+  CAMLreturn(_ports);
 }
 
 CAMLprim value caml_jack_client_close(value _client) {

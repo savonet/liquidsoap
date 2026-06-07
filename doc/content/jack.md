@@ -178,6 +178,33 @@ The connection is **deferred**: registering it at script definition time is
 safe because the actual `jack_connect` call is only made once both operators
 have woken up and registered their JACK ports.
 
+### Connecting to server capture and playback ports
+
+`jack.server.capture()` and `jack.server.playback()` provide a programmatic
+interface to the physical hardware ports exposed by the JACK server —
+`system:capture_*` and `system:playback_*` respectively. Each returns a record
+with a `connect` method that mirrors the one on `input.jack` and `output.jack`,
+so you can wire everything in one place without touching an external patchbay:
+
+```{.liquidsoap include="jack-server-ports.liq"}
+
+```
+
+A few things worth noting:
+
+- **JACK port direction**: `system:capture_*` ports are `JackPortIsOutput` in
+  JACK's own naming — they _output_ audio from the hardware into the graph.
+  `system:playback_*` ports are `JackPortIsInput` — they _input_ audio from the
+  graph into the hardware. `jack.server.capture()` and `jack.server.playback()`
+  handle this automatically; you do not need to think about it.
+- **Deferred connection**: like `output.jack.connect`, the call to
+  `jack.server.playback().connect(o)` is safe to make at script definition time.
+  The actual `jack_connect` call is deferred until the operator has woken up and
+  registered its JACK ports.
+- **Optional `~server` parameter**: both functions accept a `server` parameter
+  for multi-daemon setups, matching the `server` parameter of `input.jack` and
+  `output.jack`.
+
 Port counts are handled automatically:
 
 - If one side has a single port, it is connected to every port on the other

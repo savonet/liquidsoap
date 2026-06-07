@@ -50,7 +50,11 @@ external get_buffer_size : client -> int = "caml_jack_get_buffer_size"
 type port_flag =
   [ `IsInput | `IsOutput | `IsPhysical | `CanMonitor | `IsTerminal ]
 
-let default_audio_type = "32 bit float mono audio"
+external _default_audio_type : unit -> string = "caml_jack_default_audio_type"
+external _default_midi_type : unit -> string = "caml_jack_default_midi_type"
+
+let default_audio_type = _default_audio_type ()
+let default_midi_type = _default_midi_type ()
 
 let flag_to_int = function
   | `IsInput -> 0x1
@@ -58,6 +62,13 @@ let flag_to_int = function
   | `IsPhysical -> 0x4
   | `CanMonitor -> 0x8
   | `IsTerminal -> 0x10
+
+external _get_ports : client -> string -> string -> int -> string array
+  = "caml_jack_get_ports"
+
+let get_ports ~pattern ?(port_type = "") ~flags client =
+  let flags_int = List.fold_left (fun acc f -> acc lor flag_to_int f) 0 flags in
+  Array.to_list (_get_ports client pattern port_type flags_int)
 
 external _port_register : client -> string -> string -> int -> int -> port
   = "caml_jack_port_register"

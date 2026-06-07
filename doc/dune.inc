@@ -191,6 +191,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -370,6 +371,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -549,6 +551,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -728,6 +731,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -907,6 +911,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1086,6 +1091,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1265,6 +1271,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1444,6 +1451,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1623,6 +1631,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1802,6 +1811,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -1981,6 +1991,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2160,6 +2171,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2339,6 +2351,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2518,6 +2531,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2697,6 +2711,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -2876,6 +2891,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3055,6 +3071,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3234,6 +3251,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3413,6 +3431,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3592,6 +3611,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3771,6 +3791,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -3950,6 +3971,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4129,6 +4151,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4308,6 +4331,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4487,6 +4511,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4666,6 +4691,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -4845,6 +4871,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5024,6 +5051,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5203,6 +5231,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5382,6 +5411,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5561,6 +5591,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5740,6 +5771,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -5919,6 +5951,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6098,6 +6131,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6277,6 +6311,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6456,6 +6491,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6635,6 +6671,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6814,6 +6851,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -6993,6 +7031,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7172,6 +7211,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7351,6 +7391,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7530,6 +7571,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7709,6 +7751,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -7888,6 +7931,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8067,6 +8111,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8246,6 +8291,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8425,6 +8471,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8604,6 +8651,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8783,6 +8831,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -8962,6 +9011,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9141,6 +9191,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9320,6 +9371,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9499,6 +9551,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9678,6 +9731,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -9857,6 +9911,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10036,6 +10091,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10215,6 +10271,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10394,6 +10451,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10573,6 +10631,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10752,6 +10811,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -10931,6 +10991,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -11110,6 +11171,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -11289,6 +11351,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -11468,6 +11531,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -11647,6 +11711,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -11826,6 +11891,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -12005,6 +12071,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -12184,6 +12251,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -12363,6 +12431,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -12542,6 +12611,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -12721,6 +12791,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -12900,6 +12971,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -13079,6 +13151,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -13258,6 +13331,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -13437,6 +13511,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -13616,6 +13691,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -13795,6 +13871,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -13974,6 +14051,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -14153,6 +14231,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -14332,6 +14411,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -14511,6 +14591,7 @@
   content/liq/jack-low-latency.liq
   content/liq/jack-passthrough.liq
   content/liq/jack-record.liq
+  content/liq/jack-server-ports.liq
   content/liq/jack-server.liq
   content/liq/jingle-hour.liq
   content/liq/json-ex.liq
@@ -15765,6 +15846,20 @@
    content/liq/jack-record.liq)))
 
 (rule
+ (alias test-doc-jack-server-ports)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/jack-server-ports.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/jack-server-ports.liq)))
+
+(rule
  (alias test-doc-jack-server)
  (package liquidsoap)
  (deps
@@ -16736,6 +16831,7 @@
   (alias test-doc-jack-passthrough)
   (alias test-doc-jack-record)
   (alias test-doc-jack-server)
+  (alias test-doc-jack-server-ports)
   (alias test-doc-jingle-hour)
   (alias test-doc-json-ex)
   (alias test-doc-json-stringify)

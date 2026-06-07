@@ -10,12 +10,18 @@ def jack_connect(input_ports, output_ports) =
     n_in == 1
   then
     let [in_port] = input_ports
-    list.iter(fun (out_port) -> out_port.connect(in_port), output_ports)
+    list.iter(
+      fun (out_port) -> jack.server.connect(in_port, out_port),
+      output_ports
+    )
   elsif
     n_out == 1
   then
     let [out_port] = output_ports
-    list.iter(fun (in_port) -> out_port.connect(in_port), input_ports)
+    list.iter(
+      fun (in_port) -> jack.server.connect(in_port, out_port),
+      input_ports
+    )
   elsif
     n_in == n_out
   then
@@ -24,7 +30,7 @@ def jack_connect(input_ports, output_ports) =
         fun (remaining, out_port) ->
           begin
             let [in_port, ...rest] = remaining
-            out_port.connect(in_port)
+            jack.server.connect(in_port, out_port)
             rest
           end,
         input_ports,
@@ -58,13 +64,17 @@ def replaces input.jack(%argsof(input.jack)) =
           if output_connected() then jack_connect(s.ports(), o.ports()) end
         end
     )
-    o.on_wake_up(
-      synchronous=true,
-      fun () ->
-        begin
-          output_connected := true
-          if input_connected() then jack_connect(s.ports(), o.ports()) end
-        end
+    (
+      o.on_wake_up(
+        synchronous=true,
+        fun () ->
+          begin
+            output_connected := true
+            if input_connected() then jack_connect(s.ports(), o.ports()) end
+          end
+      )
+    :
+      unit
     )
   end
 
@@ -82,13 +92,17 @@ def replaces output.jack(%argsof(output.jack), s) =
   def o.connect(s) =
     input_connected = ref(false)
     output_connected = ref(false)
-    s.on_wake_up(
-      synchronous=true,
-      fun () ->
-        begin
-          input_connected := true
-          if output_connected() then jack_connect(s.ports(), o.ports()) end
-        end
+    (
+      s.on_wake_up(
+        synchronous=true,
+        fun () ->
+          begin
+            input_connected := true
+            if output_connected() then jack_connect(s.ports(), o.ports()) end
+          end
+      )
+    :
+      unit
     )
     o.on_wake_up(
       synchronous=true,
@@ -101,5 +115,39 @@ def replaces output.jack(%argsof(output.jack), s) =
   end
 
   o
+end
+%endif
+
+%ifdef jack.server.get_input_ports
+# Return the capture interface of the JACK server suitable to connect to any jack input operator.
+# @param ~server JACK server to query. Uses default server if `null`.
+def jack.server.capture(~server=null) =
+  on_wake_up = fun (~synchronous:(_:bool), fn) -> (fn() : unit)
+
+  # system:capture_* ports are JackPortIsOutput (they source audio into the graph)
+  ports =
+    fun () -> jack.server.get_output_ports(server=server, flags=["is_physical"])
+  connect =
+    fun (o) ->
+      (o.on_wake_up(synchronous=true, {jack_connect(o.ports(), ports())}) :
+        unit
+      )
+  {on_wake_up = on_wake_up, ports = ports, connect = connect}
+end
+
+# Return the playback interface of the JACK server suitable to connect to any jack output operator.
+# @param ~server JACK server to query. Uses default server if `null`.
+def jack.server.playback(~server=null) =
+  on_wake_up = fun (~synchronous:(_:bool), fn) -> (fn() : unit)
+
+  # system:playback_* ports are JackPortIsInput (they sink audio from the graph)
+  ports =
+    fun () -> jack.server.get_input_ports(server=server, flags=["is_physical"])
+  connect =
+    fun (o) ->
+      (o.on_wake_up(synchronous=true, {jack_connect(ports(), o.ports())}) :
+        unit
+      )
+  {on_wake_up = on_wake_up, ports = ports, connect = connect}
 end
 %endif

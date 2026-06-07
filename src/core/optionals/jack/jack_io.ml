@@ -263,7 +263,7 @@ class jack_client ~id (server : string option) =
   end
 
 type port_content = {
-  jack_port : jack_port;
+  port_name : string;
   get_client : unit -> Jack.client option;
 }
 
@@ -280,7 +280,7 @@ Value.MkCustom (struct
       ~message:(Def.name ^ " cannot be represented as json")
       "json"
 
-  let to_string v = Jack.port_name v.jack_port#port
+  let to_string v = v.port_name
   let compare a b = String.compare (to_string a) (to_string b)
 end)
 
@@ -303,7 +303,7 @@ struct
       ( "name",
         ([], Lang.string_t),
         "JACK port name.",
-        fun v -> Lang.string (Jack.port_name v.jack_port#port) );
+        fun v -> Lang.string v.port_name );
       ( "connect",
         ([], Lang.fun_t [(false, "", Other.t)] Lang.unit_t),
         Other.connect_descr,
@@ -320,9 +320,7 @@ struct
                     let src, dst =
                       if Other.self_is_source then (v, other) else (other, v)
                     in
-                    Jack.port_connect c
-                      (Jack.port_name src.jack_port#port)
-                      (Jack.port_name dst.jack_port#port);
+                    Jack.port_connect c src.port_name dst.port_name;
                     Lang.unit) );
     ]
 
@@ -391,9 +389,11 @@ class virtual base ~server () =
       let get_client () = Option.bind _jack_client (fun c -> c#client) in
       let wrap =
         if self#is_input then fun p ->
-          Jack_input_port_value.to_value { jack_port = p; get_client }
+          Jack_input_port_value.to_value
+            { port_name = Jack.port_name p#port; get_client }
         else fun p ->
-          Jack_output_port_value.to_value { jack_port = p; get_client }
+          Jack_output_port_value.to_value
+            { port_name = Jack.port_name p#port; get_client }
       in
       Array.to_list (Array.map wrap ports)
 
