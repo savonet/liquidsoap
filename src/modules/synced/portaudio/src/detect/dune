@@ -1,0 +1,11 @@
+(executables
+ (names detect check)
+ (libraries dune-configurator unix))
+
+(rule
+ (targets
+  portaudio_available
+  portaudio_c_flags.sexp
+  portaudio_c_library_flags.sexp)
+ (action
+  (run ./detect.exe --context %{context_name})))
