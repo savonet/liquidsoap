@@ -14,6 +14,12 @@
   to `false` or by explicitly setting the video dimensions.
 - Added support for XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`,
   `file.nfo.metadata`) (#4910).
+- Added Icecast-compatible streaming server (`icecast.server`) with support for source
+  authentication, mount points, relay, and per-listener encoding (#4915).
+- Added dedicated encoder mode to `output.harbor`: mount points can now be served with
+  a single shared encoder instead of per-listener encoding (#5003).
+- Rewrote JACK I/O using native OCaml bindings, removing the dependency on the `bjack`
+  C library (#5028).
 
 ## Changed:
 
