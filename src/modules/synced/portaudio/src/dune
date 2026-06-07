@@ -1,0 +1,26 @@
+(library
+ (name portaudio)
+ (public_name portaudio)
+ (synopsis "OCaml bindings for portaudio")
+ (enabled_if
+  (= %{read:./detect/portaudio_available} true))
+ (libraries threads.posix)
+ (modules portaudio)
+ (foreign_stubs
+  (language c)
+  (names portaudio_stubs)
+  (flags
+   (:include ./detect/portaudio_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/portaudio_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package portaudio)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/portaudio_available
+   (run ./detect/check.exe portaudio))))
