@@ -1,0 +1,26 @@
+(library
+ (name pulseaudio)
+ (public_name pulseaudio)
+ (synopsis "OCaml bindings for pulseaudio")
+ (enabled_if
+  (= %{read:./detect/pulseaudio_available} true))
+ (libraries threads)
+ (modules pulseaudio)
+ (foreign_stubs
+  (language c)
+  (names pulseaudio_stubs)
+  (flags
+   (:include ./detect/pulseaudio_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/pulseaudio_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package pulseaudio)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/pulseaudio_available
+   (run ./detect/check.exe pulseaudio))))
