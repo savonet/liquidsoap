@@ -4,7 +4,7 @@
 (source (github savonet/ocaml-mm))
 (license LGPL-2.1-or-later)
 (authors "Samuel Mimram <smimram@gmail.com>")
-(maintainers "The Savonet Team <savonet-users@lists.sourceforge.net>")
+(maintainers "The Savonet Team <contact@liquidsoap.info>")
 
 (generate_opam_files true)
 (subst disabled)

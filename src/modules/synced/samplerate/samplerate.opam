@@ -4,8 +4,8 @@ version: "0.1.7"
 synopsis: "Samplerate audio conversion library"
 description:
   "Bindings for the samplerate library which provides functions for changing samplerate of audio data"
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
-authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
+authors: ["The Savonet Team <contact@liquidsoap.info>"]
 license: "BSD-2-Clause"
 homepage: "https://github.com/savonet/ocaml-samplerate"
 bug-reports: "https://github.com/savonet/ocaml-samplerate/issues"

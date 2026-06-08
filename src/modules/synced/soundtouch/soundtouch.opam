@@ -3,8 +3,8 @@ opam-version: "2.0"
 version: "0.1.9"
 synopsis:
   "Bindings for the soundtouch library which provides functions for changing pitch and timestretching audio data"
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
-authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
+authors: ["The Savonet Team <contact@liquidsoap.info>"]
 license: "LGPL-2.1"
 homepage: "https://github.com/savonet/ocaml-soundtouch"
 bug-reports: "https://github.com/savonet/ocaml-soundtouch/issues"

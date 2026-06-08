@@ -4,7 +4,7 @@ version: "0.2.3"
 synopsis: "Fixed-point MP3 encoder"
 description:
   "shine is a super fast mp3 encoding library implemented in fixed-point arithmetic."
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
 authors: ["Romain Beauxis <toots@rastageeks.org>"]
 license: "GPL-2.0"
 homepage: "https://github.com/savonet/ocaml-shine"

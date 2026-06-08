@@ -39,4 +39,4 @@ $ dune install
 # Author:
 
 This author of this software may be contacted by electronic mail
-at the following address: savonet-users@lists.sourceforge.net.
+at the following address: contact@liquidsoap.info.

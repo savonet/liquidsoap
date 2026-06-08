@@ -3,8 +3,8 @@ opam-version: "2.0"
 version: "0.2.0"
 synopsis:
   "Bindings for the lo library which provides functions for communicating with input controls using the OSC protocol"
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
-authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
+authors: ["The Savonet Team <contact@liquidsoap.info>"]
 license: "LGPL-2.1-or-later"
 homepage: "https://github.com/savonet/ocaml-lo"
 bug-reports: "https://github.com/savonet/ocaml-lo/issues"

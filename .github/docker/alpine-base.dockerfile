@@ -2,7 +2,7 @@ FROM alpine:edge AS base
 
 ENTRYPOINT bash
 
-MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
+MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=4.14.2
 

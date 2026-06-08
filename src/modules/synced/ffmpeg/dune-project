@@ -4,7 +4,7 @@
 (version 1.4.0)
 (source (github savonet/ocaml-ffmpeg))
 (license LGPL-2.1-only)
-(authors "The Savonet Team <savonet-users@lists.sourceforge.net>")
+(authors "The Savonet Team <contact@liquidsoap.info>")
 (maintainers "Romain Beauxis <toots@rastageeks.org>")
 
 (generate_opam_files true)

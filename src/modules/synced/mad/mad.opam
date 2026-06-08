@@ -4,8 +4,8 @@ version: "0.5.3"
 synopsis: "Mad decoding library"
 description:
   "Bindings for the mad library which provides functions for encoding wave audio files into mp3"
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
-authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
+authors: ["The Savonet Team <contact@liquidsoap.info>"]
 license: "GPL-2.0-only"
 homepage: "https://github.com/savonet/ocaml-mad"
 bug-reports: "https://github.com/savonet/ocaml-mad/issues"

@@ -48,4 +48,4 @@ bugtracker](https://github.com/savonet/ocaml-samplerate/issues).
 ## Author
 
 This author of this software may be contacted by electronic mail at the
-following address: savonet-users@lists.sourceforge.net.
+following address: contact@liquidsoap.info.

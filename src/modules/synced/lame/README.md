@@ -32,4 +32,4 @@ $ dune install
 
 ## Contact
 
-savonet-users@lists.sourceforge.net
+contact@liquidsoap.info

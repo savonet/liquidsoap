@@ -8,8 +8,8 @@ that optimizes streaming performance across unpredictable networks, such
 as the Internet.
 This package provides OCaml bindings to the C implementation library.
 """
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
-authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
+authors: ["The Savonet Team <contact@liquidsoap.info>"]
 license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/ocaml-srt"
 bug-reports: "https://github.com/savonet/ocaml-srt/issues"

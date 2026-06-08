@@ -3,8 +3,8 @@
 (name pulseaudio)
 (source (github savonet/ocaml-pulseaudio))
 (license LGPL-2.1)
-(authors "The Savonet Team <savonet-users@lists.sourceforge.net>")
-(maintainers "The Savonet Team <savonet-users@lists.sourceforge.net>")
+(authors "The Savonet Team <contact@liquidsoap.info>")
+(maintainers "The Savonet Team <contact@liquidsoap.info>")
 
 (generate_opam_files true)
 (subst disabled)

@@ -3,7 +3,7 @@ ARG BASE_IMAGE
 # Stage 1: OCaml compiler
 FROM $BASE_IMAGE AS ocaml
 
-MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
+MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=4.14.2
 

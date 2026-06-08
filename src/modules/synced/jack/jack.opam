@@ -3,8 +3,8 @@ opam-version: "2.0"
 version: "0.1.0"
 synopsis:
   "Bindings for the Jack library which provides functions for linking audio programs"
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
-authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
+authors: ["The Savonet Team <contact@liquidsoap.info>"]
 license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/ocaml-jack"
 bug-reports: "https://github.com/savonet/ocaml-jack/issues"

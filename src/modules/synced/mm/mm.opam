@@ -3,7 +3,7 @@ opam-version: "2.0"
 version: "0.8.7"
 synopsis:
   "The mm library contains high-level APIs to create and manipulate multimedia streams (audio, video, MIDI)"
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
 authors: ["Samuel Mimram <smimram@gmail.com>"]
 license: "LGPL-2.1-or-later"
 homepage: "https://github.com/savonet/ocaml-mm"

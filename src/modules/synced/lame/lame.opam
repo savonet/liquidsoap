@@ -4,8 +4,8 @@ version: "0.3.7"
 synopsis: "MP3 encoding library"
 description:
   "Bindings for the lame library which provides functions for encoding mp3 files"
-maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
-authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+maintainer: ["The Savonet Team <contact@liquidsoap.info>"]
+authors: ["The Savonet Team <contact@liquidsoap.info>"]
 license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/ocaml-lame"
 bug-reports: "https://github.com/savonet/ocaml-lame/issues"

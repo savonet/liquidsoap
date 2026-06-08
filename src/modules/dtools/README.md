@@ -1,7 +1,7 @@
 # OCaml-dtools - OCaml daemon tools library
 
 Author: Gimenez Stéphane
-Email: savonet-users@lists.sourceforge.net
+Email: contact@liquidsoap.info
 Homepage: http://savonet.sourceforge.net/
 
 Copyright (c) 2003-2020 the Savonet Team.

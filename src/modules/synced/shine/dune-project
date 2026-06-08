@@ -4,7 +4,7 @@
 (source (github savonet/ocaml-shine))
 (license GPL-2.0)
 (authors "Romain Beauxis <toots@rastageeks.org>")
-(maintainers "The Savonet Team <savonet-users@lists.sourceforge.net>")
+(maintainers "The Savonet Team <contact@liquidsoap.info>")
 
 (generate_opam_files true)
 (subst disabled)

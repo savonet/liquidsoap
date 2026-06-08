@@ -218,4 +218,4 @@ documentation coming with your distribution of Liquidsoap.
 
 # AUTHOR
 
-[The savonet team](savonet-users@lists.sourceforge.net).
+[The savonet team](contact@liquidsoap.info).

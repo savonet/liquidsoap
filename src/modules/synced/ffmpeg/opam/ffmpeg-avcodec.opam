@@ -3,7 +3,7 @@ opam-version: "2.0"
 version: "1.4.0"
 synopsis: "Bindings for the ffmpeg avcodec library"
 maintainer: ["Romain Beauxis <toots@rastageeks.org>"]
-authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+authors: ["The Savonet Team <contact@liquidsoap.info>"]
 license: "LGPL-2.1-only"
 homepage: "https://github.com/savonet/ocaml-ffmpeg"
 bug-reports: "https://github.com/savonet/ocaml-ffmpeg/issues"

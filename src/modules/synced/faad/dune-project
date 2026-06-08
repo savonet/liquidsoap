@@ -3,7 +3,7 @@
 (name faad)
 (source (github savonet/ocaml-faad))
 (license GPL-2.0)
-(authors "The Savonet Team <savonet-users@lists.sourceforge.net>")
+(authors "The Savonet Team <contact@liquidsoap.info>")
 (maintainers "Romain Beauxis <toots@rastageeks.org>")
 
 (generate_opam_files true)

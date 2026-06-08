@@ -1,6 +1,6 @@
 FROM savonet/liquidsoap-ci:debian_trixie_amd64
 
-MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
+MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 USER root
 
