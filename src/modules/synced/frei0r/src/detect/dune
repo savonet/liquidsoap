@@ -1,0 +1,8 @@
+(executables
+ (names detect check)
+ (libraries dune-configurator unix))
+
+(rule
+ (targets frei0r_available frei0r_c_flags.sexp frei0r_c_library_flags.sexp)
+ (action
+  (run ./detect.exe --context %{context_name} frei0r frei0r)))

@@ -1,0 +1,12 @@
+0.1.2 (03-13-2021)
+=====
+* Changed internal bindings to avoid using global roots.
+* Switch to dune!
+
+0.1.1 (03-08-2015)
+=====
+* Dummy github release.
+
+0.1.0 (18-02-2013)
+=====
+* Initial release.
