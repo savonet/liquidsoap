@@ -6,6 +6,12 @@ on:
       - main
     paths:
       - "src/modules/synced/**"
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: "Space-separated list of modules to sync (leave empty for all)"
+        required: false
+        default: ""
 
 jobs:
   synced-push:
@@ -25,9 +31,14 @@ jobs:
             pr_number=$(gh api /repos/savonet/liquidsoap/commits/${{ github.sha }}/pulls --jq '.[0].number // empty')
           fi
 
+          selected_modules="${{ inputs.modules }}"
+
           for dir in src/modules/synced/*/; do
             name=$(basename "$dir")
-            if git diff --quiet ${{ github.event.before }} HEAD -- "src/modules/synced/$name/"; then
+
+            if [ -n "$selected_modules" ]; then
+              echo "$selected_modules" | tr ' ' '\n' | grep -qx "$name" || continue
+            elif [ "${{ github.event_name }}" = "push" ] && git diff --quiet ${{ github.event.before }} HEAD -- "src/modules/synced/$name/"; then
               continue
             fi
 
