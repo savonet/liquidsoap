@@ -89,6 +89,7 @@ sed -i '/ocaml-portaudio/d' PACKAGES
 sed -i '/ocaml-pulseaudio/d' PACKAGES
 sed -i '/ocaml-fdkaac/d' PACKAGES
 sed -i '/ocaml-faad/d' PACKAGES
+sed -i '/ocaml-ladspa/d' PACKAGES
 
 # Workaround
 touch liquidsoap/configure

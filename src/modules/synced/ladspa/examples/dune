@@ -1,0 +1,19 @@
+(executable
+ (name amp)
+ (modules amp)
+ (libraries ladspa))
+
+(executable
+ (name inspect)
+ (modules inspect)
+ (libraries unix ladspa))
+
+(executable
+ (name sc4)
+ (modules sc4)
+ (libraries ladspa))
+
+(rule
+ (alias runtest)
+ (action
+  (run ./inspect.exe)))
