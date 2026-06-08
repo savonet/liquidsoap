@@ -1,0 +1,8 @@
+(executables
+ (names detect check)
+ (libraries dune-configurator unix))
+
+(rule
+ (targets faad_available faad_c_flags.sexp faad_c_library_flags.sexp)
+ (action
+  (run ./detect.exe --context %{context_name})))
