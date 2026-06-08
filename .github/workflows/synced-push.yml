@@ -47,7 +47,7 @@ jobs:
               if git ls-remote --exit-code origin "refs/heads/$mirror_branch" > /dev/null 2>&1; then
                 mirror_pr=$(gh pr list --repo "savonet/ocaml-$name" --head "$mirror_branch" --json number --jq '.[0].number // empty')
                 if [ -n "$mirror_pr" ]; then
-                  gh pr close --repo "savonet/ocaml-$name" "$mirror_pr" --comment "Merged in savonet/liquidsoap@${{ github.sha }}"
+                  gh pr close --repo "savonet/ocaml-$name" "$mirror_pr" --comment "Merged in savonet/liquidsoap@${{ github.sha }}" || true
                 fi
                 git push origin --delete "$mirror_branch" || true
               fi
