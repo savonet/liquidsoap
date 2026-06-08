@@ -1,0 +1,26 @@
+(library
+ (name dssi)
+ (public_name dssi)
+ (synopsis "OCaml bindings for dssi")
+ (enabled_if
+  (= %{read:./detect/dssi_available} true))
+ (libraries ladspa)
+ (modules dssi)
+ (foreign_stubs
+  (language c)
+  (names dssi_stubs)
+  (flags
+   (:include ./detect/dssi_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/dssi_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package dssi)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/dssi_available
+   (run ./detect/check.exe dssi))))
