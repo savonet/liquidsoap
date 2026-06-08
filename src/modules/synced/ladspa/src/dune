@@ -1,0 +1,14 @@
+(library
+ (name ladspa)
+ (public_name ladspa)
+ (synopsis "OCaml bindings for ladspa")
+ (install_c_headers ladspa ocaml_ladspa_config ocaml_ladspa)
+ (foreign_stubs
+  (language c)
+  (names ladspa_stubs)
+  (extra_deps ocaml_ladspa_config.h)))
+
+(rule
+ (targets ocaml_ladspa_config.h)
+ (action
+  (run ./config/discover.exe)))

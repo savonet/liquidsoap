@@ -89,6 +89,8 @@ sed -i '/ocaml-portaudio/d' PACKAGES
 sed -i '/ocaml-pulseaudio/d' PACKAGES
 sed -i '/ocaml-fdkaac/d' PACKAGES
 sed -i '/ocaml-faad/d' PACKAGES
+sed -i '/ocaml-ladspa/d' PACKAGES
+sed -i '/ocaml-dssi/d' PACKAGES
 sed -i '/ocaml-frei0r/d' PACKAGES
 sed -i '/ocaml-lo/d' PACKAGES
 
