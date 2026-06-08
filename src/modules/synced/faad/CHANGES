@@ -1,0 +1,66 @@
+0.5.1 (20-05-2022)
+=====
+* Switch to `pkg-config` for library detection.
+* Cleanup warnings
+
+0.5.0 (07-10-2020)
+=====
+* Convert to Unix.read style API.
+* Converted to dune for building.
+
+0.4.0 (18-08-2018)
+=====
+* Updated mp4ff code, removed drms code (consistent with VLC)
+* Cleanup GC-related code.
+
+0.3.3 (03-08-2015)
+=====
+* Fix freeze when trying to parse
+  unknown atoms.
+
+0.3.2 (17-02-2013)
+=====
+* Fix memory leak at init.
+* Ensure that decoding did not return NULL.
+* Updated examples.
+
+0.3.1 (19-19-2012)
+=====
+* Correctly initialize a buffer for mp4ff_read_sample to avoid a segfault in
+  ocaml_faad_mp4_decode (LS-626).
+* Decoder example is now able to decode mp4 as well as pure aac.
+* Distribute the example.
+
+0.3.0 (30-06-2011)
+=====
+* Added seeking functionalities.
+
+0.2.0 (12-02-2011)
+=====
+* Registered close method for the finalizer.
+* Added a static copy of mp4ff.
+
+0.1.3 (11-10-2009)
+=====
+* Added support for --enable-debugging configure option
+* Added NO_CUSTOM to build
+  in standard mode.
+* Added prefix to main compilation variables
+  if passed to configure.
+* Makefile now honnors LIBDIRS
+  variable for linking against libraries
+  located in other places than then standard
+  ones.
+
+0.1.2 (17-02-2009)
+=====
+* Added license headers to each source code file
+
+0.1.1 (15-04-2008)
+=====
+* More portable invocation of make
+* Now installs also .cmx file
+
+0.1.0 (17-10-2007)
+=====
+* Initial release

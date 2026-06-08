@@ -20,7 +20,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SUBTREE_PUSH_TOKEN }}
         run: |
-          pr_number=$(gh api /repos/savonet/liquidsoap/commits/${{ github.sha }}/pulls --jq '.[0].number // empty')
+          pr_number=$(git log -1 --pretty=format:"%s" | grep -oP '\(#\K[0-9]+' | head -1)
+          if [ -z "$pr_number" ]; then
+            pr_number=$(gh api /repos/savonet/liquidsoap/commits/${{ github.sha }}/pulls --jq '.[0].number // empty')
+          fi
 
           for dir in src/modules/synced/*/; do
             name=$(basename "$dir")

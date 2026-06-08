@@ -1,0 +1,26 @@
+(library
+ (name faad)
+ (public_name faad)
+ (synopsis "OCaml bindings for libfaad")
+ (enabled_if
+  (= %{read:./detect/faad_available} true))
+ (modules faad)
+ (foreign_stubs
+  (language c)
+  (names faad_stubs mp4atom mp4ff mp4meta mp4sample mp4tagupdate mp4util)
+  (flags
+   -DUSE_TAGGING
+   (:include ./detect/faad_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/faad_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package faad)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/faad_available
+   (run ./detect/check.exe faad))))
