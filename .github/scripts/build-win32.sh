@@ -43,16 +43,15 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
-opam remove -y ffmpeg-windows ffmpeg-avutil-windows srt-windows
 opam update
-
-opam install -y dune.3.23.1 posix-socket.3.0.0 prometheus-app-windows cohttp-lwt-unix-windows fdkaac-windows
+opam remove -y srt-windows
+opam install -y dune.3.23.1 posix-socket.4.0.2 posix-socket-windows.4.0.2 prometheus-app-windows cohttp-lwt-unix-windows
 
 echo "::endgroup::"
 
 echo "::group::Install liquidsoap-windows"
 unset PKG_CONFIG_PATH
-opam install -y liquidsoap-windows
+opam install -y .github/opam/liquidsoap-windows.opam
 echo "::endgroup::"
 
 echo "::group::Save build config"

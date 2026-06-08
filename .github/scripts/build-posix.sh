@@ -10,32 +10,17 @@ eval "$(opam config env)"
 
 export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
 
-echo "::group::Preparing bindings"
-
-cd /tmp/liquidsoap-full
-
-git remote set-url origin https://github.com/savonet/liquidsoap-full.git
-git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
-git reset --hard
-git pull
-
-git pull
-make clean
-make public
-make update
-
-echo "::endgroup::"
-
 echo "::group::Checking out CI commit"
 
-cd /tmp/liquidsoap-full/liquidsoap
+if [ -d /tmp/liquidsoap ]; then
+  cd /tmp/liquidsoap
+else
+  git clone --depth 1 https://github.com/savonet/liquidsoap.git /tmp/liquidsoap
+  cd /tmp/liquidsoap
+fi
 
-git fetch origin "$GITHUB_SHA"
+git fetch --depth 1 origin "$GITHUB_SHA"
 git checkout "$GITHUB_SHA"
-mv .github /tmp
-rm -rf ./*
-mv /tmp/.github .
-git reset --hard
 
 echo "::endgroup::"
 
@@ -53,12 +38,6 @@ opam pin -y add tsdl-ttf 0.6
 opam upgrade -y posix-socket
 opam install -y domain_shims syslog dune.3.23.1
 
-cd /tmp/liquidsoap-full/liquidsoap
-
-./.github/scripts/checkout-deps.sh
-
-cd /tmp/liquidsoap-full
-
 echo "::endgroup::"
 
 echo "::group::Cleaning up cache"
@@ -69,50 +48,6 @@ echo "::endgroup::"
 
 echo "::group::Compiling"
 
-cd /tmp/liquidsoap-full
-
-test -f PACKAGES || cp PACKAGES.default PACKAGES
-sed -i '/ocaml-alsa/d' PACKAGES
-sed -i '/ocaml-ao/d' PACKAGES
-sed -i '/ocaml-xiph/d' PACKAGES
-sed -i '/ocaml-metadata/d' PACKAGES
-sed -i '/ocaml-mm/d' PACKAGES
-sed -i '/ocaml-ffmpeg/d' PACKAGES
-sed -i '/ocaml-mem_usage/d' PACKAGES
-sed -i '/ocaml-lame/d' PACKAGES
-sed -i '/ocaml-mad/d' PACKAGES
-sed -i '/ocaml-shine/d' PACKAGES
-sed -i '/ocaml-srt/d' PACKAGES
-sed -i '/ocaml-soundtouch/d' PACKAGES
-sed -i '/ocaml-samplerate/d' PACKAGES
-sed -i '/ocaml-portaudio/d' PACKAGES
-sed -i '/ocaml-pulseaudio/d' PACKAGES
-sed -i '/ocaml-fdkaac/d' PACKAGES
-sed -i '/ocaml-faad/d' PACKAGES
-sed -i '/ocaml-ladspa/d' PACKAGES
-sed -i '/ocaml-dssi/d' PACKAGES
-sed -i '/ocaml-frei0r/d' PACKAGES
-sed -i '/ocaml-lo/d' PACKAGES
-
-# Workaround
-touch liquidsoap/configure
-
-./configure --prefix=/usr \
-  --includedir="\${prefix}/include" \
-  --mandir="\${prefix}/share/man" \
-  --infodir="\${prefix}/share/info" \
-  --sysconfdir=/etc \
-  --localstatedir=/var \
-  --with-camomile-data-dir=/usr/share/liquidsoap/camomile \
-  CFLAGS=-g
-
-# Workaround
-rm liquidsoap/configure
-
-OCAMLPATH="$(cat .ocamlpath)"
-export OCAMLPATH
-
-cd /tmp/liquidsoap-full/liquidsoap
 dune build --profile=release
 
 echo "::endgroup::"

@@ -57,22 +57,21 @@ jobs:
       HOME: /home/opam
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
     steps:
+      - name: Checkout code
+        run: |
+          sudo -u opam git clone --depth 1 https://github.com/savonet/liquidsoap.git /tmp/liquidsoap
+          cd /tmp/liquidsoap
+          sudo -u opam git fetch --depth 1 origin ${{ inputs.sha }}
+          sudo -u opam git checkout ${{ inputs.sha }}
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
         id: cpu_cores
-      - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          rm -rf doc/content/build.md doc/content/install.md
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ inputs.sha }}
-          sudo -u opam -E git checkout ${{ inputs.sha }}
       - name: Build
+        env:
+          GITHUB_SHA: ${{ inputs.sha }}
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
-          sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+          sudo -u opam -E /tmp/liquidsoap/.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
@@ -90,7 +89,7 @@ jobs:
           mkdir -p "${LIQ_TMP_DIR}"
           chown -R opam "${LIQ_TMP_DIR}"
           chown -R opam "${GITHUB_OUTPUT}"
-          cd /tmp/liquidsoap-full/liquidsoap
+          cd /tmp/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh
       - name: Print debian package info
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
@@ -122,7 +121,7 @@ jobs:
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
           APK_RELEASE: 0
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
+          cd /tmp/liquidsoap
           apk update
           apk upgrade
           apk add alpine-sdk

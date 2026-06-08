@@ -13,7 +13,7 @@ USER root
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-            build-essential ca-certificates curl git unzip && \
+            build-essential ca-certificates curl git rsync unzip && \
     apt-get -y autoclean && apt-get -y clean
 
 RUN printf "\ny\n" | bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
@@ -27,7 +27,7 @@ RUN opam init -y --disable-sandboxing --bare && \
     opam update -y && \
     opam clean
 
-# Stage 2: Clone liquidsoap-full and pin all packages
+# Stage 2: Clone liquidsoap and pin all synced modules
 FROM ocaml AS pinned
 
 USER root
@@ -37,6 +37,8 @@ RUN apt-get update && \
             build-essential ca-certificates curl git pkg-config unzip && \
     apt-get -y autoclean && apt-get -y clean
 
+ARG LIQUIDSOAP_SHA=main
+
 WORKDIR /tmp
 
 USER opam
@@ -44,18 +46,17 @@ USER opam
 RUN git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc && \
     opam pin -y add ocaml-pandoc
 
-RUN git clone https://github.com/savonet/liquidsoap-full.git
+RUN git clone https://github.com/savonet/liquidsoap.git && \
+    cd liquidsoap && git fetch origin "$LIQUIDSOAP_SHA" && git checkout "$LIQUIDSOAP_SHA"
 
-WORKDIR /tmp/liquidsoap-full
+# Pin each synced module directory and liquidsoap itself
+RUN find /tmp/liquidsoap/src/modules/synced -maxdepth 1 -mindepth 1 -type d | \
+    while read dir; do opam pin add -y --no-action "$dir"; done && \
+    cd /tmp/liquidsoap && opam pin add -y --no-action .
 
-RUN make init && make update
-
-RUN cat PACKAGES.default | grep '^ocaml' > /tmp/modules && \
-    cat /tmp/modules | while read i; do find $i | grep '\.opam$'; done | while read i; do basename $i | cut -d'.' -f 1; done > /tmp/packages
-
-RUN cat /tmp/modules | while read module; do \
-        cd $module && opam pin add -y --no-action . && cd ..; \
-    done && cd liquidsoap && opam pin add -y --no-action .
+# Build the package list from .opam files in synced modules
+RUN find /tmp/liquidsoap/src/modules/synced -name '*.opam' ! -name '*.opam.template' | \
+    xargs -I{} basename {} .opam > /tmp/packages
 
 # Stage 3: Install ffmpeg-liquidsoap and static opam packages
 FROM pinned AS static-packages
@@ -92,7 +93,7 @@ USER root
 # Stage 4: Install remaining external and opam dependencies
 FROM static-packages AS build
 
-ENV EXT_PACKAGES="camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace mem_usage ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
+ENV EXT_PACKAGES="camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
 
 USER opam
 
@@ -106,10 +107,15 @@ USER root
 RUN apt-get update && \
     apt-get install -y --no-install-recommends aspcud autoconf automake rsync \
             build-essential ca-certificates curl debhelper devscripts sudo \
-            fakeroot git openssh-client pkg-config unzip pandoc \
+            fakeroot git openssh-client pkg-config unzip \
             gnupg dirmngr apt-transport-https && \
     cat /tmp/deps | xargs apt-get install -y --no-install-recommends && \
     apt-get -y autoclean && apt-get -y clean
+
+RUN arch=$(dpkg --print-architecture) && \
+    curl -fsSL "https://github.com/jgm/pandoc/releases/download/3.10/pandoc-3.10-1-${arch}.deb" -o /tmp/pandoc.deb && \
+    dpkg -i /tmp/pandoc.deb && \
+    rm /tmp/pandoc.deb
 
 USER opam
 
@@ -117,7 +123,13 @@ RUN eval $(opam env) && \
     PACKAGES=$(cat /tmp/packages | grep -Ev "^(speex|theora)$" | xargs echo) && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
+    opam pin list --short | grep -v '^ocaml-pandoc$' | xargs -r opam pin remove -y && \
+    rm -rf /tmp/liquidsoap /tmp/ocaml-pandoc && \
     opam clean
+
+USER root
+
+RUN echo 'Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' > /etc/sudoers.d/secure_path
 
 FROM $BASE_IMAGE
 ENTRYPOINT bash

@@ -260,7 +260,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=protocols
     --template=template.html
@@ -440,7 +440,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=reference
     --template=template.html
@@ -620,7 +620,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=reference-extras
     --template=template.html
@@ -800,7 +800,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=reference-deprecated
     --template=template.html
@@ -980,7 +980,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=settings
     --template=template.html
@@ -1160,7 +1160,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=beets
     --template=template.html
@@ -1340,7 +1340,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=blank
     --template=template.html
@@ -1520,7 +1520,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=book
     --template=template.html
@@ -1700,7 +1700,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=build
     --template=template.html
@@ -1880,7 +1880,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=clocks
     --template=template.html
@@ -2060,7 +2060,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=complete_case
     --template=template.html
@@ -2240,7 +2240,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=cookbook
     --template=template.html
@@ -2420,7 +2420,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=crossfade
     --template=template.html
@@ -2600,7 +2600,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=custom-path
     --template=template.html
@@ -2780,7 +2780,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=database
     --template=template.html
@@ -2960,7 +2960,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=documentation
     --template=template.html
@@ -3140,7 +3140,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=dynamic_sources
     --template=template.html
@@ -3320,7 +3320,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=encoding_formats
     --template=template.html
@@ -3500,7 +3500,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=external_decoders
     --template=template.html
@@ -3680,7 +3680,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=external_encoders
     --template=template.html
@@ -3860,7 +3860,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=external_streams
     --template=template.html
@@ -4040,7 +4040,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=faq
     --template=template.html
@@ -4220,7 +4220,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=ffmpeg
     --template=template.html
@@ -4400,7 +4400,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=ffmpeg_cookbook
     --template=template.html
@@ -4580,7 +4580,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=ffmpeg_encoder
     --template=template.html
@@ -4760,7 +4760,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=ffmpeg_filters
     --template=template.html
@@ -4940,7 +4940,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=ffmpeg_subtitles
     --template=template.html
@@ -5120,7 +5120,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=flows_devel
     --template=template.html
@@ -5300,7 +5300,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=frequence3
     --template=template.html
@@ -5480,7 +5480,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=geekradio
     --template=template.html
@@ -5660,7 +5660,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=graph_descriptions
     --template=template.html
@@ -5840,7 +5840,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=harbor
     --template=template.html
@@ -6020,7 +6020,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=harbor_http
     --template=template.html
@@ -6200,7 +6200,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=help
     --template=template.html
@@ -6380,7 +6380,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=hls_output
     --template=template.html
@@ -6560,7 +6560,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=http_input
     --template=template.html
@@ -6740,7 +6740,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=icecast_server
     --template=template.html
@@ -6920,7 +6920,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=icy_metadata
     --template=template.html
@@ -7100,7 +7100,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=in_production
     --template=template.html
@@ -7280,7 +7280,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=index
     --template=template.html
@@ -7460,7 +7460,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=install
     --template=template.html
@@ -7640,7 +7640,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=jack
     --template=template.html
@@ -7820,7 +7820,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=json
     --template=template.html
@@ -8000,7 +8000,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=ladspa
     --template=template.html
@@ -8180,7 +8180,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=language
     --template=template.html
@@ -8360,7 +8360,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=latency_control
     --template=template.html
@@ -8540,7 +8540,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=loudness_normalization
     --template=template.html
@@ -8720,7 +8720,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=memory
     --template=template.html
@@ -8900,7 +8900,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=metadata
     --template=template.html
@@ -9080,7 +9080,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=migrating
     --template=template.html
@@ -9260,7 +9260,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=multitrack
     --template=template.html
@@ -9440,7 +9440,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=on2
     --template=template.html
@@ -9620,7 +9620,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=phases
     --template=template.html
@@ -9800,7 +9800,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=playlist_parsers
     --template=template.html
@@ -9980,7 +9980,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=presentations
     --template=template.html
@@ -10160,7 +10160,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=profiling
     --template=template.html
@@ -10340,7 +10340,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=prometheus
     --template=template.html
@@ -10520,7 +10520,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=protocols-presentation
     --template=template.html
@@ -10700,7 +10700,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=publications
     --template=template.html
@@ -10880,7 +10880,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=quick_start
     --template=template.html
@@ -11060,7 +11060,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=radiopi
     --template=template.html
@@ -11240,7 +11240,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=reference-header
     --template=template.html
@@ -11420,7 +11420,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=release-assets
     --template=template.html
@@ -11600,7 +11600,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=request_sources
     --template=template.html
@@ -11780,7 +11780,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=requests
     --template=template.html
@@ -11960,7 +11960,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=rolling-release
     --template=template.html
@@ -12140,7 +12140,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=scheduling
     --template=template.html
@@ -12320,7 +12320,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=script_loading
     --template=template.html
@@ -12500,7 +12500,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=seek
     --template=template.html
@@ -12680,7 +12680,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=server
     --template=template.html
@@ -12860,7 +12860,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=shoutcast
     --template=template.html
@@ -13040,7 +13040,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=sources
     --template=template.html
@@ -13220,7 +13220,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=split-cue
     --template=template.html
@@ -13400,7 +13400,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=stereotool
     --template=template.html
@@ -13580,7 +13580,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=stream_content
     --template=template.html
@@ -13760,7 +13760,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=strings_encoding
     --template=template.html
@@ -13940,7 +13940,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=subtitles
     --template=template.html
@@ -14120,7 +14120,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=video-static
     --template=template.html
@@ -14300,7 +14300,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=video
     --template=template.html
@@ -14480,7 +14480,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=xml
     --template=template.html
@@ -14660,7 +14660,7 @@
     -f
     json
     --syntax-definition=liquidsoap.xml
-    --highlight=pygments
+    --syntax-highlighting=pygments
     --metadata
     pagetitle=yaml
     --template=template.html

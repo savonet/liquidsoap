@@ -137,12 +137,14 @@ let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
     (fun p ->
       let uri = Lang.to_string (List.assoc "" p) in
       let pwd = Lang.to_valued_option Lang.to_string (List.assoc "pwd" p) in
-      let entries = parser ?pwd uri in
-      Lang.list
-        (List.map
-           (fun (metadata, uri) ->
-             Lang.product (Lang.metadata_list metadata) (Lang.string uri))
-           entries))
+      match parser ?pwd uri with
+        | entries ->
+            Lang.list
+              (List.map
+                 (fun (metadata, uri) ->
+                   Lang.product (Lang.metadata_list metadata) (Lang.string uri))
+                 entries)
+        | exception Not_found -> Lang.list [])
 
 let _ =
   let playlist_t = Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t) in

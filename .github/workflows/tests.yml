@@ -32,6 +32,12 @@ jobs:
     env:
       HOME: /home/opam
     steps:
+      - name: Checkout code
+        run: |
+          sudo -u opam git clone --depth 1 https://github.com/savonet/liquidsoap.git /tmp/liquidsoap
+          cd /tmp/liquidsoap
+          sudo -u opam git fetch --depth 1 origin ${{ inputs.sha }}
+          sudo -u opam git checkout ${{ inputs.sha }}
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
         id: cpu_cores
@@ -41,25 +47,13 @@ jobs:
           mkdir -p /tmp/${{ github.run_number }}/core
           chown -R opam /tmp/${{ github.run_number }}/core
           echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
-      - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          rm -rf doc/content/build.md doc/content/install.md
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ inputs.sha }}
-          sudo -u opam -E git checkout ${{ inputs.sha }}
       - name: Build
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
+          GITHUB_SHA: ${{ inputs.sha }}
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
-          cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
-      - name: Compute stats
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/stats-posix.sh
+          sudo -u opam -E /tmp/liquidsoap/.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+          cp /tmp/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Install additional packages for @doc
         if: matrix.target == '@doctest'
         run: |
@@ -76,11 +70,11 @@ jobs:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
           LIQUIDSOAP_TEST_REPO_TOKEN: ${{ secrets.LIQUIDSOAP_TEST_REPO_TOKEN }}
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
+          cd /tmp/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
       - name: Finalize metrics
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
+          cd /tmp/liquidsoap
           mkdir -p "/tmp/${{ github.run_number }}/metrics"
           chown -R opam "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "${{ inputs.branch }}" "/tmp/${{ github.run_number }}/metrics"
@@ -103,7 +97,7 @@ jobs:
         if: (success() || failure()) && inputs.save_traces == 'true'
         run: |
           mkdir -p /tmp/${{ github.run_number }}/traces/${{ matrix.target }}
-          cd /tmp/liquidsoap-full/liquidsoap
+          cd /tmp/liquidsoap
           find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
       - name: Upload traces
         if: (success() || failure()) && inputs.save_traces == 'true'
@@ -116,7 +110,7 @@ jobs:
         run: |
           mkdir -p /tmp/${{ github.run_number }}/test-artifacts/tests/streams
           mkdir -p /tmp/${{ github.run_number }}/test-artifacts/tests/regression
-          cd /tmp/liquidsoap-full/liquidsoap
+          cd /tmp/liquidsoap
           for f in _build/default/tests/streams/*.gen; do
             cp -f "$f" "/tmp/${{ github.run_number }}/test-artifacts/tests/streams/$(basename "${f%.gen}")"
           done

@@ -33,6 +33,11 @@ on:
         required: false
         default: true
         type: boolean
+      no_cache:
+        description: "Disable Docker layer cache"
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build-debian-ci:
@@ -68,12 +73,13 @@ jobs:
           build-args: |
             OCAML_VERSION=${{ matrix.ocaml_version }}
             BASE_IMAGE=${{ matrix.base_image }}
+            LIQUIDSOAP_SHA=${{ github.sha }}
           context: .
           file: .github/docker/debian-base.dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.build_args.outputs.tag }}
           push: ${{ inputs.push }}
-          no-cache: true
+          no-cache: ${{ inputs.no_cache }}
           provenance: false
           sbom: false
 
@@ -98,11 +104,12 @@ jobs:
           token: ${{ secrets.DEPOT_TOKEN }}
           build-args: |
             OCAML_VERSION=${{ matrix.ocaml_version }}
+            LIQUIDSOAP_SHA=${{ github.sha }}
           context: .
           file: .github/docker/alpine-base.dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/savonet/liquidsoap:ci-v2-alpine-${{ matrix.ocaml_version }}
           push: ${{ inputs.push }}
-          no-cache: true
+          no-cache: ${{ inputs.no_cache }}
           provenance: false
           sbom: false
