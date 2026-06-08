@@ -1,0 +1,26 @@
+(library
+ (name frei0r)
+ (public_name frei0r)
+ (synopsis "OCaml bindings for libfrei0r")
+ (enabled_if
+  (= %{read:./detect/frei0r_available} true))
+ (libraries threads)
+ (modules frei0r)
+ (foreign_stubs
+  (language c)
+  (names frei0r_stubs)
+  (flags
+   (:include ./detect/frei0r_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/frei0r_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package frei0r)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/frei0r_available
+   (run ./detect/check.exe frei0r))))
