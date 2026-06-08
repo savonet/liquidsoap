@@ -1,0 +1,25 @@
+(library
+ (name fdkaac)
+ (public_name fdkaac)
+ (synopsis "OCaml bindings for fdkaac")
+ (enabled_if
+  (= %{read:../detect/fdkaac_available} true))
+ (modules fdkaac)
+ (foreign_stubs
+  (language c)
+  (names fdkaac_stubs)
+  (flags
+   (:include ../detect/fdkaac_c_flags.sexp)))
+ (c_library_flags
+  (:include ../detect/fdkaac_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package fdkaac)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ../detect/fdkaac_available
+   (run ../detect/check.exe fdkaac))))

@@ -1,0 +1,8 @@
+(executables
+ (names detect check)
+ (libraries dune-configurator unix))
+
+(rule
+ (targets fdkaac_available fdkaac_c_flags.sexp fdkaac_c_library_flags.sexp)
+ (action
+  (run ./detect.exe --context %{context_name})))
