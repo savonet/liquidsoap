@@ -1,0 +1,26 @@
+(library
+ (name lo)
+ (public_name lo)
+ (synopsis "OCaml bindings for liblo")
+ (enabled_if
+  (= %{read:./detect/lo_available} true))
+ (libraries threads)
+ (modules lo)
+ (foreign_stubs
+  (language c)
+  (names lo_stubs)
+  (flags
+   (:include ./detect/lo_c_flags.sexp)))
+ (c_library_flags
+  (:include ./detect/lo_c_library_flags.sexp)))
+
+(rule
+ (alias install)
+ (package lo)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/lo_available
+   (run ./detect/check.exe lo))))
