@@ -7,17 +7,7 @@
 # @flag extra
 # @param ~default Default cover file when no cover is available
 # @param ~mime_types Recognized mime types and their corresponding file extensions.
-def file.cover.manager(
-  ~id=null,
-  ~mime_types=[
-    ("image/gif", "gif"),
-    ("image/jpg", "jpeg"),
-    ("image/jpeg", "jpeg"),
-    ("image/png", "png"),
-    ("image/webp", "webp")
-  ],
-  ~default
-) =
+def file.cover.manager(~id=null, ~mime_types=null, ~default) =
   id = string.id.default(id, default="cover")
   default = request.create(persistent=true, default)
 
@@ -42,9 +32,10 @@ def file.cover.manager(
         null
       else
         cover = null.get(cover)
-        extension = mime_types[cover.mime]
+        extension =
+          file.mime.extension(mime_types_extnames=mime_types, cover.mime)
         if
-          extension == ""
+          not null.defined(extension)
         then
           log.important(
             label=id,
@@ -54,7 +45,7 @@ def file.cover.manager(
           )
           null
         else
-          cover_file = file.temp("#{id}_", ".#{extension}")
+          cover_file = file.temp("#{id}_", null.get(extension))
           file.write(cover_file, data=cover)
 
           log.important(

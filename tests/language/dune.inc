@@ -359,6 +359,20 @@
   (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
 
 (rule
+ (alias test_mime_types)
+ (package liquidsoap)
+ (deps
+  mime_types.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} mime_types.liq liquidsoap %{test_liq} mime_types.liq)))
+
+(rule
  (alias test_null)
  (package liquidsoap)
  (deps
@@ -741,6 +755,7 @@
   (alias test_mem_usage)
   (alias test_metadata)
   (alias test_metrics)
+  (alias test_mime_types)
   (alias test_null)
   (alias test_number)
   (alias test_osc)
