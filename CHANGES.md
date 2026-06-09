@@ -47,6 +47,10 @@
 - Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
   decoder (#4848)
 - Make sure `output.file` does not create files without data (#4899)
+- Added missing `audio/aiff`, `audio/x-aiff` and `audio/x-wavpack` entries to
+  the default `settings.http.mime.extnames` table so `protocol.http` resolves
+  AIFF and WavPack URLs to their real extensions instead of the `.osb`
+  fallback.
 
 ---
 
