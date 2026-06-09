@@ -885,9 +885,10 @@ let file.mime = ()
 # Return the file extension associated with the given
 # content-type if it is known.
 # @category File
-def file.mime.extension(content_type) =
-  extnames = settings.http.mime.extnames()
-  extname = extnames[content_type]
+# @param ~mime_types_extnames Mime type to file extension mappings. Defaults to `settings.http.mime.extnames`.
+def file.mime.extension(~mime_types_extnames=null, content_type) =
+  extnames = mime_types_extnames ?? settings.http.mime.extnames()
+  extname = extnames[string.case(lower=true, content_type)]
   extname == "" ? null : extname
 end
 
