@@ -1,5 +1,12 @@
 # 2.4.5 (unreleased)
 
+## New:
+
+- Added `audio/aiff`, `audio/x-aiff` and `audio/x-wavpack` entries to
+  the default `settings.http.mime.extnames` table so `protocol.http` resolves
+  AIFF and WavPack URLs to their real extensions instead of the `.osb`
+  fallback.
+
 ## Fixed:
 
 - Fixed crash when external input (`input.process`, `input.ffmpeg`, etc.) encounters an EOF (thanks to @MikaSappi, #5139)
