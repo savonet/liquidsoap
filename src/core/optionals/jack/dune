@@ -5,7 +5,7 @@
  (wrapped false)
  (foreign_stubs
   (language c)
-  (names jack_io_stubs)
-  (flags
-   (:standard -I%{workspace_root}/src/modules/synced/jack/src)))
+  (include_dirs
+   (lib jack))
+  (names jack_io_stubs))
  (optional))

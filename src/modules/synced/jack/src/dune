@@ -12,7 +12,8 @@
   (flags
    (:include ./detect/jack_c_flags.sexp)))
  (c_library_flags
-  (:include ./detect/jack_c_library_flags.sexp)))
+  (:include ./detect/jack_c_library_flags.sexp))
+ (install_c_headers jack_stubs))
 
 (rule
  (alias install)
