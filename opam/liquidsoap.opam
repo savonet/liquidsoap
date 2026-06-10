@@ -30,6 +30,7 @@ depends: [
   "magic-mime"
   "menhir" {>= "20180523"}
   "dune-build-info"
+  "xmlm"
   "liquidsoap-lang" {= version}
   "ppx_string" {build}
   "odoc" {with-doc}

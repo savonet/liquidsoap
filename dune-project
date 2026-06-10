@@ -32,6 +32,7 @@
     magic-mime
     menhir
     dune-build-info
+    xmlm
     (liquidsoap-lang (= :version))
     (ppx_string :build))
   (depopts
