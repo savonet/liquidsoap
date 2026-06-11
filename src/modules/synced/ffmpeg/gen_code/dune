@@ -10,4 +10,4 @@
  (action
   (with-stdout-to
    config.ml
-   (run ./config/discover.exe))))
+   (run ./config/discover.exe %{context_name}))))
