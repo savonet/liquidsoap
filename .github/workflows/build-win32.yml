@@ -27,7 +27,7 @@ jobs:
       matrix:
         system: [x64]
     container:
-      image: savonet/liquidsoap-win32-${{ matrix.system }}
+      image: ghcr.io/savonet/liquidsoap:ci-v2-win32-x64-5.4.1
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       OPAM_DEPS: camomile-windows,re-windows,sedlex-windows,ssl-windows,winsvc-windows,prometheus-app-windows,cohttp-lwt-unix-windows
