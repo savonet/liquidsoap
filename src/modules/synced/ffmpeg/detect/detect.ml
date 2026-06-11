@@ -16,12 +16,7 @@ let write_bool file value =
   close_out oc
 
 let filter_win32_libs os_type libs =
-  if os_type = "Win32" then
-    List.filter
-      (fun flag ->
-        String.length flag < 3
-        || (String.sub flag 0 3 <> "-Wl" && flag <> "-static-libgcc"))
-      libs
+  if os_type = "Win32" then List.filter (fun flag -> flag <> "-lssp") libs
   else libs
 
 let is_excluded name =
