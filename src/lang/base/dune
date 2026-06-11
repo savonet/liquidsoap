@@ -83,7 +83,7 @@
     (echo
      "let version = version ^ (if not is_snapshot then \"\" else (match git_sha with None -> \"+dev\" | Some sha -> \"+git@\" ^ sha))\n")
     (echo
-     "let version = match Sys.getenv_opt \"LIQ_VERSION\" with None -> version | Some v -> v \n")
+     "let version = match Sys.getenv_opt \"LIQUIDSOAP_BUILD_VERSION\" with None -> version | Some v -> v \n")
     (echo "let ext_exe = \"%{ocaml-config:ext_exe}\"\n")
     (echo "let architecture = \"%{ocaml-config:architecture}\"\n")
     (echo "let host = \"%{ocaml-config:host}\"\n")
