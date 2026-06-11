@@ -27,6 +27,8 @@ export LIQUIDSOAP_BUILD_TARGET=standalone
 export LIQUIDSOAP_SYS_CONFIG=mingw
 export LIQUIDSOAP_ENABLE_BUILD_CONFIG=false
 export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
+export PKG_CONFIG_PATH=/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/
+export PKG_CONFIG=/usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-pkg-config
 dune build -x windows --release _build/default.windows/src/bin/liquidsoap.exe
 
 echo "::endgroup::"
