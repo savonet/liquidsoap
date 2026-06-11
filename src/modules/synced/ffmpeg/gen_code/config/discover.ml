@@ -13,6 +13,17 @@ let packages =
 
 let default_paths = ["/usr/local/include"; "/usr/include"]
 
+let set_pkg_config_for_context context_name =
+  let sanitized =
+    String.map (fun c -> if c = '.' then '_' else c) context_name
+  in
+  (match Sys.getenv_opt ("PKG_CONFIG_PATH_" ^ sanitized) with
+    | Some path -> Unix.putenv "PKG_CONFIG_PATH" path
+    | None -> ());
+  match Sys.getenv_opt ("PKG_CONFIG_" ^ sanitized) with
+    | Some path -> Unix.putenv "PKG_CONFIG" path
+    | None -> ()
+
 let trim s =
   match String.split_on_char '\n' (String.trim s) with s :: _ -> s | _ -> s
 
@@ -33,6 +44,7 @@ let add_path c pkg_config cur package =
     | _ -> default_paths @ cur
 
 let () =
+  set_pkg_config_for_context ();
   C.main ~name:"ffmpeg-gen_code-pkg-config" (fun c ->
       let paths =
         match C.which c "pkg-config" with
