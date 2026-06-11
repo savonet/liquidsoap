@@ -59,7 +59,10 @@ let () =
       | "--context" :: context_name :: rest ->
           set_pkg_config_for_context context_name;
           rest
-      | _ -> argv
+      | _ ->
+          Option.iter set_pkg_config_for_context
+            (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET");
+          argv
   in
   match argv with
     | name :: package :: expr :: extra_cflags ->

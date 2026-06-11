@@ -27,9 +27,19 @@ let set_pkg_config_for_context context_name =
     | None -> ()
 
 let () =
-  match Array.to_list Sys.argv |> List.tl with
-    | "--context" :: context_name :: name :: packages ->
-        set_pkg_config_for_context context_name;
+  let argv = Array.to_list Sys.argv |> List.tl in
+  let argv =
+    match argv with
+      | "--context" :: context_name :: rest ->
+          set_pkg_config_for_context context_name;
+          rest
+      | _ ->
+          Option.iter set_pkg_config_for_context
+            (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET");
+          argv
+  in
+  match argv with
+    | name :: packages ->
         let open Configurator.V1 in
         let c = create "frei0r-detect" in
         let available, cflags, libs =

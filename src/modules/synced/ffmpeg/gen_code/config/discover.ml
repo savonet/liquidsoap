@@ -53,7 +53,12 @@ let () =
         Printf.eprintf "discover: PKG_CONFIG_PATH=%s\n%!"
           (Option.value ~default:"(not set)" (Sys.getenv_opt "PKG_CONFIG_PATH"));
         Arg.current := 1
-    | _ -> ());
+    | _ -> (
+        match Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET" with
+          | Some ctx ->
+              Printf.eprintf "discover: context from env=%s\n%!" ctx;
+              set_pkg_config_for_context ctx
+          | None -> ()));
   C.main ~name:"ffmpeg-gen_code-pkg-config" (fun c ->
       let paths =
         let pkg_config =

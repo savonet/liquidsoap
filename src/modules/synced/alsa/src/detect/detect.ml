@@ -27,29 +27,30 @@ let set_pkg_config_for_context context_name =
     | None -> ()
 
 let () =
-  match Array.to_list Sys.argv |> List.tl with
+  let argv = Array.to_list Sys.argv |> List.tl in
+  (match argv with
     | "--context" :: context_name :: _ ->
-        set_pkg_config_for_context context_name;
-        let open Configurator.V1 in
-        let c = create "alsa-detect" in
-        let available, cflags, libs =
-          if is_excluded "alsa" then (false, [], [])
-          else (
-            match Pkg_config.get c with
-              | None -> (false, [], [])
-              | Some pc -> (
-                  match Pkg_config.query pc ~package:"alsa" with
-                    | None -> (false, [], [])
-                    | Some conf ->
-                        let cflags =
-                          if List.mem "-fPIC" conf.cflags then conf.cflags
-                          else "-fPIC" :: conf.cflags
-                        in
-                        (true, cflags, conf.libs)))
-        in
-        write_bool "alsa_available" available;
-        write_sexp "alsa_c_flags.sexp" cflags;
-        write_sexp "alsa_c_library_flags.sexp" libs
+        set_pkg_config_for_context context_name
     | _ ->
-        Printf.eprintf "Usage: detect --context <context>\n";
-        exit 1
+        Option.iter set_pkg_config_for_context
+          (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET"));
+  let open Configurator.V1 in
+  let c = create "alsa-detect" in
+  let available, cflags, libs =
+    if is_excluded "alsa" then (false, [], [])
+    else (
+      match Pkg_config.get c with
+        | None -> (false, [], [])
+        | Some pc -> (
+            match Pkg_config.query pc ~package:"alsa" with
+              | None -> (false, [], [])
+              | Some conf ->
+                  let cflags =
+                    if List.mem "-fPIC" conf.cflags then conf.cflags
+                    else "-fPIC" :: conf.cflags
+                  in
+                  (true, cflags, conf.libs)))
+  in
+  write_bool "alsa_available" available;
+  write_sexp "alsa_c_flags.sexp" cflags;
+  write_sexp "alsa_c_library_flags.sexp" libs

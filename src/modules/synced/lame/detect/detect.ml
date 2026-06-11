@@ -47,36 +47,35 @@ int main()
 let default_flags = ["-lmp3lame"; "-lm"]
 
 let () =
-  match Array.to_list Sys.argv |> List.tl with
+  let argv = Array.to_list Sys.argv |> List.tl in
+  (match argv with
     | "--context" :: context_name :: _ ->
-        set_pkg_config_for_context context_name;
-        write_config_h ();
-        let open Configurator.V1 in
-        let c = create "lame-detect" in
-        let available, cflags, libs =
-          if is_excluded "lame" then (false, [], [])
-          else (
-            match Pkg_config.get c with
-              | Some pc -> (
-                  match Pkg_config.query pc ~package:"mp3lame" with
-                    | Some conf -> (true, conf.cflags, conf.libs)
-                    | None -> (
-                        match Pkg_config.query pc ~package:"lame" with
-                          | Some conf -> (true, conf.cflags, conf.libs)
-                          | None ->
-                              if
-                                c_test c ~link_flags:default_flags
-                                  has_lame_h_code
-                              then (true, [], default_flags)
-                              else (false, [], [])))
-              | None ->
-                  if c_test c ~link_flags:default_flags has_lame_h_code then
-                    (true, [], default_flags)
-                  else (false, [], []))
-        in
-        write_bool "lame_available" available;
-        write_sexp "lame_c_flags.sexp" cflags;
-        write_sexp "lame_c_library_flags.sexp" libs
+        set_pkg_config_for_context context_name
     | _ ->
-        Printf.eprintf "Usage: detect --context <context>\n";
-        exit 1
+        Option.iter set_pkg_config_for_context
+          (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET"));
+  write_config_h ();
+  let open Configurator.V1 in
+  let c = create "lame-detect" in
+  let available, cflags, libs =
+    if is_excluded "lame" then (false, [], [])
+    else (
+      match Pkg_config.get c with
+        | Some pc -> (
+            match Pkg_config.query pc ~package:"mp3lame" with
+              | Some conf -> (true, conf.cflags, conf.libs)
+              | None -> (
+                  match Pkg_config.query pc ~package:"lame" with
+                    | Some conf -> (true, conf.cflags, conf.libs)
+                    | None ->
+                        if c_test c ~link_flags:default_flags has_lame_h_code
+                        then (true, [], default_flags)
+                        else (false, [], [])))
+        | None ->
+            if c_test c ~link_flags:default_flags has_lame_h_code then
+              (true, [], default_flags)
+            else (false, [], []))
+  in
+  write_bool "lame_available" available;
+  write_sexp "lame_c_flags.sexp" cflags;
+  write_sexp "lame_c_library_flags.sexp" libs

@@ -40,31 +40,27 @@ int main()
 let default_flags = ["-lpulse"; "-lpulse-simple"]
 
 let () =
-  match Array.to_list Sys.argv |> List.tl with
+  let argv = Array.to_list Sys.argv |> List.tl in
+  (match argv with
     | "--context" :: context_name :: _ ->
-        set_pkg_config_for_context context_name;
-        let open Configurator.V1 in
-        let c = create "pulseaudio-detect" in
-        let available, cflags, libs =
-          if is_excluded "pulseaudio" then (false, [], [])
-          else (
-            match Pkg_config.get c with
-              | Some pc -> (
-                  match Pkg_config.query pc ~package:"libpulse" with
-                    | Some libpulse -> (
-                        match
-                          Pkg_config.query pc ~package:"libpulse-simple"
-                        with
-                          | Some libpulse_simple ->
-                              ( true,
-                                libpulse.cflags @ libpulse_simple.cflags,
-                                libpulse.libs @ libpulse_simple.libs )
-                          | None ->
-                              if
-                                c_test c ~link_flags:default_flags
-                                  has_pulseaudio_code
-                              then (true, [], default_flags)
-                              else (false, [], []))
+        set_pkg_config_for_context context_name
+    | _ ->
+        Option.iter set_pkg_config_for_context
+          (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET"));
+  let open Configurator.V1 in
+  let c = create "pulseaudio-detect" in
+  let available, cflags, libs =
+    if is_excluded "pulseaudio" then (false, [], [])
+    else (
+      match Pkg_config.get c with
+        | Some pc -> (
+            match Pkg_config.query pc ~package:"libpulse" with
+              | Some libpulse -> (
+                  match Pkg_config.query pc ~package:"libpulse-simple" with
+                    | Some libpulse_simple ->
+                        ( true,
+                          libpulse.cflags @ libpulse_simple.cflags,
+                          libpulse.libs @ libpulse_simple.libs )
                     | None ->
                         if
                           c_test c ~link_flags:default_flags has_pulseaudio_code
@@ -74,10 +70,11 @@ let () =
                   if c_test c ~link_flags:default_flags has_pulseaudio_code then
                     (true, [], default_flags)
                   else (false, [], []))
-        in
-        write_bool "pulseaudio_available" available;
-        write_sexp "pulseaudio_c_flags.sexp" cflags;
-        write_sexp "pulseaudio_c_library_flags.sexp" libs
-    | _ ->
-        Printf.eprintf "Usage: detect --context <context>\n";
-        exit 1
+        | None ->
+            if c_test c ~link_flags:default_flags has_pulseaudio_code then
+              (true, [], default_flags)
+            else (false, [], []))
+  in
+  write_bool "pulseaudio_available" available;
+  write_sexp "pulseaudio_c_flags.sexp" cflags;
+  write_sexp "pulseaudio_c_library_flags.sexp" libs
