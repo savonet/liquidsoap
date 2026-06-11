@@ -29,6 +29,7 @@ export LIQUIDSOAP_ENABLE_BUILD_CONFIG=false
 export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
 export LIQUIDSOAP_LDFLAGS="-lcurl -lwldap32 -ldl -lnghttp2 -lpsl -lssh2 -lidn2 -lzstd -lunistring -lbrotlicommon -lbrotlidec -lcrypt32 -liconv -lpthread -lz -lbcrypt -lwinmm -lksuser -link /usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/libavutil.a"
 export PKG_CONFIG_PATH_default_windows=/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig
+export PKG_CONFIG_default_windows=/usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-pkg-config
 dune build -x windows @install --release
 
 echo "::endgroup::"
