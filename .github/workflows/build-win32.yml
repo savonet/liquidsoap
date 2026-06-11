@@ -22,10 +22,6 @@ on:
 jobs:
   build_win32:
     runs-on: depot-ubuntu-24.04-4
-    strategy:
-      fail-fast: false
-      matrix:
-        system: [x64]
     container:
       image: ghcr.io/savonet/liquidsoap:ci-v2-win32-x64-5.4.1
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
@@ -34,9 +30,6 @@ jobs:
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
       TOOLPREF64: /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-
     steps:
-      - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
-        id: cpu_cores
       - name: Checkout code
         run: |
           mkdir -p /tmp/${{ github.run_number }}/win32/liquidsoap
@@ -52,7 +45,7 @@ jobs:
           chown -R opam /tmp/${{ github.run_number }}/win32/dist
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/${{ github.run_number }}/win32/liquidsoap
-          gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ inputs.branch }} "${{ steps.cpu_cores.outputs.count }}" "${{ inputs.is_rolling_release }}" "${{ inputs.is_release }}" ${{ inputs.sha }}
+          gosu opam:root ./.github/scripts/build-win32.sh
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

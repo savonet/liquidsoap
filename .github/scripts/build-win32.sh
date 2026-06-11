@@ -2,46 +2,10 @@
 
 set -e
 
-SYSTEM="$1"
-BRANCH="$2"
-CPU_CORES="$3"
-IS_ROLLING_RELEASE="$4"
-IS_RELEASE="$5"
-GITHUB_SHA="$6"
-
-VERSION="$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)"
-PWD="$(dirname "$0")"
-BASE_DIR="$(cd "${PWD}/../.." && pwd)"
-COMMIT_SHORT="$(echo "${GITHUB_SHA}" | cut -c-7)"
-
-if [ -n "${IS_ROLLING_RELEASE}" ]; then
-  TAG="${COMMIT_SHORT}-"
-elif [ -n "${IS_RELEASE}" ]; then
-  TAG=""
-else
-  TAG="${BRANCH}-"
-fi
-
-if [ "${SYSTEM}" = "x64" ]; then
-  HOST="x86_64-w64-mingw32.static"
-  BUILD="${TAG}${VERSION}-win64"
-  PKG_CONFIG_PATH="/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/"
-else
-  # shellcheck disable=SC2034
-  HOST="i686-w64-mingw32.static"
-  BUILD="${TAG}${VERSION}-win32"
-  # shellcheck disable=SC2034
-  PKG_CONFIG_PATH="/usr/src/mxe/usr/i686-w64-mingw32.static/lib/pkgconfig/"
-fi
-
-export OPAMSOLVERTIMEOUT=480
-export OPAMJOBS="$CPU_CORES"
-export CC=""
-
-echo "::endgroup::"
+export PKG_CONFIG_PATH="/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/"
+export PKG_CONFIG=x86_64-w64-mingw32.static-pkg-config
 
 echo "::group::Install liquidsoap-windows"
-unset PKG_CONFIG_PATH
 opam install -y --deps-only .github/opam/liquidsoap-windows.opam
 
 export LIQUIDSOAP_BUILD_TARGET=standalone
