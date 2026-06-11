@@ -2,10 +2,27 @@
 
 set -e
 
+BASE_DIR="$(pwd)"
+VERSION="$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)"
+COMMIT_SHORT="$(echo "${GITHUB_SHA}" | cut -c-7)"
+
+if [ -n "${IS_ROLLING_RELEASE}" ]; then
+  TAG="${COMMIT_SHORT}-"
+elif [ -n "${IS_RELEASE}" ]; then
+  TAG=""
+else
+  TAG="${BRANCH}-"
+fi
+
+BUILD="${TAG}${VERSION}-win64"
+
 export PKG_CONFIG_PATH="/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/"
 export PKG_CONFIG=x86_64-w64-mingw32.static-pkg-config
 
 echo "::group::Install liquidsoap-windows"
+
+eval "$(opam env)"
+
 opam install -y --deps-only .github/opam/liquidsoap-windows.opam
 
 export LIQUIDSOAP_BUILD_TARGET=standalone

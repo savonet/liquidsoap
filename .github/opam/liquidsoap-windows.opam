@@ -36,10 +36,6 @@ depends: [
   "curl-windows"
   "xml-light"
   "xml-light-windows"
-  "mem_usage" {>= "0.1.1"}
-  "mem_usage-windows" {>= "0.1.1"}
-  "metadata" {>= "0.3.0"}
-  "metadata-windows" {>= "0.3.0"}
   "dune-site-windows"
   "dune-build-info-windows"
   "ppx_string" {build}

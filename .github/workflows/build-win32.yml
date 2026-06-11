@@ -28,6 +28,9 @@ jobs:
     env:
       OPAM_DEPS: camomile-windows,re-windows,sedlex-windows,ssl-windows,winsvc-windows,prometheus-app-windows,cohttp-lwt-unix-windows
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
+      IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
+      IS_RELEASE: ${{ inputs.is_release }}
+      BRANCH: ${{ inputs.branch }}
       TOOLPREF64: /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-
     steps:
       - name: Checkout code
