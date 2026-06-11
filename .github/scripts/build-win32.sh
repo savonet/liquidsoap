@@ -28,7 +28,7 @@ export LIQUIDSOAP_SYS_CONFIG=mingw
 export LIQUIDSOAP_ENABLE_BUILD_CONFIG=false
 export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
 export LIQUIDSOAP_DUNE_TARGET=default.windows
-export LIQUIDSOAP_LDFLAGS="-lcurl -lssh2 -lssl -lcrypto -lsecur32 -lgdi32 -lws2_32 -lwldap32 -ldl -lnghttp2 -lpsl -lidn2 -lzstd -lunistring -lIphlpapi -lbrotlicommon -lbrotlidec -lcrypt32 -liconv -lpthread -lz -lbcrypt -lwinmm -lksuser -link /usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/libavutil.a"
+export LIQUIDSOAP_LDFLAGS="-lcurl -lssh2 -lssl -lcrypto -lsecur32 -lgdi32 -lws2_32 -lwldap32 -ldl -lnghttp2 -lpsl -lidn2 -lzstd -lunistring -liphlpapi -lbrotlicommon -lbrotlidec -lcrypt32 -liconv -lpthread -lz -lbcrypt -lwinmm -lksuser -link /usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/libavutil.a"
 dune build -x windows --release _build/default.windows/src/bin/liquidsoap.exe --verbose
 
 echo "::endgroup::"
