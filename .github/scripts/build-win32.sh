@@ -43,6 +43,7 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
+opam repo add archive git+https://github.com/ocaml/opam-repository-archive
 opam update
 opam remove -y srt-windows
 opam install -y dune.3.23.1 posix-socket.4.0.2 posix-socket-windows.4.0.2 prometheus-app-windows cohttp-lwt-unix-windows
@@ -53,6 +54,8 @@ echo "::group::Install liquidsoap-windows"
 unset PKG_CONFIG_PATH
 opam install -y .github/opam/liquidsoap-windows.opam
 echo "::endgroup::"
+
+find "${OPAM_PREFIX}"/windows-sysroot/
 
 echo "::group::Save build config"
 
