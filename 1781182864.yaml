@@ -1,0 +1,127 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.322077035904
+  unit: "s"
+  time: 1781182625.06
+  min: 0.0
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.614916086197
+  unit: "s"
+  time: 1781182625.68
+  min: 0.0
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.12071800232
+  unit: "s"
+  time: 1781182626.8
+  min: 0.0
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 2.35011410713
+  unit: "s"
+  time: 1781182629.15
+  min: 0.0
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.13355994225
+  unit: "s"
+  time: 1781182634.59
+  min: 0.0
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 9.71628499031
+  unit: "s"
+  time: 1781182645.24
+  min: 0.0
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 15.1637098789
+  unit: "s"
+  time: 1781182660.4
+  min: 0.0
+
+- name: "Memory usage: process private memory"
+  category: "memory"
+  value: 70.83203125
+  unit: "MiB"
+  time: 1781182705.8
+  min: 0.0
+
+- name: "Memory usage: process swapped memory"
+  category: "memory"
+  value: 0.0
+  unit: "MiB"
+  time: 1781182705.8
+  min: 0.0
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 127.83984375
+  unit: "MiB"
+  time: 1781182705.8
+  min: 0.0
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 1211.83984375
+  unit: "MiB"
+  time: 1781182705.8
+  min: 0.0
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 15659.359375
+  unit: "MiB"
+  time: 1781182705.8
+  min: 0.0
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 19755.3554688
+  unit: "MiB"
+  time: 1781182705.8
+  min: 0.0
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 15308.015625
+  unit: "MiB"
+  time: 1781182705.8
+  min: 0.0
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 15308.0390625
+  unit: "MiB"
+  time: 1781182705.8
+  min: 0.0
+
+- name: "functions"
+  category: "language"
+  value: 1645.0
+  unit: "functions"
+  time: 1781182705.97
+
+- name: "protocols"
+  category: "language"
+  value: 24.0
+  unit: "protocols"
+  time: 1781182705.97
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 309.679870605
+  unit: "Mio"
+  time: 1781182779.72
+  min: 0.0
+
+- commit: b611ae5943638cb865cebec3b4c1858d32a6217c
+  branch: pure-dune-build
+  time: 1781182864
