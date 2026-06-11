@@ -36,11 +36,23 @@ let split_flags flags =
         | _ -> cur)
     [] l
 
+let get_includedir c pkg_config package =
+  match C.Process.run c pkg_config ["--variable=includedir"; package] with
+    | { C.Process.exit_code; stdout; _ } when exit_code = 0 ->
+        let dir = trim stdout in
+        if dir = "" then None else Some dir
+    | _ -> None
+
 let add_path c pkg_config cur package =
   match C.Process.run c pkg_config ["--cflags-only-I"; package] with
-    | { C.Process.exit_code; stdout; _ } when exit_code = 0 ->
+    | { C.Process.exit_code; stdout; _ } when exit_code = 0 -> (
         let paths = split_flags stdout in
-        (if paths = [] then default_paths else paths) @ cur
+        match paths with
+          | [] -> (
+              match get_includedir c pkg_config package with
+                | Some dir -> dir :: cur
+                | None -> default_paths @ cur)
+          | _ -> paths @ cur)
     | _ -> default_paths @ cur
 
 let () =
