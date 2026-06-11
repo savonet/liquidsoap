@@ -44,10 +44,17 @@ let add_path c pkg_config cur package =
     | _ -> default_paths @ cur
 
 let () =
-  set_pkg_config_for_context ();
+  (match Array.to_list Sys.argv with
+    | _ :: context_name :: _ -> set_pkg_config_for_context context_name
+    | _ -> ());
   C.main ~name:"ffmpeg-gen_code-pkg-config" (fun c ->
       let paths =
-        match C.which c "pkg-config" with
+        let pkg_config =
+          match Sys.getenv_opt "PKG_CONFIG" with
+            | Some s -> Some s
+            | None -> C.which c "pkg-config"
+        in
+        match pkg_config with
           | None -> default_paths
           | Some pkg_config ->
               List.fold_left (add_path c pkg_config) [] packages
