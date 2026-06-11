@@ -10,4 +10,7 @@
  (action
   (with-stdout-to
    config.ml
-   (run ./config/discover.exe %{context_name}))))
+   (setenv
+    DUNE_CONTEXT_NAME
+    %{context_name}
+    (run ./config/discover.exe)))))
