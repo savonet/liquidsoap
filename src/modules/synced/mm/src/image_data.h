@@ -37,7 +37,7 @@
 #endif
 
 #ifdef HAS_CAML_INTERNALS
-CAMLextern value caml_mm_ba_alloc_dims(int flags, int num_dims, void *data,
+CAMLexport value caml_mm_ba_alloc_dims(int flags, int num_dims, void *data,
                                        ...);
 #else
 #define caml_mm_ba_alloc_dims caml_ba_alloc_dims
