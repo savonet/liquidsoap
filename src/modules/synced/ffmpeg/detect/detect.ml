@@ -22,7 +22,7 @@ let filter_win32_libs os_type libs =
         String.length flag < 3
         || (String.sub flag 0 3 <> "-Wl" && flag <> "-static-libgcc"))
       libs
-    @ ["--allow-multiple-definition"]
+    @ ["-Wl,--allow-multiple-definition"]
   else libs
 
 let is_excluded name =
