@@ -60,29 +60,20 @@ let () =
   (match Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET" with
     | Some ctx -> set_pkg_config_for_context ctx
     | None -> Option.iter set_pkg_config_for_context context);
-  match argv with
-    | name :: packages ->
-        let open Configurator.V1 in
-        let c = create "srt-detect" in
-        let available, cflags, libs =
-          if is_excluded name then (false, [], [])
-          else (
-            match Pkg_config.get c with
+  let open Configurator.V1 in
+  let c = create "srt-detect" in
+  let available, cflags, libs =
+    if is_excluded "srt" then (false, [], [])
+    else (
+      match Pkg_config.get c with
+        | None -> (false, [], [])
+        | Some pc -> (
+            match Pkg_config.query pc ~package:(String.concat " " argv) with
               | None -> (false, [], [])
-              | Some pc -> (
-                  match
-                    Pkg_config.query pc ~package:(String.concat " " packages)
-                  with
-                    | None -> (false, [], [])
-                    | Some conf -> (true, conf.cflags, conf.libs)))
-        in
-        let libs = filter_win32_libs os_type libs in
-        write_bool (name ^ "_available") available;
-        write_sexp (name ^ "_c_flags.sexp") cflags;
-        write_lines (name ^ "_c_flags") cflags;
-        write_sexp (name ^ "_c_library_flags.sexp") libs
-    | _ ->
-        Printf.eprintf
-          "Usage: detect --os-type <type> --context <context> <name> \
-           <package...>\n";
-        exit 1
+              | Some conf -> (true, conf.cflags, conf.libs)))
+  in
+  let libs = filter_win32_libs os_type libs in
+  write_bool "srt_available" available;
+  write_sexp "srt_c_flags.sexp" cflags;
+  write_lines "srt_c_flags" cflags;
+  write_sexp "srt_c_library_flags.sexp" libs
