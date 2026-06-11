@@ -15,12 +15,15 @@ let is_excluded name =
     | None -> false
     | Some excluded -> List.mem name (String.split_on_char ' ' excluded)
 
-let set_pkg_config_path_for_context context_name =
+let set_pkg_config_for_context context_name =
   let sanitized =
     String.map (fun c -> if c = '.' then '_' else c) context_name
   in
-  match Sys.getenv_opt ("PKG_CONFIG_PATH_" ^ sanitized) with
+  (match Sys.getenv_opt ("PKG_CONFIG_PATH_" ^ sanitized) with
     | Some path -> Unix.putenv "PKG_CONFIG_PATH" path
+    | None -> ());
+  match Sys.getenv_opt ("PKG_CONFIG_" ^ sanitized) with
+    | Some path -> Unix.putenv "PKG_CONFIG" path
     | None -> ()
 
 let has_pulseaudio_code =
@@ -39,7 +42,7 @@ let default_flags = ["-lpulse"; "-lpulse-simple"]
 let () =
   match Array.to_list Sys.argv |> List.tl with
     | "--context" :: context_name :: _ ->
-        set_pkg_config_path_for_context context_name;
+        set_pkg_config_for_context context_name;
         let open Configurator.V1 in
         let c = create "pulseaudio-detect" in
         let available, cflags, libs =

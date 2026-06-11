@@ -17,7 +17,7 @@ fi
 BUILD="${TAG}${VERSION}-win64"
 
 export PKG_CONFIG_PATH_default_windows="/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/"
-export PKG_CONFIG=x86_64-w64-mingw32.static-pkg-config
+export PKG_CONFIG_default_windows=x86_64-w64-mingw32.static-pkg-config
 
 echo "::group::Install liquidsoap-windows"
 
