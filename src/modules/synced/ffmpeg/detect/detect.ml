@@ -20,9 +20,9 @@ let filter_win32_libs os_type libs =
     List.filter
       (fun flag ->
         String.length flag < 3
-        || (String.sub flag 0 3 <> "-Wl" && flag <> "-static-libgcc"))
+        || String.sub flag 0 3 <> "-Wl"
+           && flag <> "-static-libgcc" && flag <> "-lssp")
       libs
-    @ ["-Wl,--allow-multiple-definition"]
   else libs
 
 let is_excluded name =
