@@ -47,6 +47,11 @@ let set_pkg_config_for_context context_name =
 
 let () =
   let argv = Array.to_list Sys.argv |> List.tl in
+  let os_type, argv =
+    match argv with
+      | "--os-type" :: v :: rest -> (v, rest)
+      | _ -> (Sys.os_type, argv)
+  in
   let context, argv =
     match argv with
       | "--context" :: ctx :: rest -> (Some ctx, rest)
@@ -71,11 +76,13 @@ let () =
                     | None -> (false, [], [])
                     | Some conf -> (true, conf.cflags, conf.libs)))
         in
-        let libs = filter_win32_libs Sys.os_type libs in
+        let libs = filter_win32_libs os_type libs in
         write_bool (name ^ "_available") available;
         write_sexp (name ^ "_c_flags.sexp") cflags;
         write_lines (name ^ "_c_flags") cflags;
         write_sexp (name ^ "_c_library_flags.sexp") libs
     | _ ->
-        Printf.eprintf "Usage: detect --context <context> <name> <package...>\n";
+        Printf.eprintf
+          "Usage: detect --os-type <type> --context <context> <name> \
+           <package...>\n";
         exit 1
