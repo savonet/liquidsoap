@@ -21,7 +21,7 @@ let filter_win32_libs os_type libs =
       (fun flag ->
         String.length flag < 3
         || String.sub flag 0 3 <> "-Wl"
-           && flag <> "-static-libgcc" && flag <> "-lssp")
+           && flag <> "-static-libgcc" && flag <> "-lssp" && flag <> "-lmingw32")
       libs
   else libs
 

@@ -19,6 +19,16 @@ let write_bool file value =
   output_string oc (if value then "true" else "false");
   close_out oc
 
+let filter_win32_libs os_type libs =
+  if os_type = "Win32" then
+    List.filter
+      (fun flag ->
+        String.length flag < 3
+        || String.sub flag 0 3 <> "-Wl"
+           && flag <> "-static-libgcc" && flag <> "-lssp" && flag <> "-lmingw32")
+      libs
+  else libs
+
 let is_excluded name =
   match Sys.getenv_opt "LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS" with
     | None -> false
@@ -61,6 +71,7 @@ let () =
                     | None -> (false, [], [])
                     | Some conf -> (true, conf.cflags, conf.libs)))
         in
+        let libs = filter_win32_libs Sys.os_type libs in
         write_bool (name ^ "_available") available;
         write_sexp (name ^ "_c_flags.sexp") cflags;
         write_lines (name ^ "_c_flags") cflags;
