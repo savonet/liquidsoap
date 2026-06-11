@@ -16,7 +16,7 @@ fi
 
 BUILD="${TAG}${VERSION}-win64"
 
-echo "::group::Install liquidsoap-windows"
+echo "::group::Build liquidsoap-windows"
 
 eval "$(opam env)"
 
