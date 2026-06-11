@@ -27,7 +27,7 @@ export LIQUIDSOAP_BUILD_TARGET=standalone
 export LIQUIDSOAP_SYS_CONFIG=mingw
 export LIQUIDSOAP_ENABLE_BUILD_CONFIG=false
 export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
-dune build -x windows --release _build/default.windows/src/bin/liquidsoap.exe
+dune build -x windows --release --target-exec windows=wine _build/default.windows/src/bin/liquidsoap.exe
 
 echo "::endgroup::"
 
