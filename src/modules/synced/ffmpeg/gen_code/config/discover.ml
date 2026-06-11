@@ -46,20 +46,36 @@ let add_path c pkg_config cur package =
 let () =
   (match Array.to_list Sys.argv with
     | _ :: context_name :: _ ->
+        Printf.eprintf "discover: context=%s\n%!" context_name;
         set_pkg_config_for_context context_name;
+        Printf.eprintf "discover: PKG_CONFIG=%s\n%!"
+          (Option.value ~default:"(not set)" (Sys.getenv_opt "PKG_CONFIG"));
+        Printf.eprintf "discover: PKG_CONFIG_PATH=%s\n%!"
+          (Option.value ~default:"(not set)" (Sys.getenv_opt "PKG_CONFIG_PATH"));
         Arg.current := 1
     | _ -> ());
   C.main ~name:"ffmpeg-gen_code-pkg-config" (fun c ->
       let paths =
         let pkg_config =
           match Sys.getenv_opt "PKG_CONFIG" with
-            | Some s -> Some s
-            | None -> C.which c "pkg-config"
+            | Some s ->
+                Printf.eprintf "discover: using PKG_CONFIG=%s\n%!" s;
+                Some s
+            | None ->
+                let found = C.which c "pkg-config" in
+                Printf.eprintf "discover: pkg-config from PATH=%s\n%!"
+                  (Option.value ~default:"(not found)" found);
+                found
         in
         match pkg_config with
-          | None -> default_paths
+          | None ->
+              Printf.eprintf "discover: no pkg-config found, using defaults\n%!";
+              default_paths
           | Some pkg_config ->
-              List.fold_left (add_path c pkg_config) [] packages
+              let paths = List.fold_left (add_path c pkg_config) [] packages in
+              Printf.eprintf "discover: found paths: %s\n%!"
+                (String.concat ", " paths);
+              paths
       in
       let paths =
         List.map
