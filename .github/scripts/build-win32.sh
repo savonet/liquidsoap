@@ -25,6 +25,7 @@ eval "$(opam env)"
 
 opam install -y --deps-only .github/opam/liquidsoap-windows.opam
 
+export LIQUIDSOAP_BUILD_VERSION="${TAG}${VERSION}"
 export LIQUIDSOAP_BUILD_TARGET=standalone
 export LIQUIDSOAP_SYS_CONFIG=mingw
 export LIQUIDSOAP_ENABLE_BUILD_CONFIG=false
