@@ -62,41 +62,23 @@ let () =
           Option.value ~default:context_name
             (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET")
         in
-        Printf.eprintf "discover: context=%s\n%!" context;
         set_pkg_config_for_context context;
-        Printf.eprintf "discover: PKG_CONFIG=%s\n%!"
-          (Option.value ~default:"(not set)" (Sys.getenv_opt "PKG_CONFIG"));
-        Printf.eprintf "discover: PKG_CONFIG_PATH=%s\n%!"
-          (Option.value ~default:"(not set)" (Sys.getenv_opt "PKG_CONFIG_PATH"));
         Arg.current := 1
     | _ -> (
         match Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET" with
-          | Some ctx ->
-              Printf.eprintf "discover: context from env=%s\n%!" ctx;
-              set_pkg_config_for_context ctx
+          | Some ctx -> set_pkg_config_for_context ctx
           | None -> ()));
   C.main ~name:"ffmpeg-gen_code-pkg-config" (fun c ->
       let paths =
         let pkg_config =
           match Sys.getenv_opt "PKG_CONFIG" with
-            | Some s ->
-                Printf.eprintf "discover: using PKG_CONFIG=%s\n%!" s;
-                Some s
-            | None ->
-                let found = C.which c "pkg-config" in
-                Printf.eprintf "discover: pkg-config from PATH=%s\n%!"
-                  (Option.value ~default:"(not found)" found);
-                found
+            | Some s -> Some s
+            | None -> C.which c "pkg-config"
         in
         match pkg_config with
-          | None ->
-              Printf.eprintf "discover: no pkg-config found, using defaults\n%!";
-              default_paths
+          | None -> default_paths
           | Some pkg_config ->
-              let paths = List.fold_left (add_path c pkg_config) [] packages in
-              Printf.eprintf "discover: found paths: %s\n%!"
-                (String.concat ", " paths);
-              paths
+              List.fold_left (add_path c pkg_config) [] packages
       in
       let paths =
         List.map

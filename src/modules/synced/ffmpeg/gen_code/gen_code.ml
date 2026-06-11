@@ -18,10 +18,6 @@ let include_paths =
         else cur)
       Config.paths c_flags
   in
-  Printf.eprintf "gen_code: Config.paths=%s\n%!"
-    (String.concat ", " Config.paths);
-  Printf.eprintf "gen_code: c_flags=%s\n%!" (String.concat " " c_flags);
-  Printf.eprintf "gen_code: include_paths=%s\n%!" (String.concat ", " paths);
   paths
 
 let if_d d fn = match d with None -> () | Some d -> fn d
