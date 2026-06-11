@@ -44,9 +44,9 @@ let add_path c pkg_config cur package =
     | _ -> default_paths @ cur
 
 let () =
-  (match Sys.getenv_opt "DUNE_CONTEXT_NAME" with
-    | Some context_name -> set_pkg_config_for_context context_name
-    | None -> ());
+  (match Array.to_list Sys.argv with
+    | _ :: context_name :: _ -> set_pkg_config_for_context context_name
+    | _ -> ());
   C.main ~name:"ffmpeg-gen_code-pkg-config" (fun c ->
       let paths =
         let pkg_config =
