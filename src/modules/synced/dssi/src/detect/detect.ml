@@ -28,12 +28,13 @@ let set_pkg_config_for_context context_name =
 
 let () =
   let argv = Array.to_list Sys.argv |> List.tl in
-  (match argv with
-    | "--context" :: context_name :: _ ->
-        set_pkg_config_for_context context_name
-    | _ ->
-        Option.iter set_pkg_config_for_context
-          (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET"));
+  (match Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET" with
+    | Some ctx -> set_pkg_config_for_context ctx
+    | None -> (
+        match argv with
+          | "--context" :: context_name :: _ ->
+              set_pkg_config_for_context context_name
+          | _ -> ()));
   let open Configurator.V1 in
   let c = create "dssi-detect" in
   let available, cflags, libs =

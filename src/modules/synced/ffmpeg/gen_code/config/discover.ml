@@ -46,8 +46,12 @@ let add_path c pkg_config cur package =
 let () =
   (match Array.to_list Sys.argv with
     | _ :: context_name :: _ ->
-        Printf.eprintf "discover: context=%s\n%!" context_name;
-        set_pkg_config_for_context context_name;
+        let context =
+          Option.value ~default:context_name
+            (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET")
+        in
+        Printf.eprintf "discover: context=%s\n%!" context;
+        set_pkg_config_for_context context;
         Printf.eprintf "discover: PKG_CONFIG=%s\n%!"
           (Option.value ~default:"(not set)" (Sys.getenv_opt "PKG_CONFIG"));
         Printf.eprintf "discover: PKG_CONFIG_PATH=%s\n%!"

@@ -37,16 +37,14 @@ let set_pkg_config_for_context context_name =
 
 let () =
   let argv = Array.to_list Sys.argv |> List.tl in
-  let argv =
+  let context, argv =
     match argv with
-      | "--context" :: context_name :: rest ->
-          set_pkg_config_for_context context_name;
-          rest
-      | _ ->
-          Option.iter set_pkg_config_for_context
-            (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET");
-          argv
+      | "--context" :: ctx :: rest -> (Some ctx, rest)
+      | _ -> (None, argv)
   in
+  (match Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET" with
+    | Some ctx -> set_pkg_config_for_context ctx
+    | None -> Option.iter set_pkg_config_for_context context);
   match argv with
     | name :: packages ->
         let open Configurator.V1 in

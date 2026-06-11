@@ -57,7 +57,11 @@ let () =
   let argv =
     match argv with
       | "--context" :: context_name :: rest ->
-          set_pkg_config_for_context context_name;
+          let context =
+            Option.value ~default:context_name
+              (Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET")
+          in
+          set_pkg_config_for_context context;
           rest
       | _ ->
           Option.iter set_pkg_config_for_context
