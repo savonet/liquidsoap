@@ -121,4 +121,13 @@ export LIBRARY_PATH=/opt/homebrew/lib
 
 ## Installing from source
 
-See the [build instructions](build.html)
+To install liquidsoap from a local source checkout using opam, pin the repository and let opam handle the build and install:
+
+```shell
+git clone https://github.com/savonet/liquidsoap.git
+cd liquidsoap
+opam pin -ny .
+opam install liquidsoap
+```
+
+For a developer build using dune directly, see the [build instructions](build.html).

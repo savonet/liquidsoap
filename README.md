@@ -30,9 +30,69 @@ Copyright 2003-2026 Savonet team
 | IRC (deprecated)          | #savonet on [irc.libera.chat](https://libera.chat/) (w/ discord bridge) |
 | Mailing list (deprecated) | savonet-users@lists.sourceforge.net                                     |
 
-## Installation
+## Installation and Building from Source
 
-See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.html).
+Full installation and build instructions are available [here](https://www.liquidsoap.info/doc.html?path=install.html). For quick reference:
+
+Liquidsoap uses [dune](https://dune.build) as its build system and [opam](https://opam.ocaml.org) for package management. OCaml ≥ 4.14 and dune ≥ 3.23 are required.
+
+### Developer build
+
+Install dependencies, then build everything directly with dune:
+
+```sh
+opam install --deps-only ./opam/liquidsoap.opam ./opam/liquidsoap-lang.opam
+dune build
+```
+
+The `./liquidsoap` wrapper at the repo root runs the binary straight from the build tree with the standard library pointed at `src/libs/`, so no install step is needed:
+
+```sh
+./liquidsoap your_script.liq
+```
+
+### Install from source via opam
+
+To register the local source tree with opam without installing it yet (useful when you want to test against local changes before publishing):
+
+```sh
+opam pin -ny .
+opam install liquidsoap
+```
+
+### Optional packages
+
+`src/modules/synced/` contains OCaml bindings for optional C libraries (ffmpeg, alsa, jack, pulseaudio, srt, lame, flac, etc.). Each is also published independently on the opam repository under the same name and can be installed separately with `opam install <name>`. When building with dune from the top level, all available ones are compiled automatically.
+
+### Build targets
+
+| Target                | Description                                  |
+| --------------------- | -------------------------------------------- |
+| `dune build`          | Build everything                             |
+| `dune build @install` | Build installable targets                    |
+| `dune build @citest`  | Run language, regression and streaming tests |
+| `dune build @runtest` | Run the standard test suite                  |
+| `dune build @doctest` | Run documentation examples                   |
+
+### Environment variables
+
+| Variable                              | Default       | Description                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LIQUIDSOAP_BUILD_TARGET`             | `default`     | Path resolution mode at runtime. `default`: paths resolved via dune-site (standard opam install). `standalone`: all paths relative to the binary (for zip/tarball distributions such as the Windows build). `posix`: hardcoded FHS paths (`/usr/share/liquidsoap`, `/var/log/liquidsoap`, etc.) for system package builds. |
+| `LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL` | `false`       | Set to `true` to make `dune build @install` succeed even when optional C libraries are not available.                                                                                                                                                                                                                      |
+| `LIQUIDSOAP_BUILD_VERSION`            | _(from opam)_ | Override the version string displayed by `liquidsoap --version`.                                                                                                                                                                                                                                                           |
+| `LIQUIDSOAP_LDFLAGS`                  | _(empty)_     | Extra flags passed to the C linker when linking the liquidsoap binary. Useful to force-link specific libraries when diagnosing build failures.                                                                                                                                                                             |
+
+The `posix` target also respects these path overrides (baked in at compile time):
+
+| Variable                  | Default                          |
+| ------------------------- | -------------------------------- |
+| `LIQUIDSOAP_LIBS_DIR`     | `/usr/share/liquidsoap/libs`     |
+| `LIQUIDSOAP_BIN_DIR`      | `/usr/share/liquidsoap/bin`      |
+| `LIQUIDSOAP_CAMOMILE_DIR` | `/usr/share/liquidsoap/camomile` |
+| `LIQUIDSOAP_LOG_DIR`      | `/var/log/liquidsoap`            |
+| `LIQUIDSOAP_RUN_DIR`      | `/var/run/liquidsoap`            |
+| `LIQUIDSOAP_CACHE_DIR`    | `/var/cache/liquidsoap`          |
 
 ## Release Details
 

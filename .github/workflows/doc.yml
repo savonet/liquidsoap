@@ -32,7 +32,7 @@ jobs:
           path: /tmp/${{ github.run_number }}/js-artifacts
       - name: Checkout code
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
+          cd /tmp/liquidsoap
           rm -rf doc/content/build.md doc/content/install.md _build/default/src/js
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ inputs.sha }}
@@ -41,8 +41,7 @@ jobs:
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
+          cd /tmp/liquidsoap
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           sudo -u opam -E ./.github/scripts/build-doc.sh
           mkdir -p /tmp/${{ github.run_number }}/odoc

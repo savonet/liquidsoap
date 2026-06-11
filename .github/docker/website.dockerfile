@@ -1,4 +1,4 @@
-FROM savonet/liquidsoap-ci:debian_trixie_amd64
+FROM ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.4.0
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
@@ -14,48 +14,22 @@ RUN apt-get -y install libcurl4-gnutls-dev
 
 USER opam
 
+WORKDIR /tmp
+
+RUN git clone --recurse-submodules=no https://github.com/savonet/liquidsoap-full.git
+
 WORKDIR /tmp/liquidsoap-full
 
-RUN rm -rf website/savonet.github.io
-
-RUN git remote set-url origin https://github.com/savonet/liquidsoap-full.git && \
-    git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git && \
-    git reset --hard && \
-    git pull && \
-    git submodule init ocaml-metadata && \
-    git submodule update ocaml-metadata && \
-    make public
-
-RUN eval "$(opam config env)" && make clean
-
-RUN eval "$(opam config env)" && cd ocaml-metadata && opam install -y . fileutils
+# Clone liquidsoap into the location the website Makefile expects
+RUN rm -rf liquidsoap && \
+    git clone https://github.com/savonet/liquidsoap.git
 
 RUN eval "$(opam config env)" && \
-    git clone https://github.com/savonet/ocaml-posix.git && \
-    cd ocaml-posix && \
-    opam install -y .
-
-RUN cd liquidsoap && \
-    mv .git /tmp && \
-    rm -rf * && \
-    mv /tmp/.git . && \
-    git reset --hard
-
-RUN make public && make update
-
-# TODO: Remove gstreamer from liquidsoap-full
-RUN cat PACKAGES.default | grep -v gstreamer > PACKAGES
-
-RUN eval "$(opam config env)" && \
-    export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig && \
-    touch liquidsoap/configure && \
-    ./configure --enable-graphics && \
-    rm liquidsoap/configure && \
-    export OCAMLPATH="$(cat .ocamlpath)" && \
+    export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/share/pkgconfig/pkgconfig && \
     cd liquidsoap && \
     dune build && \
     dune build --release src/js
 
 WORKDIR /tmp/liquidsoap-full/website
 
-RUN eval "$(opam config env)" && opam install -y odoc && make clean  && git pull && make dist
+RUN eval "$(opam config env)" && opam install -y odoc && make clean && git pull && make dist

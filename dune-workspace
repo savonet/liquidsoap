@@ -1,0 +1,8 @@
+(lang dune 3.23)
+
+(context
+ (default
+  (env
+   (_
+    (env-vars
+     (LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL true))))))

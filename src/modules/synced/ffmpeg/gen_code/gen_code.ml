@@ -8,14 +8,17 @@ let c_flags =
   else []
 
 let include_paths =
-  List.fold_left
-    (fun cur flag ->
-      let len = String.length flag in
-      if len > 2 && String.sub flag 0 2 = "-I" then (
-        let path = String.sub flag 2 (len - 2) in
-        if not (List.mem path cur) then path :: cur else cur)
-      else cur)
-    Config.paths c_flags
+  let paths =
+    List.fold_left
+      (fun cur flag ->
+        let len = String.length flag in
+        if len > 2 && String.sub flag 0 2 = "-I" then (
+          let path = String.sub flag 2 (len - 2) in
+          if not (List.mem path cur) then path :: cur else cur)
+        else cur)
+      Config.paths c_flags
+  in
+  paths
 
 let if_d d fn = match d with None -> () | Some d -> fn d
 

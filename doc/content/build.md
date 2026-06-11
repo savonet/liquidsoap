@@ -90,6 +90,24 @@ the latest version when compiling the latest `liquidsoap` code. You may also hav
 branch when compiling `liquidsoap` from a specific development branch when the changes in the liquidsoap code are paired with
 changes in one of our dependencies. Typically, this happens a lof with the `ffmpeg` binding.
 
+## Optional packages
+
+Liquidsoap’s support for audio/video codecs, I/O backends, and other features is provided by optional OCaml packages. These live under
+`src/modules/synced/` in the repository and are also published independently on the opam repository (e.g. `ffmpeg`, `alsa`, `jack`,
+`pulseaudio`, `srt`, `lame`, `flac`, `opus`, `vorbis`, `samplerate`, `soundtouch`, etc.).
+
+When building with `dune` from the top-level repository, all packages whose C library dependencies are detected on the system are
+compiled automatically — no manual pinning is required. If a C library is missing, the corresponding package is simply skipped
+(unless `LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL` is set to `false`, in which case the build will report it as an error).
+
+You can install the optional packages independently via opam as well:
+
+```shell
+opam install ffmpeg opus vorbis flac samplerate
+```
+
+Run `opam info liquidsoap` to see the full list of optional dependencies and what each one provides.
+
 ## Environment variables
 
 When compiling Liquidsoap from source, certain environment variables can be set to control the build process and customize the build
@@ -98,12 +116,11 @@ configuration. Here’s a brief overview of the relevant environment variables a
 - `IS_SNAPSHOT`: Set this variable to indicate whether you are building a snapshot version of Liquidsoap. It affects the version suffix and
   whether the Git commit is displayed.
 - `LIQ_GIT_SHA`: Override Git commit hash (SHA) if the build system cannot automatically extract it from the repository.
-- `LIQ_VERSION`: Override the displayed version of Liquidsoap.
-- `LIQUIDSOAP_ENABLE_BUILD_CONFIG`: Determines whether the build configuration details are displayed during the build process.
+- `LIQUIDSOAP_BUILD_VERSION`: Override the displayed version of Liquidsoap.
 - `LIQUIDSOAP_BUILD_TARGET`: Controls the runtime lookup paths for Liquidsoap components.
   - Set to `default`: Uses paths detected in the OPAM switch directory.
-  - Set to `standalone`: Uses paths relative to the binary location, ideal for self-contained deployments.
-  - Set to `posix`: Configures paths to standard system directories. The following environment variables can be used to
+  - Set to `standalone`: Uses paths relative to the binary location, ideal for self-contained deployments (zip/tarball distributions).
+  - Set to `posix`: Configures paths to standard system directories, for use by OS package maintainers. The following environment variables can be used to
     override individual paths when using the `posix` target (defaults shown):
     - `LIQUIDSOAP_RUN_DIR` (default: `/var/run/liquidsoap`): Runtime/PID file directory.
     - `LIQUIDSOAP_LOG_DIR` (default: `/var/log/liquidsoap`): Log file directory.
@@ -111,10 +128,20 @@ configuration. Here’s a brief overview of the relevant environment variables a
     - `LIQUIDSOAP_BIN_DIR` (default: `/usr/share/liquidsoap/bin`): Liquidsoap binary scripts directory.
     - `LIQUIDSOAP_CAMOMILE_DIR` (default: `/usr/share/liquidsoap/camomile`): Camomile charset data directory.
     - `LIQUIDSOAP_CACHE_DIR` (default: `/var/cache/liquidsoap`): System cache directory.
+- `LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL`: Set to `true` to allow `dune build @install` to succeed even when optional C libraries are
+  not available on the system. Useful when building in environments where not all optional dependencies are present.
+- `LIQUIDSOAP_LDFLAGS`: Extra flags passed to the C linker when linking the liquidsoap binary. Useful to force-link specific libraries
+  when diagnosing build failures or building in non-standard environments.
 
 ## Compiling
 
-Once you have all dependencies installed, you should be able to compile via:
+First, install the dependencies:
+
+```shell
+opam install --deps-only ./opam/liquidsoap.opam ./opam/liquidsoap-lang.opam
+```
+
+Then build:
 
 ```shell
 dune build

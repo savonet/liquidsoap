@@ -10,13 +10,11 @@ options="!check textrels"
 depends="sdl2 sdl2_image sdl2_ttf"
 
 package() {
-        eval "$(opam env)"
-        cd liquidsoap
+        eval "$(opam config env)"
+        cd /tmp/liquidsoap
 
         export LIQUIDSOAP_BUILD_TARGET=posix
         export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
-        eval "$(opam config env)"
-        export OCAMLPATH=$(cat ../.ocamlpath)
         dune build @install --release
         dune install --relocatable --prefix "${pkgdir}/usr"
 

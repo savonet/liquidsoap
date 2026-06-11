@@ -2,17 +2,8 @@
 
 set -e
 
-SYSTEM="$1"
-BRANCH="$2"
-CPU_CORES="$3"
-IS_ROLLING_RELEASE="$4"
-IS_RELEASE="$5"
-GITHUB_SHA="$6"
-
-OPAM_PREFIX="$(opam var prefix)"
+BASE_DIR="$(pwd)"
 VERSION="$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)"
-PWD="$(dirname "$0")"
-BASE_DIR="$(cd "${PWD}/../.." && pwd)"
 COMMIT_SHORT="$(echo "${GITHUB_SHA}" | cut -c-7)"
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
@@ -23,41 +14,28 @@ else
   TAG="${BRANCH}-"
 fi
 
-if [ "${SYSTEM}" = "x64" ]; then
-  HOST="x86_64-w64-mingw32.static"
-  BUILD="${TAG}${VERSION}-win64"
-  PKG_CONFIG_PATH="/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/"
-else
-  # shellcheck disable=SC2034
-  HOST="i686-w64-mingw32.static"
-  BUILD="${TAG}${VERSION}-win32"
-  # shellcheck disable=SC2034
-  PKG_CONFIG_PATH="/usr/src/mxe/usr/i686-w64-mingw32.static/lib/pkgconfig/"
-fi
+BUILD="${TAG}${VERSION}-win64"
 
-export OPAMSOLVERTIMEOUT=480
-export OPAMJOBS="$CPU_CORES"
-export CC=""
+echo "::group::Build liquidsoap-windows"
 
-echo "::group::Installing deps"
+eval "$(opam env)"
 
-eval "$(opam config env)"
-opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
-opam remove -y ffmpeg-windows ffmpeg-avutil-windows srt-windows
-opam update
+opam install -y --deps-only .github/opam/liquidsoap-windows.opam
 
-opam install -y dune.3.23.1 posix-socket.3.0.0 prometheus-app-windows cohttp-lwt-unix-windows fdkaac-windows
+export LIQUIDSOAP_BUILD_VERSION="${TAG}${VERSION}"
+export LIQUIDSOAP_BUILD_TARGET=standalone
+export LIQUIDSOAP_SYS_CONFIG=mingw
+export LIQUIDSOAP_ENABLE_BUILD_CONFIG=false
+export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
+export LIQUIDSOAP_DUNE_TARGET=default.windows
+export LIQUIDSOAP_LDFLAGS="-lcurl -lssh2 -lsecur32 -lpsl -liphlpapi -lnghttp2 -lwldap32 -link /usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/libavutil.a"
+dune build -x windows --release _build/default.windows/src/bin/liquidsoap.exe --verbose
 
-echo "::endgroup::"
-
-echo "::group::Install liquidsoap-windows"
-unset PKG_CONFIG_PATH
-opam install -y liquidsoap-windows
 echo "::endgroup::"
 
 echo "::group::Save build config"
 
-wine "${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap" --build-config >> "/tmp/${GITHUB_RUN_NUMBER}/win32/dist/liquidsoap-$BUILD.config"
+wine "${BASE_DIR}/_build/default.windows/src/bin/liquidsoap.exe" --build-config >> "/tmp/${GITHUB_RUN_NUMBER}/win32/dist/liquidsoap-$BUILD.config"
 
 echo "Build config:"
 
@@ -71,7 +49,7 @@ cd ~
 cp -R "${BASE_DIR}/.github/win32" "liquidsoap-$BUILD"
 cp -R "${BASE_DIR}/src/libs" "liquidsoap-$BUILD"
 cd "liquidsoap-$BUILD"
-cp "${OPAM_PREFIX}"/windows-sysroot/bin/liquidsoap ./liquidsoap.exe
+cp "${BASE_DIR}/_build/default.windows/src/bin/liquidsoap.exe" ./liquidsoap.exe
 cp -R "$(ocamlfind -toolchain windows ocamlc -where)/../../share/camomile" .
 cd ..
 zip -r "liquidsoap-$BUILD.zip" "liquidsoap-$BUILD"

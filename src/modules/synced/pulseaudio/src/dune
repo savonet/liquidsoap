@@ -10,6 +10,7 @@
   (language c)
   (names pulseaudio_stubs)
   (flags
+   (:standard -DCAML_NAME_SPACE)
    (:include ./detect/pulseaudio_c_flags.sexp)))
  (c_library_flags
   (:include ./detect/pulseaudio_c_library_flags.sexp)))

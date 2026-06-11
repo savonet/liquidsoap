@@ -14,7 +14,7 @@ let () =
 (rule
  (targets srt_available srt_c_flags.sexp srt_c_flags srt_c_library_flags.sexp)
  (action
-  (run ./detect.exe --context %{context_name} srt srt)))
+  (run ./detect.exe --os-type %{os_type} --context %{context_name} srt)))
 |}
         else
           print_string

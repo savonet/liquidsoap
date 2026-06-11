@@ -5,6 +5,7 @@
  (enabled_if
   (= %{read:./detect/faad_available} true))
  (modules faad)
+ (libraries unix)
  (foreign_stubs
   (language c)
   (names faad_stubs mp4atom mp4ff mp4meta mp4sample mp4tagupdate mp4util)

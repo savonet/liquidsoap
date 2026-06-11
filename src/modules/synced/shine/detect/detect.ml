@@ -22,34 +22,39 @@ let is_excluded name =
     | None -> false
     | Some excluded -> List.mem name (String.split_on_char ' ' excluded)
 
-let set_pkg_config_path_for_context context_name =
+let set_pkg_config_for_context context_name =
   let sanitized =
     String.map (fun c -> if c = '.' then '_' else c) context_name
   in
-  match Sys.getenv_opt ("PKG_CONFIG_PATH_" ^ sanitized) with
+  (match Sys.getenv_opt ("PKG_CONFIG_PATH_" ^ sanitized) with
     | Some path -> Unix.putenv "PKG_CONFIG_PATH" path
+    | None -> ());
+  match Sys.getenv_opt ("PKG_CONFIG_" ^ sanitized) with
+    | Some path -> Unix.putenv "PKG_CONFIG" path
     | None -> ()
 
 let () =
-  match Array.to_list Sys.argv |> List.tl with
-    | "--context" :: context_name :: _ ->
-        set_pkg_config_path_for_context context_name;
-        write_config_h ();
-        let open Configurator.V1 in
-        let c = create "shine-detect" in
-        let available, cflags, libs =
-          if is_excluded "shine" then (false, [], [])
-          else (
-            match Pkg_config.get c with
+  let argv = Array.to_list Sys.argv |> List.tl in
+  (match Sys.getenv_opt "LIQUIDSOAP_DUNE_TARGET" with
+    | Some ctx -> set_pkg_config_for_context ctx
+    | None -> (
+        match argv with
+          | "--context" :: context_name :: _ ->
+              set_pkg_config_for_context context_name
+          | _ -> ()));
+  write_config_h ();
+  let open Configurator.V1 in
+  let c = create "shine-detect" in
+  let available, cflags, libs =
+    if is_excluded "shine" then (false, [], [])
+    else (
+      match Pkg_config.get c with
+        | None -> (false, [], [])
+        | Some pc -> (
+            match Pkg_config.query pc ~package:"shine" with
               | None -> (false, [], [])
-              | Some pc -> (
-                  match Pkg_config.query pc ~package:"shine" with
-                    | None -> (false, [], [])
-                    | Some conf -> (true, conf.cflags, conf.libs)))
-        in
-        write_bool "shine_available" available;
-        write_sexp "shine_c_flags.sexp" cflags;
-        write_sexp "shine_c_library_flags.sexp" libs
-    | _ ->
-        Printf.eprintf "Usage: detect --context <context>\n";
-        exit 1
+              | Some conf -> (true, conf.cflags, conf.libs)))
+  in
+  write_bool "shine_available" available;
+  write_sexp "shine_c_flags.sexp" cflags;
+  write_sexp "shine_c_library_flags.sexp" libs

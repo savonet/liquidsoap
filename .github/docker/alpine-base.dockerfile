@@ -26,24 +26,23 @@ RUN \
     opam update -y && \
     opam clean
 
+ARG LIQUIDSOAP_SHA=main
+
 WORKDIR /tmp
 
-RUN git clone https://github.com/savonet/liquidsoap-full.git
+RUN git clone https://github.com/savonet/liquidsoap.git && \
+    cd liquidsoap && git fetch origin "$LIQUIDSOAP_SHA" && git checkout "$LIQUIDSOAP_SHA"
 
-WORKDIR /tmp/liquidsoap-full
+# Pin each synced module directory and liquidsoap itself
+RUN find /tmp/liquidsoap/src/modules/synced -maxdepth 1 -mindepth 1 -type d | \
+    while read dir; do opam pin add -y --no-action "$dir"; done && \
+    cd /tmp/liquidsoap && opam pin add -y --no-action .
 
-RUN make init && make update
+# Build the package list from .opam files in synced modules
+RUN find /tmp/liquidsoap/src/modules/synced -name '*.opam' ! -name '*.opam.template' | \
+    xargs -I{} basename {} .opam | grep -Ev "^(speex|theora|dssi)$" > /tmp/packages
 
-RUN cat PACKAGES.default | grep '^ocaml' | grep -v dssi > /tmp/modules && \
-    cat /tmp/modules | while read i; do find $i | grep '\.opam$'; done | while read i; do basename $i | cut -d'.' -f 1; done | grep -Ev "^(speex|theora)$" > /tmp/packages
-
-RUN \
-    cat /tmp/modules | while read module; do \
-        cd $module && opam pin add -y --no-action . && cd .. \
-      fi; \
-    done && cd liquidsoap && opam pin add -y --no-action .
-
-ENV EXT_PACKAGES="$EXTRA_PACKAGES camomile ocurl irc-client-unix osc-unix gd inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace mem_usage ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
+ENV EXT_PACKAGES="$EXTRA_PACKAGES camomile ocurl irc-client-unix osc-unix gd inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
 
 RUN eval $(opam env) && opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,`cat /tmp/packages | while read i; do printf "$i,"; done`,liquidsoap" > /tmp/deps
 
@@ -58,7 +57,13 @@ RUN \
     PACKAGES=`cat /tmp/packages | xargs echo` && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
+    opam pin list --short | xargs -r opam pin remove -y && \
+    rm -rf /tmp/liquidsoap && \
     opam clean
+
+USER root
+
+RUN echo 'Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' > /etc/sudoers.d/secure_path
 
 FROM alpine:edge
 COPY --from=base / /

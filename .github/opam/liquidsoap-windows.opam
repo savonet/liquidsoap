@@ -36,10 +36,6 @@ depends: [
   "curl-windows"
   "xml-light"
   "xml-light-windows"
-  "mem_usage" {>= "0.1.1"}
-  "mem_usage-windows" {>= "0.1.1"}
-  "metadata" {>= "0.3.0"}
-  "metadata-windows" {>= "0.3.0"}
   "dune-site-windows"
   "dune-build-info-windows"
   "ppx_string" {build}
@@ -126,7 +122,7 @@ build: [
     "LIQUIDSOAP_SYS_CONFIG=mingw"
     "LIQUIDSOAP_ENABLE_BUILD_CONFIG=false"
     "LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true"
-    "LIQ_LDFLAGS=-lcurl -lwldap32 -ldl -lnghttp2 -lpsl -lssh2 -lidn2 -lzstd -lunistring -lbrotlicommon -lbrotlidec -lcrypt32 -liconv -lpthread -lz -lbcrypt -lwinmm -lksuser -link /usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/libavutil.a"
+    "LIQUIDSOAP_LDFLAGS=-lcurl -lwldap32 -ldl -lnghttp2 -lpsl -lssh2 -lidn2 -lzstd -lunistring -lbrotlicommon -lbrotlidec -lcrypt32 -liconv -lpthread -lz -lbcrypt -lwinmm -lksuser -link /usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/libavutil.a"
     "PKG_CONFIG_PATH_default_windows=/usr/src/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig"
     "dune"
     "build"

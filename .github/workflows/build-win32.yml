@@ -22,21 +22,17 @@ on:
 jobs:
   build_win32:
     runs-on: depot-ubuntu-24.04-4
-    strategy:
-      fail-fast: false
-      matrix:
-        system: [x64]
     container:
-      image: savonet/liquidsoap-win32-${{ matrix.system }}
+      image: ghcr.io/savonet/liquidsoap:ci-v2-win32-x64-5.4.1
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
-      OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,re-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,winsvc-windows,mem_usage-windows,prometheus-app-windows,cohttp-lwt-unix-windows
+      OPAM_DEPS: camomile-windows,re-windows,sedlex-windows,ssl-windows,winsvc-windows,prometheus-app-windows,cohttp-lwt-unix-windows
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
+      IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
+      IS_RELEASE: ${{ inputs.is_release }}
+      BRANCH: ${{ inputs.branch }}
       TOOLPREF64: /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-
     steps:
-      - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
-        id: cpu_cores
       - name: Checkout code
         run: |
           mkdir -p /tmp/${{ github.run_number }}/win32/liquidsoap
@@ -46,17 +42,13 @@ jobs:
           git fetch origin ${{ inputs.sha }}
           git checkout ${{ inputs.sha }}
           chown -R opam /tmp/${{ github.run_number }}/win32
-      - name: Add local packages
-        run: |
-          cd /tmp/${{ github.run_number }}/win32/liquidsoap/
-          gosu opam:root ./.github/scripts/add-local-opam-packages.sh
       - name: Build windows binary
         run: |
           mkdir -p /tmp/${{ github.run_number }}/win32/dist
           chown -R opam /tmp/${{ github.run_number }}/win32/dist
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/${{ github.run_number }}/win32/liquidsoap
-          gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ inputs.branch }} "${{ steps.cpu_cores.outputs.count }}" "${{ inputs.is_rolling_release }}" "${{ inputs.is_release }}" ${{ inputs.sha }}
+          gosu opam:root ./.github/scripts/build-win32.sh
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -6,11 +6,9 @@ TARGET=$1
 
 #export OPAMJOBS="$CPU_CORES"
 
-cd /tmp/liquidsoap-full/liquidsoap
+cd /tmp/liquidsoap
 eval "$(opam config env)"
-OCAMLPATH="$(cat ../.ocamlpath)"
-export OCAMLPATH
 
 export CLICOLOR_FORCE=1
 
-dune build -j 4 "${TARGET}" --error-reporting=twice --display=quiet --auto-promote
+dune build -j 4 --profile=release "${TARGET}" --error-reporting=twice --display=quiet --auto-promote
