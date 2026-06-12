@@ -12,6 +12,7 @@
 - Fixed crash when external input (`input.process`, `input.ffmpeg`, etc.) encounters an EOF (thanks to @MikaSappi, #5139)
 - Fixed `harbor.remove_http_handler` discarding all registered handlers except the one being removed
 - Fixed crash in `crossfade`/`cross` when `source.skip` is called from outside the clock thread, e.g. from a `harbor.http` handler or `thread.run` (#5194)
+- Fixed memory leak in `Strings.Mutable` (#5231)
 
 ## Optimized:
 
