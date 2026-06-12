@@ -5,6 +5,7 @@ set -e
 CPU_CORES="$1"
 
 export CPU_CORES
+export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
 
 eval "$(opam config env)"
 
