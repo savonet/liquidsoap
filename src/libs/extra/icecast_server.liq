@@ -378,8 +378,15 @@ def icecast.server.parser(path) =
     if
       null.defined(pidfile)
     then
+%ifdef settings.init.daemon
       settings.init.daemon.pidfile := true
       settings.init.daemon.pidfile.path := null.get(pidfile)
+%else
+      log.important(
+        label="icecast.server",
+        "Config option 'pidfile' is not supported"
+      )
+%endif
     end
 
     if
