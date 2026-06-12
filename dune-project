@@ -77,7 +77,7 @@
     theora
     sdl-liquidsoap
     vorbis
-    yaml)
+    yamlx)
  (conflicts
     (alsa (< 0.3.0))
     (ao (< 0.2.0))
