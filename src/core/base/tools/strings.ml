@@ -167,10 +167,17 @@ module Mutable = struct
      Compacts the buffer if needed. Returns new content. *)
   let ensure_capacity c n =
     let required = c.ofs + c.pos + n in
-    if required > Bytes.length c.buffer then begin
+    if required <= Bytes.length c.buffer then c
+    else if c.ofs > 0 && c.pos + n <= Bytes.length c.buffer then begin
+      (* Sliding data to the front avoids reallocation. *)
+      Bytes.blit c.buffer c.ofs c.buffer 0 c.size;
+      { c with ofs = 0 }
+    end
+    else begin
+      let needed = c.pos + n in
       let new_capacity =
         let cap = ref (max (Bytes.length c.buffer) 1) in
-        while !cap < required do
+        while !cap < needed do
           cap := !cap + (!cap / 2) + 1
         done;
         !cap
@@ -179,11 +186,6 @@ module Mutable = struct
       Bytes.blit c.buffer c.ofs new_buffer 0 c.size;
       { c with buffer = new_buffer; ofs = 0 }
     end
-    else if c.ofs > 0 && c.ofs + c.pos + n > Bytes.length c.buffer then begin
-      Bytes.blit c.buffer c.ofs c.buffer 0 c.size;
-      { c with ofs = 0 }
-    end
-    else c
 
   let strings_of_bytes = of_bytes
 
@@ -361,6 +363,7 @@ module Mutable = struct
 
   let is_empty m = get m (fun c -> c.size = 0)
   let length m = get m (fun c -> c.size)
+  let buffer_capacity m = get m (fun c -> Bytes.length c.buffer)
 
   let blit m mo b bo len =
     get m (fun c ->
