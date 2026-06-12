@@ -309,6 +309,26 @@ let () =
   in
   assert (M.to_string m2 = "ABC")
 
+(* Regression test: buffer capacity must stay bounded after repeated
+   append_strings + keep cycles (the pattern used in output.harbor for
+   burst_data). Before the fix, ensure_capacity's compact branch was dead
+   code, so ofs accumulated without bound and the buffer grew unboundedly. *)
+let () =
+  let burst = 65534 in
+  let chunk = Strings.of_string (String.make 4000 'x') in
+  let slen = Strings.length chunk in
+  let m = M.create () in
+  for _ = 1 to 10000 do
+    M.append_strings m chunk;
+    M.keep m burst
+  done;
+  assert (M.length m = burst);
+  assert (M.to_string m = String.make burst 'x');
+  (* Buffer capacity must be bounded: burst + slen is the minimum needed,
+     and must not have grown into the many-MB range from ofs accumulation. *)
+  let cap = M.buffer_capacity m in
+  assert (cap < burst + (10 * slen))
+
 let () =
   let m = M.of_string "initial" in
   let reader () =

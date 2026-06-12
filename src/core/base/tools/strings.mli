@@ -208,6 +208,9 @@ module Mutable : sig
   (** Length of the buffer (total bytes written, not capacity). *)
   val length : t -> int
 
+  (** Capacity of the underlying buffer in bytes. *)
+  val buffer_capacity : t -> int
+
   (** Append the content of another buffer at the end. Sets position to end. *)
   val append : t -> t -> unit
 
