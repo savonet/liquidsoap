@@ -44,8 +44,7 @@ WORKDIR /tmp
 
 USER opam
 
-RUN git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc && \
-    opam pin -y add ocaml-pandoc
+RUN opam pin -y add ocaml-pandoc https://github.com/smimram/ocaml-pandoc.git
 
 RUN git clone https://github.com/savonet/liquidsoap.git && \
     cd liquidsoap && git fetch origin "$LIQUIDSOAP_SHA" && git checkout "$LIQUIDSOAP_SHA"
@@ -126,7 +125,7 @@ USER opam
 
 RUN eval $(opam env) && \
     opam install --no-depexts -y --deps-only liquidsoap $OPTIONAL_OPAM_PACKAGES $EXT_PACKAGES && \
-    rm -rf /tmp/liquidsoap /tmp/ocaml-pandoc && \
+    rm -rf /tmp/liquidsoap && \
     opam clean
 
 USER root
