@@ -99,7 +99,7 @@ jobs:
         with:
           token: ${{ secrets.DEPOT_TOKEN }}
           build-args: |
-            DEB_FILE=/tmp/deb/${{ needs.build.outputs.basename }}.deb
+            DEB_FILE=${{ needs.build.outputs.basename }}.deb
           context: /tmp/deb
           file: .github/docker/debian-asan-release.dockerfile
           platforms: linux/amd64
