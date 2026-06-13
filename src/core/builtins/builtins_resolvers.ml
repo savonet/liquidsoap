@@ -148,7 +148,7 @@ let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
         | exception exn ->
             let bt = Printexc.get_backtrace () in
             Utils.log_exception ~log ~bt
-              (Printf.sprintf "Error while parsing playlist: %s"
+              (Printf.sprintf "Error while parsing %s playlist: %s" format
                  (Printexc.to_string exn));
             Lang.list [])
 
