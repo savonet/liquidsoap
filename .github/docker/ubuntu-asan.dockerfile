@@ -115,8 +115,8 @@ RUN apt-get update && \
 RUN apt-get install -y --no-install-recommends $APT_PACKAGES && \
     apt-get -y autoclean && apt-get -y clean
 
-# Debug symbols: install -dbgsym for every explicitly listed package that has one
-RUN pkgs=$(dpkg -l $APT_PACKAGES 2>/dev/null | awk '/^ii/{print $2"-dbgsym"}') && \
+# Debug symbols: install -dbgsym for lib* packages that have one
+RUN pkgs=$(dpkg -l $APT_PACKAGES 2>/dev/null | awk '/^ii/ && $2 ~ /^lib/{print $2"-dbgsym"}') && \
     available=$(apt-cache show $pkgs 2>/dev/null | awk '/^Package:/{print $2}') && \
     apt-get install -y --no-install-recommends $available
 
