@@ -23,7 +23,7 @@ jobs:
   build_win32:
     runs-on: depot-ubuntu-24.04-4
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-win32-x64-5.4.1
+      image: ghcr.io/savonet/liquidsoap:ci-v2-win32-x64-5.4.1@sha256:b9dac6d22a7ec55e251ebc32d0bf4fd2c2e75e981dc35ea799bae45e1b105b17
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}

@@ -18,9 +18,9 @@ jobs:
       FREI0R_PATH: ${{ startsWith(matrix.os, 'macos') && '/opt/homebrew/opt/frei0r/lib/frei0r-1' || '' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Build and test module
-        uses: savonet/build-and-test-ocaml-module@main
+        uses: savonet/build-and-test-ocaml-module@681b8ba0c5f5e2e98869bb3672338c65c56e1b24 # main
         with:
           ocaml-compiler: ${{ matrix.compiler }}
           test-target: runtest
