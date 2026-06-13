@@ -8,7 +8,7 @@ MAINTAINER The Savonet Team <contact@liquidsoap.info>
 ARG OCAML_VERSION=5.4.0
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV ASAN_OPTIONS="detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0"
+ENV ASAN_OPTIONS="detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0:protect_shadow_gap=0"
 
 USER root
 
