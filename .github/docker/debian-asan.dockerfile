@@ -91,7 +91,7 @@ ENV APT_PACKAGES="\
     libsamplerate0-dev \
     libshine-dev \
     libsoundtouch-dev \
-    libsrt-dev \
+    libsrt-openssl-dev \
     libflac-dev libogg-dev libopus-dev libspeex-dev libtheora-dev libvorbis-dev \
     libcurl4-openssl-dev \
     libssl-dev \
