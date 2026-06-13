@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ubuntu:resolute
+ARG BASE_IMAGE=debian:sid
 
 # Stage 1: OCaml compiler with AddressSanitizer option
 FROM $BASE_IMAGE AS ocaml
@@ -8,6 +8,7 @@ MAINTAINER The Savonet Team <contact@liquidsoap.info>
 ARG OCAML_VERSION=5.4.0
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV ASAN_OPTIONS="detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0:protect_shadow_gap=0:verify_asan_link_order=0"
 
 USER root
 
@@ -43,8 +44,7 @@ WORKDIR /tmp
 
 USER opam
 
-RUN git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc && \
-    opam pin -y add ocaml-pandoc
+RUN opam pin -y add https://github.com/smimram/ocaml-pandoc.git
 
 RUN git clone https://github.com/savonet/liquidsoap.git && \
     cd liquidsoap && git fetch origin "$LIQUIDSOAP_SHA" && git checkout "$LIQUIDSOAP_SHA"
@@ -58,14 +58,14 @@ FROM pinned AS build
 
 # All synced module opam package names
 ENV OPTIONAL_OPAM_PACKAGES="\
-    alsa ao dssi faad fdkaac frei0r jack ladspa lame lo mad mem_usage metadata mm \
+    alsa ao faad fdkaac frei0r jack ladspa lame lo mad mem_usage metadata mm \
     portaudio pulseaudio samplerate shine soundtouch srt \
     ffmpeg ffmpeg-av ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil ffmpeg-swresample ffmpeg-swscale \
     flac ogg opus speex theora vorbis"
 
 ENV EXT_PACKAGES="\
     camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap \
-    tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 \
+    tls-liquidsoap syslog memtrace ssl posix-time2 \
     yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include"
 
 ENV APT_PACKAGES="\
@@ -77,7 +77,6 @@ ENV APT_PACKAGES="\
         libswresample-dev libswscale-dev libavdevice-dev ffmpeg \
     libasound2-dev \
     libao-dev \
-    libdssi-dev \
     libfaad-dev \
     libfdk-aac-dev \
     frei0r-plugins-dev \
@@ -91,32 +90,29 @@ ENV APT_PACKAGES="\
     libsamplerate0-dev \
     libshine-dev \
     libsoundtouch-dev \
-    libsrt-dev \
+    libsrt-openssl-dev \
     libflac-dev libogg-dev libopus-dev libspeex-dev libtheora-dev libvorbis-dev \
     libcurl4-openssl-dev \
-    libsdl2-dev \
     libssl-dev \
     libsqlite3-dev \
     libyaml-dev"
 
 USER root
 
-# Enable universe/multiverse and Ubuntu debug symbol repository
+# Enable non-free (for libfdk-aac-dev) and Debian debug symbol repository
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends lsb-release software-properties-common ubuntu-dbgsym-keyring && \
-    add-apt-repository universe && \
-    add-apt-repository multiverse && \
-    echo "deb http://ddebs.ubuntu.com $(lsb_release -cs) main restricted universe multiverse" \
-        > /etc/apt/sources.list.d/ddebs.list && \
-    echo "deb http://ddebs.ubuntu.com $(lsb_release -cs)-updates main restricted universe multiverse" \
-        >> /etc/apt/sources.list.d/ddebs.list && \
+    apt-get install -y --no-install-recommends lsb-release && \
+    sed -i 's/^Components: main$/Components: main contrib non-free non-free-firmware/' \
+        /etc/apt/sources.list.d/debian.sources && \
+    echo "deb http://debug.mirrors.debian.org/debian-debug/ $(lsb_release -cs)-debug main" \
+        > /etc/apt/sources.list.d/debug.list && \
     apt-get update
 
 RUN apt-get install -y --no-install-recommends $APT_PACKAGES && \
     apt-get -y autoclean && apt-get -y clean
 
-# Debug symbols: install -dbgsym for every explicitly listed package that has one
-RUN pkgs=$(dpkg -l $APT_PACKAGES 2>/dev/null | awk '/^ii/{print $2"-dbgsym"}') && \
+# Debug symbols: install -dbgsym for lib* packages that have one
+RUN pkgs=$(dpkg -l $APT_PACKAGES 2>/dev/null | awk '/^ii/ && $2 ~ /^lib/{print $2"-dbgsym"}') && \
     available=$(apt-cache show $pkgs 2>/dev/null | awk '/^Package:/{print $2}') && \
     apt-get install -y --no-install-recommends $available
 
@@ -128,8 +124,9 @@ RUN arch=$(dpkg --print-architecture) && \
 USER opam
 
 RUN eval $(opam env) && \
-    opam install --no-depexts -y --deps-only liquidsoap $OPTIONAL_OPAM_PACKAGES $EXT_PACKAGES && \
-    rm -rf /tmp/liquidsoap /tmp/ocaml-pandoc && \
+    opam install --no-depexts -y --deps-only liquidsoap $OPTIONAL_OPAM_PACKAGES && \
+    opam install --no-depexts -y $EXT_PACKAGES && \
+    rm -rf /tmp/liquidsoap && \
     opam clean
 
 USER root
