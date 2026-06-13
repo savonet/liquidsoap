@@ -54,6 +54,11 @@ fi
 
 echo "::endgroup::"
 
+if [ -n "${SKIP_MINIMAL}" ]; then
+  echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH" >> "${GITHUB_OUTPUT}"
+  exit 0
+fi
+
 echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 
 # shellcheck disable=SC2086
