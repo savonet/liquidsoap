@@ -43,7 +43,7 @@ jobs:
             LIQUIDSOAP_SHA=${{ github.sha }}
           context: .
           file: .github/docker/ubuntu-asan.dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ghcr.io/savonet/liquidsoap:ci-asan-${{ matrix.ocaml_version }}
           push: ${{ inputs.push }}
           no-cache: ${{ inputs.no_cache }}
