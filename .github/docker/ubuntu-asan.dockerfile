@@ -8,6 +8,7 @@ MAINTAINER The Savonet Team <contact@liquidsoap.info>
 ARG OCAML_VERSION=5.4.0
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV ASAN_OPTIONS="detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0"
 
 USER root
 
@@ -124,9 +125,6 @@ RUN arch=$(dpkg --print-architecture) && \
     curl -fsSL "https://github.com/jgm/pandoc/releases/download/3.10/pandoc-3.10-1-${arch}.deb" -o /tmp/pandoc.deb && \
     dpkg -i /tmp/pandoc.deb && \
     rm /tmp/pandoc.deb
-
-# Disable ASAN checks during opam dependency installation to avoid false positives
-ENV ASAN_OPTIONS="detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0"
 
 USER opam
 
