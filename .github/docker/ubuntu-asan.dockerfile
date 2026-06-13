@@ -125,6 +125,9 @@ RUN arch=$(dpkg --print-architecture) && \
     dpkg -i /tmp/pandoc.deb && \
     rm /tmp/pandoc.deb
 
+# Disable ASAN checks during opam dependency installation to avoid false positives
+ENV ASAN_OPTIONS="detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0"
+
 USER opam
 
 RUN eval $(opam env) && \
