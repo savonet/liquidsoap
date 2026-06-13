@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=debian:testing
+ARG BASE_IMAGE=debian:sid
 
 # Stage 1: OCaml compiler with AddressSanitizer option
 FROM $BASE_IMAGE AS ocaml

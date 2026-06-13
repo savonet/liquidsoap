@@ -1,4 +1,4 @@
-FROM debian:testing
+FROM debian:sid
 
 ARG DEB_FILE
 COPY ${DEB_FILE} /tmp/liquidsoap.deb
