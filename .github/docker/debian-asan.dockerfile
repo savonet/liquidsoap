@@ -44,7 +44,7 @@ WORKDIR /tmp
 
 USER opam
 
-RUN opam pin -y add ocaml-pandoc https://github.com/smimram/ocaml-pandoc.git
+RUN opam pin -y --all add https://github.com/smimram/ocaml-pandoc.git
 
 RUN git clone https://github.com/savonet/liquidsoap.git && \
     cd liquidsoap && git fetch origin "$LIQUIDSOAP_SHA" && git checkout "$LIQUIDSOAP_SHA"
