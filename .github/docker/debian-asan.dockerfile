@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ubuntu:resolute
+ARG BASE_IMAGE=debian:testing
 
 # Stage 1: OCaml compiler with AddressSanitizer option
 FROM $BASE_IMAGE AS ocaml
@@ -91,7 +91,7 @@ ENV APT_PACKAGES="\
     libsamplerate0-dev \
     libshine-dev \
     libsoundtouch-dev \
-    libsrt-openssl-dev \
+    libsrt-dev \
     libflac-dev libogg-dev libopus-dev libspeex-dev libtheora-dev libvorbis-dev \
     libcurl4-openssl-dev \
     libssl-dev \
@@ -100,15 +100,13 @@ ENV APT_PACKAGES="\
 
 USER root
 
-# Enable universe/multiverse and Ubuntu debug symbol repository
+# Enable non-free (for libfdk-aac-dev) and Debian debug symbol repository
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends lsb-release software-properties-common ubuntu-dbgsym-keyring && \
-    add-apt-repository universe && \
-    add-apt-repository multiverse && \
-    echo "deb http://ddebs.ubuntu.com $(lsb_release -cs) main restricted universe multiverse" \
-        > /etc/apt/sources.list.d/ddebs.list && \
-    echo "deb http://ddebs.ubuntu.com $(lsb_release -cs)-updates main restricted universe multiverse" \
-        >> /etc/apt/sources.list.d/ddebs.list && \
+    apt-get install -y --no-install-recommends lsb-release && \
+    sed -i 's/^Components: main$/Components: main contrib non-free non-free-firmware/' \
+        /etc/apt/sources.list.d/debian.sources && \
+    echo "deb http://debug.mirrors.debian.org/debian-debug/ $(lsb_release -cs)-debug main" \
+        > /etc/apt/sources.list.d/debug.list && \
     apt-get update
 
 RUN apt-get install -y --no-install-recommends $APT_PACKAGES && \

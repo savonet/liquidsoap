@@ -52,6 +52,11 @@ fi
 
 echo "::endgroup::"
 
+if [ -n "${SKIP_MINIMAL}" ]; then
+  echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH" >> "${GITHUB_OUTPUT}"
+  exit 0
+fi
+
 echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 
 export LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS="$MINIMAL_EXCLUDE_DEPS"
