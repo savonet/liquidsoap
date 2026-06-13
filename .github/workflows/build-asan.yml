@@ -65,12 +65,11 @@ jobs:
           LIQ_TMP_DIR: /tmp/artifacts
           PLATFORM: amd64
           DEB_RELEASE: "1"
-          SKIP_MINIMAL: "true"
         run: |
           mkdir -p /tmp/artifacts
           chown opam /tmp/artifacts
           chown opam "${GITHUB_OUTPUT}"
-          sudo -u opam -E /tmp/liquidsoap/.github/scripts/build-deb.sh
+          sudo -u opam -E /tmp/liquidsoap/.github/scripts/build-asan-deb.sh
       - name: Upload debian package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
