@@ -110,6 +110,12 @@ jobs:
       is_release: ${{ needs.build_details.outputs.is_release }}
       is_snapshot: ${{ needs.build_details.outputs.is_snapshot }}
 
+  build_asan:
+    uses: ./.github/workflows/build-asan.yml
+    needs: build_details
+    secrets:
+      DEPOT_TOKEN: ${{ secrets.DEPOT_TOKEN }}
+
   update_doc:
     uses: ./.github/workflows/doc.yml
     needs: [build_details, build_js]
@@ -130,6 +136,7 @@ jobs:
         run_tests,
         build_posix,
         build_win32,
+        build_asan,
       ]
     if: needs.build_details.outputs.is_release == 'true'
     with:

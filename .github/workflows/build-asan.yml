@@ -8,23 +8,15 @@ on:
         required: false
         default: "5.4.0"
         type: string
-  push:
-    branches:
-      - main
-      - "v*-latest"
-    paths:
-      - ".github/**"
-      - "**/*.ml*"
-      - "**/*.liq"
-      - "**/dune"
-      - "**/dune.inc"
-  pull_request:
-    paths:
-      - ".github/**"
-      - "**/*.ml*"
-      - "**/*.liq"
-      - "**/dune"
-      - "**/dune.inc"
+  workflow_call:
+    inputs:
+      ocaml_version:
+        required: false
+        default: "5.4.0"
+        type: string
+    secrets:
+      DEPOT_TOKEN:
+        required: true
 
 jobs:
   build:

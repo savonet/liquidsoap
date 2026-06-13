@@ -158,3 +158,52 @@ executes it right away. It works as if you were calling the `liquidsoap` binary 
 ```
 
 From here, you can start changing code, testing script etc. Happy hacking!
+
+## Debugging with AddressSanitizer
+
+[AddressSanitizer (ASAN)](https://clang.llvm.org/docs/AddressSanitizer.html) is a compiler
+instrumentation tool that detects memory errors such as use-after-free, buffer overflows, and
+use-after-scope bugs at runtime. It is useful when tracking down crashes or subtle memory
+corruption in the C bindings or OCaml runtime.
+
+### Pre-built packages
+
+An ASAN-instrumented build of Liquidsoap is produced automatically on every commit to `main`
+and `v*-latest` branches and is available in two forms:
+
+- **Debian package**: attached to the rolling release assets on the
+  [releases page](https://github.com/savonet/liquidsoap/releases), with `asan` in the filename.
+- **Docker image**: published to the GitHub Container Registry as
+  `ghcr.io/savonet/liquidsoap:asan-<sha>`, where `<sha>` is the full Git commit SHA.
+
+To run your script under the ASAN Docker image:
+
+```shell
+docker run --rm -v /path/to/your/script.liq:/script.liq \
+  ghcr.io/savonet/liquidsoap:asan-<sha> /script.liq
+```
+
+ASAN output goes to stderr and includes a stack trace pointing at the offending allocation and
+access sites.
+
+### ASAN options
+
+You can tune ASAN's behaviour at runtime via the `ASAN_OPTIONS` environment variable. Consult
+the [AddressSanitizer flags reference](https://github.com/google/sanitizers/wiki/AddressSanitizerFlags)
+for the full list of available options. A good starting point is to enable leak detection:
+
+```shell
+export ASAN_OPTIONS="detect_leaks=1"
+```
+
+### Building locally with ASAN
+
+To build Liquidsoap yourself with ASAN, create an opam switch using the
+`ocaml-option-address-sanitizer` variant:
+
+```shell
+opam switch create asan-dev ocaml-variants.5.4.0+options ocaml-option-address-sanitizer
+eval $(opam env)
+opam install --deps-only ./opam/liquidsoap.opam ./opam/liquidsoap-lang.opam
+dune build
+```
