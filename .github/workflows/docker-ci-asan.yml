@@ -6,7 +6,7 @@ on:
       ocaml_versions:
         description: "OCaml versions (JSON array)"
         required: false
-        default: '["5.4.0"]'
+        default: '["4.14.2","5.4.0"]'
         type: string
       push:
         description: "Push images to registry"
