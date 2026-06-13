@@ -37,7 +37,7 @@ jobs:
       LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL: "true"
       OCAML_VERSION: ${{ inputs.ocaml_version || '5.4.0' }}
       BRANCH: ${{ github.head_ref || github.ref_name }}
-      ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0:protect_shadow_gap=0"
+      ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0:protect_shadow_gap=0:verify_asan_link_order=0"
       SKIP_SDL: "true"
     outputs:
       basename: ${{ steps.build_deb.outputs.basename }}
