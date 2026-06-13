@@ -59,7 +59,7 @@ FROM pinned AS build
 
 # All synced module opam package names
 ENV OPTIONAL_OPAM_PACKAGES="\
-    alsa ao dssi faad fdkaac frei0r jack ladspa lame lo mad mem_usage metadata mm \
+    alsa ao faad fdkaac frei0r jack ladspa lame lo mad mem_usage metadata mm \
     portaudio pulseaudio samplerate shine soundtouch srt \
     ffmpeg ffmpeg-av ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil ffmpeg-swresample ffmpeg-swscale \
     flac ogg opus speex theora vorbis"
@@ -78,7 +78,6 @@ ENV APT_PACKAGES="\
         libswresample-dev libswscale-dev libavdevice-dev ffmpeg \
     libasound2-dev \
     libao-dev \
-    libdssi-dev \
     libfaad-dev \
     libfdk-aac-dev \
     frei0r-plugins-dev \
@@ -92,7 +91,7 @@ ENV APT_PACKAGES="\
     libsamplerate0-dev \
     libshine-dev \
     libsoundtouch-dev \
-    libsrt-dev \
+    libsrt-openssl-dev \
     libflac-dev libogg-dev libopus-dev libspeex-dev libtheora-dev libvorbis-dev \
     libcurl4-openssl-dev \
     libsdl2-dev \
