@@ -13,4 +13,6 @@ RUN sed -i 's/^Components: main$/Components: main contrib non-free non-free-firm
     rm /tmp/liquidsoap.deb && \
     apt-get -y clean
 
+ENV ASAN_OPTIONS=""
+
 ENTRYPOINT ["/usr/bin/liquidsoap"]
