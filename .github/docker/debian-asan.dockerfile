@@ -124,7 +124,8 @@ RUN arch=$(dpkg --print-architecture) && \
 USER opam
 
 RUN eval $(opam env) && \
-    opam install --no-depexts -y --deps-only liquidsoap $OPTIONAL_OPAM_PACKAGES $EXT_PACKAGES && \
+    opam install --no-depexts -y --deps-only liquidsoap $OPTIONAL_OPAM_PACKAGES && \
+    opam install --no-depexts -y $EXT_PACKAGES && \
     rm -rf /tmp/liquidsoap && \
     opam clean
 
