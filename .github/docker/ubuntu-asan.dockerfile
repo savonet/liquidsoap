@@ -66,7 +66,7 @@ ENV OPTIONAL_OPAM_PACKAGES="\
 
 ENV EXT_PACKAGES="\
     camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap \
-    tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 \
+    tls-liquidsoap syslog memtrace ssl posix-time2 \
     yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include"
 
 ENV APT_PACKAGES="\
@@ -94,7 +94,6 @@ ENV APT_PACKAGES="\
     libsrt-openssl-dev \
     libflac-dev libogg-dev libopus-dev libspeex-dev libtheora-dev libvorbis-dev \
     libcurl4-openssl-dev \
-    libsdl2-dev \
     libssl-dev \
     libsqlite3-dev \
     libyaml-dev"
