@@ -42,6 +42,7 @@ module Queue = struct
 
   let peek_opt q = get q (function el :: _ -> Some el | _ -> None)
   let flush_elements q = mutate q (fun q -> Atomic.exchange q.l [])
+  let clear q = ignore (flush_elements q)
 
   let pop q =
     mutate q (fun q ->

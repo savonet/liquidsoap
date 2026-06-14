@@ -100,6 +100,8 @@ let check_sleep ~activations ~s =
       src#id s#id;
     s#sleep src)
 
+let on_finalize id = fun () -> source_log#info "Source %s is collected." !id
+
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
@@ -348,7 +350,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method wake_up src =
       let activation =
-        let id = ref src#id in
         object
           method id = !id
         end
@@ -414,9 +415,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | _ -> ()
 
     initializer
-      Gc.finalise_last
-        (fun () -> source_log#info "Source %s is collected." !id)
-        self;
+      Gc.finalise_last (on_finalize id) self;
       self#on_sleep (fun () ->
           sources <-
             List.map
