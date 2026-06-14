@@ -794,7 +794,7 @@ let time c =
 
 let start_pending () =
   let c = WeakQueue.flush_elements pending_clocks in
-  Queue.flush_iter retained_pending_clocks (fun _ -> ());
+  Queue.clear retained_pending_clocks;
   let c = List.map (fun c -> (c, Unifier.deref c)) c in
   let c =
     List.sort_uniq (fun (_, c) (_, c') -> compare_clock_identity c c') c
