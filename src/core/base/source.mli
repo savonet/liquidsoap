@@ -134,8 +134,11 @@ object
 
   (** {1 Init/shutdown} *)
 
-  (** Register a callback, to be executed when source shuts down. *)
+  (** Register a callback to be executed when source shuts down. *)
   method on_sleep : (unit -> unit) -> unit
+
+  (** Register a callback to be executed when the source is collected. *)
+  method on_collect : (unit -> unit) -> unit
 
   (** The clock under which the source will run. *)
   method clock : Clock.t

@@ -1396,6 +1396,24 @@
   (run %{run_test} append liquidsoap %{test_liq} append.liq)))
 
 (rule
+ (alias test_cleanup)
+ (package liquidsoap)
+ (deps
+  cleanup.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} cleanup liquidsoap %{test_liq} cleanup.liq)))
+
+(rule
  (alias test_default_format)
  (package liquidsoap)
  (deps
@@ -1990,6 +2008,7 @@
   (alias test_append)
   (alias test_append-merge)
   (alias test_append-merge2)
+  (alias test_cleanup)
   (alias test_default_format)
   (alias test_double-nullable)
   (alias test_eval-check-demeth)

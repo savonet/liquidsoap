@@ -190,6 +190,14 @@ let source_callbacks =
       register = (fun ~params:_ s f -> s#on_sleep (fun () -> f []));
     };
     {
+      name = "on_collect";
+      params = [];
+      descr = "to be called when source is collected";
+      register_deprecated_argument = false;
+      arg_t = [];
+      register = (fun ~params:_ s f -> s#on_collect (fun () -> f []));
+    };
+    {
       name = "on_track";
       params = [];
       descr = "on track marks";

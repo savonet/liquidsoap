@@ -100,12 +100,16 @@ let check_sleep ~activations ~s =
       src#id s#id;
     s#sleep src)
 
-let on_finalize id = fun () -> source_log#info "Source %s is collected." !id
+let on_finalize ~on_collect id =
+ fun () ->
+  List.iter (fun fn -> fn ()) !on_collect;
+  source_log#info "Source %s is collected." !id
 
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
   let id = ref (Lang_string.generate_id ~category:"source" name) in
+  let on_collect = ref [] in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -414,8 +418,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | 0, _, _ -> self#actual_sleep
         | _ -> ()
 
+    method on_collect fn = on_collect := fn :: !on_collect
+
     initializer
-      Gc.finalise_last (on_finalize id) self;
+      Gc.finalise_last (on_finalize ~on_collect id) self;
       self#on_sleep (fun () ->
           sources <-
             List.map
