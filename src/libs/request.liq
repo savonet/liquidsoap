@@ -31,6 +31,8 @@ end
 # @method add This method is internal and should not be used. Consider using `push` instead.
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
+# @method remove Remove a request from the queue.
+# @method remove_request_id Remove a request from the queue by its request id.
 def request.queue(
   ~id=null,
   ~interactive=true,
@@ -124,13 +126,37 @@ def request.queue(
     [...s.queue(), ...initial_queue(), ...queue()]
   end
 
+  def remove_request_id(rid) =
+    if
+      started()
+    then
+      queue := list.filter(fun (r) -> request.id(r) != rid, queue())
+      inner_q = s.queue()
+      filtered = list.filter(fun (r) -> request.id(r) != rid, inner_q)
+      if
+        list.length(filtered) < list.length(inner_q)
+      then
+        s.set_queue(filtered)
+      end
+    else
+      initial_queue :=
+        list.filter(fun (r) -> request.id(r) != rid, initial_queue())
+    end
+  end
+
+  def remove(r) =
+    remove_request_id(request.id(r))
+  end
+
   s =
     s.{
       add = add,
       push = push.{uri = push_uri},
       length = {list.length(queue()) + list.length(s.queue())},
       set_queue = set_queue,
-      queue = get_queue
+      queue = get_queue,
+      remove_request_id = remove_request_id,
+      remove = remove
     }
 
   s.on_wake_up(
@@ -199,6 +225,17 @@ def request.queue(
       usage="skip",
       "skip",
       skip
+    )
+
+    s.register_command(
+      description="Remove a request from the queue.",
+      usage="remove <rid>",
+      "remove",
+      fun (rid) ->
+        begin
+          remove_request_id(int_of_string(rid))
+          "Done."
+        end
     )
   end
 
