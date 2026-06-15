@@ -1,7 +1,11 @@
-# 2.4.5 (unreleased)
+# 2.4.5 (2026-06-15)
 
 ## New:
 
+- Added `remove` and `remove_request_id` methods to `request.queue` to remove
+  a specific request from the queue, also available as a telnet `remove` command (#5237)
+- Improved error messages in playlist parsers to include more context about the
+  source of the error
 - Added `audio/aiff`, `audio/x-aiff` and `audio/x-wavpack` entries to
   the default `settings.http.mime.extnames` table so `protocol.http` resolves
   AIFF and WavPack URLs to their real extensions instead of the `.osb`
