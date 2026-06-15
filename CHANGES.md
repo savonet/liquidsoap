@@ -50,6 +50,39 @@
 
 ---
 
+# 2.4.5 (2026-06-15)
+
+## New:
+
+- Added `remove` and `remove_request_id` methods to `request.queue` to remove
+  a specific request from the queue, also available as a telnet `remove` command (#5237)
+- Improved error messages in playlist parsers to include more context about the
+  source of the error
+- Added `audio/aiff`, `audio/x-aiff` and `audio/x-wavpack` entries to
+  the default `settings.http.mime.extnames` table so `protocol.http` resolves
+  AIFF and WavPack URLs to their real extensions instead of the `.osb`
+  fallback.
+
+## Fixed:
+
+- Fixed crash when external input (`input.process`, `input.ffmpeg`, etc.) encounters an EOF (thanks to @MikaSappi, #5139)
+- Fixed `harbor.remove_http_handler` discarding all registered handlers except the one being removed
+- Fixed crash in `crossfade`/`cross` when `source.skip` is called from outside the clock thread, e.g. from a `harbor.http` handler or `thread.run` (#5194)
+- Fixed memory leak in `Strings.Mutable` (#5231)
+
+## Optimized:
+
+- Clock sync-source propagation is now push-based and O(1) per tick instead of scanning all sources (#5133)
+- Stream format/kind dispatch now uses O(1) int-indexed array lookup instead of iterating a queue (#5136)
+- Optimized `content_length` and timed blit hot paths (#5137)
+- Chunk total length is now cached in the chunks record to avoid recomputation (#5140)
+- Chunk length is now pre-computed on lift (#5135)
+- Watcher before/after cycle callbacks are only registered when watchers are actually present
+- `WeakQueue` now uses geometric doubling and a RW-lock for faster concurrent access (#5118)
+- Use direct `Int` comparison functions in stream hot paths
+
+---
+
 # 2.4.4 (2024-04-20)
 
 ## Fixed:
