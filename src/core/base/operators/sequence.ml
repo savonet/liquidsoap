@@ -83,6 +83,7 @@ class sequence ?(name = "sequence") ?(merge = false) ?(single_track = true)
               self#log#info "Finished with %s" s#id;
               Atomic.set seq_sources rest;
               self#release_source s;
+              self#notify_sync_source (snd self#self_sync);
               self#get_stateful_source ~source_skipped:true
                 ~reselect:(match reselect with `Force -> `Ok | v -> v)
                 ())

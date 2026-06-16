@@ -111,7 +111,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         else fun () -> ()
       in
       self#exchange_selected
-        (Some { predicate; child; effective_source; sleep })
+        (Some { predicate; child; effective_source; sleep });
+      self#notify_sync_source (snd self#self_sync)
 
     initializer
       self#on_sleep (fun () ->
@@ -179,7 +180,9 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                   () )
             with
               | None, None -> ()
-              | Some _, None -> self#exchange_selected None
+              | Some _, None ->
+                  self#exchange_selected None;
+                  self#notify_sync_source None
               | None, Some (predicate, c) ->
                   self#log#important "Switch to %s." c.source#id;
                   let new_source = self#prepare_new_source c.source in
