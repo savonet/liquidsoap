@@ -44,6 +44,7 @@ let force f fd x =
   if x <> x' then failwith "cannot obtain desired OSS settings"
 
 class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
+  let s = Lang.to_source val_source in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
@@ -56,7 +57,7 @@ class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
 
     method self_sync =
       if self_sync then (`Dynamic, if fd <> None then Some sync_source else None)
-      else (`Static, None)
+      else s#self_sync
 
     method open_device =
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
@@ -145,7 +146,10 @@ let _ =
            ( "self_sync",
              Lang.bool_t,
              Some (Lang.bool true),
-             Some "Mark the source as being synchronized by the OSS driver." );
+             Some
+               "Use the OSS driver clock as synchronization source. When \
+                `false`, delegate to the underlying source's synchronization."
+           );
            ( "device",
              Lang.string_t,
              Some (Lang.string "/dev/dsp"),
@@ -156,7 +160,8 @@ let _ =
        ~callbacks:(Start_stop.callbacks ~label:"output")
        ~self_sync_description:
          "This output uses the OSS hardware clock as synchronization source \
-          when `self_sync=true` and the device is open."
+          when `self_sync=true` and the device is open. Otherwise, the \
+          synchronization follows the underlying source."
        ~descr:"Output the source's stream to an OSS output device."
        (fun p ->
          let e f v = f (List.assoc v p) in

@@ -190,6 +190,7 @@ class virtual base =
 
 class output ~self_sync ~start ~infallible ~register_telnet ~device_name
   ~device_id ~latency buflen val_source =
+  let s = Lang.to_source val_source in
   object (self)
     inherit base
 
@@ -203,7 +204,7 @@ class output ~self_sync ~start ~infallible ~register_telnet ~device_name
     method self_sync =
       if self_sync then
         (`Dynamic, if stream <> None then Some sync_source else None)
-      else (`Static, None)
+      else s#self_sync
 
     method private open_device =
       self#handle "open_device" (fun () ->
@@ -293,8 +294,9 @@ let _ =
         ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
-          Some "Mark the source as being synchronized by the portaudio driver."
-        );
+          Some
+            "Use the PortAudio clock as synchronization source. When `false`, \
+             delegate to the underlying source's synchronization." );
         ( "buflen",
           Lang.int_t,
           Some (Lang.int 256),
@@ -317,7 +319,8 @@ let _ =
     ~callbacks:(Start_stop.callbacks ~label:"output")
     ~self_sync_description:
       "This output uses the PortAudio clock as synchronization source when \
-       `self_sync=true` and the stream is open."
+       `self_sync=true` and the stream is open. Otherwise, the synchronization \
+       follows the underlying source."
     ~descr:"Output the source's stream to a portaudio output device."
     (fun p ->
       let e f v = f (List.assoc v p) in

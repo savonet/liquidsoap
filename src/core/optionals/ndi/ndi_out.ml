@@ -40,6 +40,7 @@ type sender = { handler : Ndi.Send.sender; mutable position : int64 }
 
 class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
   ~format source start =
+  let s = Lang.to_source source in
   let sample_rate = Lazy.force Frame.audio_rate in
   let frame_rate = Lazy.force Frame.video_rate in
   let video_width, video_height = Frame.video_dimensions () in
@@ -67,7 +68,7 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
     method self_sync =
       if self_sync then
         (`Dynamic, if sender <> None then Some sync_source else None)
-      else (`Static, None)
+      else s#self_sync
 
     method get_sender =
       match sender with
@@ -172,7 +173,9 @@ let _ =
         ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool false),
-          Some "Use the dedicated NDI clock." );
+          Some
+            "Use the dedicated NDI clock as synchronization source. When \
+             `false`, delegate to the underlying source's synchronization." );
         ( "library_file",
           Lang.string_t,
           None,
@@ -195,7 +198,8 @@ let _ =
     ~callbacks:(Start_stop.callbacks ~label:"output")
     ~self_sync_description:
       "This output uses the NDI sender clock as synchronization source when \
-       `self_sync=true` and the sender is active."
+       `self_sync=true` and the sender is active. Otherwise, the \
+       synchronization follows the underlying source."
     ~descr:"Output stream to NDI" ~return_t
     (fun p ->
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
