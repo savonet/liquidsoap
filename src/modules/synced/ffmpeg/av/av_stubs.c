@@ -2284,6 +2284,7 @@ CAMLprim value ocaml_av_write_stream_packet(value _stream, value _time_base,
 
 static void write_frame(av_t *av, int stream_index, AVCodecContext *enc_ctx,
                         value _on_keyframe, AVFrame *frame) {
+  CAMLparam1(_on_keyframe);
   AVStream *avstream = av->format_context->streams[stream_index];
   AVFrame *hw_frame = NULL;
   int ret;
@@ -2354,7 +2355,7 @@ static void write_frame(av_t *av, int stream_index, AVCodecContext *enc_ctx,
   if (!frame && ret == AVERROR_EOF) {
     av_packet_free(&packet);
     caml_acquire_runtime_system();
-    return;
+    CAMLreturn0;
   }
 
   if (frame && ret == AVERROR_EOF) {
@@ -2401,10 +2402,12 @@ static void write_frame(av_t *av, int stream_index, AVCodecContext *enc_ctx,
   caml_acquire_runtime_system();
 
   if (!frame && ret == AVERROR_EOF)
-    return;
+    CAMLreturn0;
 
   if (ret < 0 && ret != AVERROR(EAGAIN))
     ocaml_avutil_raise_error(ret);
+
+  CAMLreturn0;
 }
 
 static void write_audio_frame(av_t *av, unsigned int stream_index,
