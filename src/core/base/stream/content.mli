@@ -164,6 +164,7 @@ module Video : sig
   type video_params = Content_video.Specs.params = {
     width : int Lazy.t option;
     height : int Lazy.t option;
+    alpha : bool option ref;
   }
 
   include
@@ -174,6 +175,7 @@ module Video : sig
 
   val kind : Contents.kind
   val dimensions_of_format : Contents.format -> int * int
+  val alpha_of_format : Contents.format -> bool
   val lift_image : Video.Canvas.image -> Contents.data
 
   type generator

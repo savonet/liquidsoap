@@ -111,11 +111,20 @@ let type_of_format f =
                     Type.make
                       (Format_type.descr
                          (`Format (Frame_base.audio_format ~pcm_kind params)))
-                | `Encode { Ffmpeg_format.mode = `Internal; options = `Video _ }
-                  ->
+                | `Encode
+                    {
+                      Ffmpeg_format.mode = `Internal;
+                      options = `Video { Ffmpeg_format.alpha };
+                    } ->
                     Type.make
                       (Format_type.descr
-                         (`Format Content.(default_format Video.kind)))
+                         (`Format
+                            (Content_video.lift_params
+                               {
+                                 Content_video.Specs.width = None;
+                                 height = None;
+                                 alpha = ref alpha;
+                               })))
                 | `Encode { Ffmpeg_format.options = `Subtitle _; _ } ->
                     Type.make
                       (Format_type.descr (`Format Subtitle_content.format)))

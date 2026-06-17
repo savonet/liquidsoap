@@ -32,6 +32,7 @@ val mk_audio_decoder :
 val mk_video_decoder :
   width:int ->
   height:int ->
+  alpha:bool ->
   stream:(Avutil.input, Avutil.video, [ `Frame ]) Av.stream ->
   field:Frame.field ->
   Avutil.video Avcodec.params ->
