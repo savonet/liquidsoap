@@ -85,7 +85,7 @@ jobs:
           IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
           IS_RELEASE: ${{ inputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
-          DEB_RELEASE: 1
+          DEB_RELEASE: 2
         run: |
           mkdir -p "${LIQ_TMP_DIR}"
           chown -R opam "${LIQ_TMP_DIR}"
@@ -111,7 +111,7 @@ jobs:
           IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
           IS_RELEASE: ${{ inputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
-          APK_RELEASE: 0
+          APK_RELEASE: 1
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           apk update
