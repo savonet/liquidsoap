@@ -41,7 +41,7 @@ class max_duration ~override_meta ~duration source =
         | rem, rem' -> min rem rem'
 
     method! seek len = source#effective_source#seek (min remaining len)
-    method effective_source = source#effective_source
+    method effective_source = s#effective_source
 
     method private check_for_override buf =
       List.iter
@@ -64,7 +64,9 @@ class max_duration ~override_meta ~duration source =
       let pos = Frame.position buf in
       let len = min remaining pos in
       remaining <- remaining - len;
-      if remaining <= 0 then s <- Debug_sources.empty ();
+      if remaining <= 0 then (
+        self#release_source s;
+        s <- Debug_sources.empty ());
       if len < pos then Frame.slice buf len else buf
   end
 

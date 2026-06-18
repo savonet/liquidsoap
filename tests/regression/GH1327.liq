@@ -22,7 +22,7 @@ def f(m) =
   selected := list.add(m["id"], !selected)
 end
 
-s = rotate(weights=[2, 1], [s1, s2])
+s = rotate([s1.{weight = getter(2)}, s2.{weight = getter(1)}])
 
 s.on_track(synchronous=true, f)
 
@@ -34,7 +34,19 @@ noise = metadata.map(insert_missing=true, id="noise", m_noise, noise())
 
 ready = ref(false)
 
-s = switch(track_sensitive=false, [({!ready}, s), ({true}, noise)])
+s =
+  switch(
+    [
+      (
+        {!ready},
+        s.{
+          track_sensitive = false,
+          on_select = source.composition.legacy_on_select
+        }
+      ),
+      ({true}, noise.{track_sensitive = false})
+    ]
+  )
 
 def f(_) =
   ready := true

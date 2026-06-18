@@ -36,6 +36,8 @@ class muxer ~pos ~base tracks =
   object (self)
     (* Pass duplicated list to operator to make sure caching is properly enabled. *)
     inherit Source.operator ~name:"source" sources
+    inherit! Source.multi_source_composition
+    method private source_list = sources
     method self_sync = self_sync ~source:self ()
     method fallible = fallible
     method abort_track = List.iter (fun s -> s#abort_track) sources
@@ -214,6 +216,8 @@ let source =
     ~descr:"Create a source that muxes the given tracks." ~return_t:frame_t
     [("", tracks_t, None, Some "Tracks to mux")]
     muxer_operator
+
+let () = Lang_source.register_composition_module ~base:source ()
 
 let _ =
   let track_t = Lang.univ_t ~constraints:[Format_type.track] () in

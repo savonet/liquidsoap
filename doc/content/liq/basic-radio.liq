@@ -15,10 +15,10 @@ security = single("~/radio/sounds/default.ogg")
 radio = myplaylist
 
 # Now add some jingles
-radio = random(weights=[1, 4], [jingles, radio])
+radio = random([jingles.{weight = 1}, radio.{weight = 4}])
 
 # And finally the security
-radio = fallback(track_sensitive=false, [radio, security])
+radio = fallback([radio, security])
 
 # Stream it out
 output.icecast(

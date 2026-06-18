@@ -32,7 +32,7 @@ radio =
   )
 
 # Add the normal jingles
-radio = random(weights=[1, 5], [jingles, radio])
+radio = random([jingles.{weight = 1}, radio.{weight = 5}])
 
 # And the clock jingle
 radio = add([radio, switch([({0m0s}, clock)])])
@@ -40,11 +40,7 @@ radio = add([radio, switch([({0m0s}, clock)])])
 radio = mksafe(radio)
 
 # Add the ability to relay live shows
-full =
-  fallback(
-    track_sensitive=false,
-    [input.http("http://localhost:8000/live.ogg"), radio]
-  )
+full = fallback([input.http("http://localhost:8000/live.ogg"), radio])
 
 # Output the full stream in OGG and MP3
 output.icecast(
