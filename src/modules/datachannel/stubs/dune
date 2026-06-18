@@ -1,0 +1,13 @@
+(library
+ (name datachannel_stubs)
+ (wrapped false)
+ (libraries datachannel_types ctypes ctypes.stubs ctypes.foreign))
+
+(rule
+ (targets datachannel_generated_types.ml)
+ (deps
+  (:gen ../generator/gen_types_c_target.exe))
+ (action
+  (with-stdout-to
+   %{targets}
+   (run %{gen}))))
