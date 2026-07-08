@@ -427,9 +427,20 @@ class virtual ['a] base p =
     method private handle_disconnect listener =
       if Atomic.compare_and_set listener.closed false true then begin
         self#log#info "Listener %s disconnected" listener.id;
-        self#stop_listener_encoder listener;
         listener.close ();
-        List.iter (fun fn -> fn listener.id) on_disconnect_callbacks
+        (* Encoder teardown and user callbacks can be slow: run them on the
+           Maybe_blocking queue so they never delay the streaming thread or
+           the non-blocking write task. *)
+        Task.add Tutils.scheduler
+          {
+            Task.priority = `Maybe_blocking;
+            events = [`Delay 0.];
+            handler =
+              (fun _ ->
+                self#stop_listener_encoder listener;
+                List.iter (fun fn -> fn listener.id) on_disconnect_callbacks;
+                []);
+          }
       end
 
     initializer
