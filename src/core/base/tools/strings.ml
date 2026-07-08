@@ -305,6 +305,25 @@ module Mutable = struct
           Atomic.set m.content
             { c with ofs = c.ofs + drop_len; size = len; pos = min c.pos len }))
 
+  let write m fn =
+    mutate m (fun m ->
+        let c = Atomic.get m.content in
+        if c.size = 0 then 0
+        else (
+          let written = fn c.buffer c.ofs c.size in
+          if written > 0 then
+            if written >= c.size then
+              Atomic.set m.content { c with ofs = 0; size = 0; pos = 0 }
+            else
+              Atomic.set m.content
+                {
+                  c with
+                  ofs = c.ofs + written;
+                  size = c.size - written;
+                  pos = max 0 (c.pos - written);
+                };
+          written))
+
   let append m m' =
     mutate m (fun m ->
         let c' = Atomic.get m'.content in

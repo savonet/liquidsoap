@@ -14,11 +14,13 @@
 "use strict";
 
 const { spawn } = require("child_process");
+const net = require("net");
 
 const PORT = process.env.PORT || "9900";
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || "30", 10);
 const STAGGER_MIN_MS = parseInt(process.env.STAGGER_MIN_MS || "200", 10);
 const STAGGER_MAX_MS = parseInt(process.env.STAGGER_MAX_MS || "2000", 10);
+const STALLED = parseInt(process.env.STALLED || "3", 10);
 
 function ts() {
   return new Date().toISOString().slice(11, 23);
@@ -88,11 +90,37 @@ function probe(url, index) {
   });
 }
 
+// Regression check for the write-loop stall: a listener that connects but
+// never reads must not prevent other listeners from receiving data. The
+// socket sends the GET then stops reading, letting the server-side buffer
+// fill up.
+function stalledListener(index) {
+  const state = { index, closedByServer: false, sock: null };
+  const start = Date.now();
+  state.sock = net.connect(PORT, "localhost", () => {
+    console.log(`[${ts()}] stalled ${index}: connected, not reading`);
+    state.sock.write(`GET /test HTTP/1.0\r\n\r\n`);
+    state.sock.pause();
+  });
+  state.sock.on("close", () => {
+    const elapsed = Date.now() - start;
+    state.closedByServer = true;
+    console.log(`[${ts()}] stalled ${index}: closed by server (${elapsed}ms)`);
+  });
+  state.sock.on("error", () => {});
+  return state;
+}
+
 async function main() {
   const url = `http://localhost:${PORT}/test`;
   console.log(
-    `Probing ${url} with ${CONCURRENCY} concurrent listeners (${STAGGER_MIN_MS}-${STAGGER_MAX_MS}ms random stagger)...`,
+    `Probing ${url} with ${CONCURRENCY} concurrent listeners (${STAGGER_MIN_MS}-${STAGGER_MAX_MS}ms random stagger) and ${STALLED} stalled listeners...`,
   );
+
+  const stalled = [];
+  for (let i = 0; i < STALLED; i++) {
+    stalled.push(stalledListener(i + 1));
+  }
 
   const promises = [];
   for (let i = 0; i < CONCURRENCY; i++) {
@@ -105,6 +133,30 @@ async function main() {
   }
 
   const results = await Promise.all(promises);
+
+  // The server must disconnect stalled listeners once their buffer fills
+  // (instead of dropping data, which would desync ICY metadata). The sockets
+  // are paused so they never read the server's FIN; poke them with a write,
+  // which triggers a RST (and thus a close event) once the server has closed.
+  const stalledDeadline = Date.now() + 60000;
+  while (
+    stalled.some((s) => !s.closedByServer) &&
+    Date.now() < stalledDeadline
+  ) {
+    stalled.forEach((s) => {
+      if (!s.closedByServer) s.sock.write(" ");
+    });
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  const lingering = stalled.filter((s) => !s.closedByServer);
+  stalled.forEach((s) => s.sock.destroy());
+  if (lingering.length > 0) {
+    console.error(
+      `${lingering.length} stalled listeners were not disconnected by the server`,
+    );
+    process.exit(1);
+  }
+
   const passed = results.filter((r) => r.ok);
   const failed = results.filter((r) => !r.ok);
 

@@ -35,6 +35,20 @@ let protocol_of_value protocol_val =
     | _ ->
         raise (Error.Invalid_value (protocol_val, "Invalid SSL protocol", []))
 
+(* Translate SSL would-block conditions into the Unix errors raised by plain
+   sockets, so callers handling non-blocking I/O (e.g. the output.harbor write
+   loop) work identically on both transports. *)
+let read_wrapper ssl buf ofs len =
+  try Ssl.read ssl buf ofs len with
+    | Ssl.Read_error (Ssl.Error_want_read | Ssl.Error_want_write) ->
+        raise (Unix.Unix_error (Unix.EAGAIN, "read", ""))
+    | Ssl.Read_error Ssl.Error_zero_return -> 0
+
+let write_wrapper ssl buf ofs len =
+  try Ssl.write ssl buf ofs len
+  with Ssl.Write_error (Ssl.Error_want_read | Ssl.Error_want_write) ->
+    raise (Unix.Unix_error (Unix.EAGAIN, "write", ""))
+
 let ssl_socket ~pos transport ssl =
   let closed = Atomic.make false in
   let finalise s =
@@ -66,8 +80,8 @@ let ssl_socket ~pos transport ssl =
         in
         Tutils.wait_for ?log event timeout
 
-      method read = Ssl.read ssl
-      method write = Ssl.write ssl
+      method read = read_wrapper ssl
+      method write = write_wrapper ssl
       method closed = Atomic.get closed
 
       method close =

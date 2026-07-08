@@ -102,17 +102,21 @@ CAMLprim value caml_liquidsoap_poll(value _read, value _write, value _err,
     uerror("poll", Nothing);
   }
 
+  /* Error conditions are reported in the set the fd was registered under, so
+     the caller's next I/O attempt surfaces the actual error (EPIPE, EBADF,
+     ...). POLLHUP means the peer closed the connection; POLLNVAL means the fd
+     itself is closed and is never combined with POLLIN/POLLOUT: not reporting
+     it would make the caller re-poll immediately, busy-looping on a closed
+     fd. */
   for (n = 0; n < nfds; n++) {
-    if (fds[n].revents & POLLIN)
+    int is_write = (nfds_t)n >= write_start && (nfds_t)n < write_end;
+    int is_err = (nfds_t)n >= write_end;
+    if (!is_write && !is_err &&
+        (fds[n].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)))
       nread++;
-    /* POLLHUP on a write fd means the peer closed the connection; treat it as
-       write-ready so the caller can detect the error (e.g. EPIPE on next
-       write). */
-    if ((fds[n].revents & POLLOUT) ||
-        ((nfds_t)n >= write_start && (nfds_t)n < write_end &&
-         (fds[n].revents & POLLHUP)))
+    if (is_write && (fds[n].revents & (POLLOUT | POLLERR | POLLHUP | POLLNVAL)))
       nwrite++;
-    if (fds[n].revents & POLLERR)
+    if (is_err && (fds[n].revents & (POLLERR | POLLNVAL)))
       nerr++;
   }
 
@@ -126,17 +130,19 @@ CAMLprim value caml_liquidsoap_poll(value _read, value _write, value _err,
   nerr = 0;
 
   for (n = 0; n < nfds; n++) {
-    if (fds[n].revents & POLLIN) {
+    int is_write = (nfds_t)n >= write_start && (nfds_t)n < write_end;
+    int is_err = (nfds_t)n >= write_end;
+    if (!is_write && !is_err &&
+        (fds[n].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL))) {
       Store_field(_pread, nread, Val_fd(fds[n].fd));
       nread++;
     }
-    if ((fds[n].revents & POLLOUT) ||
-        ((nfds_t)n >= write_start && (nfds_t)n < write_end &&
-         (fds[n].revents & POLLHUP))) {
+    if (is_write &&
+        (fds[n].revents & (POLLOUT | POLLERR | POLLHUP | POLLNVAL))) {
       Store_field(_pwrite, nwrite, Val_fd(fds[n].fd));
       nwrite++;
     }
-    if (fds[n].revents & POLLERR) {
+    if (is_err && (fds[n].revents & (POLLERR | POLLNVAL))) {
       Store_field(_perr, nerr, Val_fd(fds[n].fd));
       nerr++;
     }

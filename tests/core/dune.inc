@@ -397,6 +397,19 @@
   (run %{unifier_test})))
 
 (executable
+ (name unix_utils_test)
+ (modules unix_utils_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias unix_utils_test)
+ (package liquidsoap)
+ (deps
+  (:unix_utils_test unix_utils_test.exe))
+ (action
+  (run %{unix_utils_test})))
+
+(executable
  (name utils_test)
  (modules utils_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -468,6 +481,7 @@
   (alias timezone)
   (alias types)
   (alias unifier_test)
+  (alias unix_utils_test)
   (alias utils_test)
   (alias version_test)
   (alias weak_queue_test)))
