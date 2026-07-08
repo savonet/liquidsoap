@@ -169,12 +169,19 @@ let create_listener ~id ~encoder ~socket ~close ~metadata_interval ~stream_url
     last_write_time = Unix.gettimeofday ();
   }
 
+(* Returns [false] when appending would exceed [buffer_limit]: the data is not
+   appended and the listener should be disconnected. Dropping data instead
+   would glitch the stream and permanently desync ICY metadata offsets for the
+   client. *)
 let append_data_to_listener ~buffer_limit listener data =
-  let data_len = Strings.length data in
-  let new_length = Strings.Mutable.length listener.pending_data + data_len in
-  if new_length > buffer_limit then
-    Strings.Mutable.drop listener.pending_data (new_length - buffer_limit);
-  Strings.Mutable.append_strings listener.pending_data data
+  let new_length =
+    Strings.Mutable.length listener.pending_data + Strings.length data
+  in
+  if new_length > buffer_limit then false
+  else begin
+    Strings.Mutable.append_strings listener.pending_data data;
+    true
+  end
 
 let try_write_to_socket listener =
   (* Write as much pending data as the socket accepts. The buffer is locked
@@ -442,6 +449,12 @@ class virtual ['a] base p =
                 []);
           }
       end
+
+    method private disconnect_overflowed listener =
+      self#log#info
+        "Listener %s buffer overflow (client too slow), disconnecting"
+        listener.id;
+      self#handle_disconnect listener
 
     initializer
       let has_stopped = ref false in
@@ -739,11 +752,15 @@ class shared_output p =
           (fun ch -> Strings.iter (output_substring ch) data)
           dump_channel;
         let metadata = self#get_metadata in
-        List.iter
-          (fun listener ->
-            append_data_to_listener ~buffer_limit listener
-              (insert_icy_metadata ~metadata listener data))
-          self#get_listeners
+        let overflowed =
+          List.filter
+            (fun listener ->
+              not
+                (append_data_to_listener ~buffer_limit listener
+                   (insert_icy_metadata ~metadata listener data)))
+            self#get_listeners
+        in
+        List.iter self#disconnect_overflowed overflowed
       end;
       (* Always wake the write task, even when no new data was produced
          (len=0), so pending data for slow listeners keeps getting flushed. *)
@@ -827,14 +844,21 @@ class dedicated_output p =
        after a stop will see closed=true and bail out without touching the
        encoder. *)
     method private listener_encode ~metadata ~frame listener =
-      if not (Atomic.get listener.closed) then
-        Mutex_utils.mutexify listener.encoder_mutex
-          (fun () ->
-            if not (Atomic.get listener.closed) then
-              append_data_to_listener ~buffer_limit listener
-                (insert_icy_metadata ~metadata listener
-                   (listener.encoder.Encoder.encode frame)))
-          ()
+      let appended =
+        if Atomic.get listener.closed then true
+        else
+          Mutex_utils.mutexify listener.encoder_mutex
+            (fun () ->
+              if Atomic.get listener.closed then true
+              else
+                append_data_to_listener ~buffer_limit listener
+                  (insert_icy_metadata ~metadata listener
+                     (listener.encoder.Encoder.encode frame)))
+            ()
+      in
+      (* Disconnect outside encoder_mutex: the deferred encoder teardown takes
+         the same lock. *)
+      if not appended then self#disconnect_overflowed listener
 
     method private stop_listener_encoder listener =
       Mutex_utils.mutexify listener.encoder_mutex

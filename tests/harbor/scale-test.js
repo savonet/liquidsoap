@@ -133,7 +133,30 @@ async function main() {
   }
 
   const results = await Promise.all(promises);
+
+  // The server must disconnect stalled listeners once their buffer fills
+  // (instead of dropping data, which would desync ICY metadata). The sockets
+  // are paused so they never read the server's FIN; poke them with a write,
+  // which triggers a RST (and thus a close event) once the server has closed.
+  const stalledDeadline = Date.now() + 60000;
+  while (
+    stalled.some((s) => !s.closedByServer) &&
+    Date.now() < stalledDeadline
+  ) {
+    stalled.forEach((s) => {
+      if (!s.closedByServer) s.sock.write(" ");
+    });
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  const lingering = stalled.filter((s) => !s.closedByServer);
   stalled.forEach((s) => s.sock.destroy());
+  if (lingering.length > 0) {
+    console.error(
+      `${lingering.length} stalled listeners were not disconnected by the server`,
+    );
+    process.exit(1);
+  }
+
   const passed = results.filter((r) => r.ok);
   const failed = results.filter((r) => !r.ok);
 
