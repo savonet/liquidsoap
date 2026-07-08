@@ -177,38 +177,25 @@ let append_data_to_listener ~buffer_limit listener data =
   Strings.Mutable.append_strings listener.pending_data data
 
 let try_write_to_socket listener =
-  (* Get the first available chunk from pending_data and write it directly. *)
+  (* Write as much pending data as the socket accepts. The buffer is locked
+     while the write syscall runs so concurrent appends cannot move the bytes
+     being written. *)
     match
-      Strings.Mutable.fold
-        (fun first s src_ofs len ->
-          match first with Some _ -> first | None -> Some (s, src_ofs, len))
-        None listener.pending_data
+      Strings.Mutable.write listener.pending_data (Harbor.write listener.socket)
     with
-    | None -> 0
-    | Some (chunk, chunk_ofs, chunk_len) -> (
-        match
-          Harbor.write listener.socket
-            (Bytes.unsafe_of_string chunk)
-            chunk_ofs chunk_len
-        with
-          | written ->
-              if written > 0 then begin
-                Strings.Mutable.drop listener.pending_data written;
-                listener.last_write_time <- Unix.gettimeofday ()
-              end;
-              written
-          | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _)
-            ->
-              0
-          | exception exn ->
-              (match exn with
-                | Unix.Unix_error ((Unix.EPIPE | Unix.ECONNRESET), _, _) ->
-                    log#info "Socket write for %s: %s (disconnecting)"
-                      listener.id (Printexc.to_string exn)
-                | _ ->
-                    log#info "Socket write error for %s: %s" listener.id
-                      (Printexc.to_string exn));
-              -1)
+    | written ->
+        if written > 0 then listener.last_write_time <- Unix.gettimeofday ();
+        written
+    | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) -> 0
+    | exception exn ->
+        (match exn with
+          | Unix.Unix_error ((Unix.EPIPE | Unix.ECONNRESET), _, _) ->
+              log#info "Socket write for %s: %s (disconnecting)" listener.id
+                (Printexc.to_string exn)
+          | _ ->
+              log#info "Socket write error for %s: %s" listener.id
+                (Printexc.to_string exn));
+        -1
 
 let update_burst_buffer burst_buffer ~max_size data =
   Strings.Mutable.append_strings burst_buffer data;

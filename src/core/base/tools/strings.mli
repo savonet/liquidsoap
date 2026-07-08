@@ -114,7 +114,13 @@ val append : t -> t -> t
 val concat : t list -> t
 
 (** Mutable, seekable and thread-safe variant. Uses a single bytes buffer
-    internally with position tracking for seeking. *)
+    internally with position tracking for seeking.
+
+    Mutating operations are serialized by an internal lock. Read accessors
+    ([fold], [iter], [to_strings], …) are lock-free and operate on a consistent
+    snapshot, but the snapshot's underlying bytes can be mutated in place by a
+    concurrent writer (buffer compaction). To hand the buffer content to a
+    system call while other threads may be appending, use [write]. *)
 module Mutable : sig
   type t
 
@@ -195,6 +201,14 @@ module Mutable : sig
 
   (** Keep the last given bytes. *)
   val keep : t -> int -> unit
+
+  (** [write m fn] calls [fn buffer ofs len] on the current content while
+      holding the buffer's lock, then drops the number of bytes returned by [fn]
+      from the start of the buffer and returns it. The buffer cannot be mutated
+      while [fn] runs, making it safe to hand the underlying bytes to a system
+      call. When the buffer is empty, returns [0] without calling [fn].
+      Exceptions raised by [fn] propagate without consuming anything. *)
+  val write : t -> (bytes -> int -> int -> int) -> int
 
   (** Sub-buffer of a buffer. *)
   val sub : t -> int -> int -> t

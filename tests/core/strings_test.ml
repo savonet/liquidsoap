@@ -348,3 +348,41 @@ let () =
   Thread.join t1;
   Thread.join t2;
   assert (M.length m > 7)
+
+(* Concurrent producer/consumer through M.write: one thread appends a known
+   byte sequence while another consumes it in partial writes. The consumed
+   stream must be byte-identical to the produced one. A small initial capacity
+   forces frequent in-place compactions, which corrupt the output if the
+   consumer reads outside the buffer's lock. *)
+let () =
+  Random.self_init ();
+  let total = 512 * 1024 in
+  let input = String.init total (fun i -> Char.chr (i * 7 land 0xff)) in
+  let m = M.create ~size:64 () in
+  let producer () =
+    let sent = ref 0 in
+    while !sent < total do
+      let n = min (1 + Random.int 4096) (total - !sent) in
+      M.append_strings m (Strings.of_string (String.sub input !sent n));
+      sent := !sent + n;
+      if Random.int 8 = 0 then Thread.yield ()
+    done
+  in
+  let out = Buffer.create total in
+  let consumer () =
+    while Buffer.length out < total do
+      let written =
+        M.write m (fun buf ofs len ->
+            let n = min len (1 + Random.int 4096) in
+            Buffer.add_subbytes out buf ofs n;
+            n)
+      in
+      if written = 0 then Thread.yield ()
+    done
+  in
+  let t1 = Thread.create producer () in
+  let t2 = Thread.create consumer () in
+  Thread.join t1;
+  Thread.join t2;
+  assert (Buffer.contents out = input);
+  assert (M.is_empty m)
