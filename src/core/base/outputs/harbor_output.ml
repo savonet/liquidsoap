@@ -381,7 +381,14 @@ class virtual ['a] base p =
     val transport = transport
     val dumpfile = dumpfile
     val listeners : 'a listener list Atomic.t = Atomic.make []
-    val write_task_active : bool Atomic.t = Atomic.make false
+
+    (* Wake pipe (read end, write end) for the write task. Present while the
+       task is running: the task polls the read end alongside listener sockets
+       so new pending data is picked up immediately. *)
+    val wake_pipe : (Unix.file_descr * Unix.file_descr) option Atomic.t =
+      Atomic.make None
+
+    val wake_drain_buffer = Bytes.create 1024
     val burst_buffer = Strings.Mutable.empty ()
     val shared_metadata : Frame.metadata option Atomic.t = Atomic.make None
     val mutable dump_channel : out_channel option = None
@@ -434,134 +441,141 @@ class virtual ['a] base p =
                has_stopped := true;
                List.iter self#handle_disconnect self#get_listeners)))
 
-    method private write_task_handler events =
-      (* Guard: if anything throws, reset write_task_active so ensure_write_task
-         can restart the task rather than leaving it permanently stuck. *)
-      (try
-         let ready_fds =
-           List.filter_map (function `Write fd -> Some fd | _ -> None) events
-         in
-         let now = Unix.gettimeofday () in
-         let to_disconnect =
-           List.filter_map
-             (fun listener ->
-               let fd = Harbor.file_descr_of_socket listener.socket in
-               (* Write to ready fds; disconnect on hard error. *)
-               let write_error =
-                 List.mem fd ready_fds && try_write_to_socket listener < 0
-               in
-               (* Timeout check applies to all listeners regardless of fd
-                  readiness: catches both unresponsive clients and those that
-                  keep causing EAGAIN without making progress. *)
-               let timed_out =
-                 (not (Strings.Mutable.is_empty listener.pending_data))
-                 && now -. listener.last_write_time > listener.timeout
-               in
-               if write_error then Some listener
-               else if timed_out then (
-                 self#log#info "Listener %s timed out (no progress for %.0fs)"
-                   listener.id listener.timeout;
-                 Some listener)
-               else None)
-             self#get_listeners
-         in
-         List.iter self#handle_disconnect to_disconnect;
-         (* CAS loop: only one write task runs at a time, but concurrent
-            add_listener calls may race on the list. Contention is minimal. *)
-         let rec filter_closed () =
-           let current = Atomic.get listeners in
-           let filtered =
-             List.filter (fun l -> not (Atomic.get l.closed)) current
-           in
-           if not (Atomic.compare_and_set listeners current filtered) then
-             filter_closed ()
-         in
-         filter_closed ()
-       with exn ->
-         self#log#important "Write task error: %s" (Printexc.to_string exn);
-         Atomic.set write_task_active false);
-      self#write_task_next
-
-    method private write_task_next =
-      let active = self#get_listeners in
-      (* Only watch fds that have data waiting; polling writable fds with nothing
-         to send causes a busy-loop since they are always select-ready. *)
-      let with_data =
-        List.filter_map
-          (fun l ->
-            if Atomic.get l.closed || Strings.Mutable.is_empty l.pending_data
-            then None
-            else Some (`Write (Harbor.file_descr_of_socket l.socket)))
-          active
+    (* Watch fds that have data waiting (polling writable fds with nothing to
+       send would busy-loop since they are always ready), the wake pipe, and a
+       delay firing at the earliest pending timeout deadline so a slow client
+       is disconnected even when no fd becomes writable. *)
+    method private write_task_events ~wake_out =
+      let now = Unix.gettimeofday () in
+      let write_events, next_deadline =
+        List.fold_left
+          (fun (events, deadline) listener ->
+            if Strings.Mutable.is_empty listener.pending_data then
+              (events, deadline)
+            else
+              ( `Write (Harbor.file_descr_of_socket listener.socket) :: events,
+                min deadline
+                  (listener.timeout -. (now -. listener.last_write_time)) ))
+          ([], infinity) self#get_listeners
       in
-      match with_data with
-        | [] ->
-            (* No pending data right now. Stop the task, then re-check for data
-               that may have arrived while we were deciding to stop, so we don't
-               miss a concurrent send() whose ensure_write_task was a no-op. *)
-            Atomic.set write_task_active false;
-            let fresh = self#get_listeners in
-            let any_data =
-              List.exists
-                (fun l -> not (Strings.Mutable.is_empty l.pending_data))
-                fresh
-            in
-            if any_data && Atomic.compare_and_set write_task_active false true
-            then (
-              let events =
-                List.filter_map
-                  (fun l ->
-                    if
-                      Atomic.get l.closed
-                      || Strings.Mutable.is_empty l.pending_data
-                    then None
-                    else Some (`Write (Harbor.file_descr_of_socket l.socket)))
-                  fresh
-              in
-              match events with
-                | [] ->
-                    Atomic.set write_task_active false;
-                    []
-                | _ ->
-                    [
-                      {
-                        Task.priority = `Non_blocking;
-                        events;
-                        handler = self#write_task_handler;
-                      };
-                    ])
-            else []
-        | write_events ->
-            (* Add a Delay firing at the earliest pending timeout deadline, so
-               the handler wakes up to disconnect a slow client even when no fd
-               becomes writable. *)
-            let now = Unix.gettimeofday () in
-            let next_deadline =
-              List.fold_left
-                (fun acc l ->
-                  if Strings.Mutable.is_empty l.pending_data then acc
-                  else min acc (l.timeout -. (now -. l.last_write_time)))
-                infinity active
-            in
-            let events =
-              if Float.is_finite next_deadline then
-                `Delay (max 0. next_deadline) :: write_events
-              else write_events
+      let events = `Read wake_out :: write_events in
+      if Float.is_finite next_deadline then
+        `Delay (max 0. next_deadline) :: events
+      else events
+
+    method private write_task_handler ~wake_out events =
+      match Atomic.get wake_pipe with
+        | Some (current_wake_out, _) when current_wake_out <> wake_out ->
+            (* The output was restarted with a new pipe while this task was
+               still registered: terminate the stale task. *)
+            (try Unix.close wake_out with _ -> ());
+            []
+        | None ->
+            (* The output was stopped: this task owns the read end, close it
+               and terminate. *)
+            (try Unix.close wake_out with _ -> ());
+            []
+        | Some _ ->
+            let next_events =
+              try
+                if List.exists (( = ) (`Read wake_out)) events then
+                  ignore
+                    (Unix.read wake_out wake_drain_buffer 0
+                       (Bytes.length wake_drain_buffer));
+                let ready_fds =
+                  List.filter_map
+                    (function `Write fd -> Some fd | _ -> None)
+                    events
+                in
+                let now = Unix.gettimeofday () in
+                let to_disconnect =
+                  List.filter_map
+                    (fun listener ->
+                      let fd = Harbor.file_descr_of_socket listener.socket in
+                      (* Write to ready fds; disconnect on hard error. *)
+                      let write_error =
+                        List.mem fd ready_fds
+                        && try_write_to_socket listener < 0
+                      in
+                      (* Timeout check applies to all listeners regardless of
+                         fd readiness: catches both unresponsive clients and
+                         those that keep causing EAGAIN without making
+                         progress. *)
+                      let timed_out =
+                        (not (Strings.Mutable.is_empty listener.pending_data))
+                        && now -. listener.last_write_time > listener.timeout
+                      in
+                      if write_error then Some listener
+                      else if timed_out then (
+                        self#log#info
+                          "Listener %s timed out (no progress for %.0fs)"
+                          listener.id listener.timeout;
+                        Some listener)
+                      else None)
+                    self#get_listeners
+                in
+                List.iter self#handle_disconnect to_disconnect;
+                (* CAS loop: only one write task runs at a time, but concurrent
+                   add_listener calls may race on the list. Contention is
+                   minimal. *)
+                let rec filter_closed () =
+                  let current = Atomic.get listeners in
+                  let filtered =
+                    List.filter (fun l -> not (Atomic.get l.closed)) current
+                  in
+                  if not (Atomic.compare_and_set listeners current filtered)
+                  then filter_closed ()
+                in
+                filter_closed ();
+                self#write_task_events ~wake_out
+              with exn ->
+                self#log#important "Write task error: %s"
+                  (Printexc.to_string exn);
+                (* Keep the task alive on its wake pipe: the next send will
+                   wake it and retry. *)
+                [`Read wake_out]
             in
             [
               {
                 Task.priority = `Non_blocking;
-                events;
-                handler = self#write_task_handler;
+                events = next_events;
+                handler = self#write_task_handler ~wake_out;
               };
             ]
 
-    method private ensure_write_task =
-      if Atomic.compare_and_set write_task_active false true then (
-        match self#write_task_next with
-          | [] -> Atomic.set write_task_active false
-          | [task] -> Task.add Tutils.scheduler task
-          | _ -> assert false)
+    method private start_write_task =
+      match Atomic.get wake_pipe with
+        | Some _ -> ()
+        | None ->
+            let wake_out, wake_in = Unix.pipe ~cloexec:true () in
+            Unix.set_nonblock wake_in;
+            Atomic.set wake_pipe (Some (wake_out, wake_in));
+            Task.add Tutils.scheduler
+              {
+                Task.priority = `Non_blocking;
+                events = [`Read wake_out];
+                handler = self#write_task_handler ~wake_out;
+              }
+
+    method private stop_write_task =
+      match Atomic.exchange wake_pipe None with
+        | None -> ()
+        | Some (_, wake_in) -> (
+            (* Wake the task so it observes the state change and closes the
+               read end; we own and close the write end. Failures are fine:
+               they can only mean the task is already shutting down. *)
+            (try ignore (Unix.write wake_in (Bytes.make 1 ' ') 0 1)
+             with _ -> ());
+            try Unix.close wake_in with _ -> ())
+
+    (* Signal the write task that pending data or listener state changed. A
+       full pipe means a wake is already pending. *)
+    method private wake_write_task =
+      match Atomic.get wake_pipe with
+        | Some (_, wake_in) -> (
+            try ignore (Unix.write wake_in (Bytes.make 1 ' ') 0 1)
+            with _ -> ())
+        | None -> ()
 
     method private add_listener ~protocol ~headers ~uri:request_uri ~query
         socket =
@@ -642,7 +656,7 @@ class virtual ['a] base p =
       in
       Unix.set_nonblock (Harbor.file_descr_of_socket socket);
       add_listener_atomic ();
-      self#ensure_write_task;
+      self#wake_write_task;
       self#log#info "Listener %s connected" client_id;
       List.iter
         (fun fn -> fn ~headers ~uri:request_uri ~protocol client_id)
@@ -720,10 +734,9 @@ class shared_output p =
               (insert_icy_metadata ~metadata listener data))
           self#get_listeners
       end;
-      (* Always attempt to restart the write task, even when no new data was
-         produced (len=0). This ensures pending data for slow listeners is
-         flushed and the timeout mechanism stays alive after any exception. *)
-      self#ensure_write_task
+      (* Always wake the write task, even when no new data was produced
+         (len=0), so pending data for slow listeners keeps getting flushed. *)
+      self#wake_write_task
 
     method start =
       Mutex_utils.mutexify start_stop_mutex
@@ -733,6 +746,7 @@ class shared_output p =
             | None ->
                 let factory = encoder_data.factory self#id in
                 enc <- Some (factory Frame.Metadata.Export.empty);
+                self#start_write_task;
                 self#register_http_handler;
                 Option.iter
                   (fun path -> dump_channel <- Some (open_out_bin path))
@@ -749,6 +763,7 @@ class shared_output p =
                 enc <- None;
                 Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
                 self#disconnect_all_listeners;
+                self#stop_write_task;
                 Option.iter close_out dump_channel;
                 dump_channel <- None)
         ()
@@ -829,7 +844,7 @@ class dedicated_output p =
           let metadata = self#get_metadata in
           List.iter (self#listener_encode ~metadata ~frame) self#get_listeners;
           current_frame <- None;
-          self#ensure_write_task)
+          self#wake_write_task)
         current_frame
 
     method start =
@@ -839,6 +854,7 @@ class dedicated_output p =
             | Some _ -> ()
             | None ->
                 encoder_factory <- Some (encoder_data.factory self#id);
+                self#start_write_task;
                 self#register_http_handler;
                 Option.iter
                   (fun path -> dump_channel <- Some (open_out_bin path))
@@ -854,6 +870,7 @@ class dedicated_output p =
                 encoder_factory <- None;
                 Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
                 self#disconnect_all_listeners;
+                self#stop_write_task;
                 Option.iter close_out dump_channel;
                 dump_channel <- None)
         ()
