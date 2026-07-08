@@ -506,11 +506,11 @@ class virtual ['a] base p =
                   ignore
                     (Unix.read wake_out wake_drain_buffer 0
                        (Bytes.length wake_drain_buffer));
-                let ready_fds =
-                  List.filter_map
-                    (function `Write fd -> Some fd | _ -> None)
-                    events
-                in
+                let ready_fds = Hashtbl.create (List.length events) in
+                List.iter
+                  (function
+                    | `Write fd -> Hashtbl.replace ready_fds fd () | _ -> ())
+                  events;
                 let now = Unix.gettimeofday () in
                 let to_disconnect =
                   List.filter_map
@@ -518,7 +518,7 @@ class virtual ['a] base p =
                       let fd = Harbor.file_descr_of_socket listener.socket in
                       (* Write to ready fds; disconnect on hard error. *)
                       let write_error =
-                        List.mem fd ready_fds
+                        Hashtbl.mem ready_fds fd
                         && try_write_to_socket listener < 0
                       in
                       (* Timeout check applies to all listeners regardless of
