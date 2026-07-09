@@ -572,7 +572,7 @@ class virtual ['a] base p =
         | Some _ -> ()
         | None ->
             let wake_out, wake_in = Unix.pipe ~cloexec:true () in
-            Unix.set_nonblock wake_in;
+            if not Sys.win32 then Unix.set_nonblock wake_in;
             Atomic.set wake_pipe (Some (wake_out, wake_in));
             Task.add Tutils.scheduler
               {
@@ -678,7 +678,8 @@ class virtual ['a] base p =
         if not (Atomic.compare_and_set listeners current (listener :: current))
         then add_listener_atomic ()
       in
-      Unix.set_nonblock (Harbor.file_descr_of_socket socket);
+      if not Sys.win32 then
+        Unix.set_nonblock (Harbor.file_descr_of_socket socket);
       add_listener_atomic ();
       self#wake_write_task;
       self#log#info "Listener %s connected" client_id;
