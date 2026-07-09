@@ -37,6 +37,7 @@ class insert_initial_track_mark ~name src =
     method self_sync = src#self_sync
     method effective_source = src#effective_source
     method! last_metadata = src#last_metadata
+    method! clear_last_metadata = src#clear_last_metadata
 
     method private generate_frame =
       let buf = src#get_frame in
