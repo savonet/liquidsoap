@@ -1901,6 +1901,121 @@
   (run %{run_test} source_dynamic liquidsoap %{test_liq} source_dynamic.liq)))
 
 (rule
+ (alias test_switch_per_source_no_reselect_during_fade)
+ (package liquidsoap)
+ (deps
+  switch_per_source_no_reselect_during_fade.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_per_source_no_reselect_during_fade
+   liquidsoap
+   %{test_liq}
+   switch_per_source_no_reselect_during_fade.liq)))
+
+(rule
+ (alias test_switch_per_source_on_leave)
+ (package liquidsoap)
+ (deps
+  switch_per_source_on_leave.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_per_source_on_leave
+   liquidsoap
+   %{test_liq}
+   switch_per_source_on_leave.liq)))
+
+(rule
+ (alias test_switch_per_source_on_select)
+ (package liquidsoap)
+ (deps
+  switch_per_source_on_select.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_per_source_on_select
+   liquidsoap
+   %{test_liq}
+   switch_per_source_on_select.liq)))
+
+(rule
+ (alias test_switch_per_source_replay_metadata)
+ (package liquidsoap)
+ (deps
+  switch_per_source_replay_metadata.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_per_source_replay_metadata
+   liquidsoap
+   %{test_liq}
+   switch_per_source_replay_metadata.liq)))
+
+(rule
+ (alias test_switch_per_source_single)
+ (package liquidsoap)
+ (deps
+  switch_per_source_single.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_per_source_single
+   liquidsoap
+   %{test_liq}
+   switch_per_source_single.liq)))
+
+(rule
  (alias test_track_sensitive)
  (package liquidsoap)
  (deps
@@ -2069,6 +2184,11 @@
   (alias test_shoutcast-args)
   (alias test_source_cleanup)
   (alias test_source_dynamic)
+  (alias test_switch_per_source_no_reselect_during_fade)
+  (alias test_switch_per_source_on_leave)
+  (alias test_switch_per_source_on_select)
+  (alias test_switch_per_source_replay_metadata)
+  (alias test_switch_per_source_single)
   (alias test_track_sensitive)
   (alias test_unified-pcm-types)
   (alias test_video-only)))
