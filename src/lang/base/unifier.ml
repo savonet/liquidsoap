@@ -25,24 +25,45 @@
 type 'a t = [ `Value of 'a | `Link of 'a t Atomic.t ]
 
 let make v = `Link (Atomic.make (`Value v))
-let rec deref x = match x with `Value v -> v | `Link x -> deref (Atomic.get x)
+
+(* Return the terminal atom of a chain (the one holding `Value), compressing
+   the path behind it: every link visited is re-pointed directly at the
+   terminal atom, so subsequent walks are O(1) instead of O(chain length).
+   Without this, chains only ever grow (each [<--] appends one), and code
+   that derefs in a hot loop pays for the full history of unifications. *)
+let find_root a =
+  let rec find a =
+    match Atomic.get a with `Value _ -> a | `Link a' -> find a'
+  in
+  let root = find a in
+  let rec compress a =
+    match Atomic.get a with
+      | `Value _ -> ()
+      | `Link a' ->
+          if a' != root then Atomic.set a (`Link root);
+          compress a'
+  in
+  compress a;
+  root
+
+let rec deref x =
+  match x with
+    | `Value v -> v
+    | `Link a -> (
+        match Atomic.get (find_root a) with
+          | `Value v -> v
+          (* A concurrent [<--] may have linked our root onward; retry. *)
+          | `Link _ as l -> deref l)
 
 let set x v =
-  let rec f x =
-    match Atomic.get x with
-      | `Value _ -> Atomic.set x (`Value v)
-      | `Link x -> f x
-  in
-  match x with `Value _ -> assert false | `Link x -> f x
+  match x with
+    | `Value _ -> assert false
+    | `Link a -> Atomic.set (find_root a) (`Value v)
 
 let ( <-- ) x x' =
-  let rec f x x' =
-    match (Atomic.get x, Atomic.get x') with
-      | `Link x, _ -> f x x'
-      | _, `Link x' -> f x x'
-      | _ when x != x' -> Atomic.set x (`Link x')
-      | _ -> ()
-  in
   match (x, x') with
     | `Value _, _ | _, `Value _ -> assert false
-    | `Link x, `Link x' -> f x x'
+    | `Link a, `Link a' ->
+        let r = find_root a in
+        let r' = find_root a' in
+        if r != r' then Atomic.set r (`Link r')
