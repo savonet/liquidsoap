@@ -1,5 +1,9 @@
 # 2.4.6 (unreleased)
 
+## Fixed:
+
+- Added Unifier path compression to avoid unbounded deref cost growth (#5257)
+
 ---
 
 # 2.4.5 (2026-06-15)
