@@ -344,7 +344,7 @@ void ocaml_av_set_control_message_callback(value *p_av,
 
 /***** AVIO *****/
 
-#define BUFLEN 1024
+#define BUFLEN 32768
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 typedef struct avio_t {
