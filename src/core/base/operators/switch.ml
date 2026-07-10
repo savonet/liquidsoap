@@ -27,9 +27,15 @@
 open Source
 
 class insert_initial_track_mark ~name src =
-  object
+  object (self)
     inherit operator ~name [src]
     val mutable first = true
+
+    (* [last_metadata] and [clear_last_metadata] are delegated to [src] but
+       [set_last_metadata] is not: the frame machinery's reset-on-track would
+       clear the child's last metadata and only re-set our own, erasing the
+       metadata needed when replaying it on re-selection. *)
+    initializer self#set_reset_last_metadata_on_track false
     method fallible = src#fallible
     method private can_generate_frame = src#is_ready
     method abort_track = src#abort_track
@@ -111,7 +117,7 @@ class switch ~all_predicates children =
   let self_sync_type = Clock_base.self_sync_type sources in
   let track_sensitive = Atomic.make true in
   object (self)
-    inherit operator ~name:"switch" sources
+    inherit operator ~name:"switch" sources as super
 
     inherit
       generate_from_multiple_sources
@@ -304,6 +310,18 @@ class switch ~all_predicates children =
       match self#selected with
         | Some s -> s.effective_source#effective_source
         | None -> (self :> Source.source)
+
+    (* With no selection, [effective_source] is [self] and the generic
+       resolution would default to `Live`. Resolve from the children instead
+       (all-file → file, any-live → live) so that e.g. a not-yet-ready switch
+       over file sources does not flip its parent to live composition. *)
+    method! resolved_composition =
+      match (self#composition, self#selected) with
+        | `Passthrough, None ->
+            if List.for_all (fun s -> s#resolved_composition = `File) sources
+            then `File
+            else `Live
+        | _ -> super#resolved_composition
   end
 
 (** Common tools for Lang bindings of switch operators *)
