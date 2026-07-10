@@ -39,6 +39,7 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~options
   ?channels_matrix source start =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
+  let s = Lang.to_source source in
   object (self)
     inherit
       Output.output
@@ -50,7 +51,7 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~options
     method self_sync =
       if self_sync then
         (`Dynamic, if device <> None then Some sync_source else None)
-      else (`Static, None)
+      else s#self_sync
 
     method private get_device =
       match device with
@@ -93,7 +94,9 @@ let _ =
         ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
-          Some "Use the dedicated AO clock." );
+          Some
+            "Use the dedicated AO clock as synchronization source. When \
+             `false`, delegate to the underlying source's synchronization." );
         ( "driver",
           Lang.string_t,
           Some (Lang.string ""),
@@ -112,7 +115,8 @@ let _ =
     ~callbacks:(Start_stop.callbacks ~label:"output")
     ~self_sync_description:
       "This output uses the AO device clock as synchronization source when \
-       `self_sync=true` and the device is open."
+       `self_sync=true` and the device is open. Otherwise, the synchronization \
+       follows the underlying source."
     ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p ->
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in

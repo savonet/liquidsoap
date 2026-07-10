@@ -31,7 +31,8 @@ let handle lbl f x =
     failwith
       (Printf.sprintf "Error while setting %s: %s" lbl (string_of_error e))
 
-class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
+class virtual base ~buffer_size:buffer_size_seconds ~self_sync
+  ?(default_self_sync = fun () -> (`Static, None)) dev mode =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
   let buffer_size = Frame.audio_of_seconds buffer_size_seconds in
@@ -58,7 +59,7 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
     method self_sync : Clock.self_sync =
       if self_sync then
         (`Dynamic, if pcm <> None then Some Alsa_settings.sync_source else None)
-      else (`Static, None)
+      else default_self_sync ()
 
     method open_device =
       self#log#important "Using ALSA %s." (Alsa.get_version ());
@@ -175,6 +176,7 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
 
 class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
   val_source =
+  let s = Lang.to_source val_source in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
@@ -183,7 +185,12 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
         ~infallible ~register_telnet ~name ~output_kind:"output.alsa" val_source
           start
 
-    inherit! base ~buffer_size ~self_sync dev [Pcm.Playback]
+    inherit!
+      base
+        ~buffer_size ~self_sync
+        ~default_self_sync:(fun () -> s#self_sync)
+        dev [Pcm.Playback]
+
     val mutable samplerate_converter = None
 
     method samplerate_converter =
@@ -300,7 +307,9 @@ let _ =
         ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
-          Some "Mark the source as being synchronized by the ALSA driver." );
+          Some
+            "Use the ALSA hardware clock as synchronization source. When \
+             `false`, delegate to the underlying source's synchronization." );
         ( "buffer_size",
           Lang.nullable_t Lang.float_t,
           Some Lang.null,
@@ -317,7 +326,8 @@ let _ =
     ~callbacks:(Start_stop.callbacks ~label:"output")
     ~self_sync_description:
       "This output uses the ALSA hardware clock as synchronization source when \
-       `self_sync=true` and the device is open."
+       `self_sync=true` and the device is open. Otherwise, the synchronization \
+       follows the underlying source."
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p ->
       let e f v = f (List.assoc v p) in

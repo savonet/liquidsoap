@@ -44,7 +44,8 @@ let error_translator e =
 
 let () = Printexc.register_printer error_translator
 
-class virtual base ~self_sync ~client ~device =
+class virtual base ~self_sync ?(default_self_sync = fun () -> (`Static, None))
+  ~client ~device () =
   object
     val client_name = client
     val dev = device
@@ -53,7 +54,7 @@ class virtual base ~self_sync ~client ~device =
     method self_sync : Clock.self_sync =
       if self_sync then
         (`Dynamic, if stream <> None then Some sync_source else None)
-      else (`Static, None)
+      else default_self_sync ()
   end
 
 let log = Log.make ["pulseaudio"]
@@ -79,7 +80,11 @@ class output ~infallible ~register_telnet ~start p =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
-    inherit base ~self_sync ~client ~device
+    inherit
+      base
+        ~self_sync
+        ~default_self_sync:(fun () -> (Lang.to_source val_source)#self_sync)
+        ~client ~device ()
 
     inherit
       Output.output
@@ -169,7 +174,7 @@ class input p =
       Start_stop.active_source
         ~name:"input.pulseaudio" ~autostart:start ~fallible () as active_source
 
-    inherit base ~self_sync ~client ~device
+    inherit base ~self_sync ~client ~device ()
     method private start = self#open_device
     method private stop = self#close_device
     method remaining = -1
@@ -265,7 +270,9 @@ let proto =
     ( "self_sync",
       Lang.bool_t,
       Some (Lang.bool true),
-      Some "Mark the source as being synchronized by the pulseaudio driver." );
+      Some
+        "Use the PulseAudio clock as synchronization source. When `false`, \
+         delegate to the underlying source's synchronization." );
   ]
 
 let _ =
@@ -279,7 +286,8 @@ let _ =
     ~callbacks:(Start_stop.callbacks ~label:"output")
     ~self_sync_description:
       "This output uses the PulseAudio clock as synchronization source when \
-       `self_sync=true` and the stream is open."
+       `self_sync=true` and the stream is open. Otherwise, the synchronization \
+       follows the underlying source."
     ~descr:"Output the source's stream to a pulseaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
