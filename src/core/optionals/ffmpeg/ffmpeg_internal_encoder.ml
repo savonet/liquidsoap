@@ -324,6 +324,14 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     video_size;
   }
 
+type video_stream_state = {
+  alpha : bool;
+  target_pixel_format : Avutil.Pixel_format.t;
+  stream : (Avutil.output, Avutil.video, [ `Frame ]) Av.stream;
+  stream_time_base : Avutil.rational;
+  on_keyframe : (unit -> unit) option;
+}
+
 let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   let codec =
     try Avcodec.Video.find_encoder_by_name codec
@@ -337,10 +345,6 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   let target_video_frame_time_base = { Avutil.num = 1; den = target_fps } in
   let target_width = Lazy.force params.Ffmpeg_format.width in
   let target_height = Lazy.force params.Ffmpeg_format.height in
-  let target_pixel_format =
-    Ffmpeg_utils.pixel_format codec params.Ffmpeg_format.pixel_format
-  in
-
   let flag =
     match Ffmpeg_utils.conf_scaling_algorithm#get with
       | "fast_bilinear" -> Swscale.Fast_bilinear
@@ -351,8 +355,6 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
             "Invalid value set for ffmpeg scaling algorithm!"
   in
 
-  let opts = Hashtbl.copy options in
-
   let hwaccel = params.Ffmpeg_format.hwaccel in
   let hwaccel_device = params.Ffmpeg_format.hwaccel_device in
   let hwaccel_pixel_format =
@@ -360,51 +362,81 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       params.Ffmpeg_format.hwaccel_pixel_format
   in
 
-  let hardware_context, stream_pixel_format =
-    Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_pixel_format
-      ~hwaccel_device ~opts ~target_pixel_format ~target_width ~target_height
-      codec
+  let video_stream_state = ref None in
+  let get_state () = Option.get !video_stream_state in
+
+  let mk_stream frame =
+    let frame_alpha =
+      match Frame.Fields.find_opt field (Frame.content_type frame) with
+        | Some fmt when Content.Video.is_format fmt ->
+            Content.Video.alpha_of_format fmt
+        | _ -> false
+    in
+    let alpha = Option.value ~default:frame_alpha params.Ffmpeg_format.alpha in
+    let target_pixel_format =
+      Ffmpeg_utils.pixel_format ~alpha codec params.Ffmpeg_format.pixel_format
+    in
+    let opts = Hashtbl.copy options in
+    let hardware_context, stream_pixel_format =
+      Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_pixel_format
+        ~hwaccel_device ~opts ~target_pixel_format ~target_width ~target_height
+        codec
+    in
+    let stream =
+      Av.new_video_stream ~time_base:target_video_frame_time_base
+        ~pixel_format:stream_pixel_format ?hardware_context
+        ~frame_rate:{ Avutil.num = target_fps; den = 1 }
+        ~width:target_width ~height:target_height ~opts ~codec output
+    in
+    let remaining_options = Hashtbl.copy options in
+    Hashtbl.filter_map_inplace
+      (fun l v -> if Hashtbl.mem opts l then Some v else None)
+      remaining_options;
+    if Hashtbl.length remaining_options > 0 then
+      Lang_encoder.raise_error ~pos
+        (Printf.sprintf "Unrecognized options: %s"
+           (Ffmpeg_format.string_of_options remaining_options));
+    let intra_only =
+      match Avcodec.descriptor (Av.get_codec_params stream) with
+        | None -> true
+        | Some { Avcodec.properties } -> List.mem `Intra_only properties
+    in
+    let stream_on_keyframe =
+      Option.map
+        (fun ok () ->
+          if not intra_only then Av.flush output;
+          ok ())
+        on_keyframe
+    in
+    video_stream_state :=
+      Some
+        {
+          alpha;
+          target_pixel_format;
+          stream;
+          stream_time_base = Av.get_time_base stream;
+          on_keyframe = stream_on_keyframe;
+        }
   in
 
-  let stream =
-    Av.new_video_stream ~time_base:target_video_frame_time_base
-      ~pixel_format:stream_pixel_format ?hardware_context
-      ~frame_rate:{ Avutil.num = target_fps; den = 1 }
-      ~width:target_width ~height:target_height ~opts ~codec output
+  let codec_attr () =
+    match !video_stream_state with
+      | None -> None
+      | Some s -> Av.codec_attr s.stream
   in
 
-  let options = Hashtbl.copy options in
-  Hashtbl.filter_map_inplace
-    (fun l v -> if Hashtbl.mem opts l then Some v else None)
-    options;
-
-  if Hashtbl.length options > 0 then
-    Lang_encoder.raise_error ~pos
-      (Printf.sprintf "Unrecognized options: %s"
-         (Ffmpeg_format.string_of_options options));
-
-  let intra_only =
-    let params = Av.get_codec_params stream in
-    match Avcodec.descriptor params with
-      | None -> true
-      | Some { Avcodec.properties } -> List.mem `Intra_only properties
+  let bitrate () =
+    match !video_stream_state with
+      | None -> None
+      | Some s -> Av.bitrate s.stream
   in
-
-  let on_keyframe =
-    Option.map
-      (fun on_keyframe () ->
-        if not intra_only then Av.flush output;
-        on_keyframe ())
-      on_keyframe
-  in
-
-  let codec_attr () = Av.codec_attr stream in
-
-  let bitrate () = Av.bitrate stream in
 
   let video_size () =
-    let p = Av.get_codec_params stream in
-    Some (Avcodec.Video.get_width p, Avcodec.Video.get_height p)
+    match !video_stream_state with
+      | None -> None
+      | Some s ->
+          let p = Av.get_codec_params s.stream in
+          Some (Avcodec.Video.get_width p, Avcodec.Video.get_height p)
   in
 
   let converter = ref None in
@@ -430,9 +462,8 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
       | Some (_, _, _, c) -> c
   in
 
-  let stream_time_base = Av.get_time_base stream in
-
   let write_frame ~time_base frame =
+    let { stream; stream_time_base; on_keyframe; _ } = get_state () in
     let frame_pts =
       Option.map
         (fun pts ->
@@ -467,16 +498,25 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
     let video_width, video_height = Frame.video_dimensions () in
     let src_width = Lazy.force video_width in
     let src_height = Lazy.force video_height in
-    let scaler =
-      InternalScaler.create [flag] src_width src_height
-        Ffmpeg_utils.liq_frame_pixel_format target_width target_height
-        target_pixel_format
-    in
+    let scaler = ref None in
     let nb_frames = ref 0L in
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in
     let stream_idx = 1L in
 
     fun frame ->
+      let { alpha; target_pixel_format; _ } = get_state () in
+      let scaler =
+        match !scaler with
+          | Some s -> s
+          | None ->
+              let s =
+                InternalScaler.create [flag] src_width src_height
+                  (Ffmpeg_utils.liq_frame_pixel_format_for target_pixel_format)
+                  target_width target_height target_pixel_format
+              in
+              scaler := Some s;
+              s
+      in
       let content = Frame.get frame field in
       let buf = Content.Video.get_data content in
       List.iter
@@ -485,7 +525,7 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
             img
             (* TODO: we could scale instead of aggressively changing the viewport *)
             |> Video.Canvas.Image.viewport src_width src_height
-            |> Video.Canvas.Image.render ~transparent:false
+            |> Video.Canvas.Image.render ~transparent:alpha
           in
           let vdata = Ffmpeg_utils.pack_image f in
           let frame = InternalScaler.convert scaler vdata in

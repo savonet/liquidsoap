@@ -33,6 +33,7 @@ module Fps : sig
     time_base:Avutil.rational ->
     ?pixel_aspect:Avutil.rational ->
     ?source_fps:int ->
+    ?color_range:Avutil.Color_range.t ->
     target_fps:int ->
     unit ->
     t

@@ -1076,12 +1076,14 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
               in
               ignore (Frame.video_dimensions ~ideal_size ());
               let width, height = Content.Video.dimensions_of_format format in
+              Ffmpeg_utils.set_format_alpha ~codec_params:params format;
+              let alpha = Content.Video.alpha_of_format format in
               ( add_stream ~sparse:`False idx stream
                   (`Video_frame
                      ( stream,
                        tracked_stream ~track_data:track_frame stream
                          (Ffmpeg_internal_decoder.mk_video_decoder ~width
-                            ~height ~stream ~field params) ))
+                            ~height ~alpha ~stream ~field params) ))
                   streams,
                 pos + 1 )
           | _ -> (streams, pos + 1))

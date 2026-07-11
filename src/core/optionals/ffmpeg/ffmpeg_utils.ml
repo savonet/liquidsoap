@@ -111,11 +111,36 @@ let liq_frame_time_base () =
 let liq_frame_pixel_format = `Yuv420p
 let liq_frame_pixel_format_with_alpha = `Yuva420p
 
+let pixel_format_has_alpha pixel_format =
+  let { Avutil.Pixel_format.flags } =
+    Avutil.Pixel_format.descriptor pixel_format
+  in
+  List.mem `Alpha flags
+
+let liq_frame_pixel_format_for pixel_format =
+  if pixel_format_has_alpha pixel_format then liq_frame_pixel_format_with_alpha
+  else liq_frame_pixel_format
+
+let set_format_alpha ~codec_params format =
+  let format_params = Content_video.get_params format in
+  if Unifier.deref format_params.Content_video.Specs.alpha = None then (
+    let has_alpha =
+      match
+        Avcodec.Video.get_pixel_format
+          (codec_params : Avutil.video Avcodec.params)
+      with
+        | None -> false
+        | Some pf -> pixel_format_has_alpha pf
+    in
+    Unifier.set format_params.Content_video.Specs.alpha (Some has_alpha))
+
 let pack_image f =
   let y, u, v = Image.YUV420.data f in
   let sy = Image.YUV420.y_stride f in
   let s = Image.YUV420.uv_stride f in
-  [| (y, sy); (u, s); (v, s) |]
+  match Image.YUV420.alpha f with
+    | None -> [| (y, sy); (u, s); (v, s) |]
+    | Some a -> [| (y, sy); (u, s); (v, s); (a, sy) |]
 
 let unpack_image ~width ~height = function
   | [| (y, sy); (u, su); (v, sv) |] ->
@@ -362,15 +387,25 @@ module Duration = struct
     (max_duration, packets)
 end
 
-let find_pixel_format codec =
+let find_pixel_format ?(alpha = false) codec =
   let formats = Avcodec.Video.get_supported_pixel_formats codec in
-  if List.mem liq_frame_pixel_format formats then liq_frame_pixel_format
+  let preferred =
+    if alpha then liq_frame_pixel_format_with_alpha else liq_frame_pixel_format
+  in
+  if List.mem preferred formats then preferred
   else (
-    match
+    let non_hwaccel =
       List.filter
         (fun f ->
           not (List.mem `Hwaccel Avutil.Pixel_format.((descriptor f).flags)))
         formats
+    in
+    match
+      if alpha then
+        List.filter
+          (fun f -> List.mem `Alpha Avutil.Pixel_format.((descriptor f).flags))
+          non_hwaccel
+      else non_hwaccel
     with
       | p :: _ -> p
       (* Hardware accelerated codecs list hardware-specific pixel_formats
@@ -378,9 +413,9 @@ let find_pixel_format codec =
          we use the internal pixel_format. *)
       | [] -> liq_frame_pixel_format)
 
-let pixel_format codec = function
+let pixel_format ?(alpha = false) codec = function
   | Some p -> Avutil.Pixel_format.of_string p
-  | None -> find_pixel_format codec
+  | None -> find_pixel_format ~alpha codec
 
 let mk_subtitle_decoder ~output ~process () =
   let current_position = ref None in

@@ -287,10 +287,9 @@ let build_video_content_type ~ctype content_type video_streams =
               (Content.merge format
                  Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params p)));
             Frame.Fields.add field format content_type
-        | _, Some _ ->
-            Frame.Fields.add field
-              Content.(default_format Video.kind)
-              content_type
+        | codec_params, Some format ->
+            Ffmpeg_utils.set_format_alpha ~codec_params format;
+            Frame.Fields.add field format content_type
         | _ -> content_type)
     content_type video_streams
 
