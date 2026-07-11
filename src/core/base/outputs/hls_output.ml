@@ -419,6 +419,7 @@ class hls_output p =
       (validate_writable_directory ~descr:"temporary directory" temp_dir_val)
       temp_dir
   in
+  let persist_at_val = List.assoc "persist_at" p in
   let persist_at =
     Option.map
       (fun filename ->
@@ -432,15 +433,18 @@ class hls_output p =
          with exn ->
            raise
              (Error.Invalid_value
-                ( List.assoc "persist_at" p,
+                ( persist_at_val,
                   Printf.sprintf
                     "Error while creating directory for persisting state at \
                      %s: %s"
                     (Lang_string.quote_string filename)
                     (Printexc.to_string exn),
                   [] )));
+        validate_writable_directory ~descr:"persistence directory"
+          persist_at_val
+          (Filename.dirname filename);
         filename)
-      (Lang.to_option (List.assoc "persist_at" p))
+      (Lang.to_option persist_at_val)
   in
   let strict_persist = Lang.to_bool (List.assoc "strict_persist" p) in
   (* better choice? *)
