@@ -101,15 +101,7 @@ let hls_proto frame_t =
   in
   Output.proto
   @ [
-      ( "reopen_on_error",
-        Lang.fun_t
-          [(false, "", Lang.nullable_t Lang.error_t)]
-          (Lang.nullable_t Lang.float_t),
-        Some default_reopen_on_error,
-        Some
-          "Callback called when there is an error. The error is raised when \
-           returning `null`; otherwise, the output is reopened after the \
-           returned delay, in seconds." );
+      Pipe_output.reopen_on_error_proto default_reopen_on_error;
       ( "playlist",
         Lang.string_t,
         Some (Lang.string "stream.m3u8"),
@@ -361,15 +353,6 @@ class hls_output p =
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
   let reopen_on_error = List.assoc "reopen_on_error" p in
-  let reopen_on_error ~bt exn =
-    let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
-    match
-      Lang.to_valued_option Lang.to_float
-        (Lang.apply reopen_on_error [("", Lang.error error)])
-    with
-      | Some delay when 0. <= delay -> delay
-      | _ -> -1.
-  in
   let prefix = Lang.to_string (List.assoc "prefix" p) in
   let main_playlist_writer =
     Option.map
@@ -928,13 +911,8 @@ class hls_output p =
 
     method private apply_on_error ~bt exn =
       self#abort_current_segments;
-      match reopen_on_error ~bt exn with
-        | delay when delay < 0. -> Printexc.raise_with_backtrace exn bt
-        | delay ->
-            reopen_time <- Unix.gettimeofday () +. delay;
-            self#log#important
-              "Error while streaming: %s, will re-open in %.02fs"
-              (Printexc.to_string exn) delay
+      reopen_time <-
+        Pipe_output.reopen_time_on_error ~log:self#log reopen_on_error ~bt exn
 
     method! output =
       if reopen_time <= Unix.gettimeofday () then (

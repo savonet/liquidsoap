@@ -7,8 +7,9 @@ on_cleanup({file.rmdir(tmp_dir)})
 hls_dir = path.concat(tmp_dir, "hls")
 saved_dir = path.concat(tmp_dir, "hls.saved")
 made_unavailable = ref(false)
-error_seen = ref(false)
 
+# A segment can only be created again after `on_error` has restored `hls_dir`,
+# so a second "created" event proves the output recovered from the error.
 def on_file_change({state, path = fname}) =
   if
     state == "created"
@@ -18,20 +19,17 @@ def on_file_change({state, path = fname}) =
       made_unavailable := true
       file.move(atomic=true, hls_dir, saved_dir)
       file.write(data="not a directory", hls_dir)
-    elsif error_seen() then
+    else
       test.pass()
     end
   end
 end
 
 def on_error(_) =
-  error_seen := true
   file.remove(hls_dir)
   file.move(atomic=true, saved_dir, hls_dir)
   0.1
 end
-
-output.dummy(id="primary", mksafe(buffer(sine())))
 
 o =
   output.file.hls(

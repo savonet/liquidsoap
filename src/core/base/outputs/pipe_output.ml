@@ -238,6 +238,32 @@ let _ =
 let default_reopen_on_error =
   Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> null"
 
+let reopen_on_error_proto default =
+  ( "reopen_on_error",
+    Lang.fun_t
+      [(false, "", Lang.nullable_t Lang.error_t)]
+      (Lang.nullable_t Lang.float_t),
+    Some default,
+    Some
+      "Callback called when there is an error. Error is raised when returning \
+       `null`. Otherwise, the output is reopened after the returned delay, in \
+       seconds." )
+
+(** Return the time at which the output should be reopened after an error,
+    according to a `reopen_on_error` callback. The error is re-raised when the
+    callback returns `null` or a negative delay. *)
+let reopen_time_on_error ~(log : Log.t) reopen_on_error ~bt exn =
+  let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
+  match
+    Lang.to_valued_option Lang.to_float
+      (Lang.apply reopen_on_error [("", Lang.error error)])
+  with
+    | Some delay when 0. <= delay ->
+        log#important "Error while streaming: %s, will re-open in %.02fs"
+          (Printexc.to_string exn) delay;
+        Unix.gettimeofday () +. delay
+    | _ -> Printexc.raise_with_backtrace exn bt
+
 let default_reopen_on_metadata =
   Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> false"
 
@@ -247,15 +273,7 @@ let default_reopen_when =
 let pipe_proto frame_t arg_doc =
   base_proto
   @ [
-      ( "reopen_on_error",
-        Lang.fun_t
-          [(false, "", Lang.nullable_t Lang.error_t)]
-          (Lang.nullable_t Lang.float_t),
-        Some default_reopen_on_error,
-        Some
-          "Callback called when there is an error. Error is raised when \
-           returning `null`. Otherwise, the file is reopened after the \
-           returned value, in seconds." );
+      reopen_on_error_proto default_reopen_on_error;
       ( "reopen_on_metadata",
         Lang.fun_t [(false, "", Lang.metadata_t)] Lang.bool_t,
         Some default_reopen_on_metadata,
@@ -310,15 +328,6 @@ let pipe_meth =
 class virtual piped_output ?clock ~name p =
   let source = Lang.assoc "" 3 p in
   let reopen_on_error = List.assoc "reopen_on_error" p in
-  let reopen_on_error error =
-    let error = Lang.error error in
-    match
-      Lang.to_valued_option Lang.to_float
-        (Lang.apply reopen_on_error [("", error)])
-    with
-      | Some v when 0. <= v -> v
-      | _ -> -1.
-  in
   let reopen_on_metadata = List.assoc "reopen_on_metadata" p in
   let reopen_on_metadata m =
     let m = Lang.metadata m in
@@ -369,15 +378,7 @@ class virtual piped_output ?clock ~name p =
       List.iter (fun fn -> fn ()) on_reopen
 
     method private reopen_on_error ~bt exn =
-      let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
-      match reopen_on_error error with
-        | reopen_delay when reopen_delay < 0. ->
-            Printexc.raise_with_backtrace exn bt
-        | reopen_delay ->
-            open_date <- Unix.gettimeofday () +. reopen_delay;
-            self#log#important
-              "Error while streaming: %s, will re-open in %.02fs"
-              (Printexc.to_string exn) reopen_delay
+      open_date <- reopen_time_on_error ~log:self#log reopen_on_error ~bt exn
 
     method! output =
       try base#output
