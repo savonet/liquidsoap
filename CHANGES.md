@@ -37,6 +37,8 @@
 
 ## Fixed:
 
+- Fixed `output.file.hls` accepting unwritable output and temporary directories
+  during initialization (#5261).
 - Fixed ID3 timed metadata missing from first mpegts HLS segment: metadata is
   now registered before the segment is opened and before data is encoded (#5084).
 - Make active `stereotool` really be active.. (#4882)
