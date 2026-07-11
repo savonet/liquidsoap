@@ -37,6 +37,8 @@
 
 ## Fixed:
 
+- Fixed `output.file.hls` terminating the process on transient filesystem
+  errors. The output now supports a `reopen_on_error` callback (#5259).
 - Fixed ID3 timed metadata missing from first mpegts HLS segment: metadata is
   now registered before the segment is opened and before data is encoded (#5084).
 - Make active `stereotool` really be active.. (#4882)

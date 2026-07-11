@@ -31,6 +31,9 @@ let default_name =
   Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled
     {|fun (metadata) -> "#{metadata.stream_name}_#{metadata.position}.#{metadata.extname}"|}
 
+let default_reopen_on_error =
+  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> 2."
+
 let hls_proto frame_t =
   let main_playlist_writer_t =
     Lang.fun_t
@@ -98,6 +101,15 @@ let hls_proto frame_t =
   in
   Output.proto
   @ [
+      ( "reopen_on_error",
+        Lang.fun_t
+          [(false, "", Lang.nullable_t Lang.error_t)]
+          (Lang.nullable_t Lang.float_t),
+        Some default_reopen_on_error,
+        Some
+          "Callback called when there is an error. The error is raised when \
+           returning `null`; otherwise, the output is reopened after the \
+           returned delay, in seconds." );
       ( "playlist",
         Lang.string_t,
         Some (Lang.string "stream.m3u8"),
@@ -175,7 +187,8 @@ let hls_proto frame_t =
     ]
 
 type atomic_out_channel =
-  < output_string : string -> unit
+  < abort : unit
+  ; output_string : string -> unit
   ; output_substring : string -> int -> int -> unit
   ; position : int
   ; truncate : int -> unit
@@ -347,6 +360,16 @@ class hls_output p =
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
+  let reopen_on_error = List.assoc "reopen_on_error" p in
+  let reopen_on_error ~bt exn =
+    let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
+    match
+      Lang.to_valued_option Lang.to_float
+        (Lang.apply reopen_on_error [("", Lang.error error)])
+    with
+      | Some delay when 0. <= delay -> delay
+      | _ -> -1.
+  in
   let prefix = Lang.to_string (List.assoc "prefix" p) in
   let main_playlist_writer =
     Option.map
@@ -608,7 +631,7 @@ class hls_output p =
     inherit
       [(int * Strings.t option * Strings.t) list] Output.encoded
         ~infallible ~register_telnet ~autostart ~export_cover_metadata:false
-          ~output_kind:"output.file" ~name:main_playlist_filename source_val
+          ~output_kind:"output.file" ~name:main_playlist_filename source_val as super
 
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
@@ -630,7 +653,17 @@ class hls_output p =
           [Unix.O_RDWR; Unix.O_CREAT; Unix.O_TRUNC; Unix.O_CLOEXEC]
           perms
       in
+      let closed = ref false in
+      let close_fd () =
+        if not !closed then (
+          closed := true;
+          try Unix.close fd with _ -> ())
+      in
       object
+        method abort =
+          close_fd ();
+          try Sys.remove tmp_file with _ -> ()
+
         method output_string s = Tutils.write_all fd (Bytes.unsafe_of_string s)
 
         method output_substring s ofs len =
@@ -655,7 +688,7 @@ class hls_output p =
         method saved_filename = saved_filename
 
         method close =
-          (try Unix.close fd with _ -> ());
+          close_fd ();
           Fun.protect
             ~finally:(fun () -> try Sys.remove tmp_file with _ -> ())
             (fun () ->
@@ -881,6 +914,34 @@ class hls_output p =
             segments)
 
     val mutable main_playlist_written = false
+    val mutable reopen_time = 0.
+
+    method private abort_current_segments =
+      List.iter
+        (fun s ->
+          (match s.current_segment with
+            | Some { out_channel = Some oc } -> oc#abort
+            | _ -> ());
+          s.current_segment <- None;
+          s.needs_discontinuity <- true)
+        streams
+
+    method private apply_on_error ~bt exn =
+      self#abort_current_segments;
+      match reopen_on_error ~bt exn with
+        | delay when delay < 0. -> Printexc.raise_with_backtrace exn bt
+        | delay ->
+            reopen_time <- Unix.gettimeofday () +. delay;
+            self#log#important
+              "Error while streaming: %s, will re-open in %.02fs"
+              (Printexc.to_string exn) delay
+
+    method! output =
+      if reopen_time <= Unix.gettimeofday () then (
+        try super#output
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          self#apply_on_error ~bt exn)
 
     method private write_main_playlist =
       (match (main_playlist_writer, main_playlist_written) with
@@ -913,6 +974,7 @@ class hls_output p =
 
     method start =
       stopped <- false;
+      reopen_time <- 0.;
       match persist_at with
         | Some persist_at when Sys.file_exists persist_at -> (
             try
