@@ -111,12 +111,28 @@ let liq_frame_time_base () =
 let liq_frame_pixel_format = `Yuv420p
 let liq_frame_pixel_format_with_alpha = `Yuva420p
 
-let liq_frame_pixel_format_for pixel_format =
+let pixel_format_has_alpha pixel_format =
   let { Avutil.Pixel_format.flags } =
     Avutil.Pixel_format.descriptor pixel_format
   in
-  if List.mem `Alpha flags then liq_frame_pixel_format_with_alpha
+  List.mem `Alpha flags
+
+let liq_frame_pixel_format_for pixel_format =
+  if pixel_format_has_alpha pixel_format then liq_frame_pixel_format_with_alpha
   else liq_frame_pixel_format
+
+let set_format_alpha ~codec_params format =
+  let format_params = Content_video.get_params format in
+  if Unifier.deref format_params.Content_video.Specs.alpha = None then (
+    let has_alpha =
+      match
+        Avcodec.Video.get_pixel_format
+          (codec_params : Avutil.video Avcodec.params)
+      with
+        | None -> false
+        | Some pf -> pixel_format_has_alpha pf
+    in
+    Unifier.set format_params.Content_video.Specs.alpha (Some has_alpha))
 
 let pack_image f =
   let y, u, v = Image.YUV420.data f in

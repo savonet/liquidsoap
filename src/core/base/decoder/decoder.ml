@@ -477,7 +477,7 @@ let mk_buffer ~ctype generator =
             {
               Content.Video.width = Some video_width;
               height = Some video_height;
-              alpha = ref None;
+              alpha = Unifier.make None;
             }
           in
           let interval = Frame.main_of_video 1 in

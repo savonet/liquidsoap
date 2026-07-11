@@ -425,11 +425,7 @@ let ffmpeg_gen params =
         let pixel_format = to_string t in
         let alpha =
           match Avutil.Pixel_format.of_string pixel_format with
-            | pixel_format ->
-                let { Avutil.Pixel_format.flags } =
-                  Avutil.Pixel_format.descriptor pixel_format
-                in
-                Some (List.mem `Alpha flags)
+            | pf -> Some (Ffmpeg_utils.pixel_format_has_alpha pf)
             | exception _ -> None
         in
         parse_video_args ~opts

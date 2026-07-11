@@ -279,7 +279,7 @@ let mk_bitmap_subtitle_decoder ~field ~width ~height =
       {
         Content.Video.width = Some (lazy width);
         height = Some (lazy height);
-        alpha = ref (Some true);
+        alpha = Unifier.make (Some true);
       }
   in
   let pos = ref 0 in

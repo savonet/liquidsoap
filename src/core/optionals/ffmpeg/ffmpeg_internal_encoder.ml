@@ -419,13 +419,24 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
         }
   in
 
-  let codec_attr () = Av.codec_attr (get_state ()).stream in
+  let codec_attr () =
+    match !video_stream_state with
+      | None -> None
+      | Some s -> Av.codec_attr s.stream
+  in
 
-  let bitrate () = Av.bitrate (get_state ()).stream in
+  let bitrate () =
+    match !video_stream_state with
+      | None -> None
+      | Some s -> Av.bitrate s.stream
+  in
 
   let video_size () =
-    let p = Av.get_codec_params (get_state ()).stream in
-    Some (Avcodec.Video.get_width p, Avcodec.Video.get_height p)
+    match !video_stream_state with
+      | None -> None
+      | Some s ->
+          let p = Av.get_codec_params s.stream in
+          Some (Avcodec.Video.get_width p, Avcodec.Video.get_height p)
   in
 
   let converter = ref None in

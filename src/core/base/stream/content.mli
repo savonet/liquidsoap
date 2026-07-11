@@ -164,7 +164,7 @@ module Video : sig
   type video_params = Content_video.Specs.params = {
     width : int Lazy.t option;
     height : int Lazy.t option;
-    alpha : bool option ref;
+    alpha : bool option Unifier.t;
   }
 
   include

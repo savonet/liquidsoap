@@ -196,7 +196,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
 
 let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
     ~content_type ~field generator =
-  let alpha = ref false in
+  let chosen_pixel_format = ref Ffmpeg_utils.liq_frame_pixel_format in
   let internal_fps = Lazy.force Frame.video_rate in
   let internal_time_base = { Avutil.num = 1; den = internal_fps } in
   let video_width, video_height = Frame.video_dimensions () in
@@ -219,6 +219,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
 
   let scaler = ref None in
   let mk_scaler ~target_pixel_format =
+    chosen_pixel_format := target_pixel_format;
     scaler :=
       Some
         (InternalScaler.create [flag] internal_width internal_height
@@ -241,18 +242,17 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
       | `Encoded -> (
           let codec = Option.get codec in
 
-          let computed_alpha =
-            match format.Ffmpeg_format.alpha with
-              | Some b -> b
-              | None -> (
-                  match Frame.Fields.find_opt field (content_type ()) with
-                    | Some fmt when Content.Video.is_format fmt ->
-                        Content.Video.alpha_of_format fmt
-                    | _ -> false)
+          let frame_alpha =
+            match Frame.Fields.find_opt field (content_type ()) with
+              | Some fmt when Content.Video.is_format fmt ->
+                  Content.Video.alpha_of_format fmt
+              | _ -> false
           in
-          alpha := computed_alpha;
+          let alpha =
+            Option.value ~default:frame_alpha format.Ffmpeg_format.alpha
+          in
           let target_pixel_format =
-            Ffmpeg_utils.pixel_format ~alpha:computed_alpha codec
+            Ffmpeg_utils.pixel_format ~alpha codec
               format.Ffmpeg_format.pixel_format
           in
 
@@ -401,7 +401,10 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
       let vbuf = VFrame.data frame in
       List.iter
         (fun (_, img) ->
-          let f = Video.Canvas.Image.render ~transparent:!alpha img in
+          let transparent =
+            Ffmpeg_utils.pixel_format_has_alpha !chosen_pixel_format
+          in
+          let f = Video.Canvas.Image.render ~transparent img in
           let vdata = Ffmpeg_utils.pack_image f in
           let frame = InternalScaler.convert (Option.get !scaler) vdata in
           Avutil.Frame.set_pts frame (Some !nb_frames);

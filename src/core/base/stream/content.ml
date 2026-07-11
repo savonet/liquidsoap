@@ -56,7 +56,7 @@ module Video = struct
   type video_params = Content_video.Specs.params = {
     width : int Lazy.t option;
     height : int Lazy.t option;
-    alpha : bool option ref;
+    alpha : bool option Unifier.t;
   }
 
   let lift_image img =
@@ -69,7 +69,7 @@ module Video = struct
           {
             height = Some (Lazy.from_val height);
             width = Some (Lazy.from_val width);
-            alpha = ref (Some (Video.Canvas.Image.has_alpha img));
+            alpha = Unifier.make (Some (Video.Canvas.Image.has_alpha img));
           };
         data = [(0, img)];
       }

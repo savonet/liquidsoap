@@ -123,7 +123,7 @@ let type_of_format f =
                                {
                                  Content_video.Specs.width = None;
                                  height = None;
-                                 alpha = ref alpha;
+                                 alpha = Unifier.make alpha;
                                })))
                 | `Encode { Ffmpeg_format.options = `Subtitle _; _ } ->
                     Type.make
