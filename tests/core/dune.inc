@@ -12,6 +12,32 @@
   (run %{binary_strings_test})))
 
 (executable
+ (name clock_tick_test)
+ (modules clock_tick_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias clock_tick_test)
+ (package liquidsoap)
+ (deps
+  (:clock_tick_test clock_tick_test.exe))
+ (action
+  (run %{clock_tick_test})))
+
+(executable
+ (name clock_unify_test)
+ (modules clock_unify_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias clock_unify_test)
+ (package liquidsoap)
+ (deps
+  (:clock_unify_test clock_unify_test.exe))
+ (action
+  (run %{clock_unify_test})))
+
+(executable
  (name clock_utils_test)
  (modules clock_utils_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -358,6 +384,19 @@
   (run %{sub_clock_stop_test})))
 
 (executable
+ (name sub_clock_tick_test)
+ (modules sub_clock_tick_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias sub_clock_tick_test)
+ (package liquidsoap)
+ (deps
+  (:sub_clock_tick_test sub_clock_tick_test.exe))
+ (action
+  (run %{sub_clock_tick_test})))
+
+(executable
  (name timezone)
  (modules timezone)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -452,6 +491,8 @@
  (name citest)
  (deps
   (alias binary_strings_test)
+  (alias clock_tick_test)
+  (alias clock_unify_test)
   (alias clock_utils_test)
   (alias content_test)
   (alias decoder_test)
@@ -478,6 +519,7 @@
   (alias string_test)
   (alias strings_test)
   (alias sub_clock_stop_test)
+  (alias sub_clock_tick_test)
   (alias timezone)
   (alias types)
   (alias unifier_test)
