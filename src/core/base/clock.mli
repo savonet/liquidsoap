@@ -55,6 +55,7 @@ type self_sync = [ `Static | `Dynamic ] * sync_source option
     controllers cannot be unified. *)
 type controller = [ `None | `Clock of t | `Other of string * < id : string > ]
 
+val conf_clock : Dtools.Conf.ut
 val conf_latency : float Dtools.Conf.t
 val conf_max_latency : float Dtools.Conf.t
 val string_of_sync_source : sync_source -> string

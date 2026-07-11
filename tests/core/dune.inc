@@ -12,6 +12,19 @@
   (run %{binary_strings_test})))
 
 (executable
+ (name child_support_test)
+ (modules child_support_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias child_support_test)
+ (package liquidsoap)
+ (deps
+  (:child_support_test child_support_test.exe))
+ (action
+  (run %{child_support_test})))
+
+(executable
  (name clock_tick_test)
  (modules clock_tick_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -491,6 +504,7 @@
  (name citest)
  (deps
   (alias binary_strings_test)
+  (alias child_support_test)
   (alias clock_tick_test)
   (alias clock_unify_test)
   (alias clock_utils_test)

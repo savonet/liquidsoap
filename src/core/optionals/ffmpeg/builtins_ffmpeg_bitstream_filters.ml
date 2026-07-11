@@ -305,18 +305,11 @@ let register_filters () =
                    | `Flush -> flush ~put_data
                  in
 
-                 let consumer =
-                   new Producer_consumer.consumer
-                     ~write_frame:encode_frame ~name:(name ^ ".consumer")
-                     ~source ()
-                 in
-
                  let producer =
-                   new Producer_consumer.producer
-                     ~check_self_sync:false ~consumers:[consumer]
-                     ~name:(name ^ ".producer") ()
+                   new Child_support.producer
+                     ~check_self_sync:false ~name:(name ^ ".producer") source
                  in
-                 Typing.(producer#frame_type <: consumer#frame_type);
+                 producer#child#set_process_frame encode_frame;
                  producer)))
         modes)
     Avcodec.BitstreamFilter.filters
