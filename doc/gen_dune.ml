@@ -52,7 +52,7 @@ let mk_html_rule ~liq ~content f =
 (rule
   (alias doc)
   (package liquidsoap)
-  (enabled_if (not %%{bin-available:pandoc}))
+  (enabled_if (not (and %%{bin-available:pandoc} %%{bin-available:pandoc-include})))
   (deps (:no_pandoc no-pandoc))
   (target %s)
   (action (run cp %%{no_pandoc} %%{target}))
@@ -61,7 +61,7 @@ let mk_html_rule ~liq ~content f =
 (rule
   (alias doc)
   (package liquidsoap)
-  (enabled_if %%{bin-available:pandoc})
+  (enabled_if (and %%{bin-available:pandoc} %%{bin-available:pandoc-include}))
   (deps
     liquidsoap.xml
     language.dtd
