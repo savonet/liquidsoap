@@ -75,19 +75,21 @@ class child_output src =
     method output =
       match generator with
         | Some generator when self#is_ready ->
-            let len = Generator.length generator in
-            process_frame generator (`Frame self#get_frame);
-            let new_len = Generator.length generator in
-            let leak_warning =
-              max 1 (Frame.main_of_seconds conf_leak_warning#get)
-            in
-            if len / leak_warning < new_len / leak_warning then
-              self#log#important
-                "Generator for source %s has over %.02fs of content. There \
-                 might be a data leak or accumulation due to imbalanced child \
-                 clock usage."
-                self#id
-                (Frame.seconds_of_main new_len)
+            let frame = self#get_frame in
+            if Frame.position frame > 0 then (
+              let len = Generator.length generator in
+              process_frame generator (`Frame frame);
+              let new_len = Generator.length generator in
+              let leak_warning =
+                max 1 (Frame.main_of_seconds conf_leak_warning#get)
+              in
+              if len / leak_warning < new_len / leak_warning then
+                self#log#important
+                  "Generator for source %s has over %.02fs of content. There \
+                   might be a data leak or accumulation due to imbalanced \
+                   child clock usage."
+                  self#id
+                  (Frame.seconds_of_main new_len))
         | _ -> ()
 
     method reset =
