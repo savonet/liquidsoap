@@ -71,3 +71,32 @@ let rec sendto sock buf ofs len flags addr =
 let rec mkdir path perm =
   try Unix.mkdir path perm
   with Unix.Unix_error (Unix.EINTR, _, _) -> mkdir path perm
+
+(* On Windows, [Unix.socketpair] is emulated using AF_UNIX sockets, which are
+   only available on Windows 1803+ and not under Wine. *)
+let loopback_socketpair ?cloexec () =
+  let listener = Unix.socket ?cloexec Unix.PF_INET Unix.SOCK_STREAM 0 in
+  Fun.protect
+    ~finally:(fun () -> Unix.close listener)
+    (fun () ->
+      Unix.bind listener (Unix.ADDR_INET (Unix.inet_addr_loopback, 0));
+      Unix.listen listener 1;
+      let client = Unix.socket ?cloexec Unix.PF_INET Unix.SOCK_STREAM 0 in
+      try
+        Unix.connect client (Unix.getsockname listener);
+        let server, _ = Unix.accept ?cloexec listener in
+        (* Reject a foreign connection that raced us to the listener. *)
+        if Unix.getpeername server <> Unix.getsockname client then begin
+          Unix.close server;
+          raise (Unix.Unix_error (Unix.ECONNABORTED, "socketpair", ""))
+        end;
+        Unix.setsockopt client Unix.TCP_NODELAY true;
+        Unix.setsockopt server Unix.TCP_NODELAY true;
+        (server, client)
+      with exn ->
+        Unix.close client;
+        raise exn)
+
+let socketpair ?cloexec () =
+  try Unix.socketpair ?cloexec Unix.PF_UNIX Unix.SOCK_STREAM 0
+  with _ when Sys.win32 -> loopback_socketpair ?cloexec ()

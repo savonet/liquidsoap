@@ -584,9 +584,7 @@ class virtual ['a] base p =
             (* A socket pair rather than a pipe: on Windows only sockets can
                be made non-blocking, and a blocking wake-up write could hang
                the streaming thread. *)
-            let wake_out, wake_in =
-              Unix.socketpair ~cloexec:true Unix.PF_UNIX Unix.SOCK_STREAM 0
-            in
+            let wake_out, wake_in = Unix_utils.socketpair ~cloexec:true () in
             Unix.set_nonblock wake_in;
             Atomic.set wake_pipe (Some (wake_out, wake_in));
             Task.add Tutils.scheduler
