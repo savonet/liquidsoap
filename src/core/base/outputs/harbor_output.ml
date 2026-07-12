@@ -389,9 +389,9 @@ class virtual ['a] base p =
     val dumpfile = dumpfile
     val listeners : 'a listener list Atomic.t = Atomic.make []
 
-    (* Wake socket pair (read end, write end) for the write task. Present
-       while the task is running: the task polls the read end alongside
-       listener sockets so new pending data is picked up immediately. *)
+    (* Wake pipe (read end, write end) for the write task. Present while the
+       task is running: the task polls the read end alongside listener sockets
+       so new pending data is picked up immediately. *)
     val wake_pipe : (Unix.file_descr * Unix.file_descr) option Atomic.t =
       Atomic.make None
 
@@ -434,10 +434,7 @@ class virtual ['a] base p =
     method private handle_disconnect listener =
       if Atomic.compare_and_set listener.closed false true then begin
         self#log#info "Listener %s disconnected" listener.id;
-        (* The socket is closed by the write task once the listener is out of
-           its select set: closing it here could make a concurrent select fail
-           on the closed fd. *)
-        self#wake_write_task;
+        listener.close ();
         (* Encoder teardown and user callbacks can be slow: run them on the
            Maybe_blocking queue so they never delay the streaming thread or
            the non-blocking write task. *)
@@ -452,22 +449,6 @@ class virtual ['a] base p =
                 []);
           }
       end
-
-    (* Remove closed listeners from the list and close their sockets. Only
-       called from the write task so a closed fd never lingers in its select
-       set. CAS loop: concurrent add_listener calls may race on the list.
-       Contention is minimal. *)
-    method private remove_closed_listeners =
-      let rec remove () =
-        let current = Atomic.get listeners in
-        let open_listeners, closed_listeners =
-          List.partition (fun l -> not (Atomic.get l.closed)) current
-        in
-        if not (Atomic.compare_and_set listeners current open_listeners) then
-          remove ()
-        else List.iter (fun l -> l.close ()) closed_listeners
-      in
-      remove ()
 
     method private disconnect_overflowed listener =
       self#log#info
@@ -514,10 +495,8 @@ class virtual ['a] base p =
             (try Unix.close wake_out with _ -> ());
             []
         | None ->
-            (* The output was stopped: close the listeners disconnected by
-               stop, then this task owns the read end, close it and
-               terminate. *)
-            self#remove_closed_listeners;
+            (* The output was stopped: this task owns the read end, close it
+               and terminate. *)
             (try Unix.close wake_out with _ -> ());
             []
         | Some _ ->
@@ -560,7 +539,18 @@ class virtual ['a] base p =
                     self#get_listeners
                 in
                 List.iter self#handle_disconnect to_disconnect;
-                self#remove_closed_listeners;
+                (* CAS loop: only one write task runs at a time, but concurrent
+                   add_listener calls may race on the list. Contention is
+                   minimal. *)
+                let rec filter_closed () =
+                  let current = Atomic.get listeners in
+                  let filtered =
+                    List.filter (fun l -> not (Atomic.get l.closed)) current
+                  in
+                  if not (Atomic.compare_and_set listeners current filtered)
+                  then filter_closed ()
+                in
+                filter_closed ();
                 self#write_task_events ~wake_out
               with exn ->
                 self#log#important "Write task error: %s"
@@ -581,13 +571,8 @@ class virtual ['a] base p =
       match Atomic.get wake_pipe with
         | Some _ -> ()
         | None ->
-            (* A socket pair rather than a pipe: on Windows only sockets can
-               be made non-blocking, and a blocking wake-up write could hang
-               the streaming thread. *)
-            let wake_out, wake_in =
-              Unix.socketpair ~cloexec:true Unix.PF_UNIX Unix.SOCK_STREAM 0
-            in
-            Unix.set_nonblock wake_in;
+            let wake_out, wake_in = Unix.pipe ~cloexec:true () in
+            if not Sys.win32 then Unix.set_nonblock wake_in;
             Atomic.set wake_pipe (Some (wake_out, wake_in));
             Task.add Tutils.scheduler
               {
@@ -693,7 +678,8 @@ class virtual ['a] base p =
         if not (Atomic.compare_and_set listeners current (listener :: current))
         then add_listener_atomic ()
       in
-      Unix.set_nonblock (Harbor.file_descr_of_socket socket);
+      if not Sys.win32 then
+        Unix.set_nonblock (Harbor.file_descr_of_socket socket);
       add_listener_atomic ();
       self#wake_write_task;
       self#log#info "Listener %s connected" client_id;
@@ -707,10 +693,8 @@ class virtual ['a] base p =
         (fun ~protocol ~meth:_ ~data:_ ~headers ~query ~socket request_uri ->
           self#add_listener ~protocol ~headers ~uri:request_uri ~query socket)
 
-    (* Listeners are only marked as closed here: the write task removes them
-       from the list and closes their sockets. *)
     method private disconnect_all_listeners =
-      List.iter self#handle_disconnect (Atomic.get listeners)
+      List.iter self#handle_disconnect (Atomic.exchange listeners [])
   end
 
 (* Shared encoder: one instance started at output startup, distributed to all
