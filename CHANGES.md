@@ -37,6 +37,8 @@
 
 ## Fixed:
 
+- Fixed `output.file.hls` terminating the process on transient filesystem
+  errors. The output now supports a `reopen_on_error` callback (#5259).
 - Fixed `output.file.hls` accepting unwritable output, temporary and
   `persist_at` directories during initialization (#5261).
 - Fixed ID3 timed metadata missing from first mpegts HLS segment: metadata is
