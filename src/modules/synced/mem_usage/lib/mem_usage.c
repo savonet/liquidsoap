@@ -37,10 +37,10 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
   CAMLlocal1(ret);
   MEMORYSTATUSEX mem_info;
   PROCESS_MEMORY_COUNTERS_EX2 pmc;
-  DWORDLONG total_virtual_memory;
-  DWORDLONG total_used_virtual_memory;
-  DWORDLONG total_physical_memory;
-  DWORDLONG total_used_physical_memory;
+  DWORDLONG total_virtual_memory = 0;
+  DWORDLONG total_used_virtual_memory = 0;
+  DWORDLONG total_physical_memory = 0;
+  DWORDLONG total_used_physical_memory = 0;
   SIZE_T process_virtual_memory = 0;
   SIZE_T process_physical_memory = 0;
   SIZE_T process_private_memory = 0;
@@ -48,12 +48,13 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
 
   caml_release_runtime_system();
   mem_info.dwLength = sizeof(MEMORYSTATUSEX);
-  GlobalMemoryStatusEx(&mem_info);
-  total_virtual_memory = mem_info.ullTotalPageFile;
-  total_used_virtual_memory =
-      mem_info.ullTotalPageFile - mem_info.ullAvailPageFile;
-  total_physical_memory = mem_info.ullTotalPhys;
-  total_used_physical_memory = mem_info.ullTotalPhys - mem_info.ullAvailPhys;
+  if (GlobalMemoryStatusEx(&mem_info)) {
+    total_virtual_memory = mem_info.ullTotalPageFile;
+    total_used_virtual_memory =
+        mem_info.ullTotalPageFile - mem_info.ullAvailPageFile;
+    total_physical_memory = mem_info.ullTotalPhys;
+    total_used_physical_memory = mem_info.ullTotalPhys - mem_info.ullAvailPhys;
+  }
 
   pmc.cb = sizeof(pmc);
   if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS *)&pmc,
@@ -61,7 +62,22 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
     process_virtual_memory = pmc.PrivateUsage;
     process_physical_memory = pmc.WorkingSetSize;
     process_private_memory = pmc.PrivateWorkingSetSize;
-    process_swapped_memory = pmc.PagefileUsage;
+    // Private committed memory not resident in the working set: the closest
+    // per-process approximation of paged-out memory available here.
+    if (pmc.PrivateUsage > pmc.PrivateWorkingSetSize)
+      process_swapped_memory = pmc.PrivateUsage - pmc.PrivateWorkingSetSize;
+  } else {
+    // Older Windows rejects the EX2 size: retry with the EX layout.
+    PROCESS_MEMORY_COUNTERS_EX pmc_ex;
+    pmc_ex.cb = sizeof(pmc_ex);
+    if (GetProcessMemoryInfo(GetCurrentProcess(),
+                             (PROCESS_MEMORY_COUNTERS *)&pmc_ex,
+                             sizeof(pmc_ex))) {
+      process_virtual_memory = pmc_ex.PrivateUsage;
+      process_physical_memory = pmc_ex.WorkingSetSize;
+      if (pmc_ex.PrivateUsage > pmc_ex.WorkingSetSize)
+        process_swapped_memory = pmc_ex.PrivateUsage - pmc_ex.WorkingSetSize;
+    }
   }
   caml_acquire_runtime_system();
 
@@ -84,7 +100,6 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
 #include <mach/mach_vm.h>
 #include <mach/vm_statistics.h>
 #include <stdio.h>
-#include <sys/mount.h>
 #include <sys/sysctl.h>
 #include <unistd.h>
 
@@ -120,15 +135,14 @@ void private_pages(unsigned int *pages_resident,
 CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
   CAMLparam0();
   CAMLlocal1(ret);
-  struct statfs stats;
   uint64_t total_virtual_memory, total_physical_memory,
       total_used_physical_memory, total_used_virtual_memory,
       process_physical_memory, process_virtual_memory, process_private_memory,
       process_swapped_memory;
   struct xsw_usage vmem_usage = {0};
   size_t size = sizeof(vmem_usage);
-  struct task_basic_info t_info;
-  mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
+  mach_task_basic_info_data_t t_info;
+  mach_msg_type_number_t t_info_count = MACH_TASK_BASIC_INFO_COUNT;
   vm_size_t page_size;
   mach_port_t mach_port;
   mach_msg_type_number_t count;
@@ -137,21 +151,13 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
   unsigned int pages_resident, pages_swapped_out;
 
   caml_release_runtime_system();
-  if (statfs("/", &stats) != 0) {
-    fprintf(stderr, "Error while getting free swap space.\n");
-    total_virtual_memory = 0;
-  } else {
-    total_virtual_memory = (uint64_t)stats.f_bsize * stats.f_bfree;
-  }
-
   if (sysctlbyname("vm.swapusage", &vmem_usage, &size, NULL, 0) != 0) {
     fprintf(stderr, "Error while getting swap usage.\n");
-    total_used_virtual_memory = 0;
-  } else {
-    total_used_virtual_memory = vmem_usage.xsu_used;
+    vmem_usage.xsu_total = 0;
+    vmem_usage.xsu_used = 0;
   }
 
-  if (task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&t_info,
+  if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&t_info,
                 &t_info_count)) {
     fprintf(stderr,
             "Unable to get virtual memory currently used by the process.\n");
@@ -175,28 +181,36 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
   }
 
   mach_port = mach_host_self();
-  count = sizeof(vm_stats) / sizeof(natural_t);
+  count = HOST_VM_INFO64_COUNT;
 
   if (host_page_size(mach_port, &page_size) != KERN_SUCCESS) {
     fprintf(stderr, "Unable to get host page size.\n");
     total_used_physical_memory = 0;
   } else {
-    if (host_statistics64(mach_port, HOST_VM_INFO, (host_info64_t)&vm_stats,
+    if (host_statistics64(mach_port, HOST_VM_INFO64, (host_info64_t)&vm_stats,
                           &count) != KERN_SUCCESS) {
       fprintf(stderr, "Unable to get host stats.\n");
       total_used_physical_memory = 0;
     } else {
+      // Matches Activity Monitor's notion of used memory: anonymous/active
+      // pages + wired + compressed. Inactive pages are mostly reclaimable
+      // file cache and are not counted.
       total_used_physical_memory =
-          ((int64_t)vm_stats.active_count + (int64_t)vm_stats.inactive_count +
-           (int64_t)vm_stats.wire_count) *
-          (int64_t)page_size;
+          ((uint64_t)vm_stats.active_count + (uint64_t)vm_stats.wire_count +
+           (uint64_t)vm_stats.compressor_page_count) *
+          (uint64_t)page_size;
     }
   }
+  mach_port_deallocate(mach_task_self(), mach_port);
+
+  // RAM + swap, matching the Linux implementation's semantics.
+  total_virtual_memory = total_physical_memory + vmem_usage.xsu_total;
+  total_used_virtual_memory = total_used_physical_memory + vmem_usage.xsu_used;
 
   pagesize = getpagesize();
   private_pages(&pages_resident, &pages_swapped_out);
-  process_private_memory = pages_resident * pagesize;
-  process_swapped_memory = pages_swapped_out * pagesize;
+  process_private_memory = (uint64_t)pages_resident * pagesize;
+  process_swapped_memory = (uint64_t)pages_swapped_out * pagesize;
 
   caml_acquire_runtime_system();
 
@@ -239,25 +253,29 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
   total_virtual_memory += memInfo.totalswap;
   total_virtual_memory *= memInfo.mem_unit;
 
-  total_used_virtual_memory = memInfo.totalram - memInfo.freeram;
+  // bufferram is reclaimable cache; sysinfo does not expose the page cache,
+  // so this still over-reports "used" compared to /proc/meminfo MemAvailable.
+  total_used_physical_memory =
+      memInfo.totalram - memInfo.freeram - memInfo.bufferram;
+  total_used_physical_memory *= memInfo.mem_unit;
+
+  total_used_virtual_memory =
+      memInfo.totalram - memInfo.freeram - memInfo.bufferram;
   total_used_virtual_memory += memInfo.totalswap - memInfo.freeswap;
   total_used_virtual_memory *= memInfo.mem_unit;
-
-  total_used_physical_memory = memInfo.totalram - memInfo.freeram;
-  total_used_physical_memory *= memInfo.mem_unit;
 
   file = fopen("/proc/self/status", "r");
   if (file) {
     while (fscanf(file, " %1023s", buffer) == 1) {
       if (strcmp(buffer, "VmSize:") == 0) {
-        if (fscanf(file, " %lld", &process_virtual_memory) != 1)
+        if (fscanf(file, " %llu", &process_virtual_memory) != 1)
           process_virtual_memory = 0;
         process_virtual_memory *= 1024;
         continue;
       }
 
       if (strcmp(buffer, "VmRSS:") == 0) {
-        if (fscanf(file, " %lld", &process_physical_memory) != 1)
+        if (fscanf(file, " %llu", &process_physical_memory) != 1)
           process_physical_memory = 0;
         process_physical_memory *= 1024;
         continue;
@@ -275,13 +293,13 @@ CAMLprim value ocaml_mem_usage_mem_usage(value unit) {
     while (fscanf(file, " %1023s", buffer) == 1) {
       if (strcmp(buffer, "Private_Dirty:") == 0 ||
           strcmp(buffer, "Private_Clean:") == 0) {
-        if (fscanf(file, " %lld", &tmp) == 1)
+        if (fscanf(file, " %llu", &tmp) == 1)
           process_private_memory += tmp * 1024;
         continue;
       }
 
       if (strcmp(buffer, "Swap:") == 0) {
-        if (fscanf(file, " %lld", &tmp) == 1)
+        if (fscanf(file, " %llu", &tmp) == 1)
           process_swapped_memory += tmp * 1024;
         continue;
       }
