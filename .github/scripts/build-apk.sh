@@ -31,7 +31,7 @@ cp "/tmp/liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post
 
 abuild
 
-mv /home/opam/packages/"${ALPINE_ARCH}"/*.apk "${LIQ_TMP_DIR}"
+find /home/opam/packages -name "*.apk" -exec mv {} "${LIQ_TMP_DIR}" \;
 
 echo "::endgroup::"
 
@@ -44,7 +44,7 @@ if [ "${ARCH}" = "amd64" ]; then
   echo "::endgroup::"
 fi
 
-rm -rf APKBUILD /home/opam/packages/"${ALPINE_ARCH}"
+rm -rf APKBUILD /home/opam/packages
 
 echo "::group:: building ${APK_PACKAGE}-minimal.."
 
@@ -69,7 +69,7 @@ cp "/tmp/liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}-mini
 
 abuild
 
-mv /home/opam/packages/"${ALPINE_ARCH}"/*.apk "${LIQ_TMP_DIR}"
+find /home/opam/packages -name "*.apk" -exec mv {} "${LIQ_TMP_DIR}" \;
 
 echo "::endgroup::"
 
