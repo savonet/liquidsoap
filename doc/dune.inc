@@ -91,7 +91,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target protocols.html)
@@ -101,7 +102,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -271,7 +273,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target reference.html)
@@ -281,7 +284,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -451,7 +455,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target reference-extras.html)
@@ -461,7 +466,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -631,7 +637,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target reference-deprecated.html)
@@ -641,7 +648,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -811,7 +819,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target settings.html)
@@ -821,7 +830,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -991,7 +1001,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target beets.html)
@@ -1001,7 +1012,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -1171,7 +1183,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target blank.html)
@@ -1181,7 +1194,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -1351,7 +1365,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target book.html)
@@ -1361,7 +1376,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -1531,7 +1547,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target build.html)
@@ -1541,7 +1558,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -1711,7 +1729,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target clocks.html)
@@ -1721,7 +1740,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -1891,7 +1911,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target complete_case.html)
@@ -1901,7 +1922,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -2071,7 +2093,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target cookbook.html)
@@ -2081,7 +2104,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -2251,7 +2275,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target crossfade.html)
@@ -2261,7 +2286,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -2431,7 +2457,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target custom-path.html)
@@ -2441,7 +2468,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -2611,7 +2639,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target database.html)
@@ -2621,7 +2650,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -2791,7 +2821,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target documentation.html)
@@ -2801,7 +2832,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -2971,7 +3003,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target dynamic_sources.html)
@@ -2981,7 +3014,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -3151,7 +3185,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target encoding_formats.html)
@@ -3161,7 +3196,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -3331,7 +3367,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target external_decoders.html)
@@ -3341,7 +3378,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -3511,7 +3549,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target external_encoders.html)
@@ -3521,7 +3560,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -3691,7 +3731,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target external_streams.html)
@@ -3701,7 +3742,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -3871,7 +3913,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target faq.html)
@@ -3881,7 +3924,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -4051,7 +4095,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target ffmpeg.html)
@@ -4061,7 +4106,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -4231,7 +4277,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target ffmpeg_cookbook.html)
@@ -4241,7 +4288,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -4411,7 +4459,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target ffmpeg_encoder.html)
@@ -4421,7 +4470,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -4591,7 +4641,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target ffmpeg_filters.html)
@@ -4601,7 +4652,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -4771,7 +4823,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target ffmpeg_subtitles.html)
@@ -4781,7 +4834,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -4951,7 +5005,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target flows_devel.html)
@@ -4961,7 +5016,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -5131,7 +5187,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target frequence3.html)
@@ -5141,7 +5198,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -5311,7 +5369,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target geekradio.html)
@@ -5321,7 +5380,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -5491,7 +5551,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target graph_descriptions.html)
@@ -5501,7 +5562,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -5671,7 +5733,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target harbor.html)
@@ -5681,7 +5744,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -5851,7 +5915,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target harbor_http.html)
@@ -5861,7 +5926,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -6031,7 +6097,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target help.html)
@@ -6041,7 +6108,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -6211,7 +6279,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target hls_output.html)
@@ -6221,7 +6290,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -6391,7 +6461,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target http_input.html)
@@ -6401,7 +6472,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -6571,7 +6643,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target icecast_server.html)
@@ -6581,7 +6654,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -6751,7 +6825,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target icy_metadata.html)
@@ -6761,7 +6836,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -6931,7 +7007,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target in_production.html)
@@ -6941,7 +7018,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -7111,7 +7189,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target index.html)
@@ -7121,7 +7200,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -7291,7 +7371,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target install.html)
@@ -7301,7 +7382,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -7471,7 +7553,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target jack.html)
@@ -7481,7 +7564,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -7651,7 +7735,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target json.html)
@@ -7661,7 +7746,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -7831,7 +7917,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target ladspa.html)
@@ -7841,7 +7928,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -8011,7 +8099,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target language.html)
@@ -8021,7 +8110,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -8191,7 +8281,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target latency_control.html)
@@ -8201,7 +8292,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -8371,7 +8463,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target loudness_normalization.html)
@@ -8381,7 +8474,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -8551,7 +8645,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target memory.html)
@@ -8561,7 +8656,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -8731,7 +8827,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target metadata.html)
@@ -8741,7 +8838,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -8911,7 +9009,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target migrating.html)
@@ -8921,7 +9020,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -9091,7 +9191,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target multitrack.html)
@@ -9101,7 +9202,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -9271,7 +9373,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target on2.html)
@@ -9281,7 +9384,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -9451,7 +9555,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target phases.html)
@@ -9461,7 +9566,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -9631,7 +9737,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target playlist_parsers.html)
@@ -9641,7 +9748,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -9811,7 +9919,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target presentations.html)
@@ -9821,7 +9930,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -9991,7 +10101,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target profiling.html)
@@ -10001,7 +10112,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -10171,7 +10283,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target prometheus.html)
@@ -10181,7 +10294,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -10351,7 +10465,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target protocols-presentation.html)
@@ -10361,7 +10476,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -10531,7 +10647,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target publications.html)
@@ -10541,7 +10658,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -10711,7 +10829,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target quick_start.html)
@@ -10721,7 +10840,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -10891,7 +11011,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target radiopi.html)
@@ -10901,7 +11022,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -11071,7 +11193,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target reference-header.html)
@@ -11081,7 +11204,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -11251,7 +11375,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target release-assets.html)
@@ -11261,7 +11386,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -11431,7 +11557,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target request_sources.html)
@@ -11441,7 +11568,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -11611,7 +11739,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target requests.html)
@@ -11621,7 +11750,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -11791,7 +11921,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target rolling-release.html)
@@ -11801,7 +11932,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -11971,7 +12103,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target scheduling.html)
@@ -11981,7 +12114,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -12151,7 +12285,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target script_loading.html)
@@ -12161,7 +12296,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -12331,7 +12467,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target seek.html)
@@ -12341,7 +12478,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -12511,7 +12649,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target server.html)
@@ -12521,7 +12660,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -12691,7 +12831,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target shoutcast.html)
@@ -12701,7 +12842,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -12871,7 +13013,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target sources.html)
@@ -12881,7 +13024,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -13051,7 +13195,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target split-cue.html)
@@ -13061,7 +13206,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -13231,7 +13377,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target stereotool.html)
@@ -13241,7 +13388,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -13411,7 +13559,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target stream_content.html)
@@ -13421,7 +13570,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -13591,7 +13741,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target strings_encoding.html)
@@ -13601,7 +13752,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -13771,7 +13923,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target subtitles.html)
@@ -13781,7 +13934,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -13951,7 +14105,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target video-static.html)
@@ -13961,7 +14116,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -14131,7 +14287,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target video.html)
@@ -14141,7 +14298,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -14311,7 +14469,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target xml.html)
@@ -14321,7 +14480,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd
@@ -14491,7 +14651,8 @@
  (alias doc)
  (package liquidsoap)
  (enabled_if
-  (not %{bin-available:pandoc}))
+  (not
+   (and %{bin-available:pandoc} %{bin-available:pandoc-include})))
  (deps
   (:no_pandoc no-pandoc))
  (target yaml.html)
@@ -14501,7 +14662,8 @@
 (rule
  (alias doc)
  (package liquidsoap)
- (enabled_if %{bin-available:pandoc})
+ (enabled_if
+  (and %{bin-available:pandoc} %{bin-available:pandoc-include}))
  (deps
   liquidsoap.xml
   language.dtd

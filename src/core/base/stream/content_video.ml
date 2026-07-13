@@ -80,18 +80,30 @@ module Specs = struct
   include Base
 
   type kind = [ `Canvas ]
-  type params = { width : int Lazy.t option; height : int Lazy.t option }
+
+  (* [alpha] is refined after typechecking: decoders probe the actual codec
+     pixel format and [Unifier.set] the result, which propagates to every
+     format this one has been merged with. A unifier (rather than a plain
+     value) is required so that refinement still propagates across formats
+     unified by [merge]. *)
+  type params = {
+    width : int Lazy.t option;
+    height : int Lazy.t option;
+    alpha : bool option Unifier.t;
+  }
+
   type data = (params, Video.Canvas.image) content
 
   let name = "yuv420p"
   let internal_content_type = Some `Video
   let string_of_kind = function `Canvas -> "yuv420p"
 
-  let string_of_params { width; height } =
+  let string_of_params { width; height; alpha } =
     print_optional
       [
         ("width", Option.map (fun x -> string_of_int !!x) width);
         ("height", Option.map (fun x -> string_of_int !!x) height);
+        ("alpha", Option.map string_of_bool (Unifier.deref alpha));
       ]
 
   let make ?(length = 0) params =
@@ -112,16 +124,30 @@ module Specs = struct
             {
               width = Some (Lazy.from_val (int_of_string value));
               height = None;
+              alpha = Unifier.make None;
             }
       | "height" ->
           Some
             {
               width = None;
               height = Some (Lazy.from_val (int_of_string value));
+              alpha = Unifier.make None;
+            }
+      | "alpha" ->
+          Some
+            {
+              width = None;
+              height = None;
+              alpha = Unifier.make (Some (bool_of_string value));
             }
       | _ -> None
 
   let merge p p' =
+    let alpha =
+      merge_param ~name:"alpha" (Unifier.deref p.alpha, Unifier.deref p'.alpha)
+    in
+    Unifier.set p'.alpha alpha;
+    Unifier.(p.alpha <-- p'.alpha);
     {
       width =
         Option.map Lazy.from_val
@@ -131,6 +157,7 @@ module Specs = struct
         Option.map Lazy.from_val
           (merge_param ~name:"height"
              (Option.map Lazy.force p.height, Option.map Lazy.force p'.height));
+      alpha = p.alpha;
     }
 
   let compatible p p' =
@@ -139,7 +166,14 @@ module Specs = struct
       | Some _, None | None, Some _ -> true
       | Some x, Some y -> !!x = !!y
     in
-    compare (p.width, p'.width) && compare (p.height, p'.height)
+    let compare_bool = function
+      | None, None -> true
+      | Some _, None | None, Some _ -> true
+      | Some x, Some y -> x = y
+    in
+    compare (p.width, p'.width)
+    && compare (p.height, p'.height)
+    && compare_bool (Unifier.deref p.alpha, Unifier.deref p'.alpha)
 
   let blit = fill
 
@@ -147,7 +181,10 @@ module Specs = struct
    fun src -> copy ~copy:(fun x -> x) src
 
   let kind = `Canvas
-  let default_params _ = { width = None; height = None }
+
+  let default_params _ =
+    { width = None; height = None; alpha = Unifier.make None }
+
   let kind_of_string = function "yuv420p" -> Some `Canvas | _ -> None
 
   let checksum d =
@@ -176,9 +213,13 @@ module Specs = struct
   let content_lang_typ =
     let open Liquidsoap_lang in
     Lang_core.record_t
-      [("width", Type.make Type.Int); ("height", Type.make Type.Int)]
+      [
+        ("width", Type.make Type.Int);
+        ("height", Type.make Type.Int);
+        ("alpha", Type.make (Type.Nullable (Type.make Type.Bool)));
+      ]
 
-  let params_to_value { width; height } =
+  let params_to_value { width; height; alpha } =
     let open Liquidsoap_lang in
     let default_width, default_height = Frame_settings.video_dimensions () in
     let width = Lazy.force (Option.value ~default:default_width width) in
@@ -187,6 +228,10 @@ module Specs = struct
       [
         ("width", Lang_core.mk (`Int width));
         ("height", Lang_core.mk (`Int height));
+        ( "alpha",
+          match Unifier.deref alpha with
+            | None -> Lang_core.mk `Null
+            | Some b -> Lang_core.mk (`Bool b) );
       ]
 end
 
@@ -201,16 +246,19 @@ let dimensions_of_format p =
   let height = Lazy.force (Option.value ~default:default_height p.height) in
   (width, height)
 
+let alpha_of_format p = Unifier.deref (get_params p).alpha = Some true
+
 let lift_canvas ?(offset = 0) ?length data =
   let interval = Frame_settings.main_of_video 1 in
   let data = Array.(to_list (mapi (fun pos d -> (pos * interval, d)) data)) in
   let params =
     match data with
-      | [] -> { Specs.width = None; height = None }
+      | [] -> { Specs.width = None; height = None; alpha = Unifier.make None }
       | (_, i) :: _ ->
           {
             Specs.width = Some (Lazy.from_val (Video.Canvas.Image.width i));
             height = Some (Lazy.from_val (Video.Canvas.Image.height i));
+            alpha = Unifier.make (Some (Video.Canvas.Image.has_alpha i));
           }
   in
   let length =

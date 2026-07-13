@@ -348,6 +348,19 @@ let string_of_file_state = function
   | `Updated -> "updated"
   | `Deleted -> "deleted"
 
+let validate_writable_directory ~descr value directory =
+  try
+    let probe = Filename.temp_file ~temp_dir:directory "liq" "tmp" in
+    Sys.remove probe
+  with exn ->
+    raise
+      (Error.Invalid_value
+         ( value,
+           Printf.sprintf "Could not write to %s %s: %s" descr
+             (Lang_string.quote_string directory)
+             (Printexc.to_string exn),
+           [] ))
+
 class hls_output p =
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -392,9 +405,8 @@ class hls_output p =
   in
   let perms = Lang.to_int (List.assoc "perm" p) in
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
-  let temp_dir =
-    Lang.to_valued_option Lang.to_string (List.assoc "temp_dir" p)
-  in
+  let temp_dir_val = List.assoc "temp_dir" p in
+  let temp_dir = Lang.to_valued_option Lang.to_string temp_dir_val in
   let () =
     if
       (not (Sys.file_exists hls_directory))
@@ -406,6 +418,14 @@ class hls_output p =
           (Error.Invalid_value
              (directory_val, "Could not create or open output directory!", [])))
   in
+  let () =
+    validate_writable_directory ~descr:"output directory" directory_val
+      hls_directory;
+    Option.iter
+      (validate_writable_directory ~descr:"temporary directory" temp_dir_val)
+      temp_dir
+  in
+  let persist_at_val = List.assoc "persist_at" p in
   let persist_at =
     Option.map
       (fun filename ->
@@ -419,15 +439,18 @@ class hls_output p =
          with exn ->
            raise
              (Error.Invalid_value
-                ( List.assoc "persist_at" p,
+                ( persist_at_val,
                   Printf.sprintf
                     "Error while creating directory for persisting state at \
                      %s: %s"
                     (Lang_string.quote_string filename)
                     (Printexc.to_string exn),
                   [] )));
+        validate_writable_directory ~descr:"persistence directory"
+          persist_at_val
+          (Filename.dirname filename);
         filename)
-      (Lang.to_option (List.assoc "persist_at" p))
+      (Lang.to_option persist_at_val)
   in
   let strict_persist = Lang.to_bool (List.assoc "strict_persist" p) in
   (* better choice? *)

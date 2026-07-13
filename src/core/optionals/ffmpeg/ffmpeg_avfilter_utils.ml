@@ -34,7 +34,7 @@ module Fps = struct
     | `Pass_through time_base -> time_base
 
   let init ?start_pts ~width ~height ~pixel_format ~time_base ?pixel_aspect
-      ?source_fps ~target_fps () =
+      ?source_fps ?color_range ~target_fps () =
     let config = Avfilter.init () in
     let _buffer =
       let args =
@@ -47,6 +47,12 @@ module Fps = struct
           match pixel_aspect with
           | None -> []
           | Some p -> [`Pair ("pixel_aspect", `Rational p)]
+      in
+      let args =
+        match color_range with
+          | None -> args
+          | Some cr ->
+              `Pair ("range", `String (Avutil.Color_range.name cr)) :: args
       in
       let args =
         match source_fps with
@@ -120,13 +126,13 @@ module Fps = struct
 
   (* Source fps is not always known so it is optional here. *)
   let init ?start_pts ~width ~height ~pixel_format ~time_base ?pixel_aspect
-      ?source_fps ~target_fps () =
+      ?source_fps ?color_range ~target_fps () =
     match source_fps with
       | Some f when f = target_fps -> `Pass_through time_base
       | _ ->
           `Filter
             (init ?start_pts ~width ~height ~pixel_format ~time_base
-               ?pixel_aspect ?source_fps ~target_fps ())
+               ?pixel_aspect ?source_fps ?color_range ~target_fps ())
 
   let rec flush cb output =
     try

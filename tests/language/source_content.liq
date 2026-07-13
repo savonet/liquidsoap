@@ -49,9 +49,9 @@ def f() =
   )
   test.equal(
     json.stringify(compact=true, video_fmt),
-    '{"yuv420p":{"height":#{settings.frame.video.height()},"width":#{
-      settings.frame.video.width()
-    }}}'
+    '{"yuv420p":{"alpha":null,"height":#{
+      settings.frame.video.height()
+    },"width":#{settings.frame.video.width()}}}'
   )
 
   test.pass()
