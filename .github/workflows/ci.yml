@@ -113,6 +113,7 @@ jobs:
   build_asan:
     uses: ./.github/workflows/build-asan.yml
     needs: build_details
+    if: needs.build_details.outputs.is_fork != 'true'
     secrets:
       DEPOT_TOKEN: ${{ secrets.DEPOT_TOKEN }}
 
