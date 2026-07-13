@@ -484,24 +484,26 @@ class virtual ['a] base p =
                has_stopped := true;
                List.iter self#handle_disconnect self#get_listeners)))
 
-    (* Watch fds that have data waiting (polling writable fds with nothing to
-       send would busy-loop since they are always ready), the wake pipe, and a
-       delay firing at the earliest pending timeout deadline so a slow client
-       is disconnected even when no fd becomes writable. *)
+    (* The task waits on the wake pipe and a delay firing at the earliest
+       pending timeout deadline. It does not watch listener sockets for
+       writability: on Windows [Unix.select] falls back to edge-triggered
+       WSAEventSelect whenever any non-socket fd is present in the scheduler,
+       and FD_WRITE then only fires once after connect, so pending data would
+       never be flushed. Instead [send] wakes the task every streaming cycle
+       and each firing attempts a non-blocking write to every listener with
+       pending data. *)
     method private write_task_events ~wake_out =
       let now = Unix.gettimeofday () in
-      let write_events, next_deadline =
+      let next_deadline =
         List.fold_left
-          (fun (events, deadline) listener ->
-            if Strings.Mutable.is_empty listener.pending_data then
-              (events, deadline)
+          (fun deadline listener ->
+            if Strings.Mutable.is_empty listener.pending_data then deadline
             else
-              ( `Write (Harbor.file_descr_of_socket listener.socket) :: events,
-                min deadline
-                  (listener.timeout -. (now -. listener.last_write_time)) ))
-          ([], infinity) self#get_listeners
+              min deadline
+                (listener.timeout -. (now -. listener.last_write_time)))
+          infinity self#get_listeners
       in
-      let events = `Read wake_out :: write_events in
+      let events = [`Read wake_out] in
       if Float.is_finite next_deadline then
         `Delay (max 0. next_deadline) :: events
       else events
@@ -527,25 +529,19 @@ class virtual ['a] base p =
                   ignore
                     (Unix.read wake_out wake_drain_buffer 0
                        (Bytes.length wake_drain_buffer));
-                let ready_fds = Hashtbl.create (List.length events) in
-                List.iter
-                  (function
-                    | `Write fd -> Hashtbl.replace ready_fds fd () | _ -> ())
-                  events;
                 let now = Unix.gettimeofday () in
                 let to_disconnect =
                   List.filter_map
                     (fun listener ->
-                      let fd = Harbor.file_descr_of_socket listener.socket in
-                      (* Write to ready fds; disconnect on hard error. *)
+                      (* Attempt a non-blocking write for every listener with
+                         pending data; disconnect on hard error. *)
                       let write_error =
-                        Hashtbl.mem ready_fds fd
+                        (not (Strings.Mutable.is_empty listener.pending_data))
                         && try_write_to_socket listener < 0
                       in
-                      (* Timeout check applies to all listeners regardless of
-                         fd readiness: catches both unresponsive clients and
-                         those that keep causing EAGAIN without making
-                         progress. *)
+                      (* A client that keeps causing EAGAIN without making
+                         progress is disconnected once it exceeds its
+                         timeout. *)
                       let timed_out =
                         (not (Strings.Mutable.is_empty listener.pending_data))
                         && now -. listener.last_write_time > listener.timeout
