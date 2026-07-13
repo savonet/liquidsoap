@@ -154,7 +154,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     (* Eating blank is trickier than stripping. *)
     inherit operator ~name:"blank.eat" []
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-    inherit Child_support.base ~check_self_sync:true [source_val]
+    inherit Child_support.base ~check_self_sync:true source_val
 
     (** We strip when the source is silent, but only at the beginning of tracks
         if [at_beginning] is passed. *)
@@ -173,8 +173,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
       let frame = ref self#empty_frame in
       while source#is_ready && (!first || stripping) do
         first := false;
-        self#on_child_tick (fun () ->
-            if source#is_ready then frame := source#get_frame);
+        frame := self#child_get_frame ();
         let frame = !frame in
         if track_sensitive () && Frame.track_marks frame <> [] then (
           stripping <- false;
