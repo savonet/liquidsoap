@@ -1,3 +1,10 @@
+0.2.0 (2026-07-12)
+======
+* macos: fix >4 GiB overflow in process memory, use `HOST_VM_INFO64`, fix host port leak, report RAM + swap as virtual memory and active + wired + compressed as used physical memory.
+* windows: fall back to `PROCESS_MEMORY_COUNTERS_EX` on older Windows, report non-resident private bytes as swapped memory.
+* linux: exclude buffers from used memory.
+* Document per-field semantics and platform caveats in the interface.
+
 0.1.3 (2026-02-21)
 =====
 * Fix total physical memory on macos.

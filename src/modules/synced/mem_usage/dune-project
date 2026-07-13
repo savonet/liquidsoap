@@ -1,5 +1,5 @@
 (lang dune 3.23)
-(version 0.1.3)
+(version 0.2.0)
 (name mem_usage)
 (source (github savonet/ocaml-mem_usage))
 (license MIT)
