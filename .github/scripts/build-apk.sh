@@ -8,6 +8,7 @@ APK_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
 COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export LIQUIDSOAP_BUILD_TARGET=posix
+APKDEST="/tmp/apkout"
 
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
   APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_TAG}-${ALPINE_ARCH}"
@@ -29,9 +30,10 @@ sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" /tmp/liquidsoap/.github/alpine/APKBUILD
 
 cp "/tmp/liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post-install"
 
-abuild
+mkdir -p "$APKDEST"
+abuild -P "$APKDEST"
 
-find /home/opam/packages -name "*.apk" -exec mv {} "${LIQ_TMP_DIR}" \;
+find "$APKDEST" -name "*.apk" -exec mv {} "${LIQ_TMP_DIR}" \;
 
 echo "::endgroup::"
 
@@ -44,7 +46,7 @@ if [ "${ARCH}" = "amd64" ]; then
   echo "::endgroup::"
 fi
 
-rm -rf APKBUILD /home/opam/packages
+rm -rf APKBUILD "$APKDEST"
 
 echo "::group:: building ${APK_PACKAGE}-minimal.."
 
@@ -67,9 +69,10 @@ sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" /tmp/liquidsoap/.github/alpine/
 
 cp "/tmp/liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}-minimal.post-install"
 
-abuild
+mkdir -p "$APKDEST"
+abuild -P "$APKDEST"
 
-find /home/opam/packages -name "*.apk" -exec mv {} "${LIQ_TMP_DIR}" \;
+find "$APKDEST" -name "*.apk" -exec mv {} "${LIQ_TMP_DIR}" \;
 
 echo "::endgroup::"
 
