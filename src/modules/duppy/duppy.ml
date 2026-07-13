@@ -72,8 +72,10 @@ let clear_tasks s =
   Mutex.unlock s.tasks_m
 
 let create ?(on_error = Printexc.raise_with_backtrace) ?(compare = compare) () =
-  let out_pipe, in_pipe = Unix.pipe () in
-  if not Sys.win32 then Unix.set_nonblock in_pipe;
+  (* A socket pair rather than a pipe: on Windows only sockets can be made
+     non-blocking, and a blocking wake-up write could hang its caller. *)
+  let out_pipe, in_pipe = Unix_utils.socketpair () in
+  Unix.set_nonblock in_pipe;
   {
     on_error;
     out_pipe;
@@ -358,9 +360,10 @@ module Async = struct
   exception Stopped
 
   let add ~priority (scheduler : 'a scheduler) f =
-    (* A pipe to wake up the task *)
-    let out_pipe, in_pipe = Unix.pipe () in
-    if not Sys.win32 then Unix.set_nonblock in_pipe;
+    (* A socket pair to wake up the task. See [create] for why this is not a
+       pipe. *)
+    let out_pipe, in_pipe = Unix_utils.socketpair () in
+    Unix.set_nonblock in_pipe;
     let stop = ref false in
     let tmp = Bytes.create 1024 in
     let rec task l =

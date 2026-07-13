@@ -62,3 +62,8 @@ val sendto :
   int
 
 val mkdir : string -> Unix.file_perm -> unit
+
+(** Create a pair of connected stream sockets, usable as a non-blocking wake-up
+    channel with [Unix.select] on all platforms. Falls back to a loopback TCP
+    pair on Windows systems without AF_UNIX support (pre-1803, Wine). *)
+val socketpair : ?cloexec:bool -> unit -> Unix.file_descr * Unix.file_descr
