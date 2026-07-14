@@ -107,6 +107,68 @@
     "cp libStereoTool_*/lib/Linux/IntelAMD/64/libStereoTool_intel64.so %{target}"))))
 
 (rule
+ (target autodj_jingle0.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -ac
+   2
+   -metadata
+   title=jingle0
+   %{target})))
+
+(rule
+ (target autodj_jingle1.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=880:duration=1"
+   -ac
+   2
+   -metadata
+   title=jingle1
+   %{target})))
+
+(rule
+ (target autodj_music.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=1"
+   -ac
+   2
+   -metadata
+   title=music0
+   %{target})))
+
+(rule
+ (target autodj_jingles.m3u)
+ (deps autodj_jingle0.mp3 autodj_jingle1.mp3)
+ (action
+  (with-stdout-to
+   %{target}
+   (run echo "autodj_jingle0.mp3\nautodj_jingle1.mp3"))))
+
+(rule
  (target GH5019.gen.png)
  (deps GH5019.wav)
  (action
