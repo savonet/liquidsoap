@@ -1,0 +1,3 @@
+(executable
+ (name media_receiver)
+ (libraries datachannel str unix))
