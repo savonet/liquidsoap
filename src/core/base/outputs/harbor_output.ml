@@ -618,7 +618,7 @@ class virtual ['a] base p =
       in
       let metadata_interval, icy_header =
         try
-          assert (List.assoc "Icy-MetaData" headers = "1");
+          assert (List.assoc "icy-metadata" headers = "1");
           (metaint, Printf.sprintf "icy-metaint: %d\r\n" metaint)
         with _ -> (-1, "")
       in
