@@ -72,7 +72,7 @@ type 'a listener = {
   pending_data : Strings.Mutable.t;
   mutable metadata_position : int;
   mutable last_sent_metadata : Frame.metadata option;
-  metadata_interval : int;
+  metadata_interval : int option;
   stream_url : string option;
   closed : bool Atomic.t;
   encoder_mutex : Mutex.t;
@@ -117,39 +117,42 @@ let format_icy_metadata ~url metadata =
   Bytes.unsafe_to_string result
 
 let insert_icy_metadata ~metadata listener data =
-  if listener.metadata_interval <= 0 then data
-  else (
-    let rec insert_at_intervals accumulated remaining =
-      let remaining_len = Strings.length remaining in
-      let bytes_until_next_meta =
-        listener.metadata_interval - listener.metadata_position
-      in
-      if bytes_until_next_meta <= remaining_len then begin
-        (* Insert metadata at this position *)
-        let meta_string =
-          match metadata with
-            | Some m when metadata != listener.last_sent_metadata ->
-                listener.last_sent_metadata <- metadata;
-                format_icy_metadata ~url:listener.stream_url m
-            | _ -> "\000"
+  match listener.metadata_interval with
+    | None -> data
+    | Some metadata_interval ->
+        let rec insert_at_intervals accumulated remaining =
+          let remaining_len = Strings.length remaining in
+          let bytes_until_next_meta =
+            metadata_interval - listener.metadata_position
+          in
+          if bytes_until_next_meta <= remaining_len then begin
+            (* Insert metadata at this position *)
+            let meta_string =
+              match metadata with
+                | Some m when metadata != listener.last_sent_metadata ->
+                    listener.last_sent_metadata <- metadata;
+                    format_icy_metadata ~url:listener.stream_url m
+                | _ -> "\000"
+            in
+            let before = Strings.sub remaining 0 bytes_until_next_meta in
+            let after =
+              Strings.sub remaining bytes_until_next_meta
+                (remaining_len - bytes_until_next_meta)
+            in
+            let with_meta =
+              Strings.concat
+                [accumulated; before; Strings.of_string meta_string]
+            in
+            listener.metadata_position <- 0;
+            insert_at_intervals with_meta after
+          end
+          else begin
+            listener.metadata_position <-
+              listener.metadata_position + remaining_len;
+            Strings.concat [accumulated; remaining]
+          end
         in
-        let before = Strings.sub remaining 0 bytes_until_next_meta in
-        let after =
-          Strings.sub remaining bytes_until_next_meta
-            (remaining_len - bytes_until_next_meta)
-        in
-        let with_meta =
-          Strings.concat [accumulated; before; Strings.of_string meta_string]
-        in
-        listener.metadata_position <- 0;
-        insert_at_intervals with_meta after
-      end
-      else begin
-        listener.metadata_position <- listener.metadata_position + remaining_len;
-        Strings.concat [accumulated; remaining]
-      end
-    in
-    insert_at_intervals Strings.empty data)
+        insert_at_intervals Strings.empty data
 
 let create_listener ~id ~encoder ~socket ~close ~metadata_interval ~stream_url
     ~timeout =
@@ -419,7 +422,7 @@ class virtual ['a] base p =
           id:string ->
           socket:Harbor.Http_transport.socket ->
           close:(unit -> unit) ->
-          metadata_interval:int ->
+          metadata_interval:int option ->
           stream_url:string option ->
           timeout:float ->
           ('a listener, Harbor.reply) Duppy.Monad.t
@@ -617,10 +620,10 @@ class virtual ['a] base p =
         Utils.name_of_sockaddr ~show_port:true (Unix.getpeername fd)
       in
       let metadata_interval, icy_header =
-        try
-          assert (List.assoc "icy-metadata" headers = "1");
-          (metaint, Printf.sprintf "icy-metaint: %d\r\n" metaint)
-        with _ -> (-1, "")
+        match List.assoc_opt "icy-metadata" headers with
+          | Some "1" ->
+              (Some metaint, Printf.sprintf "icy-metaint: %d\r\n" metaint)
+          | _ | (exception _) -> (None, "")
       in
       let extra_headers_str =
         String.concat ""
