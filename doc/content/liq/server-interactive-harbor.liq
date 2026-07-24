@@ -1,0 +1,2 @@
+#!./liquidsoap
+interactive.harbor()
