@@ -40,7 +40,7 @@ class delay ~initial (source : source) delay =
   object (self)
     inherit operator ~name:"delay" [source]
     val mutable last_track = initial_last_track
-    val mutable first_track = true
+    val mutable initial_track = true
     method fallible = true
     method remaining = source#remaining
 
@@ -51,19 +51,31 @@ class delay ~initial (source : source) delay =
     method effective_source = source#effective_source
     method self_sync = source#self_sync
     method private delay_ok = delay_ok last_track
-    method private can_generate_frame = self#delay_ok && source#is_ready
+
+    method private can_generate_frame =
+      self#delay_ok && (Generator.length self#buffer > 0 || source#is_ready)
 
     method private generate_frame =
-      let frame = source#get_frame in
-      match self#split_frame frame with
-        | buf, Some _ when first_track && Frame.position buf = 0 ->
-            first_track <- false;
-            frame
-        | buf, Some _ ->
-            first_track <- false;
-            last_track <- time ();
-            buf
-        | buf, None -> buf
+      (* At a track boundary we save the next track's start (which carries its
+         track mark and metadata) and start the delay. Once it has elapsed we
+         serve that start from the buffer, so the next track begins on a clean
+         boundary without losing its metadata. *)
+      if Generator.length self#buffer > 0 then
+        Generator.slice self#buffer (Lazy.force Frame.size)
+      else (
+        let frame = source#get_frame in
+        match self#split_frame frame with
+          | _, Some starting when initial_track ->
+              initial_track <- false;
+              Generator.append self#buffer starting;
+              Generator.slice self#buffer (Lazy.force Frame.size)
+          | buf, Some starting ->
+              last_track <- time ();
+              Generator.append self#buffer starting;
+              buf
+          | buf, None ->
+              initial_track <- false;
+              buf)
   end
 
 let _ =
