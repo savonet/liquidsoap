@@ -331,6 +331,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     val mutable on_wake_up = []
     method on_wake_up fn = on_wake_up <- on_wake_up @ [fn]
+    val mutable on_activation = []
+    method on_activation fn = on_activation <- on_activation @ [fn]
 
     initializer
       self#on_wake_up (fun () ->
@@ -382,6 +384,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             (Printf.sprintf "Error while starting source %s: %s!" self#id
                (Printexc.to_string exn));
           Printexc.raise_with_backtrace exn bt);
+      List.iter (fun fn -> fn ()) on_activation;
       activation
 
     val mutable on_sleep = []
