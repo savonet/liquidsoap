@@ -44,6 +44,20 @@ class delay ~initial (source : source) delay =
     method fallible = true
     method remaining = source#remaining
 
+    (* delay controls when [source] advances by leaving it unavailable between
+       tracks. This only works if [source] is animated solely by us, so refuse
+       any other consumer as soon as it activates the source. *)
+    initializer
+      source#on_activation (fun () ->
+          if List.length source#activations > 1 then
+            Lang.raise_error ~pos:[]
+              ~message:
+                (Printf.sprintf
+                   "delay must be applied to a leaf source such as a dedicated \
+                    playlist or single, but %s is shared with another consumer"
+                   source#id)
+              "invalid")
+
     method abort_track =
       last_track <- time ();
       source#abort_track
@@ -95,11 +109,23 @@ let _ =
       ("", Lang.source_t return_t, None, None);
     ]
     ~category:`Track
-    ~descr:"Make the source unavailable for a given time between tracks."
+    ~descr:
+      "Make the source unavailable for a given time between tracks. Because \
+       delay controls when its source advances by leaving it unavailable \
+       between tracks, it must be applied to a leaf source that it animates on \
+       its own, such as a dedicated `playlist` or `single`: an active source \
+       or a source shared with another operator would make it inconsistent."
     ~return_t
     (fun p ->
       let f n = Lang.assoc "" n p in
       let d = Lang.to_float_getter (f 1) in
       let s = Lang.to_source (f 2) in
+      if s#active then
+        raise
+          (Error.Invalid_value
+             ( f 2,
+               "delay must be applied to a leaf source such as a dedicated \
+                playlist or single, but the given source is active",
+               [] ));
       let initial = Lang.to_bool (List.assoc "initial" p) in
       new delay ~initial s d)

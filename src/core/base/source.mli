@@ -172,6 +172,10 @@ object
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit
 
+  (** Register a callback called on every activation, i.e. each time [wake_up]
+      is called, not just the first one. *)
+  method on_activation : (unit -> unit) -> unit
+
   (** Called when the source must be ready. Each call to [wake_up] must be
       matched by a corresponding call to [sleep] with the returned activation to
       allow the source to sleep and be collected. Can be called multiple times
