@@ -127,9 +127,23 @@ Also, remember that the `add` operator removes all track marks.
 
 The `switch` operator (and its wrappers `fallback`, `rotate`, `random`) now uses per-source methods instead of parallel list parameters. This gives fine-grained control per branch.
 
-#### `replay_metadata` (removed)
+#### `replay_metadata` (moved to a per-source method)
 
-The `replay_metadata` parameter has been removed. The `starting` source passed to `on_select` has a `last_metadata` method for accessing its most recent metadata if needed.
+The `replay_metadata` parameter on the switch has been removed. It is now a per-source method, still defaulting to `true`:
+
+**Before:**
+
+```liquidsoap
+s = fallback(replay_metadata=false, [s1, s2])
+```
+
+**After:**
+
+```liquidsoap
+s = fallback([s1.{replay_metadata = false}, s2])
+```
+
+Replayed metadata never overrides metadata that the source provides itself: when the starting source begins a fresh track with its own metadata, that metadata wins and the replay only fills in what would otherwise be missing.
 
 #### `single` (deprecated parameter on `switch`)
 
@@ -147,11 +161,11 @@ s = switch([({cond1}, s1.{single = true}), ({cond2}, s2)])
 
 #### `transitions`, `transition_length`, `override` (breaking change)
 
-The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source:
+The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source. See [source composition](composition.html) for the concepts behind them:
 
-- `on_select`: called when the source is selected. Receives `{starting, ending, replay_metadata}` and returns the source to play. `ending` is `null` when the ending source reached a track boundary; non-null when it was preempted mid-track. `replay_metadata` mirrors the per-source `replay_metadata` method (default `true`). By default, both file and live profiles replay the latest metadata when `replay_metadata` is `true` and fade out `ending` when non-null and the source has only PCM audio content (no video, no encoded audio such as `ffmpeg.copy`).
-- `on_leave`: called when switching away from this source. Receives `{source, track_sensitive}`. By default, skips the source when it was preempted mid-track (`track_sensitive = false`) so it starts fresh on next selection.
-- `track_sensitive`: whether to wait for a track boundary before switching. Defaults to `true` for file-based sources, `false` for live inputs.
+- `on_select`: a method of the source being _entered_. Called when it is selected. Receives `{starting, ending, replay_metadata}` and returns the source to play. `ending` is `null` when nothing was interrupted — the source being left reached a track boundary or is no longer available — and non-null when it was preempted mid-track. `replay_metadata` mirrors the per-source `replay_metadata` method (default `true`). By default, both file and live profiles replay the latest metadata when `replay_metadata` is `true` and fade out `ending` when non-null and the source has only PCM audio content (no video, no encoded audio such as `ffmpeg.copy`).
+- `on_leave`: a method of the source being _left_. Called when switching away from it. Receives `{source, track_sensitive}`, where `track_sensitive` reports whether it finished its track naturally (`true`) or was preempted mid-track (`false`). By default, skips the source when it was preempted so it starts fresh on next selection.
+- `track_sensitive`: whether this source insists on track boundaries, both for being interrupted and for being started. A switch may only cut into a track that is still playing when at least one of the two sources involved has `track_sensitive = false`; otherwise it waits for a track boundary. Defaults to `true` for file-based sources, `false` for live inputs. Because the decision only involves the two sources actually handing over, adding a live source to a switch does not change how two file sources hand off to each other.
 - `single`: forbid selecting this source for two consecutive tracks.
 - `composition_type`: `"file"` or `"live"`. Controls which global profile (`source.composition.file` / `source.composition.live`) provides the defaults for the above methods. Can be overridden per source with `:=`.
 

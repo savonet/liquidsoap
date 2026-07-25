@@ -339,7 +339,7 @@ module Value = struct
           print "\n\n")
         (List.sort compare f.callbacks));
     if f.composition <> [] then (
-      print (title_color "Composition:\n\n");
+      print (title_color "Composition methods:\n\n");
       List.iter
         (fun (l, m) ->
           print (" * " ^ label_color l ^ " : " ^ type_color m.meth_type ^ "\n");
@@ -513,7 +513,7 @@ module Value = struct
                   (List.sort compare d.callbacks);
                 print "\n");
               if d.composition <> [] then (
-                print "Composition:\n\n";
+                print "Composition methods:\n\n";
                 List.iter
                   (fun (l, m) ->
                     let t = m.meth_type in

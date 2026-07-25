@@ -700,11 +700,16 @@ let source_composition_methods : source_meth list =
       name = "track_sensitive";
       scheme = (fun _ -> ([], getter_t bool_t));
       descr =
-        "Whether this source is track-sensitive by default in switch \
-         operators. File-based sources default to `true`; live network and \
-         hardware inputs default to `false`. The value is looked up at runtime \
-         from the active composition profile (`source.composition.file` or \
-         `source.composition.live` depending on `composition_type`).";
+        "Whether this source insists on track boundaries in switch operators: \
+         when `true`, it prefers not to be interrupted mid-track and not to be \
+         started mid-track. A switch may only cut into a track that is still \
+         playing when at least one of the two sources involved has \
+         `track_sensitive` set to `false`; otherwise it waits for the playing \
+         source to reach a track boundary. File-based sources default to \
+         `true`; live network and hardware inputs default to `false`. The \
+         value is looked up at runtime from the active composition profile \
+         (`source.composition.file` or `source.composition.live` depending on \
+         `composition_type`).";
       value =
         (fun s -> val_fun [] (fun _ -> bool (profile_of s).track_sensitive));
     };
