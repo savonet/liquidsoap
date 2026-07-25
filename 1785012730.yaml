@@ -1,0 +1,127 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.312690973282
+  unit: "s"
+  time: 1785012347.72
+  min: 0.0
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.605274915695
+  unit: "s"
+  time: 1785012348.33
+  min: 0.0
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.12061500549
+  unit: "s"
+  time: 1785012349.45
+  min: 0.0
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 2.38096094131
+  unit: "s"
+  time: 1785012351.83
+  min: 0.0
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.13819217682
+  unit: "s"
+  time: 1785012358.7
+  min: 0.0
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 9.70607018471
+  unit: "s"
+  time: 1785012371.17
+  min: 0.0
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 13.7401478291
+  unit: "s"
+  time: 1785012384.91
+  min: 0.0
+
+- name: "Memory usage: process private memory"
+  category: "memory"
+  value: 74.29296875
+  unit: "MiB"
+  time: 1785012441.74
+  min: 0.0
+
+- name: "Memory usage: process swapped memory"
+  category: "memory"
+  value: 0.0
+  unit: "MiB"
+  time: 1785012441.74
+  min: 0.0
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 131.15234375
+  unit: "MiB"
+  time: 1785012441.74
+  min: 0.0
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 1211.04296875
+  unit: "MiB"
+  time: 1785012441.74
+  min: 0.0
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 15659.3554688
+  unit: "MiB"
+  time: 1785012441.74
+  min: 0.0
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 19755.3515625
+  unit: "MiB"
+  time: 1785012441.74
+  min: 0.0
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 14320.6992188
+  unit: "MiB"
+  time: 1785012441.74
+  min: 0.0
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 14320.7226562
+  unit: "MiB"
+  time: 1785012441.74
+  min: 0.0
+
+- name: "functions"
+  category: "language"
+  value: 1645.0
+  unit: "functions"
+  time: 1785012445.51
+
+- name: "protocols"
+  category: "language"
+  value: 24.0
+  unit: "protocols"
+  time: 1785012445.51
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 314.003837585
+  unit: "Mio"
+  time: 1785012544.78
+  min: 0.0
+
+- commit: bc83cf33ad81dc130877d73266ddf80863f75ec0
+  branch: delay-require-leaf-source
+  time: 1785012730
