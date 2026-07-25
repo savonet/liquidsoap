@@ -118,7 +118,7 @@ def source.composition.legacy_on_select(
   if
     replay_metadata and null.defined(last_metadata)
   then
-    insert_metadata(null.get(last_metadata))
+    insert_metadata(override=false, null.get(last_metadata))
   end
 
   starting

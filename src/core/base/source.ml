@@ -637,8 +637,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     val insert_metadata = Atomic.make None
 
-    method insert_metadata ~new_track m =
-      Atomic.set insert_metadata (Some (new_track, m))
+    method insert_metadata ?(override = true) ~new_track m =
+      Atomic.set insert_metadata (Some (override, new_track, m))
 
     method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
@@ -783,12 +783,17 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let length = Frame.position buf in
       let buf =
         match (Atomic.exchange insert_metadata None, Frame.track_marks buf) with
-          | Some (new_track, m), _ ->
+          | Some (override, new_track, m), _ ->
+              let existing =
+                Option.value ~default:Frame.Metadata.empty
+                  (Frame.get_metadata buf 0)
+              in
+              (* When [override] is false, the frame's own metadata wins: we are
+                 replaying metadata to announce what is playing and the source
+                 itself is authoritative about that. *)
               let m =
-                Frame.Metadata.append
-                  (Option.value ~default:Frame.Metadata.empty
-                     (Frame.get_metadata buf 0))
-                  m
+                if override then Frame.Metadata.append existing m
+                else Frame.Metadata.append m existing
               in
               let buf = Frame.add_metadata buf 0 m in
               if new_track then Frame.(add_track_mark (drop_track_marks buf)) 0

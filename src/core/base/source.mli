@@ -295,8 +295,10 @@ object
   method private set_last_metadata : Frame.t -> unit
 
   (** Insert a metadata at the beginning of the new frame. Also add a track mark
-      when [new_track] is [true] *)
-  method insert_metadata : new_track:bool -> Frame.metadata -> unit
+      when [new_track] is [true]. When [override] is [false], metadata that the
+      source provides itself takes precedence over the inserted one. *)
+  method insert_metadata :
+    ?override:bool -> new_track:bool -> Frame.metadata -> unit
 
   (** Sources must implement this method. It should return [true] when the
       source can produce data during the current streaming cycle. *)

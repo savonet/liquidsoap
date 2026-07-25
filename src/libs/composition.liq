@@ -45,7 +45,7 @@ def source.composition.default_on_select(
           label=id(),
           "Switching to #{id()}: inserting latest metadata"
         )
-        insert_metadata(null.get(last_metadata))
+        insert_metadata(override=false, null.get(last_metadata))
       else
         log.important(
           label=id(),
@@ -129,7 +129,7 @@ source.composition.file(
         end,
     on_select = source.composition.default_on_select,
     track_sensitive = true,
-    replay_metadata = false
+    replay_metadata = true
   }
 )
 

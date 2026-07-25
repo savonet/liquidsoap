@@ -373,19 +373,30 @@ let source_methods : source_meth list =
         (fun _ ->
           ( [],
             Lang.fun_t
-              [(true, "new_track", Lang.bool_t); (false, "", metadata_t)]
+              [
+                (true, "override", Lang.bool_t);
+                (true, "new_track", Lang.bool_t);
+                (false, "", metadata_t);
+              ]
               Lang.unit_t ));
       descr =
         "Dynamically insert metadata in a stream. Inserts a new track with the \
-         given metadata if `new_track` is `true`.";
+         given metadata if `new_track` is `true`. When `override` is `false`, \
+         metadata that the source provides itself takes precedence over the \
+         inserted one.";
       value =
         (fun s ->
           Lang.val_fun
-            [("new_track", "new_track", Some (Lang.bool false)); ("", "", None)]
+            [
+              ("override", "override", Some (Lang.bool true));
+              ("new_track", "new_track", Some (Lang.bool false));
+              ("", "", None);
+            ]
             (fun p ->
+              let override = to_bool (List.assoc "override" p) in
               let new_track = to_bool (List.assoc "new_track" p) in
               let m = to_metadata (List.assoc "" p) in
-              s#insert_metadata ~new_track m;
+              s#insert_metadata ~override ~new_track m;
               unit));
     };
     {
