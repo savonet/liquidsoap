@@ -24,7 +24,7 @@ open Mm
 
 class board ?duration img0 () =
   object (self)
-    inherit Synthesized.source ~seek:true ~name:"video.board" duration
+    inherit Synthesized.source ~name:"video.board" duration
     val mutable img = img0
     val mutable x = 0
     val mutable y = 0

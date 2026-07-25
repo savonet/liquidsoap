@@ -43,10 +43,10 @@ let to_content ~format c =
         Content_pcm_f32.(lift_data (from_audio c))
     | _ -> raise Content.Invalid
 
-class gen ~seek name g freq duration ampl =
+class gen name g freq duration ampl =
   let g = g (freq ()) in
   object (self)
-    inherit Synthesized.source ~seek ~name duration
+    inherit Synthesized.source ~name duration
 
     method private synthesize length =
       let frame = Frame.create ~length Frame.Fields.empty in
@@ -82,7 +82,7 @@ let add name g =
     ]
     (fun p ->
       (new gen
-         ~seek:true name g
+         name g
          (Lang.to_float_getter (List.assoc "" p))
          (Lang.to_valued_option Lang.to_float (List.assoc "duration" p))
          (Lang.to_float_getter (List.assoc "amplitude" p))

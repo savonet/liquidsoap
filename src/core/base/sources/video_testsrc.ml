@@ -24,7 +24,7 @@ open Mm
 
 class testsrc ?(duration = None) ~width ~height () =
   object (self)
-    inherit Synthesized.source ~seek:true ~name:"video.testsrc" duration
+    inherit Synthesized.source ~name:"video.testsrc" duration
     val mutable u0 = 0
     val mutable v0 = 0
     val mutable dux = 0

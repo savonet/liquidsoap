@@ -20,26 +20,22 @@
 
  *****************************************************************************)
 
-(* For some synthesized function (e.g. noise, blank, sine), we can pretend we
-   support seek by doing nothing. However, for other, seek should be
-   disabled. Thus, if [seek] is [true], the seek function is [fun x -> x]
-   otherwise it is [fun _ -> 0] *)
-class virtual source ~name ~seek duration =
+class virtual source ~name duration =
   let track_size = Option.map Frame.main_of_seconds duration in
   object (self)
     inherit Source.source ~name ()
+    initializer self#set_composition `Live
     method fallible = track_size <> None
     val mutable remaining = track_size
     method private can_generate_frame = remaining <> Some 0
 
     method! seek x =
-      match (seek, remaining) with
-        | false, _ -> 0
-        | true, None -> x
-        | true, Some r when x <= r ->
+      match remaining with
+        | None -> x
+        | Some r when x <= r ->
             remaining <- Some (r - x);
             x
-        | true, Some r ->
+        | Some r ->
             remaining <- Some 0;
             r
 
