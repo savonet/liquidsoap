@@ -129,7 +129,7 @@ source.composition.file(
         end,
     on_select = source.composition.default_on_select,
     track_sensitive = true,
-    replay_metadata = true
+    replay_metadata = false
   }
 )
 

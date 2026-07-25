@@ -43,7 +43,7 @@ radio.on_metadata(
       elsif
         state() == 2 and is_jingle
       then
-        if title == "jingle1" then test.pass() else test.failed() end
+        if title == "jingle1" then test.pass() else test.fail() end
       end
     end
 )
