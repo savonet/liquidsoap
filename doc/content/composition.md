@@ -5,152 +5,152 @@ thing: at any moment they pick one of their sources and stream it. The
 interesting part is not the picking itself but what happens **between two
 sources** — when one stops being streamed and another takes over.
 
-This page explains that moment. Once you think of it as a handoff between a
-**leaving** source and an **entering** source, the whole API falls into place.
+Think of it as a handoff between a **leaving** source and an **entering** one.
+Each source says how it wants to be handed over to, so you rarely have to
+configure the switch itself. This page walks through the situations you are
+likely to build.
 
-## The handoff
+## A live show interrupting the music
 
-When a switch changes its mind, two sources are involved:
-
-- the **leaving** source, which was being streamed until now,
-- the **entering** source, which takes over.
-
-Everything a switch does is decided by three questions, and each one is
-answered by the sources themselves rather than by the switch:
-
-1. **May the handoff happen right now?** — answered by `track_sensitive`
-2. **What does the handoff sound like?** — answered by the entering source's `on_select`
-3. **What does the leaving source do about it?** — answered by its own `on_leave`
-
-This is the part worth remembering:
-
-|             | Belongs to              | Called                                     |
-| ----------- | ----------------------- | ------------------------------------------ |
-| `on_select` | the **entering** source | when it is picked, to build the transition |
-| `on_leave`  | the **leaving** source  | once it has been fully released            |
-
-Note the asymmetry: **the leaving source appears in both**. The transition
-_over_ it is written by the entering source's `on_select`, which receives it as
-`ending`. Its own cleanup is written by its `on_leave`. A source therefore
-describes two things: how it wants to come in, and how it wants to tidy up
-after going out.
-
-## Boundary or preemption?
-
-There are only two kinds of handoff, and the difference drives everything else.
-
-**At a track boundary.** The leaving source has finished its track — it has no
-more data for it, or it is no longer available. There is nothing left to fade
-out, so the entering source simply starts. `on_select` receives
-`ending = null`.
-
-**Mid-track (a preemption).** The leaving source was still playing when the
-entering source took over. There is something to fade out, so `on_select`
-receives `ending` set to the leaving source, and the default behaviour blends
-the two.
-
-So a simple rule: **`ending` is `null` exactly when nothing was interrupted.**
-
-## When is a preemption allowed?
-
-Cutting into a track that is still playing is not always desirable. Each source
-carries a `track_sensitive` flag saying whether it cares about track
-boundaries:
-
-- `true` — "do not interrupt me mid-track, and do not start me mid-track"
-- `false` — "I do not mind"
-
-File-based sources (`playlist`, `single`) default to `true`. Live inputs
-(`input.harbor`, `input.http`, sound cards) default to `false`.
-
-The rule is:
-
-> A switch may cut into a track that is still playing only if **at least one**
-> of the two sources involved has `track_sensitive = false`. Otherwise it waits
-> for the playing source to reach a track boundary.
-
-Both parties get a say, which is what makes the common setups behave sensibly:
+The most common radio setup: music plays all day, and a live show takes over
+whenever someone connects.
 
 ```liquidsoap
-live  = input.harbor("live")     # track_sensitive = false
-music = playlist("/music")       # track_sensitive = true
-backup = single("/backup.mp3")   # track_sensitive = true
+live  = input.harbor("live")
+music = playlist("~/music")
 
-radio = fallback([live, music, backup])
+radio = fallback([live, music])
 ```
 
-- `music` → `live`: `live` does not need a boundary, so the live show cuts in
-  immediately, fading out the music.
-- `music` → `backup`: both insist on boundaries, so the switch waits for the
-  end of the current track. Adding `live` to the list does **not** change this.
+What happens:
 
-That last point matters: composition is decided per handoff, between the two
-sources actually involved. A live source in the list never changes how two file
-sources hand off to each other.
+- **Nobody connected.** `live` is not available, so `music` plays.
+- **The DJ connects, in the middle of a song.** A live input does not wait for
+  track boundaries, so it cuts in right away. The song is faded out underneath
+  it rather than being chopped off.
+- **The DJ disconnects.** `live` is simply gone, so there is nothing to fade out
+  and the music comes back immediately. Because the song had been interrupted,
+  the playlist does not resume it half-way through — it starts a **fresh
+  track**.
 
-## The lifecycle
+You did not have to say any of that. `input.harbor` is a live source and
+`playlist` is a file source, and each behaves accordingly.
 
-For a preemption, in order:
+## Jingles between songs
 
-1. The switch picks the entering source.
-2. The entering source's `on_select` is called with `ending` set to the leaving
-   source. It returns the source that will actually be streamed — typically a
-   blend of the two.
-3. That returned source is streamed. The leaving source is still being consumed
-   through it.
-4. Once nothing pulls from the leaving source any more, it is released.
-5. Its `on_leave` is called.
+Now a jingle every few songs. A jingle cutting into the middle of a song would
+sound broken.
 
-Step 4 is the one that catches people out. **`on_leave` only fires once the
-leaving source is actually discarded.** If your custom `on_select` keeps
-pulling from `ending` forever, it never fires. See
-[migrating](migrating.html#per-source-methods-on-switch-fallback-rotate-random)
-for the `max_duration` idiom that bounds it.
+```liquidsoap
+music   = playlist("~/music")
+jingles = playlist("~/jingles")
 
-## Metadata on selection
+radio = rotate([music.{weight = 3}, jingles.{weight = 1}])
+```
 
-When a source is selected, listeners need to know what is playing — but the
-source may be resuming in the middle of a track it already announced. So by
-default a switch replays that source's latest metadata as it comes in. This is
-the `replay_metadata` flag, `true` by default.
+Both are file sources, so neither is willing to interrupt the other: when the
+jingle's turn comes up, the switch **waits for the current song to finish**.
+The jingle then starts cleanly at the boundary, with no fade — nothing was
+interrupted, so there is nothing to fade.
 
-Replayed metadata never overrides metadata the source provides itself: if the
-entering source starts a fresh track with its own metadata, that metadata wins.
-The replay only fills in what would otherwise be missing.
+## A show on a schedule
 
-## Choosing a profile
+```liquidsoap
+show  = playlist("~/morning-show")
+music = playlist("~/music")
 
-Which defaults a source gets is decided by its `composition_type`, either
-`"file"` or `"live"`. It is set automatically — passive inputs and file sources
-become `"file"`, active inputs become `"live"` — and transform operators
-inherit it from what they wrap.
+radio = switch([({8h-10h}, show), ({true}, music)])
+```
 
-You can override it when a source does not behave like its type suggests. A
-relay carrying a playlist is the usual example:
+At 8h the show becomes eligible while a song is still playing. Both sides are
+file sources, so the show does not barge in: it starts once the current song
+ends. At 10h the same thing happens in reverse.
+
+## Falling back to a backup file
+
+```liquidsoap
+radio = fallback([playlist("~/music"), single("~/backup.mp3")])
+```
+
+If the playlist cannot produce anything — no files, all requests failing — it is
+simply unavailable. Nothing was interrupted, so the backup starts immediately
+and without a fade.
+
+## An announcement that cannot wait
+
+Sometimes a file source _should_ interrupt. Say you push emergency
+announcements into a queue and they must go out now, not after the current
+song:
+
+```liquidsoap
+announcements = request.queue()
+music         = playlist("~/music")
+
+radio = fallback([announcements.{track_sensitive = false}, music])
+```
+
+`track_sensitive = false` means "I do not need to wait for a boundary". As soon
+as something lands in the queue, the song is faded out and the announcement
+plays.
+
+This is the general rule for interruptions:
+
+> A switch cuts into a song that is still playing only if **at least one** of
+> the two sources involved has `track_sensitive = false`. Otherwise it waits for
+> the end of the track.
+
+Both sides get a say, which is why adding a live input to a `fallback` never
+changes how two playlists hand over to each other.
+
+## A relay that carries a playlist
+
+`input.http` is treated as live by default: it cuts in immediately. But if the
+stream you are relaying is itself a playlist of songs, you would rather wait for
+a boundary:
 
 ```liquidsoap
 relay = input.http("https://relay.example.com/stream")
-relay.composition_type := "file"   # wait for track boundaries
+relay.composition_type := "file"
+
+radio = fallback([live_show, relay, music])
 ```
 
-The defaults themselves live in two global profiles,
-`source.composition.file` and `source.composition.live`, which you can replace
-wholesale. Each holds `on_select`, `on_leave`, `track_sensitive` and
-`replay_metadata`.
+`composition_type` is either `"file"` or `"live"` and picks which set of
+defaults a source gets. It is chosen automatically — inputs that run on their
+own are live, files are not — and you only set it when a source does not behave
+like its type suggests.
 
-## Per-source overrides
-
-Any of these can be set on a single source without touching the profiles:
+## Never the same jingle twice in a row
 
 ```liquidsoap
-# Never play this source twice in a row.
-radio = rotate([jingles.{single = true}, music])
+radio = rotate([music, jingles.{single = true}])
+```
 
-# This source announces its own metadata; don't replay anything.
+`single = true` forbids picking that source for two consecutive tracks.
+
+## A source that announces its own metadata
+
+When a switch selects a source, listeners need to know what is playing — but the
+source may be resuming a track it already announced. So the switch replays that
+source's latest metadata by default.
+
+If a source manages its own announcements, turn it off:
+
+```liquidsoap
 radio = fallback([s1.{replay_metadata = false}, s2])
+```
 
-# Custom transition, only for s1.
-def my_on_select({ending, starting, replay_metadata = _}) =
+Replayed metadata never overwrites metadata the source provides itself. If the
+entering source starts a fresh track with its own title, that title wins — the
+replay only fills in what would otherwise be missing.
+
+## Writing your own transition
+
+The default handoff fades the leaving source out. To do something else, give
+the **entering** source an `on_select`:
+
+```liquidsoap
+def my_transition({ending, starting, replay_metadata = _}) =
   if null.defined(ending) then
     old = max_duration(3., null.get(ending))
     (add([fade.out(duration=3., old), fade.in(duration=3., starting)]) : source)
@@ -159,8 +159,54 @@ def my_on_select({ending, starting, replay_metadata = _}) =
   end
 end
 
-radio = fallback([s1.{on_select = my_on_select}, s2])
+radio = fallback([s1.{on_select = my_transition}, s2])
 ```
 
-Use `liquidsoap -h <operator>` to see the composition methods and their current
-defaults for any source.
+`ending` is the source being left, and it is `null` when nothing was
+interrupted — so the `else` branch is the "started at a boundary" case, where
+there is nothing to blend.
+
+Note the `max_duration`. Whatever you return keeps pulling from `ending` until
+you stop it, and the leaving source is only cleaned up once nothing pulls from
+it any more. Without a bound, `add` would pull from it forever and the cleanup
+would never run.
+
+## Cleaning up after a source
+
+The counterpart to `on_select` is `on_leave`, which belongs to the source being
+**left** and runs once it has been released:
+
+```liquidsoap
+radio =
+  fallback([
+    live,
+    music.{on_leave = fun ({track_sensitive}) ->
+      log("music left, finished naturally: #{track_sensitive}")}
+  ])
+```
+
+`track_sensitive` here tells you _how_ it ended: `true` if it played to a track
+boundary, `false` if it was interrupted. This is what the default file behaviour
+uses to decide to skip a half-played track so the source starts fresh next time.
+
+## Where the defaults come from
+
+Two global profiles hold the defaults, `source.composition.file` and
+`source.composition.live`. Each carries `on_select`, `on_leave`,
+`track_sensitive` and `replay_metadata`, and you can replace either wholesale to
+change the behaviour of every source of that type. `max_fade` controls the
+default fade length:
+
+```liquidsoap
+settings.source.composition.max_fade := 2.
+```
+
+To see what a given source is actually using, ask it:
+
+```
+liquidsoap -h playlist
+```
+
+The **Composition methods** section lists `composition_type`,
+`track_sensitive`, `replay_metadata`, `single`, `on_select` and `on_leave`,
+along with the defaults in force.
