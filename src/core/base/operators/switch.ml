@@ -167,12 +167,32 @@ class switch ~all_predicates children =
                    sel.pending_on_leave <- None
                | _ -> ()))
 
-    method private select ~reselect () =
+    (* We are at a track boundary when the selected source has no more data for
+       its current track: either it could not fill the frame past the position
+       we asked for, or it is not ready anymore. Anywhere else, the selected
+       source is still playing a track and taking over means preempting it. *)
+    method private at_boundary ~reselect =
+      match (reselect, self#selected) with
+        | `After_position _, _ -> true
+        | _, None -> true
+        | _, Some s -> not s.effective_source#is_ready
+
+    method private select ~reselect ~boundary () =
       let may_select c =
         match self#selected with
           | Some { child; effective_source } when child.source == c.source ->
               (not c.single) && self#can_reselect ~reselect effective_source
-          | _ -> not (List.memq c excluded_sources)
+          | Some { child; _ } ->
+              (* Cutting into a track that is still playing requires that at
+                 least one of the two sources involved does not insist on
+                 track boundaries: the one being left must accept being
+                 interrupted, or the one starting must not need to start on a
+                 boundary. *)
+              (boundary
+              || (not (is_track_sensitive child))
+              || not (is_track_sensitive c))
+              && not (List.memq c excluded_sources)
+          | None -> not (List.memq c excluded_sources)
       in
       try
         Some
@@ -259,12 +279,13 @@ class switch ~all_predicates children =
                  | _ -> true ->
             Some s.effective_source
         | _ -> (
+            let boundary = self#at_boundary ~reselect in
             begin match
               ( self#selected,
                 self#select
                 (* If we've returned the same source, it should be accepted now. *)
                   ~reselect:(match reselect with `Force -> `Ok | v -> v)
-                  () )
+                  ~boundary () )
             with
               | None, None -> ()
               | Some _, None -> self#exchange_selected None
@@ -275,13 +296,12 @@ class switch ~all_predicates children =
                 when old_selection.child.source == c.source ->
                   ()
               | Some old_selection, Some c ->
-                  let track_sensitive = Atomic.get track_sensitive in
                   self#log#important "Switch to %s with %stransition."
                     c.source#id
-                    (if track_sensitive then "track-sensitive " else "");
-                  let ending =
-                    if track_sensitive then None else Some old_selection
-                  in
+                    (if boundary then "track-sensitive " else "");
+                  (* Only a source that is still playing a track has something
+                     left to transition out of. *)
+                  let ending = if boundary then None else Some old_selection in
                   self#apply_on_select ~ending c
             end;
             match self#selected with
