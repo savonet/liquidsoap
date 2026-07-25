@@ -37,6 +37,8 @@
 
 ## Fixed:
 
+- Fixed `delay` getting stuck after its first track and dropping the following
+  track's metadata (#5282).
 - Fixed `output.file.hls` terminating the process on transient filesystem
   errors. The output now supports a `reopen_on_error` callback (#5259).
 - Fixed `output.file.hls` accepting unwritable output, temporary and
