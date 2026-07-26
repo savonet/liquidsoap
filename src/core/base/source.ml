@@ -565,7 +565,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method get_partial_frame cb =
       let data = cb self#peek_frame in
-      consumed <- Int.max consumed (Frame.position data);
+      self#consumed (Frame.position data);
       data
 
     method consumed n = consumed <- Int.max consumed n
