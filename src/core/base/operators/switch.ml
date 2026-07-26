@@ -148,8 +148,19 @@ class switch ~all_predicates children =
     (* We cannot reselect the same source twice during a streaming cycle. *)
     val mutable excluded_sources = []
 
+    (* A selection only holds while we are being streamed. A switch that its own
+       parent is not playing is not animated at all: it keeps whatever it picked
+       on its last cycle, decided under conditions that may have changed since.
+       While we are resuming, that selection must be re-evaluated, and since
+       nothing was playing there is nothing a new selection would interrupt. *)
+    val mutable last_streamed_tick = -1
+    val mutable resuming = false
+
     initializer
+      self#on_frame
+        (`After_frame (fun _ -> last_streamed_tick <- Clock.ticks self#clock));
       self#on_before_streaming_cycle (fun () ->
+          resuming <- 1 < Clock.ticks self#clock - last_streamed_tick;
           excluded_sources <- [];
           Atomic.set track_sensitive (List.for_all is_track_sensitive children));
       self#on_after_streaming_cycle (fun () ->
@@ -175,7 +186,7 @@ class switch ~all_predicates children =
       match (reselect, self#selected) with
         | `After_position _, _ -> true
         | _, None -> true
-        | _, Some s -> not s.effective_source#is_ready
+        | _, Some s -> resuming || not s.effective_source#is_ready
 
     method private select ~reselect ~boundary () =
       let may_select c =
@@ -259,7 +270,8 @@ class switch ~all_predicates children =
     method get_source ~reselect () =
       match self#selected with
         | Some s
-          when (is_track_sensitive s.child || is_ready s.child)
+          when (not resuming)
+               && (is_track_sensitive s.child || is_ready s.child)
                (* We want to force a re-select on each new track unless there's a transition still in progress. *)
                && (s.pending_on_leave <> None
                   || self#can_reselect
