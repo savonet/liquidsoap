@@ -30,6 +30,11 @@ on:
       ocaml_docker_release_version:
         required: true
         type: string
+      release_tag:
+        description: Fetch packages from this release's assets instead of the current run's build artifacts.
+        required: false
+        default: ""
+        type: string
     secrets:
       DOCKERHUB_USER:
         required: true
@@ -52,9 +57,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: Download all artifact
+        if: inputs.release_tag == ''
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
+      - name: Download release packages
+        if: inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.release_tag }}" --repo "${{ github.repository }}" \
+            --dir "artifacts/${{ inputs.sha }}" \
+            --pattern "*${{ matrix.docker-debian-os }}*ocaml${{ matrix.ocaml_version }}*_${{ matrix.platform }}.deb"
       - name: Get debian package
         run: |
           echo "deb-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
@@ -99,9 +113,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: Download all artifact
+        if: inputs.release_tag == ''
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
+      - name: Download release packages
+        if: inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.release_tag }}" --repo "${{ github.repository }}" \
+            --dir "artifacts/${{ inputs.sha }}" \
+            --pattern "*ocaml${{ matrix.ocaml_version }}-${{ matrix.alpine-arch }}*.apk"
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.ocaml_version }} | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
@@ -139,9 +162,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: Download all artifact
+        if: inputs.release_tag == ''
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
+      - name: Download release packages
+        if: inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.release_tag }}" --repo "${{ github.repository }}" \
+            --dir "artifacts/${{ inputs.sha }}" \
+            --pattern "*${{ matrix.docker-debian-os }}*ocaml${{ matrix.ocaml_version }}*_${{ matrix.platform }}.deb"
       - name: Get debian package
         run: |
           echo "deb-file=$(find artifacts/${{ inputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep ${{ matrix.ocaml_version }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
@@ -186,9 +218,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: Download all artifact
+        if: inputs.release_tag == ''
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/${{ inputs.sha }}
+      - name: Download release packages
+        if: inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.release_tag }}" --repo "${{ github.repository }}" \
+            --dir "artifacts/${{ inputs.sha }}" \
+            --pattern "*ocaml${{ matrix.ocaml_version }}-${{ matrix.alpine-arch }}*.apk"
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ inputs.sha }} -type f | grep minimal | grep ${{ matrix.ocaml_version }} | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
