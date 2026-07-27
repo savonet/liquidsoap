@@ -154,11 +154,9 @@ class switch ~all_predicates children =
     (* We cannot reselect the same source twice during a streaming cycle. *)
     val mutable excluded_sources = []
 
-    (* A selection only holds while we are being streamed. A switch that its own
-       parent is not playing is not animated at all: it keeps whatever it picked
-       on its last cycle, decided under conditions that may have changed since.
-       While we are resuming, that selection must be re-evaluated, and since
-       nothing was playing there is nothing a new selection would interrupt. *)
+    (* A selection only holds while we are being streamed: when we resume after
+       going quiet it has to be re-evaluated, and nothing is playing for a new
+       one to interrupt. *)
     val mutable last_streamed_tick = -1
     val mutable resuming = false
 
@@ -455,8 +453,8 @@ let _ =
               match find_opt "track_sensitive" s_val with
                 | Some v -> Lang.to_bool_getter v
                 | None ->
-                    let ts = source#composition = `File in
-                    fun () -> ts
+                    (* Same profile the other defaults come from. *)
+                    fun () -> (Lang_source.profile_of source).track_sensitive
             in
             let profile = Lang_source.profile_of source in
             let on_leave =
