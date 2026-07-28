@@ -140,8 +140,9 @@ val sources : t -> source list
 (** All the clocks of the application. *)
 val clocks : unit -> t list
 
-(** Clocks animated by this clock: they are ticked as part of this clock's tick
-    (unless already ticked during it) and stopped when this clock stops. *)
+(** Clocks owned by this clock: they are started and stopped along with it. They
+    are never ticked as part of this clock's tick: sub-clocks are passive and
+    are ticked on demand by whoever reads from them. *)
 val sub_clocks : t -> t list
 
 val id : t -> string

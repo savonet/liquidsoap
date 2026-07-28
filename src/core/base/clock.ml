@@ -889,17 +889,7 @@ let _activate_pending_sources ~clock params =
         total_sources;
       params.log#important "Current sources:\n%s" (pretty_sources ~clock params)))
 
-let rec _tick ~clock params =
-  (* Snapshot sub-clock ticks: sub-clocks that have already been ticked
-     during this tick (e.g. by an operator pulling data from them) are not
-     ticked again below. *)
-  let sub_clocks =
-    List.map
-      (fun c ->
-        let sub = Unifier.deref c in
-        (c, _ticks sub, sub))
-      (Queue.elements clock.sub_clocks)
-  in
+let _tick ~clock params =
   _activate_pending_sources ~clock params;
   let animate =
     wrap_errors clock (fun s ->
@@ -917,10 +907,6 @@ let rec _tick ~clock params =
         check_stopped ();
         fn ());
   check_stopped ();
-  List.iter
-    (fun (c, old_ticks, clock) ->
-      if ticks c = old_ticks then _tick ~clock (active_params c))
-    sub_clocks;
   Atomic.incr params.ticks;
   check_stopped ();
   _after_tick params;
