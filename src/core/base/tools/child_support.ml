@@ -29,9 +29,14 @@
     into a generator (by default, appending it). Operators read from the
     generator and only tick the child clock when they need more data. When
     several operators share a child clock, a tick issued by one of them fills
-    the buffers of all of them: no data is lost and each reader consumes at its
-    own pace. A warning is issued when a buffer accumulates, indicating
-    imbalanced child clock usage. *)
+    the buffers of all of them, so no data is lost.
+
+    A reader on its own can never accumulate: it stops ticking as soon as it has
+    a frame worth of data. Readers sharing a child clock, however, must consume
+    at converging rates, otherwise the slowest one is fed data it never catches
+    up on. Rates may diverge momentarily, e.g. while encoders fill their
+    lookahead, so this is caught by bounding each buffer rather than by
+    comparing readers: past [conf_max_buffer] of unconsumed data, we raise. *)
 
 type write_payload = [ `Frame of Frame.t | `Flush ]
 
@@ -41,12 +46,15 @@ let conf_child_support =
     "Settings related to child clocks, i.e. clocks animating sources depending \
      on a main source such as `crossfade`, `accelerate`, etc."
 
-let conf_leak_warning =
+let conf_max_buffer =
   Dtools.Conf.float
-    ~p:(conf_child_support#plug "leak_warning")
-    ~d:60.
-    "Amount of buffered time (in seconds) after which a warning is issued that \
-     there might be a clock-induced data leak or accumulation."
+    ~p:(conf_child_support#plug "max_buffer")
+    ~d:10.
+    "Maximum amount of data (in seconds) that an operator may buffer from its \
+     child source before we consider that the operators sharing its child \
+     clock consume at diverging rates and raise an error. Raise this value for \
+     operators that legitimately produce a lot of data on a single child clock \
+     tick."
 
 (** Output wrapping a child source: on each tick of its (child) clock, it
     processes the child's frame into the generator installed by the controlling
@@ -59,7 +67,11 @@ class child_output src =
 
     method! source_type = `Output (self :> Source.active)
     val mutable generator = None
-    method set_generator gen = generator <- Some gen
+    val mutable owner = src#id
+
+    method set_generator ~owner:id gen =
+      owner <- id;
+      generator <- Some gen
 
     val mutable process_frame : Generator.t -> write_payload -> unit =
       fun generator -> function
@@ -77,19 +89,22 @@ class child_output src =
         | Some generator when self#is_ready ->
             let frame = self#get_frame in
             if Frame.position frame > 0 then (
-              let len = Generator.length generator in
               process_frame generator (`Frame frame);
-              let new_len = Generator.length generator in
-              let leak_warning =
-                max 1 (Frame.main_of_seconds conf_leak_warning#get)
-              in
-              if len / leak_warning < new_len / leak_warning then
-                self#log#important
-                  "Generator for source %s has over %.02fs of content. There \
-                   might be a data leak or accumulation due to imbalanced \
-                   child clock usage."
-                  self#id
-                  (Frame.seconds_of_main new_len))
+              let max_buffer = conf_max_buffer#get in
+              if Frame.main_of_seconds max_buffer < Generator.length generator
+              then
+                Runtime_error.raise
+                  ~pos:(match self#pos with Some p -> [p] | None -> [])
+                  ~message:
+                    (Printf.sprintf
+                       "Operator %s has buffered more than %.02fs of data from \
+                        %s. This happens when several operators share a child \
+                        clock but consume at diverging rates, which is not \
+                        supported. If %s legitimately produces that much data \
+                        on a single child clock tick, raise \
+                        `settings.clock.child.max_buffer`."
+                       owner max_buffer src#id owner)
+                  "clock")
         | _ -> ()
 
     method reset =
@@ -173,7 +188,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
           (* This is idempotent so it's okay to do it twice the first time. *)
           Clock.register_sub_clock self#clock self#child_clock;
           child_buffer <- Generator.create self#content_type;
-          child#set_generator child_buffer;
+          child#set_generator ~owner:self#id child_buffer;
           child#set_stack self#stack;
           assert (child_activation = None);
           child_activation <- Some (child#wake_up (self :> Clock.source)));

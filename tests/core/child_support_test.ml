@@ -3,7 +3,9 @@
    - two producers sharing a child clock share ticks: data produced during a
      tick issued by one is buffered for the other, which reads it without
      ticking the clock again,
-   - a custom process_frame receives `Flush when the producer sleeps. *)
+   - a custom process_frame receives `Flush when the producer sleeps,
+   - two producers sharing a child clock but consuming at diverging rates
+     raise instead of buffering without bound. *)
 
 class ready_source =
   object (self)
@@ -27,24 +29,22 @@ class test_output ~clock source =
         (Lang.source (source :> Source.source))
   end
 
+let () = Frame_settings.lazy_config_eval := true
+
+let audio_t =
+  Lang.frame_t (Lang.univ_t ())
+    (Frame.Fields.make ~audio:(Format_type.audio ()) ())
+
+let producer ~name source =
+  new Child_support.producer
+    ~check_self_sync:true ~name
+    (Lang.source (source :> Source.source))
+
 let () =
-  Frame_settings.lazy_config_eval := true;
-  let audio_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
   let parent = Clock.create ~sync:`Passive ~id:"child_support_test" () in
   let child_source = new ready_source in
-  let producer_1 =
-    new Child_support.producer
-      ~check_self_sync:true ~name:"producer_1"
-      (Lang.source (child_source :> Source.source))
-  in
-  let producer_2 =
-    new Child_support.producer
-      ~check_self_sync:true ~name:"producer_2"
-      (Lang.source (child_source :> Source.source))
-  in
+  let producer_1 = producer ~name:"producer_1" child_source in
+  let producer_2 = producer ~name:"producer_2" child_source in
   Typing.(producer_1#frame_type <: audio_t);
   Typing.(producer_2#frame_type <: audio_t);
   let output_1 = new test_output ~clock:parent producer_1 in
@@ -81,6 +81,38 @@ let () =
      output. *)
   assert (not !flushed);
   Clock.stop parent;
-  assert !flushed;
+  assert !flushed
+
+let () =
+  Child_support.conf_max_buffer#set 0.5;
+  let parent = Clock.create ~sync:`Passive ~id:"child_support_diverging" () in
+  let child_source = new ready_source in
+  let fast = producer ~name:"fast" child_source in
+  let slow = producer ~name:"slow" child_source in
+  Typing.(fast#frame_type <: audio_t);
+  Typing.(slow#frame_type <: audio_t);
+  let output_fast = new test_output ~clock:parent fast in
+  let output_slow = new test_output ~clock:parent slow in
+  output_fast#content_type_computation_allowed;
+  output_slow#content_type_computation_allowed;
+
+  (* [slow] keeps half of each child frame, so it needs two child clock ticks
+     per parent tick where [fast] needs one: [fast] is fed data it never
+     catches up on. *)
+  slow#child#set_process_frame (fun generator -> function
+    | `Frame frame ->
+        Generator.append ~length:(Frame.position frame / 2) generator frame
+    | `Flush -> ());
+
+  Clock.start ~force:true parent;
+  Clock.activate_pending_sources parent;
+
+  let raised = ref false in
+  (try
+     for _ = 1 to 100 do
+       Clock.tick parent
+     done
+   with Runtime_error.Runtime_error { kind = "clock" } -> raised := true);
+  assert !raised;
 
   Printf.printf "child_support_test passed!\n%!"
