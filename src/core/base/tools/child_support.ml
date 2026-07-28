@@ -107,11 +107,11 @@ class child_output src =
                   "clock")
         | _ -> ()
 
-    method reset =
-      match generator with
-        | Some generator -> Generator.clear generator
-        | None -> ()
-
+    (* Latency catch-up, which is what resets active sources, never runs on a
+       passive clock, so this is only here to satisfy the output interface.
+       Dropping the buffer here would discard data the reader is about to
+       consume. *)
+    method reset = ()
     method fallible = src#fallible
     method private can_generate_frame = src#is_ready
     method private generate_frame = src#get_frame
