@@ -84,9 +84,12 @@ class child_output src =
         | Some generator -> process_frame generator `Flush
         | None -> ()
 
+    (* Only produce when a reader asked for data. The child clock is also
+       ticked by its parent to animate the outputs and active sources it may
+       contain; buffering there would accumulate data nobody requested. *)
     method output =
       match generator with
-        | Some generator when self#is_ready ->
+        | Some generator when Clock.pulled self#clock && self#is_ready ->
             let frame = self#get_frame in
             if Frame.position frame > 0 then (
               process_frame generator (`Frame frame);
@@ -198,7 +201,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
           child_activation <- None;
           child#flush)
 
-    method child_tick = Clock.tick self#child_clock
+    method child_tick = Clock.tick ~pull:true self#child_clock
 
     (* Whether [child_get_frame] can still return data: the child may be down
        while we have buffered data left to drain. *)

@@ -140,9 +140,8 @@ val sources : t -> source list
 (** All the clocks of the application. *)
 val clocks : unit -> t list
 
-(** Clocks owned by this clock: they are started and stopped along with it. They
-    are never ticked as part of this clock's tick: sub-clocks are passive and
-    are ticked on demand by whoever reads from them. *)
+(** Clocks animated by this clock: they are ticked as part of this clock's tick
+    (unless already ticked during it) and stopped when this clock stops. *)
 val sub_clocks : t -> t list
 
 val id : t -> string
@@ -200,8 +199,16 @@ val ticks : t -> int
 val on_tick : t -> (unit -> unit) -> unit
 
 (** Perform one tick of a started clock. Only meant for passive clocks and
-    tests: non-passive clocks tick from their own thread. *)
-val tick : t -> unit
+    tests: non-passive clocks tick from their own thread.
+
+    [~pull:true] marks the tick as requested by a source reading from this
+    clock, as opposed to the tick a parent clock performs to animate it. *)
+val tick : ?pull:bool -> t -> unit
+
+(** Whether the tick currently being performed was requested by a reader. Used
+    by sources that produce data on demand to stay idle when their clock is
+    merely being animated. *)
+val pulled : t -> bool
 
 (** Execute a callback after the current tick, including latency control.
     Callbacks are one-shot: they are flushed when executed. *)

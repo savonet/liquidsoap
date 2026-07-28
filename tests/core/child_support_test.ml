@@ -77,6 +77,12 @@ let () =
   assert (Generator.length producer_1#child_buffer = 0);
   assert (Generator.length producer_2#child_buffer = 0);
 
+  (* Animating the child clock, as its parent does to keep the outputs and
+     active sources it may contain running, must not buffer any data. *)
+  Clock.tick producer_1#child_clock;
+  assert (Generator.length producer_1#child_buffer = 0);
+  assert (Generator.length producer_2#child_buffer = 0);
+
   (* Stopping the parent clock sleeps the producers, which flush their child
      output. *)
   assert (not !flushed);
