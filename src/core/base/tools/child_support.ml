@@ -228,7 +228,16 @@ class producer ?stack ?child_frame_type ~check_self_sync ~name child_val =
   object (self)
     inherit Source.source ?stack ~name ()
     inherit base ?child_frame_type ~check_self_sync child_val
-    method self_sync = self#child#self_sync
+
+    (* Only claim the child's sync source while it is actually producing: the
+       child paces its own clock, not ours, and must not take the sync role
+       here while idle. *)
+    method self_sync =
+      match self#child#self_sync with
+        | self_sync_type, Some _ when not self#child#is_ready ->
+            (self_sync_type, None)
+        | self_sync -> self_sync
+
     method fallible = self#child#fallible
     method effective_source = (self :> Source.source)
 
