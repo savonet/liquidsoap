@@ -162,7 +162,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     val mutable stripping = false
     val mutable beginning = true
     method fallible = true
-    method private can_generate_frame = source#is_ready
+    method private can_generate_frame = self#child_is_ready
     method remaining = source#remaining
     method effective_source = source#effective_source
     method abort_track = source#abort_track
@@ -171,7 +171,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     method private generate_frame =
       let first = ref true in
       let frame = ref self#empty_frame in
-      while source#is_ready && (!first || stripping) do
+      while self#child_is_ready && (!first || stripping) do
         first := false;
         frame := self#child_get_frame ();
         let frame = !frame in

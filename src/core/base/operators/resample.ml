@@ -46,10 +46,7 @@ class resample ~field ~ratio source =
           (float (rem + Generator.length self#child_buffer) *. ratio ())
 
     method abort_track = source#abort_track
-
-    method private can_generate_frame =
-      0 < Generator.length self#child_buffer || source#is_ready
-
+    method private can_generate_frame = self#child_is_ready
     val mutable converter = None
 
     initializer

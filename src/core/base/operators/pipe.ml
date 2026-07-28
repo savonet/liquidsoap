@@ -142,7 +142,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       match handler with Some h -> h | None -> raise Process_handler.Finished
 
     method private get_to_write =
-      if source#is_ready then (
+      if self#child_is_ready then (
         let frame = self#child_get_frame () in
         let buf = AFrame.pcm frame in
         let blen = Audio.length buf in

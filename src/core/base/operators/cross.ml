@@ -214,7 +214,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
     method private get_source ~reselect () =
       let reselect = match reselect with `Force -> `Ok | _ -> reselect in
       match status with
-        | `Idle when self#source#is_ready -> self#prepare_before
+        | `Idle when self#child_is_ready -> self#prepare_before
         | `Idle -> None
         | `Before _ -> (
             self#buffer_before ~is_first:false ();
@@ -231,8 +231,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         | `After _ -> self#prepare_before
 
     method private buffer_before ~is_first () =
-      if Generator.length gen_before < main_duration && self#source#is_ready
-      then (
+      if Generator.length gen_before < main_duration && self#child_is_ready then (
         let buf_frame = self#child_get ~is_first () in
         self#append `Before buf_frame;
         (* Analyze them *)
@@ -253,7 +252,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
       let rec f ~is_first () =
-        if Generator.length gen_after < main_duration && self#source#is_ready
+        if Generator.length gen_after < main_duration && self#child_is_ready
         then (
           let buf_frame = self#child_get ~is_first () in
           self#append `After buf_frame;

@@ -31,10 +31,7 @@ class soundtouch source_val rate tempo pitch =
     val mutable st = None
     method fallible = source#fallible
     method self_sync = source#self_sync
-
-    method private can_generate_frame =
-      0 < Generator.length self#child_buffer || source#is_ready
-
+    method private can_generate_frame = self#child_is_ready
     method effective_source = source#effective_source
     method remaining = -1
 

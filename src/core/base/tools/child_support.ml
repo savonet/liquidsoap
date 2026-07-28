@@ -200,6 +200,10 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
 
     method child_tick = Clock.tick self#child_clock
 
+    (* Whether [child_get_frame] can still return data: the child may be down
+       while we have buffered data left to drain. *)
+    method child_is_ready = 0 < Generator.length child_buffer || child#is_ready
+
     (* Return a frame of data from [child_buffer], ticking the child clock
        until enough data is available (or the child cannot produce more).
        [get_partial_frame] can decide to consume less than a full frame, e.g.
@@ -242,9 +246,7 @@ class producer ?stack ?child_frame_type ~check_self_sync ~name child_val =
               | r -> r + Generator.length self#child_buffer)
         | r -> r
 
-    method private can_generate_frame =
-      0 < Generator.length self#child_buffer || self#child#is_ready
-
+    method private can_generate_frame = self#child_is_ready
     method private generate_frame = self#child_get_frame ()
 
     method abort_track =
