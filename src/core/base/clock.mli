@@ -55,6 +55,7 @@ type self_sync = [ `Static | `Dynamic ] * sync_source option
     controllers cannot be unified. *)
 type controller = [ `None | `Clock of t | `Other of string * < id : string > ]
 
+val conf_clock : Dtools.Conf.ut
 val conf_latency : float Dtools.Conf.t
 val conf_max_latency : float Dtools.Conf.t
 val string_of_sync_source : sync_source -> string
@@ -198,8 +199,16 @@ val ticks : t -> int
 val on_tick : t -> (unit -> unit) -> unit
 
 (** Perform one tick of a started clock. Only meant for passive clocks and
-    tests: non-passive clocks tick from their own thread. *)
-val tick : t -> unit
+    tests: non-passive clocks tick from their own thread.
+
+    [~pull:true] marks the tick as requested by a source reading from this
+    clock, as opposed to the tick a parent clock performs to animate it. *)
+val tick : ?pull:bool -> t -> unit
+
+(** Whether the tick currently being performed was requested by a reader. Used
+    by sources that produce data on demand to stay idle when their clock is
+    merely being animated. *)
+val pulled : t -> bool
 
 (** Execute a callback after the current tick, including latency control.
     Callbacks are one-shot: they are flushed when executed. *)

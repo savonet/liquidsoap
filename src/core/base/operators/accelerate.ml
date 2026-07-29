@@ -26,7 +26,7 @@ class accelerate ~ratio ~randomize source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit operator ~name:"accelerate" []
-    inherit Child_support.base ~check_self_sync:true [source_val]
+    inherit Child_support.base ~check_self_sync:true source_val
     method self_sync = source#self_sync
     method fallible = source#fallible
     method effective_source = source#effective_source
@@ -36,7 +36,7 @@ class accelerate ~ratio ~randomize source_val =
       if rem = -1 then rem else int_of_float (float rem *. ratio ())
 
     method abort_track = source#abort_track
-    method private can_generate_frame = source#is_ready
+    method private can_generate_frame = self#child_is_ready
 
     (** Filled ticks. *)
     val mutable filled = 0
@@ -61,20 +61,14 @@ class accelerate ~ratio ~randomize source_val =
           Random.float 1. > 1. -. l))
 
     method private generate_frame =
-      let pos = ref 1 in
       (* Drop frames if we are late. *)
       (* TODO: we could also duplicate if we are in advance. *)
-      while !pos > 0 && self#must_drop && source#is_ready do
-        self#on_child_tick (fun () ->
-            if source#is_ready then pos := Frame.position source#get_frame);
-        skipped <- skipped + !pos
+      while self#must_drop && self#child_is_ready do
+        skipped <- skipped + Frame.position (self#child_get_frame ())
       done;
-      let buf = ref self#empty_frame in
-      if source#is_ready then (
-        self#on_child_tick (fun () ->
-            if source#is_ready then buf := source#get_frame);
-        filled <- filled + Frame.position !buf);
-      !buf
+      let buf = self#child_get_frame () in
+      filled <- filled + Frame.position buf;
+      buf
   end
 
 let _ =

@@ -53,7 +53,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         ~track_sensitive:(fun () -> false)
         ()
 
-    inherit Child_support.base ~check_self_sync:true [val_source]
+    inherit Child_support.base ~check_self_sync:true val_source
     initializer Typing.(s#frame_type <: self#frame_type)
     method fallible = true
 
@@ -153,16 +153,13 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
     method! child_clock_controller =
       Some (`Other ("source", (self :> < id : string >)))
 
-    method private child_get ~is_first source =
-      let frame = ref self#empty_frame in
-      self#on_child_tick (fun () ->
-          if source#is_ready then
-            frame :=
-              source#get_partial_frame (fun f ->
-                  match self#split_frame f with
-                    | buf, Some _ when Frame.position buf = 0 && is_first -> f
-                    | buf, _ -> buf));
-      !frame
+    method private child_get ~is_first () =
+      self#child_get_frame
+        ~get_partial_frame:(fun frame ->
+          match self#split_frame frame with
+            | buf, Some _ when Frame.position buf = 0 && is_first -> frame
+            | buf, _ -> buf)
+        ()
 
     method private process_override_metadata m =
       (match Frame.Metadata.find_opt override_duration m with
@@ -217,7 +214,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
     method private get_source ~reselect () =
       let reselect = match reselect with `Force -> `Ok | _ -> reselect in
       match status with
-        | `Idle when self#source#is_ready -> self#prepare_before
+        | `Idle when self#child_is_ready -> self#prepare_before
         | `Idle -> None
         | `Before _ -> (
             self#buffer_before ~is_first:false ();
@@ -234,9 +231,8 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         | `After _ -> self#prepare_before
 
     method private buffer_before ~is_first () =
-      if Generator.length gen_before < main_duration && self#source#is_ready
-      then (
-        let buf_frame = self#child_get ~is_first self#source in
+      if Generator.length gen_before < main_duration && self#child_is_ready then (
+        let buf_frame = self#child_get ~is_first () in
         self#append `Before buf_frame;
         (* Analyze them *)
         let pcm = AFrame.pcm buf_frame in
@@ -256,9 +252,9 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
       let rec f ~is_first () =
-        if Generator.length gen_after < main_duration && self#source#is_ready
+        if Generator.length gen_after < main_duration && self#child_is_ready
         then (
-          let buf_frame = self#child_get ~is_first self#source in
+          let buf_frame = self#child_get ~is_first () in
           self#append `After buf_frame;
           if Generator.length gen_after <= rms_width then (
             let pcm = AFrame.pcm buf_frame in

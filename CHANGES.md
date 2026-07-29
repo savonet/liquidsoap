@@ -20,6 +20,10 @@
   a single shared encoder instead of per-listener encoding (#5003).
 - Rewrote JACK I/O using native OCaml bindings, removing the dependency on the `bjack`
   C library (#5028).
+- Added `settings.clock.child.max_buffer`, the amount of data an operator such as
+  `crossfade` or `stretch` may buffer from its child source. Operators sharing a child
+  source must consume it at converging rates; past this value, an error names the operator
+  that fell behind instead of letting the buffer grow without bound (#5267).
 
 ## Changed:
 

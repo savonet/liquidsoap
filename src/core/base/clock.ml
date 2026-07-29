@@ -182,6 +182,11 @@ type active_params = {
   on_tick : (unit -> unit) Queue.t;
   after_tick : (unit -> unit) Queue.t;
   ticks : int Atomic.t;
+  (* Whether the tick currently being performed was requested by a source
+     reading from this clock, as opposed to the tick its parent clock performs
+     to animate it. Sources that only produce data on demand check it through
+     [pulled]. *)
+  pulled : bool Atomic.t;
 }
 
 type state =
@@ -889,7 +894,8 @@ let _activate_pending_sources ~clock params =
         total_sources;
       params.log#important "Current sources:\n%s" (pretty_sources ~clock params)))
 
-let rec _tick ~clock params =
+let rec _tick ?(pull = false) ~clock params =
+  Atomic.set params.pulled pull;
   (* Snapshot sub-clock ticks: sub-clocks that have already been ticked
      during this tick (e.g. by an operator pulling data from them) are not
      ticked again below. *)
@@ -916,7 +922,11 @@ let rec _tick ~clock params =
     Queue.flush_iter params.on_tick (fun fn ->
         check_stopped ();
         fn ());
+  Atomic.set params.pulled false;
   check_stopped ();
+  (* Sub-clocks are animated, not read from: this tick is not a pull for them.
+     It keeps their outputs and active sources running while sources that only
+     produce on demand stay idle. *)
   List.iter
     (fun (c, old_ticks, clock) ->
       if ticks c = old_ticks then _tick ~clock (active_params c))
@@ -1046,6 +1056,7 @@ let rec _start ?force ~c clock =
       after_tick = Queue.create ();
       outputs = Queue.create ();
       ticks = Atomic.make 0;
+      pulled = Atomic.make false;
     }
   in
   Queue.iter clock.sub_clocks (fun c -> start ?force c);
@@ -1128,7 +1139,12 @@ let after_tick c fn =
 let activate_pending_sources c =
   _activate_pending_sources ~clock:(Unifier.deref c) (active_params c)
 
-let tick c = _tick ~clock:(Unifier.deref c) (active_params c)
+let tick ?pull c = _tick ?pull ~clock:(Unifier.deref c) (active_params c)
+
+let pulled c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Started params | `Stopping params -> Atomic.get params.pulled
+    | `Stopped -> false
 
 let time c =
   match active_params c with

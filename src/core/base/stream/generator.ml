@@ -122,7 +122,7 @@ let _keep gen len =
 
 let keep gen = Mutex_utils.mutexify gen.lock (_keep gen)
 
-let _slice gen len =
+let _slice ?(peek = false) gen len =
   let content = Atomic.get gen.content in
   let len =
     Frame_base.Fields.fold
@@ -130,10 +130,10 @@ let _slice gen len =
       content len
   in
   let slice = Frame_base.Fields.map (fun c -> Content.sub c 0 len) content in
-  _truncate gen len;
+  if not peek then _truncate gen len;
   slice
 
-let slice gen = Mutex_utils.mutexify gen.lock (_slice gen)
+let slice ?peek gen = Mutex_utils.mutexify gen.lock (_slice ?peek gen)
 let clear gen = Atomic.set gen.content (make_content ~length:0 gen.content_type)
 
 let _set_metadata gen =
