@@ -777,7 +777,11 @@ module Monad = struct
       module Control = Control
 
       let tmp = Bytes.create 1024
-      let x, y = Unix.pipe ()
+
+      (* A socket pair rather than a pipe: on Windows, a single non-socket fd
+         in the scheduler forces [Unix.select] into its worker-thread emulation
+         for every call, which leaks native memory. See [create] above. *)
+      let x, y = Unix_utils.socketpair ()
       let stop = ref false
       let wake_up () = ignore (Unix_utils.write y (Bytes.of_string " ") 0 1)
       let ctl_m = Mutex_o.create ()
