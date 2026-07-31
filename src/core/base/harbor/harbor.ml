@@ -1240,7 +1240,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         (fun cur bind_addr -> if bind_addr <> "" then bind_addr :: cur else cur)
         [] conf_harbor_bind_addrs#get
     in
-    let in_s, out_s = Unix.pipe ~cloexec:true () in
+    (* A socket pair rather than a pipe: on Windows, a single non-socket fd in
+       the scheduler forces [Unix.select] into its worker-thread emulation for
+       every call, which leaks native memory (see #5245). With sockets only,
+       select uses the plain winsock fast path. *)
+    let in_s, out_s = Unix_utils.socketpair ~cloexec:true () in
     let events = `Read in_s :: List.map (open_socket port) bind_addrs in
     Task.add Tutils.scheduler
       {
