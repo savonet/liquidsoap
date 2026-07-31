@@ -66,30 +66,38 @@ class delay ~initial (source : source) delay =
     method self_sync = source#self_sync
     method private delay_ok = delay_ok last_track
 
+    (* The start of the next track, saved at the boundary: it carries the track
+       mark and metadata, and is held back until the delay has elapsed. *)
+    val mutable pending = None
+
     method private can_generate_frame =
-      self#delay_ok && (Generator.length self#buffer > 0 || source#is_ready)
+      Generator.length self#buffer > 0
+      || (self#delay_ok && (pending <> None || source#is_ready))
 
     method private generate_frame =
-      (* At a track boundary we save the next track's start (which carries its
-         track mark and metadata) and start the delay. Once it has elapsed we
-         serve that start from the buffer, so the next track begins on a clean
-         boundary without losing its metadata. *)
-      if Generator.length self#buffer > 0 then
-        Generator.slice self#buffer (Lazy.force Frame.size)
-      else (
+      let size = Lazy.force Frame.size in
+      if Generator.length self#buffer = 0 then (
+        match pending with
+          | Some starting ->
+              pending <- None;
+              Generator.append self#buffer starting
+          | None -> ());
+      (* Top the buffer up to a full frame: a short frame in the middle of a
+         track reads as "nothing more to play" and gets us dropped. *)
+      if Generator.length self#buffer < size && source#is_ready then (
         let frame = source#get_frame in
         match self#split_frame frame with
           | _, Some starting when initial_track ->
               initial_track <- false;
-              Generator.append self#buffer starting;
-              Generator.slice self#buffer (Lazy.force Frame.size)
+              Generator.append self#buffer starting
           | buf, Some starting ->
               last_track <- time ();
-              Generator.append self#buffer starting;
-              buf
+              pending <- Some starting;
+              Generator.append self#buffer buf
           | buf, None ->
               initial_track <- false;
-              buf)
+              Generator.append self#buffer buf);
+      Generator.slice self#buffer size
   end
 
 let _ =
