@@ -40,7 +40,11 @@ class delay ~initial (source : source) delay =
   object (self)
     inherit operator ~name:"delay" [source]
     val mutable last_track = initial_last_track
-    val mutable initial_track = true
+
+    (* Whether [source] is inside a track we are playing. A track mark at
+       position 0 ends that track when we are in one, and opens the next one
+       otherwise. *)
+    val mutable in_track = false
     method fallible = true
     method remaining = source#remaining
 
@@ -74,29 +78,40 @@ class delay ~initial (source : source) delay =
       Generator.length self#buffer > 0
       || (self#delay_ok && (pending <> None || source#is_ready))
 
+    method private end_track =
+      last_track <- time ();
+      in_track <- false
+
     method private generate_frame =
       let size = Lazy.force Frame.size in
+      let append frame =
+        if Frame.position frame > 0 then in_track <- true;
+        Generator.append self#buffer frame
+      in
       if Generator.length self#buffer = 0 then (
         match pending with
           | Some starting ->
               pending <- None;
-              Generator.append self#buffer starting
+              append starting
           | None -> ());
       (* Top the buffer up to a full frame: a short frame in the middle of a
          track reads as "nothing more to play" and gets us dropped. *)
       if Generator.length self#buffer < size && source#is_ready then (
         let frame = source#get_frame in
         match self#split_frame frame with
-          | _, Some starting when initial_track ->
-              initial_track <- false;
-              Generator.append self#buffer starting
+          | buf, Some starting when Frame.position buf = 0 && not in_track ->
+              append starting
           | buf, Some starting ->
-              last_track <- time ();
               pending <- Some starting;
-              Generator.append self#buffer buf
+              append buf;
+              self#end_track
           | buf, None ->
-              initial_track <- false;
-              Generator.append self#buffer buf);
+              append buf;
+              (* A source that cannot fill the frame has nothing more to play:
+                 its track ended without it ever emitting a mark for it. This
+                 is how a leaf source running dry — an emptied `request.queue`,
+                 a `playlist` between reloads — reports a track end. *)
+              if in_track && Frame.position frame < size then self#end_track);
       Generator.slice self#buffer size
   end
 
