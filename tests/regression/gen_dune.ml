@@ -11,6 +11,11 @@ let extra_deps =
   ../streams/file2.mp3
   ../streams/file3.mp3|}
     );
+    ( "delay_dry_between_tracks",
+      {|
+  delay_jingle0.mp3
+  delay_jingle1.mp3
+  delay_music.mp3|} );
   ]
 
 let extra_targets = [("GH5019", "GH5019.wav")]

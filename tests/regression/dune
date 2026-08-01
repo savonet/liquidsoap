@@ -107,6 +107,60 @@
     "cp libStereoTool_*/lib/Linux/IntelAMD/64/libStereoTool_intel64.so %{target}"))))
 
 (rule
+ (target delay_jingle0.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -ac
+   2
+   -metadata
+   title=jingle0
+   %{target})))
+
+(rule
+ (target delay_jingle1.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=880:duration=1"
+   -ac
+   2
+   -metadata
+   title=jingle1
+   %{target})))
+
+(rule
+ (target delay_music.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=3"
+   -ac
+   2
+   -metadata
+   title=music
+   %{target})))
+
+(rule
  (target GH5019.gen.png)
  (deps GH5019.wav)
  (action

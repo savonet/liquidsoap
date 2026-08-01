@@ -1468,6 +1468,32 @@
   (run %{run_test} default_format liquidsoap %{test_liq} default_format.liq)))
 
 (rule
+ (alias test_delay_dry_between_tracks)
+ (package liquidsoap)
+ (deps
+  delay_dry_between_tracks.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  delay_jingle0.mp3
+  delay_jingle1.mp3
+  delay_music.mp3
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   delay_dry_between_tracks
+   liquidsoap
+   %{test_liq}
+   delay_dry_between_tracks.liq)))
+
+(rule
  (alias test_delay_gap)
  (package liquidsoap)
  (deps
@@ -2089,6 +2115,7 @@
   (alias test_append-merge2)
   (alias test_cleanup)
   (alias test_default_format)
+  (alias test_delay_dry_between_tracks)
   (alias test_delay_gap)
   (alias test_delay_track_advance)
   (alias test_double-nullable)
