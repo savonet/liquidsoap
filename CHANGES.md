@@ -53,6 +53,7 @@
 - Fixed `fMP4` HLS support for audio+video streams (#4841)
 - Fixed crossfade clocks inconsistencies leading to weird caching audio glitches (#4851)
 - Fixed first frame of new track getting lost when crossfading with `fade.in` duration is set to `0.` (#4887)
+- Fixed race condition when registering harbor endpoint and mounts (#5292)
 - Fixed crash with concurrent `stop`/`start` operations (#4849)
 - Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
   decoder (#4848)

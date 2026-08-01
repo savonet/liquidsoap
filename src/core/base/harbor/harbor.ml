@@ -345,6 +345,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let opened_ports : (int, open_port) Concurrent_hashtbl.t =
     Concurrent_hashtbl.create 1
 
+  (* Adding and removing sources and handlers is a read-modify-write on both
+     [opened_ports] and the handler lists, neither of which is atomic on its
+     own. Registration is rare enough that a single lock is fine; lookups on
+     the request path are single reads and stay lock-free. *)
+  let registration_lock = Mutex.create ()
   let find_handler = Concurrent_hashtbl.find opened_ports
 
   let find_source mount port =
@@ -1285,74 +1290,84 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (* Add sources... This is tied up to sources lifecycle so
      no need to prevent early start *)
   let add_source ~pos ~transport ~port ~mountpoint ~icy source =
-    let handler = get_handler ~pos ~transport ~icy port in
-    let smount = Lang.descr_of_regexp mountpoint in
-    let current = Atomic.get handler.sources in
-    if List.exists (fun (r, _) -> Lang.descr_of_regexp r = smount) current then
-      Lang.raise_error ~pos ~message:"Mountpoint is already taken!" "http"
-    else ();
-    log#important "Adding mountpoint '%s' on port %i" smount port;
-    Atomic.set handler.sources ((mountpoint, source) :: current)
+    Mutex_utils.mutexify registration_lock
+      (fun () ->
+        let handler = get_handler ~pos ~transport ~icy port in
+        let smount = Lang.descr_of_regexp mountpoint in
+        let current = Atomic.get handler.sources in
+        if List.exists (fun (r, _) -> Lang.descr_of_regexp r = smount) current
+        then
+          Lang.raise_error ~pos ~message:"Mountpoint is already taken!" "http"
+        else ();
+        log#important "Adding mountpoint '%s' on port %i" smount port;
+        Atomic.set handler.sources ((mountpoint, source) :: current))
+      ()
 
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =
-    let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
-    let smount = Lang.descr_of_regexp mountpoint in
-    let current = Atomic.get handler.sources in
-    assert (List.exists (fun (r, _) -> Lang.descr_of_regexp r = smount) current);
-    log#important "Removing mountpoint '%s' on port %i" smount port;
-    let filtered =
-      List.filter (fun (r, _) -> Lang.descr_of_regexp r <> smount) current
-    in
-    Atomic.set handler.sources filtered;
-    if List.length filtered = 0 && List.length (Atomic.get handler.http) = 0
-    then (
-      log#important "Nothing more on port %i: closing sockets." port;
-      let f in_s =
-        ignore (Unix_utils.write in_s (Bytes.of_string " ") 0 1);
-        Unix.close in_s
-      in
-      List.iter f fds;
-      Concurrent_hashtbl.remove opened_ports port)
-    else ()
+    Mutex_utils.mutexify registration_lock
+      (fun () ->
+        let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
+        let smount = Lang.descr_of_regexp mountpoint in
+        let current = Atomic.get handler.sources in
+        assert (
+          List.exists (fun (r, _) -> Lang.descr_of_regexp r = smount) current);
+        log#important "Removing mountpoint '%s' on port %i" smount port;
+        let filtered =
+          List.filter (fun (r, _) -> Lang.descr_of_regexp r <> smount) current
+        in
+        Atomic.set handler.sources filtered;
+        if List.length filtered = 0 && List.length (Atomic.get handler.http) = 0
+        then (
+          log#important "Nothing more on port %i: closing sockets." port;
+          let f in_s =
+            ignore (Unix_utils.write in_s (Bytes.of_string " ") 0 1);
+            Unix.close in_s
+          in
+          List.iter f fds;
+          Concurrent_hashtbl.remove opened_ports port)
+        else ())
+      ()
 
   (* Add http_handler... *)
   let add_http_handler ~pos ~transport ~port ~verb ~uri h =
-    let exec () =
-      let handler = get_handler ~pos ~transport ~icy:false port in
-      let suri = Lang.descr_of_regexp uri in
-      log#important "Adding handler for '%s %s' on port %i"
-        (string_of_verb verb) suri port;
-      Atomic.set handler.http (Atomic.get handler.http @ [(verb, uri, h)])
+    let exec =
+      Mutex_utils.mutexify registration_lock (fun () ->
+          let handler = get_handler ~pos ~transport ~icy:false port in
+          let suri = Lang.descr_of_regexp uri in
+          log#important "Adding handler for '%s %s' on port %i"
+            (string_of_verb verb) suri port;
+          Atomic.set handler.http (Atomic.get handler.http @ [(verb, uri, h)]))
     in
     Server.on_start exec
 
   (* Remove http_handler. *)
   let remove_http_handler ~port ~verb ~uri () =
-    let exec () =
-      let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
-      let suri = Lang.descr_of_regexp uri in
-      let removed, remaining =
-        List.partition
-          (fun (v, u, _) -> v = verb && suri = Lang.descr_of_regexp u)
-          (Atomic.get handler.http)
-      in
-      if removed <> [] then
-        log#important "Removing handler for '%s %s' on port %i"
-          (string_of_verb verb) suri port;
-      Atomic.set handler.http remaining;
-      if
-        List.length (Atomic.get handler.sources) = 0
-        && List.length (Atomic.get handler.http) = 0
-      then (
-        log#info "Nothing more on port %i: closing sockets." port;
-        let f in_s =
-          ignore (Unix_utils.write in_s (Bytes.of_string " ") 0 1);
-          Unix.close in_s
-        in
-        List.iter f fds;
-        Concurrent_hashtbl.remove opened_ports port)
-      else ()
+    let exec =
+      Mutex_utils.mutexify registration_lock (fun () ->
+          let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
+          let suri = Lang.descr_of_regexp uri in
+          let removed, remaining =
+            List.partition
+              (fun (v, u, _) -> v = verb && suri = Lang.descr_of_regexp u)
+              (Atomic.get handler.http)
+          in
+          if removed <> [] then
+            log#important "Removing handler for '%s %s' on port %i"
+              (string_of_verb verb) suri port;
+          Atomic.set handler.http remaining;
+          if
+            List.length (Atomic.get handler.sources) = 0
+            && List.length (Atomic.get handler.http) = 0
+          then (
+            log#info "Nothing more on port %i: closing sockets." port;
+            let f in_s =
+              ignore (Unix_utils.write in_s (Bytes.of_string " ") 0 1);
+              Unix.close in_s
+            in
+            List.iter f fds;
+            Concurrent_hashtbl.remove opened_ports port)
+          else ())
     in
     Server.on_start exec
 end

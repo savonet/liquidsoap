@@ -465,17 +465,43 @@ let start_telnet () =
       handler = incoming;
     }
 
+let on_start_m = Mutex.create ()
 let on_start_fns = ref []
 let started = ref false
 
 let on_start fn =
-  if !started then fn () else on_start_fns := fn :: !on_start_fns
+  if
+    Mutex_utils.mutexify on_start_m
+      (fun () ->
+        if !started then true
+        else (
+          on_start_fns := fn :: !on_start_fns;
+          false))
+      ()
+  then fn ()
+
+(* Callbacks are run outside of the lock: they may register further callbacks,
+   which is why we keep draining until the queue is empty. [started] is only
+   published once a round comes up empty so that a concurrent [on_start] either
+   ends up in the next round or runs the callback itself. *)
+let rec run_on_start_fns () =
+  let fns =
+    Mutex_utils.mutexify on_start_m
+      (fun () ->
+        let fns = List.rev !on_start_fns in
+        on_start_fns := [];
+        if fns = [] then started := true;
+        fns)
+      ()
+  in
+  if fns <> [] then (
+    List.iter (fun fn -> fn ()) fns;
+    run_on_start_fns ())
 
 let start () =
   if conf_telnet#get then start_telnet ();
   if conf_socket#get then start_socket ();
-  List.iter (fun fn -> fn ()) !on_start_fns;
-  started := true
+  run_on_start_fns ()
 
 (* Re-wrap exec for external use *)
 let exec s = try exec s with Exit -> "ERROR: Attempt to exit!"
