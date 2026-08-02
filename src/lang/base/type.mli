@@ -108,8 +108,6 @@ module R = Type_base.R
 
 type 'a argument = bool * string * 'a
 
-exception NotImplemented
-exception Exists of Pos.Option.t * string
 exception Unsatisfied_constraint
 
 val unit : descr

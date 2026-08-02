@@ -31,7 +31,9 @@ let of_list l =
     (fun ret el -> if List.memq el ret then ret else el :: ret)
     [] l
 
-let compare = Stdlib.compare
+(* Explicit element comparison: constraints carry closures, so [Stdlib.compare]
+   would raise [Invalid_argument "compare: functional value"]. *)
+let compare cmp = List.compare cmp
 let elements l = l
 let cardinal = List.length
 let choose = function [] -> raise Not_found | x :: _ -> x

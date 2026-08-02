@@ -22,56 +22,6 @@
 
 (** A plug is something where plug-ins plug. *)
 
-(*
-class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
-  object
-    inherit Doc.item doc
-    val mutable plugins : (string * 'a) list = []
-    val mutable aliases : (string * 'a) list = []
-
-    method register plugin ?plugin_aliases ?doc ?sdoc v =
-      let plugin =
-        if insensitive then String.uppercase_ascii plugin else plugin
-      in
-      let doc () =
-        match (doc, sdoc) with
-          | Some d, _ -> Lazy.force d
-          | None, None -> Doc.trivial "(no doc)"
-          | None, Some s -> Doc.trivial s
-      in
-      if duplicates then (
-        subsections <- (plugin, Lazy.from_fun doc) :: subsections;
-        plugins <- (plugin, v) :: plugins)
-      else (
-        subsections <-
-          (plugin, Lazy.from_fun doc)
-          :: List.filter (fun (k, _) -> k <> plugin) subsections;
-        plugins <-
-          (plugin, v) :: List.filter (fun (k, _) -> k <> plugin) plugins);
-      register_hook (plugin, v);
-      match plugin_aliases with
-        | Some l -> aliases <- List.map (fun alias -> (alias, v)) l @ aliases
-        | None -> ()
-
-    method is_registered a = List.mem_assoc a plugins
-    method keys = List.fold_left (fun l (k, _) -> k :: l) [] plugins
-
-    method iter ?(rev = false) f =
-      let plugins = if rev then List.rev plugins else plugins in
-      List.iter (fun (k, v) -> f k v) plugins
-
-    method get_all = plugins
-
-    method get plugin =
-      let plugin =
-        if insensitive then String.uppercase_ascii plugin else plugin
-      in
-      try Some (List.assoc plugin plugins)
-      with Not_found -> (
-        try Some (List.assoc plugin aliases) with Not_found -> None)
-  end
-*)
-
 (** A plug. *)
 type 'a t = {
   name : string;
