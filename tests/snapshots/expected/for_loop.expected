@@ -21,6 +21,8 @@ for i = 1 to 3 do ignore(i)  end
     ]
   }
 }
+--- hash ---
+159d6d67edcb20f24da5bd6a42a2685c
 --- term ---
 for(iterator.int(1,3),fun (i) -> ignore(i))
 --- type ---

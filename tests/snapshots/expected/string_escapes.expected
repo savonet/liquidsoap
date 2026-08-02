@@ -22,6 +22,8 @@
   }
   ]
 }
+--- hash ---
+d3ff333a4386fccaf2f63842b8f8fb83
 --- term ---
 ("a\nb", "c\td", "eéf", "gAh")
 --- type ---

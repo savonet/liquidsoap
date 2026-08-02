@@ -7,6 +7,8 @@
   "op": "+",
   "right": { "type": "string", "value": "\"one\"" }
 }
+--- hash ---
+31170116e0aedccf2a7a43899a869dfc
 --- term ---
 +(1,"one")
 --- type ---

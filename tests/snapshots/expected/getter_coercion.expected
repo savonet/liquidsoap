@@ -65,6 +65,8 @@ def use(x = {int}) = x() end
     "args": []
   }
 }
+--- hash ---
+251a1a2578ec40d675577cd6086c86e0
 --- term ---
 let use = fun (x=fun () -> int) -> x() in (use(1), use({2}))
 --- type ---

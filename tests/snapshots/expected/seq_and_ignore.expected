@@ -38,6 +38,8 @@ ignore("two")
     "right": { "type": "ground", "value": "3" }
   }
 }
+--- hash ---
+618d28af57eb5cdb415f7d41153cd1e9
 --- term ---
 ignore(1); ignore("two"); 3
 --- type ---

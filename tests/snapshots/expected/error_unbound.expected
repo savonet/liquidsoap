@@ -2,6 +2,8 @@
 undefined_variable
 --- parsed ---
 { "type": "var", "value": "undefined_variable" }
+--- hash ---
+85659f605d2206b1c269ea49a5144d54
 --- term ---
 undefined_variable
 --- type ---

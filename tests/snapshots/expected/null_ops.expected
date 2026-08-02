@@ -39,6 +39,8 @@ x = null
   "cast": null,
   "definition": { "type": "null" }
 }
+--- hash ---
+a057ef51cf27cf6eebeafbe1678ca8c9
 --- term ---
 let x = null in (_null.defined(x), _null.default(x,{1}))
 --- type ---

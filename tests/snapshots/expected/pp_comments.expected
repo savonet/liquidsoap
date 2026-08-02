@@ -29,6 +29,8 @@ f()
   "cast": null,
   "definition": { "type": "ground", "value": "1" }
 }
+--- hash ---
+6e89741aca6b0574086d98f972175ff3
 --- term ---
 let x = 1 in let f = fun () -> x in f()
 --- type ---
