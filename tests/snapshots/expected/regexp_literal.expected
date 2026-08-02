@@ -1,0 +1,37 @@
+=== regexp_literal.liq ===
+r = r/ab+c/gi
+r.test("abbc")
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "invoke",
+    "invoked": { "type": "var", "value": "r" },
+    "optional": false,
+    "meth": {
+      "type": "app",
+      "op": { "type": "var", "value": "test" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "string", "value": "\"abbc\"" }
+        }
+      }
+      ]
+    }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "r" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": { "type": "regexp", "name": "ab+c", "flags": [ "g", "i" ] }
+}
+--- term ---
+let r = regexp("ab+c",flags = ["i", "g"]) in r.test("abbc")
+--- type ---
+bool
+--- value ---
+true

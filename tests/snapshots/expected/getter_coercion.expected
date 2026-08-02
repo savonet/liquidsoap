@@ -1,0 +1,76 @@
+=== getter_coercion.liq ===
+def use(x = {int}) = x() end
+(use(1), use(fun () -> 2))
+--- parsed ---
+{
+  "type": "def",
+  "body": {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "app",
+      "op": { "type": "var", "value": "use" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "ground", "value": "1" }
+        }
+      }
+      ]
+    },
+      {
+      "type": "app",
+      "op": { "type": "var", "value": "use" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": {
+            "type": "fun",
+            "arguments": [],
+            "body": { "type": "ground", "value": "2" }
+          }
+        }
+      }
+      ]
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "use" ] },
+  "arglist": [
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "",
+      "as_variable": { "type": "pvar", "value": [ "x" ] },
+      "typ": null,
+      "default": {
+        "type": "simple_fun",
+        "value": { "type": "var", "value": "int" }
+      }
+    }
+  }
+  ],
+  "cast": null,
+  "definition": {
+    "type": "app",
+    "op": { "type": "var", "value": "x" },
+    "args": []
+  }
+}
+--- term ---
+let use = fun (x=fun () -> int) -> x() in (use(1), use({2}))
+--- type ---
+At line 2, char 5:
+
+Error 5: this value has type
+  int
+but it should be a subtype of
+  () -> _

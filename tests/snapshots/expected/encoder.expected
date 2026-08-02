@@ -1,0 +1,25 @@
+=== encoder.liq ===
+%mp3(bitrate = 128, stereo)
+--- parsed ---
+{
+  "type": "encoder",
+  "label": "mp3",
+  "params": [
+    {
+    "type": "infix",
+    "left": { "type": "var", "value": "bitrate" },
+    "op": "=",
+    "right": { "type": "ground", "value": "128" }
+  },
+    {
+    "type": "var",
+    "value": "stereo"
+  }
+  ]
+}
+--- term ---
+%mp3(bitrate=128, stereo)
+--- type ---
+At line 2, char 0-0:
+
+Error 9: Failure: Encoders are not implemented!

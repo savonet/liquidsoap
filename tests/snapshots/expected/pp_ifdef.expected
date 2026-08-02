@@ -1,0 +1,41 @@
+=== pp_ifdef.liq ===
+%ifdef list.length
+x = 1
+%else
+x = 2
+%endif
+x
+--- parsed ---
+{
+  "type": "seq",
+  "left": {
+    "type": "if_def",
+    "negative": false,
+    "condition": "list.length",
+    "then": {
+      "type": "binding",
+      "body": { "type": "eof" },
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "x" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": { "type": "ground", "value": "1" }
+    },
+    "else": {
+      "type": "binding",
+      "body": { "type": "eof" },
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "x" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": { "type": "ground", "value": "2" }
+    }
+  },
+  "right": { "type": "var", "value": "x" }
+}
+--- term ---
+let x = 1 in x
+--- type ---
+int
+--- value ---
+1

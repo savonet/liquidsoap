@@ -1,0 +1,2 @@
+name = "world"
+"hello #{name}!"

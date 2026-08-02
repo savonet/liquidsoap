@@ -1,0 +1,141 @@
+=== let_patterns.liq ===
+let [a, b, ...c] = [1, 2, 3, 4]
+let (x, y) = (1, "two")
+let {foo} = {foo = 3, bar = 4}
+(a, b, c, x, y, foo)
+--- parsed ---
+{
+  "type": "let",
+  "body": {
+    "type": "let",
+    "body": {
+      "type": "let",
+      "body": {
+        "type": "tuple",
+        "value": [
+          {
+          "type": "var",
+          "value": "a"
+        },
+          {
+          "type": "var",
+          "value": "b"
+        },
+          {
+          "type": "var",
+          "value": "c"
+        },
+          {
+          "type": "var",
+          "value": "x"
+        },
+          {
+          "type": "var",
+          "value": "y"
+        },
+          {
+          "type": "var",
+          "value": "foo"
+        }
+        ]
+      },
+      "decoration": null,
+      "pat": {
+        "type": "pmeth",
+        "value": [ { "type": "var", "value": "foo" } ]
+      },
+      "arglist": null,
+      "cast": null,
+      "definition": {
+        "type": "methods",
+        "base": null,
+        "methods": [
+          {
+          "type": "method",
+          "name": "foo",
+          "value": { "type": "ground", "value": "3" }
+        },
+          {
+          "type": "method",
+          "name": "bar",
+          "value": { "type": "ground", "value": "4" }
+        }
+        ]
+      }
+    },
+    "decoration": null,
+    "pat": {
+      "type": "ptuple",
+      "value": [
+        {
+        "type": "pvar",
+        "value": [ "x" ]
+      },
+        {
+        "type": "pvar",
+        "value": [ "y" ]
+      }
+      ]
+    },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "tuple",
+      "value": [
+        {
+        "type": "ground",
+        "value": "1"
+      },
+        {
+        "type": "string",
+        "value": "\"two\""
+      }
+      ]
+    }
+  },
+  "decoration": null,
+  "pat": {
+    "type": "plist",
+    "left": [
+      {
+      "type": "pvar",
+      "value": [ "a" ]
+    },
+      {
+      "type": "pvar",
+      "value": [ "b" ]
+    }
+    ],
+    "middle": "c",
+    "right": []
+  },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "1" }
+    },
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "2" }
+    },
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "3" }
+    },
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "4" }
+    }
+    ]
+  }
+}
+--- term ---
+let _pat0 = [1, 2, 3, 4] in let _pat1 = list.length(_pat0) in if(<(_pat1,2),then = fun () -> error.raise(error.register("not_found"),"List value does not have enough elements to fit the extraction pattern!"),else = {()}); let c = list.slice(offset = 2,length = -(_pat1,2),_pat0) in let b = list.nth(_pat0,1) in let a = list.nth(_pat0,0) in let (x, y) = (1, "two") in let _pat2 = {bar=4, foo=3} in let foo = _pat2.foo in (a, b, c, x, y, foo)
+--- type ---
+int * int * [int] * int * string * int
+--- value ---
+(1, 2, [3, 4], 1, "two", 3)

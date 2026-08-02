@@ -1,0 +1,43 @@
+=== methods.liq ===
+v = "x".{count = 3, twice = fun () -> 6}
+v.count
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "invoke",
+    "invoked": { "type": "var", "value": "v" },
+    "optional": false,
+    "meth": { "type": "var", "value": "count" }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "v" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "methods",
+    "base": { "type": "string", "value": "\"x\"" },
+    "methods": [
+      {
+      "type": "method",
+      "name": "count",
+      "value": { "type": "ground", "value": "3" }
+    },
+      {
+      "type": "method",
+      "name": "twice",
+      "value": {
+        "type": "fun",
+        "arguments": [],
+        "body": { "type": "ground", "value": "6" }
+      }
+    }
+    ]
+  }
+}
+--- term ---
+let v = "x".{twice={6}, count=3} in v.count
+--- type ---
+int
+--- value ---
+3

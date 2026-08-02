@@ -1,0 +1,62 @@
+=== assoc.liq ===
+l = [("a", 1), ("b", 2)]
+l["a"]
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "assoc",
+    "left": { "type": "var", "value": "l" },
+    "right": { "type": "string", "value": "\"a\"" }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "l" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": {
+        "type": "tuple",
+        "value": [
+          {
+          "type": "string",
+          "value": "\"a\""
+        },
+          {
+          "type": "ground",
+          "value": "1"
+        }
+        ]
+      }
+    },
+      {
+      "type": "term",
+      "value": {
+        "type": "tuple",
+        "value": [
+          {
+          "type": "string",
+          "value": "\"b\""
+        },
+          {
+          "type": "ground",
+          "value": "2"
+        }
+        ]
+      }
+    }
+    ]
+  }
+}
+--- term ---
+let l = [("a", 1), ("b", 2)] in _[_](l,"a")
+--- type ---
+At line 2, char 0-2:
+
+Error 5: this value has type
+  [_ * int] (inferred at line 1, char 4-24)
+but it should be a subtype of
+  [_ * string]

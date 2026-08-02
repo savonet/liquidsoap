@@ -1,0 +1,40 @@
+=== open_module.liq ===
+open list
+length([1, 2])
+--- parsed ---
+{
+  "type": "open",
+  "left": { "type": "var", "value": "list" },
+  "right": {
+    "type": "app",
+    "op": { "type": "var", "value": "length" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": {
+          "type": "list",
+          "value": [
+            {
+            "type": "term",
+            "value": { "type": "ground", "value": "1" }
+          },
+            {
+            "type": "term",
+            "value": { "type": "ground", "value": "2" }
+          }
+          ]
+        }
+      }
+    }
+    ]
+  }
+}
+--- term ---
+open list length([1, 2])
+--- type ---
+int
+--- value ---
+2

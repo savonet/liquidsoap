@@ -1,0 +1,62 @@
+=== try_finally.liq ===
+r = ref(0)
+try
+  r := 1
+finally
+  r := 2
+end
+r()
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "seq",
+    "left": {
+      "type": "try",
+      "body": {
+        "type": "infix",
+        "left": { "type": "var", "value": "r" },
+        "op": ":=",
+        "right": { "type": "ground", "value": "1" }
+      },
+      "variable": "_",
+      "errors_list": null,
+      "handler": null,
+      "finally": {
+        "type": "infix",
+        "left": { "type": "var", "value": "r" },
+        "op": ":=",
+        "right": { "type": "ground", "value": "2" }
+      }
+    },
+    "right": {
+      "type": "app",
+      "op": { "type": "var", "value": "r" },
+      "args": []
+    }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "r" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "app",
+    "op": { "type": "var", "value": "ref" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": { "type": "ground", "value": "0" }
+      }
+    }
+    ]
+  }
+}
+--- term ---
+let r = ref(0) in error.catch(errors = null,body = fun () -> (r.set(1) : unit),catch = fun (_) -> (),finally = fun () -> (r.set(2) : unit)); r()
+--- type ---
+int
+--- value ---
+2
