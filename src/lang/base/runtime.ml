@@ -56,6 +56,14 @@ let warning_header ~formatter idx pos =
   let pos = Pos.Option.to_string pos in
   Format.fprintf formatter "@[%s:\n%s\n%s %i: " (position pos) e warning idx
 
+(* Error printers contributed by layers above the language, e.g. clock errors
+   from the streaming core. Consulted before the generic fallback; a printer
+   returns [true] when it has handled the exception. *)
+let error_printers = Atomic.make []
+
+let on_error_print fn =
+  Atomic.set error_printers (fn :: Atomic.get error_printers)
+
 (** Exception raised by report_error after an error has been displayed. Unknown
     errors are re-raised, so that their content is not totally lost. *)
 exception Error
@@ -206,20 +214,6 @@ let rec throw ?(formatter = Format.err_formatter) ~lexbuf ~bt () =
         (Printf.sprintf "Failure: %s\n%s" s
            (Printexc.raw_backtrace_to_string bt));
       Printexc.raise_with_backtrace Error bt
-  | Error.Clock_conflict (pos, a, b) ->
-      (* TODO better printing of clock errors: we don't have position
-       *   information, use the source's ID *)
-      error_header ~formatter 10 pos;
-      Format.fprintf formatter
-        "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
-      Printexc.raise_with_backtrace Error bt
-  | Error.Clock_loop (pos, a, b) ->
-      error_header ~formatter 11 pos;
-      Format.fprintf formatter
-        "Cannot unify two nested clocks@ (%s,@ %s).@ Do you need to set@ \
-         `settings.output.use_default_clock := false`?@]@."
-        a b;
-      raise Error
   | Term.Unsupported_encoder (pos, fmt) ->
       error_header ~formatter 12 pos;
       (if Sys.unix then
@@ -264,10 +258,17 @@ let rec throw ?(formatter = Format.err_formatter) ~lexbuf ~bt () =
       Printexc.raise_with_backtrace Error bt
   | End_of_file -> Printexc.raise_with_backtrace End_of_file bt
   | e ->
-      error_header ~formatter (-1) None;
-      Format.fprintf formatter "Exception raised: %s@.%s@]@."
-        (Printexc.to_string e)
-        (Printexc.raw_backtrace_to_string bt);
+      flush_all ();
+      if
+        not
+          (List.exists
+             (fun print -> print ~formatter e)
+             (Atomic.get error_printers))
+      then (
+        error_header ~formatter (-1) None;
+        Format.fprintf formatter "Exception raised: %s@.%s@]@."
+          (Printexc.to_string e)
+          (Printexc.raw_backtrace_to_string bt));
       Printexc.raise_with_backtrace Error bt
 
 (* This is not great but it works for now. The problem being that we are relying on exception

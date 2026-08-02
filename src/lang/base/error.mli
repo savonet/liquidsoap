@@ -20,18 +20,5 @@
 
  *****************************************************************************)
 
-(** Runtime error, should eventually disappear. *)
+(** A builtin was passed a value that typechecks but that it cannot accept. *)
 exception Invalid_value of Value.t * string * Pos.t list
-
-exception Clock_conflict of (Pos.Option.t * string * string)
-exception Clock_loop of (Pos.Option.t * string * string)
-
-type clock_main = {
-  pos : Pos.Option.t;
-  left_main : string;
-  left_child : string;
-  right_main : string;
-  right_child : string;
-}
-
-exception Clock_main of clock_main

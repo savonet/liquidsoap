@@ -38,7 +38,7 @@ class still_frame ~name (source : source) =
     val mutable fname = None
 
     method save (f : string) =
-      if not (String.ends_with f ".bmp") then
+      if not (String.ends_with ~suffix:".bmp" f) then
         self#log#severe
           "Only BMP files are supported for now, the filename should end with \
            .bmp"
