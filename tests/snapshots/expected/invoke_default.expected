@@ -30,6 +30,8 @@ r?.a ?? 0
     ]
   }
 }
+--- hash ---
+30b23f36634cc6f3bf7c3d3a78d0f9a8
 --- term ---
 let r = {a=1} in (r.a ?? 0)
 --- type ---

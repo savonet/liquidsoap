@@ -48,6 +48,8 @@ f(fun () -> 3)
     "args": []
   }
 }
+--- hash ---
+bc92bc1a8b5dd8a72579993c34c36ae3
 --- term ---
 let f = fun (x=fun () -> int) -> x() in f({3})
 --- type ---

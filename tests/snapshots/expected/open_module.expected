@@ -32,6 +32,8 @@ length([1, 2])
     ]
   }
 }
+--- hash ---
+de8263689327b08f5b7a37d6f1affabc
 --- term ---
 open list length([1, 2])
 --- type ---

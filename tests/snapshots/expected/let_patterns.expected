@@ -133,6 +133,8 @@ let {foo} = {foo = 3, bar = 4}
     ]
   }
 }
+--- hash ---
+c64dd274b5c59995632b4364efe7943a
 --- term ---
 let _pat0 = [1, 2, 3, 4] in let _pat1 = list.length(_pat0) in if(<(_pat1,2),then = fun () -> error.raise(error.register("not_found"),"List value does not have enough elements to fit the extraction pattern!"),else = {()}); let c = list.slice(offset = 2,length = -(_pat1,2),_pat0) in let b = list.nth(_pat0,1) in let a = list.nth(_pat0,0) in let (x, y) = (1, "two") in let _pat2 = {bar=4, foo=3} in let foo = _pat2.foo in (a, b, c, x, y, foo)
 --- type ---

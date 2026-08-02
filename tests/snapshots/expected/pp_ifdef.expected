@@ -33,6 +33,8 @@ x
   },
   "right": { "type": "var", "value": "x" }
 }
+--- hash ---
+acfc1873139d0c22402886fb61fbcfa8
 --- term ---
 let x = 1 in x
 --- type ---

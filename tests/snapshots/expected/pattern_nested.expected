@@ -100,6 +100,8 @@ let [x, [y, z]] = [[1], [[2], [3]]]
     ]
   }
 }
+--- hash ---
+b8c3bbb5798a403f77b7920dc27b8236
 --- term ---
 let _pat0 = [[1], [[2], [3]]] in let _pat1 = list.length(_pat0) in if(<(_pat1,2),then = fun () -> error.raise(error.register("not_found"),"List value does not have enough elements to fit the extraction pattern!"),else = {()}); let _pat2 = list.nth(_pat0,1) in let _pat3 = list.length(_pat2) in if(<(_pat3,2),then = fun () -> error.raise(error.register("not_found"),"List value does not have enough elements to fit the extraction pattern!"),else = {()}); let z = list.nth(_pat2,1) in let y = list.nth(_pat2,0) in let x = list.nth(_pat0,0) in (x, y, z)
 --- type ---

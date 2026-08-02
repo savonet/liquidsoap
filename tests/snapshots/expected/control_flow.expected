@@ -13,6 +13,8 @@ if 1 < 2 then "yes" else "no" end
   "elsif": [],
   "else": { "type": "string", "value": "\"no\"" }
 }
+--- hash ---
+1047d9b107fd19c2c9638357ea639822
 --- term ---
 if(<(1,2),then = {"yes"},else = {"no"})
 --- type ---

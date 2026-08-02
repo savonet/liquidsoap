@@ -35,6 +35,8 @@ v.count
     ]
   }
 }
+--- hash ---
+ec355eba01df35a7df302351033e4531
 --- term ---
 let v = "x".{twice={6}, count=3} in v.count
 --- type ---

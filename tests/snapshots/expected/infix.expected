@@ -17,6 +17,8 @@
   "op": "-",
   "right": { "type": "ground", "value": "4" }
 }
+--- hash ---
+a96eaf7021dc249948effc3714fc55f8
 --- term ---
 -(+(1,*(2,3)),4)
 --- type ---

@@ -12,6 +12,8 @@
   "then": { "type": "string", "value": "\"new\"" },
   "else": { "type": "string", "value": "\"old\"" }
 }
+--- hash ---
+45520dbc0360fab3f0566554e1ffc525
 --- term ---
 "new"
 --- type ---

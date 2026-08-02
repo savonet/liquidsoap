@@ -101,6 +101,13 @@ let run_file file =
         print_newline ();
         parsed)
   in
+  (* The parsed term's hash is what the typechecking cache keys on, so a change
+     here invalidates every cached script on every user's disk. *)
+  ignore
+    (Option.map
+       (fun parsed ->
+         stage "hash" (fun () -> print_endline (Parsed_term.hash parsed)))
+       parsed);
   let term =
     Option.bind parsed (fun parsed ->
         stage "term" (fun () ->
