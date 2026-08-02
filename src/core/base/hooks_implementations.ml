@@ -108,7 +108,7 @@ let mk_field_t ?pos kind params =
           in
           let t = kind ^ "(" ^ params ^ ")" in
           raise
-            (Liquidsoap_lang.Term_base.Parse_error
+            (Liquidsoap_lang.Term.Parse_error
                (err_pos, "Unknown type constructor: " ^ t ^ ".")))
 
 let () =
@@ -122,7 +122,7 @@ let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
   if name <> "source" then (
     let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
     raise
-      (Liquidsoap_lang.Term_base.Parse_error
+      (Liquidsoap_lang.Term.Parse_error
          (pos, "Unknown type constructor: " ^ name ^ ".")));
 
   match tracks with

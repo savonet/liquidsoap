@@ -162,7 +162,7 @@ let rec throw ?(formatter = Format.err_formatter) ~lexbuf ~bt () =
   | Parser.Error | Parsing.Parse_error ->
       print_error ~formatter 2 "Parse error";
       Printexc.raise_with_backtrace Error bt
-  | Term_base.Parse_error (pos, s) ->
+  | Term.Parse_error (pos, s) ->
       error_header ~formatter 3 (Some (Pos.of_lexing_pos pos));
       Format.fprintf formatter "%s@]@." s;
       Printexc.raise_with_backtrace Error bt

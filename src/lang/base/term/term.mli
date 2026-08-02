@@ -22,6 +22,10 @@
 
 include module type of Runtime_term
 
+(** A position as reported by the lexer, before it is turned into a {!Pos.t}. *)
+type parsed_pos = Lexing.position * Lexing.position
+
+exception Parse_error of (parsed_pos * string)
 exception Internal_error of (Pos.t list * string)
 exception Unsupported_encoder of (Pos.t option * string)
 
@@ -31,7 +35,7 @@ val debug : bool Lazy.t
 val profile : bool ref
 val ref_t : ?pos:Pos.t -> Type.t -> Type.t
 
-module Custom = Term_base.Custom
+module Custom = Term_custom
 
 type encoder_params =
   [ `Anonymous of string | `Encoder of encoder | `Labelled of string * t ] list

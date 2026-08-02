@@ -33,7 +33,7 @@ let report_annotations ~throw ~pos annotations =
           throw ~bt (Term.Deprecated (s, Pos.of_lexing_pos pos)))
     annotations
 
-let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
+let parse_error ~pos msg = raise (Term.Parse_error (pos, msg))
 let render_string ~pos ~sep s = Lexer.render_string ~pos ~sep s
 let mk ?pos = Term.make ?pos:(Option.map Pos.of_lexing_pos pos)
 let mk_ty ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
@@ -71,10 +71,8 @@ let mk_named_ty ?pos = function
               Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos
             in
             raise
-              (Term_base.Parse_error
-                 (pos, "Unknown type constructor: " ^ name ^ ".")))
-
-let typecheck = ref (fun ?env:_ _ -> assert false)
+              (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ "."))
+      )
 
 let rec mk_parsed_ty ?pos ~env ~to_term = function
   | `Named s -> mk_named_ty ?pos s
@@ -89,7 +87,7 @@ let rec mk_parsed_ty ?pos ~env ~to_term = function
           ?pos:(Option.map Pos.of_lexing_pos pos)
           (List { t = mk_parsed_ty ?pos ~env ~to_term t; json_repr = `Tuple }))
   | `Ref t ->
-      Ref_type.reference
+      Type.reference
         ?pos:(Option.map Pos.of_lexing_pos pos)
         (mk_parsed_ty ?pos ~env ~to_term t)
   | `Json_object t ->
@@ -588,7 +586,7 @@ and term_of_value_base ~pos t v =
           mk_tm
             (`Fun
                {
-                 Term_base.name = None;
+                 Term.name = None;
                  arguments = get_env_args ~pos t args;
                  body;
                  free_vars = None;
@@ -745,7 +743,7 @@ let mk_app_invoke_default ~pos ~args body =
     List.map
       (fun (label, _) ->
         {
-          Term_base.label;
+          Term.label;
           as_variable = None;
           typ = mk_var ();
           default = None;
@@ -791,7 +789,7 @@ and update_invoke_default ~pos ~optional expr name value =
         let value, invoked =
           let invoke_default =
             match invoke_default with
-              | Some { term = `Fun { Term_base.body } } -> Some body
+              | Some { term = `Fun { Term.body } } -> Some body
               | None -> Some (mk_any ~pos ())
               | _ -> assert false
           in

@@ -45,7 +45,7 @@ let () =
              (Pos.List.to_string pos) e)
     | Parse_error (pos, e) ->
         Some
-          (Printf.sprintf "Term_base.Parse_error %s: %s"
+          (Printf.sprintf "Term.Parse_error %s: %s"
              Pos.(to_string (of_lexing_pos pos))
              e)
     | Unsupported_encoder (pos, e) ->
@@ -136,7 +136,26 @@ let rec to_string (v : t) =
       | `Open (m, e) -> "open " ^ to_string m ^ " " ^ to_string e
       | `Fun { name = None; arguments = []; body = v } when is_ground v ->
           "{" ^ to_string v ^ "}"
-      | `Fun _ -> "<fun>"
+      | `Fun { name; arguments; body } ->
+          let arguments =
+            List.map
+              (fun { label; as_variable; default } ->
+                let name =
+                  match (label, as_variable) with
+                    | "", None -> "_"
+                    | "", Some v -> v
+                    | l, None -> "~" ^ l
+                    | l, Some v -> "~" ^ l ^ "=" ^ v
+                in
+                match default with
+                  | None -> name
+                  | Some d -> name ^ "=" ^ to_string d)
+              arguments
+          in
+          Printf.sprintf "fun %s(%s) -> %s"
+            (match name with None -> "" | Some n -> n ^ " ")
+            (String.concat ", " arguments)
+            (to_string body)
       | `Var s -> s
       | `App (hd, tl) ->
           let tl =

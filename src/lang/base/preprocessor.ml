@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-type tokenizer = unit -> Parser.token * Term_base.parsed_pos
+type tokenizer = unit -> Parser.token * Term.parsed_pos
 
 let mk_tokenizer ?(fname = "") lexbuf =
   Sedlexing.set_filename lexbuf fname;

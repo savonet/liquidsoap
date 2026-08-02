@@ -616,8 +616,8 @@ let _method_t t l =
 
 let source_methods_t t = _method_t t source_methods
 
-let source_t ?(pos : Liquidsoap_lang.Term_base.parsed_pos option)
-    ?(methods = false) frame_t =
+let source_t ?(pos : Liquidsoap_lang.Term.parsed_pos option) ?(methods = false)
+    frame_t =
   let t =
     make_t ?pos
       (Type.Constr

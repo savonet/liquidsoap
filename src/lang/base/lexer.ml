@@ -334,7 +334,7 @@ let rec token lexbuf =
         PP_REGEXP (regexp, flags, (startp, endp))
     | any ->
         raise
-          (Term_base.Parse_error
+          (Term.Parse_error
              ( Sedlexing.lexing_bytes_positions lexbuf,
                "Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf ))
     | _ -> failwith "Internal error"
@@ -356,7 +356,7 @@ and read_comment_end ((startp, _) as pos) buf lexbuf =
         (startp, endp)
     | _ ->
         raise
-          (Term_base.Parse_error
+          (Term.Parse_error
              (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
 
 and read_comment ((startp, _) as pos) buf lexbuf =
@@ -376,7 +376,7 @@ and read_comment ((startp, _) as pos) buf lexbuf =
     | eof -> pos
     | _ ->
         raise
-          (Term_base.Parse_error
+          (Term.Parse_error
              (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
 
 and read_multiline_comment ?(level = 0) pos buf lexbuf =
@@ -394,11 +394,10 @@ and read_multiline_comment ?(level = 0) pos buf lexbuf =
     | Plus (Intersect (Compl '>', Compl '#')) ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_multiline_comment ~level pos buf lexbuf
-    | eof ->
-        raise (Term_base.Parse_error (pos, "Multiline comment not terminated!"))
+    | eof -> raise (Term.Parse_error (pos, "Multiline comment not terminated!"))
     | _ ->
         raise
-          (Term_base.Parse_error
+          (Term.Parse_error
              (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
 
 and read_raw_string id pos buf lexbuf =
@@ -415,7 +414,7 @@ and read_raw_string id pos buf lexbuf =
         read_raw_string id pos buf lexbuf
     | eof ->
         raise
-          (Term_base.Parse_error
+          (Term.Parse_error
              ( (pos, snd (Sedlexing.lexing_bytes_positions lexbuf)),
                "Raw string is not terminated" ))
     | _ -> failwith "Internal error"
@@ -441,7 +440,7 @@ and read_string c pos buf lexbuf =
           else "String is not terminated"
         in
         raise
-          (Term_base.Parse_error
+          (Term.Parse_error
              ((pos, snd (Sedlexing.lexing_bytes_positions lexbuf)), msg))
     | _ ->
         let msg =
@@ -449,7 +448,7 @@ and read_string c pos buf lexbuf =
           else "Illegal string character: "
         in
         raise
-          (Term_base.Parse_error
+          (Term.Parse_error
              ( (pos, snd (Sedlexing.lexing_bytes_positions lexbuf)),
                msg ^ Sedlexing.Utf8.lexeme lexbuf ))
 
@@ -550,14 +549,13 @@ let render_string ~pos ~sep s =
             if sep = '/' then "Regexp not terminated"
             else "String is not terminated"
           in
-          raise (Term_base.Parse_error (pos, msg))
+          raise (Term.Parse_error (pos, msg))
       | _ ->
           let msg =
             if sep = '/' then "Illegal regexp character: "
             else "Illegal string character: "
           in
-          raise
-            (Term_base.Parse_error (pos, msg ^ Sedlexing.Utf8.lexeme lexbuf))
+          raise (Term.Parse_error (pos, msg ^ Sedlexing.Utf8.lexeme lexbuf))
   in
   render_string ()
 

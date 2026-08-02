@@ -22,10 +22,10 @@
 
 open Term_hash
 include Runtime_term
-module Custom = Term_base.Custom
+module Custom = Term.Custom
 
 type comment = [ `Before of string list | `After of string list ]
-type pos = Term_base.parsed_pos
+type pos = Term.parsed_pos
 type term_annotation = [ `Deprecated of string ]
 
 type string_param =
