@@ -461,7 +461,7 @@ and ( <: ) a b =
              order and either l2 is erasable and t<:t'. *)
           let ellipsis = (false, "", `Range_Ellipsis) in
           let elide (o, l, _) = (o, l, `Ellipsis) in
-          let l1, l2 =
+          let _, l2 =
             List.fold_left
               (* Start with [l2:=l12], [l1:=[]] and move each param [o,lbl]
                  required by [l] from [l2] to [l1]. *)
@@ -499,8 +499,6 @@ and ( <: ) a b =
                 ((o, lbl, `Ellipsis) :: l1, l2'))
               ([], l12) l
           in
-          let l1 = List.rev l1 in
-          ignore l1;
           if
             l2 = [] || (forget_arguments && List.for_all (fun (o, _, _) -> o) l2)
           then (

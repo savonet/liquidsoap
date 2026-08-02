@@ -47,15 +47,20 @@ module type Implementation = sig
   val to_content : custom -> content
 end
 
-let custom_types = ref []
+let registered_custom_type_names = ref []
 
 module Make (S : Specs) = struct
   type content = S.content
 
   let () =
-    if List.mem S.name !custom_types then failwith "custom type exist!";
-    custom_types := S.name :: !custom_types
+    if List.mem S.name !registered_custom_type_names then
+      failwith ("Custom type already registered: " ^ S.name);
+    registered_custom_type_names := S.name :: !registered_custom_type_names
 
+  (* See [Type_base.custom]: erasure has to stay [Obj.magic] so that custom
+     types remain marshalable for the typechecking cache. Only [handler] below
+     pairs a payload with its dispatch table, so the cast is never applied
+     across instantiations. *)
   let to_custom : content -> custom = Obj.magic
   let to_content : custom -> content = Obj.magic
   let copy_with fn v = to_custom (S.copy_with fn (to_content v))

@@ -24,11 +24,10 @@
 
 type processor =
   ( Parser.token * Lexing.position * Lexing.position,
-    Parser_helper.Term.t )
+    Parsed_term.t )
   MenhirLib.Convert.revised
 
 val program : processor
-val typecheck : (?env:Typing.env -> Term.t -> unit) ref
 val mk_expr : ?fname:string -> processor -> Sedlexing.lexbuf -> Parsed_term.t
 
 val to_term :

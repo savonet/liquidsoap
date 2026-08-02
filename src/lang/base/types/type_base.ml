@@ -77,6 +77,11 @@ module R = struct
   and 'a var = string * 'a Type_constraints.t
 end
 
+(* Payload of a custom type, erased. Kept abstract rather than extensible
+   ([type custom = ..]): extension constructors do not survive [Marshal], and
+   types are marshaled as part of the typechecking cache. [Type_custom.Make]
+   restores the content with [Obj.magic], which is sound as long as a handler is
+   only ever applied to the payload its own instantiation created. *)
 type custom
 type meth_doc = { meth_descr : string; category : [ `Method | `Callback ] }
 
@@ -156,13 +161,16 @@ module DS = Set.Make (struct
   type nonrec t = string * Constraints.t
 
   let compare (s, v) (s', v') =
-    match Stdlib.compare s s' with 0 -> Constraints.compare v v' | x -> x
+    match Stdlib.compare s s' with
+      | 0 ->
+          Constraints.compare
+            (fun c c' -> Stdlib.compare c.constr_descr c'.constr_descr)
+            v v'
+      | x -> x
 end)
 
 let string_of_constr c = c.constr_descr
 
-exception NotImplemented
-exception Exists of Pos.Option.t * string
 exception Unsatisfied_constraint
 
 let unit = Tuple []
@@ -412,7 +420,7 @@ let is_source t =
 
 let custom_types : (string, unit -> t) Hashtbl.t = Hashtbl.create 10
 
-let register_type name custom =
+let register_single_type name custom =
   let mk_typ =
     match Hashtbl.find_opt custom_types name with
       | Some mk_typ -> fun () -> remeth (mk_typ ()) (custom ())
@@ -420,10 +428,12 @@ let register_type name custom =
   in
   Hashtbl.replace custom_types name mk_typ
 
+(** Register a type under a possibly dotted name, creating the intermediate
+    method types as needed. *)
 let register_type name custom =
   match String.split_on_char '.' name with
     | [] -> assert false
-    | name :: [] -> register_type name custom
+    | name :: [] -> register_single_type name custom
     | root :: names ->
         let default_mk_typ () = make unit in
         let root_mk_typ =

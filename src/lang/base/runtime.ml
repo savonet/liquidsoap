@@ -262,10 +262,6 @@ let rec throw ?(formatter = Format.err_formatter) ~lexbuf ~bt () =
       Format.fprintf formatter
         "Missing arguments in function application: %s.@]@." args;
       Printexc.raise_with_backtrace Error bt
-  | Type.Exists (pos, typ) ->
-      error_header ~formatter 16 pos;
-      Format.fprintf formatter "Type %s already exists.@]@." typ;
-      Printexc.raise_with_backtrace Error bt
   | End_of_file -> Printexc.raise_with_backtrace End_of_file bt
   | e ->
       error_header ~formatter (-1) None;
