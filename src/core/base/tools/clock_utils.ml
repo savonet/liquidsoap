@@ -30,7 +30,7 @@ type clock_entry = {
   sub_clocks : clock_entry list;
 }
 
-let utf8_len s = Liquidsoap_lang.Lang_string.length ~encoding:`Utf8 s
+let utf8_len s = Liquidsoap_lang_prelude.Lang_string.length ~encoding:`Utf8 s
 
 let format_source { id; activations } =
   Printf.sprintf "%s [%s]" id (String.concat ", " activations)

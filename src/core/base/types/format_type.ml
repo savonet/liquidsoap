@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-module Type_custom = Liquidsoap_lang.Type_custom
+module Type_custom = Type_custom
 
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 

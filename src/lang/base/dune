@@ -97,11 +97,15 @@
 (library
  (name liquidsoap_lang)
  (public_name liquidsoap-lang)
+ (flags
+  (:standard -open Liquidsoap_lang_prelude))
  (preprocess
   (pps sedlex.ppx ppx_string ppx_hash))
  (libraries
   liquidsoap-lang.console
+  liquidsoap-lang.prelude
   liquidsoap-lang.stdlib
+  liquidsoap-lang.types
   dune-site
   domain_shims
   fileutils

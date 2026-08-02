@@ -183,7 +183,7 @@ let () =
 
 (* {1 Types} *)
 
-module Pos = Liquidsoap_lang.Pos
+module Pos = Liquidsoap_lang_prelude.Pos
 
 (* Current sync source of a started clock, along with the latency parameters
    it imposes on the streaming loop. *)

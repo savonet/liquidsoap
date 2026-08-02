@@ -138,7 +138,7 @@ val string_of_sync_mode : sync_mode -> string
 val active_sync_mode_of_string : string -> active_sync_mode
 
 val create :
-  ?stack:Liquidsoap_lang.Pos.t list ->
+  ?stack:Liquidsoap_lang_prelude.Pos.t list ->
   ?controller:controller ->
   ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
   ?id:string ->
@@ -175,7 +175,7 @@ val stop : t -> unit
 (** Request all clocks to stop, before shutdown. *)
 val global_stop : unit -> unit
 
-val set_stack : t -> Liquidsoap_lang.Pos.t list -> unit
+val set_stack : t -> Liquidsoap_lang_prelude.Pos.t list -> unit
 
 (** Whether the clock currently has a sync source. *)
 val self_sync : t -> bool
@@ -190,7 +190,7 @@ val time : t -> float
     modes are incompatible, [Loop] when unification would make a clock its own
     transitive sub-clock, and [Main_conflict] when the controllers are
     incompatible. *)
-val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
+val unify : pos:Liquidsoap_lang_prelude.Pos.Option.t -> t -> t -> unit
 
 val register_sub_clock : t -> t -> unit
 val deregister_sub_clock : t -> t -> unit

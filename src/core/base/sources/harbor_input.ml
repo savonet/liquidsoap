@@ -394,7 +394,7 @@ let proto ?(buffer_default = 12.) mountpoint_t =
   ]
 
 type 'a parse_result = {
-  pos : Liquidsoap_lang.Pos.t list;
+  pos : Liquidsoap_lang_prelude.Pos.t list;
   mountpoint : 'a;
   login : string * (Harbor.login_args -> bool);
   debug : bool;

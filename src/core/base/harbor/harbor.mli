@@ -21,7 +21,7 @@
   *****************************************************************************)
 
 module Monad = Duppy.Monad
-module Type = Liquidsoap_lang.Type
+module Type = Type
 module Http = Liq_http
 
 module type Monad_t = module type of Monad with module Io := Monad.Io
@@ -96,7 +96,7 @@ module type T = sig
   val custom : unit -> ('a, reply) Duppy.Monad.t
 
   val add_http_handler :
-    pos:Liquidsoap_lang.Pos.t list ->
+    pos:Liquidsoap_lang_prelude.Pos.t list ->
     transport:Http.transport ->
     port:int ->
     verb:http_verb ->
@@ -147,7 +147,7 @@ module type T = sig
   val relayed : string -> ('a, reply) Duppy.Monad.t
 
   val add_source :
-    pos:Liquidsoap_lang.Pos.t list ->
+    pos:Liquidsoap_lang_prelude.Pos.t list ->
     transport:Http.transport ->
     port:int ->
     mountpoint:Liquidsoap_lang.Lang.regexp ->

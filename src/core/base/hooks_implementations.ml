@@ -115,7 +115,7 @@ let () =
   Hooks.mk_clock_ty :=
     fun ?pos () ->
       Type.make
-        ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
+        ?pos:(Option.map Liquidsoap_lang_prelude.Pos.of_lexing_pos pos)
         Lang_clock.ClockValue.base_t.Type.descr
 
 let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =

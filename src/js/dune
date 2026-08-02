@@ -14,7 +14,9 @@
   (javascript_files runtime.js))
  (preprocess
   (pps js_of_ocaml-ppx))
- (libraries liquidsoap_lang liquidsoap_tooling))
+ (flags
+  (:standard -open Liquidsoap_lang_prelude))
+ (libraries liquidsoap-lang.prelude liquidsoap_lang liquidsoap_tooling))
 
 (install
  (files index.html)

@@ -57,6 +57,8 @@
   dune-build-info
   duppy
   liquidsoap-lang
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
   liquidsoap_memtrace
   menhirLib
   camomile.lib
