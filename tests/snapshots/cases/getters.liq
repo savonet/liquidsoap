@@ -1,4 +1,6 @@
-def f(x={int}) =
-  x()
+# `{e}` is shorthand for `fun () -> e`, which is what makes a getter.
+def f(x) =
+  getter.get(x)
 end
-f(fun () -> 3)
+
+(f(1), f({2}))
