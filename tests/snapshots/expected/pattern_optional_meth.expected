@@ -1,0 +1,53 @@
+=== pattern_optional_meth.liq ===
+let {a, b?} = {a = 1}
+(a, b)
+--- parsed ---
+{
+  "type": "let",
+  "body": {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "var",
+      "value": "a"
+    },
+      {
+      "type": "var",
+      "value": "b"
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": {
+    "type": "pmeth",
+    "value": [
+      {
+      "type": "var",
+      "value": "a"
+    },
+      {
+      "type": "var",
+      "value": "b?"
+    }
+    ]
+  },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "methods",
+    "base": null,
+    "methods": [
+      {
+      "type": "method",
+      "name": "a",
+      "value": { "type": "ground", "value": "1" }
+    }
+    ]
+  }
+}
+--- term ---
+let _pat0 = {a=1} in let a = _pat0.a in let b = (_pat0.b ?? null) in (a, b)
+--- type ---
+int * 'A?
+--- value ---
+(1, null)

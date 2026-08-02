@@ -1,0 +1,38 @@
+=== invoke_default.liq ===
+r = {a = 1}
+r?.a ?? 0
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "coalesce",
+    "left": {
+      "type": "invoke",
+      "invoked": { "type": "var", "value": "r" },
+      "optional": true,
+      "meth": { "type": "var", "value": "a" }
+    },
+    "right": { "type": "ground", "value": "0" }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "r" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "methods",
+    "base": null,
+    "methods": [
+      {
+      "type": "method",
+      "name": "a",
+      "value": { "type": "ground", "value": "1" }
+    }
+    ]
+  }
+}
+--- term ---
+let r = {a=1} in (r.a ?? 0)
+--- type ---
+int
+--- value ---
+1

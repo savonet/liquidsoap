@@ -1,0 +1,111 @@
+=== pattern_nested.liq ===
+let [x, [y, z]] = [[1], [[2], [3]]]
+(x, y, z)
+--- parsed ---
+{
+  "type": "let",
+  "body": {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "var",
+      "value": "x"
+    },
+      {
+      "type": "var",
+      "value": "y"
+    },
+      {
+      "type": "var",
+      "value": "z"
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": {
+    "type": "plist",
+    "left": [
+      {
+      "type": "pvar",
+      "value": [ "x" ]
+    },
+      {
+      "type": "plist",
+      "left": [
+        {
+        "type": "pvar",
+        "value": [ "y" ]
+      },
+        {
+        "type": "pvar",
+        "value": [ "z" ]
+      }
+      ],
+      "middle": null,
+      "right": []
+    }
+    ],
+    "middle": null,
+    "right": []
+  },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": {
+        "type": "list",
+        "value": [
+          {
+          "type": "term",
+          "value": { "type": "ground", "value": "1" }
+        }
+        ]
+      }
+    },
+      {
+      "type": "term",
+      "value": {
+        "type": "list",
+        "value": [
+          {
+          "type": "term",
+          "value": {
+            "type": "list",
+            "value": [
+              {
+              "type": "term",
+              "value": { "type": "ground", "value": "2" }
+            }
+            ]
+          }
+        },
+          {
+          "type": "term",
+          "value": {
+            "type": "list",
+            "value": [
+              {
+              "type": "term",
+              "value": { "type": "ground", "value": "3" }
+            }
+            ]
+          }
+        }
+        ]
+      }
+    }
+    ]
+  }
+}
+--- term ---
+let _pat0 = [[1], [[2], [3]]] in let _pat1 = list.length(_pat0) in if(<(_pat1,2),then = fun () -> error.raise(error.register("not_found"),"List value does not have enough elements to fit the extraction pattern!"),else = {()}); let _pat2 = list.nth(_pat0,1) in let _pat3 = list.length(_pat2) in if(<(_pat3,2),then = fun () -> error.raise(error.register("not_found"),"List value does not have enough elements to fit the extraction pattern!"),else = {()}); let z = list.nth(_pat2,1) in let y = list.nth(_pat2,0) in let x = list.nth(_pat0,0) in (x, y, z)
+--- type ---
+At line 1, char 24-34:
+
+Error 5: this value has type
+  [[_]]
+but it should be a subtype of the type of the value at line 1, char 18-35
+  [int] (inferred at line 1, char 19-22)

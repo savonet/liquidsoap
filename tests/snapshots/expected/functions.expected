@@ -1,0 +1,9 @@
+=== functions.liq ===
+def f(~named, ?opt=1, x) =
+  named + opt + x
+end
+f(named=1, 2)
+--- parsed ---
+At line 1, char 14:
+
+Error 2: Parse error

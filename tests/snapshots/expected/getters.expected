@@ -1,0 +1,59 @@
+=== getters.liq ===
+def f(x={int}) =
+  x()
+end
+f(fun () -> 3)
+--- parsed ---
+{
+  "type": "def",
+  "body": {
+    "type": "app",
+    "op": { "type": "var", "value": "f" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": {
+          "type": "fun",
+          "arguments": [],
+          "body": { "type": "ground", "value": "3" }
+        }
+      }
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "f" ] },
+  "arglist": [
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "",
+      "as_variable": { "type": "pvar", "value": [ "x" ] },
+      "typ": null,
+      "default": {
+        "type": "simple_fun",
+        "value": { "type": "var", "value": "int" }
+      }
+    }
+  }
+  ],
+  "cast": null,
+  "definition": {
+    "type": "app",
+    "op": { "type": "var", "value": "x" },
+    "args": []
+  }
+}
+--- term ---
+let f = fun (x=fun () -> int) -> x() in f({3})
+--- type ---
+At line 4, char 2-13:
+
+Error 5: this value has type
+  (...) -> int
+but it should be a subtype of
+  (...) -> (_, ?raise : _) -> _

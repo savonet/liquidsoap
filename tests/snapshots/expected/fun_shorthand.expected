@@ -1,0 +1,31 @@
+=== fun_shorthand.liq ===
+f = {1 + 1}
+f()
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "app",
+    "op": { "type": "var", "value": "f" },
+    "args": []
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "f" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "simple_fun",
+    "value": {
+      "type": "infix",
+      "left": { "type": "ground", "value": "1" },
+      "op": "+",
+      "right": { "type": "ground", "value": "1" }
+    }
+  }
+}
+--- term ---
+let f = fun () -> +(1,1) in f()
+--- type ---
+int
+--- value ---
+2

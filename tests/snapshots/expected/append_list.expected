@@ -1,0 +1,42 @@
+=== append_list.liq ===
+[1, 2] @ [3, 4]
+--- parsed ---
+{
+  "type": "infix",
+  "left": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "1" }
+    },
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "2" }
+    }
+    ]
+  },
+  "op": "@",
+  "right": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "3" }
+    },
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "4" }
+    }
+    ]
+  }
+}
+--- term ---
+[3, 4]([1, 2])
+--- type ---
+At line 1, char 9-15:
+
+Error 5: this value has type
+  [_]
+but it should be a subtype of
+  (_) -> _

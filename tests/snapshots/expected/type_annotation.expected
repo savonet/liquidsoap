@@ -1,0 +1,14 @@
+=== type_annotation.liq ===
+(1 : int)
+--- parsed ---
+{
+  "type": "cast",
+  "left": { "type": "ground", "value": "1" },
+  "right": { "type": "type_annotation", "subtype": "named", "value": "int" }
+}
+--- term ---
+(1 : int)
+--- type ---
+int
+--- value ---
+1

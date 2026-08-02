@@ -1,0 +1,36 @@
+; Snapshot tests for the language pipeline, see README.md.
+;
+; To update the expected output after an intentional change:
+;   dune build @lang_snapshot --auto-promote
+;
+; After adding or removing a case, regenerate the rules first:
+;   dune build @gendune --auto-promote
+
+(include dune.inc)
+
+(executable
+ (name snapshot)
+ (modules snapshot)
+ (libraries liquidsoap_lang liquidsoap_tooling re sedlex))
+
+(executable
+ (name gen_dune)
+ (libraries liquidsoap_build_tools)
+ (modules gen_dune))
+
+(rule
+ (alias gendune)
+ (deps
+  (source_tree cases))
+ (target dune.inc.gen)
+ (action
+  (progn
+   (with-stdout-to
+    dune.inc.gen
+    (run ./gen_dune.exe))
+   (format-dune-file dune.inc.gen dune.inc.gen.formatted))))
+
+(rule
+ (alias gendune)
+ (action
+  (diff dune.inc dune.inc.gen.formatted)))

@@ -1,0 +1,64 @@
+=== nested_methods.liq ===
+v = ().{a = ().{b = ().{c = 1}}}
+v.a.b.c
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "invoke",
+    "invoked": {
+      "type": "invoke",
+      "invoked": {
+        "type": "invoke",
+        "invoked": { "type": "var", "value": "v" },
+        "optional": false,
+        "meth": { "type": "var", "value": "a" }
+      },
+      "optional": false,
+      "meth": { "type": "var", "value": "b" }
+    },
+    "optional": false,
+    "meth": { "type": "var", "value": "c" }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "v" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "methods",
+    "base": { "type": "tuple", "value": [] },
+    "methods": [
+      {
+      "type": "method",
+      "name": "a",
+      "value": {
+        "type": "methods",
+        "base": { "type": "tuple", "value": [] },
+        "methods": [
+          {
+          "type": "method",
+          "name": "b",
+          "value": {
+            "type": "methods",
+            "base": { "type": "tuple", "value": [] },
+            "methods": [
+              {
+              "type": "method",
+              "name": "c",
+              "value": { "type": "ground", "value": "1" }
+            }
+            ]
+          }
+        }
+        ]
+      }
+    }
+    ]
+  }
+}
+--- term ---
+let v = {a={b={c=1}}} in v.a.b.c
+--- type ---
+int
+--- value ---
+1

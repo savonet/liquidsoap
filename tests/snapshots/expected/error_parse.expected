@@ -1,0 +1,6 @@
+=== error_parse.liq ===
+def f( =
+--- parsed ---
+At line 1, char 7:
+
+Error 2: Parse error

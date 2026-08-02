@@ -1,0 +1,129 @@
+=== try_catch.liq ===
+try
+  error.raise(error.not_found, "nope")
+catch err : [error.not_found] do
+  err.message
+end
+--- parsed ---
+{
+  "type": "try",
+  "body": {
+    "type": "invoke",
+    "invoked": { "type": "var", "value": "error" },
+    "optional": false,
+    "meth": {
+      "type": "app",
+      "op": { "type": "var", "value": "raise" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": {
+            "type": "invoke",
+            "invoked": { "type": "var", "value": "error" },
+            "optional": false,
+            "meth": { "type": "var", "value": "not_found" }
+          }
+        }
+      },
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "string", "value": "\"nope\"" }
+        }
+      }
+      ]
+    }
+  },
+  "variable": "err",
+  "errors_list": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": {
+        "type": "invoke",
+        "invoked": { "type": "var", "value": "error" },
+        "optional": false,
+        "meth": { "type": "var", "value": "not_found" }
+      }
+    }
+    ]
+  },
+  "handler": {
+    "type": "invoke",
+    "invoked": { "type": "var", "value": "err" },
+    "optional": false,
+    "meth": { "type": "var", "value": "message" }
+  },
+  "finally": null
+}
+--- term ---
+error.catch(errors = [error.not_found],body = fun () -> error.raise(error.not_found,"nope"),catch = fun (err) -> err.message,finally = {()})
+--- type ---
+At line 3, char 13-18:
+
+Error 5: this value has no method `not_found`
+  Its type is {
+  catch : 'a.(errors : [error]?, body : (() -> 'a),
+              catch : ((error
+                        .{
+                          kind : string,
+                          message : string,
+                          trace : [
+                                   {
+                                     cstart : int,
+                                     cstop : int,
+                                     filename : string,
+                                     lstart : int,
+                                     lstop : int,
+                                     to_string : (?prefix : string) -> string
+                                   }]
+                        }) -> 'a),
+              finally : (() -> unit)) -> 'a,
+  methods : (error) -> error
+            .{
+              kind : string,
+              message : string,
+              trace : [
+                       {
+                         cstart : int,
+                         cstop : int,
+                         filename : string,
+                         lstart : int,
+                         lstop : int,
+                         to_string : (?prefix : string) -> string
+                       }]},
+  on_error : (((error
+                .{
+                  kind : string,
+                  message : string,
+                  trace : [
+                           {
+                             cstart : int,
+                             cstop : int,
+                             filename : string,
+                             lstart : int,
+                             lstop : int,
+                             to_string : (?prefix : string) -> string
+                           }]
+                }) -> unit)) -> unit,
+  raise : 'a.(error, ?string) -> 'a,
+  register : (string) -> error
+             .{
+               kind : string,
+               message : string,
+               trace : [
+                        {
+                          cstart : int,
+                          cstop : int,
+                          filename : string,
+                          lstart : int,
+                          lstop : int,
+                          to_string : (?prefix : string) -> string
+                        }]}
+}.

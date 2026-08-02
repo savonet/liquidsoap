@@ -1,0 +1,51 @@
+=== list_ops.liq ===
+l = [1, 2, 3]
+[0, ...l, 4]
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "0" }
+    },
+      {
+      "type": "ellipsis",
+      "value": { "type": "var", "value": "l" }
+    },
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "4" }
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "l" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "1" }
+    },
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "2" }
+    },
+      {
+      "type": "term",
+      "value": { "type": "ground", "value": "3" }
+    }
+    ]
+  }
+}
+--- term ---
+let l = [1, 2, 3] in _::_(0,list.append(l,[4]))
+--- type ---
+[int]
+--- value ---
+[0, 1, 2, 3, 4]

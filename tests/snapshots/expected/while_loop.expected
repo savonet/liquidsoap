@@ -1,0 +1,59 @@
+=== while_loop.liq ===
+n = ref(0)
+while n() < 3 do n := n() + 1  end
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "while",
+    "condition": {
+      "type": "infix",
+      "left": {
+        "type": "app",
+        "op": { "type": "var", "value": "n" },
+        "args": []
+      },
+      "op": "<",
+      "right": { "type": "ground", "value": "3" }
+    },
+    "loop": {
+      "type": "infix",
+      "left": { "type": "var", "value": "n" },
+      "op": ":=",
+      "right": {
+        "type": "infix",
+        "left": {
+          "type": "app",
+          "op": { "type": "var", "value": "n" },
+          "args": []
+        },
+        "op": "+",
+        "right": { "type": "ground", "value": "1" }
+      }
+    }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "n" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "app",
+    "op": { "type": "var", "value": "ref" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": { "type": "ground", "value": "0" }
+      }
+    }
+    ]
+  }
+}
+--- term ---
+let n = ref(0) in while(fun () -> <(n(),3),fun () -> (n.set(+(n(),1)) : unit))
+--- type ---
+unit
+--- value ---
+()

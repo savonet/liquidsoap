@@ -1,0 +1,33 @@
+=== bool_ops.liq ===
+true and false or not true
+--- parsed ---
+{
+  "type": "bool",
+  "op": "and",
+  "value": [
+    {
+    "type": "ground",
+    "value": "true"
+  },
+    {
+    "type": "bool",
+    "op": "or",
+    "value": [
+      {
+      "type": "ground",
+      "value": "false"
+    },
+      {
+      "type": "not",
+      "value": { "type": "ground", "value": "true" }
+    }
+    ]
+  }
+  ]
+}
+--- term ---
+and({true},fun () -> or({false},fun () -> not(true)))
+--- type ---
+bool
+--- value ---
+false

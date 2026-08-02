@@ -1,0 +1,10 @@
+=== error_unbound.liq ===
+undefined_variable
+--- parsed ---
+{ "type": "var", "value": "undefined_variable" }
+--- term ---
+undefined_variable
+--- type ---
+At line 1, char 0-18:
+
+Error 4: Undefined variable undefined_variable

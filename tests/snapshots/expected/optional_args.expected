@@ -1,0 +1,9 @@
+=== optional_args.liq ===
+def f(?x=null, ~y=2, z) =
+  (x ?? 0) + y + z
+end
+f(y=5, 1)
+--- parsed ---
+At line 1, char 6:
+
+Error 2: Parse error

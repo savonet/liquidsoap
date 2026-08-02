@@ -1,0 +1,21 @@
+=== control_flow.liq ===
+if 1 < 2 then "yes" else "no" end
+--- parsed ---
+{
+  "type": "if",
+  "condition": {
+    "type": "infix",
+    "left": { "type": "ground", "value": "1" },
+    "op": "<",
+    "right": { "type": "ground", "value": "2" }
+  },
+  "then": { "type": "string", "value": "\"yes\"" },
+  "elsif": [],
+  "else": { "type": "string", "value": "\"no\"" }
+}
+--- term ---
+if(<(1,2),then = {"yes"},else = {"no"})
+--- type ---
+string
+--- value ---
+"yes"

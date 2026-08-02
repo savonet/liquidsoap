@@ -1,0 +1,23 @@
+=== coalesce.liq ===
+x = null
+x ?? 3
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "coalesce",
+    "left": { "type": "var", "value": "x" },
+    "right": { "type": "ground", "value": "3" }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "x" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": { "type": "null" }
+}
+--- term ---
+let x = null in _null.default(x,{3})
+--- type ---
+int
+--- value ---
+3

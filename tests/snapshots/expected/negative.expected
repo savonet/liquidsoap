@@ -1,0 +1,40 @@
+=== negative.liq ===
+x = 3
+(-x, -1, 1 - -2)
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "negative",
+      "value": { "type": "var", "value": "x" }
+    },
+      {
+      "type": "negative",
+      "value": { "type": "ground", "value": "1" }
+    },
+      {
+      "type": "infix",
+      "left": { "type": "ground", "value": "1" },
+      "op": "-",
+      "right": {
+        "type": "negative",
+        "value": { "type": "ground", "value": "2" }
+      }
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "x" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": { "type": "ground", "value": "3" }
+}
+--- term ---
+let x = 3 in (~-(x), ~-(1), -(1,~-(2)))
+--- type ---
+int * int * int
+--- value ---
+(-3, -1, 3)
