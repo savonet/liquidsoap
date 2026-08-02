@@ -4,6 +4,11 @@
 
 - Added Unifier path compression to avoid unbounded deref cost growth (#5257)
 - Fixed unbounded buffer growth (#5287)
+- Fixed `sequence` dropping the first chunk of a source, along with its
+  metadata, when the source it follows leaves no room in the current frame.
+  This showed up as the track after a `cross`/`crossfade` transition built with
+  `sequence` keeping the previous track's metadata until the next track
+  boundary (#TODO).
 
 ---
 
