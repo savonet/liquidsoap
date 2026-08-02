@@ -80,13 +80,13 @@ let on_clear =
   Dom_html.handler (fun _ ->
       let output = Js.Unsafe.coerce (Dom_html.getElementById_exn "output") in
       output##.value := "";
-      onLiqLoaded (Js.string Build_config.version);
+      onLiqLoaded (Js.string Liquidsoap_lang_data.Build_config.version);
       Js._true)
 
 let on_load =
   Dom_html.handler (fun e ->
       Dom.preventDefault e;
-      onLiqLoaded (Js.string Build_config.version);
+      onLiqLoaded (Js.string Liquidsoap_lang_data.Build_config.version);
       let execute = Dom_html.getElementById_exn "execute" in
       ignore
         (Dom_html.addEventListener execute Dom_events.Typ.click on_execute
