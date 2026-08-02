@@ -1,0 +1,15 @@
+; The three term representations, see README.md: the parsed term the parser
+; produces, and the runtime term everything downstream works on.
+
+(library
+ (name liquidsoap_lang_ast)
+ (public_name liquidsoap-lang.ast)
+ (wrapped false)
+ (flags
+  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+ (preprocess
+  (pps ppx_hash))
+ (libraries
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types))

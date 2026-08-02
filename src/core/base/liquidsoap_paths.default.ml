@@ -1,4 +1,4 @@
-module Sites = Liquidsoap_lang.Sites.Sites
+module Sites = Sites.Sites
 
 type mode = [ `Default | `Standalone | `Posix ]
 

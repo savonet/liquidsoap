@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Type_custom = Type_custom
-
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 (* By convention, all format for pcm kind are from Content_audio to

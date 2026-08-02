@@ -23,7 +23,6 @@
 open Mm
 open Source
 open Lilv
-module Cache = Liquidsoap_lang.Cache
 
 let lv2 = Lang.add_module "lv2"
 let log = Log.make ["Lilv LV2"]

@@ -35,8 +35,8 @@ end)
 
 let to_value ?pos s =
   match to_value ?pos s with
-    | Liquidsoap_lang.Value.Custom p ->
-        Liquidsoap_lang.Value.Custom
+    | Value.Custom p ->
+        Value.Custom
           {
             p with
             dynamic_methods =
@@ -53,8 +53,7 @@ let to_value ?pos s =
 let source = of_value
 
 let fields = function
-  | Liquidsoap_lang.Value.Custom { dynamic_methods = Some { hidden_methods } }
-    as v
+  | Value.Custom { dynamic_methods = Some { hidden_methods } } as v
     when is_value v ->
       let source = of_value v in
       let fields =

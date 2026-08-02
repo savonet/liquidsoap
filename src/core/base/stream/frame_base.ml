@@ -34,7 +34,7 @@ module FieldNames = Hashtbl.Make (struct
 end)
 
 module Fields = struct
-  include Liquidsoap_lang.Methods
+  include Liquidsoap_lang_data.Methods
 
   type field = int
   type nonrec 'a t = (field, 'a) t

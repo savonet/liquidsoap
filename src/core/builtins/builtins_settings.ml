@@ -207,9 +207,8 @@ let print_settings () =
         not (List.mem description filtered_settings))
   in
   let print_set ~path = function
-    | Liquidsoap_lang.Value.Tuple { value = [] } -> []
-    | Liquidsoap_lang.Value.(Fun { fun_args = [] } | FFI { ffi_args = []; _ })
-      as value ->
+    | Value.Tuple { value = [] } -> []
+    | Value.(Fun { fun_args = [] } | FFI { ffi_args = []; _ }) as value ->
         let value = Lang.apply value [] in
         [
           Printf.sprintf {|
@@ -299,7 +298,7 @@ let _ =
       try
         let get = grab path !settings in
         let v = Lang.apply ~pos:(Lang.pos p) get [] in
-        let open Liquidsoap_lang.Value in
+        let open Value in
         match (default, v) with
           | Bool _, Bool _
           | Int _, Int _

@@ -1,1 +1,1 @@
-include Liquidsoap_lang.Plug
+include Liquidsoap_lang_data.Plug

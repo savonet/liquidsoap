@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 module Lang = Liquidsoap_lang.Lang
-module Flags = Liquidsoap_lang.Flags
+module Flags = Liquidsoap_lang_data.Flags
 module Runtime = Liquidsoap_lang.Runtime
 open Lang
 
@@ -616,8 +616,7 @@ let _method_t t l =
 
 let source_methods_t t = _method_t t source_methods
 
-let source_t ?(pos : Liquidsoap_lang.Term.parsed_pos option) ?(methods = false)
-    frame_t =
+let source_t ?(pos : Term.parsed_pos option) ?(methods = false) frame_t =
   let t =
     make_t ?pos
       (Type.Constr
@@ -795,7 +794,7 @@ let check_arguments ~env ~return_t arguments =
   in
   (* Generalize all terms inside the arguments *)
   let map =
-    let open Liquidsoap_lang.Value in
+    let open Value in
     let rec map v =
       let v =
         match v with

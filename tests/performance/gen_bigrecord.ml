@@ -15,10 +15,8 @@ let parse_memory_consumption script =
 
 (* Remove type information. *)
 let rec strip tm =
-  let { Liquidsoap_lang.Term.term; methods; _ } = tm in
-  let methods =
-    Liquidsoap_lang.Term.Methods.fold (fun _ v ret -> strip v @ ret) methods []
-  in
+  let { Term.term; methods; _ } = tm in
+  let methods = Term.Methods.fold (fun _ v ret -> strip v @ ret) methods [] in
   term :: methods
 
 let term_memory_consumption script =

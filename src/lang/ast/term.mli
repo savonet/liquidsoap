@@ -20,7 +20,11 @@
 
  *****************************************************************************)
 
-include module type of Runtime_term
+(* [struct include ... end] rather than plain [module type of] so that the types
+   stay equal to [Runtime_term]'s instead of being redeclared as fresh ones. *)
+include module type of struct
+  include Runtime_term
+end
 
 (** A position as reported by the lexer, before it is turned into a {!Pos.t}. *)
 type parsed_pos = Lexing.position * Lexing.position

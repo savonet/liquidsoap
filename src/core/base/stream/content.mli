@@ -70,7 +70,7 @@ module type ContentSpecs = sig
   (** Lang description *)
 
   val content_lang_typ : Type.t
-  val params_to_value : params -> Liquidsoap_lang.Value.t
+  val params_to_value : params -> Value.t
 end
 
 module type Content = sig
@@ -224,11 +224,9 @@ module Format_val : sig
   val t : Type.t
 
   val to_value :
-    ?pos:Liquidsoap_lang_prelude.Pos.Option.base ->
-    Contents.format ->
-    Liquidsoap_lang.Value.t
+    ?pos:Liquidsoap_lang_prelude.Pos.Option.base -> Contents.format -> Value.t
 
-  val of_value : Liquidsoap_lang.Value.t -> Contents.format
+  val of_value : Value.t -> Contents.format
 end
 
 (** Record type with one optional method per registered content type. Call after
@@ -237,8 +235,7 @@ val content_types : unit -> Type.t
 
 (** Convert a format to [(normalized_name, value)]. Returns [None] for types
     with no registered Lang spec (metadata, track_marks). *)
-val value_of_format :
-  Contents.format -> (string * Liquidsoap_lang.Value.t) option
+val value_of_format : Contents.format -> (string * Value.t) option
 
 (* Some tools *)
 val merge_param :

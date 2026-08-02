@@ -22,7 +22,6 @@
 
 open Harbor_base
 module Monad = Duppy.Monad
-module Type = Type
 module Http = Liq_http
 
 let ( let* ) = Duppy.Monad.bind

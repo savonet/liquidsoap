@@ -1,6 +1,4 @@
-module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
-module Cache = Liquidsoap_lang.Cache
 
 (* For source eval check there are cases of:
      source('a) <: (source('a).{ source methods })?
@@ -71,7 +69,7 @@ let eval_check ~env:_ ~tm v =
 
 let render_string = function
   | `Verbatim s -> s
-  | `String (pos, (sep, s)) -> Liquidsoap_lang.Lexer.render_string ~pos ~sep s
+  | `String (pos, (sep, s)) -> Lexer.render_string ~pos ~sep s
 
 let mk_field_t ?pos kind params =
   let err_pos =
@@ -108,8 +106,8 @@ let mk_field_t ?pos kind params =
           in
           let t = kind ^ "(" ^ params ^ ")" in
           raise
-            (Liquidsoap_lang.Term.Parse_error
-               (err_pos, "Unknown type constructor: " ^ t ^ ".")))
+            (Term.Parse_error (err_pos, "Unknown type constructor: " ^ t ^ "."))
+        )
 
 let () =
   Hooks.mk_clock_ty :=
@@ -118,24 +116,17 @@ let () =
         ?pos:(Option.map Liquidsoap_lang_prelude.Pos.of_lexing_pos pos)
         Lang_clock.ClockValue.base_t.Type.descr
 
-let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
+let mk_source_ty ?pos name { Parsed_term.extensible; tracks } =
   if name <> "source" then (
     let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
-    raise
-      (Liquidsoap_lang.Term.Parse_error
-         (pos, "Unknown type constructor: " ^ name ^ ".")));
+    raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")));
 
   match tracks with
     | [] -> Lang_source.source_t ?pos (Lang.univ_t ())
     | tracks ->
         let fields =
           List.fold_left
-            (fun fields
-                 {
-                   Liquidsoap_lang.Parsed_term.track_name;
-                   track_type;
-                   track_params;
-                 } ->
+            (fun fields { Parsed_term.track_name; track_type; track_params } ->
               Frame.Fields.add
                 (Frame.Fields.field_of_string track_name)
                 (mk_field_t ?pos track_type track_params)
@@ -180,23 +171,21 @@ let cache_max_files =
 
 let () =
   (try
-     Liquidsoap_lang.Cache.system_dir_perms :=
+     Cache.system_dir_perms :=
        int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_DIR_PERMS")
    with _ -> ());
   (try
-     Liquidsoap_lang.Cache.system_file_perms :=
+     Cache.system_file_perms :=
        int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_FILE_PERMS")
    with _ -> ());
   (try
-     Liquidsoap_lang.Cache.user_dir_perms :=
+     Cache.user_dir_perms :=
        int_of_string (Sys.getenv "LIQ_CACHE_USER_DIR_PERMS")
    with _ -> ());
   try
-    Liquidsoap_lang.Cache.user_file_perms :=
+    Cache.user_file_perms :=
       int_of_string (Sys.getenv "LIQ_CACHE_USER_FILE_PERMS")
   with _ -> ()
-
-module Term_cache = Liquidsoap_lang.Term_cache
 
 let cache_log = Log.make ["cache"]
 
