@@ -2,7 +2,14 @@ let () =
   let location = Sys.getcwd () in
   let cases =
     List.filter
-      (fun f -> Filename.extension f = ".liq")
+      (fun f ->
+        match Filename.extension f with
+          | ".liq" -> true
+          (* Cases that are deliberately unparsable are named `.invalid-liq`,
+             so that the repo-wide `**/*.liq` glob the external tree-sitter and
+             lezer grammars are checked against does not pick them up. *)
+          | ".invalid-liq" -> true
+          | _ -> false)
       (Build_tools.read_files ~location "cases")
   in
   List.iter

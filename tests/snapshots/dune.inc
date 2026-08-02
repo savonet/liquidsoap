@@ -113,7 +113,7 @@
 (rule
  (target error_parse.actual)
  (deps
-  (:case cases/error_parse.liq)
+  (:case cases/error_parse.invalid-liq)
   (:snapshot snapshot.exe))
  (action
   (with-stdout-to

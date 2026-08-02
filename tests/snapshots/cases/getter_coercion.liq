@@ -1,2 +1,2 @@
-def use(x = {int}) = x() end
-(use(1), use(fun () -> 2))
+g = getter(1)
+getter.get(g)
