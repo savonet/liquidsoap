@@ -106,10 +106,10 @@ open Parser_helper
 %nonassoc UMINUS
 
 %start program
-%type <Term.t> program
+%type <Parsed_term.t> program
 
 %start interactive
-%type <Term.t> interactive
+%type <Parsed_term.t> interactive
 
 %start annotate
 %type <(string * string) list> annotate
@@ -118,10 +118,10 @@ open Parser_helper
 %type <string * string> annotate_metadata_entry
 
 %start time_predicate
-%type <Term.t> time_predicate
+%type <Parsed_term.t> time_predicate
 
 %start plain_encoder_params
-%type <Term.encoder_params> plain_encoder_params
+%type <Parsed_term.encoder_params> plain_encoder_params
 
 %type <Parsed_term.let_decoration> _let
 %type <string> annotate_key
@@ -131,51 +131,51 @@ open Parser_helper
 %type <Parsed_term.app_arg> app_list_elem
 %type <Parser_helper.arglist> arglist
 %type <string list * string list> args_of_params
-%type <Term.type_annotation Type.argument list> argsty
-%type <Term.type_annotation Type.argument> argty
+%type <Parsed_term.type_annotation Type.argument list> argsty
+%type <Parsed_term.type_annotation Type.argument> argty
 %type <Parser_helper.explicit_binding> explicit_binding
 %type <Parser_helper.binding> binding
-%type <Term.encoder_params> encoder_params
-%type <Term.t> expr
-%type <Term.t> exprs
-%type <Term.t> simple_fun_body
+%type <Parsed_term.encoder_params> encoder_params
+%type <Parsed_term.t> expr
+%type <Parsed_term.t> exprs
+%type <Parsed_term.t> simple_fun_body
 %type <unit> g
-%type <Term.if_elsif list * (Term.pos * Term.t) option> if_elsif
+%type <Parsed_term.if_elsif list * (Parsed_term.pos * Parsed_term.t) option> if_elsif
 %type <string list> in_subfield
 %type <string list> in_subfield_lbra
 %type <Parsed_term.list_el list> inner_list
 %type <Parsed_term.list_el> inner_list_item
-%type <Term.t list> inner_tuple
+%type <Parsed_term.t list> inner_tuple
 %type <Parser_helper.let_opt_el list> let_opt
 %type <Parser_helper.let_opt_el> let_opt_el
-%type <Term.meth_annotation> meth_ty
-%type <Term.t option> opt
+%type <Parsed_term.meth_annotation> meth_ty
+%type <Parsed_term.t option> opt
 %type <string> optvar
-%type <Term.pattern> pattern
-%type <Term.pattern list> pattern_list
+%type <Parsed_term.pattern> pattern
+%type <Parsed_term.pattern list> pattern_list
 %type <Parsed_term.methods list> record
-%type <Term.meth_annotation list> record_ty
+%type <Parsed_term.meth_annotation list> record_ty
 %type <unit> s
 %type <string> spread
 %type <string list> subfield
 %type <string list> subfield_lbra
-%type <Term.type_annotation> ty
-%type <string * Term.track_annotation list> ty_content
-%type <Term.track_annotation> ty_content_arg
-%type <Term.source_annotation> ty_source_tracks
-%type <Term.type_annotation list> ty_tuple
+%type <Parsed_term.type_annotation> ty
+%type <string * Parsed_term.track_annotation list> ty_content
+%type <Parsed_term.track_annotation> ty_content_arg
+%type <Parsed_term.source_annotation> ty_source_tracks
+%type <Parsed_term.type_annotation list> ty_tuple
 %type <Parsed_term.list_el list> varlist
 %type <string list> subfield_lpar
 
 %%
 
 program:
-  | error { raise (Term_base.Parse_error ($loc, "Syntax error!")) }
+  | error { raise (Term.Parse_error ($loc, "Syntax error!")) }
   | EOF { mk ~pos:$loc `Eof }
   | exprs EOF { $1 }
 
 interactive:
-  | error { raise (Term_base.Parse_error ($loc, "Syntax error!")) }
+  | error { raise (Term.Parse_error ($loc, "Syntax error!")) }
   | exprs SEQSEQ { $1 }
   | EOF { raise End_of_file }
 
@@ -379,11 +379,11 @@ meth_ty:
   | STRING VAR VAR COLON ty {
        match $2 with
          |"as" ->             { optional_meth = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc $1) }
-         | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
+         | _ -> raise (Term.Parse_error ($loc, "Invalid type constructor")) }
   | STRING VAR VAR QUESTION COLON ty {
        match $2 with
          |"as" ->             { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
-         | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
+         | _ -> raise (Term.Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source_tracks:
   | VAR GETS ty_content { { extensible = false; tracks = [{track_name = $1; track_type = fst $3; track_params = snd $3}] } }
@@ -552,7 +552,7 @@ _let:
   | LETLBRA let_opt RBRA {
       match $1 with
         | `Json_parse     -> `Json_parse (Parser_helper.args_of_json_parse ~pos:$loc $2)
-        | _ -> raise (Term_base.Parse_error ($loc, "Invalid let constructor")) }
+        | _ -> raise (Term.Parse_error ($loc, "Invalid let constructor")) }
 
 def:
   | DEF { Parser_helper.let_decoration_of_lexer_let_decoration $1 }
@@ -632,7 +632,7 @@ in_subfield_lbra:
 if_elsif:
   | ELSIF exprs THEN exprs if_elsif
       { let (rest, else_opt) = $5 in
-        let e : Term.if_elsif = {
+        let e : Parsed_term.if_elsif = {
             elsif_condition = $2;
             elsif_then_block = { block_body = $4; block_pos = ($startpos($3), $endpos($4)) };
             elsif_pos = ($startpos($1), $endpos($1)) }
@@ -720,7 +720,7 @@ if_version_op:
         | "<=" -> `Leq
         | "<" -> `Lt
         | ">" -> `Gt
-        | _ -> raise (Term_base.Parse_error ($loc, "invalid %ifversion operand"))
+        | _ -> raise (Term.Parse_error ($loc, "invalid %ifversion operand"))
   }
 
 if_version_version:

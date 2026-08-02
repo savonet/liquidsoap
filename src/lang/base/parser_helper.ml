@@ -23,8 +23,7 @@
 (** Helper functions for the parser. *)
 
 open Parsed_term
-module Term = Parsed_term
-module Vars = Term_base.Vars
+module Vars = Parsed_term.Vars
 
 type arglist = Parsed_term.fun_arg list
 type pos = Parsed_term.pos
@@ -40,8 +39,8 @@ type lexer_let_decoration =
   | `Sqlite_row
   | `Sqlite_query ]
 
-type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
-type binding = [ explicit_binding | `Binding of Term._let ]
+type explicit_binding = [ `Def of Parsed_term._let | `Let of Parsed_term._let ]
+type binding = [ explicit_binding | `Binding of Parsed_term._let ]
 
 let render_string_ref = ref (fun ~pos:_ _ -> assert false)
 
@@ -110,30 +109,27 @@ let let_args ~decoration ~pat ?arglist ~def ?cast () =
 
 let mk_json_assoc_object_ty ~pos = function
   | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty
-  | _ -> raise (Term_base.Parse_error (pos, "Invalid type constructor"))
+  | _ -> raise (Term.Parse_error (pos, "Invalid type constructor"))
 
 let mk_source_ty ~pos name tracks =
   match name with
     | "source" -> `Source (name, tracks)
-    | _ ->
-        raise (Term_base.Parse_error (pos, "Invalid type constructor: " ^ name))
+    | _ -> raise (Term.Parse_error (pos, "Invalid type constructor: " ^ name))
 
 let mk_named_ty ~pos name ty =
   match (name, ty) with
     | "ref", Some t -> `Ref t
     | "ref", None ->
-        raise
-          (Term_base.Parse_error (pos, "ref type requires a type parameter"))
+        raise (Term.Parse_error (pos, "ref type requires a type parameter"))
     | "getter", Some t -> `Getter t
     | "getter", None ->
-        raise
-          (Term_base.Parse_error (pos, "getter type requires a type parameter"))
+        raise (Term.Parse_error (pos, "getter type requires a type parameter"))
     | "source", _ ->
         mk_source_ty ~pos name { Parsed_term.extensible = false; tracks = [] }
     | _, _ ->
-        raise (Term_base.Parse_error (pos, "Invalid type constructor: " ^ name))
+        raise (Term.Parse_error (pos, "Invalid type constructor: " ^ name))
 
-type let_opt_el = string * Term.t
+type let_opt_el = string * Parsed_term.t
 
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
@@ -151,7 +147,7 @@ let args_of_json_parse ~pos = function
   | [("json5", v)] -> [("json5", v)]
   | (lbl, _) :: _ ->
       raise
-        (Term_base.Parse_error
+        (Term.Parse_error
            (pos, "Invalid argument " ^ lbl ^ " for json.parse let constructor"))
 
 let mk = Parsed_term.make
