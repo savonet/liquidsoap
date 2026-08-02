@@ -28,7 +28,7 @@ type unwatch = unit -> unit
 
 (** Type for watching function. *)
 type watch =
-  pos:Liquidsoap_lang.Pos.t list ->
+  pos:Liquidsoap_lang_prelude.Pos.t list ->
   event list ->
   string ->
   (unit -> unit) ->

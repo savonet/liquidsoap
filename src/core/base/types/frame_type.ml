@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-module Type = Liquidsoap_lang.Type
+module Type = Type
 
 let make ?pos base_type fields =
   Frame.Fields.fold

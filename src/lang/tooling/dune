@@ -9,4 +9,6 @@
 (library
  (name liquidsoap_tooling)
  (public_name liquidsoap-lang.tooling)
- (libraries sedlex liquidsoap_lang))
+ (flags
+  (:standard -open Liquidsoap_lang_prelude))
+ (libraries sedlex liquidsoap-lang.prelude liquidsoap_lang))

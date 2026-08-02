@@ -154,7 +154,7 @@ let () =
     (* 'a? <: string *)
     Typing.(nullable_a <: Lang.string_t);
     assert false
-  with Liquidsoap_lang.Repr.Type_error _ -> ()
+  with Repr.Type_error _ -> ()
 
 let () =
   (* 'a *)
@@ -173,7 +173,7 @@ let () =
     (* 'a.{foo:int} <: string *)
     Typing.(a_meth <: Lang.string_t);
     assert false
-  with Liquidsoap_lang.Repr.Type_error _ -> ()
+  with Repr.Type_error _ -> ()
 
 let () =
   (* {gni:int} *)
