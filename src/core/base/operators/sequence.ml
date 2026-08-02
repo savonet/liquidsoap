@@ -84,9 +84,13 @@ class sequence ?(name = "sequence") ?(merge = false) ?(single_track = true)
               Atomic.set seq_sources rest;
               self#release_source s;
               self#notify_sync_source (snd self#self_sync);
-              self#get_stateful_source ~source_skipped:true
-                ~reselect:(match reselect with `Force -> `Ok | v -> v)
-                ())
+              (* The source we just moved to has not been read yet during this
+                 streaming cycle, so a position constraint computed against the
+                 source we are done with does not apply to it. Carrying
+                 `After_position` over rejects a source that has no more samples
+                 available than the one it follows, silently dropping its first
+                 chunk along with the metadata it carries. *)
+              self#get_stateful_source ~source_skipped:true ~reselect:`Ok ())
         | _ -> None
 
     method private get_source ~reselect () =
