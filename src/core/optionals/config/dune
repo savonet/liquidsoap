@@ -232,6 +232,11 @@
    (winsvc -> winsvc_option.enabled.ml)
    (-> winsvc_option.disabled.ml))
   (select
+   xml_option.ml
+   from
+   (liquidsoap_xml -> xml_option.enabled.ml)
+   (-> xml_option.disabled.ml))
+  (select
    yaml_option.ml
    from
    (liquidsoap_yaml -> yaml_option.enabled.ml)

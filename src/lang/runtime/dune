@@ -17,5 +17,4 @@
   liquidsoap-lang.values
   domain_shims
   re
-  str
-  xml-light))
+  str))
