@@ -1,0 +1,21 @@
+(library
+ (name liquidsoap_lang)
+ (public_name liquidsoap-lang)
+ (flags
+  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+ (preprocess
+  (pps ppx_string))
+ (libraries
+  liquidsoap-lang.ast
+  liquidsoap-lang.console
+  liquidsoap-lang.data
+  liquidsoap-lang.parser
+  liquidsoap-lang.prelude
+  liquidsoap-lang.reducer
+  liquidsoap-lang.stdlib
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  domain_shims
+  re
+  str
+  xml-light))

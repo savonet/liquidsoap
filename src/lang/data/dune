@@ -1,42 +1,13 @@
-(include_subdirs unqualified)
-
-(generate_sites_module
- (module sites)
- (sites liquidsoap-lang))
+; Self-contained data structures and services the rest of the language builds
+; on: JSON, documentation, method maps, positions-free utilities, the runtime
+; error type, and the generated build configuration.
+;
+; Kept wrapped because `Doc`, `Startup` and `Utils` collide with modules of the
+; same name in liquidsoap_core; consumers get them unqualified through
+; `-open Liquidsoap_lang_data`.
 
 (menhir
- (modules parser json_parser)
- (flags
-  --unused-token
-  NULLDOT
-  --unused-token
-  DOTVAR
-  --unused-token
-  PP_ELSE
-  --unused-token
-  PP_ENDIF
-  --unused-token
-  PP_ENDL
-  --unused-token
-  PP_IFDEF
-  --unused-token
-  PP_IFENCODER
-  --unused-token
-  PP_IFNDEF
-  --unused-token
-  PP_IFNENCODER
-  --unused-token
-  PP_IFVERSION
-  --unused-token
-  PP_INT_DOT_LCUR
-  --unused-token
-  PP_REGEXP
-  --unused-token
-  PP_STRING
-  --unused-token
-  REPLACES
-  --unused-token
-  SLASH))
+ (modules json_parser))
 
 (rule
  (target fakeroot)
@@ -95,21 +66,17 @@
      "let native_c_libraries = \"%{ocaml-config:native_c_libraries}\"\n")))))
 
 (library
- (name liquidsoap_lang)
- (public_name liquidsoap-lang)
+ (name liquidsoap_lang_data)
+ (public_name liquidsoap-lang.data)
  (flags
   (:standard -open Liquidsoap_lang_prelude))
  (preprocess
-  (pps sedlex.ppx ppx_string ppx_hash))
+  (pps sedlex.ppx ppx_hash))
  (libraries
-  liquidsoap-lang.console
   liquidsoap-lang.prelude
-  liquidsoap-lang.stdlib
   liquidsoap-lang.types
-  dune-site
-  domain_shims
   fileutils
+  menhirLib
   re
   str
-  menhirLib
-  xml-light))
+  unix))

@@ -1,0 +1,52 @@
+; The front end: lexer, grammar and the token-level preprocessor that handles
+; string interpolation and %include / %ifdef.
+
+(menhir
+ (modules parser)
+ (flags
+  --unused-token
+  NULLDOT
+  --unused-token
+  DOTVAR
+  --unused-token
+  PP_ELSE
+  --unused-token
+  PP_ENDIF
+  --unused-token
+  PP_ENDL
+  --unused-token
+  PP_IFDEF
+  --unused-token
+  PP_IFENCODER
+  --unused-token
+  PP_IFNDEF
+  --unused-token
+  PP_IFNENCODER
+  --unused-token
+  PP_IFVERSION
+  --unused-token
+  PP_INT_DOT_LCUR
+  --unused-token
+  PP_REGEXP
+  --unused-token
+  PP_STRING
+  --unused-token
+  REPLACES
+  --unused-token
+  SLASH))
+
+(library
+ (name liquidsoap_lang_parser)
+ (public_name liquidsoap-lang.parser)
+ (wrapped false)
+ (flags
+  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+ (preprocess
+  (pps sedlex.ppx))
+ (libraries
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  menhirLib))

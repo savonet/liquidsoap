@@ -522,9 +522,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
               let link ~of_value ~mode ~ofs idx input =
                 let output = get_input ~mode ~ofs idx in
                 let pos =
-                  match Liquidsoap_lang.Value.pos output with
-                    | None -> []
-                    | Some p -> [p]
+                  match Value.pos output with None -> [] | Some p -> [p]
                 in
                 let output =
                   match of_value output with

@@ -1,1 +1,1 @@
-include Liquidsoap_lang.Runtime_error
+include Liquidsoap_lang_data.Runtime_error

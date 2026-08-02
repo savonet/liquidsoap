@@ -1,4 +1,4 @@
-include Liquidsoap_lang.Doc
+include Liquidsoap_lang_data.Doc
 
 (** Documentation for protocols. *)
 module Protocol = struct

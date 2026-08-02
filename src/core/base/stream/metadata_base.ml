@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-include Liquidsoap_lang.Methods
+include Liquidsoap_lang_data.Methods
 
-type t = (string, string) Liquidsoap_lang.Methods.t
+type t = (string, string) Liquidsoap_lang_data.Methods.t
 
 let to_list m =
   List.stable_sort (fun (k, _) (k', _) -> Stdlib.compare k k') (bindings m)

@@ -1,4 +1,4 @@
-include Liquidsoap_lang.Startup
+include Liquidsoap_lang_data.Startup
 
 let log = Log.make ["startup"]
 

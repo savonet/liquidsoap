@@ -23,7 +23,6 @@
 open Mm
 open Source
 open Ladspa
-module Cache = Liquidsoap_lang.Cache
 
 module String = struct
   include String

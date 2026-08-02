@@ -11,7 +11,20 @@
 (executable
  (name snapshot)
  (modules snapshot)
- (libraries liquidsoap_lang liquidsoap_tooling re sedlex))
+ (flags
+  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+ (libraries
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.parser
+  liquidsoap-lang.prelude
+  liquidsoap-lang.reducer
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  liquidsoap_lang
+  liquidsoap_tooling
+  re
+  sedlex))
 
 (executable
  (name gen_dune)

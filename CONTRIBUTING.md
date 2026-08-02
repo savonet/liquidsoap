@@ -69,7 +69,14 @@ This script handles all the necessary environment setup, making it easier to tes
 liquidsoap/
 ├── src/
 │   ├── lang/           # Language implementation (liquidsoap-lang package)
-│   │   ├── base/       # Core language: parser, types, evaluation
+│   │   ├── prelude/    # Leaf utilities: positions, string escaping, hashing
+│   │   ├── types/      # The type system, depends on prelude alone
+│   │   ├── data/       # JSON, documentation, method maps, runtime errors
+│   │   ├── ast/        # Parsed and runtime term representations
+│   │   ├── values/     # Runtime values, global environment, caches
+│   │   ├── parser/     # Lexer, grammar, token-level preprocessor
+│   │   ├── reducer/    # Desugaring: parsed term -> runtime term
+│   │   ├── runtime/    # Type checking, evaluation, script loading, builtins
 │   │   ├── console/    # REPL/console interface
 │   │   ├── stdlib/     # Thin wrapper around OCaml's stdlib for specific functions
 │   │   └── tooling/    # Language tooling (LSP, formatting)
@@ -87,27 +94,47 @@ liquidsoap/
 
 ## Core Modules
 
-### Language (`src/lang/base/`)
+### Language (`src/lang/`)
 
-The language implementation lives in `src/lang/base/`. This is where parsing, typing, and evaluation happen.
+The language implementation is split into layered dune libraries, each of which
+may only depend on the ones above it in this table. The layering is enforced by
+the build: `liquidsoap-lang.types` cannot reach a value or a term even by
+accident.
 
-| File                  | Purpose                                                                                                                                                                       |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lexer.ml`            | Tokenizer for the Liquidsoap language. Handles string interpolation, comments, and all lexical analysis.                                                                      |
-| `parser.mly`          | Menhir grammar defining the language syntax. Start here to understand how scripts are parsed into AST.                                                                        |
-| `term.ml`, `term/`    | Abstract Syntax Tree (AST) definition. The `Term.t` type represents parsed expressions before type checking.                                                                  |
-| `type.ml`, `type.mli` | Type representation. Defines `Type.t` for all types in the language (ground types, functions, methods, etc.).                                                                 |
-| `types/`              | Additional type-related modules including format types for audio/video content.                                                                                               |
-| `typing.ml`           | **Type inference engine**. Implements Hindley-Milner style inference with subtyping. Key functions: `check` for type checking, generalization/instantiation for polymorphism. |
-| `typechecking.ml`     | Higher-level type checking that wraps `typing.ml`. Handles the full program type checking pass.                                                                               |
-| `unifier.ml`          | Type unification. Merges type constraints and detects type errors.                                                                                                            |
-| `evaluation.ml`       | **Expression evaluator**. Executes typed AST to produce values. Handles function application, pattern matching, etc.                                                          |
-| `value.ml`            | Runtime value representation. All Liquidsoap values at runtime are `Value.t`.                                                                                                 |
-| `environment.ml`      | Variable binding environments for both type checking and evaluation.                                                                                                          |
-| `runtime.ml`          | Script loading and execution. Handles `%include`, caching, and the main evaluation loop.                                                                                      |
-| `repr.ml`             | Type pretty-printing. Converts types back to human-readable strings for error messages.                                                                                       |
-| `doc.ml`              | Documentation extraction. Generates operator documentation from type signatures and annotations.                                                                              |
-| `builtins_*.ml`       | Core built-in functions (lists, strings, math, etc.) that are part of the language itself.                                                                                    |
+| Library                   | Directory           | Purpose                                                                                                                     |
+| ------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `liquidsoap-lang.prelude` | `src/lang/prelude/` | Leaf utilities everything needs: source positions, string escaping and quoting, the hash used for caching.                  |
+| `liquidsoap-lang.types`   | `src/lang/types/`   | **The type system**: representation, constraints, custom types, unification, and the printable form used in error messages. |
+| `liquidsoap-lang.data`    | `src/lang/data/`    | Self-contained services: JSON, documentation, method maps, the runtime error type, build configuration.                     |
+| `liquidsoap-lang.ast`     | `src/lang/ast/`     | The term representations. See `src/lang/ast/README.md` for the parsed / runtime term phases.                                |
+| `liquidsoap-lang.values`  | `src/lang/values/`  | Runtime values, the global environment they are registered in, and the on-disk caches keyed on them.                        |
+| `liquidsoap-lang.parser`  | `src/lang/parser/`  | Lexer, Menhir grammar, and the token-level preprocessor (string interpolation, `%include`, `%ifdef`).                       |
+| `liquidsoap-lang.reducer` | `src/lang/reducer/` | Desugaring: parsed term to runtime term. One module per kind of desugaring.                                                 |
+| `liquidsoap-lang`         | `src/lang/runtime/` | Type checking, evaluation, script loading, the `Lang` API and the core builtins.                                            |
+
+The files you are most likely to want:
+
+| File                                 | Purpose                                                                                                          |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `parser/lexer.ml`                    | Tokenizer. Handles string interpolation, comments, and all lexical analysis.                                     |
+| `parser/parser.mly`                  | Menhir grammar defining the syntax. Start here to understand how scripts are parsed.                             |
+| `ast/parsed_term.ml`                 | The AST the parser produces, before desugaring. This is what the formatter and the LSP consume.                  |
+| `ast/term.ml`, `ast/runtime_term.ml` | The runtime term, i.e. what actually gets typechecked and evaluated.                                             |
+| `reducer/term_reducer.ml`            | Dispatcher for desugaring; the `term_reducer_*` modules next to it do the work.                                  |
+| `types/type.ml`                      | Type representation: `Type.t` for all types in the language.                                                     |
+| `types/typing.ml`                    | **Type inference engine**. Hindley-Milner style inference with subtyping, plus generalization and instantiation. |
+| `types/repr.ml`                      | Type pretty-printing, and the rendering of type errors.                                                          |
+| `runtime/typechecking.ml`            | Higher-level type checking that wraps `typing.ml`; the full program pass.                                        |
+| `runtime/evaluation.ml`              | **Expression evaluator**. Executes typed terms to produce values.                                                |
+| `values/value.ml`                    | Runtime value representation. All Liquidsoap values are `Value.t`.                                               |
+| `values/environment.ml`              | Variable binding environments, for both type checking and evaluation.                                            |
+| `runtime/runtime.ml`                 | Script loading and execution: `%include`, caching, and the main evaluation loop.                                 |
+| `data/doc.ml`                        | Documentation extraction; generates operator documentation from type signatures and annotations.                 |
+| `runtime/builtins_*.ml`              | Core built-in functions (lists, strings, math, ...) that are part of the language itself.                        |
+
+Changes to any of these show up in `tests/snapshots/`, which records the parsed
+term, its hash, the desugared term, the inferred type and the resulting value
+for a corpus of scripts. See `tests/snapshots/README.md`.
 
 ### Streaming Engine (`src/core/base/`)
 
@@ -175,19 +202,20 @@ Each subdirectory adds support for an optional dependency (ffmpeg, alsa, pulseau
 
 ### "I want to hack on the type system"
 
-Start with these files in `src/lang/base/`:
+Everything except the final pass lives in `src/lang/types/`, which depends on
+nothing but `src/lang/prelude/`:
 
-1. **`type.ml`** - Understand how types are represented
-2. **`typing.ml`** - The main inference algorithm
-3. **`unifier.ml`** - How type constraints are solved
-4. **`typechecking.ml`** - Full program type checking
+1. **`types/type.ml`** - Understand how types are represented
+2. **`types/typing.ml`** - The main inference algorithm, including unification
+3. **`types/repr.ml`** - How types and type errors are rendered
+4. **`runtime/typechecking.ml`** - Full program type checking
 
 Key concepts:
 
 - Types use a unification-based inference similar to Hindley-Milner
 - Subtyping is used extensively (e.g., `{foo: int, bar: string}` is a subtype of `{foo: int}`)
 - Type variables are represented with mutable references for efficient unification
-- See `src/lang/base/term/README.md` for details on term representation phases (parsed → typed → runtime)
+- See `src/lang/ast/README.md` for details on term representation phases (parsed → typed → runtime)
 
 To test type system changes:
 

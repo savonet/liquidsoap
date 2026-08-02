@@ -35,11 +35,11 @@ type regexp = Liquidsoap_lang.Lang.regexp
 
 module Custom = Value.Custom
 module Methods = Term.Methods
-module Flags = Liquidsoap_lang.Flags
+module Flags = Liquidsoap_lang_data.Flags
 
-type in_value = Liquidsoap_lang.Value.in_value
-type env = Liquidsoap_lang.Value.env
-type value = Liquidsoap_lang.Value.t
+type in_value = Value.in_value
+type env = Value.env
+type value = Value.t
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
@@ -104,7 +104,7 @@ val add_builtin_base :
   ?flags:Doc.Value.flag list ->
   ?base:module_name ->
   string ->
-  Liquidsoap_lang.Value.in_value ->
+  Value.in_value ->
   t ->
   module_name
 
@@ -332,7 +332,7 @@ val type_term :
   ?deprecated:bool ->
   ?ty:t ->
   stdlib:stdlib ->
-  parsed_term:Liquidsoap_lang.Parsed_term.t ->
+  parsed_term:Parsed_term.t ->
   Term.t ->
   Term.t
 

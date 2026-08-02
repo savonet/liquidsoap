@@ -1,1 +1,1 @@
-include Liquidsoap_lang.Json
+include Liquidsoap_lang_data.Json

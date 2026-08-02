@@ -24,13 +24,8 @@ open Value
 
 type decode_type = [ `Raw | `Internal ]
 type content_type = [ `Audio | `Video | `Subtitle ]
-
-type encoder_params =
-  decode_type * content_type * (string * Liquidsoap_lang.Value.t) list
-
-type mode =
-  [ `Drop | `Copy of Liquidsoap_lang.Value.t option | `Encode of encoder_params ]
-
+type encoder_params = decode_type * content_type * (string * Value.t) list
+type mode = [ `Drop | `Copy of Value.t option | `Encode of encoder_params ]
 type parsed_encoder = Frame.field * mode
 
 let channels_of_channel_layout args =

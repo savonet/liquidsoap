@@ -21,7 +21,6 @@
   *****************************************************************************)
 
 module Monad = Duppy.Monad
-module Type = Type
 module Http = Liq_http
 
 module type Monad_t = module type of Monad with module Io := Monad.Io

@@ -1,0 +1,19 @@
+; Desugaring: parsed term -> runtime term. One module per kind of desugaring,
+; see term_reducer.ml for the dispatcher.
+;
+; This sits above `values` rather than on the AST alone because %argsof and
+; %ifdef are resolved against the builtin environment, not syntactically.
+
+(library
+ (name liquidsoap_lang_reducer)
+ (public_name liquidsoap-lang.reducer)
+ (wrapped false)
+ (flags
+  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+ (libraries
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.parser
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values))
