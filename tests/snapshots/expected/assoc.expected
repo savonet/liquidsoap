@@ -1,5 +1,5 @@
 === assoc.liq ===
-l = [("a", 1), ("b", 2)]
+l = [("a", "1"), ("b", "2")]
 l["a"]
 --- parsed ---
 {
@@ -26,8 +26,8 @@ l["a"]
           "value": "\"a\""
         },
           {
-          "type": "ground",
-          "value": "1"
+          "type": "string",
+          "value": "\"1\""
         }
         ]
       }
@@ -42,8 +42,8 @@ l["a"]
           "value": "\"b\""
         },
           {
-          "type": "ground",
-          "value": "2"
+          "type": "string",
+          "value": "\"2\""
         }
         ]
       }
@@ -52,13 +52,11 @@ l["a"]
   }
 }
 --- hash ---
-8020f6fd5cc14852bae991657cda1674
+b2b8613347ff262c0a002f96a61b78ba
 --- term ---
-let l = [("a", 1), ("b", 2)] in _[_](l,"a")
+l = [("a", "1"), ("b", "2")]
+_[_](l, "a")
 --- type ---
-At line 2, char 0-2:
-
-Error 5: this value has type
-  [_ * int] (inferred at line 1, char 4-24)
-but it should be a subtype of
-  [_ * string]
+string
+--- value ---
+"1"

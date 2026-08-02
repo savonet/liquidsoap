@@ -57,7 +57,7 @@ for x = list.iterator([1, 2, 3]) do ignore(x) end
 --- hash ---
 78a1ec263395a31bb34d931b86d029fd
 --- term ---
-for(list.iterator([1, 2, 3]),fun (x) -> ignore(x))
+for(list.iterator([1, 2, 3]), fun (x) -> ignore(x))
 --- type ---
 At line 1, char 8-12:
 

@@ -21,7 +21,7 @@
 --- hash ---
 399f1328cc6b3379033388a7e72d4182
 --- term ---
-time_in_mod(36000,43200,86400)
+time_in_mod(36000, 43200, 86400)
 --- type ---
 At line 1, char 0-7:
 

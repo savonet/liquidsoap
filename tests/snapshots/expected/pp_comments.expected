@@ -32,7 +32,9 @@ f()
 --- hash ---
 6e89741aca6b0574086d98f972175ff3
 --- term ---
-let x = 1 in let f = fun () -> x in f()
+x = 1
+f = fun () -> x
+f()
 --- type ---
 int
 --- value ---

@@ -57,7 +57,9 @@ r()
 --- hash ---
 c2138805e99e5458f17f12f65dee8b28
 --- term ---
-let r = ref(0) in error.catch(errors = null,body = fun () -> (r.set(1) : unit),catch = fun (_) -> (),finally = fun () -> (r.set(2) : unit)); r()
+r = ref(0)
+error.catch(errors=null, body=fun () -> (r.set(1) : unit), catch=fun (_) -> (), finally=fun () -> (r.set(2) : unit))
+r()
 --- type ---
 int
 --- value ---

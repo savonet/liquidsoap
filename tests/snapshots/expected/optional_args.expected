@@ -1,9 +1,94 @@
 === optional_args.liq ===
-def f(?x=null, ~y=2, z) =
+def f(~x=null, ~y=2, z) =
   (x ?? 0) + y + z
 end
+
 f(y=5, 1)
 --- parsed ---
-At line 1, char 6:
-
-Error 2: Parse error
+{
+  "type": "def",
+  "body": {
+    "type": "app",
+    "op": { "type": "var", "value": "f" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "y",
+        "value": { "type": "ground", "value": "5" }
+      }
+    },
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": { "type": "ground", "value": "1" }
+      }
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "f" ] },
+  "arglist": [
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "x",
+      "as_variable": null,
+      "typ": null,
+      "default": { "type": "null" }
+    }
+  },
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "y",
+      "as_variable": null,
+      "typ": null,
+      "default": { "type": "ground", "value": "2" }
+    }
+  },
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "",
+      "as_variable": { "type": "pvar", "value": [ "z" ] },
+      "typ": null,
+      "default": null
+    }
+  }
+  ],
+  "cast": null,
+  "definition": {
+    "type": "infix",
+    "left": {
+      "type": "infix",
+      "left": {
+        "type": "parenthesis",
+        "value": {
+          "type": "coalesce",
+          "left": { "type": "var", "value": "x" },
+          "right": { "type": "ground", "value": "0" }
+        }
+      },
+      "op": "+",
+      "right": { "type": "var", "value": "y" }
+    },
+    "op": "+",
+    "right": { "type": "var", "value": "z" }
+  }
+}
+--- hash ---
+af45357a23b02f74bacf48f6d2aa10e5
+--- term ---
+f = fun (~x=null, ~y=2, z) -> +(+(_null.default(x, {0}), y), z)
+f(y=5, 1)
+--- type ---
+int
+--- value ---
+6

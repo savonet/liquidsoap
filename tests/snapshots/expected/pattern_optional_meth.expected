@@ -48,7 +48,10 @@ let {a, b?} = {a = 1}
 --- hash ---
 2f7b8c3c3c161d7b89e4ff2165c66251
 --- term ---
-let _pat0 = {a=1} in let a = _pat0.a in let b = (_pat0.b ?? null) in (a, b)
+_pat0 = {a=1}
+a = _pat0.a
+b = (_pat0.b ?? null)
+(a, b)
 --- type ---
 int * 'A?
 --- value ---

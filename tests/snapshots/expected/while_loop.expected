@@ -54,7 +54,8 @@ while n() < 3 do n := n() + 1  end
 --- hash ---
 fac37728de195176c3cba0b8da7b7cf4
 --- term ---
-let n = ref(0) in while(fun () -> <(n(),3),fun () -> (n.set(+(n(),1)) : unit))
+n = ref(0)
+while(fun () -> <(n(), 3), fun () -> (n.set(+(n(), 1)) : unit))
 --- type ---
 unit
 --- value ---

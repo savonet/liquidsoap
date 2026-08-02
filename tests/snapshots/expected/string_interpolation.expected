@@ -38,7 +38,8 @@ name = "world"
 --- hash ---
 a41cf1995824e09bfcbde93750e8478e
 --- term ---
-let name = "world" in string.concat(["hello ", string(name), "!"])
+name = "world"
+string.concat(["hello ", string(name), "!"])
 --- type ---
 string
 --- value ---

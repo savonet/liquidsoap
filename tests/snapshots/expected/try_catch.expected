@@ -65,7 +65,7 @@ end
 --- hash ---
 43675712c2cc2253be15e78c1d467166
 --- term ---
-error.catch(errors = [error.not_found],body = fun () -> error.raise(error.not_found,"nope"),catch = fun (err) -> err.message,finally = {()})
+error.catch(errors=[error.not_found], body=fun () -> error.raise(error.not_found, "nope"), catch=fun (err) -> err.message, finally={()})
 --- type ---
 At line 3, char 13-18:
 

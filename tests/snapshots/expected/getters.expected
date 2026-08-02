@@ -1,26 +1,46 @@
 === getters.liq ===
-def f(x={int}) =
-  x()
+# `{e}` is shorthand for `fun () -> e`, which is what makes a getter.
+def f(x) =
+  getter.get(x)
 end
-f(fun () -> 3)
+
+(f(1), f({2}))
 --- parsed ---
 {
   "type": "def",
   "body": {
-    "type": "app",
-    "op": { "type": "var", "value": "f" },
-    "args": [
+    "type": "tuple",
+    "value": [
       {
-      "type": "term",
-      "value": {
-        "type": "app_arg",
-        "label": "",
+      "type": "app",
+      "op": { "type": "var", "value": "f" },
+      "args": [
+        {
+        "type": "term",
         "value": {
-          "type": "fun",
-          "arguments": [],
-          "body": { "type": "ground", "value": "3" }
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "ground", "value": "1" }
         }
       }
+      ]
+    },
+      {
+      "type": "app",
+      "op": { "type": "var", "value": "f" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": {
+            "type": "simple_fun",
+            "value": { "type": "ground", "value": "2" }
+          }
+        }
+      }
+      ]
     }
     ]
   },
@@ -34,28 +54,37 @@ f(fun () -> 3)
       "label": "",
       "as_variable": { "type": "pvar", "value": [ "x" ] },
       "typ": null,
-      "default": {
-        "type": "simple_fun",
-        "value": { "type": "var", "value": "int" }
-      }
+      "default": null
     }
   }
   ],
   "cast": null,
   "definition": {
-    "type": "app",
-    "op": { "type": "var", "value": "x" },
-    "args": []
+    "type": "invoke",
+    "invoked": { "type": "var", "value": "getter" },
+    "optional": false,
+    "meth": {
+      "type": "app",
+      "op": { "type": "var", "value": "get" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "var", "value": "x" }
+        }
+      }
+      ]
+    }
   }
 }
 --- hash ---
-bc92bc1a8b5dd8a72579993c34c36ae3
+4d752d60131ac9378ddaad3458975c2f
 --- term ---
-let f = fun (x=fun () -> int) -> x() in f({3})
+f = fun (x) -> getter.get(x)
+(f(1), f({2}))
 --- type ---
-At line 4, char 2-13:
-
-Error 5: this value has type
-  (...) -> int
-but it should be a subtype of
-  (...) -> (_, ?raise : _) -> _
+int * int
+--- value ---
+(1, 2)

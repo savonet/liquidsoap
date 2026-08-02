@@ -16,7 +16,7 @@ if 1 < 2 then "yes" else "no" end
 --- hash ---
 1047d9b107fd19c2c9638357ea639822
 --- term ---
-if(<(1,2),then = {"yes"},else = {"no"})
+if(<(1, 2), then={"yes"}, else={"no"})
 --- type ---
 string
 --- value ---

@@ -18,7 +18,8 @@ x ?? 3
 --- hash ---
 a3275fcfcf909af982d9950ed6bd6b70
 --- term ---
-let x = null in _null.default(x,{3})
+x = null
+_null.default(x, {3})
 --- type ---
 int
 --- value ---

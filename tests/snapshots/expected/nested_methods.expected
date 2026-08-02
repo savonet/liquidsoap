@@ -59,7 +59,8 @@ v.a.b.c
 --- hash ---
 d6126113119a3abc8140d3e4f5e781e1
 --- term ---
-let v = {a={b={c=1}}} in v.a.b.c
+v = {a={b={c=1}}}
+v.a.b.c
 --- type ---
 int
 --- value ---
