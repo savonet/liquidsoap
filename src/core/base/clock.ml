@@ -50,6 +50,46 @@
 
 include Clock_base
 
+(* {1 Unification errors} *)
+
+exception Conflict of (Pos.Option.t * string * string)
+exception Loop of (Pos.Option.t * string * string)
+
+type main_conflict = {
+  pos : Pos.Option.t;
+  left_main : string;
+  left_child : string;
+  right_main : string;
+  right_child : string;
+}
+
+exception Main_conflict of main_conflict
+
+let () =
+  Liquidsoap_lang.Runtime.on_error_print (fun ~formatter -> function
+    | Conflict (pos, a, b) ->
+        (* TODO better printing of clock errors: we don't have position
+           information, use the source's ID *)
+        Liquidsoap_lang.Runtime.error_header ~formatter 10 pos;
+        Format.fprintf formatter
+          "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
+        true
+    | Loop (pos, a, b) ->
+        Liquidsoap_lang.Runtime.error_header ~formatter 11 pos;
+        Format.fprintf formatter
+          "Cannot unify two nested clocks@ (%s,@ %s).@ Do you need to set@ \
+           `settings.output.use_default_clock := false`?@]@."
+          a b;
+        true
+    | Main_conflict { pos; left_main; left_child; right_main; right_child } ->
+        Liquidsoap_lang.Runtime.error_header ~formatter 16 pos;
+        Format.fprintf formatter
+          "Cannot unify clocks %s and %s:@ clock %s is controlled by clock %s@ \
+           while clock %s is controlled by %s.@]@."
+          left_child right_child left_child left_main right_child right_main;
+        true
+    | _ -> false)
+
 (* {1 Sync modes} *)
 
 type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
@@ -144,7 +184,6 @@ let () =
 (* {1 Types} *)
 
 module Pos = Liquidsoap_lang.Pos
-module Unifier = Liquidsoap_lang.Unifier
 
 (* Current sync source of a started clock, along with the latency parameters
    it imposes on the streaming loop. *)
@@ -551,12 +590,7 @@ let unifiable_controller ~unify c c' =
         try
           unify c c';
           true
-        with
-        | Liquidsoap_lang.Error.Clock_conflict _
-        | Liquidsoap_lang.Error.Clock_loop _
-        | Liquidsoap_lang.Error.Clock_main _
-        ->
-          false)
+        with Conflict _ | Loop _ | Main_conflict _ -> false)
     | _ -> false
 
 (* Make sure that [clock'] is not a transitive sub-clock of [clock]:
@@ -564,9 +598,7 @@ let unifiable_controller ~unify c c' =
 let rec check_sub_clocks ~pos clock clock' =
   Queue.iter clock.sub_clocks (fun c ->
       let sub = Unifier.deref c in
-      if sub == clock' then
-        raise
-          (Liquidsoap_lang.Error.Clock_loop (pos, _descr clock, _descr clock'));
+      if sub == clock' then raise (Loop (pos, _descr clock, _descr clock'));
       check_sub_clocks ~pos sub clock')
 
 let unify =
@@ -607,15 +639,14 @@ let unify =
     if not (unifiable_controller ~unify:(unify ~pos) controller controller')
     then
       raise
-        Liquidsoap_lang.Error.(
-          Clock_main
-            {
-              pos;
-              left_main = string_of_controller controller;
-              left_child = descr c;
-              right_main = string_of_controller controller';
-              right_child = descr c';
-            });
+        (Main_conflict
+           {
+             pos;
+             left_main = string_of_controller controller;
+             left_child = descr c;
+             right_main = string_of_controller controller';
+             right_child = descr c';
+           });
     match
       (clock == clock', Atomic.get clock.state, Atomic.get clock'.state)
     with
@@ -629,8 +660,7 @@ let unify =
         when clock'.sync = `Automatic
              || _pending_sync clock = (clock'.sync :> sync_mode) ->
           merge ~pos c' c
-      | _ ->
-          raise (Liquidsoap_lang.Error.Clock_conflict (pos, descr c, descr c'))
+      | _ -> raise (Conflict (pos, descr c, descr c'))
   in
   unify
 

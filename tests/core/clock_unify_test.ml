@@ -58,7 +58,7 @@ let () =
        (Clock.create ~sync:`CPU ())
        (Clock.create ~sync:`Unsynced ());
      assert false
-   with Liquidsoap_lang.Error.Clock_conflict _ -> ());
+   with Clock.Conflict _ -> ());
 
   (* Pending sources are inherited: sources attached to either handle before
      unification are visible through both afterwards. The output's child
@@ -81,7 +81,7 @@ let () =
   (try
      Clock.unify ~pos:None parent sub;
      assert false
-   with Liquidsoap_lang.Error.Clock_loop _ -> ());
+   with Clock.Loop _ -> ());
 
   (* After unification, sub-clock handles dereferencing to the same clock
      are deduplicated. *)
@@ -107,7 +107,7 @@ let () =
        (Clock.create ~controller:(controller "first") ())
        (Clock.create ~controller:(controller "second") ());
      assert false
-   with Liquidsoap_lang.Error.Clock_main _ -> ());
+   with Clock.Main_conflict _ -> ());
 
   (* A clock without a controller unifies with a controlled one. *)
   Clock.unify ~pos:None (Clock.create ())

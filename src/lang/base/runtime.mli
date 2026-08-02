@@ -84,6 +84,11 @@ val parse : string -> Parsed_term.t * Term.t
 
 val error_header : formatter:Format.formatter -> int -> Pos.Option.t -> unit
 
+(** Register a printer for exceptions raised by layers above the language, e.g.
+    clock errors from the streaming core. It should return [true] when it has
+    printed the exception, [false] to let the next printer try. *)
+val on_error_print : (formatter:Format.formatter -> exn -> bool) -> unit
+
 (** Report language errors. *)
 val report :
   ?default:(unit -> 'a) ->

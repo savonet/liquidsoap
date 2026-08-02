@@ -31,6 +31,21 @@
 exception Invalid_state
 exception Has_stopped
 
+(** Raised by [unify], see there. *)
+exception Conflict of (Pos.Option.t * string * string)
+
+exception Loop of (Pos.Option.t * string * string)
+
+type main_conflict = {
+  pos : Pos.Option.t;
+  left_main : string;
+  left_child : string;
+  right_main : string;
+  right_child : string;
+}
+
+exception Main_conflict of main_conflict
+
 (** A clock handle. Two handles can dereference to the same underlying clock
     after unification. *)
 type t
@@ -171,10 +186,10 @@ val time : t -> float
 
 (** Unify two clocks into a single one. At least one of them must be stopped:
     the stopped clock is merged into the other one, which inherits its pending
-    sources, sub-clocks and error handlers. Raises
-    [Liquidsoap_lang.Error.Clock_conflict] when the sync modes are incompatible,
-    [Clock_loop] when unification would make a clock its own transitive
-    sub-clock, and [Clock_main] when the controllers are incompatible. *)
+    sources, sub-clocks and error handlers. Raises [Conflict] when the sync
+    modes are incompatible, [Loop] when unification would make a clock its own
+    transitive sub-clock, and [Main_conflict] when the controllers are
+    incompatible. *)
 val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
 
 val register_sub_clock : t -> t -> unit
