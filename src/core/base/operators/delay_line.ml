@@ -35,10 +35,20 @@ class delay (source : source) duration =
     val mutable should_queue = false
     val mutable deferred = true
 
+    (* Buffering is driven by clock ticks while draining only happens when a
+       consumer pulls us. Drop the oldest data past what the delay needs,
+       otherwise an unused delay line (e.g. inside an unselected [switch]
+       branch) grows without bound. *)
+    method private drop_expired_data =
+      let max_length = duration () + Lazy.force Frame.size in
+      let excess = Generator.length self#buffer - max_length in
+      if 0 < excess then Generator.truncate self#buffer excess
+
     method private buffer_data =
       Generator.append self#buffer source#get_frame;
       if deferred && duration () <= Generator.length self#buffer then
-        deferred <- false
+        deferred <- false;
+      self#drop_expired_data
 
     method private queue_output =
       Clock.on_tick self#clock (fun () ->
