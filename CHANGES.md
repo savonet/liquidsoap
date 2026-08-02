@@ -3,6 +3,7 @@
 ## Fixed:
 
 - Added Unifier path compression to avoid unbounded deref cost growth (#5257)
+- Fixed unbounded buffer growth (#5287)
 
 ---
 
