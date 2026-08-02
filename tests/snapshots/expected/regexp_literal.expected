@@ -32,7 +32,8 @@ r.test("abbc")
 --- hash ---
 a6984d8dd9a09a17f778e5be689aae3b
 --- term ---
-let r = regexp("ab+c",flags = ["i", "g"]) in r.test("abbc")
+r = regexp("ab+c", flags=["i", "g"])
+r.test("abbc")
 --- type ---
 bool
 --- value ---

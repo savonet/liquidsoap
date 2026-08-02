@@ -39,7 +39,8 @@ r.{a = 3}
 --- hash ---
 8cb7841f35d8ae9b791e870de58b0ca8
 --- term ---
-let r = {b=2, a=1} in r.{a=3}
+r = {b=2, a=1}
+r.{a=3}
 --- type ---
 {a : int, b : int}
 --- value ---

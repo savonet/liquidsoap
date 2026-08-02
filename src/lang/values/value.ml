@@ -253,7 +253,22 @@ let string_of_int_value ~flags i =
   else if Flags.has flags Flags.hex_int then Printf.sprintf "0x%x" i
   else string_of_int i
 
-let rec to_string v =
+let rec string_of_args args =
+  String.concat ", "
+    (List.map
+       (fun (label, var, default) ->
+         let name =
+           match (label, var) with
+             (* Builtins carry no variable name for their arguments. *)
+             | "", "" -> "_"
+             | "", var -> var
+             | label, var when label = var || var = "" -> "~" ^ label
+             | label, var -> "~" ^ label ^ "=" ^ var
+         in
+         match default with None -> name | Some v -> name ^ "=" ^ to_string v)
+       args)
+
+and to_string v =
   let base_string v =
     match v with
       | Int { value = i; flags } -> string_of_int_value ~flags i
@@ -269,18 +284,13 @@ let rec to_string v =
       | Null _ -> "null"
       | Fun { fun_args = []; fun_body = x } when Term.is_ground x ->
           "{" ^ Term.to_string x ^ "}"
-      | Fun { fun_args = l; fun_body = x } when Term.is_ground x ->
-          let f (label, _, value) =
-            match (label, value) with
-              | "", None -> "_"
-              | "", Some v -> Printf.sprintf "_=%s" (to_string v)
-              | label, Some v -> Printf.sprintf "~%s=%s" label (to_string v)
-              | label, None -> Printf.sprintf "~%s=_" label
-          in
-          let args = List.map f l in
-          Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
-            (Term.to_string x)
-      | Fun _ | FFI _ -> "<fun>"
+      | Fun { fun_args = l; fun_body = x } ->
+          Printf.sprintf "fun (%s) -> %s" (string_of_args l)
+            (* A closure's body can be arbitrarily large -- printing the whole
+               standard library back at the user is not helpful. *)
+            (if Term.is_ground x then Term.to_string x else "...")
+      | FFI { ffi_args = l } ->
+          Printf.sprintf "fun (%s) -> (builtin)" (string_of_args l)
   in
   let s = base_string v in
   let methods = methods v in

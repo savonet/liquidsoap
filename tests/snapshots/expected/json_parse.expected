@@ -31,7 +31,9 @@ a
 --- hash ---
 972cb196e3f67259137e78ca0283e978
 --- term ---
-let _pat0 = (_internal_json_parser_(json5 = false,type = type,"{\"a\": 1}") : {a : int}) in let a = _pat0.a in a
+_pat0 = (_internal_json_parser_(json5=false, type=type, "{\"a\": 1}") : {a : int})
+a = _pat0.a
+a
 --- type ---
 int
 --- value ---

@@ -26,7 +26,8 @@ f()
 --- hash ---
 521434f303ada8a80912cc38a9962948
 --- term ---
-let f = fun () -> +(1,1) in f()
+f = fun () -> +(1, 1)
+f()
 --- type ---
 int
 --- value ---

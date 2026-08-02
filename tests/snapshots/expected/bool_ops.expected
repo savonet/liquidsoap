@@ -28,7 +28,7 @@ true and false or not true
 --- hash ---
 64920271173667b323678224208ccfd2
 --- term ---
-and({true},fun () -> or({false},fun () -> not(true)))
+and({true}, fun () -> or({false}, fun () -> not(true)))
 --- type ---
 bool
 --- value ---

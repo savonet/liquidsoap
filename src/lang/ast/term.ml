@@ -91,6 +91,15 @@ let string_of_pat = function
   | `PVar l -> String.concat "." l
   | `PTuple l -> "(" ^ String.concat ", " l ^ ")"
 
+(* A plain variable binding is written `x = ...`, anything else needs `let`. *)
+let prefix_of_pat = function `PVar [_] -> "" | _ -> "let "
+
+let indent s =
+  String.concat "\n"
+    (List.map
+       (fun l -> if l = "" then l else "  " ^ l)
+       (String.split_on_char '\n' s))
+
 (** String representation of terms, (almost) assuming they are in normal form.
 *)
 
@@ -133,10 +142,10 @@ let rec to_string (v : t) =
             | None -> to_string e ^ "." ^ l
             | Some v -> "(" ^ to_string e ^ "." ^ l ^ " ?? " ^ to_string v ^ ")"
           )
-      | `Open (m, e) -> "open " ^ to_string m ^ " " ^ to_string e
+      | `Open (m, e) -> "open " ^ to_string m ^ "\n" ^ to_string e
       | `Fun { name = None; arguments = []; body = v } when is_ground v ->
           "{" ^ to_string v ^ "}"
-      | `Fun { name; arguments; body } ->
+      | `Fun { name; arguments; body } -> (
           let arguments =
             List.map
               (fun { label; as_variable; default } ->
@@ -152,24 +161,40 @@ let rec to_string (v : t) =
                   | Some d -> name ^ "=" ^ to_string d)
               arguments
           in
-          Printf.sprintf "fun %s(%s) -> %s"
-            (match name with None -> "" | Some n -> n ^ " ")
-            (String.concat ", " arguments)
-            (to_string body)
+          let arguments = String.concat ", " arguments in
+          (* A named function is a `def rec`: that is the only way a function
+             gets a name. *)
+            match name with
+            | None -> Printf.sprintf "fun (%s) -> %s" arguments (to_string body)
+            | Some name ->
+                Printf.sprintf "def rec %s(%s) =\n%s\nend" name arguments
+                  (indent (to_string body)))
       | `Var s -> s
       | `App (hd, tl) ->
           let tl =
             List.map
               (fun (lbl, v) ->
-                (if lbl = "" then "" else lbl ^ " = ") ^ to_string v)
+                (if lbl = "" then "" else lbl ^ "=") ^ to_string v)
               tl
           in
-          to_string hd ^ "(" ^ String.concat "," tl ^ ")"
-      (* | Let _ | Seq _ -> assert false *)
-      | `Let { pat; def; body } ->
-          Printf.sprintf "let %s = %s in %s" (string_of_pat pat) (to_string def)
-            (to_string body)
-      | `Seq (e, e') -> to_string e ^ "; " ^ to_string e'
+          to_string hd ^ "(" ^ String.concat ", " tl ^ ")"
+      (* A recursive function already prints as `def rec f(..) = .. end`, which
+         names it: no need for the enclosing `f = ..`. *)
+      | `Let
+          {
+            pat = `PVar [name];
+            def = { term = `Fun { name = Some n } } as def;
+            body;
+          }
+        when n = name ->
+          to_string def ^ "\n" ^ to_string body
+      | `Let { pat; def; replace; body } ->
+          (* Bindings are statements in liquidsoap, not expressions: print the
+             definition and then the rest of the program under it. *)
+          Printf.sprintf "%s%s = %s\n%s"
+            (if replace then "let replaces " else prefix_of_pat pat)
+            (string_of_pat pat) (to_string def) (to_string body)
+      | `Seq (e, e') -> to_string e ^ "\n" ^ to_string e'
   in
   let term = to_base_string v in
   if Methods.is_empty v.methods then term

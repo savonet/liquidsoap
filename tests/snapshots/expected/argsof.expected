@@ -80,7 +80,9 @@ wrapper(a=3)
 --- hash ---
 3128e45dbc1bebcdb2a9c13c90fde250
 --- term ---
-let base = fun (~a=1, ~b=2) -> +(a,b) in let wrapper = fun (~a=1, ~b=2) -> base(a = a,b = b) in wrapper(a = 3)
+base = fun (~a=1, ~b=2) -> +(a, b)
+wrapper = fun (~a=1, ~b=2) -> base(a=a, b=b)
+wrapper(a=3)
 --- type ---
 int
 --- value ---

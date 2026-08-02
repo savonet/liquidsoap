@@ -46,7 +46,8 @@ l = [1, 2, 3]
 --- hash ---
 0b8de44d63429383530400b9d14a968f
 --- term ---
-let l = [1, 2, 3] in _::_(0,list.append(l,[4]))
+l = [1, 2, 3]
+_::_(0, list.append(l, [4]))
 --- type ---
 [int]
 --- value ---
