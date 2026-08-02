@@ -2110,6 +2110,29 @@
    switch_per_source_single.liq)))
 
 (rule
+ (alias test_switch_reselect_after_idle)
+ (package liquidsoap)
+ (deps
+  switch_reselect_after_idle.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_reselect_after_idle
+   liquidsoap
+   %{test_liq}
+   switch_reselect_after_idle.liq)))
+
+(rule
  (alias test_track_sensitive)
  (package liquidsoap)
  (deps
@@ -2287,6 +2310,7 @@
   (alias test_switch_per_source_on_select)
   (alias test_switch_per_source_replay_metadata)
   (alias test_switch_per_source_single)
+  (alias test_switch_reselect_after_idle)
   (alias test_track_sensitive)
   (alias test_unified-pcm-types)
   (alias test_video-only)))
