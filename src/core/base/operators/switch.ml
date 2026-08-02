@@ -337,9 +337,15 @@ class switch ~all_predicates children =
         | None -> 0
         | Some s -> s.effective_source#remaining
 
+    (* The metadata of a track we drop goes with it: it describes a track that
+       will never resume, and replaying it on re-selection would announce it a
+       second time. [clear_last_metadata] alone does not reach here, the frame
+       machinery calls it on every track mark. *)
     method abort_track =
       match self#selected with
-        | Some s -> s.effective_source#abort_track
+        | Some s ->
+            s.effective_source#clear_last_metadata;
+            s.effective_source#abort_track
         | None -> ()
 
     method effective_source =

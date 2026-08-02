@@ -215,6 +215,42 @@
    %{target})))
 
 (rule
+ (target skipped_track_music.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=10"
+   -ac
+   2
+   -metadata
+   title=music0
+   %{target})))
+
+(rule
+ (target skipped_track_program.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=1200:duration=3"
+   -ac
+   2
+   -metadata
+   title=program
+   %{target})))
+
+(rule
  (target autodj_jingles.m3u)
  (deps autodj_jingle0.mp3 autodj_jingle1.mp3)
  (action
