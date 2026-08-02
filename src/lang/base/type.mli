@@ -179,7 +179,6 @@ val filter_meths : t -> (meth -> bool) -> t
 val map_meths : t -> (meth -> meth) -> t
 val var : ?constraints:constr list -> ?level:int -> ?pos:Pos.t -> unit -> t
 val mk_invariant : t -> unit
-val to_string_fun : (?generalized:var list -> t -> string) ref
 val to_string : ?generalized:var list -> t -> string
 val string_of_scheme : scheme -> string
 val is_fun : t -> bool

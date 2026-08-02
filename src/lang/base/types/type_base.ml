@@ -401,16 +401,6 @@ module Fresh = struct
 end
 
 let fresh t = Fresh.make (Fresh.init ()) t
-
-let to_string_fun =
-  ref (fun ?(generalized : var list option) _ ->
-      ignore generalized;
-      failwith "Type.to_string not defined yet")
-
-(** String representation of a type. *)
-let to_string ?generalized (t : t) : string = !to_string_fun ?generalized t
-
-let string_of_scheme (g, t) = to_string ~generalized:g t
 let is_fun t = match (demeth t).descr with Arrow _ -> true | _ -> false
 
 let is_source t =

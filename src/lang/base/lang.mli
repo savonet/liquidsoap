@@ -27,7 +27,7 @@ type t = Type.t
 
 type module_name
 type scheme = Type.scheme
-type regexp = Builtins_regexp.regexp
+type regexp = Lang_regexp.regexp
 
 (** {2 Values} *)
 
