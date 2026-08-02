@@ -6,6 +6,7 @@ intermediate representation is dumped to `expected/<case>.expected`:
 | section  | what it shows                                                      |
 | -------- | ------------------------------------------------------------------ |
 | `parsed` | the parsed term, as the JSON the formatter and the LSP consume     |
+| `hash`   | its hash, which is what the typechecking cache keys on             |
 | `term`   | the runtime term, i.e. what `Term_reducer` desugared the script to |
 | `type`   | the type inferred for the whole script                             |
 | `value`  | the result of evaluating it                                        |

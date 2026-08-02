@@ -3,6 +3,7 @@
 
    For every input file this prints:
      - [parsed]: the parsed term, as the JSON the formatter and LSP consume,
+     - [hash]:   its hash, which is what the typechecking cache keys on,
      - [term]:   the runtime term, i.e. what [Term_reducer] desugared it to,
      - [type]:   the type inferred for the whole script,
      - [value]:  the result of evaluating it.
