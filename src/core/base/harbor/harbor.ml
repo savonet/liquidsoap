@@ -357,7 +357,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let rec find = function
       | [] -> raise Not_found
       | (regex, handler) :: rest -> (
-          let rex = regex.Liquidsoap_lang.Builtins_regexp.regexp in
+          let rex = regex.Liquidsoap_lang.Lang_regexp.regexp in
           try
             let sub = Re.Pcre.exec ~rex mount in
             let names = Re.Pcre.names rex in
@@ -932,7 +932,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     (* First, try with a registered handler. *)
     let { handler; _ } = find_handler port in
     let f (verb, regex, handler) =
-      let rex = regex.Liquidsoap_lang.Builtins_regexp.regexp in
+      let rex = regex.Liquidsoap_lang.Lang_regexp.regexp in
       let sub =
         Lazy.from_fun (fun () ->
             try Some (Re.Pcre.exec ~rex base_uri) with _ -> None)

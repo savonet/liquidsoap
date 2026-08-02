@@ -44,7 +44,7 @@ let regexp_of_string s =
   let escaped = Re.Pcre.quote s in
   let descr = "^" ^ escaped ^ "$" in
   {
-    Liquidsoap_lang.Builtins_regexp.descr;
+    Liquidsoap_lang.Lang_regexp.descr;
     flags = [];
     regexp = Re.Pcre.regexp descr;
   }

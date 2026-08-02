@@ -21,8 +21,18 @@
  *****************************************************************************)
 
 include Type_base
-include Ref_type
 module Custom = Type_custom
+
+(* [Repr] is where types get printed: it needs [Type_base], so [Type_base]
+   cannot print by itself. *)
+let to_string = Repr.string_of_type
+let string_of_scheme = Repr.string_of_scheme
+
+(** Type of a reference to a value of type [a]. *)
+let reference ?pos a =
+  let get = make ?pos (Arrow ([], a)) in
+  let set = make ?pos (Arrow ([(false, "", a)], make ?pos unit)) in
+  meth ?pos "set" ([], set) ~doc:"Set the value of the reference." get
 
 let record_constr =
   {
