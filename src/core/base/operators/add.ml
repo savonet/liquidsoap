@@ -30,7 +30,7 @@ type ('a, 'b) track = { mutable fields : 'a field list; data : 'b }
 
 class virtual base ~name tracks =
   let sources = List.map (fun { data } -> data) tracks in
-  let self_sync = Clock_base.self_sync sources in
+  let self_sync = Clock.self_sync_of_sources sources in
   let infallible = List.exists (fun s -> not s#fallible) sources in
   object (self)
     inherit Source.operator ~name sources

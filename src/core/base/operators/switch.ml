@@ -119,7 +119,7 @@ let find ?(strict = false) f l =
 
 class switch ~all_predicates children =
   let sources = List.map (fun c -> c.source) children in
-  let self_sync_type = Clock_base.self_sync_type sources in
+  let self_sync_type = Clock.self_sync_type_of_sources sources in
   let track_sensitive = Atomic.make true in
   object (self)
     inherit operator ~name:"switch" sources as super

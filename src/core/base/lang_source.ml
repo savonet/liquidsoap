@@ -538,11 +538,11 @@ let source_methods : source_meth list =
           val_fun [] (fun _ ->
               match s#self_sync with
                 | `Static, Some src ->
-                    string ("Static: " ^ Clock_base.string_of_sync_source src)
+                    string ("Static: " ^ Clock.string_of_sync_source src)
                 | `Dynamic, Some src ->
                     string
                       ("Dynamic synchronization source. Current one: "
-                      ^ Clock_base.string_of_sync_source src)
+                      ^ Clock.string_of_sync_source src)
                 | `Dynamic, None ->
                     string "Dynamic synchronization source. Current one: none"
                 | `Static, None -> string ""));
@@ -1260,12 +1260,11 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
                         match s#self_sync with
                           | `Static, Some src ->
                               string
-                                ("Static: "
-                                ^ Clock_base.string_of_sync_source src)
+                                ("Static: " ^ Clock.string_of_sync_source src)
                           | `Dynamic, Some src ->
                               string
                                 ("Dynamic synchronization source. Current one: "
-                                ^ Clock_base.string_of_sync_source src)
+                                ^ Clock.string_of_sync_source src)
                           | `Dynamic, None ->
                               string
                                 "Dynamic synchronization source. Current one: \

@@ -24,8 +24,7 @@ module Http = Liq_http
 
 let address_resolver s =
   let s = Harbor.file_descr_of_socket s in
-  Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
-    (Unix.getpeername s)
+  Utils.name_of_sockaddr ~rev_dns:Harbor.conf_revdns#get (Unix.getpeername s)
 
 let should_shutdown = Atomic.make false
 

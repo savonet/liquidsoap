@@ -32,7 +32,7 @@ class muxer ~pos ~base tracks =
       tracks
   in
   let fallible = List.exists (fun s -> s#fallible) sources in
-  let self_sync = Clock_base.self_sync sources in
+  let self_sync = Clock.self_sync_of_sources sources in
   object (self)
     (* Pass duplicated list to operator to make sure caching is properly enabled. *)
     inherit Source.operator ~name:"source" sources

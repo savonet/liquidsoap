@@ -84,7 +84,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
 class frei0r_mixer ~name bgra instance params (source : source) source2 =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
-  let self_sync = Clock_base.self_sync [source; source2] in
+  let self_sync = Clock.self_sync_of_sources [source; source2] in
   object (self)
     inherit operator ~name:("frei0r." ^ name) [source; source2]
     method effective_source = (self :> Source.source)

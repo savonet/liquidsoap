@@ -342,7 +342,7 @@ class virtual ['a] base p =
       (fun auth_function ->
         let resolve_client_address socket =
           let fd = Harbor.file_descr_of_socket socket in
-          Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
+          Utils.name_of_sockaddr ~rev_dns:Harbor.conf_revdns#get
             (Unix.getpeername fd)
         in
         let authenticate socket user password =

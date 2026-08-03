@@ -23,6 +23,22 @@
 module Monad = Duppy.Monad
 module Http = Liq_http
 
+(** {1 Settings}
+
+    All of these live under [settings.harbor.*]. [conf_timeout] and
+    [conf_accept_timeout] double as the default network timeouts of the SSL and
+    TLS transports, which is why they are exported. *)
+
+val conf_harbor : Dtools.Conf.ut
+val conf_harbor_bind_addrs : string list Dtools.Conf.t
+val conf_harbor_max_conn : int Dtools.Conf.t
+val conf_pass_verbose : bool Dtools.Conf.t
+val conf_revdns : bool Dtools.Conf.t
+val conf_icy_metadata : string list Dtools.Conf.t
+val conf_map_song_metadata : bool Dtools.Conf.t
+val conf_timeout : float Dtools.Conf.t
+val conf_accept_timeout : float Dtools.Conf.t
+
 module type Monad_t = module type of Monad with module Io := Monad.Io
 
 module type Transport_t = sig

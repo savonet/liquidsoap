@@ -29,7 +29,7 @@ open Source
     in transitions. *)
 class sequence ?(name = "sequence") ?(merge = false) ?(single_track = true)
   sources =
-  let self_sync_type = Clock_base.self_sync_type sources in
+  let self_sync_type = Clock.self_sync_type_of_sources sources in
   let seq_sources = Atomic.make sources in
   object (self)
     inherit operator ~name sources

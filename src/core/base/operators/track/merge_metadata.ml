@@ -22,7 +22,7 @@
 
 class merge_metadata tracks =
   let sources = List.map snd tracks in
-  let self_sync = Clock_base.self_sync sources in
+  let self_sync = Clock.self_sync_of_sources sources in
   object (self)
     inherit Source.operator ~name:"track.metadata.merge" sources
     initializer Typing.(self#frame_type <: Lang.unit_t)

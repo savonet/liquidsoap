@@ -60,7 +60,7 @@ type source_type =
     protocol regulated by packet timestamps. A clock with a current sync source
     is in self-sync mode and delegates latency control to it; at most one unique
     sync source is allowed per clock at any given time. *)
-type sync_source = Clock_base.sync_source
+type sync_source = ..
 
 type self_sync = [ `Static | `Dynamic ] * sync_source option
 
@@ -122,6 +122,26 @@ type source =
   ; source_state : sync_source option
   ; on_sync_source_change :
       (old:sync_source option -> sync_source option -> unit) -> unit -> unit >
+
+(** [self_sync_of_sources l] is the self-sync of an operator whose children are
+    [l]: the unique sync source among the ready children, if there is one.
+    Raises {!Sync_error} when two ready children carry different sync sources.
+    Not to be confused with {!self_sync}, which reports whether a clock is
+    currently in self-sync mode. *)
+val self_sync_of_sources :
+  < self_sync : self_sync
+  ; is_ready : bool
+  ; id : string
+  ; stack : Pos.t list
+  ; .. >
+  list ->
+  source:< id : string ; stack : Pos.t list ; .. > ->
+  unit ->
+  self_sync
+
+(** [`Dynamic] as soon as one of the sources is, [`Static] otherwise. *)
+val self_sync_type_of_sources :
+  < self_sync : self_sync ; .. > list -> [ `Static | `Dynamic ] Lazy.t
 
 (** Sync mode of a clock:
     - [`Automatic]: the clock delegates latency control to its current sync

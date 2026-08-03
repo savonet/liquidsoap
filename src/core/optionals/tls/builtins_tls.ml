@@ -101,7 +101,7 @@ module Liq_tls = struct
     init_base ~timeout ~state fd
 
   let write ?timeout h b off len =
-    let timeout = Option.value ~default:Harbor_base.conf_timeout#get timeout in
+    let timeout = Option.value ~default:Harbor.conf_timeout#get timeout in
     match
       Tls.Engine.send_application_data h.state [Bytes.sub_string b off len]
     with
@@ -113,10 +113,10 @@ module Liq_tls = struct
 
   let read ?read_timeout ?write_timeout h b off len =
     let read_timeout =
-      Option.value ~default:Harbor_base.conf_timeout#get read_timeout
+      Option.value ~default:Harbor.conf_timeout#get read_timeout
     in
     let write_timeout =
-      Option.value ~default:Harbor_base.conf_timeout#get write_timeout
+      Option.value ~default:Harbor.conf_timeout#get write_timeout
     in
     let pending = Buffer.length h.read_pending in
     if 0 < pending then (
@@ -358,13 +358,13 @@ let _ =
         Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
       in
       let read_timeout =
-        Option.value ~default:Harbor_base.conf_timeout#get read_timeout
+        Option.value ~default:Harbor.conf_timeout#get read_timeout
       in
       let write_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "write_timeout" p)
       in
       let write_timeout =
-        Option.value ~default:Harbor_base.conf_timeout#get write_timeout
+        Option.value ~default:Harbor.conf_timeout#get write_timeout
       in
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
