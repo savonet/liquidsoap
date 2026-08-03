@@ -76,8 +76,6 @@
    Liquidsoap_lang_cache
    -open
    Liquidsoap_lang))
- (preprocess
-  (pps ppx_string))
  (libraries
   dtools
   domain_shims

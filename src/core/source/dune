@@ -38,8 +38,6 @@
    Liquidsoap_core_encoder
    -open
    Liquidsoap_core_clock))
- (preprocess
-  (pps ppx_string))
  (libraries
   mm
   duppy

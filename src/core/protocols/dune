@@ -41,8 +41,6 @@
    Liquidsoap_core_request
    -open
    Liquidsoap_core_runtime))
- (preprocess
-  (pps ppx_string))
  (libraries
   dtools
   menhirLib

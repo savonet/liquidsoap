@@ -46,8 +46,6 @@
    Liquidsoap_core_net
    -open
    Liquidsoap_core_decoders))
- (preprocess
-  (pps ppx_string))
  (libraries
   mm
   dtools

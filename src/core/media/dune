@@ -33,8 +33,6 @@
    Liquidsoap_core_utils
    -open
    Liquidsoap_core_stream))
- (preprocess
-  (pps ppx_string))
  (libraries
   mm
   dtools

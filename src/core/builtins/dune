@@ -8,8 +8,6 @@
 
 (library
  (name liquidsoap_builtins)
- (preprocess
-  (pps ppx_string))
  (flags
   (:standard -open Liquidsoap_core))
  (libraries cron mem_usage uri liquidsoap_core liquidsoap_file_watcher))

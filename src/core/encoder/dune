@@ -34,8 +34,6 @@
    Liquidsoap_core_stream
    -open
    Liquidsoap_core_media))
- (preprocess
-  (pps ppx_string))
  (libraries
   mm
   re
