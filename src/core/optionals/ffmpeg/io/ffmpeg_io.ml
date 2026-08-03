@@ -319,7 +319,10 @@ let parse_args ~t name p opts =
   in
   List.iter extract args
 
-let register_input is_http =
+(* input.http differs from input.ffmpeg only in its name, a handful of
+   HTTP-specific arguments, its self_sync default and its on_connect callback. *)
+let register_input protocol =
+  let is_http = protocol = `Http in
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let args ?t name =
     let t =
@@ -592,5 +595,5 @@ let register_input is_http =
              ~max_buffer ?format ~opts ~new_track_on_metadata ~trim_url url))
 
 let () =
-  register_input true;
-  register_input false
+  register_input `Http;
+  register_input `Ffmpeg
