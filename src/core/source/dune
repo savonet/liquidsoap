@@ -21,12 +21,6 @@
    -open
    Liquidsoap_lang_ast
    -open
-   Liquidsoap_lang_parser
-   -open
-   Liquidsoap_lang_reducer
-   -open
-   Liquidsoap_lang_cache
-   -open
    Liquidsoap_lang
    -open
    Liquidsoap_core_utils
@@ -48,9 +42,6 @@
   liquidsoap-lang.data
   liquidsoap-lang.values
   liquidsoap-lang.ast
-  liquidsoap-lang.parser
-  liquidsoap-lang.reducer
-  liquidsoap-lang.cache
   liquidsoap-lang
   liquidsoap_core_utils
   liquidsoap_core_stream

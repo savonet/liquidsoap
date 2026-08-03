@@ -14,19 +14,9 @@
    -open
    Liquidsoap_lang_prelude
    -open
-   Liquidsoap_lang_types
-   -open
    Liquidsoap_lang_data
    -open
    Liquidsoap_lang_values
-   -open
-   Liquidsoap_lang_ast
-   -open
-   Liquidsoap_lang_parser
-   -open
-   Liquidsoap_lang_reducer
-   -open
-   Liquidsoap_lang_cache
    -open
    Liquidsoap_lang
    -open
@@ -38,13 +28,8 @@
   dtools
   magic-mime
   liquidsoap-lang.prelude
-  liquidsoap-lang.types
   liquidsoap-lang.data
   liquidsoap-lang.values
-  liquidsoap-lang.ast
-  liquidsoap-lang.parser
-  liquidsoap-lang.reducer
-  liquidsoap-lang.cache
   liquidsoap-lang
   liquidsoap_core_utils
   liquidsoap_core_stream))
