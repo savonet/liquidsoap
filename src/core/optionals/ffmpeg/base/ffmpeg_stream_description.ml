@@ -195,7 +195,7 @@ let collect_video_streams container =
         let params =
           video_params_of_codec_params ~time_base ~frame_rate codec_params
         in
-        streams @ [(field, params)]
+        (field, params) :: streams
       with Avutil.Error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log
@@ -213,7 +213,7 @@ let collect_subtitle_streams container =
         let field = Frame.Fields.subtitles_n (List.length streams) in
         let time_base = Av.get_time_base stream in
         let params = subtitle_params_of_codec_params ~time_base codec_params in
-        streams @ [(field, params)]
+        (field, params) :: streams
       with Avutil.Error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log
@@ -232,7 +232,7 @@ let collect_data_streams container subtitle_count =
           Frame.Fields.data_n (List.length streams + subtitle_count)
         in
         let params = data_params_of_codec_params codec_params in
-        streams @ [(field, params)]
+        (field, params) :: streams
       with Avutil.Error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log
@@ -364,11 +364,12 @@ let container ?format ~url container =
       data_streams
   in
 
+  (* All four collectors prepend, so each list is in reverse stream order. *)
   let streams =
     List.rev audio_stream_infos
     @ List.rev video_stream_infos
     @ List.rev subtitle_stream_infos
-    @ data_stream_infos
+    @ List.rev data_stream_infos
   in
 
   let format_name =
