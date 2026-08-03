@@ -15,7 +15,7 @@ jobs:
           - os: ubuntu-latest
             extra-packages: alsa ao mad pulseaudio theora
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ocaml/setup-ocaml@e32b06a3e831ff2fbc6f08cf35be2085e3918014 # v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
