@@ -23,7 +23,7 @@ mixer =
     id="mixer",
     [
       source.available(sine(duration=3.), pred).{track_sensitive = false},
-      blank().{track_sensitive = false},
+      blank().{track_sensitive = false}
     ]
   )
 
