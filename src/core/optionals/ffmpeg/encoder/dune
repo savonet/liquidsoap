@@ -1,0 +1,14 @@
+(library
+ (name liquidsoap_ffmpeg_encoder)
+ (libraries
+  ffmpeg-av
+  ffmpeg-avcodec
+  ffmpeg-avfilter
+  ffmpeg-avutil
+  ffmpeg-swresample
+  ffmpeg-swscale
+  liquidsoap_core
+  liquidsoap_ffmpeg_base)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional))
