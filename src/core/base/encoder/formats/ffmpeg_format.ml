@@ -144,7 +144,7 @@ let to_string m =
                 (match options.hwaccel_device with
                   | None -> `Var "none"
                   | Some d -> `String d);
-              Printf.sprintf "%%%s(%s%s)" name
+              Printf.sprintf "%s(%s%s)" name
                 (if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "video") name then ""
                  else "video_content,")
                 (string_of_options stream_opts)

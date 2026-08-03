@@ -283,15 +283,7 @@ let register_filters () =
 
                    function
                    | `Frame frame ->
-                       List.iter
-                         (fun (pos, m) ->
-                           Generator.add_metadata ~pos generator m)
-                         (Frame.get_all_metadata frame);
-                       List.iter
-                         (fun pos -> Generator.add_track_mark ~pos generator)
-                         (List.filter
-                            (fun x -> x < Lazy.force Frame.size)
-                            (Frame.track_marks frame));
+                       Ffmpeg_inline.relay_metadata generator frame;
                        Frame.Fields.iter
                          (fun f data ->
                            match f with

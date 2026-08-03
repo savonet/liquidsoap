@@ -63,7 +63,7 @@ let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
           video_size_ref := Some (width, height);
           let s = mk_stream codec_params in
           Av.set_avg_frame_rate s avg_frame_rate;
-          stream := Some (`Video (mk_stream codec_params))
+          stream := Some (`Video s)
       | `Subtitle { Ffmpeg_copy_content.codec_params; _ } ->
           stream := Some (`Subtitle (mk_stream codec_params))
   in
