@@ -41,9 +41,25 @@
 - Removed `settings.decoder.ffmpeg.max_interleave_delta`. The setting was never read by
   the decoder; stream interleaving is bounded by
   `settings.decoder.ffmpeg.max_interleave_duration` alone.
+- Overhauled the FFmpeg filter graph implementation, fixing frame loss, dropped
+  track marks and a hang along the way. A graph is now a single source, whatever
+  its number of outputs: they are produced together and share one buffer, one
+  readiness state and one set of track marks, so a track boundary reaching any
+  output cuts every output of that graph. A graph may now have several outputs of
+  the same media type, and `id` on any output names the graph itself. Outputs must
+  be consumed at converging rates; past `settings.ffmpeg.filter_max_buffer` an
+  error names the graph instead of letting the buffer grow without bound.
 
 ## Fixed:
 
+- Fixed `%ffmpeg` copy encoder initializing the video stream twice and setting the
+  average frame rate on the one it discarded, so copied video carried no frame rate.
+- Fixed inline `ffmpeg.encode.*` operators losing their codec options after the
+  first track: the encoder consumed them from the format's own table, which was
+  then empty when the encoder was rebuilt at the next track boundary.
+- Fixed `%ffmpeg` video streams being printed as `%%video(...)`.
+- Fixed FFmpeg stream descriptions listing video and subtitle streams in reverse
+  order.
 - Fixed `delay` getting stuck after its first track and dropping the following
   track's metadata (#5282).
 - Fixed `sequence` dropping the first chunk of a source, along with its
