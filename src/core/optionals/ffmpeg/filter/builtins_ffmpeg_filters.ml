@@ -485,7 +485,7 @@ let _ =
          let name = uniq_name "abuffer" in
          let s =
            Ffmpeg_filter_io.(
-             new audio_output ~pass_metadata ~name ~frame_t ~field source)
+             audio_output ~pass_metadata ~name ~frame_t ~field source)
          in
          s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
@@ -545,8 +545,7 @@ let _ =
          in
          let field = Frame.Fields.audio in
          let s =
-           new Ffmpeg_filter_io.audio_input
-             ~field
+           Ffmpeg_filter_io.audio_input ~field
              ~pull:(fun () -> pull graph)
              ~is_ready:(fun () -> is_ready graph)
              ~self_sync:(self_sync graph) ~pass_metadata frame_t
@@ -613,7 +612,7 @@ let _ =
          let name = uniq_name "buffer" in
          let s =
            Ffmpeg_filter_io.(
-             new video_output ~pass_metadata ~name ~frame_t ~field source)
+             video_output ~pass_metadata ~name ~frame_t ~field source)
          in
          s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
@@ -669,8 +668,7 @@ let _ =
       in
       let field = Frame.Fields.video in
       let s =
-        new Ffmpeg_filter_io.video_input
-          ~field
+        Ffmpeg_filter_io.video_input ~field
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
           ~self_sync:(self_sync graph) ~pass_metadata frame_t

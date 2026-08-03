@@ -32,6 +32,50 @@ type 'a _duration_converter = {
 
 let track_mark_metadata = "liquidsoap_track_mark"
 
+(** Everything that differs between an audio and a video end of the graph.
+    Without this the two sides are the same code written twice. *)
+type ('a, 'params) media = {
+  get_data :
+    Content.data -> ('params, 'a Avutil.frame) Ffmpeg_content_base.content;
+  lift_data :
+    ('params, 'a Avutil.frame) Ffmpeg_content_base.content -> Content.data;
+  lift_params : 'params -> Content.format;
+  frame_params : 'a Avutil.frame -> 'params;
+  context_params : 'a Avfilter.context -> 'params;
+}
+
+let audio_media =
+  {
+    get_data = Ffmpeg_raw_content.Audio.get_data;
+    lift_data = Ffmpeg_raw_content.Audio.lift_data;
+    lift_params = Ffmpeg_raw_content.Audio.lift_params;
+    frame_params = Ffmpeg_raw_content.AudioSpecs.frame_params;
+    context_params =
+      (fun context ->
+        {
+          Ffmpeg_raw_content.AudioSpecs.channel_layout =
+            Some (Avfilter.channel_layout context);
+          sample_rate = Some (Avfilter.sample_rate context);
+          sample_format = Some (Avfilter.sample_format context);
+        });
+  }
+
+let video_media =
+  {
+    get_data = Ffmpeg_raw_content.Video.get_data;
+    lift_data = Ffmpeg_raw_content.Video.lift_data;
+    lift_params = Ffmpeg_raw_content.Video.lift_params;
+    frame_params = Ffmpeg_raw_content.VideoSpecs.frame_params;
+    context_params =
+      (fun context ->
+        {
+          Ffmpeg_raw_content.VideoSpecs.width = Some (Avfilter.width context);
+          height = Some (Avfilter.height context);
+          pixel_format = Some (Avfilter.pixel_format context);
+          pixel_aspect = Avfilter.pixel_aspect context;
+        });
+  }
+
 (* Content holding data from more than one stream keeps a chunk per stream, so
    take them all: a frame that straddles a track boundary carries two. *)
 let chunks content =
@@ -99,7 +143,8 @@ class virtual ['a] duration_converter =
         | Some { converter; _ } -> snd (Ffmpeg_utils.Duration.flush converter)
   end
 
-class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
+class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
+  source =
   object (self)
     inherit
       Output.output
@@ -129,9 +174,8 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
     initializer self#on_wake_up (fun () -> Atomic.set is_up true)
     initializer self#on_sleep (fun () -> Atomic.set is_up false)
 
-    method virtual raw_ffmpeg_content
-        : Content.data ->
-          (int64 * Avutil.rational * (int * 'a Avutil.frame) list) list
+    method private raw_ffmpeg_content content =
+      chunks ((media : ('a, 'params) media).get_data content)
 
     (* Frame metadata is the only channel avfilter gives us, so a liquidsoap
        frame's metadata and its track marks ride along on the first frame we
@@ -189,24 +233,14 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
 
 (** From the script perspective, the operator sending data to a filter graph is
     an output. *)
-class audio_output ~pass_metadata ~name ~frame_t ~field source =
-  object
-    inherit [[ `Audio ]] base_output ~pass_metadata ~name ~frame_t ~field source
+let audio_output ~pass_metadata ~name ~frame_t ~field source =
+  new base_output ~media:audio_media ~pass_metadata ~name ~frame_t ~field source
 
-    method raw_ffmpeg_content content =
-      chunks (Ffmpeg_raw_content.Audio.get_data content)
-  end
+let video_output ~pass_metadata ~name ~frame_t ~field source =
+  new base_output ~media:video_media ~pass_metadata ~name ~frame_t ~field source
 
-class video_output ~pass_metadata ~name ~frame_t ~field source =
-  object
-    inherit [[ `Video ]] base_output ~pass_metadata ~name ~frame_t ~field source
-
-    method raw_ffmpeg_content content =
-      chunks (Ffmpeg_raw_content.Video.get_data content)
-  end
-
-class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
-  frame_t =
+class ['a, 'params] input_base ~media ~name ~field ~pass_metadata ~self_sync
+  ~is_ready ~pull frame_t =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit ['a] duration_converter
@@ -216,10 +250,36 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
     method fallible = true
     method remaining = Generator.remaining self#buffer
     method abort_track = ()
-    method virtual buffer : Generator.t
     method private stream_idx = stream_idx
-    method virtual put_data : length:int -> (int * 'a Avutil.frame) list -> unit
     val mutable output = None
+
+    (* The sink knows the format the graph settled on; hand it to the content
+       type the script was type-checked against. *)
+    method set_output v =
+      let media = (media : ('a, 'params) media) in
+      (match Frame.Fields.find_opt field self#content_type with
+        | None -> ()
+        | Some format ->
+            Content.merge format
+              (media.lift_params (media.context_params v.Avfilter.context)));
+      output <- Some v
+
+    method private put_data ~length data =
+      match data with
+        | [] -> ()
+        | (_, frame) :: _ ->
+            let time_base =
+              Avfilter.time_base (Option.get output).Avfilter.context
+            in
+            let chunk =
+              { Ffmpeg_content_base.length; stream_idx; time_base; data }
+            in
+            Generator.put self#buffer field
+              (media.lift_data
+                 {
+                   Ffmpeg_content_base.params = media.frame_params frame;
+                   chunks = [chunk];
+                 })
 
     method private metadata_timestamps ~time_base frame =
       let get_time d =
@@ -319,80 +379,12 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
       Generator.slice self#buffer size
   end
 
-class audio_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
-  object (self)
-    inherit
-      [[ `Audio ]] input_base
-        ~name:"ffmpeg.filter.audio.output" ~pass_metadata ~self_sync ~is_ready
-          ~pull frame_t
+let audio_input ~field ~pass_metadata ~self_sync ~is_ready ~pull frame_t =
+  new input_base
+    ~media:audio_media ~name:"ffmpeg.filter.audio.output" ~field ~pass_metadata
+    ~self_sync ~is_ready ~pull frame_t
 
-    initializer Typing.(self#frame_type <: frame_t)
-
-    method set_output v =
-      let output_format =
-        {
-          Ffmpeg_raw_content.AudioSpecs.channel_layout =
-            Some Avfilter.(channel_layout v.context);
-          sample_rate = Some Avfilter.(sample_rate v.context);
-          sample_format = Some Avfilter.(sample_format v.context);
-        }
-      in
-      Content.merge
-        (Option.get
-           (Frame.Fields.find_opt Frame.Fields.audio self#content_type))
-        (Ffmpeg_raw_content.Audio.lift_params output_format);
-      output <- Some v
-
-    method put_data ~length =
-      function
-      | [] -> ()
-      | (_, frame) :: _ as data ->
-          let params = Ffmpeg_raw_content.AudioSpecs.frame_params frame in
-          let time_base = Avfilter.(time_base (Option.get output).context) in
-          let d : Avutil.audio Avutil.frame Ffmpeg_content_base.data =
-            { length; stream_idx = self#stream_idx; time_base; data }
-          in
-          let content : Ffmpeg_raw_content.AudioSpecs.data =
-            { params; chunks = [d] }
-          in
-          Generator.put self#buffer field
-            (Ffmpeg_raw_content.Audio.lift_data content)
-  end
-
-class video_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
-  object (self)
-    inherit
-      [[ `Video ]] input_base
-        ~name:"ffmpeg.filter.video.output" ~pass_metadata ~self_sync ~is_ready
-          ~pull frame_t
-
-    method set_output v =
-      let output_format =
-        {
-          Ffmpeg_raw_content.VideoSpecs.width = Some Avfilter.(width v.context);
-          height = Some Avfilter.(height v.context);
-          pixel_format = Some Avfilter.(pixel_format v.context);
-          pixel_aspect = Avfilter.(pixel_aspect v.context);
-        }
-      in
-      Content.merge
-        (Option.get
-           (Frame.Fields.find_opt Frame.Fields.video self#content_type))
-        (Ffmpeg_raw_content.Video.lift_params output_format);
-      output <- Some v
-
-    method put_data ~length =
-      function
-      | [] -> ()
-      | (_, frame) :: _ as data ->
-          let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
-          let time_base = Avfilter.(time_base (Option.get output).context) in
-          let d : Avutil.video Avutil.frame Ffmpeg_content_base.data =
-            { length; stream_idx = self#stream_idx; time_base; data }
-          in
-          let content : Ffmpeg_raw_content.VideoSpecs.data =
-            { params; chunks = [d] }
-          in
-          Generator.put self#buffer field
-            (Ffmpeg_raw_content.Video.lift_data content)
-  end
+let video_input ~field ~pass_metadata ~self_sync ~is_ready ~pull frame_t =
+  new input_base
+    ~media:video_media ~name:"ffmpeg.filter.video.output" ~field ~pass_metadata
+    ~self_sync ~is_ready ~pull frame_t
