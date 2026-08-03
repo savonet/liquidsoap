@@ -1,8 +1,22 @@
+; -linkall: operators, builtins, protocols and decoders all register
+; themselves through a top-level side effect and are referenced by nothing, so
+; every module has to be linked whether or not anything mentions it. Stated
+; here, once, because -linkall is a property of the link and not of any one
+; library. Without it operators silently disappear from the binary: no compile
+; error, no link error, just a missing function at runtime.
+;
+; dune also happens to pass -linkall here of its own accord, because the
+; project uses dune_site and src/lang/data/dune declares a
+; (generate_sites_module). Do not rely on that: it is an implementation detail
+; of dune_site, and removing the sites module would take operator registration
+; with it.
+
 (executable
  (name liquidsoap)
  (public_name liquidsoap)
  (package liquidsoap)
  (link_flags
+  -linkall
   -cclib
   %{env:LIQUIDSOAP_LDFLAGS=}
   (:include macos_link_flags.sexp))
