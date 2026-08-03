@@ -192,14 +192,34 @@ class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
       if Frame.has_track_marks memo then (track_mark_metadata, "1") :: metadata
       else metadata
 
+    (* Waits here until there is a frame to carry it: the duration converter
+       holds frames back, so a liquidsoap frame can arrive with metadata before
+       anything is pushed. Later entries win, so that a key set twice before the
+       next push takes its latest value. *)
+    val mutable pending = []
+
+    method private queue_metadata memo =
+      pending <-
+        List.fold_left
+          (fun acc (k, v) -> (k, v) :: List.remove_assoc k acc)
+          pending (self#graph_metadata memo)
+
+    method private push frame =
+      (match pending with
+        | [] -> ()
+        | metadata ->
+            Avutil.Frame.set_metadata frame metadata;
+            pending <- []);
+      input (`Frame frame)
+
     method send_frame memo =
+      self#queue_metadata memo;
       match self#raw_ffmpeg_content (Frame.get memo field) with
         | [] -> ()
         | chunks ->
             (match chunks with
               | (_, _, (_, frame) :: _) :: _ -> init frame
               | _ -> ());
-            let pending = ref (self#graph_metadata memo) in
             List.iter
               (fun (stream_idx, time_base, data) ->
                 List.iter
@@ -210,15 +230,7 @@ class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
                     with
                       | None -> ()
                       | Some (_, frames) ->
-                          List.iter
-                            (fun (_, frame) ->
-                              (match !pending with
-                                | [] -> ()
-                                | metadata ->
-                                    Avutil.Frame.set_metadata frame metadata;
-                                    pending := []);
-                              input (`Frame frame))
-                            frames)
+                          List.iter (fun (_, frame) -> self#push frame) frames)
                   data)
               chunks
 
@@ -229,7 +241,7 @@ class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
     method flush_input =
       if not flushed then (
         flushed <- true;
-        List.iter (fun (_, frame) -> input (`Frame frame)) self#flush_duration;
+        List.iter (fun (_, frame) -> self#push frame) self#flush_duration;
         input `Flush)
 
     initializer self#on_sleep (fun () -> self#flush_input)
