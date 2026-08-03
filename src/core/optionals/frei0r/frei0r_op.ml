@@ -227,7 +227,7 @@ let params plugin info =
               Some (info.Frei0r.param_explanation ^ ".") )
         with Exit -> None)
   in
-  let liq_params = List.filter_map id liq_params in
+  let liq_params = List.filter_map Fun.id liq_params in
   (* Initialize parameters and produce function to update float getters. *)
   let params instance p =
     let on_changed x0 =
@@ -278,7 +278,7 @@ let params plugin info =
                   None
           with Not_found -> None)
     in
-    let act = List.filter_map id act in
+    let act = List.filter_map Fun.id act in
     fun () -> List.iter (fun f -> f ()) act
   in
   (liq_params, params)

@@ -50,7 +50,7 @@ let handler path (data : Osc.Types.argument array) =
   try
     let t = Array.map typ data in
     let v = Array.map value data in
-    let h = List.assoc_all (path, t) !handlers in
+    let h = assoc_all (path, t) !handlers in
     List.iter (fun f -> f v) h
   with _ -> ()
 

@@ -1,50 +1,41 @@
-let id x = x
+(* Helpers the stdlib does not have.
 
-module Array = struct
-  include Array
+   Flat on purpose. These used to live in `module List = struct include List
+   ... end` and the same for Array, Unix and Int, so that a file doing `open
+   Extralib` had the whole of List, Array and Unix silently redirected through
+   here to pick up four extra functions. `module String` had ended up with
+   nothing left in it at all. *)
 
-  (** Perfect Fisher-Yates shuffle
-      (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
-  let shuffle a =
-    let permute i j =
-      let tmp = a.(i) in
-      a.(i) <- a.(j);
-      a.(j) <- tmp
-    in
-    let l = Array.length a in
-    for i = 0 to l - 1 do
-      permute i (i + Random.int (l - i))
-    done
-end
+let rec assoc_nth key n = function
+  | [] -> raise Not_found
+  | (k, v) :: t when k = key -> if n = 0 then v else assoc_nth key (n - 1) t
+  | _ :: t -> assoc_nth key n t
 
-module List = struct
-  include List
+let assoc_all key l =
+  List.filter_map (fun (k, v) -> if k = key then Some v else None) l
 
-  let rec assoc_nth l n = function
-    | [] -> raise Not_found
-    | (x, v) :: t when x = l -> if n = 0 then v else assoc_nth l (n - 1) t
-    | _ :: t -> assoc_nth l n t
+let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
 
-  let assoc_all x l =
-    filter_map (fun (y, v) -> if x = y then Some v else None) l
+(* The first [n] elements of [l], or all of them if it is shorter. *)
+let rec prefix n l =
+  match l with
+    | [] -> []
+    | x :: l -> if n = 0 then [] else x :: prefix (n - 1) l
 
-  let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
+(** Perfect Fisher-Yates shuffle
+    (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
+let shuffle l =
+  let a = Array.of_list l in
+  let len = Array.length a in
+  for i = 0 to len - 1 do
+    let j = i + Random.int (len - i) in
+    let tmp = a.(i) in
+    a.(i) <- a.(j);
+    a.(j) <- tmp
+  done;
+  Array.to_list a
 
-  let rec prefix n l =
-    match l with
-      | [] -> []
-      | x :: l -> if n = 0 then [] else x :: prefix (n - 1) l
-
-  let shuffle l =
-    let a = Array.of_list l in
-    Array.shuffle a;
-    Array.to_list a
-end
-
-module String = struct
-  include String
-end
-
+(* Keep reading until [len] bytes have been read or [read] returns 0. *)
 let read_retry read buf off len =
   let r = ref 0 in
   let loop = ref true in
@@ -55,21 +46,4 @@ let read_retry read buf off len =
   done;
   !r
 
-module Unix = struct
-  include Unix
-
-  let read_retry fd = read_retry (read fd)
-end
-
-module Int = struct
-  include Int
-
-  let find p =
-    let ans = ref 0 in
-    try
-      while true do
-        if p !ans then raise Exit else incr ans
-      done;
-      assert false
-    with Exit -> !ans
-end
+let read_retry_fd fd = read_retry (Unix.read fd)

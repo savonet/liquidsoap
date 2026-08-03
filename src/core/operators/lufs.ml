@@ -247,7 +247,7 @@ class lufs window true_peak_enabled source =
       loudness (List.mean relative)
 
     (** Momentary LUFS. *)
-    method lufs_momentary = loudness (List.mean (List.prefix 4 ms_blocks))
+    method lufs_momentary = loudness (List.mean (prefix 4 ms_blocks))
 
     method private process_frame frame =
       Generator.append self#buffer frame;
@@ -264,7 +264,7 @@ class lufs window true_peak_enabled source =
         ms_blocks <- power :: ms_blocks
       done;
       (* Keep only a limited (by the window) number of blocks. *)
-      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
+      ms_blocks <- prefix (int_of_float (window () /. 0.1)) ms_blocks
 
     method private generate_frame =
       let frame = source#get_frame in

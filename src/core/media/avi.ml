@@ -374,7 +374,7 @@ module Read = struct
         | _ -> ())
       h;
     let streams = List.rev !streams in
-    match List.last headers with
+    match last headers with
       | `movi len -> (streams, len)
       | _ -> raise (Invalid "Does not contain movi.")
 end
