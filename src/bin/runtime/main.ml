@@ -116,7 +116,7 @@ let eval () =
   Lifecycle.load ();
   (* Register settings module. Needs to be done last to make sure every
      dependent OCaml module has been linked. *)
-  Stdlib.Lazy.force Builtins_settings.settings_module;
+  Stdlib.Lazy.force Liquidsoap_builtins.Builtins_settings.settings_module;
   let scripts = Queue.flush_elements to_load in
   let script =
     String.concat "\n"
@@ -479,7 +479,7 @@ See <http://liquidsoap.info> for more information.
             (fun () ->
               with_toplevel (fun () ->
                   Lang_string.print_string ~pager:true
-                    (Builtins_settings.print_settings ()))),
+                    (Liquidsoap_builtins.Builtins_settings.print_settings ()))),
           "Display configuration keys in markdown format." );
         ( ["--unsafe"],
           Arg.Unit (fun () -> Typing.do_occur_check := false),

@@ -20,21 +20,28 @@
 
  *****************************************************************************)
 
-let log = Log.make ["playlist"; "xml"]
+(** Builtins that need the streaming engine. *)
 
-let tracks ?pwd s =
-  try
-    let recode_metas m =
-      let f = Charset.convert in
-      List.map (fun (a, b) -> (f a, f b)) m
-    in
-    List.map
-      (fun (a, b) -> (recode_metas a, Playlist_parser.get_file ?pwd b))
-      (Xmlplaylist.tracks s)
-  with Xmlplaylist.Error e ->
-    log#debug "Parsing failed: %s" (Xmlplaylist.string_of_error e);
-    raise (Xmlplaylist.Error e)
-
-let _ =
-  Liquidsoap_builtins.Builtins_resolvers.add_playlist_parser ~format:"XML" "xml"
-    tracks
+module Builtins_callbacks = Builtins_callbacks
+module Builtins_clock = Builtins_clock
+module Builtins_cry = Builtins_cry
+module Builtins_files = Builtins_files
+module Builtins_format = Builtins_format
+module Builtins_harbor = Builtins_harbor
+module Builtins_http = Builtins_http
+module Builtins_mem_usage = Builtins_mem_usage
+module Builtins_metadata = Builtins_metadata
+module Builtins_process = Builtins_process
+module Builtins_request = Builtins_request
+module Builtins_resolvers = Builtins_resolvers
+module Builtins_runtime = Builtins_runtime
+module Builtins_server = Builtins_server
+module Builtins_settings = Builtins_settings
+module Builtins_socket = Builtins_socket
+module Builtins_source = Builtins_source
+module Builtins_string_extra = Builtins_string_extra
+module Builtins_sys = Builtins_sys
+module Builtins_thread = Builtins_thread
+module Builtins_time = Builtins_time
+module Builtins_track = Builtins_track
+module Playlist_basic = Playlist_basic
