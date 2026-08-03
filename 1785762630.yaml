@@ -1,0 +1,127 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.309122800827
+  unit: "s"
+  time: 1785762383.3
+  min: 0.0
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.596317052841
+  unit: "s"
+  time: 1785762383.9
+  min: 0.0
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.10789203644
+  unit: "s"
+  time: 1785762385.0
+  min: 0.0
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 2.80524587631
+  unit: "s"
+  time: 1785762387.81
+  min: 0.0
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.06788897514
+  unit: "s"
+  time: 1785762393.09
+  min: 0.0
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 9.81570482254
+  unit: "s"
+  time: 1785762406.01
+  min: 0.0
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 15.4049890041
+  unit: "s"
+  time: 1785762421.41
+  min: 0.0
+
+- name: "functions"
+  category: "language"
+  value: 1645.0
+  unit: "functions"
+  time: 1785762463.51
+
+- name: "protocols"
+  category: "language"
+  value: 24.0
+  unit: "protocols"
+  time: 1785762463.51
+
+- name: "Memory usage: process private memory"
+  category: "memory"
+  value: 60.40234375
+  unit: "MiB"
+  time: 1785762464.93
+  min: 0.0
+
+- name: "Memory usage: process swapped memory"
+  category: "memory"
+  value: 0.0
+  unit: "MiB"
+  time: 1785762464.93
+  min: 0.0
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 117.44140625
+  unit: "MiB"
+  time: 1785762464.93
+  min: 0.0
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 1199.66015625
+  unit: "MiB"
+  time: 1785762464.93
+  min: 0.0
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 15659.3632812
+  unit: "MiB"
+  time: 1785762464.93
+  min: 0.0
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 19755.359375
+  unit: "MiB"
+  time: 1785762464.93
+  min: 0.0
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 14532.46875
+  unit: "MiB"
+  time: 1785762464.93
+  min: 0.0
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 14532.4921875
+  unit: "MiB"
+  time: 1785762464.93
+  min: 0.0
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 314.067070007
+  unit: "Mio"
+  time: 1785762537.44
+  min: 0.0
+
+- commit: dd62b0a7829c472963d00502fd43a9307d40d798
+  branch: main
+  time: 1785762630
