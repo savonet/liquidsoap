@@ -422,8 +422,6 @@ let mk_check_position ~streams ~target_position () =
 
 let mk_decoder ~streams ~target_position ~state container =
   let check_position = mk_check_position ~streams ~target_position () in
-  (* [Av.read_input] wants one list per media type and mode; collect them all in
-     a single pass. *)
   let ( audio_frame,
         audio_packet,
         video_frame,
@@ -617,8 +615,7 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
                 (Ffmpeg_raw_decoder.mk_video_decoder ~stream_idx ~format ~stream
                    ~field params)
           | Some format when Content.Video.is_format format ->
-              (* Offer the source file's dimensions as the ideal size before
-                 reading back the negotiated ones. *)
+              (* Offered as ideal size; the negotiated ones are read back below. *)
               let ideal_size =
                 Frame.
                   {

@@ -33,11 +33,10 @@ module InternalScaler = Ffmpeg_internal_encoder.InternalScaler
 
 type source_idx = { source : Source.source; idx : int64 }
 
-(* Inline encoders wrapping the same source share a stream index, so that the
-   copy encoder can tell their outputs belong together. Entries are compared by
-   physical equality and hashed on the source id, which is fixed when the source
-   is created and so cannot change under the table. A missed lookup would only
-   hand out a fresh index, never break. *)
+(* Inline encoders of the same source share a stream index, so that the copy
+   encoder can tell their outputs belong together. Hashing on the source id is
+   safe because it is fixed at creation; a missed lookup would only hand out a
+   fresh index. *)
 module SourceIdx = Weak.Make (struct
   type t = source_idx
 

@@ -52,8 +52,8 @@ let params { params; _ } = params
 let length { chunks; _ } =
   List.fold_left (fun cur chunk -> cur + chunk.length) 0 chunks
 
-(* Digests position, stream and time base alongside the payload so that two
-   chunks holding the same frames at different offsets do not collide. *)
+(* Position, stream and time base are digested too: the same frames at
+   different offsets are different content. *)
 let checksum ~checksum_of_item { chunks; _ } =
   let chunk_checksum { stream_idx; time_base; data; _ } =
     String.concat "|"

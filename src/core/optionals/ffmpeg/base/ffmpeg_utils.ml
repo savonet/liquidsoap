@@ -105,9 +105,8 @@ let liq_audio_sample_time_base () =
 let liq_video_sample_time_base () =
   { Avutil.num = 1; den = Lazy.force Frame.video_rate }
 
-(* [None] when the setting holds a value swscale does not know. Callers report
-   it their own way: the encoder can point at the script position, the inline
-   one cannot. *)
+(* Callers report an unknown value their own way: the container encoder can
+   point at the script position, the inline one cannot. *)
 let scaling_algorithm () =
   match conf_scaling_algorithm#get with
     | "fast_bilinear" -> Some Swscale.Fast_bilinear

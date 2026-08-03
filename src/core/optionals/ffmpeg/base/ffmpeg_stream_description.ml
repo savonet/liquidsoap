@@ -364,7 +364,6 @@ let container ?format ~url container =
       data_streams
   in
 
-  (* All four collectors prepend, so each list is in reverse stream order. *)
   let streams =
     List.rev audio_stream_infos
     @ List.rev video_stream_infos

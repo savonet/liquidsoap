@@ -42,7 +42,6 @@ type sink = {
   field : Frame.field;
   (* [false] until the graph is launched and this sink is connected. *)
   connected : unit -> bool;
-  (* Move whatever the sink has ready into the generator. *)
   drain : generator:Generator.t -> unit;
   (* [true] once the graph has told this sink nothing more is coming. *)
   eof : unit -> bool;
@@ -89,9 +88,8 @@ class source ~name ~pull ~is_ready ~self_sync () =
                self#id max_buffer)
           "ffmpeg.filter"
 
-    (* Ticking the graph's inputs is what makes its outputs produce, so alternate
-       between draining the sinks and asking the inputs for more, until we have a
-       frame or the inputs run out. *)
+    (* Ticking the inputs is what makes the outputs produce, hence the
+       alternation. *)
     method private fill_buffer =
       let size = Lazy.force Frame.size in
       let rec loop () =
@@ -107,8 +105,7 @@ class source ~name ~pull ~is_ready ~self_sync () =
           pull ();
           loop ())
       in
-      (* Until the graph is launched there are no sinks to read from: ticking
-         the inputs is what gets it there. *)
+      (* Ticking the inputs is also what gets the graph launched. *)
       let rec wait_for_launch () =
         if not (List.for_all (fun sink -> sink.connected ()) sinks) then
           if is_ready () then (

@@ -72,7 +72,6 @@ type graph = {
   mutable failed : bool;
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
-  (* All outputs are fields of one source, created on the first of them. *)
   mutable graph_source : Ffmpeg_filter_graph.source option;
   mutable audio_outputs : int;
   mutable video_outputs : int;
@@ -115,10 +114,7 @@ let pull graph =
 let self_sync graph source =
   (Clock_base.self_sync ~source (Queue.elements graph.graph_inputs)) ()
 
-(* Every output of a graph is a field of the same source: they are produced
-   together, so they share a buffer, a readiness test and a set of track
-   marks. Created on the first output, since a graph with none needs no
-   source at all. *)
+(* Created on the first output: a graph with none needs no source. *)
 let graph_source graph =
   match graph.graph_source with
     | Some s -> s
@@ -766,9 +762,7 @@ let _ =
         | Some s -> Clock.unify ~pos:s#pos output_clock s#clock);
       (* We need an early registration for sources such as source.dynamic. *)
       Clock.register_sub_clock output_clock input_clock;
-      (* One source for the whole graph, so the sub-clock registration follows
-         it directly rather than being reference counted across outputs. *)
-        (match graph.graph_source with
+      (match graph.graph_source with
         | None -> ()
         | Some s ->
             s#on_wake_up (fun () ->
