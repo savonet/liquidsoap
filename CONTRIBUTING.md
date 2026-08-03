@@ -102,6 +102,14 @@ may only depend on the ones above it in this table. The layering is enforced by
 the build: `liquidsoap-lang.types` cannot reach a value or a term even by
 accident.
 
+Each library has a top-level module -- `src/lang/<dir>/liquidsoap_lang_<dir>.mli`
+-- listing exactly the modules it exports. Everything else in the directory is
+private to the library, so `Term_reducer` is reachable but the six
+`term_reducer_*` modules behind it are not. Consumers get the exported modules
+unqualified through `-open`, which is why the code reads `Term.` and `Type.`
+rather than `Liquidsoap_lang_ast.Term.`. When you add a module, it stays
+internal until you add it to that `.mli`.
+
 | Library                   | Directory           | Purpose                                                                                                                     |
 | ------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `liquidsoap-lang.prelude` | `src/lang/prelude/` | Leaf utilities everything needs: source positions, string escaping and quoting, the hash used for caching.                  |

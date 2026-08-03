@@ -10,10 +10,19 @@
  (name liquidsoap_tooling)
  (public_name liquidsoap-lang.tooling)
  (flags
-  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+  (:standard
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_parser
+   -open
+   Liquidsoap_lang_prelude))
  (libraries
   sedlex
   liquidsoap-lang.ast
   liquidsoap-lang.data
+  liquidsoap-lang.parser
   liquidsoap-lang.prelude
   liquidsoap_lang))

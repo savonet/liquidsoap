@@ -7,9 +7,20 @@
 (library
  (name liquidsoap_lang_reducer)
  (public_name liquidsoap-lang.reducer)
- (wrapped false)
  (flags
-  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+  (:standard
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_parser
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_values))
  (libraries
   liquidsoap-lang.ast
   liquidsoap-lang.data

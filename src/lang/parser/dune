@@ -38,9 +38,18 @@
 (library
  (name liquidsoap_lang_parser)
  (public_name liquidsoap-lang.parser)
- (wrapped false)
  (flags
-  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+  (:standard
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_values))
  (preprocess
   (pps sedlex.ppx))
  (libraries

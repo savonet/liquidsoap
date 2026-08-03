@@ -73,7 +73,7 @@
  (name liquidsoap_lang_data)
  (public_name liquidsoap-lang.data)
  (flags
-  (:standard -open Liquidsoap_lang_prelude))
+  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_types))
  (preprocess
   (pps sedlex.ppx ppx_hash))
  (libraries

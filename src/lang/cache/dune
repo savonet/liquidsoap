@@ -4,9 +4,16 @@
 (library
  (name liquidsoap_lang_cache)
  (public_name liquidsoap-lang.cache)
- (wrapped false)
  (flags
-  (:standard -open Liquidsoap_lang_prelude -open Liquidsoap_lang_data))
+  (:standard
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_values))
  (preprocess
   (pps ppx_hash))
  (libraries
