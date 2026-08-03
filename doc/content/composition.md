@@ -53,6 +53,15 @@ jingle's turn comes up, the switch **waits for the current song to finish**.
 The jingle then starts cleanly at the boundary, with no fade — nothing was
 interrupted, so there is nothing to fade.
 
+`weight` says how many tracks in a row `rotate` takes from a source before
+moving on — three songs, then one jingle. `random` uses the same method as a
+relative probability instead. It defaults to `1`, and it is a getter, so it can
+change while the stream runs:
+
+```liquidsoap
+radio = rotate([music.{weight = {if night() then 6 else 3 end}}, jingles])
+```
+
 ## A show on a schedule
 
 ```liquidsoap
@@ -93,6 +102,10 @@ radio = fallback([announcements.{track_sensitive = false}, music])
 as something lands in the queue, the song is faded out and the announcement
 plays.
 
+The fade only applies when the leaving source carries **PCM audio and nothing
+else**. Video streams and encoded audio (`ffmpeg.copy`) cannot be mixed, so
+those switch immediately instead.
+
 This is the general rule for interruptions:
 
 > A switch cuts into a song that is still playing only if **at least one** of
@@ -119,6 +132,21 @@ radio = fallback([live_show, relay, music])
 defaults a source gets. It is chosen automatically — inputs that run on their
 own are live, files are not — and you only set it when a source does not behave
 like its type suggests.
+
+Operators that wrap a source inherit its type, and operators that combine
+several are file-based only if all of their children are. Two cases are worth
+knowing about, because there is nothing static to inherit from:
+
+- `buffer` reports `"live"` even around a playlist. It is a generator on its own
+  clock, so it has no child to inherit from. If you use `buffer` to resolve a
+  clock conflict around file content, set `composition_type := "file"` on it.
+- `source.dynamic` reports `"live"` while it holds nothing.
+
+You can always ask a source what it settled on:
+
+```liquidsoap
+print(s.composition_type())
+```
 
 ## Never the same jingle twice in a row
 
@@ -171,6 +199,20 @@ you stop it, and the leaving source is only cleaned up once nothing pulls from
 it any more. Without a bound, `add` would pull from it forever and the cleanup
 would never run.
 
+`on_select` runs **in the streaming thread**, and the source graph you build in
+it is created and started right there, then torn down when the handoff is over.
+Keep it cheap: no blocking calls, no file or network access.
+
+To keep the previous behaviour, where switching mid-track cut straight over with
+no fade, there is a ready-made transition:
+
+```liquidsoap
+radio = fallback([s1.{on_select = source.composition.legacy_on_select}, s2])
+```
+
+It still replays metadata when `replay_metadata` is `true`; it just returns
+`starting` directly.
+
 ## Cleaning up after a source
 
 The counterpart to `on_select` is `on_leave`, which belongs to the source being
@@ -185,17 +227,40 @@ radio =
   ])
 ```
 
-`track_sensitive` here tells you _how_ it ended: `true` if it played to a track
-boundary, `false` if it was interrupted. This is what the default file behaviour
-uses to decide to skip a half-played track so the source starts fresh next time.
+`on_leave` fires on **every** handoff, and `track_sensitive` tells you _how_ it
+ended: `true` if the source had nothing left for its current track — it reached a
+boundary, or simply became unavailable — and `false` if the switch cut into a
+track it was still playing. That is the switch's own account of the handoff, not
+something the source reports. This is what the default file behaviour uses to
+decide to skip a half-played track so the source starts fresh next time.
+
+Like `on_select`, `on_leave` runs in the streaming thread and must return
+quickly. It is handed the internal proxy wrapping your source, so its `id()`
+reads as `yoursource.proxy`; the source methods you would expect (`skip`,
+`clear_last_metadata`, …) all work on it.
 
 ## Where the defaults come from
 
 Two global profiles hold the defaults, `source.composition.file` and
 `source.composition.live`. Each carries `on_select`, `on_leave`,
-`track_sensitive` and `replay_metadata`, and you can replace either wholesale to
-change the behaviour of every source of that type. `max_fade` controls the
-default fade length:
+`track_sensitive` and `replay_metadata`. They are set by calling them with a
+complete profile record — there is no getter, so you have to give all four
+fields:
+
+```liquidsoap
+source.composition.live(
+  {
+    on_select = source.composition.legacy_on_select,
+    on_leave = fun (_) -> (),
+    track_sensitive = false,
+    replay_metadata = true
+  }
+)
+```
+
+All four are looked up when they are needed rather than captured when a source
+is built, so replacing a profile — or flipping a source's `composition_type` —
+takes effect on sources that already exist. `max_fade` works the same way:
 
 ```liquidsoap
 settings.source.composition.max_fade := 2.
@@ -209,4 +274,5 @@ liquidsoap -h playlist
 
 The **Composition methods** section lists `composition_type`,
 `track_sensitive`, `replay_metadata`, `single`, `on_select` and `on_leave`,
-along with the defaults in force.
+along with the defaults in force. Outputs have no such section: they are the end
+of the graph and never participate in a handoff.

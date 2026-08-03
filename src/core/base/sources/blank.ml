@@ -26,7 +26,6 @@ open Source
 class blank d =
   object (self)
     inherit source ~name:"blank" ()
-    initializer self#set_composition `Live
 
     val position : [ `New_track | `Elapsed of int ] Atomic.t =
       Atomic.make `New_track

@@ -723,11 +723,15 @@ let source_composition_methods : source_meth list =
     };
     {
       name = "replay_metadata";
-      scheme = (fun _ -> ([], bool_t));
+      scheme = (fun _ -> ([], getter_t bool_t));
       descr =
         "Whether to replay the latest metadata on this source when it is \
-         selected in a switch operator. Defaults to `true`.";
-      value = (fun s -> bool (profile_of s).replay_metadata);
+         selected in a switch operator. Defaults to `true`. The value is \
+         looked up at runtime from the active composition profile \
+         (`source.composition.file` or `source.composition.live` depending on \
+         `composition_type`).";
+      value =
+        (fun s -> val_fun [] (fun _ -> bool (profile_of s).replay_metadata));
     };
     {
       name = "on_leave";

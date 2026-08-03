@@ -1,3 +1,28 @@
+# Type the children of a switch wrapper with their optional composition
+# methods and fill in the default `weight`. Shared by the wrappers below so
+# that the method list is written down once.
+# @category Source / Track processing
+# @flag hidden
+def source.composition.children(sources) =
+  sources =
+    (sources :
+      [
+        source.{
+          on_select?: (
+            {ending: source?, replay_metadata: bool, starting: source}
+          )->source,
+          on_leave?: ({source: source, track_sensitive: bool})->unit,
+          replay_metadata?: getter(bool),
+          single?: bool,
+          track_sensitive?: getter(bool),
+          weight?: getter(int)
+        }
+      ]
+    )
+
+  list.map(fun (s) -> s.{weight = s?.weight ?? getter(1)}, sources)
+end
+
 # At the beginning of each track, select the first ready child.
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
@@ -9,22 +34,7 @@ end
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
 def rotate(~id=null, sources) =
-  sources =
-    (sources :
-      [
-        source.{
-          on_select?: (
-            {ending: source?, replay_metadata: bool, starting: source}
-          )->source,
-          on_leave?: ({source: source, track_sensitive: bool})->unit,
-          single?: bool,
-          track_sensitive?: getter(bool),
-          weight?: getter(int)
-        }
-      ]
-    )
-
-  sources = list.map(fun (s) -> s.{weight=s?.weight ?? getter(1)}, sources)
+  sources = source.composition.children(sources)
   failed = (source.fail() : source)
 
   # Currently selected index
@@ -117,22 +127,7 @@ end
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
 def replaces random(~id=null, sources) =
-  sources =
-    (sources :
-      [
-        source.{
-          on_select?: (
-            {ending: source?, replay_metadata: bool, starting: source}
-          )->source,
-          on_leave?: ({source: source, track_sensitive: bool})->unit,
-          single?: bool,
-          track_sensitive?: getter(bool),
-          weight?: getter(int)
-        }
-      ]
-    )
-
-  sources = list.map(fun (s) -> s.{weight=s?.weight ?? getter(1)}, sources)
+  sources = source.composition.children(sources)
   next_index = ref(-1)
 
   def pick() =

@@ -57,6 +57,10 @@ that will be used to produce data in the next round of the streaming loop.
 For instance, in the above, only one of the two sources will ever be used to produce data. If it is `single`, the source
 is CPU-controled, otherwise it is `self-sync`.
 
+Which of the two is playing at a given moment is a separate question, answered by
+[source composition](composition.html): `input.srt` is a live source, so it cuts into
+`single` mid-track rather than waiting for the end of the file.
+
 ### Synchronization conflicts ⚠️
 
 In some cases, you may have to fix synchronization conflicts. For instance:

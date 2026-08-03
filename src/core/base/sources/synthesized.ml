@@ -24,7 +24,6 @@ class virtual source ~name duration =
   let track_size = Option.map Frame.main_of_seconds duration in
   object (self)
     inherit Source.source ~name ()
-    initializer self#set_composition `Live
     method fallible = track_size <> None
     val mutable remaining = track_size
     method private can_generate_frame = remaining <> Some 0

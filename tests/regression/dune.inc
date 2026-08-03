@@ -2013,6 +2013,75 @@
    switch_autodj_jingle_metadata.liq)))
 
 (rule
+ (alias test_switch_infallible_across_transition)
+ (package liquidsoap)
+ (deps
+  switch_infallible_across_transition.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_infallible_across_transition
+   liquidsoap
+   %{test_liq}
+   switch_infallible_across_transition.liq)))
+
+(rule
+ (alias test_switch_on_leave_chained)
+ (package liquidsoap)
+ (deps
+  switch_on_leave_chained.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_on_leave_chained
+   liquidsoap
+   %{test_liq}
+   switch_on_leave_chained.liq)))
+
+(rule
+ (alias test_switch_on_leave_track_boundary)
+ (package liquidsoap)
+ (deps
+  switch_on_leave_track_boundary.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_on_leave_track_boundary
+   liquidsoap
+   %{test_liq}
+   switch_on_leave_track_boundary.liq)))
+
+(rule
  (alias test_switch_per_source_no_reselect_during_fade)
  (package liquidsoap)
  (deps
@@ -2349,6 +2418,9 @@
   (alias test_source_cleanup)
   (alias test_source_dynamic)
   (alias test_switch_autodj_jingle_metadata)
+  (alias test_switch_infallible_across_transition)
+  (alias test_switch_on_leave_chained)
+  (alias test_switch_on_leave_track_boundary)
   (alias test_switch_per_source_no_reselect_during_fade)
   (alias test_switch_per_source_on_leave)
   (alias test_switch_per_source_on_select)

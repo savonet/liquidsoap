@@ -16,21 +16,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param sources Sequence of sources to be merged.
 def rotate.merge(~id=null("rotate.merge"), sources) =
-  sources =
-    (sources :
-      [
-        source.{
-          on_select?: (
-            {ending: source?, replay_metadata: bool, starting: source}
-          )->source,
-          on_leave?: ({source: source, track_sensitive: bool})->unit,
-          single?: bool,
-          track_sensitive?: getter(bool),
-          weight?: getter(int)
-        }
-      ]
-    )
-
+  sources = source.composition.children(sources)
   ready = ref(true)
   duration = frame.duration()
 
@@ -41,6 +27,11 @@ def rotate.merge(~id=null("rotate.merge"), sources) =
     )
   end
 
+  # `to_first` replaces the first source's own `on_select`: it is what flips
+  # `ready` and pads the round with a blank frame so merged tracks stay
+  # separable. The two branches only unify as bare sources, which drops the
+  # composition methods from the *type*; `rotate` re-derives them from the
+  # values, which still carry them.
   sources =
     list.mapi(
       fun (i, (s:source)) ->

@@ -692,46 +692,33 @@ module Log = struct
   (* Avoid interlacing logs *)
   let log_mutex = Mutex.create ()
   let log_condition = Condition.create ()
-  let log_queue = ref (Queue.create ())
+
+  (* Pending entries, newest first. Enqueueing must not take [log_mutex]: it
+     allocates, so a GC finalizer that logs would re-enter and deadlock. A CAS
+     on the whole list keeps the producer side lock-free, leaving the mutex to
+     guard only the condition variable, which never allocates. *)
+  let log_queue : pending_entry list Atomic.t = Atomic.make []
   let log_stop = ref false
   let log_thread = ref None
-  let log_mutex_owner : int Atomic.t = Atomic.make (-1)
 
   let mutexify f x =
-    let tid = Thread.id (Thread.self ()) in
-    if Atomic.get log_mutex_owner = tid then
-      (* Re-entrant call from the same thread (e.g. a GC finalizer firing
-         during an allocation inside the log queue push). Just run f
-         directly — the outer call's lock already serializes us. *)
-      f x
-    else begin
-      Mutex.lock log_mutex;
-      Atomic.set log_mutex_owner tid;
-      try
-        let ret = f x in
-        Atomic.set log_mutex_owner (-1);
-        Mutex.unlock log_mutex;
-        ret
-      with e ->
-        Atomic.set log_mutex_owner (-1);
-        Mutex.unlock log_mutex;
-        raise e
-    end
+    Mutex.lock log_mutex;
+    try
+      let ret = f x in
+      Mutex.unlock log_mutex;
+      ret
+    with e ->
+      Mutex.unlock log_mutex;
+      raise e
 
-  let rotate_queue () =
-    let new_q = Queue.create () in
-    mutexify
-      (fun () ->
-        let q = !log_queue in
-        log_queue := new_q;
-        q)
-      ()
+  let rotate_queue () = List.rev (Atomic.exchange log_queue [])
 
   let flush_queue () =
-    let rec flush q =
-      Queue.iter print q;
-      let q = rotate_queue () in
-      if not (Queue.is_empty q) then flush q
+    let rec flush = function
+      | [] -> ()
+      | entries ->
+          List.iter print entries;
+          flush (rotate_queue ())
     in
     flush (rotate_queue ())
 
@@ -744,20 +731,29 @@ module Log = struct
         mutexify
           (fun () ->
             if !log_stop then true
-            else begin
-              Condition.wait log_condition log_mutex;
-              !log_stop
-            end)
+            else (
+              (* Entries pushed since the flush above would otherwise be missed
+                 until the next signal. *)
+                match Atomic.get log_queue with
+                | _ :: _ -> false
+                | [] ->
+                    Condition.wait log_condition log_mutex;
+                    !log_stop))
           ()
       in
       if not log_stop then f ()
     in
     f ()
 
-  let proceed =
-    mutexify (fun entry ->
-        Queue.push entry !log_queue;
-        Condition.signal log_condition)
+  let proceed entry =
+    let rec push () =
+      let pending = Atomic.get log_queue in
+      if not (Atomic.compare_and_set log_queue pending (entry :: pending)) then
+        push ()
+    in
+    push ();
+    (* Signalling under the lock is what makes the wait above race-free. *)
+    mutexify (fun () -> Condition.signal log_condition) ()
 
   let make path : t =
     let path_str = Conf.string_of_path path in

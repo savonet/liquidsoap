@@ -159,6 +159,30 @@ s = switch(single=[true, false], [({cond1}, s1), ({cond2}, s2)])
 s = switch([({cond1}, s1.{single = true}), ({cond2}, s2)])
 ```
 
+#### `weights` on `rotate` and `random` (moved to a per-source method)
+
+The `weights` list is gone. Weights were positional, so a list shorter than the source list was silently padded with `1`; each source now carries its own `weight`, defaulting to `1`.
+
+**Before:**
+
+```liquidsoap
+s = rotate(weights=[3, 1], [music, jingles])
+s = random(weights=[2, 1], [music, jingles])
+```
+
+**After:**
+
+```liquidsoap
+s = rotate([music.{weight = 3}, jingles.{weight = 1}])
+s = random([music.{weight = 2}, jingles])
+```
+
+`weight` is a getter, so it can vary at runtime: `music.{weight = {if peak_hour() then 5 else 3 end}}`.
+
+#### `rotate.merge`
+
+`rotate.merge` no longer takes `transitions` or `weights` either. Use `weight` on the sources, exactly as with `rotate`. Note that `rotate.merge` installs its own `on_select` on the **first** source — that is how it pads the round and keeps the merged tracks separable — so an `on_select` set on the first source is ignored.
+
 #### `transitions`, `transition_length`, `override` (breaking change)
 
 The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source. See [source composition](composition.html) for the concepts behind them:
@@ -253,6 +277,14 @@ s = input.http("https://relay.example.com/stream")
 s.composition_type := "file"
 s = fallback([live_show, s, backup])
 ```
+
+#### Stdlib operators that used to pin `track_sensitive`
+
+Several operators are built on top of `fallback` and used to pass a fixed `track_sensitive`. They now inherit it from the source they wrap, so their behavior follows that source's composition type: `append`, `prepend`, `fallback.skip`, `map_first_track`, `overlap_sources` and the deprecated `fade.final`. If you relied on one of them switching (or not switching) mid-track regardless of its input, set `track_sensitive` on the source you pass in.
+
+`mksafe` is the exception: it pins `source.composition.legacy_on_select` on both branches, so falling back to `safe_blank` and coming back from it stay abrupt rather than fading.
+
+The deprecated `mkavailable` lost its `track_sensitive` parameter with no replacement; use `source.available` instead, as the deprecation warning already suggests.
 
 ## From 2.3.x to 2.4.x
 

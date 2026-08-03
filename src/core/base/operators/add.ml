@@ -34,8 +34,6 @@ class virtual base ~name tracks =
   let infallible = List.exists (fun s -> not s#fallible) sources in
   object (self)
     inherit Source.operator ~name sources
-    inherit! Source.multi_source_composition
-    method private source_list = sources
     method fallible = not infallible
     method self_sync = self_sync ~source:self ()
 

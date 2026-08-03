@@ -67,23 +67,22 @@ type child = {
   on_leave : source -> bool -> unit;
   track_sensitive : unit -> bool;
   single : bool;
-  replay_metadata : bool;
   mutable effective_track_sensitive : bool option;
   mutable effective_predicate : bool option;
 }
 
-(** The switch can either happen at any time in the stream (insensitive) or only
-    at track limits (sensitive). *)
-type track_mode = Sensitive | Insensitive
-
 type selection = {
   child : child;
+  (* What we actually stream: whatever [on_select] returned. *)
   effective_source : source;
+  (* [child.source] wrapped so that its first frame carries a track mark. *)
   proxy : source;
   sleep : unit -> unit;
-  has_track_marks : bool ref;
-  mutable pending_on_leave : (force:bool -> bool) option;
 }
+
+(** A source we have switched away from. A transition may keep pulling from it
+    for a while, so its [on_leave] only runs once nothing holds it any more. *)
+type leaving = { leaving_proxy : source; fire : unit -> unit }
 
 let is_ready c =
   match c.effective_predicate with
@@ -134,22 +133,40 @@ class switch ~all_predicates children =
     val selected : selection option Atomic.t = Atomic.make None
     method selected = Atomic.get selected
 
+    (* Sources we have switched away from, waiting to be released. *)
+    val mutable leaving : leaving list = []
+
+    (* [track_sensitive] tells the source how it ended: [true] when it had
+       nothing left for its current track, [false] when we cut into a track it
+       was still playing. This is the switch's own decision, not something the
+       source reports: a source that simply ran out of data was not preempted,
+       even though it never got to emit a track mark. *)
+    method private push_leaving ~track_sensitive s =
+      leaving <-
+        {
+          leaving_proxy = s.proxy;
+          fire = (fun () -> s.child.on_leave s.proxy track_sensitive);
+        }
+        :: leaving
+
+    method private release_leaving ~force () =
+      leaving <-
+        List.filter
+          (fun l ->
+            if force || not l.leaving_proxy#is_up then (
+              l.fire ();
+              false)
+            else true)
+          leaving
+
     method exchange_selected v =
       Option.iter
-        (fun old_selection ->
-          old_selection.sleep ();
-          if v = None then
-            Option.iter
-              (fun on_leave -> ignore (on_leave ~force:true))
-              old_selection.pending_on_leave)
+        (fun old_selection -> old_selection.sleep ())
         (Atomic.exchange selected v);
+      if Option.is_none v then self#release_leaving ~force:true ();
       self#notify_sync_source (snd self#self_sync)
 
-    initializer
-      self#on_sleep (fun () ->
-          match Atomic.exchange selected None with
-            | Some { sleep } -> sleep ()
-            | _ -> ())
+    initializer self#on_sleep (fun () -> self#exchange_selected None)
 
     (* We cannot reselect the same source twice during a streaming cycle. *)
     val mutable excluded_sources = []
@@ -174,13 +191,7 @@ class switch ~all_predicates children =
               c.effective_predicate <- None)
             children);
       self#on_frame
-        (`After_frame
-           (fun _ ->
-             match self#selected with
-               | Some ({ pending_on_leave = Some on_leave; _ } as sel)
-                 when on_leave ~force:false ->
-                   sel.pending_on_leave <- None
-               | _ -> ()))
+        (`After_frame (fun _ -> self#release_leaving ~force:false ()))
 
     (* We are at a track boundary when the selected source has no more data for
        its current track: either it could not fill the frame past the position
@@ -224,24 +235,11 @@ class switch ~all_predicates children =
              && trivially_true c.predicate)
            children)
 
-    method private prepare_ending =
-      function
-      | None -> (None, None)
-      | Some s ->
-          let proxy = s.proxy in
-          let has_track_marks = s.has_track_marks in
-          let on_leave = s.child.on_leave in
-          let on_leave ~force =
-            if force || not proxy#is_up then (
-              on_leave proxy !has_track_marks;
-              true)
-            else false
-          in
-          (Some on_leave, Some s.proxy)
-
-    method private apply_on_select ~ending child =
-      let pending_on_leave, ending_source = self#prepare_ending ending in
-
+    (* [leaving] is the selection we are switching away from, if any, and always
+       gets its [on_leave] called. [ending] is the source [on_select] gets to
+       transition out of: only a source that is still playing a track has
+       something left to blend. *)
+    method private apply_on_select ~leaving:previous ~ending child =
       let starting =
         new insert_initial_track_mark
           ~name:(Printf.sprintf "%s.proxy" child.source#id)
@@ -249,50 +247,49 @@ class switch ~all_predicates children =
       in
       Typing.(starting#frame_type <: self#frame_type);
 
-      let effective_source = child.on_select ending_source starting in
+      let effective_source = child.on_select ending starting in
       Typing.(effective_source#frame_type <: self#frame_type);
+
+      (* Wake the new graph before putting the previous selection to sleep: when
+         it holds [previous.proxy] this keeps that source continuously up. *)
       let a = effective_source#wake_up (self :> Clock.source) in
       let sleep () = effective_source#sleep a in
 
-      let has_track_marks = ref false in
-      starting#on_frame (`Before_frame (fun _ -> has_track_marks := false));
-      starting#on_frame (`Track (fun _ -> has_track_marks := true));
+      Option.iter
+        (self#push_leaving ~track_sensitive:(Option.is_none ending))
+        previous;
 
-      let selection =
-        {
-          child;
-          effective_source;
-          proxy = starting;
-          sleep;
-          has_track_marks;
-          pending_on_leave;
-        }
-      in
+      self#exchange_selected
+        (Some { child; effective_source; proxy = starting; sleep })
 
-      self#exchange_selected (Some selection)
+    (* A track-sensitive child keeps its slot until its track ends, even if its
+       predicate has gone false in the meantime. *)
+    method private still_wanted c = is_track_sensitive c || is_ready c
+
+    (* A transition is in progress while something we switched away from is
+       still being pulled from. *)
+    method private transition_in_progress =
+      List.exists (fun l -> l.leaving_proxy#is_up) leaving
+
+    (* Whether to stick with the current selection rather than re-evaluate. *)
+    method private keep_selected ~reselect s =
+      if self#transition_in_progress then (
+        (* A transition is in progress: let it play out, but never hand back a
+           graph that has no data left past the position we were asked for. *)
+          match reselect with
+          | `After_position _ -> self#can_reselect ~reselect s.effective_source
+          | `Ok | `Force -> true)
+      else (
+        (* Outside a transition, any track boundary forces a re-evaluation. *)
+          match reselect with
+          | `After_position _ | `Force -> false
+          | `Ok -> s.effective_source#is_ready)
 
     method get_source ~reselect () =
       match self#selected with
         | Some s
-          when (not resuming)
-               && (is_track_sensitive s.child || is_ready s.child)
-               (* We want to force a re-select on each new track unless there's a transition still in progress. *)
-               && (s.pending_on_leave <> None
-                  || self#can_reselect
-                       ~reselect:
-                         (* We want to force a re-select on each new track. *)
-                           (match reselect with
-                           | `After_position _ -> `Force
-                           | v -> v)
-                       s.effective_source)
-               (* Even during a transition, a depleted effective source must
-                  not be returned: if it has no data beyond the current
-                  position we must let the else branch re-evaluate. *)
-               &&
-                 match reselect with
-                 | `After_position _ ->
-                     self#can_reselect ~reselect s.effective_source
-                 | _ -> true ->
+          when (not resuming) && self#still_wanted s.child
+               && self#keep_selected ~reselect s ->
             Some s.effective_source
         | _ -> (
             let boundary = self#at_boundary ~reselect in
@@ -304,21 +301,26 @@ class switch ~all_predicates children =
                   ~boundary () )
             with
               | None, None -> ()
-              | Some _, None -> self#exchange_selected None
+              | Some old_selection, None ->
+                  (* Nothing to switch to: the source is not being cut into,
+                     it simply has nothing left. *)
+                  self#push_leaving ~track_sensitive:true old_selection;
+                  self#exchange_selected None
               | None, Some c ->
                   self#log#important "Switch to %s." c.source#id;
-                  self#apply_on_select ~ending:None c
+                  self#apply_on_select ~leaving:None ~ending:None c
               | Some old_selection, Some c
                 when old_selection.child.source == c.source ->
                   ()
               | Some old_selection, Some c ->
-                  self#log#important "Switch to %s with %stransition."
-                    c.source#id
-                    (if boundary then "track-sensitive " else "");
+                  self#log#important "Switch to %s %s." c.source#id
+                    (if boundary then "at track boundary" else "with transition");
                   (* Only a source that is still playing a track has something
                      left to transition out of. *)
-                  let ending = if boundary then None else Some old_selection in
-                  self#apply_on_select ~ending c
+                  let ending =
+                    if boundary then None else Some old_selection.proxy
+                  in
+                  self#apply_on_select ~leaving:(Some old_selection) ~ending c
             end;
             match self#selected with
               | Some s when s.effective_source#is_ready ->
@@ -348,22 +350,12 @@ class switch ~all_predicates children =
             s.effective_source#abort_track
         | None -> ()
 
+    (* With no selection this is [self], and [resolved_composition] then falls
+       back to the children, which is what we want. *)
     method effective_source =
       match self#selected with
         | Some s -> s.effective_source#effective_source
         | None -> (self :> Source.source)
-
-    (* With no selection, [effective_source] is [self] and the generic
-       resolution would default to `Live`. Resolve from the children instead
-       (all-file → file, any-live → live) so that e.g. a not-yet-ready switch
-       over file sources does not flip its parent to live composition. *)
-    method! resolved_composition =
-      match (self#composition, self#selected) with
-        | `Passthrough, None ->
-            if List.for_all (fun s -> s#resolved_composition = `File) sources
-            then `File
-            else `Live
-        | _ -> super#resolved_composition
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -403,7 +395,7 @@ let _ =
         ]
         Lang.unit_t
     in
-    Type.meth ~optional:true "replay_metadata" ([], Lang.bool_t)
+    Type.meth ~optional:true "replay_metadata" ([], Lang.getter_t Lang.bool_t)
     @@ Type.meth ~optional:true "single" ([], Lang.bool_t)
     @@ Type.meth ~optional:true "track_sensitive" ([], Lang.getter_t Lang.bool_t)
     @@ Type.meth ~optional:true "on_leave" ([], on_leave_t)
@@ -455,14 +447,22 @@ let _ =
                 | Some v -> Lang.to_bool v
                 | None -> false
             in
+            (* The composition methods are declared optional, so fall back to
+               the active profile when a value was built without them. Every
+               source built by [Lang.add_operator] does carry them, and their
+               own defaults resolve the profile the same way. Resolution is
+               deferred so that all of them follow [composition_type]. *)
+            let profile () = Lang_source.profile_of source in
             let track_sensitive =
               match find_opt "track_sensitive" s_val with
                 | Some v -> Lang.to_bool_getter v
-                | None ->
-                    (* Same profile the other defaults come from. *)
-                    fun () -> (Lang_source.profile_of source).track_sensitive
+                | None -> fun () -> (profile ()).track_sensitive
             in
-            let profile = Lang_source.profile_of source in
+            let replay_metadata =
+              match find_opt "replay_metadata" s_val with
+                | Some v -> Lang.to_bool_getter v
+                | None -> fun () -> (profile ()).replay_metadata
+            in
             let on_leave =
               let call on_leave s ts =
                 let record =
@@ -476,12 +476,7 @@ let _ =
               in
               match find_opt "on_leave" s_val with
                 | Some on_leave -> call on_leave
-                | None -> call profile.on_leave
-            in
-            let replay_metadata =
-              match find_opt "replay_metadata" s_val with
-                | Some v -> Lang.to_bool v
-                | None -> profile.replay_metadata
+                | None -> fun s ts -> call (profile ()).on_leave s ts
             in
             let on_select =
               let call on_select ending starting =
@@ -492,7 +487,7 @@ let _ =
                         match ending with
                           | None -> Lang.null
                           | Some s -> Lang.source s );
-                      ("replay_metadata", Lang.bool replay_metadata);
+                      ("replay_metadata", Lang.bool (replay_metadata ()));
                       ("starting", Lang.source starting);
                     ]
                 in
@@ -500,7 +495,9 @@ let _ =
               in
               match find_opt "on_select" s_val with
                 | Some on_select -> call on_select
-                | None -> call profile.on_select
+                | None ->
+                    fun ending starting ->
+                      call (profile ()).on_select ending starting
             in
             {
               predicate = pred;
@@ -509,7 +506,6 @@ let _ =
               on_leave;
               track_sensitive;
               single;
-              replay_metadata;
               effective_track_sensitive = None;
               effective_predicate = None;
             })

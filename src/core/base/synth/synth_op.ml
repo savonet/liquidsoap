@@ -26,11 +26,7 @@ open Source
 class synth (synth : Synth.synth) (source : source) chan volume =
   object (self)
     inherit operator ~name:"synth" [source]
-
-    initializer
-      synth#set_volume volume;
-      self#set_composition `Live
-
+    initializer synth#set_volume volume
     method fallible = source#fallible
     method self_sync = source#self_sync
     method remaining = source#remaining

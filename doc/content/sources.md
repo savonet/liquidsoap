@@ -47,6 +47,11 @@ Here’s what’s happening:
 
 Every time the system needs audio, this little pipeline wakes up and produces a frame of data.
 
+Operators like `random`, `fallback`, `switch` and `rotate` have to decide _when_ to
+hand over from one source to another, and what that handoff sounds like. Each source
+carries its own answer, so you rarely have to configure the operator itself — see
+[source composition](composition.html).
+
 ## Sources Are Not Always Reliable (And That’s Okay) ⚠️
 
 What happens if a playlist runs out of tracks? Or a file fails to load?
