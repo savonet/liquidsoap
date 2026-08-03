@@ -5,8 +5,6 @@ fname = argv(default="", 1)
 fname2 = argv(default="", 2)
 out = {"#{fname}+ffmpeg_filter_changing_rate-#{random.int()}.mp4"}
 
-test.skip()
-
 def f(s) =
   tracks = source.tracks(s)
 
