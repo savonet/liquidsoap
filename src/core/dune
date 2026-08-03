@@ -1,0 +1,15 @@
+; The public face of the streaming engine.
+;
+; liquidsoap_core itself holds no code: it re-exports, under short names, the
+; modules that builtins and optional plugins are meant to use. Those consumers
+; do (libraries liquidsoap_core) + (flags -open Liquidsoap_core), so they never
+; have to name the layer a module lives in, nor spell out the wrapped
+; liquidsoap-lang paths.
+;
+; liquidsoap_core.mli is the list of what is public. Everything else is internal
+; to the layer that defines it.
+
+(library
+ (name liquidsoap_core)
+ (libraries liquidsoap_core_base)
+ (library_flags -linkall))

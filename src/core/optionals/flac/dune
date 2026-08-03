@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_flac)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries flac liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

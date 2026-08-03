@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_speex)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries speex speex.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
  (wrapped false)

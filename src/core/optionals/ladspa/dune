@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_ladspa)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries ladspa liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

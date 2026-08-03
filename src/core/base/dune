@@ -46,7 +46,7 @@
   (copy liquidsoap_paths.%{env:LIQUIDSOAP_BUILD_TARGET=default}.ml %{target})))
 
 (library
- (name liquidsoap_core)
+ (name liquidsoap_core_base)
  (preprocess
   (pps ppx_string))
  (libraries

@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_vorbis)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries vorbis vorbis.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
  (wrapped false)

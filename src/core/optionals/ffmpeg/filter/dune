@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_ffmpeg_filter)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   ffmpeg-avcodec
   ffmpeg-avfilter

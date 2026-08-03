@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_xml)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries xml-light liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_srt)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries srt liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

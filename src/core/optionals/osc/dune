@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_osc)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries osc-unix liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_jemalloc)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries jemalloc liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

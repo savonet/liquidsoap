@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_file_watcher)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap-lang
   liquidsoap_core

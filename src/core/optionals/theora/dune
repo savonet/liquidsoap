@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_theora)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries theora theora.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
  (wrapped false)

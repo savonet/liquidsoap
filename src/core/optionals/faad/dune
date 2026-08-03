@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_faad)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries faad liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

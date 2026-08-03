@@ -4,6 +4,8 @@
  (preprocess
   (pps ppx_string))
  (wrapped false)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   (select

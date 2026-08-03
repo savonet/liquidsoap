@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_oss)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries liquidsoap_core)
  (enabled_if
   (= "linux" %{system}))

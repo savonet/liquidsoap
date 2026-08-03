@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_ogg_flac)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries flac.ogg flac.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
  (wrapped false)

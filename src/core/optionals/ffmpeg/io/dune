@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_ffmpeg_io)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   ffmpeg-av
   ffmpeg-avutil

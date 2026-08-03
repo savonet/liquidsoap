@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_shine)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries shine liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

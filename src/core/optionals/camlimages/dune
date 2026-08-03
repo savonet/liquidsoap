@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_camlimages)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries camlimages.all_formats liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

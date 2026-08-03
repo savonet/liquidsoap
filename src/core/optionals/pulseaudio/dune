@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_pulseaudio)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries pulseaudio liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)

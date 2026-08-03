@@ -2,6 +2,8 @@
  (name liquidsoap_runtime)
  (preprocess
   (pps ppx_string))
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   liquidsoap_optionals

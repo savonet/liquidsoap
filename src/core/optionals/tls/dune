@@ -1,5 +1,7 @@
 (library
  (name liquidsoap_tls)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   tls
   ca-certs
