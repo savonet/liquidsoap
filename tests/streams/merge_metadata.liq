@@ -62,5 +62,19 @@ s =
   )
 
 s.on_metadata(synchronous=true, f)
-thread.run(delay=1., insert)
+
+# Both insertions have to land in the same frame for the merge to be observable
+# as one metadata event. Doing them from a synchronous frame callback keeps the
+# streaming loop from producing a frame in between, which a thread cannot.
+inserted = ref(false)
+s.on_frame(
+  synchronous=true,
+  fun () ->
+    if
+      not inserted()
+    then
+      inserted := true
+      insert()
+    end
+)
 output.dummy(s)
