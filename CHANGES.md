@@ -51,11 +51,6 @@
 
 - Inline `ffmpeg.encode.*` operators report unrecognized codec options, as the
   container encoder does.
-- Metadata and track marks reach an FFmpeg filter graph, including a track's own
-  metadata and its opening track mark.
-- Feeding an FFmpeg filter graph sources whose time bases differ no longer moves
-  the stream in time at each switch, which could send timestamps backwards and
-  abort the graph's clock.
 - Fixed `%ffmpeg` copy encoder initializing the video stream twice and setting the
   average frame rate on the one it discarded, so copied video carried no frame rate.
 - Fixed inline `ffmpeg.encode.*` operators losing their codec options after the
