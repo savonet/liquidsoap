@@ -62,4 +62,5 @@
   liquidsoap_core_stream
   liquidsoap_core_media
   liquidsoap_core_encoder
-  liquidsoap_core_clock))
+  liquidsoap_core_clock)
+ (library_flags -linkall))

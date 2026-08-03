@@ -103,4 +103,5 @@
   liquidsoap-lang)
  (foreign_stubs
   (language c)
-  (names unix_c)))
+  (names unix_c))
+ (library_flags -linkall))

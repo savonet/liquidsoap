@@ -86,4 +86,5 @@
   liquidsoap_core_outputs)
  (foreign_stubs
   (language c)
-  (names defer_c lufs_c)))
+  (names defer_c lufs_c))
+ (library_flags -linkall))

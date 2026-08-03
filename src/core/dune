@@ -68,4 +68,5 @@
   liquidsoap_core_decoders
   liquidsoap_core_sources
   liquidsoap_core_outputs
-  liquidsoap_core_operators))
+  liquidsoap_core_operators)
+ (library_flags -linkall))

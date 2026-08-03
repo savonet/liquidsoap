@@ -82,7 +82,20 @@ liquidsoap/
 │   │   ├── stdlib/     # Thin wrapper around OCaml's stdlib for specific functions
 │   │   └── tooling/    # Language tooling (LSP, formatting)
 │   ├── core/           # Streaming engine (liquidsoap package)
-│   │   ├── base/       # Core streaming: sources, operators, clocks
+│   │   ├── utils/      # Leaf utilities: logging, threads, processes, paths
+│   │   ├── stream/     # Frames, content kinds and formats, generators
+│   │   ├── media/      # Container formats, converters, decoder framework
+│   │   ├── encoder/    # Encoders and their language bindings
+│   │   ├── clock/      # Clocks
+│   │   ├── source/     # The source class, tracks, source values
+│   │   ├── request/    # URI resolution, request pool, playlist parsing
+│   │   ├── runtime/    # The Lang API operators register themselves with
+│   │   ├── net/        # HTTP and the harbor server
+│   │   ├── protocols/  # Request protocols (annotate:, mpd:)
+│   │   ├── decoders/   # Concrete decoders and metadata resolvers
+│   │   ├── sources/    # Input sources
+│   │   ├── outputs/    # Outputs
+│   │   ├── operators/  # Operators, synth, video, visualisation
 │   │   ├── builtins/   # Built-in functions exposed to scripts
 │   │   └── optionals/  # Optional features (ffmpeg, alsa, etc.)
 │   ├── libs/           # Standard library written in Liquidsoap
@@ -147,24 +160,56 @@ Changes to any of these show up in `tests/snapshots/`, which records the parsed
 term, its hash, the desugared term, the inferred type and the resulting value
 for a corpus of scripts. See `tests/snapshots/README.md`.
 
-### Streaming Engine (`src/core/base/`)
+### Streaming Engine (`src/core/`)
 
-The streaming engine is where audio/video processing happens.
+The streaming engine is where audio/video processing happens. Like `src/lang/`,
+it is a stack of layered dune libraries, each one directory, each of which may
+only depend on the ones above it in this table. The layering is enforced by the
+build: `liquidsoap_core_utils` cannot reach a frame, and nothing below
+`runtime` can register an operator.
 
-| File                      | Purpose                                                                                                                                                                            |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `source.ml`               | **The heart of Liquidsoap**. Defines the `source` class that all audio/video sources inherit from. Handles frame generation, availability, and the pull-based streaming model.     |
-| `clock.ml`                | **Timing and synchronization**. Manages clocks that drive sources. Each clock ticks independently, pulling frames from its sources. Critical for understanding real-time behavior. |
-| `frame.ml` (in `stream/`) | Frame representation. A frame is a chunk of multimedia data (audio samples, video frames, metadata) that flows between operators.                                                  |
-| `request.ml`              | Media request handling. Manages URIs, resolvers, and the request queue for loading media files.                                                                                    |
-| `track.ml`                | Track abstraction for handling individual audio/video/subtitle tracks within a source.                                                                                             |
-| `operators/`              | **All audio/video operators**. Each file implements one or more operators (amplify, compress, crossfade, etc.).                                                                    |
-| `sources/`                | Input sources (playlists, single files, requests, silence, etc.).                                                                                                                  |
-| `outputs/`                | Output destinations (files, icecast, HLS, etc.).                                                                                                                                   |
-| `decoder/`                | Media decoders. Interfaces with ffmpeg, mad, flac, etc. to decode audio/video files.                                                                                               |
-| `encoder/`                | Media encoders. Interfaces with ffmpeg, lame, opus, etc. to encode streams.                                                                                                        |
-| `conversions/`            | Format conversion between different audio/video representations.                                                                                                                   |
-| `tools/`                  | Utility functions: JSON handling, HTTP, process management, etc.                                                                                                                   |
+Each library has a `src/core/<dir>/liquidsoap_core_<dir>.mli` listing exactly
+what it exports; everything else in the directory is private to it. Consumers
+get the exported modules unqualified through `-open`, which is why the code
+reads `Frame.` and `Lang.` rather than `Liquidsoap_core_stream.Frame.`.
+
+Operators register themselves through top-level side effects, and the modules
+that do so are referenced by nothing, so every library keeps `-linkall`.
+
+| Library                     | Directory             | Purpose                                                                                                            |
+| --------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `liquidsoap_core_utils`     | `src/core/utils/`     | Leaf utilities: logging, threads, processes, sockets, time, string handling, build-time paths, the config tree.    |
+| `liquidsoap_core_stream`    | `src/core/stream/`    | **The media data model**: content kinds and formats, frames, generators, and the liquidsoap types describing them. |
+| `liquidsoap_core_media`     | `src/core/media/`     | Container formats (AVI, WAV), sample-rate and channel-layout converters, and the `Decoder` plug registry.          |
+| `liquidsoap_core_encoder`   | `src/core/encoder/`   | The encoder framework, one module per format, and the bindings behind `%mp3(...)` and friends.                     |
+| `liquidsoap_core_clock`     | `src/core/clock/`     | **Timing and synchronization**. Clocks tick, and each tick asks every animated source for one frame.               |
+| `liquidsoap_core_source`    | `src/core/source/`    | **The heart of Liquidsoap**: the `source` class every operator inherits from, tracks, and source values.           |
+| `liquidsoap_core_request`   | `src/core/request/`   | URI resolution, the request pool, playlist parsing.                                                                |
+| `liquidsoap_core_runtime`   | `src/core/runtime/`   | Core's `Lang`: everything an operator needs to register itself, plus the hooks `liquidsoap-lang` calls back into.  |
+| `liquidsoap_core_net`       | `src/core/net/`       | HTTP and the harbor server that `input.harbor` and `output.harbor` are built on.                                   |
+| `liquidsoap_core_protocols` | `src/core/protocols/` | Request protocols: `annotate:` and `mpd:`.                                                                         |
+| `liquidsoap_core_decoders`  | `src/core/decoders/`  | Concrete decoders and metadata resolvers. Above `request/` because they register into its resolver plugs.          |
+| `liquidsoap_core_sources`   | `src/core/sources/`   | Input sources: harbor input, dynamic requests, noise, test patterns.                                               |
+| `liquidsoap_core_outputs`   | `src/core/outputs/`   | The output framework and the outputs built on it: icecast, harbor, HLS, pipes.                                     |
+| `liquidsoap_core_operators` | `src/core/operators/` | **All audio/video operators**, plus synth and visualisation. The top of the stack.                                 |
+
+`liquidsoap_core` itself holds no code: `src/core/liquidsoap_core.mli`
+re-exports, under short names, everything builtins and optional plugins are
+meant to use — including the `liquidsoap-lang` modules core republishes, so it
+is the only file that spells out a `Liquidsoap_lang_*` path. Plugins do
+`(libraries liquidsoap_core)` plus `-open Liquidsoap_core` and never name a
+layer.
+
+The files you are most likely to want:
+
+| File                     | Purpose                                                                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source/source.ml`       | The `source` class: frame generation, availability, the pull-based streaming model.                                                                                   |
+| `clock/clock.ml`         | Clocks and synchronization. Critical for understanding real-time behaviour.                                                                                           |
+| `stream/frame.ml`        | A frame: the chunk of audio, video and metadata that flows between operators.                                                                                         |
+| `stream/content_base.ml` | The content registry. `content_base`, `frame_base` and `metadata_base` exist because `Content` and `Frame` genuinely need each other's types; do not merge them back. |
+| `request/request.ml`     | URIs, resolvers and the request queue.                                                                                                                                |
+| `source/track.ml`        | Individual audio/video/subtitle tracks within a source.                                                                                                               |
 
 ### Built-in Functions (`src/core/builtins/`)
 
@@ -236,7 +281,7 @@ dune build @citest
 
 ### "I want to add a new audio operator"
 
-1. **Create the operator** in `src/core/base/operators/my_operator.ml`:
+1. **Create the operator** in `src/core/operators/my_operator.ml`:
 
 ```ocaml
 open Source
@@ -271,7 +316,9 @@ let _ =
       new my_operator source param)
 ```
 
-2. **Add to dune** in `src/core/base/dune` (it's auto-discovered, but check if needed)
+2. **Add it to `src/core/operators/liquidsoap_core_operators.ml` and `.mli`**,
+   which list what the library exports. Nothing outside the library can see a
+   module that is missing from them.
 
 3. **Add a high-level wrapper** in `src/libs/audio.liq` if appropriate:
 

@@ -76,4 +76,5 @@
   liquidsoap_core_request
   liquidsoap_core_runtime
   liquidsoap_core_net
-  liquidsoap_core_decoders))
+  liquidsoap_core_decoders)
+ (library_flags -linkall))

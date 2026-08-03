@@ -55,4 +55,5 @@
   liquidsoap_core_utils)
  (foreign_stubs
   (language c)
-  (names content_pcm_c)))
+  (names content_pcm_c))
+ (library_flags -linkall))
