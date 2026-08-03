@@ -45,6 +45,12 @@ type handler = {
 }
 
 type stream_data = {
+  (* Identifies where the packets came from, not which elementary stream they
+     are: a decoder allocates one [Ffmpeg_content_base.new_stream_idx ()] for
+     its whole container and an inline encoder one per source, so every field
+     demuxed off the same side shares this. Copied packets are remuxed as they
+     are, so this is what tells us that the fields we are muxing together are
+     still the ones that were muxed together upstream. *)
   idx : Int64.t;
   mutable last_start : Int64.t;
   mutable position : Int64.t;
@@ -84,10 +90,12 @@ let mk_stream_store total_count =
     if data.last_start < last_start then data.last_start <- last_start;
     data
   in
-  (* [add] only counts a stream when it is ready, while [remove] is called for
-     every stream, so the count can already be at zero here. Drop the entry
-     rather than letting it go negative: a negative count can never reach
-     [total_count] again, which would leave the stream permanently unready. *)
+  (* A stream contributes its [ready_count] on whichever of the two [add] calls
+     leaves it ready, so one that ends before its first keyframe never
+     contributes at all -- but it is still removed. The count can therefore be
+     at zero here. Drop the entry rather than letting it go negative: a negative
+     count can never reach [total_count] again, which would leave the whole set
+     permanently unready. *)
   let remove data =
     let data = Stream.merge store data in
     if data.ready_count <= 1 then Stream.remove store data
