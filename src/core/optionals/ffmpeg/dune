@@ -1,14 +1,14 @@
+; Aggregates the ffmpeg libraries under a single name so that
+; `liquidsoap_optionals` can keep selecting on `liquidsoap_ffmpeg`.
+
 (library
  (name liquidsoap_ffmpeg)
  (libraries
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  ffmpeg-avfilter
-  ffmpeg-avdevice
-  ffmpeg-swscale
-  ffmpeg-swresample
-  ffmpeg-av
-  liquidsoap_core)
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg_encoder
+  liquidsoap_ffmpeg_filter
+  liquidsoap_ffmpeg_io)
  (library_flags -linkall)
  (wrapped false)
  (optional))

@@ -46,7 +46,9 @@ let check_container fname =
 
 let check_image filename =
   let ext = Filename.extension filename in
-  List.exists (fun s -> ext = "." ^ s) Ffmpeg_decoder.image_file_extensions#get
+  List.exists
+    (fun s -> ext = "." ^ s)
+    Ffmpeg_decoder_conf.image_file_extensions#get
   && check_container filename
 
 let decode_image fname =

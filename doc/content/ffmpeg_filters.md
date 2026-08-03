@@ -59,6 +59,8 @@ When applying a filter, the input is placed in a clock driven by the output. Thi
 
 When applying FFmpeg filters to sources with both audio and video, pass all tracks through the filter even if some are simply copied.
 
+A graph is a single source, whatever its number of outputs. All of its outputs are produced together and share one buffer, one set of track marks and one readiness state: a track boundary reaching any output cuts every output of that graph. Consequently they must be consumed at converging rates, since waiting on the slowest lets the others accumulate; past `settings.ffmpeg.filter_max_buffer` (10s by default) this raises rather than growing without bound. For the same reason, `id` on any of the outputs names the graph itself, so passing it on more than one output of the same graph leaves the last one in effect.
+
 Here is an example:
 
 ```{.liquidsoap include="ffmpeg-filter-hflip2.liq"}

@@ -52,6 +52,20 @@ let params { params; _ } = params
 let length { chunks; _ } =
   List.fold_left (fun cur chunk -> cur + chunk.length) 0 chunks
 
+(* Position, stream and time base are digested too: the same frames at
+   different offsets are different content. *)
+let checksum ~checksum_of_item { chunks; _ } =
+  let chunk_checksum { stream_idx; time_base; data; _ } =
+    String.concat "|"
+      (List.map
+         (fun (pos, item) ->
+           Printf.sprintf "%d:%Ld:%d/%d:%s" pos stream_idx time_base.Avutil.num
+             time_base.Avutil.den (checksum_of_item item))
+         data)
+  in
+  Digest.to_hex
+    (Digest.string (String.concat "||" (List.map chunk_checksum chunks)))
+
 let copy_data ~copy { length; stream_idx; time_base; data } =
   {
     length;

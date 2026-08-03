@@ -52,9 +52,27 @@
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
   from the callback.
 - Allow implicit casting of an integer as a float (#2887).
+- Removed `settings.decoder.ffmpeg.max_interleave_delta`. The setting was never read by
+  the decoder; stream interleaving is bounded by
+  `settings.decoder.ffmpeg.max_interleave_duration` alone.
+- Overhauled the FFmpeg filter graph implementation, fixing frame loss, dropped
+  track marks and a hang. A graph is now a single source whose outputs share one
+  buffer and one set of track marks, so a track boundary cuts all of them, `id`
+  on any output names the graph, and outputs consumed at diverging rates raise
+  past `settings.ffmpeg.filter_max_buffer`.
 
 ## Fixed:
 
+- Inline `ffmpeg.encode.*` operators report unrecognized codec options, as the
+  container encoder does.
+- Fixed `%ffmpeg` copy encoder initializing the video stream twice and setting the
+  average frame rate on the one it discarded, so copied video carried no frame rate.
+- Fixed inline `ffmpeg.encode.*` operators losing their codec options after the
+  first track: the encoder consumed them from the format's own table, which was
+  then empty when the encoder was rebuilt at the next track boundary.
+- Fixed `%ffmpeg` video streams being printed as `%%video(...)`.
+- Fixed FFmpeg stream descriptions listing video and subtitle streams in reverse
+  order.
 - Fixed `delay` getting stuck after its first track and dropping the following
   track's metadata (#5282).
 - Fixed `sequence` dropping the first chunk of a source, along with its

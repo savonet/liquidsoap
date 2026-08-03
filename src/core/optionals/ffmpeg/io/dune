@@ -1,0 +1,11 @@
+(library
+ (name liquidsoap_ffmpeg_io)
+ (libraries
+  ffmpeg-av
+  ffmpeg-avutil
+  liquidsoap_core
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional))

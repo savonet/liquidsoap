@@ -22,8 +22,7 @@
 
 (** Decode raw ffmpeg frames. *)
 
-let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~mk_content ~lift_data
-    ~put_data params =
+let mk_decoder ~stream_idx ~stream_time_base ~field ~lift_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~mode:`PTS ~src:stream_time_base
       ~convert_ts:false ~get_ts:Avutil.Frame.pts ~set_ts:Avutil.Frame.set_pts
@@ -33,13 +32,17 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~mk_content ~lift_data
     | `Flush -> ()
     | `Frame frame -> (
         match Ffmpeg_utils.Duration.push duration_converter frame with
-          | Some (length, frames) ->
-              let data = List.map (fun (pos, frame) -> (pos, frame)) frames in
-              let content =
-                mk_content ~length ~stream_idx ~time_base:stream_time_base
-                  ~params:(mk_params params) ~data
+          | Some (length, data) ->
+              let chunk =
+                {
+                  Ffmpeg_content_base.length;
+                  stream_idx;
+                  time_base = stream_time_base;
+                  data;
+                }
               in
-              put_data buffer.Decoder.generator (lift_data content)
+              Generator.put buffer.Decoder.generator field
+                (lift_data { Ffmpeg_content_base.params; chunks = [chunk] })
           | None -> ())
 
 let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
@@ -56,19 +59,11 @@ let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
       ?dst_sample_rate:dst_params.Ffmpeg_raw_content.AudioSpecs.sample_rate ()
   in
   let stream_time_base = Ffmpeg_avfilter_utils.AFormat.time_base converter in
-  let lift_data data = Ffmpeg_raw_content.Audio.lift_data data in
-  let mk_params f = f in
-  let mk_content ~length ~stream_idx ~time_base ~params ~data :
-      Ffmpeg_raw_content.AudioSpecs.data =
-    let d : Avutil.audio Avutil.frame Ffmpeg_content_base.data =
-      { length; stream_idx; time_base; data }
-    in
-    { params; chunks = [d] }
-  in
+  (* No [Content.merge] here, unlike the video decoder below: the converter
+     already produces frames in the format the target asked for. *)
   let decoder =
-    mk_decoder ~stream_idx ~lift_data ~mk_params ~mk_content ~stream_time_base
-      ~put_data:(fun g c -> Generator.put g field c)
-      dst_params
+    mk_decoder ~stream_idx ~stream_time_base ~field
+      ~lift_data:Ffmpeg_raw_content.Audio.lift_data dst_params
   in
   fun ~buffer -> function
     | `Flush ->
@@ -80,19 +75,9 @@ let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
             decoder ~buffer (`Frame frame))
 
 let mk_video_decoder ~stream_idx ~format ~stream ~field params =
-  ignore
-    (Content.merge format
-       Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params params)));
-  let stream_time_base = Av.get_time_base stream in
-  let lift_data data = Ffmpeg_raw_content.Video.lift_data data in
-  let mk_params = Ffmpeg_raw_content.VideoSpecs.mk_params in
-  let mk_content ~length ~stream_idx ~time_base ~params ~data :
-      Ffmpeg_raw_content.VideoSpecs.data =
-    let d : Avutil.video Avutil.frame Ffmpeg_content_base.data =
-      { length; stream_idx; time_base; data }
-    in
-    { params; chunks = [d] }
-  in
-  mk_decoder ~stream_idx ~mk_params ~mk_content ~lift_data ~stream_time_base
-    ~put_data:(fun g c -> Generator.put g field c)
-    params
+  let params = Ffmpeg_raw_content.VideoSpecs.mk_params params in
+  (* Video frames are passed through as they come, so the target format has to
+     take on the source's parameters. *)
+  ignore (Content.merge format (Ffmpeg_raw_content.Video.lift_params params));
+  mk_decoder ~stream_idx ~stream_time_base:(Av.get_time_base stream) ~field
+    ~lift_data:Ffmpeg_raw_content.Video.lift_data params

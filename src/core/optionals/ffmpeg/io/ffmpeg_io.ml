@@ -24,29 +24,6 @@ exception Not_connected
 
 module Http = Liq_http
 
-module Metadata = struct
-  include Map.Make (struct
-    type t = string
-
-    let compare = String.compare
-  end)
-
-  let of_metadata m = List.fold_left (fun m (k, v) -> add k v m) empty m
-  let equal = equal String.equal
-  let to_metadata = bindings
-end
-
-let normalize_metadata =
-  List.map (fun (lbl, v) ->
-      let lbl =
-        match lbl with
-          | "StreamTitle" -> "title"
-          | "StreamUrl" -> "url"
-          | _ -> lbl
-      in
-      let v = try Charset.convert ~target:Charset.utf8 v with _ -> v in
-      (lbl, v))
-
 exception Stopped
 
 type container = {
@@ -342,7 +319,10 @@ let parse_args ~t name p opts =
   in
   List.iter extract args
 
-let register_input is_http =
+(* input.http differs from input.ffmpeg only in its name, a handful of
+   HTTP-specific arguments, its self_sync default and its on_connect callback. *)
+let register_input protocol =
+  let is_http = protocol = `Http in
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   let args ?t name =
     let t =
@@ -397,7 +377,7 @@ let register_input is_http =
            ( "max_buffer",
              Lang.float_t,
              Some (Lang.float 5.),
-             Some "Maximum uration of buffered data" );
+             Some "Maximum duration of buffered data" );
            (if is_http then
               ( "self_sync",
                 Lang.getter_t (Lang.nullable_t Lang.bool_t),
@@ -582,13 +562,13 @@ let register_input is_http =
          let metadata_filter =
            if not deduplicate_metadata then metadata_filter
            else (
-             let last_meta = ref Metadata.empty in
+             let last_meta = ref [] in
              fun m ->
                let m = metadata_filter m in
-               let m' = Metadata.of_metadata m in
-               if m = [] || Metadata.equal !last_meta m' then []
+               let sorted = List.sort compare m in
+               if m = [] || !last_meta = sorted then []
                else (
-                 last_meta := m';
+                 last_meta := sorted;
                  m))
          in
          let metadata_filter m =
@@ -615,5 +595,5 @@ let register_input is_http =
              ~max_buffer ?format ~opts ~new_track_on_metadata ~trim_url url))
 
 let () =
-  register_input true;
-  register_input false
+  register_input `Http;
+  register_input `Ffmpeg

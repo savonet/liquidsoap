@@ -451,57 +451,15 @@ let mk_decoder mode =
                | `Video_encoded | `Video_raw ->
                    decode_video_frame ~field ~mode:decode_mode generator
            in
-           let size = Lazy.force Frame.size in
-           let decode_frame = function
-             | `Frame frame ->
-                 List.iter
-                   (fun (pos, m) -> Generator.add_metadata ~pos generator m)
-                   (Frame.get_all_metadata frame);
-                 List.iter
-                   (fun pos -> Generator.add_track_mark ~pos generator)
-                   (List.filter (fun x -> x < size) (Frame.track_marks frame));
-                 decode_frame (`Frame frame)
-             | `Flush -> decode_frame `Flush
-           in
-
            decode_frame
          in
 
-         let decode_frame_ref = ref None in
-
-         let get_decode_frame generator =
-           match !decode_frame_ref with
-             | None ->
-                 let fn = mk_decode_frame generator in
-                 decode_frame_ref := Some fn;
-                 fn
-             | Some fn -> fn
-         in
-
-         let decode_frame generator frame =
-           let decode_frame = get_decode_frame generator in
-           match frame with
-             | `Frame frame -> decode_frame (`Frame frame)
-             | `Flush ->
-                 decode_frame `Flush;
-                 decode_frame_ref := None
-         in
-
-         let input_frame_t = Type.fresh input_frame_t in
-         let child_frame_type =
-           Lang.frame_t (Lang.univ_t ())
-             (Frame.Fields.add field input_frame_t Frame.Fields.empty)
-         in
-
          let producer =
-           new Child_support.producer
+           Ffmpeg_inline.mk_producer
              ~stack:(Liquidsoap_lang.Lang_core.pos p)
-             ~child_frame_type
-               (* We are expecting real-rate with a couple of hickups.. *)
-             ~check_self_sync:false ~name:(id ^ ".producer")
-             (Lang.source source)
+             ~name:(id ^ ".producer") ~field ~input_frame_t
+             ~mk_process_frame:mk_decode_frame (Lang.source source)
          in
-         producer#child#set_process_frame decode_frame;
 
          (field, producer)))
 

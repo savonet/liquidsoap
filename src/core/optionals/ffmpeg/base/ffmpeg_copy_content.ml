@@ -64,6 +64,10 @@ module Specs = struct
 
   let name = "ffmpeg.copy"
   let kind = `Copy
+
+  (* Unlike raw content, copy params wrap an `Avcodec.params` obtained from a
+     container: there is nothing meaningful to build out of a `k=v` string, so
+     `ffmpeg.copy` cannot be given parameters in a type annotation. *)
   let parse_param _ _ = None
   let internal_content_type = None
   let string_of_kind = function `Copy -> "ffmpeg.copy"
@@ -190,28 +194,17 @@ module Specs = struct
   let default_params _ = None
   let make ?length:_ params : data = Ffmpeg_content_base.make params
 
-  let checksum (d : data) =
-    let chunk_checksums =
-      List.map
-        (fun (data : packet Ffmpeg_content_base.data) ->
-          let packets_data =
-            List.map
-              (fun (pos, packet) ->
-                let pkt_bytes =
-                  match packet with
-                    | `Audio p -> Avcodec.Packet.to_bytes p
-                    | `Video p -> Avcodec.Packet.to_bytes p
-                    | `Subtitle p -> Avcodec.Packet.to_bytes p
-                in
-                Printf.sprintf "%d:%Ld:%d/%d:%s" pos data.stream_idx
-                  data.time_base.Avutil.num data.time_base.Avutil.den
-                  (Digest.bytes pkt_bytes |> Digest.to_hex))
-              data.data
-          in
-          String.concat "|" packets_data)
-        d.chunks
+  let checksum_of_packet packet =
+    let bytes =
+      match packet with
+        | `Audio p -> Avcodec.Packet.to_bytes p
+        | `Video p -> Avcodec.Packet.to_bytes p
+        | `Subtitle p -> Avcodec.Packet.to_bytes p
     in
-    Digest.string (String.concat "||" chunk_checksums) |> Digest.to_hex
+    Digest.to_hex (Digest.bytes bytes)
+
+  let checksum (d : data) =
+    Ffmpeg_content_base.checksum ~checksum_of_item:checksum_of_packet d
 
   let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
   let params_to_value p = Liquidsoap_lang.Lang_core.string (string_of_params p)

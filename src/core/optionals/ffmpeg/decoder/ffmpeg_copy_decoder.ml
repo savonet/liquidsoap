@@ -136,4 +136,4 @@ let mk_subtitle_decoder ~stream_idx ~format ~stream ~field params =
     in
     (pos, duration, packets)
   in
-  Ffmpeg_utils.mk_subtitle_decoder ~output ~process ()
+  Ffmpeg_decoder_common.mk_subtitle_decoder ~output ~process ()

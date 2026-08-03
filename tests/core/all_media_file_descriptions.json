@@ -446,7 +446,7 @@
         }
       },
       {
-        "field": "video_2",
+        "field": "video",
         "params": {
           "type": "video",
           "codec": "h264",
@@ -458,7 +458,7 @@
         }
       },
       {
-        "field": "video",
+        "field": "video_2",
         "params": {
           "type": "video",
           "codec": "h264",

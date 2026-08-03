@@ -33,11 +33,15 @@ module InternalScaler = Ffmpeg_internal_encoder.InternalScaler
 
 type source_idx = { source : Source.source; idx : int64 }
 
+(* Inline encoders of the same source share a stream index, so that the copy
+   encoder can tell their outputs belong together. Hashing on the source id is
+   safe because it is fixed at creation; a missed lookup would only hand out a
+   fresh index. *)
 module SourceIdx = Weak.Make (struct
   type t = source_idx
 
   let equal x y = x.source == y.source
-  let hash x = Obj.magic x.source
+  let hash x = Hashtbl.hash x.source#id
 end)
 
 let source_idx_map = SourceIdx.create 0
@@ -210,11 +214,9 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
   let target_pixel_aspect = { Avutil.num = 1; den = 1 } in
 
   let flag =
-    match Ffmpeg_utils.conf_scaling_algorithm#get with
-      | "fast_bilinear" -> Swscale.Fast_bilinear
-      | "bilinear" -> Swscale.Bilinear
-      | "bicubic" -> Swscale.Bicubic
-      | _ -> failwith "Invalid value set for ffmpeg scaling algorithm!"
+    match Ffmpeg_utils.scaling_algorithm () with
+      | Some f -> f
+      | None -> failwith "Invalid value set for ffmpeg scaling algorithm!"
   in
 
   let scaler = ref None in
@@ -490,24 +492,27 @@ let mk_encoder mode =
 
            let stream = List.assoc format_field format.Ffmpeg_format.streams in
 
+           (* Creating an encoder consumes the options it understands and leaves
+              the rest in the table, so hand it a copy: this runs again at every
+              track boundary and must not drain the format's own table. *)
            let opts =
              match stream with
-               | `Encode { Ffmpeg_format.opts } -> opts
+               | `Encode { Ffmpeg_format.opts } -> Hashtbl.copy opts
                | _ -> assert false
            in
-
-           let original_opts = Hashtbl.create 10 in
 
            let source_idx =
              SourceIdx.merge source_idx_map
                { source; idx = Ffmpeg_content_base.new_stream_idx () }
            in
 
-           let encode_frame =
+           let encoded, encode_frame =
              match stream with
                | `Encode { mode = `Raw; options = `Audio format } ->
-                   encode_audio_frame ~source_idx ~type_t:output_frame_t
-                     ~mode:`Raw ~opts ~format ~content_type ~field generator
+                   ( false,
+                     encode_audio_frame ~source_idx ~type_t:output_frame_t
+                       ~mode:`Raw ~opts ~format ~content_type ~field generator
+                   )
                | `Encode
                    {
                      mode = `Internal;
@@ -515,12 +520,15 @@ let mk_encoder mode =
                      options = `Audio format;
                    } ->
                    let codec = Avcodec.Audio.find_encoder_by_name codec in
-                   encode_audio_frame ~source_idx ~type_t:output_frame_t
-                     ~mode:`Encoded ~opts ~codec ~format ~content_type ~field
-                     generator
+                   ( true,
+                     encode_audio_frame ~source_idx ~type_t:output_frame_t
+                       ~mode:`Encoded ~opts ~codec ~format ~content_type ~field
+                       generator )
                | `Encode { mode = `Raw; options = `Video format } ->
-                   encode_video_frame ~source_idx ~type_t:output_frame_t
-                     ~mode:`Raw ~opts ~format ~content_type ~field generator
+                   ( false,
+                     encode_video_frame ~source_idx ~type_t:output_frame_t
+                       ~mode:`Raw ~opts ~format ~content_type ~field generator
+                   )
                | `Encode
                    {
                      mode = `Internal;
@@ -528,77 +536,33 @@ let mk_encoder mode =
                      options = `Video format;
                    } ->
                    let codec = Avcodec.Video.find_encoder_by_name codec in
-                   encode_video_frame ~source_idx ~type_t:output_frame_t
-                     ~mode:`Encoded ~opts ~codec ~format ~content_type ~field
-                     generator
+                   ( true,
+                     encode_video_frame ~source_idx ~type_t:output_frame_t
+                       ~mode:`Encoded ~opts ~codec ~format ~content_type ~field
+                       generator )
                | _ -> assert false
            in
-           let size = Lazy.force Frame.size in
 
-           let encode_frame = function
-             | `Frame frame ->
-                 List.iter
-                   (fun (pos, m) -> Generator.add_metadata ~pos generator m)
-                   (Frame.get_all_metadata frame);
-                 List.iter
-                   (fun pos -> Generator.add_track_mark ~pos generator)
-                   (List.filter (fun x -> x < size) (Frame.track_marks frame));
-                 encode_frame (`Frame frame)
-             | `Flush -> encode_frame `Flush
-           in
-
-           let left_over_opts = Hashtbl.create 10 in
-
-           Hashtbl.filter_map_inplace
-             (fun l v -> if Hashtbl.mem left_over_opts l then Some v else None)
-             original_opts;
-
-           if Hashtbl.length original_opts > 0 then
+           (* Creating the encoder leaves behind the options ffmpeg did not
+              understand. Raw mode encodes nothing here, so its options travel
+              with the content to whichever encoder consumes it later. *)
+           if encoded && Hashtbl.length opts > 0 then
              raise
                (Error.Invalid_value
                   ( format_val,
                     Printf.sprintf "Unrecognized options: %s"
-                      (Ffmpeg_format.string_of_options original_opts),
+                      (Ffmpeg_format.string_of_options opts),
                     [] ));
 
            encode_frame
          in
 
-         let encode_frame_ref = ref None in
-
-         let get_encode_frame generator =
-           match !encode_frame_ref with
-             | None ->
-                 let fn = mk_encode_frame generator in
-                 encode_frame_ref := Some fn;
-                 fn
-             | Some fn -> fn
-         in
-
-         let encode_frame generator frame =
-           let encode_frame = get_encode_frame generator in
-           match frame with
-             | `Frame frame -> encode_frame (`Frame frame)
-             | `Flush ->
-                 encode_frame `Flush;
-                 encode_frame_ref := None
-         in
-
-         let input_frame_t = Type.fresh input_frame_t in
-         let child_frame_type =
-           Lang.frame_t (Lang.univ_t ())
-             (Frame.Fields.add field input_frame_t Frame.Fields.empty)
-         in
-
          let producer =
-           new Child_support.producer
+           Ffmpeg_inline.mk_producer
              ~stack:(Liquidsoap_lang.Lang_core.pos p)
-             ~child_frame_type
-               (* We are expecting real-rate with a couple of hickups.. *)
-             ~check_self_sync:false ~name:(id ^ ".producer")
-             (Lang.source source)
+             ~name:(id ^ ".producer") ~field ~input_frame_t
+             ~mk_process_frame:mk_encode_frame (Lang.source source)
          in
-         producer#child#set_process_frame encode_frame;
 
          (field, producer)))
 

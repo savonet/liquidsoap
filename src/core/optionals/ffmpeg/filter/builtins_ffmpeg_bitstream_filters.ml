@@ -169,7 +169,7 @@ let handler_getters (type a) ~(mk_params : a mk_params)
 let register_filters () =
   List.iter
     (fun ({ Avcodec.BitstreamFilter.name; codecs; options } as filter) ->
-      let args, args_parser = Builtins_ffmpeg_filters.mk_options options in
+      let args, args_parser = Ffmpeg_filter_options.mk_options options in
       let modes = modes name codecs in
       let base, module_name =
         if List.length modes > 1 then
@@ -283,15 +283,7 @@ let register_filters () =
 
                    function
                    | `Frame frame ->
-                       List.iter
-                         (fun (pos, m) ->
-                           Generator.add_metadata ~pos generator m)
-                         (Frame.get_all_metadata frame);
-                       List.iter
-                         (fun pos -> Generator.add_track_mark ~pos generator)
-                         (List.filter
-                            (fun x -> x < Lazy.force Frame.size)
-                            (Frame.track_marks frame));
+                       Ffmpeg_inline.relay_metadata generator frame;
                        Frame.Fields.iter
                          (fun f data ->
                            match f with

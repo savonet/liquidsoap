@@ -68,9 +68,10 @@ module RawScaler = Swscale.Make (Swscale.Frame) (Swscale.Frame)
 
 let log = Log.make ["ffmpeg"; "encoder"; "internal"]
 
-(* mk_stream is used for the copy encoder, where stream creation has to be
-   delayed until the first packet is passed. This is not needed here. *)
-let mk_stream _ = ()
+(* Delaying stream creation until the first packet arrives is what the copy
+   encoder needs. Internal encoders create their stream up front, except for
+   video: see the local mk_stream in mk_video. *)
+let no_delayed_stream _ = ()
 
 let get_channel_layout ~pos channels =
   try Avutil.Channel_layout.get_default channels
@@ -316,7 +317,7 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   in
 
   {
-    Ffmpeg_encoder_common.mk_stream;
+    Ffmpeg_encoder_common.mk_stream = no_delayed_stream;
     encode;
     flush = (fun () -> ());
     codec_attr;
@@ -346,11 +347,9 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   let target_width = Lazy.force params.Ffmpeg_format.width in
   let target_height = Lazy.force params.Ffmpeg_format.height in
   let flag =
-    match Ffmpeg_utils.conf_scaling_algorithm#get with
-      | "fast_bilinear" -> Swscale.Fast_bilinear
-      | "bilinear" -> Swscale.Bilinear
-      | "bicubic" -> Swscale.Bicubic
-      | _ ->
+    match Ffmpeg_utils.scaling_algorithm () with
+      | Some f -> f
+      | None ->
           Lang_encoder.raise_error ~pos
             "Invalid value set for ffmpeg scaling algorithm!"
   in
@@ -680,7 +679,7 @@ let mk_subtitle ~pos ~params ~options ~codec ~field output =
   in
 
   {
-    Ffmpeg_encoder_common.mk_stream;
+    Ffmpeg_encoder_common.mk_stream = no_delayed_stream;
     encode;
     flush = (fun () -> ());
     codec_attr;

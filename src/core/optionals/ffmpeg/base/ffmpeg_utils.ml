@@ -105,8 +105,14 @@ let liq_audio_sample_time_base () =
 let liq_video_sample_time_base () =
   { Avutil.num = 1; den = Lazy.force Frame.video_rate }
 
-let liq_frame_time_base () =
-  { Avutil.num = Lazy.force Frame.size; den = Lazy.force Frame.main_rate }
+(* Callers report an unknown value their own way: the container encoder can
+   point at the script position, the inline one cannot. *)
+let scaling_algorithm () =
+  match conf_scaling_algorithm#get with
+    | "fast_bilinear" -> Some Swscale.Fast_bilinear
+    | "bilinear" -> Some Swscale.Bilinear
+    | "bicubic" -> Some Swscale.Bicubic
+    | _ -> None
 
 let liq_frame_pixel_format = `Yuv420p
 let liq_frame_pixel_format_with_alpha = `Yuva420p
@@ -299,7 +305,9 @@ let mk_hardware_context ~hwaccel ~hwaccel_pixel_format ~hwaccel_device ~opts
               codec_name
         | _ -> ())
       (Avcodec.hw_configs codec);
-    if hwaccel <> `Auto && hwaccel <> `Auto then
+    (* [`None] returned early above, so anything left but [`Auto] is an explicit
+       request we could not honor. *)
+    if hwaccel <> `Auto then
       Lang_encoder.raise_error ~pos:None
         (Printf.sprintf
            "No suitable hardware acceleration method %S found for codec %s!"
@@ -416,41 +424,3 @@ let find_pixel_format ?(alpha = false) codec =
 let pixel_format ?(alpha = false) codec = function
   | Some p -> Avutil.Pixel_format.of_string p
   | None -> find_pixel_format ~alpha codec
-
-let mk_subtitle_decoder ~output ~process () =
-  let current_position = ref None in
-  let advance ~buffer position =
-    match !current_position with
-      | None ->
-          output ?data:None ~buffer ~length:position ();
-          current_position := Some (position, None)
-      | Some (p, _) when position <= p -> ()
-      | Some (p, data) ->
-          let data = Option.map snd data in
-          output ?data ~buffer ~length:(position - p) ();
-          current_position := Some (position, None)
-  in
-  let process ~buffer subtitle =
-    let position, duration, content = process subtitle in
-    match !current_position with
-      | Some (old_position, _) when position <= old_position -> ()
-      | Some (old_position, data) ->
-          let data = Option.map snd data in
-          output ?data ~buffer ~length:(position - old_position) ();
-          current_position := Some (position, Some (duration, content))
-      | None ->
-          (* Output initial silence if the first subtitle doesn't start at 0 *)
-          if position > 0 then output ?data:None ~buffer ~length:position ();
-          current_position := Some (position, Some (duration, content))
-  in
-  let flush buffer =
-    match !current_position with
-      | Some (_, Some (length, content)) ->
-          output ?data:(Some content) ~buffer ~length ()
-      | _ -> ()
-  in
-  let decoder ~buffer = function
-    | `Flush -> flush buffer
-    | `Subtitle subtitle -> process ~buffer subtitle
-  in
-  { Ffmpeg_decoder_common.decoder; advance }

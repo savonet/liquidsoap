@@ -72,7 +72,10 @@ type graph = {
   mutable failed : bool;
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
-  graph_outputs : Source.source Queue.t;
+  input_flushes : (unit -> unit) Queue.t;
+  mutable graph_source : Ffmpeg_filter_graph.source option;
+  mutable audio_outputs : int;
+  mutable video_outputs : int;
   init : unit Lazy.t Queue.t;
   entries : (inputs, outputs) Avfilter.io;
 }
@@ -92,7 +95,12 @@ let is_ready graph =
   (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
     | false, Some s ->
         if not (Clock.started s#clock) then Clock.start s#clock;
-        Clock.tick s#clock
+        Clock.tick ~pull:true s#clock
+    (* No liquidsoap input to wait for: the graph is fed by source filters
+       alone, so nothing else will ever trigger initialization. Doing it here
+       rather than when the graph is built keeps it at streaming time, where
+       output content types are known. *)
+    | false, None -> init_graph graph
     | _ -> ());
   (not graph.failed)
   && Queue.fold graph.graph_inputs
@@ -101,11 +109,32 @@ let is_ready graph =
 
 let pull graph =
   match Queue.peek_opt graph.graph_inputs with
-    | Some s -> Clock.tick s#clock
+    | Some s -> Clock.tick ~pull:true s#clock
     | None -> ()
+
+(* Once the inputs are done, the graph needs to be told so that filters holding
+   a tail release it. *)
+let flush_inputs graph = Queue.iter graph.input_flushes (fun flush -> flush ())
 
 let self_sync graph source =
   (Clock_base.self_sync ~source (Queue.elements graph.graph_inputs)) ()
+
+(* Created on the first output: a graph with none needs no source. *)
+let graph_source graph =
+  match graph.graph_source with
+    | Some s -> s
+    | None ->
+        let s =
+          new Ffmpeg_filter_graph.source
+            ~name:"ffmpeg.filter"
+            ~pull:(fun () -> pull graph)
+            ~is_ready:(fun () -> is_ready graph)
+            ~flush_inputs:(fun () -> flush_inputs graph)
+            ~self_sync:(fun source -> self_sync graph source)
+            ()
+        in
+        graph.graph_source <- Some s;
+        s
 
 module Graph = Value.MkCustom (struct
   type content = graph
@@ -164,278 +193,6 @@ let uniq_name =
           0
   in
   fun name -> Printf.sprintf "%s_%d" name (name_idx name)
-
-exception No_value_for_option
-
-(* GADT to encode the relationship between ground types and their converters *)
-type 'a ground_opt_utils = {
-  lang_type : Lang.t;
-  to_string : 'a -> string;
-  from_value : Lang.value -> 'a;
-}
-
-type ground_opt_descr =
-  | Ground_opt :
-      'a ground_opt_utils * 'a Avutil.Options.entry
-      -> ground_opt_descr
-
-let get_ground_converter : Avutil.Options.ground -> ground_opt_descr = function
-  | `Int s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.int_t;
-            to_string = string_of_int;
-            from_value = Lang.to_int;
-          },
-          s )
-  | `Flags s | `Int64 s | `UInt64 s | `Duration s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.int_t;
-            to_string = Int64.to_string;
-            from_value = (fun v -> Int64.of_int (Lang.to_int v));
-          },
-          s )
-  | `Float s | `Double s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.float_t;
-            to_string = string_of_float;
-            from_value = Lang.to_float;
-          },
-          s )
-  | `Rational s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string =
-              (fun { Avutil.num; den } -> Printf.sprintf "%i/%i" num den);
-            from_value =
-              (fun v ->
-                let x = Lang.to_string v in
-                match String.split_on_char '/' x with
-                  | [num; den] ->
-                      {
-                        Avutil.num = int_of_string num;
-                        den = int_of_string den;
-                      }
-                  | _ -> assert false);
-          },
-          s )
-  | `Bool s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.bool_t;
-            to_string = string_of_bool;
-            from_value = Lang.to_bool;
-          },
-          s )
-  | `String s | `Binary s | `Dict s | `Image_size s | `Video_rate s | `Color s
-    ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string = (fun x -> x);
-            from_value = Lang.to_string;
-          },
-          s )
-  | `Pixel_fmt s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string =
-              (fun p ->
-                match Avutil.Pixel_format.to_string p with
-                  | None -> "none"
-                  | Some p -> p);
-            from_value =
-              (fun v -> Avutil.Pixel_format.of_string (Lang.to_string v));
-          },
-          s )
-  | `Sample_fmt s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string =
-              (fun p ->
-                match Avutil.Sample_format.get_name p with
-                  | None -> "none"
-                  | Some p -> p);
-            from_value = (fun v -> Avutil.Sample_format.find (Lang.to_string v));
-          },
-          s )
-  | `Channel_layout s ->
-      Ground_opt
-        ( {
-            lang_type = Lang.string_t;
-            to_string = Avutil.Channel_layout.get_description;
-            from_value =
-              (fun v -> Avutil.Channel_layout.find (Lang.to_string v));
-          },
-          s )
-
-let mk_options options =
-  Avutil.Options.(
-    let mk_opt ~t ~to_string ~from_value name help { default; min; max; values }
-        =
-      let desc =
-        let string_of_value (name, value) =
-          Printf.sprintf "%s (%s)" (to_string value) name
-        in
-        let string_of_values values =
-          String.concat ", " (List.map string_of_value values)
-        in
-        match (help, default, values) with
-          | Some help, None, [] -> Some help
-          | Some help, _, _ ->
-              let values =
-                if values = [] then None
-                else
-                  Some
-                    (Printf.sprintf "possible values: %s"
-                       (string_of_values values))
-              in
-              let default =
-                Option.map
-                  (fun default ->
-                    Printf.sprintf "default: %s" (to_string default))
-                  default
-              in
-              let l =
-                List.fold_left
-                  (fun l -> function Some v -> v :: l | None -> l)
-                  [] [values; default]
-              in
-              Some (Printf.sprintf "%s. (%s)" help (String.concat ", " l))
-          | None, None, _ :: _ ->
-              Some
-                (Printf.sprintf "Possible values: %s" (string_of_values values))
-          | None, Some v, [] ->
-              Some (Printf.sprintf "Default: %s" (to_string v))
-          | None, Some v, _ :: _ ->
-              Some
-                (Printf.sprintf "Default: %s, possible values: %s" (to_string v)
-                   (string_of_values values))
-          | None, None, [] -> None
-      in
-      let opt = (name, Lang.nullable_t t, Some Lang.null, desc) in
-      let getter p l =
-        try
-          let v = List.assoc name p in
-          let v =
-            match Lang.to_option v with
-              | None -> raise No_value_for_option
-              | Some v -> v
-          in
-          let x =
-            try from_value v
-            with _ -> raise (Error.Invalid_value (v, "Invalid value", []))
-          in
-          (match min with
-            | Some m when x < m ->
-                raise
-                  (Error.Invalid_value
-                     ( v,
-                       Printf.sprintf "%s must be more than %s" name
-                         (to_string m),
-                       [] ))
-            | _ -> ());
-          (match max with
-            | Some m when m < x ->
-                raise
-                  (Error.Invalid_value
-                     ( v,
-                       Printf.sprintf "%s must be less than %s" name
-                         (to_string m),
-                       [] ))
-            | _ -> ());
-          (match values with
-            | _ :: _ when List.find_opt (fun (_, v) -> v = x) values = None ->
-                raise
-                  (Error.Invalid_value
-                     ( v,
-                       Printf.sprintf "%s should be one of: %s" name
-                         (String.concat ", "
-                            (List.map (fun (_, v) -> to_string v) values)),
-                       [] ))
-            | _ -> ());
-          let x =
-            match default with
-              | Some v
-                when to_string v = Int64.to_string Int64.max_int
-                     && to_string x = string_of_int max_int ->
-                  `Int64 Int64.max_int
-              | Some v
-                when to_string v = Int64.to_string Int64.min_int
-                     && to_string x = string_of_int min_int ->
-                  `Int64 Int64.min_int
-              | _ -> `String (to_string x)
-          in
-          `Pair (name, x) :: l
-        with No_value_for_option -> l
-      in
-      (opt, getter)
-    in
-    let mk_opt (p, getter) { name; help; spec } =
-      let mk_opt_outer = mk_opt in
-      let mk_opt ~t ~to_string ~from_value spec =
-        let opt, get = mk_opt_outer ~t ~to_string ~from_value name help spec in
-        let getter p l = get p (getter p l) in
-        (opt :: p, getter)
-      in
-      match spec with
-        | #Avutil.Options.ground as g ->
-            let (Ground_opt (conv, s)) = get_ground_converter g in
-            mk_opt ~t:conv.lang_type ~to_string:conv.to_string
-              ~from_value:conv.from_value s
-        | `Array g ->
-            let (Ground_opt (conv, _)) = get_ground_converter g in
-            let ground_t = conv.lang_type in
-            let ground_to_string = conv.to_string in
-            let ground_from_value = conv.from_value in
-            let t = Lang.list_t ground_t in
-            let array_to_string values =
-              String.concat ", " (List.map ground_to_string values)
-            in
-            let array_from_value v =
-              List.map ground_from_value (Lang.to_list v)
-            in
-            let dummy_spec =
-              {
-                Avutil.Options.default = None;
-                min = None;
-                max = None;
-                values = [];
-              }
-            in
-            let opt, _base_getter =
-              mk_opt_outer ~t ~to_string:array_to_string
-                ~from_value:array_from_value name help dummy_spec
-            in
-            let new_getter p l =
-              try
-                let v = List.assoc name p in
-                let v =
-                  match Lang.to_option v with
-                    | None -> raise No_value_for_option
-                    | Some v -> v
-                in
-                let values =
-                  try array_from_value v
-                  with _ ->
-                    raise (Error.Invalid_value (v, "Invalid value", []))
-                in
-                let array_args =
-                  List.map
-                    (fun value -> `String (ground_to_string value))
-                    values
-                in
-                `Pair (name, `Array array_args) :: getter p l
-              with No_value_for_option -> getter p l
-            in
-            (opt :: p, new_getter)
-    in
-    List.fold_left mk_opt ([], fun _ x -> x) (Avutil.Options.opts options))
 
 let get_config graph =
   let { config; _ } = Graph.of_value graph in
@@ -570,7 +327,9 @@ let register_filters () =
     in
     List.iter
       (fun ({ name; description; io; flags } as filter) ->
-        let args, args_parser = mk_options filter.options in
+        let args, args_parser =
+          Ffmpeg_filter_options.mk_options filter.options
+        in
         let args_t = args @ [("", Graph.t, None, None)] in
         let sources_t =
           List.map
@@ -750,11 +509,12 @@ let _ =
          let name = uniq_name "abuffer" in
          let s =
            Ffmpeg_filter_io.(
-             new audio_output ~pass_metadata ~name ~frame_t ~field source)
+             audio_output ~pass_metadata ~name ~frame_t ~field source)
          in
          s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
+         Queue.push graph.input_flushes (fun () -> s#flush_input);
 
          let args = ref None in
 
@@ -798,25 +558,24 @@ let _ =
          let config = get_config graph_v in
          let graph = Graph.of_value graph_v in
 
-         let frame_t =
-           Lang.frame_t Lang.unit_t
-             (Frame.Fields.make
-              (* We need to make sure that we are using a format here to
-                 ensure that its params are properly unified with the underlying source. *)
-                ~audio:
-                  (Type.make
-                     (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
-                ())
+         (* No frame type is built here: [add_track_operator] constrains the
+            field this output claims, and it must leave the rest of the source's
+            row open for the graph's other outputs. *)
+         let s = graph_source graph in
+         let field = Frame.Fields.audio_n graph.audio_outputs in
+         graph.audio_outputs <- graph.audio_outputs + 1;
+         let sink =
+           Ffmpeg_filter_io.audio_sink ~field ~pass_metadata ~log
+             ~content_type:(fun () -> s#content_type)
+             ()
          in
-         let field = Frame.Fields.audio in
-         let s =
-           new Ffmpeg_filter_io.audio_input
-             ~field
-             ~pull:(fun () -> pull graph)
-             ~is_ready:(fun () -> is_ready graph)
-             ~self_sync:(self_sync graph) ~pass_metadata frame_t
-         in
-         Queue.push graph.graph_outputs (s :> Source.source);
+         s#add_sink
+           {
+             Ffmpeg_filter_graph.field;
+             connected = (fun () -> sink#connected);
+             drain = (fun ~generator -> sink#drain ~generator);
+             eof = (fun () -> sink#eof);
+           };
 
          let pad = Audio.of_value (Lang.assoc "" 2 p) in
          Queue.push graph.init
@@ -832,7 +591,8 @@ let _ =
                 in
                 Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
                 Avfilter.(
-                  Hashtbl.replace graph.entries.outputs.audio name s#set_output)));
+                  Hashtbl.replace graph.entries.outputs.audio name
+                    sink#set_output)));
 
          (field, (s :> Source.source))));
 
@@ -878,11 +638,12 @@ let _ =
          let name = uniq_name "buffer" in
          let s =
            Ffmpeg_filter_io.(
-             new video_output ~pass_metadata ~name ~frame_t ~field source)
+             video_output ~pass_metadata ~name ~frame_t ~field source)
          in
          s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
+         Queue.push graph.input_flushes (fun () -> s#flush_input);
 
          let args = ref None in
 
@@ -924,23 +685,21 @@ let _ =
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
 
-      let frame_t =
-        Lang.frame_t Lang.unit_t
-          (Frame.Fields.make
-             ~video:
-               (Type.make
-                  (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
-             ())
+      let s = graph_source graph in
+      let field = Frame.Fields.video_n graph.video_outputs in
+      graph.video_outputs <- graph.video_outputs + 1;
+      let sink =
+        Ffmpeg_filter_io.video_sink ~field ~pass_metadata ~log
+          ~content_type:(fun () -> s#content_type)
+          ()
       in
-      let field = Frame.Fields.video in
-      let s =
-        new Ffmpeg_filter_io.video_input
-          ~field
-          ~pull:(fun () -> pull graph)
-          ~is_ready:(fun () -> is_ready graph)
-          ~self_sync:(self_sync graph) ~pass_metadata frame_t
-      in
-      Queue.push graph.graph_outputs (s :> Source.source);
+      s#add_sink
+        {
+          Ffmpeg_filter_graph.field;
+          connected = (fun () -> sink#connected);
+          drain = (fun ~generator -> sink#drain ~generator);
+          eof = (fun () -> sink#eof);
+        };
 
       Queue.push graph.init
         (Lazy.from_fun (fun () ->
@@ -955,7 +714,7 @@ let _ =
              in
              Avfilter.(link pad (List.hd _buffersink.io.inputs.video));
              Avfilter.(
-               Hashtbl.replace graph.entries.outputs.video name s#set_output)));
+               Hashtbl.replace graph.entries.outputs.video name sink#set_output)));
 
       (field, (s :> Source.source)))
 
@@ -979,7 +738,10 @@ let _ =
             failed = false;
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
-            graph_outputs = Queue.create ();
+            input_flushes = Queue.create ();
+            graph_source = None;
+            audio_outputs = 0;
+            video_outputs = 0;
             init = Queue.create ();
             entries =
               {
@@ -1004,18 +766,18 @@ let _ =
           ()
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
-      unify_clocks ~clock:output_clock graph.graph_outputs;
+      (match graph.graph_source with
+        | None -> ()
+        | Some s -> Clock.unify ~pos:s#pos output_clock s#clock);
       (* We need an early registration for sources such as source.dynamic. *)
       Clock.register_sub_clock output_clock input_clock;
-      let active_outputs = Atomic.make 0 in
-      Queue.iter graph.graph_outputs (fun s ->
-          s#on_wake_up (fun () ->
-              (* This is idenpotent so it's okay to do it twice. *)
-              Clock.register_sub_clock output_clock input_clock;
-              Atomic.incr active_outputs);
-          s#on_sleep (fun () ->
-              Atomic.decr active_outputs;
-              if Atomic.get active_outputs = 0 then
+      (match graph.graph_source with
+        | None -> ()
+        | Some s ->
+            s#on_wake_up (fun () ->
+                (* Idempotent, so doing it twice the first time is fine. *)
+                Clock.register_sub_clock output_clock input_clock);
+            s#on_sleep (fun () ->
                 Clock.deregister_sub_clock output_clock input_clock));
 
       Queue.push graph.init
