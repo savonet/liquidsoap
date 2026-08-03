@@ -3,6 +3,5 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries sqlite3 liquidsoap_core)
- (library_flags -linkall)
  (wrapped false)
  (optional))

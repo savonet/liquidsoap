@@ -47,5 +47,4 @@
   liquidsoap-lang.cache
   liquidsoap-lang
   liquidsoap_core_utils
-  liquidsoap_core_stream)
- (library_flags -linkall))
+  liquidsoap_core_stream))

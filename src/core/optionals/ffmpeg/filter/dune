@@ -8,6 +8,5 @@
   ffmpeg-avutil
   liquidsoap_core
   liquidsoap_ffmpeg_base)
- (library_flags -linkall)
  (wrapped false)
  (optional))

@@ -736,7 +736,6 @@
 
 (library
  (name liquidsoap_optionals)
- (library_flags -linkall)
  (preprocess
   (pps ppx_string))
  (wrapped false)

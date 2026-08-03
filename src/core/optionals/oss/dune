@@ -5,7 +5,6 @@
  (libraries liquidsoap_core)
  (enabled_if
   (= "linux" %{system}))
- (library_flags -linkall)
  (wrapped false)
  (optional)
  (foreign_stubs

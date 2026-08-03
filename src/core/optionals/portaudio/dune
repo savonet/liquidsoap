@@ -3,6 +3,5 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries portaudio liquidsoap_core)
- (library_flags -linkall)
  (wrapped false)
  (optional))

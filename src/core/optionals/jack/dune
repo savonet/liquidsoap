@@ -3,7 +3,6 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries liquidsoap_core jack)
- (library_flags -linkall)
  (wrapped false)
  (foreign_stubs
   (language c)

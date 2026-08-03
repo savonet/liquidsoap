@@ -8,7 +8,6 @@
 
 (library
  (name liquidsoap_builtins)
- (library_flags -linkall)
  (preprocess
   (pps ppx_string))
  (flags

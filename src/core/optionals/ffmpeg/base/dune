@@ -11,6 +11,5 @@
   ffmpeg-swresample
   ffmpeg-swscale
   liquidsoap_core)
- (library_flags -linkall)
  (wrapped false)
  (optional))

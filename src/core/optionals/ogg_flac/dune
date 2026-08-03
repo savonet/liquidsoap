@@ -3,7 +3,6 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries flac.ogg flac.decoder liquidsoap_core liquidsoap_ogg)
- (library_flags -linkall)
  (wrapped false)
  (optional)
  (foreign_stubs

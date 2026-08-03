@@ -3,6 +3,5 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries opus opus.decoder liquidsoap_core liquidsoap_ogg)
- (library_flags -linkall)
  (wrapped false)
  (optional))
