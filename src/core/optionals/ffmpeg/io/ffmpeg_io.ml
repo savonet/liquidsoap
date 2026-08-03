@@ -374,7 +374,7 @@ let register_input is_http =
            ( "max_buffer",
              Lang.float_t,
              Some (Lang.float 5.),
-             Some "Maximum uration of buffered data" );
+             Some "Maximum duration of buffered data" );
            (if is_http then
               ( "self_sync",
                 Lang.getter_t (Lang.nullable_t Lang.bool_t),

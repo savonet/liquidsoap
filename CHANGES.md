@@ -42,13 +42,10 @@
   the decoder; stream interleaving is bounded by
   `settings.decoder.ffmpeg.max_interleave_duration` alone.
 - Overhauled the FFmpeg filter graph implementation, fixing frame loss, dropped
-  track marks and a hang along the way. A graph is now a single source, whatever
-  its number of outputs: they are produced together and share one buffer, one
-  readiness state and one set of track marks, so a track boundary reaching any
-  output cuts every output of that graph. A graph may now have several outputs of
-  the same media type, and `id` on any output names the graph itself. Outputs must
-  be consumed at converging rates; past `settings.ffmpeg.filter_max_buffer` an
-  error names the graph instead of letting the buffer grow without bound.
+  track marks and a hang. A graph is now a single source whose outputs share one
+  buffer and one set of track marks, so a track boundary cuts all of them, `id`
+  on any output names the graph, and outputs consumed at diverging rates raise
+  past `settings.ffmpeg.filter_max_buffer`.
 
 ## Fixed:
 
