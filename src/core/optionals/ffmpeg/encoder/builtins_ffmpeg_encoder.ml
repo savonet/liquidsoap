@@ -506,17 +506,13 @@ let mk_encoder mode =
                { source; idx = Ffmpeg_content_base.new_stream_idx () }
            in
 
-           (* Unlike the container encoder, we cannot report the options ffmpeg
-              did not consume: the table also holds entries liquidsoap derives
-              and passes to the encoder as explicit arguments (channel layout,
-              sample format), which ffmpeg leaves behind. Telling those apart
-              needs the declared-versus-derived bookkeeping that
-              Ffmpeg_internal_encoder does, which inline encoders do not carry. *)
-           let encode_frame =
+           let encoded, encode_frame =
              match stream with
                | `Encode { mode = `Raw; options = `Audio format } ->
-                   encode_audio_frame ~source_idx ~type_t:output_frame_t
-                     ~mode:`Raw ~opts ~format ~content_type ~field generator
+                   ( false,
+                     encode_audio_frame ~source_idx ~type_t:output_frame_t
+                       ~mode:`Raw ~opts ~format ~content_type ~field generator
+                   )
                | `Encode
                    {
                      mode = `Internal;
@@ -524,12 +520,15 @@ let mk_encoder mode =
                      options = `Audio format;
                    } ->
                    let codec = Avcodec.Audio.find_encoder_by_name codec in
-                   encode_audio_frame ~source_idx ~type_t:output_frame_t
-                     ~mode:`Encoded ~opts ~codec ~format ~content_type ~field
-                     generator
+                   ( true,
+                     encode_audio_frame ~source_idx ~type_t:output_frame_t
+                       ~mode:`Encoded ~opts ~codec ~format ~content_type ~field
+                       generator )
                | `Encode { mode = `Raw; options = `Video format } ->
-                   encode_video_frame ~source_idx ~type_t:output_frame_t
-                     ~mode:`Raw ~opts ~format ~content_type ~field generator
+                   ( false,
+                     encode_video_frame ~source_idx ~type_t:output_frame_t
+                       ~mode:`Raw ~opts ~format ~content_type ~field generator
+                   )
                | `Encode
                    {
                      mode = `Internal;
@@ -537,11 +536,23 @@ let mk_encoder mode =
                      options = `Video format;
                    } ->
                    let codec = Avcodec.Video.find_encoder_by_name codec in
-                   encode_video_frame ~source_idx ~type_t:output_frame_t
-                     ~mode:`Encoded ~opts ~codec ~format ~content_type ~field
-                     generator
+                   ( true,
+                     encode_video_frame ~source_idx ~type_t:output_frame_t
+                       ~mode:`Encoded ~opts ~codec ~format ~content_type ~field
+                       generator )
                | _ -> assert false
            in
+
+           (* Creating the encoder leaves behind the options ffmpeg did not
+              understand. Raw mode encodes nothing here, so its options travel
+              with the content to whichever encoder consumes it later. *)
+           if encoded && Hashtbl.length opts > 0 then
+             raise
+               (Error.Invalid_value
+                  ( format_val,
+                    Printf.sprintf "Unrecognized options: %s"
+                      (Ffmpeg_format.string_of_options opts),
+                    [] ));
 
            encode_frame
          in

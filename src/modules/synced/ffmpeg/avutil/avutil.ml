@@ -847,7 +847,10 @@ let mk_audio_opts ?opts ?channels ?channel_layout ~sample_rate ~sample_format
                   "At least one of channels or channel_layout must be passed!"))
       | _ -> ()
   in
-  let opts = opts_default opts in
+  (* Derived options go into a copy: they are ours, not the caller's, and
+     mixing them in would make them indistinguishable from the caller's own
+     once ffmpeg reports back which ones it did not use. *)
+  let opts = Hashtbl.copy (opts_default opts) in
   add_audio_opts ?channels ?channel_layout ~sample_rate ~sample_format
     ~time_base opts;
   opts
@@ -871,7 +874,7 @@ let add_video_opts ?frame_rate ?color_space ?color_range ~pixel_format ~width
 
 let mk_video_opts ?opts ?frame_rate ?color_space ?color_range ~pixel_format
     ~width ~height ~time_base () =
-  let opts = opts_default opts in
+  let opts = Hashtbl.copy (opts_default opts) in
   add_video_opts ?frame_rate ?color_space ?color_range ~pixel_format ~width
     ~height ~time_base opts;
   opts

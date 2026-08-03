@@ -2,6 +2,11 @@
 ======
 * TODO: rename ffmpeg-av into ffmpeg-avformat
 * Add version API
+* `mk_audio_opts` and `mk_video_opts` keep the options they derive (channel
+  layout, sample format, time base, ...) to themselves, so that
+  `Av.new_audio_stream`, `Av.new_video_stream` and
+  `Avcodec.{Audio,Video}.create_encoder` leave in the caller's table exactly the
+  caller's own options that ffmpeg did not use.
 
 1.3.0 (2026-04-10)
 =====

@@ -373,16 +373,17 @@ external new_audio_stream :
 
 let new_audio_stream ?opts ~channel_layout ~sample_rate ~sample_format
     ~time_base ~codec container =
-  let opts =
+  let all_opts =
     mk_audio_opts ?opts ~channel_layout ~sample_rate ~sample_format ~time_base
       ()
   in
   let ret, unused =
     new_audio_stream container
       (Sample_format.get_id sample_format)
-      codec channel_layout (mk_opts_array opts)
+      codec channel_layout (mk_opts_array all_opts)
   in
-  filter_opts unused opts;
+  (* Report back on the caller's own options, not on the ones we derived. *)
+  (match opts with Some opts -> filter_opts unused opts | None -> ());
   mk_stream container ret
 
 external new_video_stream :
@@ -395,7 +396,7 @@ external new_video_stream :
 
 let new_video_stream ?opts ?frame_rate ?hardware_context ~pixel_format ~width
     ~height ~time_base ~codec container =
-  let opts =
+  let all_opts =
     mk_video_opts ?opts ?frame_rate ~pixel_format ~width ~height ~time_base ()
   in
   let device_context, frame_context =
@@ -406,9 +407,9 @@ let new_video_stream ?opts ?frame_rate ?hardware_context ~pixel_format ~width
   in
   let ret, unused =
     new_video_stream ?device_context ?frame_context container codec
-      (mk_opts_array opts)
+      (mk_opts_array all_opts)
   in
-  filter_opts unused opts;
+  (match opts with Some opts -> filter_opts unused opts | None -> ());
   let s = mk_stream container ret in
   set_avg_frame_rate s frame_rate;
   s
