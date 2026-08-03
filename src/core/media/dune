@@ -11,10 +11,6 @@
  (name liquidsoap_core_media)
  (flags
   (:standard
-   -w
-   -9
-   -alert
-   --deprecated
    -open
    Liquidsoap_lang_prelude
    -open
