@@ -273,9 +273,6 @@ let type_of_encoder =
         | _ -> content_type)
     Frame.Fields.empty
 
-let flag_qscale = ref 0
-let qp2lambda = ref 0
-
 (* Looks like this is how ffmpeg CLI does it.
    See: https://github.com/FFmpeg/FFmpeg/blob/4782124b90cf915ede2cebd871be82fc0267a135/fftools/ffmpeg_opt.c#L1567-L1570 *)
 let set_global_quality q opts =

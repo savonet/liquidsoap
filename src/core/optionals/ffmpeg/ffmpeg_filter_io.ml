@@ -24,8 +24,6 @@
 
 exception Not_ready
 
-let noop () = ()
-
 type 'a _duration_converter = {
   idx : int64;
   time_base : Avutil.rational;
@@ -292,13 +290,6 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
       Generator.slice self#buffer size
   end
 
-type audio_config = {
-  format : Avutil.Sample_format.t;
-  rate : int;
-  channels : int;
-}
-
-(* Same thing here. *)
 class audio_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
   object (self)
     inherit
@@ -338,12 +329,6 @@ class audio_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
           Generator.put self#buffer field
             (Ffmpeg_raw_content.Audio.lift_data content)
   end
-
-type video_config = {
-  width : int;
-  height : int;
-  pixel_format : Avutil.Pixel_format.t;
-}
 
 class video_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
   object (self)

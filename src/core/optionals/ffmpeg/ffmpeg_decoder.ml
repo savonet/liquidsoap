@@ -23,7 +23,6 @@
 (** Decode and read metadata using ffmpeg. *)
 
 exception End_of_file
-exception No_stream
 exception Invalid_file
 
 let log = Log.make ["decoder"; "ffmpeg"]

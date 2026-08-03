@@ -38,6 +38,9 @@
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
   from the callback.
 - Allow implicit casting of an integer as a float (#2887).
+- Removed `settings.decoder.ffmpeg.max_interleave_delta`. The setting was never read by
+  the decoder; stream interleaving is bounded by
+  `settings.decoder.ffmpeg.max_interleave_duration` alone.
 
 ## Fixed:
 

@@ -42,11 +42,6 @@ let conf_max_interleave_duration =
     ~p:(conf_ffmpeg_decoder#plug "max_interleave_duration")
     ~d:5. "Maximum data buffered while waiting for all streams."
 
-let conf_max_interleave_delta =
-  Dtools.Conf.float
-    ~p:(conf_ffmpeg_decoder#plug "max_interleave_delta")
-    ~d:0.04 "Maximum delay between interleaved streams."
-
 let conf_codecs =
   let codecs = Hashtbl.create 10 in
   List.iter
@@ -118,3 +113,41 @@ let configure_subtitle_stream params =
   configure_stream
     ~get_name:(fun p -> Avcodec.Subtitle.(string_of_id (get_params_id p)))
     ~find_decoder:Avcodec.Subtitle.find_decoder_by_name params
+
+let mk_subtitle_decoder ~output ~process () =
+  let current_position = ref None in
+  let advance ~buffer position =
+    match !current_position with
+      | None ->
+          output ?data:None ~buffer ~length:position ();
+          current_position := Some (position, None)
+      | Some (p, _) when position <= p -> ()
+      | Some (p, data) ->
+          let data = Option.map snd data in
+          output ?data ~buffer ~length:(position - p) ();
+          current_position := Some (position, None)
+  in
+  let process ~buffer subtitle =
+    let position, duration, content = process subtitle in
+    match !current_position with
+      | Some (old_position, _) when position <= old_position -> ()
+      | Some (old_position, data) ->
+          let data = Option.map snd data in
+          output ?data ~buffer ~length:(position - old_position) ();
+          current_position := Some (position, Some (duration, content))
+      | None ->
+          (* Output initial silence if the first subtitle doesn't start at 0 *)
+          if position > 0 then output ?data:None ~buffer ~length:position ();
+          current_position := Some (position, Some (duration, content))
+  in
+  let flush buffer =
+    match !current_position with
+      | Some (_, Some (length, content)) ->
+          output ?data:(Some content) ~buffer ~length ()
+      | _ -> ()
+  in
+  let decoder ~buffer = function
+    | `Flush -> flush buffer
+    | `Subtitle subtitle -> process ~buffer subtitle
+  in
+  { decoder; advance }

@@ -243,7 +243,7 @@ let mk_text_subtitle_decoder ~field =
     in
     (position, duration, subtitles)
   in
-  Ffmpeg_utils.mk_subtitle_decoder ~output ~process ()
+  Ffmpeg_decoder_common.mk_subtitle_decoder ~output ~process ()
 
 let mk_bitmap_subtitle_decoder ~field ~width ~height =
   let cached_scaler = ref None in

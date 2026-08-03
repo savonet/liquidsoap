@@ -24,29 +24,6 @@ exception Not_connected
 
 module Http = Liq_http
 
-module Metadata = struct
-  include Map.Make (struct
-    type t = string
-
-    let compare = String.compare
-  end)
-
-  let of_metadata m = List.fold_left (fun m (k, v) -> add k v m) empty m
-  let equal = equal String.equal
-  let to_metadata = bindings
-end
-
-let normalize_metadata =
-  List.map (fun (lbl, v) ->
-      let lbl =
-        match lbl with
-          | "StreamTitle" -> "title"
-          | "StreamUrl" -> "url"
-          | _ -> lbl
-      in
-      let v = try Charset.convert ~target:Charset.utf8 v with _ -> v in
-      (lbl, v))
-
 exception Stopped
 
 type container = {
@@ -582,13 +559,13 @@ let register_input is_http =
          let metadata_filter =
            if not deduplicate_metadata then metadata_filter
            else (
-             let last_meta = ref Metadata.empty in
+             let last_meta = ref [] in
              fun m ->
                let m = metadata_filter m in
-               let m' = Metadata.of_metadata m in
-               if m = [] || Metadata.equal !last_meta m' then []
+               let sorted = List.sort compare m in
+               if m = [] || !last_meta = sorted then []
                else (
-                 last_meta := m';
+                 last_meta := sorted;
                  m))
          in
          let metadata_filter m =

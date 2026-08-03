@@ -22,8 +22,6 @@
 
 (** FFMPEG encoder *)
 
-let log = Ffmpeg_utils.log
-
 type encoder = {
   mk_stream : Frame.t -> unit;
   encode : Frame.t -> unit;
