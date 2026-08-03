@@ -32,8 +32,8 @@ type 'a _duration_converter = {
 
 let track_mark_metadata = "liquidsoap_track_mark"
 
-(** Everything that differs between an audio and a video end of the graph.
-    Without this the two sides are the same code written twice. *)
+(** Everything that differs between an audio and a video end of the graph, so
+    that each end is written once and applied to both. *)
 type ('a, 'params) media = {
   get_data :
     Content.data -> ('params, 'a Avutil.frame) Ffmpeg_content_base.content;
@@ -239,47 +239,27 @@ let audio_output ~pass_metadata ~name ~frame_t ~field source =
 let video_output ~pass_metadata ~name ~frame_t ~field source =
   new base_output ~media:video_media ~pass_metadata ~name ~frame_t ~field source
 
-class ['a, 'params] input_base ~media ~name ~field ~pass_metadata ~self_sync
-  ~is_ready ~pull frame_t =
+(* The graph end of an output: a buffersink, drained into the field of the
+   graph source's generator that this output was given. The graph source owns
+   the buffer and does the pulling. *)
+class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit ['a] duration_converter
-    inherit Source.source ~name ()
-    initializer Typing.(self#frame_type <: frame_t)
-    method effective_source = (self :> Source.source)
-    method fallible = true
-    method remaining = Generator.remaining self#buffer
-    method abort_track = ()
-    method private stream_idx = stream_idx
+    method log = log
     val mutable output = None
+    method connected = output <> None
 
-    (* The sink knows the format the graph settled on; hand it to the content
+    (* The sink knows the format the graph settled on; give it to the content
        type the script was type-checked against. *)
     method set_output v =
       let media = (media : ('a, 'params) media) in
-      (match Frame.Fields.find_opt field self#content_type with
+      (match Frame.Fields.find_opt field (content_type ()) with
         | None -> ()
         | Some format ->
             Content.merge format
               (media.lift_params (media.context_params v.Avfilter.context)));
       output <- Some v
-
-    method private put_data ~length data =
-      match data with
-        | [] -> ()
-        | (_, frame) :: _ ->
-            let time_base =
-              Avfilter.time_base (Option.get output).Avfilter.context
-            in
-            let chunk =
-              { Ffmpeg_content_base.length; stream_idx; time_base; data }
-            in
-            Generator.put self#buffer field
-              (media.lift_data
-                 {
-                   Ffmpeg_content_base.params = media.frame_params frame;
-                   chunks = [chunk];
-                 })
 
     method private metadata_timestamps ~time_base frame =
       let get_time d =
@@ -302,89 +282,75 @@ class ['a, 'params] input_base ~media ~name ~field ~pass_metadata ~self_sync
           ("best_effort_timestamp", Avutil.Frame.best_effort_timestamp);
         ]
 
-    method private flush_buffer output =
+    method private put_data ~generator ~length data =
+      match data with
+        | [] -> ()
+        | (_, frame) :: _ ->
+            let time_base =
+              Avfilter.time_base (Option.get output).Avfilter.context
+            in
+            let chunk =
+              { Ffmpeg_content_base.length; stream_idx; time_base; data }
+            in
+            Generator.put generator field
+              ((media : ('a, 'params) media).lift_data
+                 {
+                   Ffmpeg_content_base.params = media.frame_params frame;
+                   chunks = [chunk];
+                 })
+
+    method private read_one ~generator output =
       let time_base = Avfilter.(time_base output.context) in
-      fun () ->
-        let frame = output.Avfilter.handler () in
-        match
-          self#convert_duration ~convert_ts:false ~stream_idx ~time_base frame
-        with
-          | Some (length, frames) ->
-              List.iter
-                (fun (pos, frame) ->
-                  let metadata = Avutil.Frame.metadata frame in
-                  let pos = Generator.length self#buffer + pos in
-                  (* Track marks come back whether or not metadata is passed:
-                     dropping them would silently merge tracks. *)
-                  if List.mem_assoc track_mark_metadata metadata then
-                    Generator.add_track_mark ~pos self#buffer;
-                  if pass_metadata then (
-                    let m =
-                      List.filter
-                        (fun (k, _) -> k <> track_mark_metadata)
-                        metadata
-                    in
-                    if m <> [] then
-                      Generator.add_metadata ~pos self#buffer
-                        (Frame.Metadata.from_list
-                           (m @ self#metadata_timestamps ~time_base frame))))
-                frames;
-              self#put_data ~length frames
-          | None -> ()
+      let frame = output.Avfilter.handler () in
+      match
+        self#convert_duration ~convert_ts:false ~stream_idx ~time_base frame
+      with
+        | None -> ()
+        | Some (length, frames) ->
+            List.iter
+              (fun (pos, frame) ->
+                let metadata = Avutil.Frame.metadata frame in
+                (* Offsets are relative to this field, not to the generator:
+                   fields of the same generator can be filled at different
+                   rates. *)
+                let pos = Generator.field_length generator field + pos in
+                if List.mem_assoc track_mark_metadata metadata then
+                  Generator.add_track_mark ~pos generator;
+                if pass_metadata then (
+                  let m =
+                    List.filter
+                      (fun (k, _) -> k <> track_mark_metadata)
+                      metadata
+                  in
+                  if m <> [] then
+                    Generator.add_metadata ~pos generator
+                      (Frame.Metadata.from_list
+                         (m @ self#metadata_timestamps ~time_base frame))))
+              frames;
+            self#put_data ~generator ~length frames
 
-    method self_sync : Clock.self_sync = self_sync self
+    (* Take everything the sink has ready. Stops on [`Eagain], which means the
+       graph needs more input, and on [`Eof], which means it never will. *)
+    val mutable eof = false
 
-    method pull =
-      try
-        (* Init is driven by the pull. *)
-        let output =
-          while output = None do
-            if not (is_ready ()) then raise Not_ready;
-            pull ()
-          done;
-          Option.get output
-        in
-        let flush = self#flush_buffer output in
-        let rec f () =
-          match
+    (* [true] once the graph has told this sink that nothing more is coming. *)
+    method eof = eof
+
+    method drain ~generator =
+      match output with
+        | None -> ()
+        | Some output -> (
             try
               while true do
-                flush ()
-              done;
-              `Done
+                self#read_one ~generator output
+              done
             with
-              | Avutil.Error `Eagain -> `Again
-              (* The graph reached end of file: nothing more will ever come out
-                 of this sink. *)
-              | Avutil.Error `Eof -> `Eof
-          with
-            | `Eof | `Done -> ()
-            | `Again ->
-                if
-                  Generator.length self#buffer < Lazy.force Frame.size
-                  && is_ready ()
-                then (
-                  pull ();
-                  f ())
-        in
-        f ()
-      with Not_ready -> ()
-
-    method private can_generate_frame =
-      Generator.length self#buffer >= Lazy.force Frame.size || is_ready ()
-
-    method private generate_frame =
-      let size = Lazy.force Frame.size in
-      if Generator.length self#buffer < Lazy.force Frame.size then self#pull;
-      Generator.slice self#buffer size
+              | Avutil.Error `Eagain -> ()
+              | Avutil.Error `Eof -> eof <- true)
   end
 
-let audio_input ~field ~pass_metadata ~self_sync ~is_ready ~pull frame_t =
-  new input_base
-    ~media:audio_media ~name:"ffmpeg.filter.audio.output" ~field ~pass_metadata
-    ~self_sync ~is_ready ~pull frame_t
+let audio_sink ~field ~pass_metadata ~log ~content_type () =
+  new sink ~media:audio_media ~field ~pass_metadata ~log ~content_type ()
 
-let video_input ~field ~pass_metadata ~self_sync ~is_ready ~pull frame_t =
-  new input_base
-    ~media:video_media ~name:"ffmpeg.filter.video.output" ~field ~pass_metadata
-    ~self_sync ~is_ready ~pull frame_t
+let video_sink ~field ~pass_metadata ~log ~content_type () =
+  new sink ~media:video_media ~field ~pass_metadata ~log ~content_type ()

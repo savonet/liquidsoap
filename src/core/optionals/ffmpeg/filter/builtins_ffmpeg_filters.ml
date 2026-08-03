@@ -72,7 +72,10 @@ type graph = {
   mutable failed : bool;
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
-  graph_outputs : Source.source Queue.t;
+  (* All outputs are fields of one source, created on the first of them. *)
+  mutable graph_source : Ffmpeg_filter_graph.source option;
+  mutable audio_outputs : int;
+  mutable video_outputs : int;
   init : unit Lazy.t Queue.t;
   entries : (inputs, outputs) Avfilter.io;
 }
@@ -111,6 +114,25 @@ let pull graph =
 
 let self_sync graph source =
   (Clock_base.self_sync ~source (Queue.elements graph.graph_inputs)) ()
+
+(* Every output of a graph is a field of the same source: they are produced
+   together, so they share a buffer, a readiness test and a set of track
+   marks. Created on the first output, since a graph with none needs no
+   source at all. *)
+let graph_source graph =
+  match graph.graph_source with
+    | Some s -> s
+    | None ->
+        let s =
+          new Ffmpeg_filter_graph.source
+            ~name:"ffmpeg.filter"
+            ~pull:(fun () -> pull graph)
+            ~is_ready:(fun () -> is_ready graph)
+            ~self_sync:(fun source -> self_sync graph source)
+            ()
+        in
+        graph.graph_source <- Some s;
+        s
 
 module Graph = Value.MkCustom (struct
   type content = graph
@@ -533,24 +555,24 @@ let _ =
          let config = get_config graph_v in
          let graph = Graph.of_value graph_v in
 
-         let frame_t =
-           Lang.frame_t Lang.unit_t
-             (Frame.Fields.make
-              (* We need to make sure that we are using a format here to
-                 ensure that its params are properly unified with the underlying source. *)
-                ~audio:
-                  (Type.make
-                     (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
-                ())
+         (* No frame type is built here: [add_track_operator] constrains the
+            field this output claims, and it must leave the rest of the source's
+            row open for the graph's other outputs. *)
+         let s = graph_source graph in
+         let field = Frame.Fields.audio_n graph.audio_outputs in
+         graph.audio_outputs <- graph.audio_outputs + 1;
+         let sink =
+           Ffmpeg_filter_io.audio_sink ~field ~pass_metadata ~log
+             ~content_type:(fun () -> s#content_type)
+             ()
          in
-         let field = Frame.Fields.audio in
-         let s =
-           Ffmpeg_filter_io.audio_input ~field
-             ~pull:(fun () -> pull graph)
-             ~is_ready:(fun () -> is_ready graph)
-             ~self_sync:(self_sync graph) ~pass_metadata frame_t
-         in
-         Queue.push graph.graph_outputs (s :> Source.source);
+         s#add_sink
+           {
+             Ffmpeg_filter_graph.field;
+             connected = (fun () -> sink#connected);
+             drain = (fun ~generator -> sink#drain ~generator);
+             eof = (fun () -> sink#eof);
+           };
 
          let pad = Audio.of_value (Lang.assoc "" 2 p) in
          Queue.push graph.init
@@ -566,7 +588,8 @@ let _ =
                 in
                 Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
                 Avfilter.(
-                  Hashtbl.replace graph.entries.outputs.audio name s#set_output)));
+                  Hashtbl.replace graph.entries.outputs.audio name
+                    sink#set_output)));
 
          (field, (s :> Source.source))));
 
@@ -658,22 +681,21 @@ let _ =
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
 
-      let frame_t =
-        Lang.frame_t Lang.unit_t
-          (Frame.Fields.make
-             ~video:
-               (Type.make
-                  (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
-             ())
+      let s = graph_source graph in
+      let field = Frame.Fields.video_n graph.video_outputs in
+      graph.video_outputs <- graph.video_outputs + 1;
+      let sink =
+        Ffmpeg_filter_io.video_sink ~field ~pass_metadata ~log
+          ~content_type:(fun () -> s#content_type)
+          ()
       in
-      let field = Frame.Fields.video in
-      let s =
-        Ffmpeg_filter_io.video_input ~field
-          ~pull:(fun () -> pull graph)
-          ~is_ready:(fun () -> is_ready graph)
-          ~self_sync:(self_sync graph) ~pass_metadata frame_t
-      in
-      Queue.push graph.graph_outputs (s :> Source.source);
+      s#add_sink
+        {
+          Ffmpeg_filter_graph.field;
+          connected = (fun () -> sink#connected);
+          drain = (fun ~generator -> sink#drain ~generator);
+          eof = (fun () -> sink#eof);
+        };
 
       Queue.push graph.init
         (Lazy.from_fun (fun () ->
@@ -688,7 +710,7 @@ let _ =
              in
              Avfilter.(link pad (List.hd _buffersink.io.inputs.video));
              Avfilter.(
-               Hashtbl.replace graph.entries.outputs.video name s#set_output)));
+               Hashtbl.replace graph.entries.outputs.video name sink#set_output)));
 
       (field, (s :> Source.source)))
 
@@ -712,7 +734,9 @@ let _ =
             failed = false;
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
-            graph_outputs = Queue.create ();
+            graph_source = None;
+            audio_outputs = 0;
+            video_outputs = 0;
             init = Queue.create ();
             entries =
               {
@@ -737,18 +761,20 @@ let _ =
           ()
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
-      unify_clocks ~clock:output_clock graph.graph_outputs;
+      (match graph.graph_source with
+        | None -> ()
+        | Some s -> Clock.unify ~pos:s#pos output_clock s#clock);
       (* We need an early registration for sources such as source.dynamic. *)
       Clock.register_sub_clock output_clock input_clock;
-      let active_outputs = Atomic.make 0 in
-      Queue.iter graph.graph_outputs (fun s ->
-          s#on_wake_up (fun () ->
-              (* This is idenpotent so it's okay to do it twice. *)
-              Clock.register_sub_clock output_clock input_clock;
-              Atomic.incr active_outputs);
-          s#on_sleep (fun () ->
-              Atomic.decr active_outputs;
-              if Atomic.get active_outputs = 0 then
+      (* One source for the whole graph, so the sub-clock registration follows
+         it directly rather than being reference counted across outputs. *)
+        (match graph.graph_source with
+        | None -> ()
+        | Some s ->
+            s#on_wake_up (fun () ->
+                (* Idempotent, so doing it twice the first time is fine. *)
+                Clock.register_sub_clock output_clock input_clock);
+            s#on_sleep (fun () ->
                 Clock.deregister_sub_clock output_clock input_clock));
 
       Queue.push graph.init
