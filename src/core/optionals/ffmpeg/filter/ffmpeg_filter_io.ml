@@ -106,17 +106,31 @@ class virtual ['a] duration_converter =
               let last_ts, offset =
                 match duration_converter with
                   | None -> (None, 0L)
-                  | Some { idx; converter } ->
+                  | Some { idx; converter; time_base = previous_time_base } ->
                       if idx = stream_idx then
                         self#log#important "Unexpected time_base change!";
-                      let last_ts = Ffmpeg_utils.Duration.last_ts converter in
+                      (* Where the previous stream ended is counted in its own
+                         time base. Bring it into the new one before lining the
+                         two up, otherwise switching between streams that do not
+                         share a time base moves the position in time -- and
+                         moving it backwards makes the graph emit non-monotonic
+                         timestamps. *)
+                      let to_new_time_base =
+                        Ffmpeg_utils.convert_time_base ~src:previous_time_base
+                          ~dst:time_base
+                      in
+                      let last_ts =
+                        Option.map to_new_time_base
+                          (Ffmpeg_utils.Duration.last_ts converter)
+                      in
                       let frame_ts =
                         Option.value ~default:0L (Avutil.Frame.pts frame)
                       in
                       let position =
                         Int64.add
                           (Option.value ~default:0L last_ts)
-                          (Option.value ~default:0L last_duration)
+                          (to_new_time_base
+                             (Option.value ~default:0L last_duration))
                       in
                       let offset = Int64.sub position frame_ts in
                       (last_ts, offset)
