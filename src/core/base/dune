@@ -58,6 +58,7 @@
   duppy
   liquidsoap-lang
   liquidsoap-lang.ast
+  liquidsoap-lang.cache
   liquidsoap-lang.data
   liquidsoap-lang.parser
   liquidsoap-lang.prelude

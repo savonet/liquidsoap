@@ -65,6 +65,10 @@
     (echo
      "let native_c_libraries = \"%{ocaml-config:native_c_libraries}\"\n")))))
 
+(generate_sites_module
+ (module sites)
+ (sites liquidsoap-lang))
+
 (library
  (name liquidsoap_lang_data)
  (public_name liquidsoap-lang.data)
@@ -76,6 +80,7 @@
   liquidsoap-lang.prelude
   liquidsoap-lang.types
   fileutils
+  dune-site
   menhirLib
   re
   str

@@ -1,9 +1,4 @@
-; Runtime values, the global environment they are registered in, and the
-; on-disk caches keyed on them.
-
-(generate_sites_module
- (module sites)
- (sites liquidsoap-lang))
+; Runtime values and the global environment they are registered in.
 
 (library
  (name liquidsoap_lang_values)
@@ -17,6 +12,4 @@
   liquidsoap-lang.ast
   liquidsoap-lang.data
   liquidsoap-lang.prelude
-  liquidsoap-lang.types
-  dune-site
-  unix))
+  liquidsoap-lang.types))

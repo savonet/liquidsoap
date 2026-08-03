@@ -194,8 +194,7 @@ let _ =
                      "Invalid mode. Should be one of: \"user\" or \"system\"",
                      [] ))
       in
-      let fn = !Hooks.cache_maintenance in
-      fn dirtype;
+      Cache.maintenance dirtype;
       Lang.unit)
 
 let liquidsoap_version =

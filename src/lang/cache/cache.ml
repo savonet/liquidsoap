@@ -6,12 +6,31 @@ let enabled () =
     venv = "1" || venv = "true"
   with Not_found -> true
 
+let log = Hooks.log ["cache"]
+
+let int_from_env ~default name =
+  try int_of_string (Sys.getenv name) with _ -> default
+
 let system_dir_override = ref (fun () -> None)
 let user_dir_override = ref (fun () -> None)
-let system_dir_perms = ref 0o755
-let system_file_perms = ref 0o644
-let user_dir_perms = ref 0o700
-let user_file_perms = ref 0o600
+
+let system_dir_perms =
+  ref (int_from_env ~default:0o755 "LIQ_CACHE_SYSTEM_DIR_PERMS")
+
+let system_file_perms =
+  ref (int_from_env ~default:0o644 "LIQ_CACHE_SYSTEM_FILE_PERMS")
+
+let user_dir_perms =
+  ref (int_from_env ~default:0o700 "LIQ_CACHE_USER_DIR_PERMS")
+
+let user_file_perms =
+  ref (int_from_env ~default:0o600 "LIQ_CACHE_USER_FILE_PERMS")
+
+(** Cached entries are evicted once they are this old, and the oldest ones are
+    evicted past this count. *)
+let max_days = int_from_env ~default:10 "LIQ_CACHE_MAX_DAYS"
+
+let max_files = int_from_env ~default:20 "LIQ_CACHE_MAX_FILES"
 
 let default_user_dir () =
   try Some (Unix.getenv "LIQ_CACHE_USER_DIR")
@@ -95,6 +114,48 @@ let retrieve ?name ~dirtype filename =
         else Startup.message "Error while loading cache: %s" exn;
         None
 
+(** Evict entries that are too old, then the oldest ones if there are still too
+    many. Run after every store. *)
+let maintenance dirtype =
+  let max_timestamp = Unix.time () -. (float max_days *. 86400.) in
+  try
+    match dir dirtype with
+      | Some dir when Sys.file_exists dir && Sys.is_directory dir ->
+          let files =
+            Array.fold_left
+              (fun files fname ->
+                if String.ends_with ~suffix:".liq-cache" fname then (
+                  let filename = Filename.concat dir fname in
+                  let stats = Unix.stat filename in
+                  match stats with
+                    | { Unix.st_atime } when st_atime < max_timestamp ->
+                        log#info "File %s is too old, deleting.." fname;
+                        Unix.unlink filename;
+                        files
+                    | _ -> (stats, filename) :: files)
+                else files)
+              [] (Sys.readdir dir)
+          in
+          let len = List.length files in
+          if max_files < len then (
+            let len = len - max_files in
+            log#info "Too many cached files! Deleting %d oldest ones.." len;
+            let files =
+              List.sort
+                (fun ({ Unix.st_atime = t }, _) ({ Unix.st_atime = t' }, _) ->
+                  Stdlib.compare t t')
+                files
+            in
+            List.iteri
+              (fun pos (_, filename) ->
+                if pos < len then (
+                  log#info "Deleting %s.." (Filename.basename filename);
+                  Unix.unlink filename))
+              files)
+      | _ -> ()
+  with exn ->
+    log#severe "Error while cleaning up cache: %s" (Printexc.to_string exn)
+
 let store ~dirtype filename value =
   try
     match dir dirtype with
@@ -120,14 +181,13 @@ let store ~dirtype filename value =
               Marshal.to_channel oc value [Marshal.Closures];
               close_out_noerr oc;
               Sys.rename tmp_file filename);
-          let fn = !Hooks.cache_maintenance in
-          fn dirtype
+          maintenance dirtype
   with exn ->
     let bt = Printexc.get_backtrace () in
     let exn = Printexc.to_string exn in
     if Sys.getenv_opt "LIQ_DEBUG_CACHE" <> None then
-      Startup.message "Error while loading cache: %s\n%s" exn bt
-    else Startup.message "Error while loading cache: %s" exn
+      Startup.message "Error while storing cache: %s\n%s" exn bt
+    else Startup.message "Error while storing cache: %s" exn
 
 (** A key-value table in cache. *)
 module Table = struct

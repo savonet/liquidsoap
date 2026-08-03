@@ -73,7 +73,8 @@ liquidsoap/
 │   │   ├── types/      # The type system, depends on prelude alone
 │   │   ├── data/       # JSON, documentation, method maps, runtime errors
 │   │   ├── ast/        # Parsed and runtime term representations
-│   │   ├── values/     # Runtime values, global environment, caches
+│   │   ├── values/     # Runtime values, global environment
+│   │   ├── cache/      # On-disk caches: the store, its maintenance, term cache
 │   │   ├── parser/     # Lexer, grammar, token-level preprocessor
 │   │   ├── reducer/    # Desugaring: parsed term -> runtime term
 │   │   ├── runtime/    # Type checking, evaluation, script loading, builtins
@@ -107,7 +108,8 @@ accident.
 | `liquidsoap-lang.types`   | `src/lang/types/`   | **The type system**: representation, constraints, custom types, unification, and the printable form used in error messages. |
 | `liquidsoap-lang.data`    | `src/lang/data/`    | Self-contained services: JSON, documentation, method maps, the runtime error type, build configuration.                     |
 | `liquidsoap-lang.ast`     | `src/lang/ast/`     | The term representations. See `src/lang/ast/README.md` for the parsed / runtime term phases.                                |
-| `liquidsoap-lang.values`  | `src/lang/values/`  | Runtime values, the global environment they are registered in, and the on-disk caches keyed on them.                        |
+| `liquidsoap-lang.values`  | `src/lang/values/`  | Runtime values and the global environment they are registered in.                                                           |
+| `liquidsoap-lang.cache`   | `src/lang/cache/`   | The on-disk caches: the marshalling store, its maintenance, and the typechecking cache keyed on parsed terms.               |
 | `liquidsoap-lang.parser`  | `src/lang/parser/`  | Lexer, Menhir grammar, and the token-level preprocessor (string interpolation, `%include`, `%ifdef`).                       |
 | `liquidsoap-lang.reducer` | `src/lang/reducer/` | Desugaring: parsed term to runtime term. One module per kind of desugaring.                                                 |
 | `liquidsoap-lang`         | `src/lang/runtime/` | Type checking, evaluation, script loading, the `Lang` API and the core builtins.                                            |
@@ -128,6 +130,7 @@ The files you are most likely to want:
 | `runtime/evaluation.ml`              | **Expression evaluator**. Executes typed terms to produce values.                                                |
 | `values/value.ml`                    | Runtime value representation. All Liquidsoap values are `Value.t`.                                               |
 | `values/environment.ml`              | Variable binding environments, for both type checking and evaluation.                                            |
+| `cache/term_cache.ml`                | The typechecking cache: keyed on the parsed term plus the builtin environment.                                   |
 | `runtime/runtime.ml`                 | Script loading and execution: `%include`, caching, and the main evaluation loop.                                 |
 | `data/doc.ml`                        | Documentation extraction; generates operator documentation from type signatures and annotations.                 |
 | `runtime/builtins_*.ml`              | Core built-in functions (lists, strings, math, ...) that are part of the language itself.                        |

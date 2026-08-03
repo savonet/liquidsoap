@@ -7,6 +7,7 @@
   (pps ppx_string))
  (libraries
   liquidsoap-lang.ast
+  liquidsoap-lang.cache
   liquidsoap-lang.console
   liquidsoap-lang.data
   liquidsoap-lang.parser

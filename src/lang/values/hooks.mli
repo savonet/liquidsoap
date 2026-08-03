@@ -13,10 +13,6 @@ val log : string list -> log
 val liq_libs_dir : (unit -> string) ref
 val log_path : string option ref
 
-type dirtype = [ `User | `System ]
-
-val cache_maintenance : (dirtype -> unit) ref
-
 (* Media-specific dependencies. *)
 
 val eval_check :
