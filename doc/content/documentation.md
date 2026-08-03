@@ -41,6 +41,7 @@ If you are migrating from a previous version, you might want to checkout
 ## Core
 
 - Basic concepts: [sources](sources.html), [clocks](clocks.html) and [requests](requests.html).
+- [Source composition](composition.html): how `fallback`, `switch`, `rotate` and `random` hand over from one source to another.
 - [Stream contents](stream_content.html): what kind of streams are supported, and how.
 - [Script loading](script_loading.html): load several scripts, learn about the script library.
 - [Execution phases](phases.html)

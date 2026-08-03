@@ -123,6 +123,169 @@ The `add` operator now relays metadata from all sources being summed (see above)
 
 Also, remember that the `add` operator removes all track marks.
 
+### Per-source methods on `switch`, `fallback`, `rotate`, `random`
+
+The `switch` operator (and its wrappers `fallback`, `rotate`, `random`) now uses per-source methods instead of parallel list parameters. This gives fine-grained control per branch.
+
+#### `replay_metadata` (moved to a per-source method)
+
+The `replay_metadata` parameter on the switch has been removed. It is now a per-source method, still defaulting to `true`:
+
+**Before:**
+
+```liquidsoap
+s = fallback(replay_metadata=false, [s1, s2])
+```
+
+**After:**
+
+```liquidsoap
+s = fallback([s1.{replay_metadata = false}, s2])
+```
+
+Replayed metadata never overrides metadata that the source provides itself: when the starting source begins a fresh track with its own metadata, that metadata wins and the replay only fills in what would otherwise be missing.
+
+#### `single` (deprecated parameter on `switch`)
+
+**Before:**
+
+```liquidsoap
+s = switch(single=[true, false], [({cond1}, s1), ({cond2}, s2)])
+```
+
+**After:**
+
+```liquidsoap
+s = switch([({cond1}, s1.{single = true}), ({cond2}, s2)])
+```
+
+#### `weights` on `rotate` and `random` (moved to a per-source method)
+
+The `weights` list is gone. Weights were positional, so a list shorter than the source list was silently padded with `1`; each source now carries its own `weight`, defaulting to `1`.
+
+**Before:**
+
+```liquidsoap
+s = rotate(weights=[3, 1], [music, jingles])
+s = random(weights=[2, 1], [music, jingles])
+```
+
+**After:**
+
+```liquidsoap
+s = rotate([music.{weight = 3}, jingles.{weight = 1}])
+s = random([music.{weight = 2}, jingles])
+```
+
+`weight` is a getter, so it can vary at runtime: `music.{weight = {if peak_hour() then 5 else 3 end}}`.
+
+#### `rotate.merge`
+
+`rotate.merge` no longer takes `transitions` or `weights` either. Use `weight` on the sources, exactly as with `rotate`. Note that `rotate.merge` installs its own `on_select` on the **first** source — that is how it pads the round and keeps the merged tracks separable — so an `on_select` set on the first source is ignored.
+
+#### `transitions`, `transition_length`, `override` (breaking change)
+
+The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source. See [source composition](composition.html) for the concepts behind them:
+
+- `on_select`: a method of the source being _entered_. Called when it is selected. Receives `{starting, ending, replay_metadata}` and returns the source to play. `ending` is `null` when nothing was interrupted — the source being left reached a track boundary or is no longer available — and non-null when it was preempted mid-track. `replay_metadata` mirrors the per-source `replay_metadata` method (default `true`). By default, both file and live profiles replay the latest metadata when `replay_metadata` is `true` and fade out `ending` when non-null and the source has only PCM audio content (no video, no encoded audio such as `ffmpeg.copy`).
+- `on_leave`: a method of the source being _left_. Called when switching away from it. Receives `{source, track_sensitive}`, where `track_sensitive` reports whether it finished its track naturally (`true`) or was preempted mid-track (`false`). By default, skips the source when it was preempted so it starts fresh on next selection.
+- `track_sensitive`: whether this source insists on track boundaries, both for being interrupted and for being started. A switch may only cut into a track that is still playing when at least one of the two sources involved has `track_sensitive = false`; otherwise it waits for a track boundary. Defaults to `true` for file-based sources, `false` for live inputs. Because the decision only involves the two sources actually handing over, adding a live source to a switch does not change how two file sources hand off to each other.
+- `single`: forbid selecting this source for two consecutive tracks.
+- `composition_type`: `"file"` or `"live"`. Controls which global profile (`source.composition.file` / `source.composition.live`) provides the defaults for the above methods. Can be overridden per source with `:=`.
+
+**Before:**
+
+```liquidsoap
+def my_transition(old, new) =
+  add([fade.out(old), fade.in(new)])
+end
+s = fallback(transitions=[my_transition], transition_length=3., [s1, s2])
+```
+
+**After:**
+
+```liquidsoap
+def my_on_select({ending, starting, replay_metadata}) =
+  if null.defined(ending) then
+    let old = null.get(ending)
+    (sequence([(fade.out(duration=3., old) : source), starting]) : source)
+  else
+    starting
+  end
+end
+s = fallback([s1.{on_select = my_on_select}, s2])
+```
+
+**Adjusting the maximum fade duration:**
+
+The default `on_select` handles the ending source as follows: if it has between `0.` and `settings.source.composition.max_fade` seconds remaining (inclusive), it is sequenced with the starting source so it finishes naturally; if it has enough remaining time and carries only PCM audio, it is faded out for `max_fade` seconds; otherwise switching is immediate. The default `max_fade` is `1.`. To change it globally:
+
+```liquidsoap
+settings.source.composition.max_fade := 2.
+```
+
+**`on_leave` and source release in custom transitions:**
+
+`on_leave` is called on the ending source only after it has been fully released — once it is no longer being consumed by the transition. This means that in a custom `on_select`, you must ensure the ending source is eventually discarded. If it is not, `on_leave` never fires and the ending source's cleanup (e.g. `skip`/`clear_last_metadata`) never runs.
+
+A common mistake is passing `ending` into a mix with no duration bound:
+
+```liquidsoap
+# Wrong: add([fade.out(ending), ...]) runs forever because add keeps pulling
+# from ending indefinitely — it is never discarded and on_leave never fires.
+def my_on_select({ending, starting, replay_metadata=_}) =
+  if null.defined(ending) then
+    let old = null.get(ending)
+    (add([fade.out(duration=3., old), fade.in(duration=3., starting)]) : source)
+  else
+    starting
+  end
+end
+```
+
+The fix is to bound `ending` with `max_duration` before passing it into the mix. Once the duration is exhausted, `max_duration` discards the source, which triggers `on_leave`:
+
+```liquidsoap
+# Correct: max_duration discards ending after 3s, so on_leave fires.
+def my_on_select({ending, starting, replay_metadata=_}) =
+  if null.defined(ending) then
+    let old = max_duration(3., null.get(ending))
+    (add([fade.out(duration=3., old), fade.in(duration=3., starting)]) : source)
+  else
+    starting
+  end
+end
+```
+
+**Restoring the legacy (no-fade) switching behavior:**
+
+If your script relied on the old behavior where switching did not fade out the
+ending source, use `source.composition.legacy_on_select`. It replays metadata
+when `replay_metadata` is `true` but passes `starting` through immediately with
+no transition:
+
+```liquidsoap
+s = fallback([s1.{on_select = source.composition.legacy_on_select}, s2])
+```
+
+**Changing the composition type of a live relay:**
+
+```liquidsoap
+# input.http defaults to live composition (immediate switching with fade).
+# For a relay carrying a playlist, wait for track boundaries instead.
+s = input.http("https://relay.example.com/stream")
+s.composition_type := "file"
+s = fallback([live_show, s, backup])
+```
+
+#### Stdlib operators that used to pin `track_sensitive`
+
+Several operators are built on top of `fallback` and used to pass a fixed `track_sensitive`. They now inherit it from the source they wrap, so their behavior follows that source's composition type: `append`, `prepend`, `fallback.skip`, `map_first_track`, `overlap_sources` and the deprecated `fade.final`. If you relied on one of them switching (or not switching) mid-track regardless of its input, set `track_sensitive` on the source you pass in.
+
+`mksafe` is the exception: it pins `source.composition.legacy_on_select` on both branches, so falling back to `safe_blank` and coming back from it stay abrupt rather than fading.
+
+The deprecated `mkavailable` lost its `track_sensitive` parameter with no replacement; use `source.available` instead, as the deprecation warning already suggests.
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation

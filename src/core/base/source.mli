@@ -125,6 +125,18 @@ object
   (** The source type. Defaults to [`Passive] *)
   method source_type : source_type
 
+  (** Explicit composition tag. `` `Passthrough `` means "inherit". Use
+      [resolved_composition] for the fully resolved tag. *)
+  method composition : [ `File | `Live | `Passthrough ]
+
+  (** Set the composition tag. *)
+  method set_composition : [ `File | `Live | `Passthrough ] -> unit
+
+  (** Resolved composition tag: the explicit tag when there is one, else the tag
+      of [effective_source], else `` `File `` when all children are, else ``
+      `Live ``. *)
+  method resolved_composition : [ `File | `Live ]
+
   (** Remove the given source from the list of controlled sources. For advanced
       use only! *)
   method release_source : source -> unit
@@ -280,8 +292,10 @@ object
   method private set_last_metadata : Frame.t -> unit
 
   (** Insert a metadata at the beginning of the new frame. Also add a track mark
-      when [new_track] is [true] *)
-  method insert_metadata : new_track:bool -> Frame.metadata -> unit
+      when [new_track] is [true]. When [override] is [false], metadata that the
+      source provides itself takes precedence over the inserted one. *)
+  method insert_metadata :
+    ?override:bool -> new_track:bool -> Frame.metadata -> unit
 
   (** Sources must implement this method. It should return [true] when the
       source can produce data during the current streaming cycle. *)

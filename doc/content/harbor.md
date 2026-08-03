@@ -12,6 +12,12 @@ point your encoder (e.g. Butt, Mixxx, Liquidsoap itself) at the harbor port,
 and your script handles the transition to and from the live source using
 `fallback` or similar operators.
 
+`input.harbor` is a live source, so `fallback([live, music])` already does the
+right thing without any parameters: the DJ cuts in mid-song, the song is faded
+out underneath, and the music starts a fresh track when they disconnect. See
+[source composition](composition.html) for how that is decided and how to change
+it.
+
 Two variants are available:
 
 - **`input.harbor`** — static: one mountpoint, one expected content type, registered at startup.

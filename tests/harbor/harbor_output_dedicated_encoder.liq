@@ -3,7 +3,8 @@
 def f() =
   count = ref(0)
 
-  o = output.harbor(%mp3, mount="test", port=3471, dedicated_encoder=true, sine())
+  o =
+    output.harbor(%mp3, mount="test", port=3471, dedicated_encoder=true, sine())
 
   def on_connect(_) =
     count := count() + 1

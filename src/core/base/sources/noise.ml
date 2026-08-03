@@ -26,7 +26,7 @@ open Mm
 
 class noise duration =
   object (self)
-    inherit Synthesized.source ~seek:true ~name:"noise" duration
+    inherit Synthesized.source ~name:"noise" duration
 
     method private synthesize length =
       let audio_len = Frame.audio_of_main length in

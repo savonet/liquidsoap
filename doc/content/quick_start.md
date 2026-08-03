@@ -59,6 +59,10 @@ will probably prefer to `fallback` on an infallible
 fallback([your_fallible_source_here, single("failure.ogg")])
 ```
 
+How `fallback` hands over between the two — right away or at the end of a track,
+with a fade or without — is decided by the sources themselves. See
+[source composition](composition.html).
+
 Finally, if you do not care about failures, you can pass the parameter
 `fallible=true` to most outputs (or pass the option `--no-fallible-check` to Liquidsoap). In that case, the output
 will accept a fallible source, and stop whenever the source fails

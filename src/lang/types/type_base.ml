@@ -83,7 +83,11 @@ end
    restores the content with [Obj.magic], which is sound as long as a handler is
    only ever applied to the payload its own instantiation created. *)
 type custom
-type meth_doc = { meth_descr : string; category : [ `Method | `Callback ] }
+
+type meth_doc = {
+  meth_descr : string;
+  category : [ `Method | `Callback | `Composition ];
+}
 
 type t = { pos : Pos.Option.t; descr : descr }
 

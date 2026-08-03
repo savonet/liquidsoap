@@ -85,6 +85,8 @@ module Value : sig
     methods : (string * meth) list;
     callbacks : (string * meth) list;
     sync_description : string option;
+    composition_description : string option;
+    composition : (string * meth) list;
   }
 
   (** Register documentation under a name. Lazy: building it forces the

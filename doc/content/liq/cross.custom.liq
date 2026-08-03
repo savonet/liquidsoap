@@ -15,7 +15,7 @@ music = source_tag(music, "music")
 jingles = source_tag(jingles, "jingles")
 
 # Combine them with one jingle every 3 music tracks
-radio = rotate(weights=[1, 3], [jingles, music])
+radio = rotate([jingles.{weight = 1}, music.{weight = 3}])
 
 # Now a custom crossfade transition:
 def transition(a, b) =

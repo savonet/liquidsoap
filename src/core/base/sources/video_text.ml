@@ -27,7 +27,7 @@ let video_text = Lang.add_module ~base:Modules.video "text"
 class text init render_text ttf ttf_size color duration text =
   let () = init () in
   object (self)
-    inherit Synthesized.source ~seek:true ~name:"video.text" duration
+    inherit Synthesized.source ~name:"video.text" duration
     val mutable text_frame = None
     val mutable font = None
     val mutable cur_ttf = ttf ()

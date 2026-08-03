@@ -16,6 +16,17 @@ let extra_deps =
   delay_jingle0.mp3
   delay_jingle1.mp3
   delay_music.mp3|} );
+    ( "switch_autodj_jingle_metadata",
+      {|
+  autodj_jingle0.mp3
+  autodj_jingle1.mp3
+  autodj_music.mp3
+  autodj_jingles.m3u|}
+    );
+    ( "switch_skipped_track_metadata",
+      {|
+  skipped_track_music.mp3
+  skipped_track_program.mp3|} );
   ]
 
 let extra_targets = [("GH5019", "GH5019.wav")]

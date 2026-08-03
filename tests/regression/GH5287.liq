@@ -3,7 +3,7 @@
 enabled = ref(true)
 
 delayed = delay_line(0.5, sine())
-s = switch(track_sensitive=false, [({enabled()}, delayed), ({true}, sine())])
+s = switch([({enabled()}, delayed.{track_sensitive = false}), ({true}, sine())])
 
 frames = ref(0)
 max_buffered = 1.

@@ -381,7 +381,7 @@ def fade.final(~id="fade.final", ~duration=3., ~type="lin", s) =
   end
 
   s = fade.scale(id=id, fn, s)
-  switch(track_sensitive=false, [(should_play, s)])
+  switch([(should_play, s)])
 end
 
 # Deprecated: was designed for transitions only and is not
@@ -496,18 +496,13 @@ end
 # @flag deprecated
 def mkavailable(
   ~id="mkavailable",
-  ~track_sensitive=getter(true),
   ~active=getter(false),
   ~available=getter(true),
   s
 ) =
   deprecated("mkavailable", "source.available")
   output.dummy(switch([(getter.function(active), s)]), fallible=true)
-  switch(
-    id=id,
-    track_sensitive=getter.function(track_sensitive),
-    [(getter.function(available), s)]
-  )
+  switch(id=id, [(getter.function(available), s)])
 end
 
 # Deprecated: use `at` instead.

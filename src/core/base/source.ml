@@ -188,6 +188,31 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method virtual fallible : bool
     method source_type : source_type = `Passive
+    val mutable _composition : [ `File | `Live | `Passthrough ] = `Passthrough
+    method composition = _composition
+    method set_composition c = _composition <- c
+
+    (* A source is either tagged explicitly, or it composes like whatever it
+       streams: the source it delegates to, or its children when it mixes
+       several of them. Only a leaf with neither has nothing to inherit from,
+       and a leaf that produces on its own is live. *)
+    method resolved_composition : [ `File | `Live ] =
+      match self#composition with
+        | (`File | `Live) as tag -> tag
+        | `Passthrough ->
+            let eff = self#effective_source in
+            if Oo.id eff <> Oo.id self then eff#resolved_composition
+            else (
+              match sources with
+                | [] -> `Live
+                | children ->
+                    if
+                      List.for_all
+                        (fun (_, s) -> s#resolved_composition = `File)
+                        children
+                    then `File
+                    else `Live)
+
     val mutable registered_commands = Queue.create ()
 
     method register_command ?usage ~descr name cmd =
@@ -552,7 +577,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method get_partial_frame cb =
       let data = cb self#peek_frame in
-      consumed <- Int.max consumed (Frame.position data);
+      self#consumed (Frame.position data);
       data
 
     method consumed n = consumed <- Int.max consumed n
@@ -624,8 +649,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     val insert_metadata = Atomic.make None
 
-    method insert_metadata ~new_track m =
-      Atomic.set insert_metadata (Some (new_track, m))
+    method insert_metadata ?(override = true) ~new_track m =
+      Atomic.set insert_metadata (Some (override, new_track, m))
 
     method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
@@ -770,12 +795,17 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let length = Frame.position buf in
       let buf =
         match (Atomic.exchange insert_metadata None, Frame.track_marks buf) with
-          | Some (new_track, m), _ ->
+          | Some (override, new_track, m), _ ->
+              let existing =
+                Option.value ~default:Frame.Metadata.empty
+                  (Frame.get_metadata buf 0)
+              in
+              (* When [override] is false, the frame's own metadata wins: we are
+                 replaying metadata to announce what is playing and the source
+                 itself is authoritative about that. *)
               let m =
-                Frame.Metadata.append
-                  (Option.value ~default:Frame.Metadata.empty
-                     (Frame.get_metadata buf 0))
-                  m
+                if override then Frame.Metadata.append existing m
+                else Frame.Metadata.append m existing
               in
               let buf = Frame.add_metadata buf 0 m in
               if new_track then Frame.(add_track_mark (drop_track_marks buf)) 0

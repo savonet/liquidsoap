@@ -28,6 +28,20 @@
 ## Changed:
 
 - `http.transport.ssl` and `http.transport.tls`: `key` parameter is now optional in server mode when the certificate file also contains the private key.
+- `switch`, `fallback`, `rotate`, `random`: replaced the parallel list parameters
+  (`transitions`, `transition_length`, `override`, `track_sensitive`,
+  `replay_metadata`, `single`, `weights`) with per-source composition methods
+  (`composition_type`, `track_sensitive`, `replay_metadata`, `single`, `weight`,
+  `on_select`, `on_leave`) registered on every source. Switching behavior now
+  defaults automatically based on whether a source is file-based or live. See the
+  new [source composition](doc/content/composition.md) page, and
+  `doc/content/migrating.md` for the parameter-by-parameter mapping (#5074).
+- **Switching now fades by default.** Previously a switch that cut into a playing
+  track did so abruptly; the leaving source is now faded out over up to
+  `settings.source.composition.max_fade` seconds (default `1.`), when it carries
+  only PCM audio. Handoffs that happen at a track boundary are unchanged: nothing
+  was interrupted, so nothing is faded. Use
+  `source.composition.legacy_on_select` to restore the previous behavior.
 - Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
   with a single unified `duration` parameter. Removed autocue-specific code and
   `assume_autocue` setting. Metadata overrides `liq_cross_start_duration` and
@@ -63,6 +77,12 @@
 - Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
   decoder (#4848)
 - Make sure `output.file` does not create files without data (#4899)
+- Fixed deadlock when a GC finalizer logged from inside another log call: the log
+  queue no longer allocates while holding its mutex.
+- Added an `override` parameter to `insert_metadata`. When `false`, metadata the
+  source provides itself takes precedence over the inserted one. Used by the
+  composition profiles so that replaying metadata on selection never overwrites a
+  fresh track's own metadata.
 
 ---
 

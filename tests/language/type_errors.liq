@@ -101,8 +101,8 @@ def f() =
   incorrect('1+"1"')
 
   # Also, a special simple error is expected for obvious labelling mistakes.
-  incorrect('fallback(transitions=[],xxxxxxxxxxx=[])')
-  incorrect('fallback(transitions=[],transitions=[])')
+  incorrect('fallback([blank()],xxxxxxxxxxx=[])')
+  incorrect('fallback([blank()],xxxxxxxxxxx=[],xxxxxxxxxxx=[])')
   section("FUNCTIONS")
 
   # Partial application is not supported anymore
@@ -115,12 +115,12 @@ def f() =
     'def f(x=null) = ref(x) end r = f(); r.set(1); r.set("aabb")'
   )
 
-  incorrect('fallback(transitions=[fun(~l)->1],[blank()])')
-  incorrect('fallback(transitions=[fun(~l=1)->1],[blank()])')
-  incorrect('fallback(transitions=[fun(x,y=blank())->y],[blank()])')
-  incorrect('fallback(transitions=[fun(x,y)->0],[blank()])')
-  correct('fallback(transitions=[fun(x,y,a=2)->x],[blank()])')
-  incorrect('fallback(transitions=[fun(x,y)->y+1],[blank()])')
+  incorrect('fallback([blank().{on_select=fun(~l)->blank()}])')
+  incorrect('fallback([blank().{on_select=fun(~l=blank())->blank()}])')
+  incorrect('fallback([blank().{on_select=fun(x,y)->x}])')
+  incorrect('fallback([blank().{on_select=fun(x)->0}])')
+  correct('fallback([blank().{on_select=fun(x,a=2)->x.starting}])')
+  incorrect('fallback([blank().{on_select=fun(x)->x+1}])')
   correct(
     'x=fun(f)->f(3) y=x(fun(f,u="1")->u) ignore(y)'
   )
