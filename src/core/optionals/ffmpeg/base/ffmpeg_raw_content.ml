@@ -53,21 +53,8 @@ module AudioSpecs = struct
   let make ?length:_ params : data = Ffmpeg_content_base.make params
 
   let checksum (d : data) =
-    let chunk_checksums =
-      List.map
-        (fun (data : audio frame Ffmpeg_content_base.data) ->
-          let frames_data =
-            List.map
-              (fun (pos, frame) ->
-                Printf.sprintf "%d:%Ld:%d/%d:%s" pos data.stream_idx
-                  data.time_base.Avutil.num data.time_base.Avutil.den
-                  (Ffmpeg_frame_checksum.checksum_of_audio_frame frame))
-              data.data
-          in
-          String.concat "|" frames_data)
-        d.chunks
-    in
-    Digest.string (String.concat "||" chunk_checksums) |> Digest.to_hex
+    Ffmpeg_content_base.checksum
+      ~checksum_of_item:Ffmpeg_frame_checksum.checksum_of_audio_frame d
 
   let name = "ffmpeg.raw.audio"
 
@@ -102,28 +89,19 @@ module AudioSpecs = struct
       ]
 
   let parse_param label value =
+    let none = default_params `Raw in
     match label with
       | "channel_layout" ->
           Some
             {
+              none with
               channel_layout = Some (Avutil.Channel_layout.find value);
-              sample_format = None;
-              sample_rate = None;
             }
       | "sample_format" ->
           Some
-            {
-              channel_layout = None;
-              sample_format = Some (Avutil.Sample_format.find value);
-              sample_rate = None;
-            }
+            { none with sample_format = Some (Avutil.Sample_format.find value) }
       | "sample_rate" ->
-          Some
-            {
-              channel_layout = None;
-              sample_format = None;
-              sample_rate = Some (int_of_string value);
-            }
+          Some { none with sample_rate = Some (int_of_string value) }
       | _ -> None
 
   let compatible src dst =
@@ -201,21 +179,8 @@ module VideoSpecs = struct
   let make ?length:_ params : data = Ffmpeg_content_base.make params
 
   let checksum (d : data) =
-    let chunk_checksums =
-      List.map
-        (fun (data : video frame Ffmpeg_content_base.data) ->
-          let frames_data =
-            List.map
-              (fun (pos, frame) ->
-                Printf.sprintf "%d:%Ld:%d/%d:%s" pos data.stream_idx
-                  data.time_base.Avutil.num data.time_base.Avutil.den
-                  (Ffmpeg_frame_checksum.checksum_of_video_frame frame))
-              data.data
-          in
-          String.concat "|" frames_data)
-        d.chunks
-    in
-    Digest.string (String.concat "||" chunk_checksums) |> Digest.to_hex
+    Ffmpeg_content_base.checksum
+      ~checksum_of_item:Ffmpeg_frame_checksum.checksum_of_video_frame d
 
   let name = "ffmpeg.raw.video"
 
@@ -257,30 +222,15 @@ module VideoSpecs = struct
       ]
 
   let parse_param label value =
+    let none = default_params `Raw in
     match label with
-      | "width" ->
-          Some
-            {
-              width = Some (int_of_string value);
-              height = None;
-              pixel_format = None;
-              pixel_aspect = None;
-            }
-      | "height" ->
-          Some
-            {
-              width = None;
-              height = Some (int_of_string value);
-              pixel_format = None;
-              pixel_aspect = None;
-            }
+      | "width" -> Some { none with width = Some (int_of_string value) }
+      | "height" -> Some { none with height = Some (int_of_string value) }
       | "pixel_format" ->
           Some
             {
-              width = None;
-              height = None;
+              none with
               pixel_format = Some (Avutil.Pixel_format.of_string value);
-              pixel_aspect = None;
             }
       | "pixel_aspect" ->
           let pixel_aspect =
@@ -294,8 +244,7 @@ module VideoSpecs = struct
                 }
             with _ -> None
           in
-          Some
-            { width = None; height = None; pixel_format = None; pixel_aspect }
+          Some { none with pixel_aspect }
       | _ -> None
 
   let compatible p p' =

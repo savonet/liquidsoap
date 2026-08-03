@@ -12,6 +12,24 @@ The content structure addresses three main challenges:
 
 3. **Efficient operations** – Blit, copy, and sub operations need to respect stream boundaries and handle gaps correctly.
 
+## Two Layers of Chunks
+
+There are two chunk layers stacked on top of each other, and they are not the same thing:
+
+- `Content_base.MkContentBase` (in `src/core/base/stream/`) wraps every content type in its own
+  `chunks` list. That layer is a **view**: each entry is an `{ data; offset; length }` window into a
+  larger value, so `Frame.slice` and `Frame.append` are cheap and copy nothing. It is generic and
+  applies to PCM and video content just the same.
+
+- `Ffmpeg_content_base` adds a second `chunks` list _inside_ the value that layer views. That layer
+  is a **run**: each entry carries `stream_idx` and `time_base` and holds sparse `(position, payload)`
+  pairs. It exists for the three reasons above — a run is what lets a subtitle stream have gaps, and
+  what keeps packets from two decoders from being merged.
+
+So a single ffmpeg track can be chunked twice: once by the generic view layer, once by the
+stream-run layer. `Content_base.consolidate_chunks` collapses the outer one by calling `blit`, which
+is where `Ffmpeg_content_base.blit` and `collapse_chunks` below come in.
+
 ## Core Types
 
 The `Ffmpeg_content_base` module defines the fundamental types:
