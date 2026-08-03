@@ -22,10 +22,7 @@
 
 open Value
 
-let type_of_encoder p =
-  Encoder.audio_type ~pcm_kind:Content.Audio.kind
-    (Lang_encoder.channels_of_params p)
-
+let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
 let accepted_bits_per_sample = [8; 16; 24; 32]
 
 let flac_gen params =

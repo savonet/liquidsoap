@@ -112,6 +112,11 @@ let channels_of_params ?(default = 2) p =
     | Some n -> n
     | None -> default
 
+(* The frame type of an encoder that takes plain PCM audio and nothing else:
+   what every audio-only encoder format uses. *)
+let pcm_audio_type_of_encoder p =
+  Encoder.audio_type ~pcm_kind:Content.Audio.kind (channels_of_params p)
+
 (** Compute a kind from a non-fully evaluated format. This should give the same
     result than [Encoder.type_of_format] once evaluated... *)
 let type_of_encoder ((e, p) : Term.encoder) = (find_encoder e).type_of_encoder p

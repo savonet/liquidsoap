@@ -111,13 +111,13 @@ let parse_mime m =
       { format = `F32LE; channels = 2; interleaved = true; samplerate = 44100 }
   in
   try
-    let m = String.split_char ',' m in
+    let m = String.split_on_char ',' m in
     if m = [] || List.hd m <> "audio/x-raw" then raise Exit;
     let m = List.tl m in
     let m =
       List.map
         (fun lv ->
-          let lv = String.split_char '=' lv in
+          let lv = String.split_on_char '=' lv in
           match lv with [l; v] -> (l, v) | _ -> raise Exit)
         m
     in

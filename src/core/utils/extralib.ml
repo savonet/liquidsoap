@@ -43,16 +43,6 @@ end
 
 module String = struct
   include String
-
-  let split_char c s =
-    let rec aux res n =
-      try
-        let n' = index_from s n c in
-        let s0 = sub s n (n' - n) in
-        aux (s0 :: res) (n' + 1)
-      with Not_found -> (if n = 0 then s else sub s n (length s - n)) :: res
-    in
-    List.rev (aux [] 0)
 end
 
 let read_retry read buf off len =

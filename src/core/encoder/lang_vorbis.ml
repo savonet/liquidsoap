@@ -22,9 +22,7 @@
 
 open Value
 
-let type_of_encoder p =
-  Encoder.audio_type ~pcm_kind:Content.Audio.kind
-    (Lang_encoder.channels_of_params p)
+let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
 
 let make_cbr params =
   let defaults =

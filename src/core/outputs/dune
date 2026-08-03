@@ -51,23 +51,11 @@
  (preprocess
   (pps ppx_string))
  (libraries
-  mm
-  cron
   dtools
-  domain_shims
-  dune-build-info
   duppy
-  liquidsoap_memtrace
-  menhirLib
-  camomile.lib
-  curl
   cry
   re
-  uri
   metadata
-  mem_usage
-  magic-mime
-  stdlib_utils
   liquidsoap-lang.prelude
   liquidsoap-lang.types
   liquidsoap-lang.data
