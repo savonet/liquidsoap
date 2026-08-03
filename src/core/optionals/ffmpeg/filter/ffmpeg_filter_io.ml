@@ -32,6 +32,20 @@ type 'a _duration_converter = {
 
 let track_mark_metadata = "liquidsoap_track_mark"
 
+(* Content holding data from more than one stream keeps a chunk per stream, so
+   take them all: a frame that straddles a track boundary carries two. *)
+let chunks content =
+  List.filter_map
+    (fun chunk ->
+      match chunk.Ffmpeg_content_base.data with
+        | [] -> None
+        | data ->
+            Some
+              ( chunk.Ffmpeg_content_base.stream_idx,
+                chunk.Ffmpeg_content_base.time_base,
+                data ))
+    content.Ffmpeg_content_base.chunks
+
 class virtual ['a] duration_converter =
   object (self)
     method virtual log : Log.t
@@ -75,6 +89,14 @@ class virtual ['a] duration_converter =
       in
       last_duration <- Avutil.Frame.duration frame;
       Ffmpeg_utils.Duration.push duration_converter frame
+
+    (* [Duration] holds each frame back until the next one arrives, to work out
+       how long it lasted, so the last frame of a stream only ever comes out
+       here. *)
+    method flush_duration =
+      match duration_converter with
+        | None -> []
+        | Some { converter; _ } -> snd (Ffmpeg_utils.Duration.flush converter)
   end
 
 class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
@@ -109,43 +131,60 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
 
     method virtual raw_ffmpeg_content
         : Content.data ->
-          (int64 * Avutil.rational * (int * 'a Avutil.frame) list) option
+          (int64 * Avutil.rational * (int * 'a Avutil.frame) list) list
+
+    (* Frame metadata is the only channel avfilter gives us, so a liquidsoap
+       frame's metadata and its track marks ride along on the first frame we
+       push for it. Track marks travel whether or not metadata is passed: they
+       are a property of the stream, not of the metadata. *)
+    method private graph_metadata memo =
+      let metadata =
+        if pass_metadata then (
+          match Frame.get_all_metadata memo with
+            | (_, m) :: _ -> Frame.Metadata.to_list m
+            | _ -> [])
+        else []
+      in
+      if Frame.has_track_marks memo then (track_mark_metadata, "1") :: metadata
+      else metadata
 
     method send_frame memo =
-      let content = Frame.get memo field in
-      match self#raw_ffmpeg_content content with
-        | None -> ()
-        | Some (stream_idx, time_base, frames) ->
-            (match frames with (_, frame) :: _ -> init frame | _ -> ());
+      match self#raw_ffmpeg_content (Frame.get memo field) with
+        | [] -> ()
+        | chunks ->
+            (match chunks with
+              | (_, _, (_, frame) :: _) :: _ -> init frame
+              | _ -> ());
+            let pending = ref (self#graph_metadata memo) in
             List.iter
-              (fun (_, frame) ->
-                match
-                  self#convert_duration ~convert_ts:true ~stream_idx ~time_base
-                    frame
-                with
-                  | None -> ()
-                  | Some (_, frames) ->
-                      List.iteri
-                        (fun pos (_, frame) ->
-                          if pos = 0 then (
-                            let metadata =
-                              if pass_metadata then (
-                                (* Pass only one metadata. *)
-                                  match Frame.get_all_metadata memo with
-                                  | (_, m) :: _ -> Frame.Metadata.to_list m
-                                  | _ -> [])
-                              else []
-                            in
-                            let metadata =
-                              if Frame.has_track_marks memo then
-                                (track_mark_metadata, "1") :: metadata
-                              else metadata
-                            in
-                            if metadata <> [] then
-                              Avutil.Frame.set_metadata frame metadata;
-                            input (`Frame frame)))
-                        frames)
-              frames
+              (fun (stream_idx, time_base, data) ->
+                List.iter
+                  (fun (_, frame) ->
+                    match
+                      self#convert_duration ~convert_ts:true ~stream_idx
+                        ~time_base frame
+                    with
+                      | None -> ()
+                      | Some (_, frames) ->
+                          List.iter
+                            (fun (_, frame) ->
+                              (match !pending with
+                                | [] -> ()
+                                | metadata ->
+                                    Avutil.Frame.set_metadata frame metadata;
+                                    pending := []);
+                              input (`Frame frame))
+                            frames)
+                  data)
+              chunks
+
+    (* Filters with internal delay only emit their tail once the graph sees end
+       of file, so drain on the way out. *)
+    method private flush_input =
+      List.iter (fun (_, frame) -> input (`Frame frame)) self#flush_duration;
+      input `Flush
+
+    initializer self#on_sleep (fun () -> self#flush_input)
   end
 
 (** From the script perspective, the operator sending data to a filter graph is
@@ -155,16 +194,7 @@ class audio_output ~pass_metadata ~name ~frame_t ~field source =
     inherit [[ `Audio ]] base_output ~pass_metadata ~name ~frame_t ~field source
 
     method raw_ffmpeg_content content =
-      let c = Ffmpeg_raw_content.Audio.get_data content in
-      match c.Ffmpeg_content_base.chunks with
-        | [] -> None
-        | d :: _ ->
-            if d.Ffmpeg_content_base.data = [] then None
-            else
-              Some
-                ( d.Ffmpeg_content_base.stream_idx,
-                  d.Ffmpeg_content_base.time_base,
-                  d.Ffmpeg_content_base.data )
+      chunks (Ffmpeg_raw_content.Audio.get_data content)
   end
 
 class video_output ~pass_metadata ~name ~frame_t ~field source =
@@ -172,16 +202,7 @@ class video_output ~pass_metadata ~name ~frame_t ~field source =
     inherit [[ `Video ]] base_output ~pass_metadata ~name ~frame_t ~field source
 
     method raw_ffmpeg_content content =
-      let c = Ffmpeg_raw_content.Video.get_data content in
-      match c.Ffmpeg_content_base.chunks with
-        | [] -> None
-        | d :: _ ->
-            if d.Ffmpeg_content_base.data = [] then None
-            else
-              Some
-                ( d.Ffmpeg_content_base.stream_idx,
-                  d.Ffmpeg_content_base.time_base,
-                  d.Ffmpeg_content_base.data )
+      chunks (Ffmpeg_raw_content.Video.get_data content)
   end
 
 class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
@@ -229,26 +250,25 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
           self#convert_duration ~convert_ts:false ~stream_idx ~time_base frame
         with
           | Some (length, frames) ->
-              let frames =
-                List.map
-                  (fun (pos, frame) ->
-                    if pass_metadata then (
-                      let metadata = Avutil.Frame.metadata frame in
-                      if metadata <> [] then (
-                        let m =
-                          List.filter
-                            (fun (k, _) -> k <> track_mark_metadata)
-                            metadata
-                        in
-                        let pos = Generator.length self#buffer + pos in
-                        Generator.add_metadata ~pos self#buffer
-                          (Frame.Metadata.from_list
-                             (m @ self#metadata_timestamps ~time_base frame));
-                        if List.mem_assoc track_mark_metadata metadata then
-                          Generator.add_track_mark ~pos self#buffer));
-                    (pos, frame))
-                  frames
-              in
+              List.iter
+                (fun (pos, frame) ->
+                  let metadata = Avutil.Frame.metadata frame in
+                  let pos = Generator.length self#buffer + pos in
+                  (* Track marks come back whether or not metadata is passed:
+                     dropping them would silently merge tracks. *)
+                  if List.mem_assoc track_mark_metadata metadata then
+                    Generator.add_track_mark ~pos self#buffer;
+                  if pass_metadata then (
+                    let m =
+                      List.filter
+                        (fun (k, _) -> k <> track_mark_metadata)
+                        metadata
+                    in
+                    if m <> [] then
+                      Generator.add_metadata ~pos self#buffer
+                        (Frame.Metadata.from_list
+                           (m @ self#metadata_timestamps ~time_base frame))))
+                frames;
               self#put_data ~length frames
           | None -> ()
 
@@ -266,17 +286,26 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
         in
         let flush = self#flush_buffer output in
         let rec f () =
-          try
-            while true do
-              flush ()
-            done
-          with Avutil.Error `Eagain ->
-            if
-              Generator.length self#buffer < Lazy.force Frame.size
-              && is_ready ()
-            then (
-              pull ();
-              f ())
+          match
+            try
+              while true do
+                flush ()
+              done;
+              `Done
+            with
+              | Avutil.Error `Eagain -> `Again
+              (* The graph reached end of file: nothing more will ever come out
+                 of this sink. *)
+              | Avutil.Error `Eof -> `Eof
+          with
+            | `Eof | `Done -> ()
+            | `Again ->
+                if
+                  Generator.length self#buffer < Lazy.force Frame.size
+                  && is_ready ()
+                then (
+                  pull ();
+                  f ())
         in
         f ()
       with Not_ready -> ()

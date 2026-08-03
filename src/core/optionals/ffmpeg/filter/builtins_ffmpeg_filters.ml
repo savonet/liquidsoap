@@ -93,6 +93,11 @@ let is_ready graph =
     | false, Some s ->
         if not (Clock.started s#clock) then Clock.start s#clock;
         Clock.tick s#clock
+    (* No liquidsoap input to wait for: the graph is fed by source filters
+       alone, so nothing else will ever trigger initialization. Doing it here
+       rather than when the graph is built keeps it at streaming time, where
+       output content types are known. *)
+    | false, None -> init_graph graph
     | _ -> ());
   (not graph.failed)
   && Queue.fold graph.graph_inputs
