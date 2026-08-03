@@ -97,6 +97,20 @@ let to_copy_opt t =
         Lang_encoder.raise_error ~pos:(Value.pos t)
           ("Invalid value for copy encoder parameter: " ^ Value.to_string t)
 
+(* The pcm kind is named by a bare argument, e.g. `%audio(pcm_s16)`. Shared by
+   the type-level and value-level passes over the same arguments. *)
+let pcm_kind_of_args ~to_static_string args =
+  List.fold_left
+    (fun kind -> function
+      | "", v -> (
+          match to_static_string v with
+            | Some "pcm" -> Content_audio.kind
+            | Some "pcm_s16" -> Content_pcm_s16.kind
+            | Some "pcm_f32" -> Content_pcm_f32.kind
+            | _ -> kind)
+      | _ -> kind)
+    Content_audio.kind args
+
 let has_content ~to_static_string name p =
   List.exists (fun (lbl, v) -> lbl = "" && to_static_string v = Some name) p
 
@@ -248,23 +262,12 @@ let type_of_encoder =
                                  args
                              with
                               | `Audio ->
-                                  let channels = channels args in
-                                  let pcm_kind =
-                                    List.fold_left
-                                      (fun pcm_kind -> function
-                                        | "", { Term.term = `String "pcm" } ->
-                                            Content.Audio.kind
-                                        | "", { Term.term = `String "pcm_s16" }
-                                          ->
-                                            Content_pcm_s16.kind
-                                        | "", { Term.term = `String "pcm_f32" }
-                                          ->
-                                            Content_pcm_f32.kind
-                                        | _ -> pcm_kind)
-                                      Content.Audio.kind args
-                                  in
-                                  Frame_base.format_of_channels ~pcm_kind
-                                    channels
+                                  Frame_base.format_of_channels
+                                    ~pcm_kind:
+                                      (pcm_kind_of_args
+                                         ~to_static_string:to_static_string_term
+                                         args)
+                                    (channels args)
                               | `Video -> Content.(default_format Video.kind)
                               | `Subtitle -> Subtitle_content.format)))
             in
@@ -339,18 +342,12 @@ let ffmpeg_gen params =
   let rec parse_audio_args ~opts options = function
     | [] -> options
     (* Audio options *)
-    | ("", t) :: args when to_string t = "pcm" ->
-        parse_audio_args ~opts
-          { options with Ffmpeg_format.pcm_kind = Content_audio.kind }
-          args
-    | ("", t) :: args when to_string t = "pcm_s16" ->
-        parse_audio_args ~opts
-          { options with Ffmpeg_format.pcm_kind = Content_pcm_s16.kind }
-          args
-    | ("", t) :: args when to_string t = "pcm_f32" ->
-        parse_audio_args ~opts
-          { options with Ffmpeg_format.pcm_kind = Content_pcm_f32.kind }
-          args
+    (* Already accounted for by [pcm_kind_of_args] at the call site; consumed
+       here so it does not reach the generic option handler below. *)
+    | ("", t) :: args
+      when List.mem (to_static_string_value t)
+             [Some "pcm"; Some "pcm_s16"; Some "pcm_f32"] ->
+        parse_audio_args ~opts options args
     (* Set channels but keep argument for encoders. *)
     | (("channel_layout", t) as arg) :: args ->
         (* Handle 5.1 as float *)
@@ -492,7 +489,15 @@ let ffmpeg_gen params =
     let codec = Option.map to_string (List.assoc_opt "codec" args) in
     match content_type with
       | `Audio ->
-          let options = parse_audio_args ~opts default_audio args in
+          let options =
+            parse_audio_args ~opts
+              {
+                default_audio with
+                Ffmpeg_format.pcm_kind =
+                  pcm_kind_of_args ~to_static_string:to_static_string_value args;
+              }
+              args
+          in
           (codec, `Audio options, opts)
       | `Video ->
           let options = parse_video_args ~opts default_video args in
