@@ -149,10 +149,9 @@ class muxer ~pos ~base tracks =
 let muxer_operator p =
   let base, tracks =
     match List.assoc "" p with
-      | Liquidsoap_lang.Value.Custom { methods } as v
-        when Source_tracks.is_value v ->
+      | Value.Custom { methods } as v when Source_tracks.is_value v ->
           (Some v, methods)
-      | v -> (None, Liquidsoap_lang.Value.methods v)
+      | v -> (None, Value.methods v)
   in
   let tracks =
     List.fold_left
@@ -166,7 +165,7 @@ let muxer_operator p =
               tracks
           | None -> { source = s; fields = [field] } :: tracks)
       []
-      (Liquidsoap_lang.Methods.bindings tracks)
+      (Liquidsoap_lang_data.Methods.bindings tracks)
   in
   let s = new muxer ~pos:(try Lang.pos p with _ -> []) ~base tracks in
   let target_fields =

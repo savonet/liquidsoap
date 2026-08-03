@@ -1,0 +1,46 @@
+=== string_interpolation.liq ===
+name = "world"
+"hello #{name}!"
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "string_interpolation",
+    "value": [
+      {
+      "type": "interpolated_string",
+      "value": "\""
+    },
+      {
+      "type": "interpolated_string",
+      "value": "hello "
+    },
+      {
+      "type": "interpolated_term",
+      "value": { "type": "var", "value": "name" }
+    },
+      {
+      "type": "interpolated_string",
+      "value": "!"
+    },
+      {
+      "type": "interpolated_string",
+      "value": "\""
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "name" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": { "type": "string", "value": "\"world\"" }
+}
+--- hash ---
+a41cf1995824e09bfcbde93750e8478e
+--- term ---
+name = "world"
+string.concat(["hello ", string(name), "!"])
+--- type ---
+string
+--- value ---
+"hello world!"

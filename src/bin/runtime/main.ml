@@ -21,9 +21,8 @@
  *****************************************************************************)
 
 module Runtime = Liquidsoap_lang.Runtime
-module Environment = Liquidsoap_lang.Environment
-module Profiler = Liquidsoap_lang.Profiler
-module Lang_string = Liquidsoap_lang.Lang_string
+module Profiler = Liquidsoap_lang_data.Profiler
+module Lang_string = Liquidsoap_lang_prelude.Lang_string
 module Queue = Queues.Queue
 
 let usage =
@@ -93,7 +92,7 @@ let eval_script expr =
         let tm, _ = Runtime.parse expr in
         if !print_json_term then
           Printf.printf "%s\n"
-            (Liquidsoap_lang.Json.to_string ~compact:false
+            (Liquidsoap_lang_data.Json.to_string ~compact:false
                (Liquidsoap_tooling.Parsed_json.to_json tm))
     | `Parse_and_type ->
         let parsed_term, term = Runtime.parse expr in

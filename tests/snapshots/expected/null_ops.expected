@@ -1,0 +1,55 @@
+=== null_ops.liq ===
+x = null
+(null.defined(x), x ?? 1)
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "invoke",
+      "invoked": { "type": "var", "value": "_null" },
+      "optional": false,
+      "meth": {
+        "type": "app",
+        "op": { "type": "var", "value": "defined" },
+        "args": [
+          {
+          "type": "term",
+          "value": {
+            "type": "app_arg",
+            "label": "",
+            "value": { "type": "var", "value": "x" }
+          }
+        }
+        ]
+      }
+    },
+      {
+      "type": "coalesce",
+      "left": { "type": "var", "value": "x" },
+      "right": { "type": "ground", "value": "1" }
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "x" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": { "type": "null" }
+}
+--- hash ---
+a057ef51cf27cf6eebeafbe1678ca8c9
+--- term ---
+x = null
+(_null.defined(x), _null.default(x, {1}))
+--- type ---
+At line 2, char 1-6:
+
+Error 5: this value has no method `defined`
+  Its type is ((?'A) -> 'A?)
+.{
+  case : 'a.'b.('a?, (() -> 'b), (('a) -> 'b)) -> 'b,
+  default : 'a.('a?, (() -> 'a)) -> 'a
+}.

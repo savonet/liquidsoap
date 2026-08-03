@@ -1,0 +1,41 @@
+=== pp_comments.liq ===
+# a line comment
+x = 1 # trailing
+##
+# a doc comment
+# @category Test
+##
+def f() = x end
+f()
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "def",
+    "body": {
+      "type": "app",
+      "op": { "type": "var", "value": "f" },
+      "args": []
+    },
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "f" ] },
+    "arglist": [],
+    "cast": null,
+    "definition": { "type": "var", "value": "x" }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "x" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": { "type": "ground", "value": "1" }
+}
+--- hash ---
+6e89741aca6b0574086d98f972175ff3
+--- term ---
+x = 1
+f = fun () -> x
+f()
+--- type ---
+int
+--- value ---
+1

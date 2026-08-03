@@ -1,4 +1,4 @@
-include Liquidsoap_lang.Lang_string
+include Liquidsoap_lang_prelude.Lang_string
 
 type base_id = { category : string; name : string; mutable counter : int }
 

@@ -1,0 +1,103 @@
+=== pattern_nested.liq ===
+let [x, [y, z]] = [[1], [2, 3]]
+(x, y, z)
+--- parsed ---
+{
+  "type": "let",
+  "body": {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "var",
+      "value": "x"
+    },
+      {
+      "type": "var",
+      "value": "y"
+    },
+      {
+      "type": "var",
+      "value": "z"
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": {
+    "type": "plist",
+    "left": [
+      {
+      "type": "pvar",
+      "value": [ "x" ]
+    },
+      {
+      "type": "plist",
+      "left": [
+        {
+        "type": "pvar",
+        "value": [ "y" ]
+      },
+        {
+        "type": "pvar",
+        "value": [ "z" ]
+      }
+      ],
+      "middle": null,
+      "right": []
+    }
+    ],
+    "middle": null,
+    "right": []
+  },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": {
+        "type": "list",
+        "value": [
+          {
+          "type": "term",
+          "value": { "type": "ground", "value": "1" }
+        }
+        ]
+      }
+    },
+      {
+      "type": "term",
+      "value": {
+        "type": "list",
+        "value": [
+          {
+          "type": "term",
+          "value": { "type": "ground", "value": "2" }
+        },
+          {
+          "type": "term",
+          "value": { "type": "ground", "value": "3" }
+        }
+        ]
+      }
+    }
+    ]
+  }
+}
+--- hash ---
+2e22064665d7c994f8d88e0f78e092fa
+--- term ---
+_pat0 = [[1], [2, 3]]
+_pat1 = list.length(_pat0)
+if(<(_pat1, 2), then=fun () -> error.raise(error.register("not_found"), "List value does not have enough elements to fit the extraction pattern!"), else={()})
+_pat2 = list.nth(_pat0, 1)
+_pat3 = list.length(_pat2)
+if(<(_pat3, 2), then=fun () -> error.raise(error.register("not_found"), "List value does not have enough elements to fit the extraction pattern!"), else={()})
+z = list.nth(_pat2, 1)
+y = list.nth(_pat2, 0)
+x = list.nth(_pat0, 0)
+(x, y, z)
+--- type ---
+[int] * int * int
+--- value ---
+([1], 2, 3)

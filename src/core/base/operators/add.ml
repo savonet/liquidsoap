@@ -239,7 +239,7 @@ let add_audio_tracks p =
   let tracks, _ =
     get_tracks
       ~mk_weight:(fun v ->
-        try Lang.to_float_getter (Liquidsoap_lang.Value.invoke v "weight")
+        try Lang.to_float_getter (Value.invoke v "weight")
         with _ -> fun () -> 1.)
       p
   in

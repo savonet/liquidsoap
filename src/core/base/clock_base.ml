@@ -122,7 +122,9 @@ let () =
           | l ->
               let l = List.init (min (List.length l) 3) (List.nth l) in
               String.concat "\n"
-                (List.map (fun p -> " " ^ Liquidsoap_lang.Pos.to_string p) l)
+                (List.map
+                   (fun p -> " " ^ Liquidsoap_lang_prelude.Pos.to_string p)
+                   l)
         in
         ignore (print_stack []);
         let pos = match stack with [] -> None | p :: _ -> Some p in

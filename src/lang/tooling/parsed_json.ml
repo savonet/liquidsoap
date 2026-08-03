@@ -492,10 +492,7 @@ let rec to_ast_json ~to_json = function
   | `Try p -> ast_node ~typ:"try" (json_of_try ~to_json p)
   | `Custom g ->
       ast_node ~typ:"ground"
-        [
-          ( "value",
-            `String (Json.to_string (Term_base.Custom.to_json ~pos:[] g)) );
-        ]
+        [("value", `String (Json.to_string (Term.Custom.to_json ~pos:[] g)))]
   | `Bool b -> ast_node ~typ:"ground" [("value", `String (string_of_bool b))]
   | `Int i -> ast_node ~typ:"ground" [("value", `String i)]
   | `Float v -> ast_node ~typ:"ground" [("value", `String v)]

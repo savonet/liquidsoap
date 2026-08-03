@@ -1,5 +1,5 @@
 open Liquidsoap_lang
-include Build_config
+include Liquidsoap_lang_data.Build_config
 include Liquidsoap_paths
 
 let git_snapshot = git_sha <> None
@@ -8,10 +8,8 @@ let requests_table_size = 50
 let () = Liq_memtrace.install ()
 
 let () =
-  Liquidsoap_lang.Cache.user_dir_override :=
-    Liquidsoap_paths.user_cache_override;
-  Liquidsoap_lang.Cache.system_dir_override :=
-    Liquidsoap_paths.system_cache_override
+  Cache.user_dir_override := Liquidsoap_paths.user_cache_override;
+  Cache.system_dir_override := Liquidsoap_paths.system_cache_override
 
 (* Should we start even without active sources? *)
 let conf_force_start =
@@ -27,7 +25,7 @@ let conf = Dtools.Conf.void "Liquidsoap configuration"
 let conf_default_font =
   Dtools.Conf.string
     ~d:
-      (match (Sys.os_type, Build_config.system) with
+      (match (Sys.os_type, Liquidsoap_lang_data.Build_config.system) with
         | _, "macosx" -> "/System/Library/Fonts/Times.ttc"
         | "Win32", _ -> {|C:\\Windows\WinSxS\calibri.ttf|}
         | _ -> "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")

@@ -1,0 +1,37 @@
+(library
+ (name liquidsoap_lang)
+ (public_name liquidsoap-lang)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang_cache
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_parser
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_reducer
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_values))
+ (preprocess
+  (pps ppx_string))
+ (libraries
+  liquidsoap-lang.ast
+  liquidsoap-lang.cache
+  liquidsoap-lang.console
+  liquidsoap-lang.data
+  liquidsoap-lang.parser
+  liquidsoap-lang.prelude
+  liquidsoap-lang.reducer
+  liquidsoap-lang.stdlib
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  domain_shims
+  re
+  str))

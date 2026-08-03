@@ -25,21 +25,21 @@
 val log : Log.t
 
 (** The type of a value. *)
-type t = Liquidsoap_lang.Type.t
+type t = Type.t
 
 type module_name = Liquidsoap_lang.Lang.module_name
-type scheme = Liquidsoap_lang.Type.scheme
+type scheme = Type.scheme
 type regexp = Liquidsoap_lang.Lang.regexp
 
 (** {2 Values} *)
 
 module Custom = Value.Custom
 module Methods = Term.Methods
-module Flags = Liquidsoap_lang.Flags
+module Flags = Liquidsoap_lang_data.Flags
 
-type in_value = Liquidsoap_lang.Value.in_value
-type env = Liquidsoap_lang.Value.env
-type value = Liquidsoap_lang.Value.t
+type in_value = Value.in_value
+type env = Value.env
+type value = Value.t
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
@@ -48,7 +48,7 @@ val split_meths : value -> (string * value) list * value
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
     of the application. *)
-val apply : ?pos:Liquidsoap_lang.Pos.t list -> value -> env -> value
+val apply : ?pos:Liquidsoap_lang_prelude.Pos.t list -> value -> env -> value
 
 (** {3 Helpers for registering protocols} *)
 
@@ -104,7 +104,7 @@ val add_builtin_base :
   ?flags:Doc.Value.flag list ->
   ?base:module_name ->
   string ->
-  Liquidsoap_lang.Value.in_value ->
+  Value.in_value ->
   t ->
   module_name
 
@@ -243,7 +243,7 @@ val pcm_audio_t : unit -> t
     argument ([""] means no label) and [t] is the type of the argument. *)
 val fun_t : (bool * string * t) list -> t -> t
 
-val univ_t : ?constraints:Liquidsoap_lang.Type.constr list -> unit -> t
+val univ_t : ?constraints:Type.constr list -> unit -> t
 
 (** A shortcut for lists of pairs of strings. *)
 val metadata_t : t
@@ -291,7 +291,7 @@ val term_fun : (string * string * value option) list -> Term.t -> value
 val val_cst_fun : (string * value option) list -> value -> value
 
 (** Extract position from the environment. Used inside function execution. *)
-val pos : env -> Liquidsoap_lang.Pos.t list
+val pos : env -> Liquidsoap_lang_prelude.Pos.t list
 
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
@@ -302,7 +302,7 @@ val metadata_list : (string * string) list -> value
 val raise_error :
   ?bt:Printexc.raw_backtrace ->
   ?message:string ->
-  pos:Liquidsoap_lang.Pos.List.t ->
+  pos:Liquidsoap_lang_prelude.Pos.List.t ->
   string ->
   'a
 
@@ -332,7 +332,7 @@ val type_term :
   ?deprecated:bool ->
   ?ty:t ->
   stdlib:stdlib ->
-  parsed_term:Liquidsoap_lang.Parsed_term.t ->
+  parsed_term:Parsed_term.t ->
   Term.t ->
   Term.t
 

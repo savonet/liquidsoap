@@ -25,6 +25,19 @@
   (run %{child_support_test})))
 
 (executable
+ (name clock_error_print_test)
+ (modules clock_error_print_test)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias clock_error_print_test)
+ (package liquidsoap)
+ (deps
+  (:clock_error_print_test clock_error_print_test.exe))
+ (action
+  (run %{clock_error_print_test})))
+
+(executable
  (name clock_tick_test)
  (modules clock_tick_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -505,6 +518,7 @@
  (deps
   (alias binary_strings_test)
   (alias child_support_test)
+  (alias clock_error_print_test)
   (alias clock_tick_test)
   (alias clock_unify_test)
   (alias clock_utils_test)

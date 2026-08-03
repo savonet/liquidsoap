@@ -22,21 +22,21 @@ let build_config =
   in
   [%string
     {|
- * Liquidsoap version  : %{Build_config.version}
+ * Liquidsoap version  : %{Liquidsoap_lang_data.Build_config.version}
 %{deprecated_features}
  * Compilation options
-   - Release build       : %{string_of_bool (not Build_config.is_snapshot)}
-   - Git SHA             : %{Option.value ~default:"(none)" Build_config.git_sha}
+   - Release build       : %{string_of_bool (not Liquidsoap_lang_data.Build_config.is_snapshot)}
+   - Git SHA             : %{Option.value ~default:"(none)" Liquidsoap_lang_data.Build_config.git_sha}
    - OCaml version       : %{Sys.ocaml_version}
    - OS type             : %{Sys.os_type}
    - Libs versions       : %{Configure.libs_versions ()}
-   - architecture        : %{Build_config.architecture}
-   - host                : %{Build_config.host}
-   - target              : %{Build_config.target}
-   - system              : %{Build_config.system}
-   - ocamlopt_cflags     : %{Build_config.ocamlopt_cflags}
-   - native_c_compiler   : %{Build_config.native_c_compiler}
-   - native_c_libraries  : %{Build_config.native_c_libraries}
+   - architecture        : %{Liquidsoap_lang_data.Build_config.architecture}
+   - host                : %{Liquidsoap_lang_data.Build_config.host}
+   - target              : %{Liquidsoap_lang_data.Build_config.target}
+   - system              : %{Liquidsoap_lang_data.Build_config.system}
+   - ocamlopt_cflags     : %{Liquidsoap_lang_data.Build_config.ocamlopt_cflags}
+   - native_c_compiler   : %{Liquidsoap_lang_data.Build_config.native_c_compiler}
+   - native_c_libraries  : %{Liquidsoap_lang_data.Build_config.native_c_libraries}
 
  * Configured paths
    - mode              : %{path_mode}
@@ -129,6 +129,7 @@ let build_config =
    - tls               : %{Tls_option.detected}
    - posix-time2       : %{Posix_time_option.detected}
    - windows service   : %{Winsvc_option.detected}
+   - XML support       : %{Xml_option.detected}
    - YAML support      : %{Yaml_option.detected}
    - XML playlists     : %{Xmlplaylist_option.detected}
 

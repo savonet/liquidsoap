@@ -44,7 +44,7 @@ let regexp_of_string s =
   let escaped = Re.Pcre.quote s in
   let descr = "^" ^ escaped ^ "$" in
   {
-    Liquidsoap_lang.Builtins_regexp.descr;
+    Liquidsoap_lang.Lang_regexp.descr;
     flags = [];
     regexp = Re.Pcre.regexp descr;
   }
@@ -394,7 +394,7 @@ let proto ?(buffer_default = 12.) mountpoint_t =
   ]
 
 type 'a parse_result = {
-  pos : Liquidsoap_lang.Pos.t list;
+  pos : Liquidsoap_lang_prelude.Pos.t list;
   mountpoint : 'a;
   login : string * (Harbor.login_args -> bool);
   debug : bool;

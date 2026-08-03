@@ -540,13 +540,12 @@ let priority =
 
 let parse_encoder_params =
   let processor =
-    MenhirLib.Convert.Simplified.traditional2revised
-      Liquidsoap_lang.Parser.plain_encoder_params
+    MenhirLib.Convert.Simplified.traditional2revised Parser.plain_encoder_params
   in
   fun s ->
     let lexbuf = Sedlexing.Utf8.from_string ("(" ^ s ^ ")") in
-    let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
-    Liquidsoap_lang.Term_reducer.to_encoder_params
+    let tokenizer = Preprocessor.mk_tokenizer lexbuf in
+    Term_reducer.to_encoder_params
       ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
       (processor tokenizer)
 

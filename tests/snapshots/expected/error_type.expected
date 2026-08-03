@@ -1,0 +1,20 @@
+=== error_type.liq ===
+1 + "one"
+--- parsed ---
+{
+  "type": "infix",
+  "left": { "type": "ground", "value": "1" },
+  "op": "+",
+  "right": { "type": "string", "value": "\"one\"" }
+}
+--- hash ---
+31170116e0aedccf2a7a43899a869dfc
+--- term ---
++(1, "one")
+--- type ---
+At line 1, char 4-9:
+
+Error 5: this value has type
+  string
+but it should be a subtype of
+  int (inferred at line 1, char 0)

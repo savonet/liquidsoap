@@ -1,0 +1,90 @@
+=== getters.liq ===
+# `{e}` is shorthand for `fun () -> e`, which is what makes a getter.
+def f(x) =
+  getter.get(x)
+end
+
+(f(1), f({2}))
+--- parsed ---
+{
+  "type": "def",
+  "body": {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "app",
+      "op": { "type": "var", "value": "f" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "ground", "value": "1" }
+        }
+      }
+      ]
+    },
+      {
+      "type": "app",
+      "op": { "type": "var", "value": "f" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": {
+            "type": "simple_fun",
+            "value": { "type": "ground", "value": "2" }
+          }
+        }
+      }
+      ]
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "f" ] },
+  "arglist": [
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "",
+      "as_variable": { "type": "pvar", "value": [ "x" ] },
+      "typ": null,
+      "default": null
+    }
+  }
+  ],
+  "cast": null,
+  "definition": {
+    "type": "invoke",
+    "invoked": { "type": "var", "value": "getter" },
+    "optional": false,
+    "meth": {
+      "type": "app",
+      "op": { "type": "var", "value": "get" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "var", "value": "x" }
+        }
+      }
+      ]
+    }
+  }
+}
+--- hash ---
+4d752d60131ac9378ddaad3458975c2f
+--- term ---
+f = fun (x) -> getter.get(x)
+(f(1), f({2}))
+--- type ---
+int * int
+--- value ---
+(1, 2)

@@ -1,0 +1,22 @@
+; Runtime values and the global environment they are registered in.
+
+(library
+ (name liquidsoap_lang_values)
+ (public_name liquidsoap-lang.values)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types))
+ (preprocess
+  (pps ppx_hash))
+ (libraries
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types))

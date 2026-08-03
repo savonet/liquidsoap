@@ -324,9 +324,9 @@ class virtual ['a] base p =
   let mount = Lang.to_string (get_param "mount") in
   let uri =
     let mount_path = match mount.[0] with '/' -> mount | _ -> "/" ^ mount in
-    let regexp = [%string {|^%{mount_path}$|}] in
-    Liquidsoap_lang.Builtins_regexp.
-      { descr = regexp; flags = []; regexp = Re.Pcre.regexp regexp }
+    let descr = [%string {|^%{mount_path}$|}] in
+    Liquidsoap_lang.Lang_regexp.
+      { descr; flags = []; regexp = Re.Pcre.regexp descr }
   in
   let autostart = Lang.to_bool (get_param "start") in
   let infallible = not (Lang.to_bool (get_param "fallible")) in

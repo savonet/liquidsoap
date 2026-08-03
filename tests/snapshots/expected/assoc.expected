@@ -1,0 +1,62 @@
+=== assoc.liq ===
+l = [("a", "1"), ("b", "2")]
+l["a"]
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "assoc",
+    "left": { "type": "var", "value": "l" },
+    "right": { "type": "string", "value": "\"a\"" }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "l" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "list",
+    "value": [
+      {
+      "type": "term",
+      "value": {
+        "type": "tuple",
+        "value": [
+          {
+          "type": "string",
+          "value": "\"a\""
+        },
+          {
+          "type": "string",
+          "value": "\"1\""
+        }
+        ]
+      }
+    },
+      {
+      "type": "term",
+      "value": {
+        "type": "tuple",
+        "value": [
+          {
+          "type": "string",
+          "value": "\"b\""
+        },
+          {
+          "type": "string",
+          "value": "\"2\""
+        }
+        ]
+      }
+    }
+    ]
+  }
+}
+--- hash ---
+b2b8613347ff262c0a002f96a61b78ba
+--- term ---
+l = [("a", "1"), ("b", "2")]
+_[_](l, "a")
+--- type ---
+string
+--- value ---
+"1"

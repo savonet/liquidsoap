@@ -1,0 +1,13 @@
+; The type system: type representation, constraints, custom types, the
+; printable representation used in error messages, and unification.
+;
+; Its only dependency is liquidsoap-lang.prelude. That is the point of it being
+; a separate library: the type checker cannot reach terms, values, the
+; evaluator or the documentation, and the build enforces it.
+
+(library
+ (name liquidsoap_lang_types)
+ (public_name liquidsoap-lang.types)
+ (flags
+  (:standard -open Liquidsoap_lang_prelude))
+ (libraries liquidsoap-lang.console liquidsoap-lang.prelude))

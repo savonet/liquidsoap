@@ -57,6 +57,11 @@
 
 - Fixed `delay` getting stuck after its first track and dropping the following
   track's metadata (#5282).
+- Fixed `sequence` dropping the first chunk of a source, along with its
+  metadata, when the source it follows leaves no room in the current frame.
+  This showed up as the track after a `cross`/`crossfade` transition built with
+  `sequence` keeping the previous track's metadata until the next track
+  boundary (#TODO).
 - Fixed `output.file.hls` terminating the process on transient filesystem
   errors. The output now supports a `reopen_on_error` callback (#5259).
 - Fixed `output.file.hls` accepting unwritable output, temporary and

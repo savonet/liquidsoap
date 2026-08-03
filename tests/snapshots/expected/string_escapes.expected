@@ -1,0 +1,32 @@
+=== string_escapes.liq ===
+("a\nb", 'c\td', "eéf", "g\x41h")
+--- parsed ---
+{
+  "type": "tuple",
+  "value": [
+    {
+    "type": "string",
+    "value": "\"a\\nb\""
+  },
+    {
+    "type": "string",
+    "value": "'c\\td'"
+  },
+    {
+    "type": "string",
+    "value": "\"eéf\""
+  },
+    {
+    "type": "string",
+    "value": "\"g\\x41h\""
+  }
+  ]
+}
+--- hash ---
+d3ff333a4386fccaf2f63842b8f8fb83
+--- term ---
+("a\nb", "c\td", "eéf", "gAh")
+--- type ---
+string * string * string * string
+--- value ---
+("a\nb", "c\td", "eéf", "gAh")

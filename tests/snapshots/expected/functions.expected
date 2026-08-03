@@ -1,0 +1,87 @@
+=== functions.liq ===
+def f(~named, ~opt=1, x) =
+  named + opt + x
+end
+
+f(named=1, 2)
+--- parsed ---
+{
+  "type": "def",
+  "body": {
+    "type": "app",
+    "op": { "type": "var", "value": "f" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "named",
+        "value": { "type": "ground", "value": "1" }
+      }
+    },
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": { "type": "ground", "value": "2" }
+      }
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "f" ] },
+  "arglist": [
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "named",
+      "as_variable": null,
+      "typ": null,
+      "default": null
+    }
+  },
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "opt",
+      "as_variable": null,
+      "typ": null,
+      "default": { "type": "ground", "value": "1" }
+    }
+  },
+    {
+    "type": "term",
+    "value": {
+      "type": "fun_arg",
+      "label": "",
+      "as_variable": { "type": "pvar", "value": [ "x" ] },
+      "typ": null,
+      "default": null
+    }
+  }
+  ],
+  "cast": null,
+  "definition": {
+    "type": "infix",
+    "left": {
+      "type": "infix",
+      "left": { "type": "var", "value": "named" },
+      "op": "+",
+      "right": { "type": "var", "value": "opt" }
+    },
+    "op": "+",
+    "right": { "type": "var", "value": "x" }
+  }
+}
+--- hash ---
+b35cb2019fb7224bb65c5bb0f8b92694
+--- term ---
+f = fun (~named, ~opt=1, x) -> +(+(named, opt), x)
+f(named=1, 2)
+--- type ---
+int
+--- value ---
+4

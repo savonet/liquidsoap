@@ -145,8 +145,7 @@ let _ =
 
 let _ =
   let processor =
-    MenhirLib.Convert.Simplified.traditional2revised
-      Liquidsoap_lang.Parser.time_predicate
+    MenhirLib.Convert.Simplified.traditional2revised Parser.time_predicate
   in
   Lang.add_builtin ~category:`Time ~base:time "predicate"
     ~descr:"Parse a string as a time predicate"
@@ -157,9 +156,9 @@ let _ =
       let predicate = Lang.to_string v in
       let lexbuf = Sedlexing.Utf8.from_string predicate in
       try
-        let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
+        let tokenizer = Preprocessor.mk_tokenizer lexbuf in
         let predicate =
-          Liquidsoap_lang.Term_reducer.to_term
+          Term_reducer.to_term
             ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
             (processor tokenizer)
         in

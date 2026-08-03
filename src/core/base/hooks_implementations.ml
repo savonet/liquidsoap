@@ -1,6 +1,4 @@
-module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
-module Cache = Liquidsoap_lang.Cache
 
 (* For source eval check there are cases of:
      source('a) <: (source('a).{ source methods })?
@@ -71,7 +69,7 @@ let eval_check ~env:_ ~tm v =
 
 let render_string = function
   | `Verbatim s -> s
-  | `String (pos, (sep, s)) -> Liquidsoap_lang.Lexer.render_string ~pos ~sep s
+  | `String (pos, (sep, s)) -> Lexer.render_string ~pos ~sep s
 
 let mk_field_t ?pos kind params =
   let err_pos =
@@ -108,34 +106,27 @@ let mk_field_t ?pos kind params =
           in
           let t = kind ^ "(" ^ params ^ ")" in
           raise
-            (Liquidsoap_lang.Term_base.Parse_error
-               (err_pos, "Unknown type constructor: " ^ t ^ ".")))
+            (Term.Parse_error (err_pos, "Unknown type constructor: " ^ t ^ "."))
+        )
 
 let () =
   Hooks.mk_clock_ty :=
     fun ?pos () ->
       Type.make
-        ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
+        ?pos:(Option.map Liquidsoap_lang_prelude.Pos.of_lexing_pos pos)
         Lang_clock.ClockValue.base_t.Type.descr
 
-let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
+let mk_source_ty ?pos name { Parsed_term.extensible; tracks } =
   if name <> "source" then (
     let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
-    raise
-      (Liquidsoap_lang.Term_base.Parse_error
-         (pos, "Unknown type constructor: " ^ name ^ ".")));
+    raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")));
 
   match tracks with
     | [] -> Lang_source.source_t ?pos (Lang.univ_t ())
     | tracks ->
         let fields =
           List.fold_left
-            (fun fields
-                 {
-                   Liquidsoap_lang.Parsed_term.track_name;
-                   track_type;
-                   track_params;
-                 } ->
+            (fun fields { Parsed_term.track_name; track_type; track_params } ->
               Frame.Fields.add
                 (Frame.Fields.field_of_string track_name)
                 (mk_field_t ?pos track_type track_params)
@@ -171,77 +162,3 @@ let register () =
   Hooks.getpwnam := Unix.getpwnam;
   Hooks.source_methods_t :=
     fun () -> Lang_source.source_t ~methods:true (Lang.univ_t ())
-
-let cache_max_days =
-  try int_of_string (Sys.getenv "LIQ_CACHE_MAX_DAYS") with _ -> 10
-
-let cache_max_files =
-  try int_of_string (Sys.getenv "LIQ_CACHE_MAX_FILES") with _ -> 20
-
-let () =
-  (try
-     Liquidsoap_lang.Cache.system_dir_perms :=
-       int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_DIR_PERMS")
-   with _ -> ());
-  (try
-     Liquidsoap_lang.Cache.system_file_perms :=
-       int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_FILE_PERMS")
-   with _ -> ());
-  (try
-     Liquidsoap_lang.Cache.user_dir_perms :=
-       int_of_string (Sys.getenv "LIQ_CACHE_USER_DIR_PERMS")
-   with _ -> ());
-  try
-    Liquidsoap_lang.Cache.user_file_perms :=
-      int_of_string (Sys.getenv "LIQ_CACHE_USER_FILE_PERMS")
-  with _ -> ()
-
-module Term_cache = Liquidsoap_lang.Term_cache
-
-let cache_log = Log.make ["cache"]
-
-let cache_maintenance dirtype =
-  let max_timestamp = Unix.time () -. (float cache_max_days *. 86400.) in
-  try
-    match Cache.dir dirtype with
-      | Some dir when Sys.file_exists dir && Sys.is_directory dir ->
-          let files =
-            Array.fold_left
-              (fun files fname ->
-                if String.ends_with ~suffix:".liq-cache" fname then (
-                  let filename = Filename.concat dir fname in
-                  let stats = Unix.stat filename in
-                  match Unix.stat filename with
-                    | { Unix.st_atime } when st_atime < max_timestamp ->
-                        cache_log#info "File %s is too old, deleting.." fname;
-                        Unix.unlink filename;
-                        files
-                    | _ -> (stats, filename) :: files)
-                else files)
-              [] (Sys.readdir dir)
-          in
-          let len = List.length files in
-          if cache_max_files < len then (
-            let len = len - cache_max_files in
-            cache_log#info "Too many cached files! Deleting %d oldest ones.."
-              len;
-            let files =
-              List.sort
-                (fun ({ Unix.st_atime = t }, _) ({ Unix.st_atime = t' }, _) ->
-                  Stdlib.compare t t')
-                files
-            in
-            List.iteri
-              (fun pos (_, filename) ->
-                if pos < len then (
-                  cache_log#info "Deleting %s.." (Filename.basename filename);
-                  Unix.unlink filename))
-              files)
-      | _ -> ()
-  with exn ->
-    let bt = Printexc.get_backtrace () in
-    Utils.log_exception ~log:cache_log ~bt
-      (Printf.sprintf "Error while cleaning up cache: %s"
-         (Printexc.to_string exn))
-
-let () = Hooks.cache_maintenance := cache_maintenance

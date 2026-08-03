@@ -1,0 +1,47 @@
+=== record_update.liq ===
+r = {a = 1, b = 2}
+r.{a = 3}
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "methods",
+    "base": { "type": "var", "value": "r" },
+    "methods": [
+      {
+      "type": "method",
+      "name": "a",
+      "value": { "type": "ground", "value": "3" }
+    }
+    ]
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "r" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "methods",
+    "base": null,
+    "methods": [
+      {
+      "type": "method",
+      "name": "a",
+      "value": { "type": "ground", "value": "1" }
+    },
+      {
+      "type": "method",
+      "name": "b",
+      "value": { "type": "ground", "value": "2" }
+    }
+    ]
+  }
+}
+--- hash ---
+8cb7841f35d8ae9b791e870de58b0ca8
+--- term ---
+r = {b=2, a=1}
+r.{a=3}
+--- type ---
+{a : int, b : int}
+--- value ---
+{a=3, b=2}

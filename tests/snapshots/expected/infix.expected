@@ -1,0 +1,27 @@
+=== infix.liq ===
+1 + 2 * 3 - 4
+--- parsed ---
+{
+  "type": "infix",
+  "left": {
+    "type": "infix",
+    "left": { "type": "ground", "value": "1" },
+    "op": "+",
+    "right": {
+      "type": "infix",
+      "left": { "type": "ground", "value": "2" },
+      "op": "*",
+      "right": { "type": "ground", "value": "3" }
+    }
+  },
+  "op": "-",
+  "right": { "type": "ground", "value": "4" }
+}
+--- hash ---
+a96eaf7021dc249948effc3714fc55f8
+--- term ---
+-(+(1, *(2, 3)), 4)
+--- type ---
+int
+--- value ---
+3

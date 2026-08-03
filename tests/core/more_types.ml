@@ -75,7 +75,7 @@ let () =
       Term.t = typ;
       term = `Int 1;
       methods = Term.Methods.empty;
-      flags = Flags.empty;
+      flags = Liquidsoap_lang_data.Flags.empty;
     }
   in
   let invoke =
@@ -84,7 +84,7 @@ let () =
       term =
         `Invoke { Term.invoked = term; invoke_default = None; meth = "opt" };
       methods = Term.Methods.empty;
-      flags = Flags.empty;
+      flags = Liquidsoap_lang_data.Flags.empty;
     }
   in
   try

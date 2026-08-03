@@ -1,0 +1,22 @@
+=== pp_ifversion.liq ===
+%ifversion >= 2.0.0
+"new"
+%else
+"old"
+%endif
+--- parsed ---
+{
+  "type": "if_version",
+  "opt": ">=",
+  "version": "2.0.0",
+  "then": { "type": "string", "value": "\"new\"" },
+  "else": { "type": "string", "value": "\"old\"" }
+}
+--- hash ---
+45520dbc0360fab3f0566554e1ffc525
+--- term ---
+"new"
+--- type ---
+string
+--- value ---
+"new"

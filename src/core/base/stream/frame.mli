@@ -25,7 +25,7 @@
 (** {2 Frame definitions} *)
 
 module Fields : sig
-  include module type of Liquidsoap_lang.Methods
+  include module type of Liquidsoap_lang_data.Methods
 
   type field = Frame_base.Fields.field
   type nonrec 'a t = (field, 'a) t

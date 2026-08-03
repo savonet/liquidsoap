@@ -1,7 +1,7 @@
 let () =
   let s = "AverageLevel\000\196\016\000\000" in
   assert (
-    Liquidsoap_lang.Json.to_string (`String s)
+    Liquidsoap_lang_data.Json.to_string (`String s)
     = "\"AverageLevel\\u0000\\uFFFD\\u0000\\u0000\"")
 
 let json =

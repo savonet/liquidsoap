@@ -1,0 +1,41 @@
+=== invoke_default.liq ===
+r = {a = 1}
+r?.a ?? 0
+--- parsed ---
+{
+  "type": "binding",
+  "body": {
+    "type": "coalesce",
+    "left": {
+      "type": "invoke",
+      "invoked": { "type": "var", "value": "r" },
+      "optional": true,
+      "meth": { "type": "var", "value": "a" }
+    },
+    "right": { "type": "ground", "value": "0" }
+  },
+  "decoration": null,
+  "pat": { "type": "pvar", "value": [ "r" ] },
+  "arglist": null,
+  "cast": null,
+  "definition": {
+    "type": "methods",
+    "base": null,
+    "methods": [
+      {
+      "type": "method",
+      "name": "a",
+      "value": { "type": "ground", "value": "1" }
+    }
+    ]
+  }
+}
+--- hash ---
+30b23f36634cc6f3bf7c3d3a78d0f9a8
+--- term ---
+r = {a=1}
+(r.a ?? 0)
+--- type ---
+int
+--- value ---
+1

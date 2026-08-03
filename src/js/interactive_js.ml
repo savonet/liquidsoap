@@ -51,7 +51,7 @@ let on_format =
            Liquidsoap_tooling.Parsed_json.parse_string
              ~formatter:Format.str_formatter expr
          in
-         let json = Liquidsoap_lang.Json.to_string json in
+         let json = Liquidsoap_lang_data.Json.to_string json in
          formatLiqCode (Js.string json) setLiqCode
        with _ -> setOutput (Format.flush_str_formatter ()));
       Js._true)
@@ -66,7 +66,7 @@ let on_execute =
       let tokenizer = Preprocessor.mk_tokenizer lexbuf in
       let parsed_term = Runtime.program tokenizer in
       let json = Liquidsoap_tooling.Parsed_json.to_json parsed_term in
-      let json = Liquidsoap_lang.Json.to_string json in
+      let json = Liquidsoap_lang_data.Json.to_string json in
       let term = Term_reducer.to_term ~throw parsed_term in
       let result = execute ~throw term in
       formatLiqCode (Js.string json) (fun formatted ->
@@ -80,13 +80,13 @@ let on_clear =
   Dom_html.handler (fun _ ->
       let output = Js.Unsafe.coerce (Dom_html.getElementById_exn "output") in
       output##.value := "";
-      onLiqLoaded (Js.string Build_config.version);
+      onLiqLoaded (Js.string Liquidsoap_lang_data.Build_config.version);
       Js._true)
 
 let on_load =
   Dom_html.handler (fun e ->
       Dom.preventDefault e;
-      onLiqLoaded (Js.string Build_config.version);
+      onLiqLoaded (Js.string Liquidsoap_lang_data.Build_config.version);
       let execute = Dom_html.getElementById_exn "execute" in
       ignore
         (Dom_html.addEventListener execute Dom_events.Typ.click on_execute

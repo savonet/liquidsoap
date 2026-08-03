@@ -168,6 +168,5 @@ end)
 let content_types () =
   List.fold_right
     (fun { method_name; content_typ; _ } acc ->
-      Liquidsoap_lang.Type.meth ~optional:true method_name ([], content_typ) acc)
-    !content_lang_specs
-    (Liquidsoap_lang.Type.make Liquidsoap_lang.Type.unit)
+      Type.meth ~optional:true method_name ([], content_typ) acc)
+    !content_lang_specs (Type.make Type.unit)

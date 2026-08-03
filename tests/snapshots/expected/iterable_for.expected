@@ -1,0 +1,80 @@
+=== iterable_for.liq ===
+for x = list.iterator([1, 2, 3]) do ignore(x) end
+--- parsed ---
+{
+  "type": "iterable_for",
+  "variable": "x",
+  "iterator": {
+    "type": "invoke",
+    "invoked": { "type": "var", "value": "list" },
+    "optional": false,
+    "meth": {
+      "type": "app",
+      "op": { "type": "var", "value": "iterator" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": {
+            "type": "list",
+            "value": [
+              {
+              "type": "term",
+              "value": { "type": "ground", "value": "1" }
+            },
+              {
+              "type": "term",
+              "value": { "type": "ground", "value": "2" }
+            },
+              {
+              "type": "term",
+              "value": { "type": "ground", "value": "3" }
+            }
+            ]
+          }
+        }
+      }
+      ]
+    }
+  },
+  "loop": {
+    "type": "app",
+    "op": { "type": "var", "value": "ignore" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": { "type": "var", "value": "x" }
+      }
+    }
+    ]
+  }
+}
+--- hash ---
+78a1ec263395a31bb34d931b86d029fd
+--- term ---
+for(list.iterator([1, 2, 3]), fun (x) -> ignore(x))
+--- type ---
+At line 1, char 8-12:
+
+Error 5: this value has no method `iterator`
+  Its type is {
+  add : 'a.('a, ['a]) -> ['a],
+  append : 'a.(['a], ['a]) -> ['a],
+  case : 'a.'b.(['a], 'b, (('a, ['a]) -> 'b)) -> 'b,
+  ind : 'a.'b.(['a], 'b, (('a, ['a], 'b) -> 'b)) -> 'b,
+  init : 'a.(int, ((int) -> 'a)) -> ['a],
+  iteri : 'a.(((int, 'a) -> unit), ['a]) -> unit,
+  length : 'a.(['a]) -> int,
+  map : 'a.'b.((('a) -> 'b), ['a]) -> ['b],
+  nth : 'a.(?default : 'a?, ['a], int) -> 'a,
+  remove : 'a.('a, ['a]) -> ['a],
+  rev : 'a.(['a]) -> ['a],
+  shuffle : 'a.(['a]) -> ['a],
+  slice : 'a.(?offset : int, ?length : int?, ['a]) -> ['a],
+  sort : 'a.((('a, 'a) -> int), ['a]) -> ['a]
+}.

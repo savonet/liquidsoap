@@ -81,8 +81,8 @@ module type ContentSpecs = sig
   val default_params : kind -> params
   val string_of_kind : kind -> string
   val kind_of_string : string -> kind option
-  val content_lang_typ : Liquidsoap_lang.Type.t
-  val params_to_value : params -> Liquidsoap_lang.Value.t
+  val content_lang_typ : Type.t
+  val params_to_value : params -> Value.t
 end
 
 module type Content = sig
@@ -223,8 +223,8 @@ let content_names = ref []
 type content_lang_spec = {
   format_name : string;
   method_name : string;
-  content_typ : Liquidsoap_lang.Type.t;
-  format_to_value : Contents.format -> Liquidsoap_lang.Value.t;
+  content_typ : Type.t;
+  format_to_value : Contents.format -> Value.t;
 }
 
 let content_lang_specs : content_lang_spec list ref = ref []

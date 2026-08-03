@@ -1,0 +1,50 @@
+=== seq_and_ignore.liq ===
+ignore(1)
+ignore("two")
+3
+--- parsed ---
+{
+  "type": "seq",
+  "left": {
+    "type": "app",
+    "op": { "type": "var", "value": "ignore" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": { "type": "ground", "value": "1" }
+      }
+    }
+    ]
+  },
+  "right": {
+    "type": "seq",
+    "left": {
+      "type": "app",
+      "op": { "type": "var", "value": "ignore" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "string", "value": "\"two\"" }
+        }
+      }
+      ]
+    },
+    "right": { "type": "ground", "value": "3" }
+  }
+}
+--- hash ---
+618d28af57eb5cdb415f7d41153cd1e9
+--- term ---
+ignore(1)
+ignore("two")
+3
+--- type ---
+int
+--- value ---
+3
