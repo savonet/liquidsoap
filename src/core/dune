@@ -7,9 +7,66 @@
 ; liquidsoap-lang paths.
 ;
 ; liquidsoap_core.mli is the list of what is public. Everything else is internal
-; to the layer that defines it.
+; to the layer that defines it. The layers, each a library that may only depend
+; on the ones above it:
+;
+;   utils stream media encoder clock source request runtime
+;   net protocols decoders sources outputs operators
 
 (library
  (name liquidsoap_core)
- (libraries liquidsoap_core_base)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream
+   -open
+   Liquidsoap_core_media
+   -open
+   Liquidsoap_core_encoder
+   -open
+   Liquidsoap_core_clock
+   -open
+   Liquidsoap_core_source
+   -open
+   Liquidsoap_core_request
+   -open
+   Liquidsoap_core_runtime
+   -open
+   Liquidsoap_core_net
+   -open
+   Liquidsoap_core_protocols
+   -open
+   Liquidsoap_core_decoders
+   -open
+   Liquidsoap_core_sources
+   -open
+   Liquidsoap_core_outputs
+   -open
+   Liquidsoap_core_operators))
+ (libraries
+  liquidsoap-lang
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.data
+  liquidsoap-lang.values
+  liquidsoap-lang.ast
+  liquidsoap-lang.parser
+  liquidsoap-lang.reducer
+  liquidsoap-lang.cache
+  liquidsoap_core_utils
+  liquidsoap_core_stream
+  liquidsoap_core_media
+  liquidsoap_core_encoder
+  liquidsoap_core_clock
+  liquidsoap_core_source
+  liquidsoap_core_request
+  liquidsoap_core_runtime
+  liquidsoap_core_net
+  liquidsoap_core_protocols
+  liquidsoap_core_decoders
+  liquidsoap_core_sources
+  liquidsoap_core_outputs
+  liquidsoap_core_operators)
  (library_flags -linkall))
