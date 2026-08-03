@@ -307,7 +307,7 @@ let playlist_parse =
                 match
                   List.find_opt
                     (fun (_, { Playlist_parser.mimes }) -> List.mem mime mimes)
-                    (Plug.list Playlist_parser.parsers)
+                    (Plug.entries Playlist_parser.parsers)
                 with
                   | Some (_, { Playlist_parser.parser }) ->
                       (mime, parser ~pwd content)

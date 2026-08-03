@@ -3,7 +3,6 @@ module Flags = Flags
 module Methods = Methods
 module Json = Json
 module Doc = Doc
-module Plug = Plug
 module Utils = Utils
 module Startup = Startup
 module Profiler = Profiler

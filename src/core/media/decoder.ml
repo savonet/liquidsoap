@@ -128,28 +128,14 @@ let conf_decoder =
 let conf_decoders =
   Dtools.Conf.list ~p:(conf_decoder#plug "decoders") ~d:[] "Media decoders."
 
-let f c v =
-  match c#get_d with
-    | None -> c#set_d (Some [v])
-    | Some d -> c#set_d (Some (d @ [v]))
-
 let decoders : decoder_specs Plug.t =
-  Plug.create
-    ~register_hook:(fun name _ -> f conf_decoders name)
-    ~doc:"Available decoders." "Available decoders"
+  Plug.create ~ordered_by:conf_decoders ~doc:"Available decoders."
+    "Available decoders"
 
 let get_decoders () =
-  let f cur name =
-    match Plug.get decoders name with
-      | Some p -> (name, p) :: cur
-      | None ->
-          log#severe "Cannot find decoder %s" name;
-          cur
-  in
-  let decoders = List.fold_left f [] conf_decoders#get in
-  List.sort
+  List.stable_sort
     (fun (_, a) (_, b) -> compare (b.priority ()) (a.priority ()))
-    decoders
+    (Plug.ordered_entries decoders)
 
 let conf_image_file_decoders =
   Dtools.Conf.list
@@ -157,22 +143,14 @@ let conf_image_file_decoders =
     ~d:[] "Decoders and order used to decode image files."
 
 let image_file_decoders : image_decoder Plug.t =
-  Plug.create
-    ~register_hook:(fun name _ -> f conf_image_file_decoders name)
+  Plug.create ~ordered_by:conf_image_file_decoders
     ~doc:"Image file decoding methods." "image file decoding"
 
 let get_image_file_decoders () =
-  let f cur name =
-    match Plug.get image_file_decoders name with
-      | Some p -> (name, p) :: cur
-      | None ->
-          log#severe "Cannot find decoder %s" name;
-          cur
-  in
-  List.sort
+  List.stable_sort
     (fun (_, { image_decoder_priority = p })
          (_, { image_decoder_priority = p' }) -> Stdlib.compare (p' ()) (p ()))
-    (List.fold_left f [] conf_image_file_decoders#get)
+    (Plug.ordered_entries image_file_decoders)
 
 let conf_debug =
   Dtools.Conf.bool

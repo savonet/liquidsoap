@@ -36,6 +36,7 @@ module Liq_time = Liq_time
 module Liquidsoap_paths = Liquidsoap_paths
 module Log = Log
 module Mutex_utils = Mutex_utils
+module Plug = Plug
 module Pool = Pool
 module Process_handler = Process_handler
 module Queues = Queues

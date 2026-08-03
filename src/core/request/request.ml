@@ -134,30 +134,18 @@ let conf_dresolvers =
   Dtools.Conf.list ~p:(conf#plug "dresolvers") ~d:[]
     "Methods to extract file duration."
 
-let f c v =
-  match c#get_d with
-    | None -> c#set_d (Some [v])
-    | Some d -> c#set_d (Some (d @ [v]))
-
 let dresolvers =
-  Plug.create ~doc:dresolvers_doc
-    ~register_hook:(fun name _ -> f conf_dresolvers name)
+  Plug.create ~doc:dresolvers_doc ~ordered_by:conf_dresolvers
     "audio file formats (duration)"
 
 let get_dresolvers ~file () =
   let extension = try Utils.get_ext file with _ -> "" in
-  let f cur name =
-    match Plug.get dresolvers name with
-      | Some ({ file_extensions } as p)
-        when List.mem extension (file_extensions ()) ->
-          (name, p) :: cur
-      | Some _ -> cur
-      | None ->
-          log#severe "Cannot find duration resolver %s" name;
-          cur
+  let resolvers =
+    List.filter
+      (fun (_, { file_extensions }) -> List.mem extension (file_extensions ()))
+      (Plug.ordered_entries dresolvers)
   in
-  let resolvers = List.fold_left f [] conf_dresolvers#get in
-  List.sort
+  List.stable_sort
     (fun (_, a) (_, b) -> compare (b.dpriority ()) (a.dpriority ()))
     resolvers
 
@@ -309,24 +297,16 @@ let f c v =
     | None -> c#set_d (Some [v])
     | Some d -> c#set_d (Some (d @ [v]))
 
-let get_decoders conf decoders =
-  let f cur name =
-    match Plug.get decoders name with
-      | Some p -> (name, p) :: cur
-      | None ->
-          log#severe "Cannot find decoder %s" name;
-          cur
-  in
-  List.sort
+let get_decoders decoders =
+  List.stable_sort
     (fun (_, d) (_, d') -> Stdlib.compare (d'.priority ()) (d.priority ()))
-    (List.fold_left f [] (List.rev conf#get))
+    (Plug.ordered_entries decoders)
 
 let mresolvers_doc = "Methods to extract metadata from a file."
 
 let mresolvers =
-  Plug.create
-    ~register_hook:(fun name _ -> f conf_metadata_decoders name)
-    ~doc:mresolvers_doc "metadata formats"
+  Plug.create ~ordered_by:conf_metadata_decoders ~doc:mresolvers_doc
+    "metadata formats"
 
 let conf_duration =
   Dtools.Conf.bool
@@ -353,7 +333,7 @@ let conf_recode_exclude_coverart =
     "Exclude metadata listed as cover art from automatic recoding."
 
 let resolve_metadata ~initial_metadata ~excluded name =
-  let decoders = get_decoders conf_metadata_decoders mresolvers in
+  let decoders = get_decoders mresolvers in
   let decoders =
     List.filter (fun (name, _) -> not (List.mem name excluded)) decoders
   in

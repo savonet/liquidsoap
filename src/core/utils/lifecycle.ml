@@ -34,6 +34,9 @@ let loaded = ref false
 
 let load () =
   if not !loaded then (
+    (* x       has now run. Sealing first so that the on_load callbacks below can read
+       them. *)
+    Plug.mark_complete ();
     List.iter (fun fn -> fn ()) !on_load_callbacks;
     loaded := true)
 

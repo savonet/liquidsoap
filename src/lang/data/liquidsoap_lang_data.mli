@@ -15,9 +15,6 @@ module Json = Json
 (** Documentation of builtins, operators and plug-in registries. *)
 module Doc = Doc
 
-(** Registries that plug-ins register into, e.g. protocols and decoders. *)
-module Plug = Plug
-
 (** Path resolution and a couple of formatting helpers. *)
 module Utils = Utils
 

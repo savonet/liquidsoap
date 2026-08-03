@@ -94,7 +94,7 @@ exception Exit of (string * playlist)
     to create a local temporary file with the same extension. *)
 let search_valid ?pwd string =
   try
-    let plugins = Plug.list parsers in
+    let plugins = Plug.entries parsers in
     (* Try strict plugins first *)
     let compare (_, a) (_, b) = compare b.strict a.strict in
     let plugins = List.sort compare plugins in
