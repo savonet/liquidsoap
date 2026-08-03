@@ -85,5 +85,4 @@
   liquidsoap_core_source
   liquidsoap_core_request
   liquidsoap_core_runtime
-  liquidsoap_core_net)
- (library_flags -linkall))
+  liquidsoap_core_net))

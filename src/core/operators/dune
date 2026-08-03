@@ -99,4 +99,4 @@
  (foreign_stubs
   (language c)
   (names defer_c lufs_c))
- (library_flags -linkall))
+)

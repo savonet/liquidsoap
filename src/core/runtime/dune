@@ -81,5 +81,4 @@
   liquidsoap_core_encoder
   liquidsoap_core_clock
   liquidsoap_core_source
-  liquidsoap_core_request)
- (library_flags -linkall))
+  liquidsoap_core_request))

@@ -69,5 +69,4 @@
   liquidsoap-lang
   liquidsoap_core_utils
   liquidsoap_core_stream
-  liquidsoap_core_media)
- (library_flags -linkall))
+  liquidsoap_core_media))
