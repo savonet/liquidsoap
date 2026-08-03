@@ -47,7 +47,7 @@ type sink = {
   eof : unit -> bool;
 }
 
-class source ~name ~pull ~is_ready ~self_sync () =
+class source ~name ~pull ~is_ready ~flush_inputs ~self_sync () =
   object (self)
     inherit Source.source ~name ()
     val mutable sinks = []
@@ -92,18 +92,22 @@ class source ~name ~pull ~is_ready ~self_sync () =
        alternation. *)
     method private fill_buffer =
       let size = Lazy.force Frame.size in
-      let rec loop () =
+      let drain () =
         List.iter (fun sink -> sink.drain ~generator:self#buffer) sinks;
-        self#check_buffer;
-        (* Stop once every sink is done: no amount of pulling brings back a
-           graph that has reached end of file. *)
-        if
-          Generator.length self#buffer < size
-          && (not (List.for_all (fun sink -> sink.eof ()) sinks))
-          && is_ready ()
-        then (
-          pull ();
-          loop ())
+        self#check_buffer
+      in
+      let done_ () = List.for_all (fun sink -> sink.eof ()) sinks in
+      let rec loop () =
+        drain ();
+        if Generator.length self#buffer < size && not (done_ ()) then
+          if is_ready () then (
+            pull ();
+            loop ())
+          else (
+            (* The inputs have run dry. Telling the graph so is what makes
+               filters holding a tail hand it over. *)
+            flush_inputs ();
+            drain ())
       in
       (* Ticking the inputs is also what gets the graph launched. *)
       let rec wait_for_launch () =

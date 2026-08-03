@@ -222,13 +222,21 @@ class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
                   data)
               chunks
 
+    val mutable flushed = false
+
     (* Filters with internal delay only emit their tail once the graph sees end
-       of file, so drain on the way out. *)
-    method private flush_input =
-      List.iter (fun (_, frame) -> input (`Frame frame)) self#flush_duration;
-      input `Flush
+       of file. Sending it twice is an error, hence the flag. *)
+    method flush_input =
+      if not flushed then (
+        flushed <- true;
+        List.iter (fun (_, frame) -> input (`Frame frame)) self#flush_duration;
+        input `Flush)
 
     initializer self#on_sleep (fun () -> self#flush_input)
+
+    (* The graph drives its inputs itself: a tick that merely animates the
+       input clock, rather than one asking for data, must not push. *)
+    method! output = if Clock.pulled self#clock then super#output
   end
 
 (** From the script perspective, the operator sending data to a filter graph is

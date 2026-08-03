@@ -72,6 +72,7 @@ type graph = {
   mutable failed : bool;
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
+  input_flushes : (unit -> unit) Queue.t;
   mutable graph_source : Ffmpeg_filter_graph.source option;
   mutable audio_outputs : int;
   mutable video_outputs : int;
@@ -94,7 +95,7 @@ let is_ready graph =
   (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
     | false, Some s ->
         if not (Clock.started s#clock) then Clock.start s#clock;
-        Clock.tick s#clock
+        Clock.tick ~pull:true s#clock
     (* No liquidsoap input to wait for: the graph is fed by source filters
        alone, so nothing else will ever trigger initialization. Doing it here
        rather than when the graph is built keeps it at streaming time, where
@@ -108,8 +109,12 @@ let is_ready graph =
 
 let pull graph =
   match Queue.peek_opt graph.graph_inputs with
-    | Some s -> Clock.tick s#clock
+    | Some s -> Clock.tick ~pull:true s#clock
     | None -> ()
+
+(* Once the inputs are done, the graph needs to be told so that filters holding
+   a tail release it. *)
+let flush_inputs graph = Queue.iter graph.input_flushes (fun flush -> flush ())
 
 let self_sync graph source =
   (Clock_base.self_sync ~source (Queue.elements graph.graph_inputs)) ()
@@ -124,6 +129,7 @@ let graph_source graph =
             ~name:"ffmpeg.filter"
             ~pull:(fun () -> pull graph)
             ~is_ready:(fun () -> is_ready graph)
+            ~flush_inputs:(fun () -> flush_inputs graph)
             ~self_sync:(fun source -> self_sync graph source)
             ()
         in
@@ -508,6 +514,7 @@ let _ =
          s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
+         Queue.push graph.input_flushes (fun () -> s#flush_input);
 
          let args = ref None in
 
@@ -636,6 +643,7 @@ let _ =
          s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
+         Queue.push graph.input_flushes (fun () -> s#flush_input);
 
          let args = ref None in
 
@@ -730,6 +738,7 @@ let _ =
             failed = false;
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
+            input_flushes = Queue.create ();
             graph_source = None;
             audio_outputs = 0;
             video_outputs = 0;
