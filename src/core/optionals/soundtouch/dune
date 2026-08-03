@@ -2,6 +2,6 @@
  (name liquidsoap_soundtouch)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries soundtouch liquidsoap_core)
+ (libraries liquidsoap_core mm mm.audio mm.base soundtouch)
  (wrapped false)
  (optional))

@@ -33,17 +33,19 @@
    Liquidsoap_core_runtime))
  (libraries
   dtools
-  menhirLib
-  metadata
-  liquidsoap-lang.prelude
+  liquidsoap-lang
   liquidsoap-lang.data
   liquidsoap-lang.parser
-  liquidsoap-lang
-  liquidsoap_core_utils
-  liquidsoap_core_stream
-  liquidsoap_core_media
-  liquidsoap_core_encoder
+  liquidsoap-lang.prelude
   liquidsoap_core_clock
-  liquidsoap_core_source
+  liquidsoap_core_encoder
+  liquidsoap_core_media
   liquidsoap_core_request
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  menhirLib
+  metadata
+  sedlex
+  stdlib_utils
   liquidsoap_core_runtime))

@@ -31,16 +31,21 @@
    -open
    Liquidsoap_core_runtime))
  (libraries
-  mm
   dtools
-  metadata
-  liquidsoap-lang.prelude
   liquidsoap-lang.data
-  liquidsoap_core_utils
-  liquidsoap_core_stream
-  liquidsoap_core_media
-  liquidsoap_core_encoder
+  liquidsoap-lang.prelude
   liquidsoap_core_clock
-  liquidsoap_core_source
+  liquidsoap_core_encoder
+  liquidsoap_core_media
   liquidsoap_core_request
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.midi
+  mm.video
   liquidsoap_core_runtime))

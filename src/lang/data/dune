@@ -77,10 +77,12 @@
  (preprocess
   (pps sedlex.ppx ppx_hash))
  (libraries
+  dune-site
+  fileutils
+  gen
+  liquidsoap-lang.console
   liquidsoap-lang.prelude
   liquidsoap-lang.types
-  fileutils
-  dune-site
   menhirLib
   re
   str

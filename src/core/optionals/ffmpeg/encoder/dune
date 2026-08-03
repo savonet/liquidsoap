@@ -3,13 +3,22 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries
+  dtools
   ffmpeg-av
   ffmpeg-avcodec
   ffmpeg-avfilter
   ffmpeg-avutil
   ffmpeg-swresample
   ffmpeg-swscale
+  liquidsoap-lang
   liquidsoap_core
-  liquidsoap_ffmpeg_base)
+  liquidsoap_ffmpeg_base
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re)
  (wrapped false)
  (optional))

@@ -2,6 +2,17 @@
  (name liquidsoap_speex)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries speex speex.decoder liquidsoap_core liquidsoap_ogg)
+ (libraries
+  liquidsoap_core
+  liquidsoap_ogg
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  ogg
+  speex
+  speex.decoder)
  (wrapped false)
  (optional))

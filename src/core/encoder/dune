@@ -29,15 +29,21 @@
    -open
    Liquidsoap_core_media))
  (libraries
-  mm
-  re
-  metadata
+  dtools
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
   liquidsoap-lang.prelude
   liquidsoap-lang.types
-  liquidsoap-lang.data
   liquidsoap-lang.values
-  liquidsoap-lang.ast
-  liquidsoap-lang
-  liquidsoap_core_utils
   liquidsoap_core_stream
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re
+  threads.posix
   liquidsoap_core_media))

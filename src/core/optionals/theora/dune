@@ -2,6 +2,17 @@
  (name liquidsoap_theora)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries theora theora.decoder liquidsoap_core liquidsoap_ogg)
+ (libraries
+  liquidsoap_core
+  liquidsoap_ogg
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  ogg
+  theora
+  theora.decoder)
  (wrapped false)
  (optional))

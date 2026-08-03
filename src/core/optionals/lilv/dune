@@ -2,6 +2,6 @@
  (name liquidsoap_lilv)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries lilv liquidsoap_core)
+ (libraries dtools lilv liquidsoap_core mm mm.audio mm.base)
  (wrapped false)
  (optional))

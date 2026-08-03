@@ -2,6 +2,16 @@
  (name liquidsoap_flac)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries flac liquidsoap_core)
+ (libraries
+  dtools
+  flac
+  liquidsoap_core
+  magic-mime
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video)
  (wrapped false)
  (optional))

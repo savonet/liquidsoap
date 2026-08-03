@@ -69,20 +69,24 @@
    -open
    Liquidsoap_lang))
  (libraries
-  dtools
-  domain_shims
-  dune-build-info
-  duppy
-  liquidsoap_memtrace
   camomile.lib
   cry
-  re
-  metadata
-  liquidsoap-lang.prelude
-  liquidsoap-lang.data
+  domain_shims
+  dtools
+  dune-build-info
+  dune-site
+  duppy
+  liquidsoap-lang
   liquidsoap-lang.ast
   liquidsoap-lang.cache
-  liquidsoap-lang)
+  liquidsoap-lang.console
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap_memtrace
+  metadata
+  re
+  stdlib_utils
+  threads.posix)
  (foreign_stubs
   (language c)
   (names unix_c)))

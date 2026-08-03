@@ -17,7 +17,10 @@
  (preprocess
   (pps ppx_hash))
  (libraries
+  dune-site
+  fileutils
   liquidsoap-lang.ast
+  liquidsoap-lang.console
   liquidsoap-lang.data
   liquidsoap-lang.prelude
   liquidsoap-lang.values

@@ -1,4 +1,4 @@
 (library
  (optional)
  (name ndi)
- (libraries ctypes ctypes.foreign))
+ (libraries ctypes ctypes.foreign integers))

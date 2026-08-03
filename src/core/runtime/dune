@@ -40,17 +40,18 @@
    Liquidsoap_core_request))
  (libraries
   dtools
-  re
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.parser
   liquidsoap-lang.prelude
   liquidsoap-lang.types
-  liquidsoap-lang.data
   liquidsoap-lang.values
-  liquidsoap-lang.ast
-  liquidsoap-lang.parser
-  liquidsoap_core_utils
-  liquidsoap_core_stream
-  liquidsoap_core_media
-  liquidsoap_core_encoder
   liquidsoap_core_clock
+  liquidsoap_core_encoder
+  liquidsoap_core_media
   liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  re
   liquidsoap_core_request))

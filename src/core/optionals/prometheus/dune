@@ -2,6 +2,11 @@
  (name liquidsoap_prometheus)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries cohttp-lwt-unix prometheus-app liquidsoap_core)
+ (libraries
+  cohttp-lwt-unix
+  dtools
+  liquidsoap_core
+  prometheus-app
+  threads.posix)
  (wrapped false)
  (optional))

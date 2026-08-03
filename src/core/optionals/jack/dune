@@ -2,7 +2,14 @@
  (name liquidsoap_jack)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core jack)
+ (libraries
+  dtools
+  jack
+  liquidsoap-lang.ast
+  liquidsoap_core
+  mm
+  mm.audio
+  mm.base)
  (wrapped false)
  (foreign_stubs
   (language c)

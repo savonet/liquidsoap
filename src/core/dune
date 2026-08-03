@@ -2,7 +2,7 @@
 ;
 ; liquidsoap_core itself holds no code: it re-exports, under short names, the
 ; modules that builtins and optional plugins are meant to use. Those consumers
-; do (libraries liquidsoap_core) + (flags -open Liquidsoap_core), so they never
+; do (libraries ) + (flags -open Liquidsoap_core), so they never
 ; have to name the layer a module lives in, nor spell out the wrapped
 ; liquidsoap-lang paths.
 ;
@@ -46,26 +46,26 @@
    -open
    Liquidsoap_core_operators))
  (libraries
-  liquidsoap-lang
-  liquidsoap-lang.prelude
-  liquidsoap-lang.types
-  liquidsoap-lang.data
-  liquidsoap-lang.values
-  liquidsoap-lang.ast
-  liquidsoap-lang.parser
-  liquidsoap-lang.reducer
-  liquidsoap-lang.cache
-  liquidsoap_core_utils
-  liquidsoap_core_stream
-  liquidsoap_core_media
-  liquidsoap_core_encoder
-  liquidsoap_core_clock
-  liquidsoap_core_source
-  liquidsoap_core_request
-  liquidsoap_core_runtime
-  liquidsoap_core_net
-  liquidsoap_core_protocols
-  liquidsoap_core_decoders
-  liquidsoap_core_sources
-  liquidsoap_core_outputs
-  liquidsoap_core_operators))
+  (re_export liquidsoap-lang)
+  (re_export liquidsoap-lang.prelude)
+  (re_export liquidsoap-lang.types)
+  (re_export liquidsoap-lang.data)
+  (re_export liquidsoap-lang.values)
+  (re_export liquidsoap-lang.ast)
+  (re_export liquidsoap-lang.parser)
+  (re_export liquidsoap-lang.reducer)
+  (re_export liquidsoap-lang.cache)
+  (re_export liquidsoap_core_utils)
+  (re_export liquidsoap_core_stream)
+  (re_export liquidsoap_core_media)
+  (re_export liquidsoap_core_encoder)
+  (re_export liquidsoap_core_clock)
+  (re_export liquidsoap_core_source)
+  (re_export liquidsoap_core_request)
+  (re_export liquidsoap_core_runtime)
+  (re_export liquidsoap_core_net)
+  (re_export liquidsoap_core_protocols)
+  (re_export liquidsoap_core_decoders)
+  (re_export liquidsoap_core_sources)
+  (re_export liquidsoap_core_outputs)
+  (re_export liquidsoap_core_operators)))

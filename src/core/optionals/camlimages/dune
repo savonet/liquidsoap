@@ -2,6 +2,13 @@
  (name liquidsoap_camlimages)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries camlimages.all_formats liquidsoap_core)
+ (libraries
+  camlimages.all_formats
+  dtools
+  liquidsoap_core
+  mm
+  mm.base
+  mm.image
+  mm.video)
  (wrapped false)
  (optional))

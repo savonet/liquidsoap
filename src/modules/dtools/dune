@@ -3,7 +3,7 @@
  (libraries
   str
   stdlib_utils
-  threads
+  threads.posix
   unix
   (select
    dtools_syslog.ml

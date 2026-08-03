@@ -3,12 +3,22 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries
+  dtools
   ffmpeg-av
   ffmpeg-avcodec
   ffmpeg-avutil
   ffmpeg-swresample
   ffmpeg-swscale
+  liquidsoap-lang
   liquidsoap_core
-  liquidsoap_ffmpeg_base)
+  liquidsoap_ffmpeg_base
+  menhirLib
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  sedlex)
  (wrapped false)
  (optional))

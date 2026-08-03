@@ -3,10 +3,15 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries
+  dtools
+  duppy
   ffmpeg-av
   ffmpeg-avutil
+  liquidsoap-lang
   liquidsoap_core
   liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder)
+  liquidsoap_ffmpeg_decoder
+  metadata
+  re)
  (wrapped false)
  (optional))

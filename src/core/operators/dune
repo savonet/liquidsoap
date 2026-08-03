@@ -46,29 +46,36 @@
    -open
    Liquidsoap_core_outputs))
  (libraries
-  mm
   dtools
   duppy
-  re
-  metadata
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
   liquidsoap-lang.prelude
   liquidsoap-lang.types
-  liquidsoap-lang.data
   liquidsoap-lang.values
-  liquidsoap-lang.ast
-  liquidsoap-lang
-  liquidsoap_core_utils
-  liquidsoap_core_stream
-  liquidsoap_core_media
-  liquidsoap_core_encoder
   liquidsoap_core_clock
-  liquidsoap_core_source
+  liquidsoap_core_decoders
+  liquidsoap_core_encoder
+  liquidsoap_core_media
+  liquidsoap_core_net
+  liquidsoap_core_outputs
   liquidsoap_core_request
   liquidsoap_core_runtime
-  liquidsoap_core_net
-  liquidsoap_core_decoders
+  liquidsoap_core_source
   liquidsoap_core_sources
-  liquidsoap_core_outputs)
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.midi
+  mm.video
+  re
+  stdlib_utils
+  threads.posix)
  (foreign_stubs
   (language c)
   (names defer_c lufs_c)))

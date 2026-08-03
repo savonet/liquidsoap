@@ -39,22 +39,29 @@
  (preprocess
   (pps ppx_string))
  (libraries
+  cry
   dtools
   duppy
-  cry
-  re
-  metadata
+  liquidsoap-lang
+  liquidsoap-lang.data
   liquidsoap-lang.prelude
   liquidsoap-lang.types
-  liquidsoap-lang.data
   liquidsoap-lang.values
-  liquidsoap-lang
-  liquidsoap_core_utils
-  liquidsoap_core_stream
-  liquidsoap_core_media
-  liquidsoap_core_encoder
   liquidsoap_core_clock
-  liquidsoap_core_source
+  liquidsoap_core_encoder
+  liquidsoap_core_media
   liquidsoap_core_request
   liquidsoap_core_runtime
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re
+  stdlib_utils
+  threads.posix
   liquidsoap_core_net))

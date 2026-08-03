@@ -146,7 +146,7 @@ let value_of_format fmt =
   Option.map
     (fun { method_name; format_to_value; _ } ->
       (method_name, format_to_value fmt))
-    (List.find_opt (fun s -> s.format_name = name) !content_lang_specs)
+    (Plug.get content_lang_specs name)
 
 (* Custom Liquidsoap value type for Content.format *)
 module Format_val = Liquidsoap_lang.Lang_core.MkCustom (struct
@@ -167,6 +167,7 @@ end)
 
 let content_types () =
   List.fold_right
-    (fun { method_name; content_typ; _ } acc ->
+    (fun (_, { method_name; content_typ; _ }) acc ->
       Type.meth ~optional:true method_name ([], content_typ) acc)
-    !content_lang_specs (Type.make Type.unit)
+    (Plug.entries content_lang_specs)
+    (Type.make Type.unit)

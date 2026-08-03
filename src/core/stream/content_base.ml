@@ -227,15 +227,22 @@ type content_lang_spec = {
   format_to_value : Contents.format -> Value.t;
 }
 
-let content_lang_specs : content_lang_spec list ref = ref []
+(* A plug rather than a list ref so that reading it before every content module
+   has registered raises instead of quietly returning a prefix. Deriving the
+   type of format.description from it is exactly the kind of thing that used to
+   depend on link order. *)
+let content_lang_specs : content_lang_spec Plug.t =
+  Plug.create ~doc:"Language description of content formats." "content formats"
 
 let register_content_lang format_name lang_name content_typ format_to_value =
   let method_name =
     String.map (fun c -> if c = '.' then '_' else c) lang_name
   in
-  content_lang_specs :=
+  Plug.register content_lang_specs format_name
+    ~doc:
+      (Printf.sprintf "Described by the `%s` method of `format.description`."
+         method_name)
     { format_name; method_name; content_typ; format_to_value }
-    :: !content_lang_specs
 
 module MkContentBase (C : ContentSpecs) :
   Content

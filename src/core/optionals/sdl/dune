@@ -2,6 +2,15 @@
  (name liquidsoap_sdl)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries tsdl-image tsdl-ttf liquidsoap_core)
+ (libraries
+  dtools
+  liquidsoap_core
+  mm
+  mm.base
+  mm.image
+  mm.midi
+  mm.video
+  tsdl-image
+  tsdl-ttf)
  (wrapped false)
  (optional))

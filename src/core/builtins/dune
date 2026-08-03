@@ -10,4 +10,30 @@
  (name liquidsoap_builtins)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries cron mem_usage uri liquidsoap_core liquidsoap_file_watcher))
+ (libraries
+  cron
+  cry
+  curl
+  dtools
+  duppy
+  fileutils
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap_core
+  liquidsoap_file_watcher
+  magic-mime
+  mem_usage
+  menhirLib
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re
+  sedlex
+  stdlib_utils
+  threads.posix
+  uri))

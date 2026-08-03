@@ -2,6 +2,6 @@
  (name liquidsoap_alsa)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries alsa liquidsoap_core)
+ (libraries alsa dtools liquidsoap_core mm mm.audio mm.base)
  (wrapped false)
  (optional))

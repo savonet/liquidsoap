@@ -24,12 +24,18 @@
    -open
    Liquidsoap_core_stream))
  (libraries
-  mm
   dtools
-  magic-mime
-  liquidsoap-lang.prelude
-  liquidsoap-lang.data
-  liquidsoap-lang.values
   liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.values
   liquidsoap_core_utils
+  magic-mime
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  stdlib_utils
+  threads.posix
   liquidsoap_core_stream))

@@ -2,6 +2,16 @@
  (name liquidsoap_ogg)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries ogg ogg.decoder liquidsoap_core)
+ (libraries
+  dtools
+  liquidsoap_core
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  ogg
+  ogg.decoder)
  (wrapped false)
  (optional))

@@ -2,7 +2,7 @@
  (name liquidsoap_oss)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core)
+ (libraries dtools liquidsoap_core mm mm.audio mm.base stdlib_utils)
  (enabled_if
   (= "linux" %{system}))
  (wrapped false)

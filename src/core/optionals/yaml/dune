@@ -2,6 +2,6 @@
  (name liquidsoap_yaml)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries yaml liquidsoap_core)
+ (libraries liquidsoap-lang liquidsoap_core yaml)
  (wrapped false)
  (optional))

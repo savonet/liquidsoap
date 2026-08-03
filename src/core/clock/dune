@@ -23,8 +23,9 @@
    Liquidsoap_core_stream))
  (libraries
   dtools
-  liquidsoap-lang.prelude
-  liquidsoap-lang.data
   liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
   liquidsoap_core_utils
+  threads.posix
   liquidsoap_core_stream))

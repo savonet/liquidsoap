@@ -25,13 +25,18 @@
    Liquidsoap_core_source))
  (libraries
   dtools
-  re
-  metadata
-  magic-mime
-  liquidsoap-lang.prelude
+  liquidsoap-lang.ast
   liquidsoap-lang.data
+  liquidsoap-lang.prelude
   liquidsoap-lang.values
-  liquidsoap_core_utils
-  liquidsoap_core_stream
   liquidsoap_core_media
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  magic-mime
+  metadata
+  mm
+  mm.base
+  re
+  stdlib_utils
+  threads.posix
   liquidsoap_core_source))

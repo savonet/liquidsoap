@@ -2,6 +2,22 @@
  (name liquidsoap_srt)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries srt liquidsoap_core)
+ (libraries
+  ctypes
+  dtools
+  duppy
+  integers
+  liquidsoap-lang.ast
+  liquidsoap_core
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re
+  srt
+  stdlib_utils
+  threads.posix)
  (wrapped false)
  (optional))

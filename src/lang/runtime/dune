@@ -22,6 +22,8 @@
  (preprocess
   (pps ppx_string))
  (libraries
+  domain_shims
+  gen
   liquidsoap-lang.ast
   liquidsoap-lang.cache
   liquidsoap-lang.console
@@ -32,6 +34,7 @@
   liquidsoap-lang.stdlib
   liquidsoap-lang.types
   liquidsoap-lang.values
-  domain_shims
+  menhirLib
   re
+  sedlex
   str))

@@ -2,6 +2,6 @@
  (name liquidsoap_samplerate)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries samplerate liquidsoap_core)
+ (libraries dtools liquidsoap_core mm mm.audio mm.base samplerate)
  (wrapped false)
  (optional))

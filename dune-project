@@ -11,6 +11,8 @@
 (maintenance_intent "(latest)")
 (version 2.5.0)
 
+(implicit_transitive_deps false)
+
 (generate_opam_files true)
 (subst disabled)
 (opam_file_location inside_opam_directory)

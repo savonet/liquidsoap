@@ -2,6 +2,6 @@
  (name liquidsoap_ladspa)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries ladspa liquidsoap_core)
+ (libraries dtools ladspa liquidsoap_core mm mm.audio mm.base)
  (wrapped false)
  (optional))

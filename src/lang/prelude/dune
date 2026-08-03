@@ -8,4 +8,4 @@
  (public_name liquidsoap-lang.prelude)
  (preprocess
   (pps ppx_hash))
- (libraries re str unix))
+ (libraries base ppx_hash.runtime-lib re str unix))

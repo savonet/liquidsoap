@@ -26,15 +26,23 @@
    -open
    Liquidsoap_core_utils))
  (libraries
-  mm
   dtools
-  metadata
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
   liquidsoap-lang.prelude
   liquidsoap-lang.types
-  liquidsoap-lang.data
   liquidsoap-lang.values
-  liquidsoap-lang
-  liquidsoap_core_utils)
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.midi
+  mm.video
+  stdlib_utils
+  threads.posix)
  (foreign_stubs
   (language c)
   (names content_pcm_c)))

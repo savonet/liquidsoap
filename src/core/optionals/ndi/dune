@@ -2,6 +2,6 @@
  (name liquidsoap_ndi)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries ndi liquidsoap_core)
+ (libraries dtools liquidsoap_core mm mm.audio mm.base mm.image mm.video ndi)
  (wrapped false)
  (optional))
