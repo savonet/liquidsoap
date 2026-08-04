@@ -9,6 +9,9 @@
   This showed up as the track after a `cross`/`crossfade` transition built with
   `sequence` keeping the previous track's metadata until the next track
   boundary (#TODO).
+- Fixed ICY metadata negotiation in `output.harbor`: the `Icy-MetaData` request
+  header was looked up before normalization, so clients never received
+  in-stream metadata (thanks to @uhthomas, #5279)
 
 ---
 
