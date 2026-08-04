@@ -283,10 +283,15 @@ let _ =
   let base =
     add_duration_resolver ~base:request ~name:"duration" ~resolver:None ()
   in
-  List.iter
-    (fun name ->
-      ignore (add_duration_resolver ~base ~name ~resolver:(Some name) ()))
-    Request.conf_dresolvers#get
+  (* One request.duration.<resolver> per registered duration resolver. The
+     resolvers register from their own modules, so the list is only complete
+     once every module has been initialised: reading it here directly would
+     give whatever the linker happened to put before this one. *)
+  Lifecycle.on_load ~name:"request.duration resolvers" (fun () ->
+      List.iter
+        (fun name ->
+          ignore (add_duration_resolver ~base ~name ~resolver:(Some name) ()))
+        Request.conf_dresolvers#get)
 
 let _ =
   Lang.add_builtin ~base:request "id" ~category:`Liquidsoap

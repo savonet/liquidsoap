@@ -1,0 +1,42 @@
+; Container formats, converters and the decoder framework.
+;
+; AVI/WAV readers and writers, sample-rate and channel-layout converters,
+; and the Decoder plug registry. The concrete decoders live in decoders/,
+; above request/, because they register metadata resolvers into requests.
+;
+; liquidsoap_core_media.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_media)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_lang
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream))
+ (libraries
+  dtools
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.values
+  liquidsoap_core_utils
+  magic-mime
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  stdlib_utils
+  threads.posix
+  liquidsoap_core_stream
+  unix))

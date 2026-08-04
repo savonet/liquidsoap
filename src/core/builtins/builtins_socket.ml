@@ -419,7 +419,7 @@ module Socket_value = struct
             [
               ( "timeout",
                 "timeout",
-                Some (Lang.float Harbor_base.conf_accept_timeout#get) );
+                Some (Lang.float Harbor.conf_accept_timeout#get) );
             ]
             (fun p ->
               let timeout =

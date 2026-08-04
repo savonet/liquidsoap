@@ -15,11 +15,6 @@
  (libraries re liquidsoap_build_tools)
  (modules gen_dune))
 
-(executable
- (name subst_md)
- (libraries re liquidsoap_lang)
- (modules subst_md))
-
 (rule
  (alias gendune)
  (target dune.inc.gen)

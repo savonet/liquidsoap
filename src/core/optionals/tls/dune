@@ -1,12 +1,20 @@
 (library
  (name liquidsoap_tls)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
-  tls
   ca-certs
-  mirage-crypto-rng.unix
   cstruct
+  domain-name
+  dtools
+  liquidsoap_builtins
   liquidsoap_core
-  liquidsoap_builtins)
- (library_flags -linkall)
+  mirage-crypto-rng.unix
+  ptime
+  ptime.clock.os
+  stdlib_utils
+  tls
+  x509
+  unix)
  (wrapped false)
  (optional))

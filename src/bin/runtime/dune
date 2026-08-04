@@ -2,13 +2,26 @@
  (name liquidsoap_runtime)
  (preprocess
   (pps ppx_string))
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
+  dtools
+  dune-build-info
+  liquidsoap-lang
+  liquidsoap-lang.cache
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  liquidsoap_builtins
   liquidsoap_core
   liquidsoap_optionals
-  liquidsoap_builtins
   liquidsoap_tooling
+  stdlib_utils
+  threads.posix
   (select
    runner.ml
    from
    (winsvc -> runner.winsvc.ml)
-   (-> runner.default.ml))))
+   (-> runner.default.ml))
+  unix))

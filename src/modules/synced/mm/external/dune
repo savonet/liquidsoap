@@ -3,7 +3,7 @@
  (public_name mm.mad)
  (modules mm_mad)
  (enabled_if %{lib-available:mad})
- (libraries mad mm.base mm.audio)
+ (libraries mad mm.base mm.audio unix)
  (synopsis
   "High-level APIs to create and manipulate multimedia streams -- optional mad module"))
 
@@ -12,7 +12,7 @@
  (public_name mm.theora)
  (modules mm_theora)
  (enabled_if %{lib-available:theora})
- (libraries theora mm.image mm.video)
+ (libraries theora mm.image mm.video unix)
  (synopsis
   "High-level APIs to create and manipulate multimedia streams -- optional theora module"))
 
@@ -21,7 +21,7 @@
  (public_name mm.ao)
  (modules mm_ao)
  (enabled_if %{lib-available:ao})
- (libraries ao mm.audio)
+ (libraries ao mm.audio unix)
  (synopsis
   "High-level APIs to create and manipulate multimedia streams -- optional ao module"))
 
@@ -30,7 +30,7 @@
  (public_name mm.pulseaudio)
  (modules mm_pulseaudio)
  (enabled_if %{lib-available:pulseaudio})
- (libraries pulseaudio mm.audio)
+ (libraries pulseaudio mm.audio unix)
  (synopsis
   "High-level APIs to create and manipulate multimedia streams -- optional pulseaudio module"))
 
@@ -39,7 +39,7 @@
  (public_name mm.sdl)
  (modules mm_sdl)
  (enabled_if %{lib-available:sdl})
- (libraries sdl mm.video mm.midi)
+ (libraries sdl mm.video mm.midi unix)
  (foreign_stubs
   (language c)
   (names sdl_stubs))
@@ -51,7 +51,7 @@
  (public_name mm.alsa)
  (modules mm_alsa)
  (enabled_if %{lib-available:alsa})
- (libraries alsa mm.audio)
+ (libraries alsa mm.audio unix)
  (synopsis
   "High-level APIs to create and manipulate multimedia streams -- optional alsa module"))
 
@@ -59,7 +59,7 @@
  (name mm_oss)
  (public_name mm.oss)
  (modules mm_oss)
- (libraries mm.base mm.audio)
+ (libraries mm.base mm.audio unix)
  (foreign_stubs
   (language c)
   (names oss_stubs))

@@ -1,6 +1,9 @@
 (library
  (name liquidsoap_ffmpeg_base)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
+  dtools
   ffmpeg-av
   ffmpeg-avcodec
   ffmpeg-avdevice
@@ -8,7 +11,13 @@
   ffmpeg-avutil
   ffmpeg-swresample
   ffmpeg-swscale
-  liquidsoap_core)
- (library_flags -linkall)
+  liquidsoap-lang
+  liquidsoap_core
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re)
  (wrapped false)
  (optional))

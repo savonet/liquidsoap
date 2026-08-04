@@ -1,6 +1,18 @@
 (library
  (name liquidsoap_sdl)
- (libraries tsdl-image tsdl-ttf liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  dtools
+  liquidsoap_core
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.midi
+  mm.video
+  tsdl
+  tsdl-image
+  tsdl-ttf)
  (wrapped false)
  (optional))

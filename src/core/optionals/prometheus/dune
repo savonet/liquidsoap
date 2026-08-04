@@ -1,6 +1,22 @@
 (library
  (name liquidsoap_prometheus)
- (libraries cohttp-lwt-unix prometheus-app liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  cohttp
+  cohttp-lwt
+  cohttp-lwt-unix
+  conduit
+  conduit-lwt
+  conduit-lwt-unix
+  dtools
+  http
+  liquidsoap_core
+  lwt
+  lwt.unix
+  prometheus
+  prometheus-app
+  threads.posix
+  unix)
  (wrapped false)
  (optional))

@@ -21,6 +21,10 @@
 
  *****************************************************************************)
 
+let () =
+  Ssl_threads.init ();
+  Ssl.init ()
+
 let log = Log.make ["ssl"]
 
 module Http = Liq_http
@@ -241,13 +245,13 @@ let _ =
         Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
       in
       let read_timeout =
-        Option.value ~default:Harbor_base.conf_timeout#get read_timeout
+        Option.value ~default:Harbor.conf_timeout#get read_timeout
       in
       let write_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "write_timeout" p)
       in
       let write_timeout =
-        Option.value ~default:Harbor_base.conf_timeout#get write_timeout
+        Option.value ~default:Harbor.conf_timeout#get write_timeout
       in
       let password =
         Lang.to_valued_option Lang.to_string (List.assoc "password" p)

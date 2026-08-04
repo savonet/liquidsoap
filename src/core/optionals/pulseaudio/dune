@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_pulseaudio)
- (libraries pulseaudio liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries dtools liquidsoap_core mm mm.audio mm.base pulseaudio unix)
  (wrapped false)
  (optional))

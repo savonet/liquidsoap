@@ -4,7 +4,7 @@
  (synopsis "OCaml bindings for libvorbis")
  (enabled_if
   (= %{read:../detect/vorbis_available} true))
- (libraries ogg)
+ (libraries ogg unix)
  (modules vorbis)
  (foreign_stubs
   (language c)
@@ -30,5 +30,5 @@
  (public_name vorbis.decoder)
  (synopsis "Vorbis decoder for the ogg-decoder library")
  (optional)
- (libraries ogg.decoder vorbis)
+ (libraries ogg.decoder vorbis unix)
  (modules vorbis_decoder))

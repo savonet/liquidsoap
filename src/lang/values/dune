@@ -19,4 +19,5 @@
   liquidsoap-lang.ast
   liquidsoap-lang.data
   liquidsoap-lang.prelude
-  liquidsoap-lang.types))
+  liquidsoap-lang.types
+  unix))

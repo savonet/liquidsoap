@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_graphics)
- (libraries graphics liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries graphics liquidsoap_core mm mm.base mm.image mm.video)
  (wrapped false)
  (optional))

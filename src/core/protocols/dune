@@ -1,0 +1,53 @@
+; Request protocols.
+;
+; Protocols registered into Request: annotate: and mpd:.
+;
+; liquidsoap_core_protocols.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_protocols)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_parser
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream
+   -open
+   Liquidsoap_core_media
+   -open
+   Liquidsoap_core_encoder
+   -open
+   Liquidsoap_core_clock
+   -open
+   Liquidsoap_core_source
+   -open
+   Liquidsoap_core_request
+   -open
+   Liquidsoap_core_runtime))
+ (libraries
+  dtools
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.parser
+  liquidsoap-lang.prelude
+  liquidsoap_core_clock
+  liquidsoap_core_encoder
+  liquidsoap_core_media
+  liquidsoap_core_request
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  menhirLib
+  metadata
+  sedlex
+  stdlib_utils
+  liquidsoap_core_runtime
+  str
+  unix))

@@ -1,0 +1,55 @@
+; HTTP and the harbor server.
+;
+; The harbor server that input.harbor and output.harbor are built on.
+;
+; liquidsoap_core_net.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_net)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream
+   -open
+   Liquidsoap_core_media
+   -open
+   Liquidsoap_core_encoder
+   -open
+   Liquidsoap_core_clock
+   -open
+   Liquidsoap_core_source
+   -open
+   Liquidsoap_core_request
+   -open
+   Liquidsoap_core_runtime))
+ (preprocess
+  (pps ppx_string))
+ (libraries
+  curl
+  dtools
+  duppy
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap_core_clock
+  liquidsoap_core_encoder
+  liquidsoap_core_media
+  liquidsoap_core_request
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.base
+  re
+  stdlib_utils
+  threads.posix
+  liquidsoap_core_runtime
+  unix))

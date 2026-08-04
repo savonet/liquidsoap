@@ -452,9 +452,9 @@ let _ =
       "Call a function when a file is modified. Returns unwatch function in \
        `unwatch` method."
     (fun p ->
-      let fname = Lang.to_string (Extralib.List.assoc_nth "" 0 p) in
+      let fname = Lang.to_string (Extralib.assoc_nth "" 0 p) in
       let fname = Lang_string.home_unrelate fname in
-      let f = Extralib.List.assoc_nth "" 1 p in
+      let f = Extralib.assoc_nth "" 1 p in
       let f () =
         try ignore (Lang.apply f [])
         with exn ->

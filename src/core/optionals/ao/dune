@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_ao)
- (libraries ao liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries ao dtools liquidsoap_core)
  (wrapped false)
  (optional))

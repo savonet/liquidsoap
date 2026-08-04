@@ -117,7 +117,7 @@ let pull graph =
 let flush_inputs graph = Queue.iter graph.input_flushes (fun flush -> flush ())
 
 let self_sync graph source =
-  (Clock_base.self_sync ~source (Queue.elements graph.graph_inputs)) ()
+  (Clock.self_sync_of_sources ~source (Queue.elements graph.graph_inputs)) ()
 
 (* Created on the first output: a graph with none needs no source. *)
 let graph_source graph =

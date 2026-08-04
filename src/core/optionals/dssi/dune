@@ -1,6 +1,17 @@
 (library
  (name liquidsoap_dssi)
- (libraries dssi liquidsoap_ladspa liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  dssi
+  dtools
+  ladspa
+  liquidsoap_core
+  liquidsoap_ladspa
+  mm
+  mm.audio
+  mm.base
+  mm.midi
+  unix)
  (wrapped false)
  (optional))

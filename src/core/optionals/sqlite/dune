@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_sqlite)
- (libraries sqlite3 liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap-lang liquidsoap-lang.ast liquidsoap_core sqlite3)
  (wrapped false)
  (optional))

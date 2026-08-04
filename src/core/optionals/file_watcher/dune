@@ -1,8 +1,14 @@
 (library
  (name liquidsoap_file_watcher)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
+  dtools
+  duppy
   liquidsoap-lang
+  liquidsoap-lang.prelude
   liquidsoap_core
+  threads.posix
   unix
   (select
    liq_file_watcher.ml

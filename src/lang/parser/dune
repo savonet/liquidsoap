@@ -53,9 +53,12 @@
  (preprocess
   (pps sedlex.ppx))
  (libraries
+  fileutils
   liquidsoap-lang.ast
   liquidsoap-lang.data
   liquidsoap-lang.prelude
   liquidsoap-lang.types
   liquidsoap-lang.values
+  re
+  str
   menhirLib))

@@ -1,5 +1,10 @@
 (* Test a stream decoder. ffmpeg/audio only for now. *)
 
+(* Encoder.get_factory picks among every registered encoder, so the plug has
+   to be complete first. The application gets there through Lifecycle.load;
+   a test binary has to say so itself. *)
+let () = Lifecycle.load ()
+
 let () =
   if Array.length Sys.argv < 3 then (
     Printf.printf "Usage: stream_decoder_test <in file> <out file>\n%!";

@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_lo)
- (libraries lo liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries dtools liquidsoap_core lo threads.posix)
  (wrapped false)
  (optional))

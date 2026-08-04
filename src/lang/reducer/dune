@@ -27,4 +27,6 @@
   liquidsoap-lang.parser
   liquidsoap-lang.prelude
   liquidsoap-lang.types
+  menhirLib
+  sedlex
   liquidsoap-lang.values))

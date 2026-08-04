@@ -22,17 +22,22 @@
 
 let format = Lang.add_module "format"
 
-let _ =
-  Lang.add_builtin ~base:format "description" ~category:(`Source `Liquidsoap)
-    ~descr:
-      "Return a description of the given format as a record with optional \
-       methods. For PCM audio: `{ channels, channel_layout }`. For YUV420P \
-       video: `{ width, height }`. For MIDI: `{ channels }`. Returns an empty \
-       record for formats without a description (e.g. metadata, track marks)."
-    [("", Content.Format_val.t, None, None)]
-    (Content.content_types ())
-    (fun p ->
-      let fmt = Content.Format_val.of_value (List.assoc "" p) in
-      match Content.value_of_format fmt with
-        | Some (name, v) -> Lang.meth (Lang.record []) [(name, v)]
-        | None -> Lang.record [])
+(* The return type lists one optional method per content format, so it can only
+   be built once every content module has registered its own. *)
+let () =
+  Lifecycle.on_load ~name:"format.description" @@ fun () ->
+  ignore
+  @@ Lang.add_builtin ~base:format "description" ~category:(`Source `Liquidsoap)
+       ~descr:
+         "Return a description of the given format as a record with optional \
+          methods. For PCM audio: `{ channels, channel_layout }`. For YUV420P \
+          video: `{ width, height }`. For MIDI: `{ channels }`. Returns an \
+          empty record for formats without a description (e.g. metadata, track \
+          marks)."
+       [("", Content.Format_val.t, None, None)]
+       (Content.content_types ())
+       (fun p ->
+         let fmt = Content.Format_val.of_value (List.assoc "" p) in
+         match Content.value_of_format fmt with
+           | Some (name, v) -> Lang.meth (Lang.record []) [(name, v)]
+           | None -> Lang.record [])

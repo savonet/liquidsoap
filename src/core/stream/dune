@@ -1,0 +1,48 @@
+; Frames and the content they carry.
+;
+; The media data model: content kinds and formats, frames, generators, and
+; the liquidsoap types that describe them. content_base, frame_base and
+; metadata_base exist because Content and Frame genuinely need each other's
+; types -- the shared definitions are hoisted into modules that depend on
+; neither. Do not merge them back.
+;
+; liquidsoap_core_stream.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_stream)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_lang
+   -open
+   Liquidsoap_core_utils))
+ (libraries
+  dtools
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.midi
+  mm.video
+  stdlib_utils
+  threads.posix)
+ (foreign_stubs
+  (language c)
+  (names content_pcm_c)))

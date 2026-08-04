@@ -1,0 +1,31 @@
+; Clocks.
+;
+; Clocks animate the sources attached to them by ticking: each tick asks
+; every animated source to produce one frame. Nothing else drives data
+; production.
+;
+; liquidsoap_core_clock.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_clock)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream))
+ (libraries
+  dtools
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap_core_utils
+  threads.posix
+  liquidsoap_core_stream))

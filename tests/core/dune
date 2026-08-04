@@ -82,19 +82,47 @@
 (executable
  (name ffmpeg_stream_description_test)
  (modules ffmpeg_stream_description_test)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   liquidsoap_optionals
   liquidsoap_ffmpeg
+  liquidsoap_ffmpeg_base
+  ffmpeg-av
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  dtools
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  threads.posix
+  unix
   test_media_formats))
 
 (executable
  (name ffmpeg_get_type_test)
  (modules ffmpeg_get_type_test)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   liquidsoap_optionals
   liquidsoap_ffmpeg
+  liquidsoap_ffmpeg_base
+  ffmpeg-av
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  dtools
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  threads.posix
+  unix
   test_media_formats))
 
 (rule
@@ -128,7 +156,9 @@
 (executable
  (name ffprobe_process_test)
  (modules ffprobe_process_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_optionals dtools threads.posix unix))
 
 (rule
  (alias ffprobe_process_test)

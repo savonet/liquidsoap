@@ -1,0 +1,51 @@
+; Concrete decoders and metadata resolvers.
+;
+; Above request/ because they register into Request's resolver plugs, while
+; request/ itself only needs the decoder framework in media/.
+;
+; liquidsoap_core_decoders.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_decoders)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream
+   -open
+   Liquidsoap_core_media
+   -open
+   Liquidsoap_core_encoder
+   -open
+   Liquidsoap_core_clock
+   -open
+   Liquidsoap_core_source
+   -open
+   Liquidsoap_core_request
+   -open
+   Liquidsoap_core_runtime))
+ (libraries
+  dtools
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap_core_clock
+  liquidsoap_core_encoder
+  liquidsoap_core_media
+  liquidsoap_core_request
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.midi
+  mm.video
+  liquidsoap_core_runtime))

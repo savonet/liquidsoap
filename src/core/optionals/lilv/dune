@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_lilv)
- (libraries lilv liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries dtools lilv liquidsoap_core mm mm.audio mm.base unix)
  (wrapped false)
  (optional))

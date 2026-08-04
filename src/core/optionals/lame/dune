@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_lame)
- (libraries lame liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries lame liquidsoap_core metadata mm mm.audio mm.base)
  (wrapped false)
  (optional))

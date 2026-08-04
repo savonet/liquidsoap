@@ -1,7 +1,24 @@
 (library
  (name liquidsoap_ogg_flac)
- (libraries flac.ogg flac.decoder liquidsoap_core liquidsoap_ogg)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  dtools
+  flac
+  flac.decoder
+  flac.ogg
+  liquidsoap_core
+  liquidsoap_ogg
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  ogg
+  ogg.decoder
+  threads.posix
+  unix)
  (wrapped false)
  (optional)
  (foreign_stubs

@@ -1,9 +1,10 @@
 (library
  (name liquidsoap_oss)
- (libraries liquidsoap_core)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries dtools liquidsoap_core mm mm.audio mm.base stdlib_utils unix)
  (enabled_if
   (= "linux" %{system}))
- (library_flags -linkall)
  (wrapped false)
  (optional)
  (foreign_stubs

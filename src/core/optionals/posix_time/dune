@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_posix_time)
- (libraries posix-time2 liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core posix-time2 unix)
  (wrapped false)
  (optional))

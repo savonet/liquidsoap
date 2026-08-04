@@ -22,7 +22,8 @@
   srt.stubs
   srt.stubs.locked
   ctypes.stubs
-  ctypes.foreign))
+  ctypes.foreign
+  unix))
 
 (rule
  (alias install)

@@ -1,0 +1,43 @@
+; Requests.
+;
+; URI resolution, the request pool and playlist parsing.
+;
+; liquidsoap_core_request.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_request)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream
+   -open
+   Liquidsoap_core_media
+   -open
+   Liquidsoap_core_source))
+ (libraries
+  dtools
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.values
+  liquidsoap_core_media
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  magic-mime
+  metadata
+  mm
+  mm.base
+  re
+  stdlib_utils
+  threads.posix
+  liquidsoap_core_source
+  unix))

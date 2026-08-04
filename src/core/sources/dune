@@ -1,0 +1,68 @@
+; Input sources.
+;
+; Sources that produce data of their own: playlists, harbor input, noise,
+; test patterns.
+;
+; liquidsoap_core_sources.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_sources)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream
+   -open
+   Liquidsoap_core_media
+   -open
+   Liquidsoap_core_encoder
+   -open
+   Liquidsoap_core_clock
+   -open
+   Liquidsoap_core_source
+   -open
+   Liquidsoap_core_request
+   -open
+   Liquidsoap_core_runtime
+   -open
+   Liquidsoap_core_net
+   -open
+   Liquidsoap_core_decoders))
+ (libraries
+  dtools
+  duppy
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  liquidsoap_core_clock
+  liquidsoap_core_encoder
+  liquidsoap_core_media
+  liquidsoap_core_net
+  liquidsoap_core_request
+  liquidsoap_core_runtime
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re
+  stdlib_utils
+  threads.posix
+  liquidsoap_core_decoders
+  unix))

@@ -35,4 +35,6 @@ let tracks ?pwd s =
     log#debug "Parsing failed: %s" (Xmlplaylist.string_of_error e);
     raise (Xmlplaylist.Error e)
 
-let _ = Builtins_resolvers.add_playlist_parser ~format:"XML" "xml" tracks
+let _ =
+  Liquidsoap_builtins.Builtins_resolvers.add_playlist_parser ~format:"XML" "xml"
+    tracks

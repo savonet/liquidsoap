@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_xmlplaylist)
- (libraries xmlplaylist liquidsoap_core liquidsoap_builtins)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries dtools liquidsoap_builtins liquidsoap_core xmlplaylist)
  (wrapped false)
  (optional))

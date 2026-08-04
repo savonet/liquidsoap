@@ -1,6 +1,19 @@
 (library
  (name liquidsoap_opus)
- (libraries opus opus.decoder liquidsoap_core liquidsoap_ogg)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  dtools
+  liquidsoap_core
+  liquidsoap_ogg
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  ogg
+  opus
+  opus.decoder)
  (wrapped false)
  (optional))

@@ -1,0 +1,71 @@
+; The public face of the streaming engine.
+;
+; liquidsoap_core itself holds no code: it re-exports, under short names, the
+; modules that builtins and optional plugins are meant to use. Those consumers
+; do (libraries ) + (flags -open Liquidsoap_core), so they never
+; have to name the layer a module lives in, nor spell out the wrapped
+; liquidsoap-lang paths.
+;
+; liquidsoap_core.mli is the list of what is public. Everything else is internal
+; to the layer that defines it. The layers, each a library that may only depend
+; on the ones above it:
+;
+;   utils stream media encoder clock source request runtime
+;   net protocols decoders sources outputs operators
+
+(library
+ (name liquidsoap_core)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_core_utils
+   -open
+   Liquidsoap_core_stream
+   -open
+   Liquidsoap_core_media
+   -open
+   Liquidsoap_core_encoder
+   -open
+   Liquidsoap_core_clock
+   -open
+   Liquidsoap_core_source
+   -open
+   Liquidsoap_core_request
+   -open
+   Liquidsoap_core_runtime
+   -open
+   Liquidsoap_core_net
+   -open
+   Liquidsoap_core_protocols
+   -open
+   Liquidsoap_core_decoders
+   -open
+   Liquidsoap_core_sources
+   -open
+   Liquidsoap_core_outputs
+   -open
+   Liquidsoap_core_operators))
+ (libraries
+  (re_export liquidsoap-lang)
+  (re_export liquidsoap-lang.prelude)
+  (re_export liquidsoap-lang.types)
+  (re_export liquidsoap-lang.data)
+  (re_export liquidsoap-lang.values)
+  (re_export liquidsoap-lang.ast)
+  (re_export liquidsoap-lang.parser)
+  (re_export liquidsoap-lang.reducer)
+  (re_export liquidsoap-lang.cache)
+  (re_export liquidsoap_core_utils)
+  (re_export liquidsoap_core_stream)
+  (re_export liquidsoap_core_media)
+  (re_export liquidsoap_core_encoder)
+  (re_export liquidsoap_core_clock)
+  (re_export liquidsoap_core_source)
+  (re_export liquidsoap_core_request)
+  (re_export liquidsoap_core_runtime)
+  (re_export liquidsoap_core_net)
+  (re_export liquidsoap_core_protocols)
+  (re_export liquidsoap_core_decoders)
+  (re_export liquidsoap_core_sources)
+  (re_export liquidsoap_core_outputs)
+  (re_export liquidsoap_core_operators)))

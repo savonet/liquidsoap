@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_frei0r)
- (libraries frei0r liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries dtools frei0r liquidsoap_core mm mm.base mm.image mm.video unix)
  (wrapped false)
  (optional))

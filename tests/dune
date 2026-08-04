@@ -6,7 +6,7 @@
 (executable
  (name run_test)
  (modules run_test)
- (libraries liquidsoap-lang.console unix threads))
+ (libraries liquidsoap-lang.console unix threads.posix))
 
 (rule
  (target liquidsoap-test-assets)

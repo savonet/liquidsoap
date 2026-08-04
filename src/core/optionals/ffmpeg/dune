@@ -9,6 +9,5 @@
   liquidsoap_ffmpeg_encoder
   liquidsoap_ffmpeg_filter
   liquidsoap_ffmpeg_io)
- (library_flags -linkall)
  (wrapped false)
  (optional))

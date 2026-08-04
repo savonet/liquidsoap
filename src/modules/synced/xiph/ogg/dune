@@ -4,7 +4,7 @@
  (synopsis "OCaml bindings for libogg")
  (enabled_if
   (= %{read:../detect/ogg_available} true))
- (libraries threads)
+ (libraries threads unix)
  (modules ogg)
  (install_c_headers ocaml-ogg)
  (foreign_stubs
@@ -31,5 +31,5 @@
  (public_name ogg.decoder)
  (synopsis "Ogg decoding library with pluggable decoders")
  (optional)
- (libraries ogg)
+ (libraries ogg unix)
  (modules ogg_decoder))

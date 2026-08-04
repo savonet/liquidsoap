@@ -3,6 +3,6 @@
  (public_name srt.types)
  (enabled_if
   (= %{read:../../detect/srt_available} true))
- (libraries posix-socket ctypes.stubs srt.constants))
+ (libraries ctypes ctypes.stubs posix-socket srt.constants))
 
 (dynamic_include ../../gen/types.inc)

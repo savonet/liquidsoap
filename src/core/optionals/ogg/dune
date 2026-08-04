@@ -1,6 +1,18 @@
 (library
  (name liquidsoap_ogg)
- (libraries ogg ogg.decoder liquidsoap_core)
- (library_flags -linkall)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  dtools
+  liquidsoap_core
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  ogg
+  ogg.decoder
+  unix)
  (wrapped false)
  (optional))

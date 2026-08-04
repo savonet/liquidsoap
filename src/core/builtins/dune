@@ -1,7 +1,40 @@
+; Builtins that need the streaming engine.
+;
+; Everything in src/lang/runtime/builtins_*.ml is part of the language itself.
+; These are the ones that need a source, a request or a clock.
+;
+; liquidsoap_builtins.mli lists what this library exports, and that listing is
+; what pulls its modules into the link.
+
 (library
  (name liquidsoap_builtins)
- (library_flags -linkall)
- (preprocess
-  (pps ppx_string))
- (wrapped false)
- (libraries liquidsoap_core liquidsoap_file_watcher))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  cron
+  cry
+  curl
+  dtools
+  duppy
+  fileutils
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap_core
+  liquidsoap_file_watcher
+  magic-mime
+  mem_usage
+  menhirLib
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re
+  sedlex
+  stdlib_utils
+  threads.posix
+  uri
+  unix))
