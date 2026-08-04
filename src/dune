@@ -1,4 +1,12 @@
+; Warning 58 (no-cmx-file) fires whenever a module's implementation details are
+; not available for cross-module inlining, which is routine across library
+; boundaries and with -opaque, and is not something this tree can act on. It was
+; disabled in src/core/base/dune until that file was split into layers.
+
 (env
  (release
   (ocamlopt_flags
-   (:standard -O2))))
+   (:standard -w -58 -O2)))
+ (_
+  (ocamlopt_flags
+   (:standard -w -58))))
