@@ -6,6 +6,9 @@
   cohttp
   cohttp-lwt
   cohttp-lwt-unix
+  conduit
+  conduit-lwt
+  conduit-lwt-unix
   dtools
   http
   liquidsoap_core
