@@ -10,6 +10,7 @@
   http
   liquidsoap_core
   lwt
+  lwt.unix
   prometheus
   prometheus-app
   threads.posix
