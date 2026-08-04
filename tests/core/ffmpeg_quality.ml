@@ -2,6 +2,11 @@ open Ffmpeg_format
 
 let () = Frame_settings.lazy_config_eval := true
 
+(* Encoder.get_factory picks among every registered encoder, so the plug has
+   to be complete first. The application gets there through Lifecycle.load;
+   a test binary has to say so itself. *)
+let () = Lifecycle.load ()
+
 let () =
   let vorbis_enc =
     {
