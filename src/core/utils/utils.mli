@@ -64,38 +64,17 @@ val which_opt : path:string list -> string -> string option
 (** {1 Threads and processes} *)
 
 (** [Thread] plus [set_current_thread_name], which names the thread for the
-    debugger and for [top]. *)
+    debugger and for [top]. Only the parts liquidsoap uses: the rest of [Thread]
+    is either unused or deprecated. *)
 module Thread : sig
   type t = Thread.t
 
   val create : ('a -> 'b) -> 'a -> t
   val self : unit -> t
   val id : t -> int
-
-  exception Exit
-
-  val exit : unit -> unit
-  val kill : t -> unit
   val delay : float -> unit
   val join : t -> unit
   val yield : unit -> unit
-  val wait_read : Unix.file_descr -> unit
-  val wait_write : Unix.file_descr -> unit
-  val wait_timed_read : Unix.file_descr -> float -> bool
-  val wait_timed_write : Unix.file_descr -> float -> bool
-
-  val select :
-    Unix.file_descr list ->
-    Unix.file_descr list ->
-    Unix.file_descr list ->
-    float ->
-    Unix.file_descr list * Unix.file_descr list * Unix.file_descr list
-
-  val wait_pid : int -> int * Unix.process_status
-  val sigmask : Unix.sigprocmask_command -> int list -> int list
-  val wait_signal : int list -> int
-  val default_uncaught_exception_handler : exn -> unit
-  val set_uncaught_exception_handler : (exn -> unit) -> unit
   val set_current_thread_name : string -> unit
 end
 

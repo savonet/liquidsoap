@@ -1,7 +1,9 @@
 (executable
  (name binary_strings_test)
  (modules binary_strings_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias binary_strings_test)
@@ -14,7 +16,9 @@
 (executable
  (name child_support_test)
  (modules child_support_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias child_support_test)
@@ -27,7 +31,9 @@
 (executable
  (name clock_error_print_test)
  (modules clock_error_print_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias clock_error_print_test)
@@ -40,7 +46,9 @@
 (executable
  (name clock_tick_test)
  (modules clock_tick_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias clock_tick_test)
@@ -53,7 +61,9 @@
 (executable
  (name clock_unify_test)
  (modules clock_unify_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias clock_unify_test)
@@ -66,7 +76,9 @@
 (executable
  (name clock_utils_test)
  (modules clock_utils_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias clock_utils_test)
@@ -79,7 +91,9 @@
 (executable
  (name content_test)
  (modules content_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias content_test)
@@ -92,7 +106,9 @@
 (executable
  (name decoder_test)
  (modules decoder_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias decoder_test)
@@ -105,7 +121,9 @@
 (executable
  (name ffmpeg_content_base_test)
  (modules ffmpeg_content_base_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias ffmpeg_content_base_test)
@@ -118,7 +136,9 @@
 (executable
  (name ffmpeg_dummy_content_test)
  (modules ffmpeg_dummy_content_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias ffmpeg_dummy_content_test)
@@ -131,7 +151,9 @@
 (executable
  (name ffmpeg_quality)
  (modules ffmpeg_quality)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias ffmpeg_quality)
@@ -144,7 +166,9 @@
 (executable
  (name flush_test)
  (modules flush_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias flush_test)
@@ -157,7 +181,9 @@
 (executable
  (name frame_checksum_test)
  (modules frame_checksum_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias frame_checksum_test)
@@ -170,7 +196,9 @@
 (executable
  (name frame_test)
  (modules frame_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias frame_test)
@@ -183,7 +211,9 @@
 (executable
  (name generator_test)
  (modules generator_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias generator_test)
@@ -196,7 +226,9 @@
 (executable
  (name http_test)
  (modules http_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias http_test)
@@ -209,7 +241,9 @@
 (executable
  (name is_url)
  (modules is_url)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias is_url)
@@ -222,7 +256,9 @@
 (executable
  (name json_test)
  (modules json_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias json_test)
@@ -238,7 +274,9 @@
 (executable
  (name large_process_stdout_test)
  (modules large_process_stdout_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias large_process_stdout_test)
@@ -251,7 +289,9 @@
 (executable
  (name meth)
  (modules meth)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias meth)
@@ -264,7 +304,9 @@
 (executable
  (name more_types)
  (modules more_types)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias more_types)
@@ -277,7 +319,9 @@
 (executable
  (name output_encoded_test)
  (modules output_encoded_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias output_encoded_test)
@@ -290,7 +334,9 @@
 (executable
  (name output_test)
  (modules output_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias output_test)
@@ -303,7 +349,9 @@
 (executable
  (name parsesrt)
  (modules parsesrt)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias parsesrt)
@@ -317,7 +365,9 @@
 (executable
  (name playlist_basic_test)
  (modules playlist_basic_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias playlist_basic_test)
@@ -330,7 +380,9 @@
 (executable
  (name pool_test)
  (modules pool_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias pool_test)
@@ -343,7 +395,9 @@
 (executable
  (name start_stop_test)
  (modules start_stop_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias start_stop_test)
@@ -356,7 +410,9 @@
 (executable
  (name stream_decoder_test)
  (modules stream_decoder_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias stream_decoder_test)
@@ -373,7 +429,9 @@
 (executable
  (name string_test)
  (modules string_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias string_test)
@@ -386,7 +444,9 @@
 (executable
  (name strings_test)
  (modules strings_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias strings_test)
@@ -399,7 +459,9 @@
 (executable
  (name sub_clock_stop_test)
  (modules sub_clock_stop_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias sub_clock_stop_test)
@@ -412,7 +474,9 @@
 (executable
  (name sub_clock_tick_test)
  (modules sub_clock_tick_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias sub_clock_tick_test)
@@ -425,7 +489,9 @@
 (executable
  (name timezone)
  (modules timezone)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias timezone)
@@ -438,7 +504,9 @@
 (executable
  (name types)
  (modules types)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias types)
@@ -451,7 +519,9 @@
 (executable
  (name unifier_test)
  (modules unifier_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias unifier_test)
@@ -464,7 +534,9 @@
 (executable
  (name unix_utils_test)
  (modules unix_utils_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias unix_utils_test)
@@ -477,7 +549,9 @@
 (executable
  (name utils_test)
  (modules utils_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias utils_test)
@@ -490,7 +564,9 @@
 (executable
  (name version_test)
  (modules version_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias version_test)
@@ -503,7 +579,9 @@
 (executable
  (name weak_queue_test)
  (modules weak_queue_test)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias weak_queue_test)

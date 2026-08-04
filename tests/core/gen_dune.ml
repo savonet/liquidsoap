@@ -53,7 +53,9 @@ let () =
 (executable
  (name %s)
  (modules %s)
- (libraries liquidsoap_core liquidsoap_optionals))
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
 
 (rule
  (alias %s)

@@ -82,6 +82,8 @@
 (executable
  (name ffmpeg_stream_description_test)
  (modules ffmpeg_stream_description_test)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   liquidsoap_optionals
@@ -91,6 +93,8 @@
 (executable
  (name ffmpeg_get_type_test)
  (modules ffmpeg_get_type_test)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   liquidsoap_optionals
@@ -128,6 +132,8 @@
 (executable
  (name ffprobe_process_test)
  (modules ffprobe_process_test)
+ (flags
+  (:standard -open Liquidsoap_core))
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule

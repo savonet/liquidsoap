@@ -1,8 +1,10 @@
 (executable
  (name gen_bigrecord)
+ (flags
+  (:standard -open Liquidsoap_core -open Liquidsoap_lang_ast))
  (preprocess
   (pps ppx_string))
- (libraries mem_usage liquidsoap_core liquidsoap_lang)
+ (libraries mem_usage liquidsoap_core liquidsoap-lang.ast liquidsoap_lang)
  (modules gen_bigrecord))
 
 (rule
