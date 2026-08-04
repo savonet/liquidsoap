@@ -6,6 +6,8 @@
   cohttp-lwt-unix
   dtools
   liquidsoap_core
+  lwt
+  prometheus
   prometheus-app
   threads.posix)
  (wrapped false)

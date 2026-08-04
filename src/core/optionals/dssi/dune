@@ -5,6 +5,7 @@
  (libraries
   dssi
   dtools
+  ladspa
   liquidsoap_core
   liquidsoap_ladspa
   mm

@@ -3,6 +3,7 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries
+  camlimages.core
   camlimages.all_formats
   dtools
   liquidsoap_core

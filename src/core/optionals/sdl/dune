@@ -10,6 +10,7 @@
   mm.image
   mm.midi
   mm.video
+  tsdl
   tsdl-image
   tsdl-ttf)
  (wrapped false)
