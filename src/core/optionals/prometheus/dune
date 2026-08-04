@@ -3,8 +3,11 @@
  (flags
   (:standard -open Liquidsoap_core))
  (libraries
+  cohttp
+  cohttp-lwt
   cohttp-lwt-unix
   dtools
+  http
   liquidsoap_core
   lwt
   prometheus

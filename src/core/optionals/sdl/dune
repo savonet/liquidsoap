@@ -6,6 +6,7 @@
   dtools
   liquidsoap_core
   mm
+  mm.audio
   mm.base
   mm.image
   mm.midi
