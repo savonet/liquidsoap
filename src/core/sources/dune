@@ -64,4 +64,5 @@
   re
   stdlib_utils
   threads.posix
-  liquidsoap_core_decoders))
+  liquidsoap_core_decoders
+  unix))

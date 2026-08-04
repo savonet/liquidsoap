@@ -2,6 +2,14 @@
  (name liquidsoap_faad)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries dtools faad liquidsoap_core mm mm.audio mm.base stdlib_utils)
+ (libraries
+  dtools
+  faad
+  liquidsoap_core
+  mm
+  mm.audio
+  mm.base
+  stdlib_utils
+  unix)
  (wrapped false)
  (optional))

@@ -4,7 +4,7 @@
  (synopsis "OCaml bindings for libspeex")
  (enabled_if
   (= %{read:../detect/speex_available} true))
- (libraries ogg)
+ (libraries ogg unix)
  (modules speex)
  (foreign_stubs
   (language c)
@@ -30,5 +30,5 @@
  (public_name speex.decoder)
  (synopsis "Speex decoder for the ogg-decoder library")
  (optional)
- (libraries ogg.decoder speex)
+ (libraries ogg.decoder speex unix)
  (modules speex_decoder))

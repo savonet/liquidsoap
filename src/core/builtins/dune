@@ -36,4 +36,5 @@
   sedlex
   stdlib_utils
   threads.posix
-  uri))
+  uri
+  unix))

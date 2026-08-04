@@ -75,7 +75,8 @@
   mm.video
   re
   stdlib_utils
-  threads.posix)
+  threads.posix
+  unix)
  (foreign_stubs
   (language c)
   (names defer_c lufs_c)))

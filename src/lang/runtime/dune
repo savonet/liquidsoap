@@ -37,4 +37,5 @@
   menhirLib
   re
   sedlex
-  str))
+  str
+  unix))

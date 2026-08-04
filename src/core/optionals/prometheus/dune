@@ -12,6 +12,7 @@
   lwt
   prometheus
   prometheus-app
-  threads.posix)
+  threads.posix
+  unix)
  (wrapped false)
  (optional))

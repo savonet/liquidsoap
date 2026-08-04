@@ -14,6 +14,7 @@
   ptime.clock.os
   stdlib_utils
   tls
-  x509)
+  x509
+  unix)
  (wrapped false)
  (optional))

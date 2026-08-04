@@ -46,4 +46,5 @@
   mm.video
   re
   threads.posix
-  liquidsoap_core_media))
+  liquidsoap_core_media
+  unix))

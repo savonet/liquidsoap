@@ -18,6 +18,7 @@
   re
   srt
   stdlib_utils
-  threads.posix)
+  threads.posix
+  unix)
  (wrapped false)
  (optional))

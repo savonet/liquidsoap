@@ -17,7 +17,8 @@
   mm.video
   ogg
   ogg.decoder
-  threads.posix)
+  threads.posix
+  unix)
  (wrapped false)
  (optional)
  (foreign_stubs

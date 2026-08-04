@@ -54,4 +54,5 @@
   liquidsoap_core_stream
   liquidsoap_core_utils
   re
-  liquidsoap_core_request))
+  liquidsoap_core_request
+  unix))

@@ -23,4 +23,4 @@
  (c_library_flags
   (:include ../detect/av_c_library_flags.sexp))
  (install_c_headers av_stubs)
- (libraries ffmpeg-avutil ffmpeg-avcodec))
+ (libraries ffmpeg-avutil ffmpeg-avcodec unix))

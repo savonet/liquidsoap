@@ -86,7 +86,9 @@
   metadata
   re
   stdlib_utils
-  threads.posix)
+  threads.posix
+  str
+  unix)
  (foreign_stubs
   (language c)
   (names unix_c)))

@@ -11,6 +11,7 @@
   mm
   mm.audio
   mm.base
-  mm.midi)
+  mm.midi
+  unix)
  (wrapped false)
  (optional))

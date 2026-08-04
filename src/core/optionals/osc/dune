@@ -2,6 +2,6 @@
  (name liquidsoap_osc)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries dtools liquidsoap_core osc osc-unix threads.posix)
+ (libraries dtools liquidsoap_core osc osc-unix threads.posix unix)
  (wrapped false)
  (optional))

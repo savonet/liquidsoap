@@ -48,4 +48,6 @@
   metadata
   sedlex
   stdlib_utils
-  liquidsoap_core_runtime))
+  liquidsoap_core_runtime
+  str
+  unix))

@@ -12,6 +12,7 @@
   mm.audio
   mm.base
   mm.image
-  mm.video)
+  mm.video
+  unix)
  (wrapped false)
  (optional))

@@ -2,6 +2,6 @@
  (name liquidsoap_ssl)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries dtools liquidsoap_builtins liquidsoap_core ssl)
+ (libraries dtools liquidsoap_builtins liquidsoap_core ssl unix)
  (wrapped false)
  (optional))

@@ -12,6 +12,7 @@
   mm.image
   mm.video
   ogg
-  ogg.decoder)
+  ogg.decoder
+  unix)
  (wrapped false)
  (optional))

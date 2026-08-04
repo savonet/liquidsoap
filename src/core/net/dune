@@ -51,4 +51,5 @@
   re
   stdlib_utils
   threads.posix
-  liquidsoap_core_runtime))
+  liquidsoap_core_runtime
+  unix))

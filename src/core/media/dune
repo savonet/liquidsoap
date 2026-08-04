@@ -38,4 +38,5 @@
   mm.video
   stdlib_utils
   threads.posix
-  liquidsoap_core_stream))
+  liquidsoap_core_stream
+  unix))
