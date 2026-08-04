@@ -55,7 +55,22 @@ let () =
  (modules %s)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias %s)

@@ -3,7 +3,7 @@
  (flags
   (:standard -open Liquidsoap_core))
  (link_flags -cclib %{env:LIQUIDSOAP_LDFLAGS=})
- (libraries liquidsoap_runtime)
+ (libraries liquidsoap_core liquidsoap_runtime)
  (modules gen_emacs_completion))
 
 (rule

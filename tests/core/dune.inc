@@ -3,7 +3,22 @@
  (modules binary_strings_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias binary_strings_test)
@@ -18,7 +33,22 @@
  (modules child_support_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias child_support_test)
@@ -33,7 +63,22 @@
  (modules clock_error_print_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias clock_error_print_test)
@@ -48,7 +93,22 @@
  (modules clock_tick_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias clock_tick_test)
@@ -63,7 +123,22 @@
  (modules clock_unify_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias clock_unify_test)
@@ -78,7 +153,22 @@
  (modules clock_utils_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias clock_utils_test)
@@ -93,7 +183,22 @@
  (modules content_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias content_test)
@@ -108,7 +213,22 @@
  (modules decoder_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias decoder_test)
@@ -123,7 +243,22 @@
  (modules ffmpeg_content_base_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias ffmpeg_content_base_test)
@@ -138,7 +273,22 @@
  (modules ffmpeg_dummy_content_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias ffmpeg_dummy_content_test)
@@ -153,7 +303,22 @@
  (modules ffmpeg_quality)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias ffmpeg_quality)
@@ -168,7 +333,22 @@
  (modules flush_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias flush_test)
@@ -183,7 +363,22 @@
  (modules frame_checksum_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias frame_checksum_test)
@@ -198,7 +393,22 @@
  (modules frame_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias frame_test)
@@ -213,7 +423,22 @@
  (modules generator_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias generator_test)
@@ -228,7 +453,22 @@
  (modules http_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias http_test)
@@ -243,7 +483,22 @@
  (modules is_url)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias is_url)
@@ -258,7 +513,22 @@
  (modules json_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias json_test)
@@ -276,7 +546,22 @@
  (modules large_process_stdout_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias large_process_stdout_test)
@@ -291,7 +576,22 @@
  (modules meth)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias meth)
@@ -306,7 +606,22 @@
  (modules more_types)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias more_types)
@@ -321,7 +636,22 @@
  (modules output_encoded_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias output_encoded_test)
@@ -336,7 +666,22 @@
  (modules output_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias output_test)
@@ -351,7 +696,22 @@
  (modules parsesrt)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias parsesrt)
@@ -367,7 +727,22 @@
  (modules playlist_basic_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias playlist_basic_test)
@@ -382,7 +757,22 @@
  (modules pool_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias pool_test)
@@ -397,7 +787,22 @@
  (modules start_stop_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias start_stop_test)
@@ -412,7 +817,22 @@
  (modules stream_decoder_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias stream_decoder_test)
@@ -431,7 +851,22 @@
  (modules string_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias string_test)
@@ -446,7 +881,22 @@
  (modules strings_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias strings_test)
@@ -461,7 +911,22 @@
  (modules sub_clock_stop_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias sub_clock_stop_test)
@@ -476,7 +941,22 @@
  (modules sub_clock_tick_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias sub_clock_tick_test)
@@ -491,7 +971,22 @@
  (modules timezone)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias timezone)
@@ -506,7 +1001,22 @@
  (modules types)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias types)
@@ -521,7 +1031,22 @@
  (modules unifier_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias unifier_test)
@@ -536,7 +1061,22 @@
  (modules unix_utils_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias unix_utils_test)
@@ -551,7 +1091,22 @@
  (modules utils_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias utils_test)
@@ -566,7 +1121,22 @@
  (modules version_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias version_test)
@@ -581,7 +1151,22 @@
  (modules weak_queue_test)
  (flags
   (:standard -open Liquidsoap_core))
- (libraries liquidsoap_core liquidsoap_builtins liquidsoap_optionals))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix))
 
 (rule
  (alias weak_queue_test)
