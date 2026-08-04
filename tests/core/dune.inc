@@ -18,7 +18,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias binary_strings_test)
@@ -48,7 +49,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias child_support_test)
@@ -78,7 +80,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias clock_error_print_test)
@@ -108,7 +111,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias clock_tick_test)
@@ -138,7 +142,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias clock_unify_test)
@@ -168,7 +173,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias clock_utils_test)
@@ -198,7 +204,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias content_test)
@@ -228,7 +235,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias decoder_test)
@@ -258,7 +266,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias ffmpeg_content_base_test)
@@ -288,7 +297,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias ffmpeg_dummy_content_test)
@@ -318,7 +328,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias ffmpeg_quality)
@@ -348,7 +359,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias flush_test)
@@ -378,7 +390,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias frame_checksum_test)
@@ -408,7 +421,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias frame_test)
@@ -438,7 +452,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias generator_test)
@@ -468,7 +483,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias http_test)
@@ -498,7 +514,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias is_url)
@@ -528,7 +545,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias json_test)
@@ -561,7 +579,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias large_process_stdout_test)
@@ -591,7 +610,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias meth)
@@ -621,7 +641,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias more_types)
@@ -651,7 +672,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias output_encoded_test)
@@ -681,7 +703,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias output_test)
@@ -711,7 +734,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias parsesrt)
@@ -742,7 +766,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias playlist_basic_test)
@@ -772,7 +797,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias pool_test)
@@ -802,7 +828,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias start_stop_test)
@@ -832,7 +859,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias stream_decoder_test)
@@ -866,7 +894,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias string_test)
@@ -896,7 +925,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias strings_test)
@@ -926,7 +956,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias sub_clock_stop_test)
@@ -956,7 +987,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias sub_clock_tick_test)
@@ -986,7 +1018,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias timezone)
@@ -1016,7 +1049,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias types)
@@ -1046,7 +1080,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias unifier_test)
@@ -1076,7 +1111,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias unix_utils_test)
@@ -1106,7 +1142,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias utils_test)
@@ -1136,7 +1173,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias version_test)
@@ -1166,7 +1204,8 @@
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias weak_queue_test)

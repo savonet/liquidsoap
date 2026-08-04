@@ -70,7 +70,8 @@ let () =
   mm.image
   dtools
   stdlib_utils
-  threads.posix))
+  threads.posix
+  unix))
 
 (rule
  (alias %s)
