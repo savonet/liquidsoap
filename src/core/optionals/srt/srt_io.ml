@@ -1172,10 +1172,6 @@ class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
       self#atomic_lock (fun () -> Atomic.set should_stop false) ();
       self#connect
 
-    method! private reset =
-      self#stop;
-      self#start
-
     method private stop =
       self#atomic_lock (fun () -> Atomic.set should_stop true) ();
       self#stop_encoder;
