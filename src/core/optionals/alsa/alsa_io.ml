@@ -168,10 +168,6 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync
             Pcm.close d;
             pcm <- None
         | None -> ()
-
-    method reset =
-      self#close_device;
-      self#open_device
   end
 
 class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev

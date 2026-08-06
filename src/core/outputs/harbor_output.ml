@@ -809,10 +809,6 @@ class shared_output p =
                 Option.iter close_out dump_channel;
                 dump_channel <- None)
         ()
-
-    method! reset =
-      self#stop;
-      self#start
   end
 
 (* Dedicated encoder: a fresh instance is created per listener at connect time,
@@ -923,10 +919,6 @@ class dedicated_output p =
                 Option.iter close_out dump_channel;
                 dump_channel <- None)
         ()
-
-    method! reset =
-      self#stop;
-      self#start
   end
 
 let _ =
