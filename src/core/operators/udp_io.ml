@@ -91,8 +91,8 @@ class output ~register_telnet ~infallible ~autostart ~hostname ~port
       encoder <- Some (encoder_factory self#id Frame.Metadata.Export.empty)
 
     method! private reset =
-      self#start;
-      self#stop
+      self#stop;
+      self#start
 
     method private stop =
       socket_send <- None;
