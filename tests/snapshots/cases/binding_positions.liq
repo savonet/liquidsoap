@@ -4,11 +4,19 @@ def outer() =
   a + 1
 end
 
-inner_if = if true then b = 2; b else 0 end
+inner_if =
+  if
+    true
+  then
+    b = 2
+    b
+  else
+    0
+  end
 
 def last_statement() =
-  # A binding as the last statement of a block: its body is `Eof`, which
-  # reduces to unit.
+  # A binding as the last statement of a block: nothing follows it, so the
+  # block evaluates to unit.
   c = 3
 end
 
