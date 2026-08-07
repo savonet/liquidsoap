@@ -38,4 +38,6 @@ val to_encoder_params :
   Parsed_term.encoder_params ->
   Term.encoder_params
 
-val needs_toplevel : unit -> bool
+(** Whether the term uses `let eval`, and so must keep the standard library
+    available at run time. *)
+val needs_toplevel : Term.t -> bool
