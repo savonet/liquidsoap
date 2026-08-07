@@ -37,10 +37,6 @@ f()
 --- hash ---
 8f8d9ac30bd97d1933b788bc1cc11a1a
 --- term ---
-x = 1
-f = fun () -> x
-f()
---- type ---
-int
---- value ---
-1
+At cases/pp_comments.liq, line 9, char 0-0:
+
+Error 9: Failure: Unknown category: Test (at cases/pp_comments.liq, line 2 char 6 - line 6 char 2).

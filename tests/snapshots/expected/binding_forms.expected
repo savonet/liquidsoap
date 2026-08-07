@@ -59,6 +59,8 @@ c = 1
 d = 1
 e = 1
 (c, d, e)
+--- doc ---
+c: `x = e`, `let x = e` and `def x = e end` are three grammar productions (`binding` / `explicit_binding` in parser.mly) that reduce to the same `let`.
 --- type ---
 int * int * int
 --- value ---

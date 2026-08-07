@@ -226,6 +226,23 @@
   (diff expected/control_flow.expected control_flow.actual)))
 
 (rule
+ (target doc_comments.actual)
+ (deps
+  (:case cases/doc_comments.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected/doc_comments.expected doc_comments.actual)))
+
+(rule
  (target encoder.actual)
  (deps
   (:case cases/encoder.liq)

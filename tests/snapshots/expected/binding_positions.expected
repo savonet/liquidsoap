@@ -124,6 +124,8 @@ b, else={0})
 last_statement = fun () -> c = 3
 ()
 (outer(), inner_if, last_statement())
+--- doc ---
+outer: A binding scopes over the rest of its block, in every block position.
 --- type ---
 int * int * unit
 --- value ---

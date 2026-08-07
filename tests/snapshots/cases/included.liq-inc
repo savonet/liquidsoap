@@ -1,4 +1,4 @@
-# Pulled in by pp_include.liq. Both bindings must scope over the code that
-# follows the `%include`, which is what Term_preprocessor.concat_term arranges.
+# Pulled in by pp_include.liq. Both bindings scope over the code that follows
+# the `%include`, because the included statements are spliced into that block.
 from_include = 1
 let also_from_include = 2

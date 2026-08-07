@@ -473,6 +473,35 @@ and map_statement ?block:_ fn stmt =
   in
   { stmt with stmt = stmt_ast }
 
+(** Visit every node a comment can be attached to: terms and statements. [fn]
+    receives the node's position, whether it is a statement, and a function that
+    updates its comment list. A binding is a statement, so its doc comment has
+    no term to land on. Nodes are visited outermost first. *)
+let iter_anchors fn tm =
+  let rec go_term (tm : t) =
+    fn tm.pos `Term (fun update -> tm.comments <- update tm.comments);
+    ignore
+      (map_children ~block:go_block
+         (fun tm ->
+           go_term tm;
+           tm)
+         tm.term)
+  and go_block (b : block) =
+    List.iter
+      (fun stmt ->
+        fn stmt.stmt_pos `Statement (fun update ->
+            stmt.stmt_comments <- update stmt.stmt_comments);
+        ignore
+          (map_statement
+             (fun tm ->
+               go_term tm;
+               tm)
+             stmt))
+      b.block_body;
+    b
+  in
+  go_term tm
+
 let rec iter_term fn tm =
   fn tm;
   ignore

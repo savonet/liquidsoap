@@ -256,6 +256,8 @@ record = string.concat(["a ", string({a=1}.a), " b"])
 nested = string.concat([string(string.concat([string(r.a)]))])
 adjacent = string.concat([string(r.a), string(r.a)])
 (by_key, record, nested, adjacent)
+--- doc ---
+m: An interpolation is read as ordinary tokens, and the `}` that closes it is found by counting braces over tokens. A record, a string or another interpolated string inside `#{ … }` therefore nests correctly.
 --- type ---
 string * string * string * string
 --- value ---
