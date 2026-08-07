@@ -201,6 +201,21 @@ and json_of_source_track_annotation { track_name; track_type; track_params } =
       ]
     (`String track_type)
 
+(* A ternary's branches are single expressions by construction, and the ABI has
+   them as expression nodes rather than statement arrays. *)
+let json_of_inline_if ~to_json ~json_of_block
+    { if_condition; if_then_block; if_else_block; _ } =
+  let branch b =
+    match b.block_body with
+      | [{ stmt = `Expr tm; _ }] -> to_json tm
+      | _ -> json_of_block b
+  in
+  [
+    ("condition", to_json if_condition);
+    ("then", branch if_then_block);
+    ("else", match if_else_block with None -> `Null | Some b -> branch b);
+  ]
+
 let json_of_if ~to_json ~json_of_block
     { if_condition; if_then_block; if_elsif; if_else_block; _ } =
   [
@@ -440,7 +455,7 @@ let rec to_ast_json ~to_json = function
         [("left", to_json t); ("op", `String ":="); ("right", to_json t')]
   | `Inline_if p ->
       ast_node ~typ:"inline_if"
-        (json_of_if ~to_json ~json_of_block:(json_of_block ~to_json) p)
+        (json_of_inline_if ~to_json ~json_of_block:(json_of_block ~to_json) p)
   | `If p ->
       ast_node ~typ:"if"
         (json_of_if ~to_json ~json_of_block:(json_of_block ~to_json) p)
@@ -683,15 +698,20 @@ and static_if_canonical { static_cond; static_then; static_else } =
 and statements_canonical stmts =
   `Tuple
     (List.map
-       (json_of_statement ~to_json:to_json_canonical ~body:body_canonical)
+       (json_of_statement ~to_json:to_json_canonical ~body:def_body_canonical)
        stmts)
 
 (* A term in body position: `def f() = ... end` stores its block wrapped in
    `Block`, everything else is a single expression. *)
-and body_canonical t =
+(* A `def` body is an implicit block, so its statements are the body. A `fun`
+   body is a single expression, so a block there was written `begin ... end`
+   and has to stay one, or the formatter would delete it. *)
+and def_body_canonical t =
   match t.Parsed_term.term with
     | `Block b -> statements_canonical b.block_body
     | _ -> `Tuple [to_json_canonical t]
+
+and body_canonical t = `Tuple [to_json_canonical t]
 
 and to_ast_json_canonical pos term =
   let to_json = to_json_canonical in
