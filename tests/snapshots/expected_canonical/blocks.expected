@@ -4,26 +4,14 @@
 # each spans to the start of the next keyword. Prettier uses those spans to
 # decide which block a comment belongs to.
 def f(x) =
-  if x > 0 then
-    1
-  elsif x < 0 then
-    -1
-  else
-    0
-  end
+  if x > 0 then 1 elsif x < 0 then -1 else 0 end
 end
 
-while false do
-  f(1)
-end
+while false do f(1)  end
 
-for i = 0 to 2 do
-  f(i)
-end
+for i = 0 to 2 do f(i)  end
 
-for j = [1, 2] do
-  f(j)
-end
+for j = [1, 2] do f(j)  end
 --- canonical ---
 {
   "ast": {
@@ -39,7 +27,7 @@ end
       "fname": "",
       "lnum": 1,
       "bol": 0,
-      "cnum": 444
+      "cnum": 423
     }
     ],
     "body": [
@@ -53,9 +41,9 @@ end
       },
         {
         "fname": "",
-        "lnum": 13,
-        "bol": 353,
-        "cnum": 356
+        "lnum": 7,
+        "bol": 335,
+        "cnum": 338
       }
       ],
       "type": "def",
@@ -85,9 +73,9 @@ end
         },
           {
           "fname": "",
-          "lnum": 12,
-          "bol": 347,
-          "cnum": 352
+          "lnum": 6,
+          "bol": 286,
+          "cnum": 334
         }
         ],
         "type": "if",
@@ -156,9 +144,9 @@ end
           },
             {
             "fname": "",
-            "lnum": 8,
-            "bol": 308,
-            "cnum": 310
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 304
           }
           ],
           "body": [
@@ -166,15 +154,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 7,
-              "bol": 302,
-              "cnum": 306
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 302
             },
               {
               "fname": "",
-              "lnum": 7,
-              "bol": 302,
-              "cnum": 307
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 303
             }
             ],
             "type": "ground",
@@ -188,30 +176,30 @@ end
           "position": [
             {
             "fname": "",
-            "lnum": 8,
-            "bol": 308,
-            "cnum": 310
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 304
           },
             {
             "fname": "",
-            "lnum": 10,
-            "bol": 334,
-            "cnum": 336
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 324
           }
           ],
           "condition": {
             "position": [
               {
               "fname": "",
-              "lnum": 8,
-              "bol": 308,
-              "cnum": 316
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 310
             },
               {
               "fname": "",
-              "lnum": 8,
-              "bol": 308,
-              "cnum": 321
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 315
             }
             ],
             "type": "infix",
@@ -219,15 +207,15 @@ end
               "position": [
                 {
                 "fname": "",
-                "lnum": 8,
-                "bol": 308,
-                "cnum": 316
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 310
               },
                 {
                 "fname": "",
-                "lnum": 8,
-                "bol": 308,
-                "cnum": 317
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 311
               }
               ],
               "type": "var",
@@ -238,15 +226,15 @@ end
               "position": [
                 {
                 "fname": "",
-                "lnum": 8,
-                "bol": 308,
-                "cnum": 320
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 314
               },
                 {
                 "fname": "",
-                "lnum": 8,
-                "bol": 308,
-                "cnum": 321
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 315
               }
               ],
               "type": "ground",
@@ -258,15 +246,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 9,
-              "bol": 327,
-              "cnum": 331
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 321
             },
               {
               "fname": "",
-              "lnum": 9,
-              "bol": 327,
-              "cnum": 333
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 323
             }
             ],
             "type": "negative",
@@ -274,15 +262,15 @@ end
               "position": [
                 {
                 "fname": "",
-                "lnum": 9,
-                "bol": 327,
-                "cnum": 332
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 322
               },
                 {
                 "fname": "",
-                "lnum": 9,
-                "bol": 327,
-                "cnum": 333
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 323
               }
               ],
               "type": "ground",
@@ -297,15 +285,15 @@ end
           "position": [
             {
             "fname": "",
-            "lnum": 10,
-            "bol": 334,
-            "cnum": 336
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 324
           },
             {
             "fname": "",
-            "lnum": 12,
-            "bol": 347,
-            "cnum": 349
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 331
           }
           ],
           "body": [
@@ -313,15 +301,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 11,
-              "bol": 341,
-              "cnum": 345
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 329
             },
               {
               "fname": "",
-              "lnum": 11,
-              "bol": 341,
-              "cnum": 346
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 330
             }
             ],
             "type": "ground",
@@ -336,15 +324,15 @@ end
       "position": [
         {
         "fname": "",
-        "lnum": 15,
-        "bol": 358,
-        "cnum": 358
+        "lnum": 9,
+        "bol": 340,
+        "cnum": 340
       },
         {
         "fname": "",
-        "lnum": 17,
-        "bol": 380,
-        "cnum": 383
+        "lnum": 9,
+        "bol": 340,
+        "cnum": 364
       }
       ],
       "type": "while",
@@ -354,30 +342,30 @@ end
         "position": [
           {
           "fname": "",
-          "lnum": 15,
-          "bol": 358,
-          "cnum": 358
+          "lnum": 9,
+          "bol": 340,
+          "cnum": 340
         },
           {
           "fname": "",
-          "lnum": 15,
-          "bol": 358,
-          "cnum": 370
+          "lnum": 9,
+          "bol": 340,
+          "cnum": 352
         }
         ],
         "condition": {
           "position": [
             {
             "fname": "",
-            "lnum": 15,
-            "bol": 358,
-            "cnum": 364
+            "lnum": 9,
+            "bol": 340,
+            "cnum": 346
           },
             {
             "fname": "",
-            "lnum": 15,
-            "bol": 358,
-            "cnum": 369
+            "lnum": 9,
+            "bol": 340,
+            "cnum": 351
           }
           ],
           "type": "ground",
@@ -389,15 +377,15 @@ end
         "position": [
           {
           "fname": "",
-          "lnum": 15,
-          "bol": 358,
-          "cnum": 370
+          "lnum": 9,
+          "bol": 340,
+          "cnum": 352
         },
           {
           "fname": "",
-          "lnum": 17,
-          "bol": 380,
-          "cnum": 380
+          "lnum": 9,
+          "bol": 340,
+          "cnum": 361
         }
         ],
         "body": [
@@ -405,15 +393,15 @@ end
           "position": [
             {
             "fname": "",
-            "lnum": 16,
-            "bol": 373,
-            "cnum": 375
+            "lnum": 9,
+            "bol": 340,
+            "cnum": 355
           },
             {
             "fname": "",
-            "lnum": 16,
-            "bol": 373,
-            "cnum": 379
+            "lnum": 9,
+            "bol": 340,
+            "cnum": 359
           }
           ],
           "type": "app",
@@ -421,15 +409,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 16,
-              "bol": 373,
-              "cnum": 375
+              "lnum": 9,
+              "bol": 340,
+              "cnum": 355
             },
               {
               "fname": "",
-              "lnum": 16,
-              "bol": 373,
-              "cnum": 377
+              "lnum": 9,
+              "bol": 340,
+              "cnum": 357
             }
             ],
             "type": "var",
@@ -440,15 +428,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 16,
-              "bol": 373,
-              "cnum": 377
+              "lnum": 9,
+              "bol": 340,
+              "cnum": 357
             },
               {
               "fname": "",
-              "lnum": 16,
-              "bol": 373,
-              "cnum": 378
+              "lnum": 9,
+              "bol": 340,
+              "cnum": 358
             }
             ],
             "type": "term",
@@ -459,15 +447,15 @@ end
                 "position": [
                   {
                   "fname": "",
-                  "lnum": 16,
-                  "bol": 373,
-                  "cnum": 377
+                  "lnum": 9,
+                  "bol": 340,
+                  "cnum": 357
                 },
                   {
                   "fname": "",
-                  "lnum": 16,
-                  "bol": 373,
-                  "cnum": 378
+                  "lnum": 9,
+                  "bol": 340,
+                  "cnum": 358
                 }
                 ],
                 "type": "ground",
@@ -485,15 +473,15 @@ end
       "position": [
         {
         "fname": "",
-        "lnum": 19,
-        "bol": 385,
-        "cnum": 385
+        "lnum": 11,
+        "bol": 366,
+        "cnum": 366
       },
         {
         "fname": "",
-        "lnum": 21,
-        "bol": 410,
-        "cnum": 413
+        "lnum": 11,
+        "bol": 366,
+        "cnum": 393
       }
       ],
       "type": "for",
@@ -503,15 +491,15 @@ end
         "position": [
           {
           "fname": "",
-          "lnum": 19,
-          "bol": 385,
-          "cnum": 385
+          "lnum": 11,
+          "bol": 366,
+          "cnum": 366
         },
           {
           "fname": "",
-          "lnum": 19,
-          "bol": 385,
-          "cnum": 400
+          "lnum": 11,
+          "bol": 366,
+          "cnum": 381
         }
         ],
         "variable": "i",
@@ -519,15 +507,15 @@ end
           "position": [
             {
             "fname": "",
-            "lnum": 19,
-            "bol": 385,
-            "cnum": 393
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 374
           },
             {
             "fname": "",
-            "lnum": 19,
-            "bol": 385,
-            "cnum": 394
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 375
           }
           ],
           "type": "ground",
@@ -537,15 +525,15 @@ end
           "position": [
             {
             "fname": "",
-            "lnum": 19,
-            "bol": 385,
-            "cnum": 398
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 379
           },
             {
             "fname": "",
-            "lnum": 19,
-            "bol": 385,
-            "cnum": 399
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 380
           }
           ],
           "type": "ground",
@@ -557,15 +545,15 @@ end
         "position": [
           {
           "fname": "",
-          "lnum": 19,
-          "bol": 385,
-          "cnum": 400
+          "lnum": 11,
+          "bol": 366,
+          "cnum": 381
         },
           {
           "fname": "",
-          "lnum": 21,
-          "bol": 410,
-          "cnum": 410
+          "lnum": 11,
+          "bol": 366,
+          "cnum": 390
         }
         ],
         "body": [
@@ -573,15 +561,15 @@ end
           "position": [
             {
             "fname": "",
-            "lnum": 20,
-            "bol": 403,
-            "cnum": 405
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 384
           },
             {
             "fname": "",
-            "lnum": 20,
-            "bol": 403,
-            "cnum": 409
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 388
           }
           ],
           "type": "app",
@@ -589,15 +577,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 20,
-              "bol": 403,
-              "cnum": 405
+              "lnum": 11,
+              "bol": 366,
+              "cnum": 384
             },
               {
               "fname": "",
-              "lnum": 20,
-              "bol": 403,
-              "cnum": 407
+              "lnum": 11,
+              "bol": 366,
+              "cnum": 386
             }
             ],
             "type": "var",
@@ -608,15 +596,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 20,
-              "bol": 403,
-              "cnum": 407
+              "lnum": 11,
+              "bol": 366,
+              "cnum": 386
             },
               {
               "fname": "",
-              "lnum": 20,
-              "bol": 403,
-              "cnum": 408
+              "lnum": 11,
+              "bol": 366,
+              "cnum": 387
             }
             ],
             "type": "term",
@@ -627,15 +615,15 @@ end
                 "position": [
                   {
                   "fname": "",
-                  "lnum": 20,
-                  "bol": 403,
-                  "cnum": 407
+                  "lnum": 11,
+                  "bol": 366,
+                  "cnum": 386
                 },
                   {
                   "fname": "",
-                  "lnum": 20,
-                  "bol": 403,
-                  "cnum": 408
+                  "lnum": 11,
+                  "bol": 366,
+                  "cnum": 387
                 }
                 ],
                 "type": "var",
@@ -653,15 +641,15 @@ end
       "position": [
         {
         "fname": "",
-        "lnum": 23,
-        "bol": 415,
-        "cnum": 415
+        "lnum": 13,
+        "bol": 395,
+        "cnum": 395
       },
         {
         "fname": "",
-        "lnum": 25,
-        "bol": 440,
-        "cnum": 443
+        "lnum": 13,
+        "bol": 395,
+        "cnum": 422
       }
       ],
       "type": "iterable_for",
@@ -671,15 +659,15 @@ end
         "position": [
           {
           "fname": "",
-          "lnum": 23,
-          "bol": 415,
-          "cnum": 415
+          "lnum": 13,
+          "bol": 395,
+          "cnum": 395
         },
           {
           "fname": "",
-          "lnum": 23,
-          "bol": 415,
-          "cnum": 430
+          "lnum": 13,
+          "bol": 395,
+          "cnum": 410
         }
         ],
         "variable": "j",
@@ -687,15 +675,15 @@ end
           "position": [
             {
             "fname": "",
-            "lnum": 23,
-            "bol": 415,
-            "cnum": 423
+            "lnum": 13,
+            "bol": 395,
+            "cnum": 403
           },
             {
             "fname": "",
-            "lnum": 23,
-            "bol": 415,
-            "cnum": 429
+            "lnum": 13,
+            "bol": 395,
+            "cnum": 409
           }
           ],
           "type": "list",
@@ -704,15 +692,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 23,
-              "bol": 415,
-              "cnum": 424
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 404
             },
               {
               "fname": "",
-              "lnum": 23,
-              "bol": 415,
-              "cnum": 425
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 405
             }
             ],
             "type": "term",
@@ -720,15 +708,15 @@ end
               "position": [
                 {
                 "fname": "",
-                "lnum": 23,
-                "bol": 415,
-                "cnum": 424
+                "lnum": 13,
+                "bol": 395,
+                "cnum": 404
               },
                 {
                 "fname": "",
-                "lnum": 23,
-                "bol": 415,
-                "cnum": 425
+                "lnum": 13,
+                "bol": 395,
+                "cnum": 405
               }
               ],
               "type": "ground",
@@ -739,15 +727,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 23,
-              "bol": 415,
-              "cnum": 427
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 407
             },
               {
               "fname": "",
-              "lnum": 23,
-              "bol": 415,
-              "cnum": 428
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 408
             }
             ],
             "type": "term",
@@ -755,15 +743,15 @@ end
               "position": [
                 {
                 "fname": "",
-                "lnum": 23,
-                "bol": 415,
-                "cnum": 427
+                "lnum": 13,
+                "bol": 395,
+                "cnum": 407
               },
                 {
                 "fname": "",
-                "lnum": 23,
-                "bol": 415,
-                "cnum": 428
+                "lnum": 13,
+                "bol": 395,
+                "cnum": 408
               }
               ],
               "type": "ground",
@@ -778,15 +766,15 @@ end
         "position": [
           {
           "fname": "",
-          "lnum": 23,
-          "bol": 415,
-          "cnum": 430
+          "lnum": 13,
+          "bol": 395,
+          "cnum": 410
         },
           {
           "fname": "",
-          "lnum": 25,
-          "bol": 440,
-          "cnum": 440
+          "lnum": 13,
+          "bol": 395,
+          "cnum": 419
         }
         ],
         "body": [
@@ -794,15 +782,15 @@ end
           "position": [
             {
             "fname": "",
-            "lnum": 24,
-            "bol": 433,
-            "cnum": 435
+            "lnum": 13,
+            "bol": 395,
+            "cnum": 413
           },
             {
             "fname": "",
-            "lnum": 24,
-            "bol": 433,
-            "cnum": 439
+            "lnum": 13,
+            "bol": 395,
+            "cnum": 417
           }
           ],
           "type": "app",
@@ -810,15 +798,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 24,
-              "bol": 433,
-              "cnum": 435
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 413
             },
               {
               "fname": "",
-              "lnum": 24,
-              "bol": 433,
-              "cnum": 437
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 415
             }
             ],
             "type": "var",
@@ -829,15 +817,15 @@ end
             "position": [
               {
               "fname": "",
-              "lnum": 24,
-              "bol": 433,
-              "cnum": 437
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 415
             },
               {
               "fname": "",
-              "lnum": 24,
-              "bol": 433,
-              "cnum": 438
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 416
             }
             ],
             "type": "term",
@@ -848,15 +836,15 @@ end
                 "position": [
                   {
                   "fname": "",
-                  "lnum": 24,
-                  "bol": 433,
-                  "cnum": 437
+                  "lnum": 13,
+                  "bol": 395,
+                  "cnum": 415
                 },
                   {
                   "fname": "",
-                  "lnum": 24,
-                  "bol": 433,
-                  "cnum": 438
+                  "lnum": 13,
+                  "bol": 395,
+                  "cnum": 416
                 }
                 ],
                 "type": "var",

@@ -44,11 +44,11 @@ two `--auto-promote` commands.
 
 ## File extensions in `cases/`
 
-| extension     | what it is                                                             |
-| ------------- | ---------------------------------------------------------------------- |
-| `.liq`        | a case                                                                 |
-| `.invalid-liq`| a case that is deliberately not valid Liquidsoap                       |
-| `.liq-inc`    | not a case; a fixture some case pulls in with `%include`               |
+| extension      | what it is                                               |
+| -------------- | -------------------------------------------------------- |
+| `.liq`         | a case                                                   |
+| `.invalid-liq` | a case that is deliberately not valid Liquidsoap         |
+| `.liq-inc`     | not a case; a fixture some case pulls in with `%include` |
 
 Only `.liq` is picked up by the repo-wide `**/*.liq` glob that the external
 tree-sitter and lezer grammars are checked against, which is why the other two
