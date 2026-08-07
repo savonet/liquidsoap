@@ -1,0 +1,9 @@
+=== type_constructor_unknown.invalid-liq ===
+# The list of accepted constructors in this message is derived from the table
+# that drives the dispatch, so it cannot drift.
+ignore((1 : blah(int)))
+--- parsed ---
+At cases/type_constructor_unknown.invalid-liq, line 3, char 12-21:
+ignore((1 : blah(int)))
+
+Error 3: Unknown type constructor: blah. Expected one of `ref(t)`, `getter(t)`, `source(...)`.

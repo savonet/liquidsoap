@@ -1,0 +1,3 @@
+# The list of accepted constructors in this message is derived from the table
+# that drives the dispatch, so it cannot drift.
+ignore((1 : blah(int)))

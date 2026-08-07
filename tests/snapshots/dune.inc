@@ -976,6 +976,42 @@
   (diff expected/type_annotation.expected type_annotation.actual)))
 
 (rule
+ (target type_constructor_unknown.actual)
+ (deps
+  (:case cases/type_constructor_unknown.invalid-liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected/type_constructor_unknown.expected
+   type_constructor_unknown.actual)))
+
+(rule
+ (target type_constructors.actual)
+ (deps
+  (:case cases/type_constructors.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected/type_constructors.expected type_constructors.actual)))
+
+(rule
  (target while_loop.actual)
  (deps
   (:case cases/while_loop.liq)
