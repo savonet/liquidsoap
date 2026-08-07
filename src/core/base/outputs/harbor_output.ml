@@ -614,10 +614,6 @@ class output p =
                   ();
                 match dump with Some f -> close_out f | None -> ()))
         ()
-
-    method! reset =
-      self#stop;
-      self#start
   end
 
 let _ =

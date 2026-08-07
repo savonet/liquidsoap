@@ -12,6 +12,7 @@
 - Fixed ICY metadata negotiation in `output.harbor`: the `Icy-MetaData` request
   header was looked up before normalization, so clients never received
   in-stream metadata (thanks to @uhthomas, #5279)
+- Fixed `srt` restart logic (##5309)
 
 ---
 

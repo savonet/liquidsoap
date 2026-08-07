@@ -1170,10 +1170,6 @@ class virtual output_base ~payload_size ~messageapi ~infallible ~register_telnet
       self#mutexify (fun () -> Atomic.set should_stop false) ();
       self#connect
 
-    method! private reset =
-      self#start;
-      self#stop
-
     method private stop =
       self#mutexify (fun () -> Atomic.set should_stop true) ();
       self#stop_encoder;

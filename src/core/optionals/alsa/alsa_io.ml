@@ -167,10 +167,6 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync dev mode =
             Pcm.close d;
             pcm <- None
         | None -> ()
-
-    method reset =
-      self#close_device;
-      self#open_device
   end
 
 class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
@@ -183,7 +179,7 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
         ~infallible ~register_telnet ~name ~output_kind:"output.alsa" val_source
           start
 
-    inherit! base ~buffer_size ~self_sync dev [Pcm.Playback]
+    inherit base ~buffer_size ~self_sync dev [Pcm.Playback]
     val mutable samplerate_converter = None
 
     method samplerate_converter =
@@ -246,7 +242,7 @@ class input ~buffer_size ~self_sync ~start ~fallible dev =
   object (self)
     inherit base ~buffer_size ~self_sync dev [Pcm.Capture]
 
-    inherit!
+    inherit
       Start_stop.active_source
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
         ~fallible ~autostart:start () as active_source

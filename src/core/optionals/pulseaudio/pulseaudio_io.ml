@@ -120,10 +120,6 @@ class output ~infallible ~register_telnet ~start p =
     method start = self#open_device
     method stop = self#close_device
 
-    method! reset =
-      self#close_device;
-      self#open_device
-
     method send_frame memo =
       if stream = None then self#open_device;
       match stream with
