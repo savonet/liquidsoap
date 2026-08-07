@@ -2,12 +2,21 @@
 (1 : int)
 --- parsed ---
 {
-  "type": "cast",
-  "left": { "type": "ground", "value": "1" },
-  "right": { "type": "type_annotation", "subtype": "named", "value": "int" }
+  "type": "block",
+  "value": [
+    {
+    "type": "cast",
+    "left": { "type": "ground", "value": "1" },
+    "right": {
+      "type": "type_annotation",
+      "subtype": "named",
+      "value": "int"
+    }
+  }
+  ]
 }
 --- hash ---
-42faf6fad780f1f7f1854c0b4e6f61e4
+11c35a73c82c38ef3ebabd583cac0bf1
 --- term ---
 (1 : int)
 --- type ---

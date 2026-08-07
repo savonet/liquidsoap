@@ -2,47 +2,52 @@
 (1 + 2 == 3, 1 < 2 and 3 >= 2, "a" ^ "b")
 --- parsed ---
 {
-  "type": "tuple",
+  "type": "block",
   "value": [
     {
-    "type": "infix",
-    "left": {
-      "type": "infix",
-      "left": { "type": "ground", "value": "1" },
-      "op": "+",
-      "right": { "type": "ground", "value": "2" }
-    },
-    "op": "==",
-    "right": { "type": "ground", "value": "3" }
-  },
-    {
-    "type": "bool",
-    "op": "and",
+    "type": "tuple",
     "value": [
       {
       "type": "infix",
-      "left": { "type": "ground", "value": "1" },
-      "op": "<",
-      "right": { "type": "ground", "value": "2" }
+      "left": {
+        "type": "infix",
+        "left": { "type": "ground", "value": "1" },
+        "op": "+",
+        "right": { "type": "ground", "value": "2" }
+      },
+      "op": "==",
+      "right": { "type": "ground", "value": "3" }
+    },
+      {
+      "type": "bool",
+      "op": "and",
+      "value": [
+        {
+        "type": "infix",
+        "left": { "type": "ground", "value": "1" },
+        "op": "<",
+        "right": { "type": "ground", "value": "2" }
+      },
+        {
+        "type": "infix",
+        "left": { "type": "ground", "value": "3" },
+        "op": ">=",
+        "right": { "type": "ground", "value": "2" }
+      }
+      ]
     },
       {
       "type": "infix",
-      "left": { "type": "ground", "value": "3" },
-      "op": ">=",
-      "right": { "type": "ground", "value": "2" }
+      "left": { "type": "string", "value": "\"a\"" },
+      "op": "^",
+      "right": { "type": "string", "value": "\"b\"" }
     }
     ]
-  },
-    {
-    "type": "infix",
-    "left": { "type": "string", "value": "\"a\"" },
-    "op": "^",
-    "right": { "type": "string", "value": "\"b\"" }
   }
   ]
 }
 --- hash ---
-4e075b3871ecf302e13ac311613d67ae
+f4c710640b8f8871ed5d1d8f9c4634ba
 --- term ---
 (==(+(1, 2), 3), and(fun () -> <(1, 2), fun () -> >=(3, 2)), ^("a", "b"))
 --- type ---

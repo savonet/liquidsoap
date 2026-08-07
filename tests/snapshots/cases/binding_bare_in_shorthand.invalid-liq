@@ -1,0 +1,5 @@
+# A leading bare binding inside `{ … }` is not allowed: `{ x = 1 }` is a record
+# literal. Write `let x = 1` instead. Only the first statement is restricted,
+# see binding_bare_after_first_in_shorthand.liq.
+f = { x = 1; x + 1 }
+f()

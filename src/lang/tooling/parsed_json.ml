@@ -35,85 +35,71 @@ let json_of_position { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } : Json.t
 
 let json_of_positions (p, p') = `Tuple [json_of_position p; json_of_position p']
 
-let json_of_if_def ~to_json
-    { if_def_negative; if_def_condition; if_def_then_block; if_def_else_block }
-    =
-  [
-    ("negative", `Bool if_def_negative);
-    ("condition", `String if_def_condition);
-    ("then", to_json if_def_then_block.block_body);
-    ( "else",
-      match if_def_else_block with
-        | None -> `Null
-        | Some b -> to_json b.block_body );
-  ]
+(* Block bodies are flat arrays of statements in both formats. A plain
+   expression statement is emitted inline, as the expression node itself. *)
+let json_of_static_if ~json_of_block { static_cond; static_then; static_else } =
+  let cond =
+    match static_cond with
+      | `Defined (negative, name) ->
+          [
+            ("type", `String "if_def");
+            ("negative", `Bool negative);
+            ("condition", `String name);
+          ]
+      | `Encoder (negative, name) ->
+          [
+            ("type", `String "if_encoder");
+            ("negative", `Bool negative);
+            ("condition", `String name);
+          ]
+      | `Version (op, version) ->
+          [
+            ("type", `String "if_version");
+            ( "opt",
+              `String
+                (match op with
+                  | `Eq -> "=="
+                  | `Geq -> ">="
+                  | `Leq -> "<="
+                  | `Gt -> ">"
+                  | `Lt -> "<") );
+            ("version", `String (Lang_string.Version.to_string version));
+          ]
+  in
+  cond
+  @ [
+      ("then", json_of_block static_then);
+      ( "else",
+        match static_else with None -> `Null | Some b -> json_of_block b );
+    ]
 
-let json_of_if_encoder ~to_json
-    {
-      if_encoder_negative;
-      if_encoder_condition;
-      if_encoder_then_block;
-      if_encoder_else_block;
-    } =
-  [
-    ("negative", `Bool if_encoder_negative);
-    ("condition", `String if_encoder_condition);
-    ("then", to_json if_encoder_then_block.block_body);
-    ( "else",
-      match if_encoder_else_block with
-        | None -> `Null
-        | Some b -> to_json b.block_body );
-  ]
-
-let json_of_if_version ~to_json
-    {
-      if_version_op;
-      if_version_version;
-      if_version_then_block;
-      if_version_else_block;
-    } =
-  [
-    ( "opt",
-      `String
-        (match if_version_op with
-          | `Eq -> "=="
-          | `Geq -> ">="
-          | `Leq -> "<="
-          | `Gt -> ">"
-          | `Lt -> "<") );
-    ("version", `String (Lang_string.Version.to_string if_version_version));
-    ("then", to_json if_version_then_block.block_body);
-    ( "else",
-      match if_version_else_block with
-        | None -> `Null
-        | Some b -> to_json b.block_body );
-  ]
-
-let json_of_while ~to_json { while_condition; while_do_block } =
+let json_of_while ~to_json ~json_of_block { while_condition; while_do_block } =
   [
     ("condition", to_json while_condition);
-    ("loop", to_json while_do_block.block_body);
+    ("loop", json_of_block while_do_block);
   ]
 
-let json_of_for ~to_json { for_variable; for_from; for_to; for_do_block } =
+let json_of_for ~to_json ~json_of_block
+    { for_variable; for_from; for_to; for_do_block } =
   [
     ("variable", `String for_variable);
     ("from", to_json for_from);
     ("to", to_json for_to);
-    ("loop", to_json for_do_block.block_body);
+    ("loop", json_of_block for_do_block);
   ]
 
-let json_of_iterable_for ~to_json
+let json_of_iterable_for ~to_json ~json_of_block
     { iterable_for_variable; iterable_for_iterator; iterable_for_do_block } =
   [
     ("variable", `String iterable_for_variable);
     ("iterator", to_json iterable_for_iterator);
-    ("loop", to_json iterable_for_do_block.block_body);
+    ("loop", json_of_block iterable_for_do_block);
   ]
 
-let json_of_try ~to_json { try_body_block; try_handler; try_finally_block } =
+let json_of_try ~to_json ~json_of_block
+    { try_body_block; try_handler; try_finally_block } =
   [
-    ("body", to_json try_body_block.block_body);
+    ("body", json_of_block try_body_block);
     ( "variable",
       `String
         (match try_handler with
@@ -125,12 +111,10 @@ let json_of_try ~to_json { try_body_block; try_handler; try_finally_block } =
         | _ -> `Null );
     ( "handler",
       match try_handler with
-        | Some h -> to_json h.try_handler_block.block_body
+        | Some h -> json_of_block h.try_handler_block
         | None -> `Null );
     ( "finally",
-      match try_finally_block with
-        | Some b -> to_json b.block_body
-        | None -> `Null );
+      match try_finally_block with Some b -> json_of_block b | None -> `Null );
   ]
 
 let type_node ~typ ?(extra = []) value =
@@ -217,11 +201,11 @@ and json_of_source_track_annotation { track_name; track_type; track_params } =
       ]
     (`String track_type)
 
-let json_of_if ~to_json
+let json_of_if ~to_json ~json_of_block
     { if_condition; if_then_block; if_elsif; if_else_block; _ } =
   [
     ("condition", to_json if_condition);
-    ("then", to_json if_then_block.block_body);
+    ("then", json_of_block if_then_block);
     ( "elsif",
       `Tuple
         (List.map
@@ -230,11 +214,11 @@ let json_of_if ~to_json
                (ast_node ~typ:"elsif"
                   [
                     ("condition", to_json elsif_condition);
-                    ("then", to_json elsif_then_block.block_body);
+                    ("then", json_of_block elsif_then_block);
                   ]))
            if_elsif) );
     ( "else",
-      match if_else_block with None -> `Null | Some b -> to_json b.block_body );
+      match if_else_block with None -> `Null | Some b -> json_of_block b );
   ]
 
 let rec base_json_of_pat = function
@@ -362,7 +346,8 @@ let json_of_let_decoration ~to_json : Parsed_term.let_decoration -> Json.t =
                     args) );
            ])
 
-let args_of_json_let ~to_json { decoration; pat; arglist; cast; def } =
+let args_of_json_let ~to_json { kind = _; decoration; pat; arglist; cast; def }
+    =
   [
     ("decoration", json_of_let_decoration ~to_json decoration);
     ("pat", json_of_pat pat);
@@ -379,14 +364,33 @@ let args_of_json_let ~to_json { decoration; pat; arglist; cast; def } =
     ("definition", to_json def);
   ]
 
-let json_of_let ~to_json ast =
-  let typ, args, body =
-    match ast with
-      | `Def (p, body) -> ("def", args_of_json_let ~to_json p, body)
-      | `Let (p, body) -> ("let", args_of_json_let ~to_json p, body)
-      | `Binding (p, body) -> ("binding", args_of_json_let ~to_json p, body)
-  in
-  ast_node ~typ (("body", to_json body) :: args)
+(* Emit a def node with its function body flattened into "body". *)
+let json_of_def ~to_json ~body { kind = _; decoration; pat; arglist; cast; def }
+    =
+  ast_node ~typ:"def"
+    [
+      ("decoration", json_of_let_decoration ~to_json decoration);
+      ("pat", json_of_pat pat);
+      ( "arglist",
+        match arglist with
+          | None -> `Null
+          | Some arglist ->
+              `Tuple
+                (List.map
+                   (fun arg -> `Assoc (json_of_fun_arg ~to_json arg))
+                   arglist) );
+      ( "cast",
+        match cast with None -> `Null | Some t -> json_of_type_annotation t );
+      ("body", body def);
+    ]
+
+(* `def f() = ... end` keeps its own statements under "body"; `let` and a bare
+   binding carry a single right-hand side under "definition". *)
+let json_of_binding ~to_json ~body ({ kind; _ } as p) =
+  match kind with
+    | `Def -> json_of_def ~to_json ~body p
+    | `Let -> ast_node ~typ:"let" (args_of_json_let ~to_json p)
+    | `Bare -> ast_node ~typ:"binding" (args_of_json_let ~to_json p)
 
 let json_of_app_arg ~to_json = function
   | `Term (l, v) ->
@@ -434,15 +438,22 @@ let rec to_ast_json ~to_json = function
   | `Set (t, t') ->
       ast_node ~typ:"infix"
         [("left", to_json t); ("op", `String ":="); ("right", to_json t')]
-  | `Inline_if p -> ast_node ~typ:"inline_if" (json_of_if ~to_json p)
-  | `If p -> ast_node ~typ:"if" (json_of_if ~to_json p)
-  | `If_def p -> ast_node ~typ:"if_def" (json_of_if_def ~to_json p)
-  | `If_version p -> ast_node ~typ:"if_version" (json_of_if_version ~to_json p)
-  | `If_encoder p -> ast_node ~typ:"if_encoder" (json_of_if_encoder ~to_json p)
-  | `While p -> ast_node ~typ:"while" (json_of_while ~to_json p)
-  | `For p -> ast_node ~typ:"for" (json_of_for ~to_json p)
+  | `Inline_if p ->
+      ast_node ~typ:"inline_if"
+        (json_of_if ~to_json ~json_of_block:(json_of_block ~to_json) p)
+  | `If p ->
+      ast_node ~typ:"if"
+        (json_of_if ~to_json ~json_of_block:(json_of_block ~to_json) p)
+  | `Static_if p -> json_of_static_if ~json_of_block:(json_of_block ~to_json) p
+  | `While p ->
+      ast_node ~typ:"while"
+        (json_of_while ~to_json ~json_of_block:(json_of_block ~to_json) p)
+  | `For p ->
+      ast_node ~typ:"for"
+        (json_of_for ~to_json ~json_of_block:(json_of_block ~to_json) p)
   | `Iterable_for p ->
-      ast_node ~typ:"iterable_for" (json_of_iterable_for ~to_json p)
+      ast_node ~typ:"iterable_for"
+        (json_of_iterable_for ~to_json ~json_of_block:(json_of_block ~to_json) p)
   | `Not t -> ast_node ~typ:"not" [("value", to_json t)]
   | `Negative t -> ast_node ~typ:"negative" [("value", to_json t)]
   | `String_interpolation (c, l) ->
@@ -472,7 +483,8 @@ let rec to_ast_json ~to_json = function
   | `BoolOp (op, l) ->
       ast_node ~typ:"bool"
         [("op", `String op); ("value", `Tuple (List.map to_json l))]
-  | `Simple_fun t -> ast_node ~typ:"simple_fun" [("value", to_json t)]
+  | `Simple_fun b ->
+      ast_node ~typ:"simple_fun" [("value", json_of_block ~to_json b)]
   | `Time t -> ast_node ~typ:"time" (json_of_time_el t)
   | `Time_interval (t, t') ->
       ast_node ~typ:"time_interval"
@@ -489,7 +501,9 @@ let rec to_ast_json ~to_json = function
               (List.sort Stdlib.compare
                  (List.map (fun c -> `String (Char.escaped c)) flags)) );
         ]
-  | `Try p -> ast_node ~typ:"try" (json_of_try ~to_json p)
+  | `Try p ->
+      ast_node ~typ:"try"
+        (json_of_try ~to_json ~json_of_block:(json_of_block ~to_json) p)
   | `Custom g ->
       ast_node ~typ:"ground"
         [("value", `String (Json.to_string (Term.Custom.to_json ~pos:[] g)))]
@@ -497,7 +511,7 @@ let rec to_ast_json ~to_json = function
   | `Int i -> ast_node ~typ:"ground" [("value", `String i)]
   | `Float v -> ast_node ~typ:"ground" [("value", `String v)]
   | `Parenthesis tm -> ast_node ~typ:"parenthesis" [("value", to_json tm)]
-  | `Block tm -> ast_node ~typ:"block" [("value", to_json tm)]
+  | `Block b -> ast_node ~typ:"block" [("value", json_of_block ~to_json b)]
   | `Raw_string (id, s) ->
       ast_node ~typ:"raw_string" [("id", `String id); ("value", `String s)]
   | `String (c, s) ->
@@ -543,18 +557,8 @@ let rec to_ast_json ~to_json = function
                  methods
               @ base_methods) );
         ]
-  | `Eof -> ast_node ~typ:"eof" []
   | `Open (t, t') ->
       ast_node ~typ:"open" [("left", to_json t); ("right", to_json t')]
-  | `Let _ as ast -> json_of_let ~to_json ast
-  | `Def _ as ast -> json_of_let ~to_json ast
-  | `Binding _ as ast -> json_of_let ~to_json ast
-  | `Include { inc_type = `Lib; inc_name } ->
-      ast_node ~typ:"include_lib" [("value", `String inc_name)]
-  | `Include { inc_type = `Default; inc_name } ->
-      ast_node ~typ:"include" [("value", `String inc_name)]
-  | `Include { inc_type = `Extra; inc_name } ->
-      ast_node ~typ:"include_extra" [("value", `String inc_name)]
   | `Coalesce (t, t') ->
       ast_node ~typ:"coalesce" [("left", to_json t); ("right", to_json t')]
   | `At (t, t') ->
@@ -570,6 +574,34 @@ let rec to_ast_json ~to_json = function
   | `RFun (lbl, args, body) ->
       ast_node ~typ:"rfun"
         (("name", `String lbl) :: json_of_fun ~to_json args body)
+
+and json_of_def_body ~to_json t : Json.t =
+  match t.Parsed_term.term with
+    | `Block b -> json_of_block ~to_json b
+    | _ -> `Tuple [to_json t]
+
+and json_of_block ~to_json b : Json.t =
+  `Tuple (List.map (json_of_statement ~to_json) b.block_body)
+
+and json_of_statement ~to_json ?body { stmt; stmt_pos; _ } : Json.t =
+  let body =
+    match body with Some fn -> fn | None -> json_of_def_body ~to_json
+  in
+  let node args = `Assoc (("position", json_of_positions stmt_pos) :: args) in
+  match stmt with
+    (* An expression statement is the expression node itself: the statement
+       wrapper would carry nothing the expression does not already have. *)
+    | `Expr tm -> to_json tm
+    | `Binding p -> node (json_of_binding ~to_json ~body p)
+    | `Open tm -> node (ast_node ~typ:"open" [("left", to_json tm)])
+    | `Include { inc_type; inc_name } ->
+        let typ =
+          match inc_type with
+            | `Lib -> "include_lib"
+            | `Default -> "include"
+            | `Extra -> "include_extra"
+        in
+        node (ast_node ~typ [("value", `String inc_name)])
 
 and to_encoder_json ~to_json (lbl, params) =
   [
@@ -596,62 +628,75 @@ let rec to_json { pos; term; _ } : Json.t =
    parse_string always emits this format. Block bodies are flat arrays ("body"),
    if/elsif/else use a unified "branches" array, try uses a "handler" sub-object. *)
 
-(* Flatten a body chain into a list of JSON statement nodes. *)
-let rec statements_of_chain ~to_json t : Json.t list =
-  match t.term with
-    | `Def (p, body) ->
-        `Assoc (("position", json_of_positions t.pos) :: json_of_def ~to_json p)
-        :: statements_of_chain ~to_json body
-    | `Let (p, body) ->
-        `Assoc
-          (("position", json_of_positions t.pos)
-          :: ast_node ~typ:"let" (args_of_json_let ~to_json p))
-        :: statements_of_chain ~to_json body
-    | `Binding (p, body) ->
-        `Assoc
-          (("position", json_of_positions t.pos)
-          :: ast_node ~typ:"binding" (args_of_json_let ~to_json p))
-        :: statements_of_chain ~to_json body
-    | `Seq (t1, t2) -> to_json t1 :: statements_of_chain ~to_json t2
-    | `Open (t, body) ->
-        `Assoc
-          (("position", json_of_positions t.pos)
-          :: ast_node ~typ:"open" [("left", to_json t)])
-        :: statements_of_chain ~to_json body
-    | `Eof -> []
-    | _ -> [to_json t]
-
-(* Emit a def node with its function body flattened into "body". *)
-and json_of_def ~to_json { decoration; pat; arglist; cast; def } =
-  ast_node ~typ:"def"
-    [
-      ("decoration", json_of_let_decoration ~to_json decoration);
-      ("pat", json_of_pat pat);
-      ( "arglist",
-        match arglist with
-          | None -> `Null
-          | Some arglist ->
-              `Tuple
-                (List.map
-                   (fun arg -> `Assoc (json_of_fun_arg ~to_json arg))
-                   arglist) );
-      ( "cast",
-        match cast with None -> `Null | Some t -> json_of_type_annotation t );
-      ("body", `Tuple (statements_of_chain ~to_json def));
-    ]
-
 let rec to_json_canonical ({ pos; term; _ } : Parsed_term.t) : Json.t =
   `Assoc (("position", json_of_positions pos) :: to_ast_json_canonical pos term)
 
+and block_node_canonical ?(typ = "") { Parsed_term.block_body; block_pos } =
+  let type_field = if typ = "" then [] else [("type", `String typ)] in
+  `Assoc
+    (type_field
+    @ [
+        ("position", json_of_positions block_pos);
+        ("body", statements_canonical block_body);
+      ])
+
+(* The canonical format anchors each branch on its own `ifdef_block` node, so
+   that prettier can attach comments between `%ifdef` and `%else`. *)
+and static_if_canonical { static_cond; static_then; static_else } =
+  let cond =
+    match static_cond with
+      | `Defined (negative, name) ->
+          [
+            ("type", `String "if_def");
+            ("negative", `Bool negative);
+            ("condition", `String name);
+          ]
+      | `Encoder (negative, name) ->
+          [
+            ("type", `String "if_encoder");
+            ("negative", `Bool negative);
+            ("condition", `String name);
+          ]
+      | `Version (op, version) ->
+          [
+            ("type", `String "if_version");
+            ( "opt",
+              `String
+                (match op with
+                  | `Eq -> "=="
+                  | `Geq -> ">="
+                  | `Leq -> "<="
+                  | `Gt -> ">"
+                  | `Lt -> "<") );
+            ("version", `String (Lang_string.Version.to_string version));
+          ]
+  in
+  cond
+  @ [
+      ("then_block", block_node_canonical ~typ:"ifdef_block" static_then);
+      ( "else_block",
+        match static_else with
+          | None -> `Null
+          | Some b -> block_node_canonical ~typ:"ifdef_block" b );
+    ]
+
+and statements_canonical stmts =
+  `Tuple
+    (List.map
+       (json_of_statement ~to_json:to_json_canonical ~body:body_canonical)
+       stmts)
+
+(* A term in body position: `def f() = ... end` stores its block wrapped in
+   `Block`, everything else is a single expression. *)
+and body_canonical t =
+  match t.Parsed_term.term with
+    | `Block b -> statements_canonical b.block_body
+    | _ -> `Tuple [to_json_canonical t]
+
 and to_ast_json_canonical pos term =
   let to_json = to_json_canonical in
-  let body t = `Tuple (statements_of_chain ~to_json t) in
-  let block_node ?(typ = "") { Parsed_term.block_body; block_pos } =
-    let type_field = if typ = "" then [] else [("type", `String typ)] in
-    `Assoc
-      (type_field
-      @ [("position", json_of_positions block_pos); ("body", body block_body)])
-  in
+  let body = body_canonical in
+  let block_node = block_node_canonical in
   match term with
     | `If { if_condition; if_then_block; if_elsif; if_else_block; if_end_pos }
       ->
@@ -670,7 +715,7 @@ and to_ast_json_canonical pos term =
               ("type", `String "elsif");
               ("position", json_of_positions (fst elsif_pos, then_end));
               ("condition", to_json elsif_condition);
-              ("body", body elsif_then_block.block_body);
+              ("body", statements_canonical elsif_then_block.block_body);
             ]
         in
         ast_node ~typ:"if"
@@ -683,65 +728,7 @@ and to_ast_json_canonical pos term =
                 | None -> `Null
                 | Some b -> block_node ~typ:"else_block" b );
           ]
-    | `If_def
-        {
-          if_def_negative;
-          if_def_condition;
-          if_def_then_block;
-          if_def_else_block;
-        } ->
-        ast_node ~typ:"if_def"
-          [
-            ("negative", `Bool if_def_negative);
-            ("condition", `String if_def_condition);
-            ("then_block", block_node ~typ:"ifdef_block" if_def_then_block);
-            ( "else_block",
-              match if_def_else_block with
-                | None -> `Null
-                | Some b -> block_node ~typ:"ifdef_block" b );
-          ]
-    | `If_version
-        {
-          if_version_op;
-          if_version_version;
-          if_version_then_block;
-          if_version_else_block;
-        } ->
-        ast_node ~typ:"if_version"
-          [
-            ( "opt",
-              `String
-                (match if_version_op with
-                  | `Eq -> "=="
-                  | `Geq -> ">="
-                  | `Leq -> "<="
-                  | `Gt -> ">"
-                  | `Lt -> "<") );
-            ( "version",
-              `String (Lang_string.Version.to_string if_version_version) );
-            ("then_block", block_node ~typ:"ifdef_block" if_version_then_block);
-            ( "else_block",
-              match if_version_else_block with
-                | None -> `Null
-                | Some b -> block_node ~typ:"ifdef_block" b );
-          ]
-    | `If_encoder
-        {
-          if_encoder_negative;
-          if_encoder_condition;
-          if_encoder_then_block;
-          if_encoder_else_block;
-        } ->
-        ast_node ~typ:"if_encoder"
-          [
-            ("negative", `Bool if_encoder_negative);
-            ("condition", `String if_encoder_condition);
-            ("then_block", block_node ~typ:"ifdef_block" if_encoder_then_block);
-            ( "else_block",
-              match if_encoder_else_block with
-                | None -> `Null
-                | Some b -> block_node ~typ:"ifdef_block" b );
-          ]
+    | `Static_if p -> static_if_canonical p
     | `While { while_condition; while_do_block } ->
         let header =
           `Assoc
@@ -757,7 +744,7 @@ and to_ast_json_canonical pos term =
             [
               ("type", `String "while_body");
               ("position", json_of_positions while_do_block.block_pos);
-              ("body", body while_do_block.block_body);
+              ("body", statements_canonical while_do_block.block_body);
             ]
         in
         ast_node ~typ:"while" [("parts", `Tuple [header; body_node])]
@@ -778,7 +765,7 @@ and to_ast_json_canonical pos term =
             [
               ("type", `String "for_body");
               ("position", json_of_positions for_do_block.block_pos);
-              ("body", body for_do_block.block_body);
+              ("body", statements_canonical for_do_block.block_body);
             ]
         in
         ast_node ~typ:"for" [("parts", `Tuple [header; body_node])]
@@ -801,7 +788,7 @@ and to_ast_json_canonical pos term =
             [
               ("type", `String "iterable_for_body");
               ("position", json_of_positions iterable_for_do_block.block_pos);
-              ("body", body iterable_for_do_block.block_body);
+              ("body", statements_canonical iterable_for_do_block.block_body);
             ]
         in
         ast_node ~typ:"iterable_for" [("parts", `Tuple [header; body_node])]
@@ -811,7 +798,7 @@ and to_ast_json_canonical pos term =
             [
               ("type", `String "try_body");
               ("position", json_of_positions try_body_block.block_pos);
-              ("body", body try_body_block.block_body);
+              ("body", statements_canonical try_body_block.block_body);
             ]
         in
         let catch_nodes =
@@ -836,7 +823,7 @@ and to_ast_json_canonical pos term =
                         match try_handler_errors_list with
                           | None -> `Null
                           | Some t -> to_json t );
-                      ("body", body try_handler_block.block_body);
+                      ("body", statements_canonical try_handler_block.block_body);
                     ];
                 ]
             | None -> []
@@ -849,7 +836,7 @@ and to_ast_json_canonical pos term =
                     [
                       ("type", `String "try_finally");
                       ("position", json_of_positions finally_block.block_pos);
-                      ("body", body finally_block.block_body);
+                      ("body", statements_canonical finally_block.block_body);
                     ];
                 ]
             | None -> []
@@ -877,12 +864,10 @@ and to_ast_json_canonical pos term =
                    args) );
             ("body", body fun_body);
           ]
-    | `Simple_fun t -> ast_node ~typ:"simple_fun" [("body", body t)]
-    | `Def (p, _) -> json_of_def ~to_json p
-    | `Let (p, _) -> ast_node ~typ:"let" (args_of_json_let ~to_json p)
-    | `Binding (p, _) -> ast_node ~typ:"binding" (args_of_json_let ~to_json p)
-    | `Open (t, _) -> ast_node ~typ:"open" [("left", to_json t)]
-    | `Block tm -> ast_node ~typ:"block" [("body", body tm)]
+    | `Simple_fun b ->
+        ast_node ~typ:"simple_fun" [("body", statements_canonical b.block_body)]
+    | `Block b ->
+        ast_node ~typ:"block" [("body", statements_canonical b.block_body)]
     | other -> to_ast_json ~to_json other
 
 let parse_string ?(formatter = Format.err_formatter) content =
@@ -894,6 +879,11 @@ let parse_string ?(formatter = Format.err_formatter) content =
     let term = Runtime.program tokenizer in
     let raw_comments = Parser_helper.get_pending_comments () in
     Parser_helper.attach_comments term;
+    let statements =
+      match term.Parsed_term.term with
+        | `Block b -> b.block_body
+        | _ -> assert false
+    in
     let start_pos =
       { Lexing.pos_fname = ""; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
     in
@@ -903,7 +893,7 @@ let parse_string ?(formatter = Format.err_formatter) content =
         [
           ("type", `String "program");
           ("position", json_of_positions (start_pos, end_pos));
-          ("body", `Tuple (statements_of_chain ~to_json:to_json_canonical term));
+          ("body", statements_canonical statements);
         ]
     in
     let comments =

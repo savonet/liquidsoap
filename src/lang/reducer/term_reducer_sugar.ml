@@ -231,19 +231,19 @@ let set_reducer ~pos ~env ~to_term = function
           typ = mk_ty ~pos Type.unit;
         }
 
-let if_reducer ~pos ~env ~to_term = function
+let if_reducer ~pos ~env ~to_term ~to_block = function
   | `Inline_if { if_condition; if_then_block; if_elsif; if_else_block; _ }
   | `If { if_condition; if_then_block; if_elsif; if_else_block; _ } ->
       let if_else =
         match if_else_block with
           | None -> mk ~pos (`Tuple [])
-          | Some b -> to_term ~env b.block_body
+          | Some b -> to_block ~env b
       in
       let branches =
-        (if_condition, if_then_block.block_body)
+        (if_condition, if_then_block)
         :: List.map
              (fun { elsif_condition; elsif_then_block; _ } ->
-               (elsif_condition, elsif_then_block.block_body))
+               (elsif_condition, elsif_then_block))
              if_elsif
       in
       let term =
@@ -255,20 +255,18 @@ let if_reducer ~pos ~env ~to_term = function
                  ( op,
                    [
                      ("", to_term ~env condition);
-                     ("then", mk_fun ~pos [] (to_term ~env _then));
+                     ("then", mk_fun ~pos [] (to_block ~env _then));
                      ("else", mk_fun ~pos [] if_else);
                    ] )))
           if_else (List.rev branches)
       in
       term.term
 
-let while_reducer ~pos ~env ~to_term = function
+let while_reducer ~pos ~env ~to_term ~to_block = function
   | `While { while_condition; while_do_block } ->
       let op = mk ~pos (`Var "while") in
       let while_condition = mk_fun ~pos [] (to_term ~env while_condition) in
-      let while_loop =
-        mk_fun ~pos [] (to_term ~env while_do_block.block_body)
-      in
+      let while_loop = mk_fun ~pos [] (to_block ~env while_do_block) in
       `App (op, [("", while_condition); ("", while_loop)])
 
 let base_for_reducer ~pos for_variable for_iterator for_loop =
@@ -288,14 +286,14 @@ let base_for_reducer ~pos for_variable for_iterator for_loop =
   in
   `App (for_op, [("", for_iterator); ("", for_loop)])
 
-let iterable_for_reducer ~pos ~env ~to_term = function
+let iterable_for_reducer ~pos ~env ~to_term ~to_block = function
   | `Iterable_for
       { iterable_for_variable; iterable_for_iterator; iterable_for_do_block } ->
       base_for_reducer ~pos iterable_for_variable
         (to_term ~env iterable_for_iterator)
-        (to_term ~env iterable_for_do_block.block_body)
+        (to_block ~env iterable_for_do_block)
 
-let for_reducer ~pos ~env ~to_term = function
+let for_reducer ~pos ~env ~to_term ~to_block = function
   | `For { for_variable; for_from; for_to; for_do_block } ->
       let to_op = mk ~pos (`Var "iterator") in
       let to_op =
@@ -307,7 +305,7 @@ let for_reducer ~pos ~env ~to_term = function
           (`App (to_op, [("", to_term ~env for_from); ("", to_term ~env for_to)]))
       in
       base_for_reducer ~pos for_variable for_condition
-        (to_term ~env for_do_block.block_body)
+        (to_block ~env for_do_block)
 
 let infix_reducer ~pos ~env ~to_term = function
   | `Infix (tm, op, tm') ->
@@ -325,13 +323,13 @@ let bool_op_reducer ~pos ~env ~to_term = function
         (to_term ~env tm).term terms
   | `BoolOp (_, []) -> assert false
 
-let simple_fun_reducer ~pos:_ ~env ~to_term = function
-  | `Simple_fun tm ->
+let simple_fun_reducer ~pos:_ ~env ~to_block = function
+  | `Simple_fun b ->
       `Fun
         {
           name = None;
           arguments = [];
-          body = to_term ~env tm;
+          body = to_block ~env b;
           free_vars = None;
         }
 
@@ -384,9 +382,9 @@ let regexp_reducer ~pos ~env:_ ~to_term:_ = function
       let op = mk ~pos (`Var "regexp") in
       `App (op, [("", regexp); ("flags", flags)])
 
-let try_reducer ~pos ~env ~to_term = function
+let try_reducer ~pos ~env ~to_term ~to_block = function
   | `Try { try_body_block; try_handler; try_finally_block } ->
-      let try_body = mk_fun ~pos [] (to_term ~env try_body_block.block_body) in
+      let try_body = mk_fun ~pos [] (to_block ~env try_body_block) in
       let try_variable =
         match try_handler with Some h -> h.try_handler_variable | None -> "_"
       in
@@ -404,15 +402,14 @@ let try_reducer ~pos ~env ~to_term = function
       let finally_pos, finally =
         match try_finally_block with
           | None -> (pos, mk ~pos (`Tuple []))
-          | Some b -> (b.block_body.pos, to_term ~env b.block_body)
+          | Some b -> (b.block_pos, to_block ~env b)
       in
       let finally = mk_fun ~pos:finally_pos [] finally in
       let handler_pos, handler =
         match try_handler with
           | None -> (pos, mk ~pos (`Tuple []))
           | Some h ->
-              ( h.try_handler_block.block_body.pos,
-                to_term ~env h.try_handler_block.block_body )
+              (h.try_handler_block.block_pos, to_block ~env h.try_handler_block)
       in
       let handler = mk_fun ~pos:handler_pos err_arg handler in
       let error_module = mk ~pos (`Var "error") in

@@ -3,20 +3,25 @@ x = null
 x ?? 3
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "x" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "null" }
+  },
+    {
     "type": "coalesce",
     "left": { "type": "var", "value": "x" },
     "right": { "type": "ground", "value": "3" }
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "x" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": { "type": "null" }
+  }
+  ]
 }
 --- hash ---
-a3275fcfcf909af982d9950ed6bd6b70
+000977c6d3776c748a31878f6d4b9d9c
 --- term ---
 x = null
 _null.default(x, {3})

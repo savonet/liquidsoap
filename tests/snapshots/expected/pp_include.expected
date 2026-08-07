@@ -1,0 +1,72 @@
+=== pp_include.liq ===
+%include "included.liq-inc"
+
+before = 0
+(before, from_include, also_from_include)
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "let",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "liquidsoap", "script", "path" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "string", "value": "\"cases/included.liq-inc\"" }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "from_include" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "1" }
+  },
+    {
+    "type": "let",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "also_from_include" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "2" }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "before" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "0" }
+  },
+    {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "var",
+      "value": "before"
+    },
+      {
+      "type": "var",
+      "value": "from_include"
+    },
+      {
+      "type": "var",
+      "value": "also_from_include"
+    }
+    ]
+  }
+  ]
+}
+--- hash ---
+cb5449a59bfa50872c40ab85b328440d
+--- term ---
+let liquidsoap.script.path = "cases/included.liq-inc"
+from_include = 1
+also_from_include = 2
+before = 0
+(before, from_include, also_from_include)
+--- type ---
+int * int * int
+--- value ---
+(0, 1, 2)

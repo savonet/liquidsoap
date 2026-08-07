@@ -22,124 +22,101 @@
 
 type tokenizer = unit -> Parser.token * Term.parsed_pos
 
+(* A string literal is read one chunk at a time, and an interpolation is read
+   as ordinary tokens, so that `"#{ r.{a = 1}.a }"` and `"#{ m["k"] }"` mean
+   what they look like: the `}` that closes an interpolation is found by
+   counting braces over *tokens*, where a nested string, comment or raw string
+   is already a single token and cannot be miscounted.
+
+   `"a #{e} b"` yields:
+     BEGIN_INTERPOLATION '"', INTERPOLATED_STRING "a ", <tokens of e>,
+     INTERPOLATED_STRING " b", END_INTERPOLATION *)
+
+(* One open interpolated string. [depth] counts the `{` currently open inside
+   the interpolation being read. *)
+type interpolation = { sep : char; mutable depth : int }
+
 let mk_tokenizer ?(fname = "") lexbuf =
   Sedlexing.set_filename lexbuf fname;
-  fun () ->
-    match Lexer.token lexbuf with
-      | Parser.PP_STRING (c, s, pos) -> (Parser.STRING (c, s), pos)
-      | Parser.PP_REGEXP (r, flags, pos) -> (Parser.REGEXP (r, flags), pos)
-      | token -> (token, Sedlexing.lexing_bytes_positions lexbuf)
-
-(* The expander turns "bla #{e} bli" into ("bla "^string(e)^" bli"). *)
-type exp_item = String of string | Expr of tokenizer | End
-
-exception Found_interpolation
-
-let expand_string ?fname tokenizer =
-  let state = Queue.create () in
-  let add pos x = Queue.add (x, pos) state in
-  let pop () = ignore (Queue.take state) in
-  let clear () = Queue.clear state in
-  let is_interpolating () =
-    try
-      Queue.iter
-        (function Expr _, _ -> raise Found_interpolation | _ -> ())
-        state;
-      false
-    with Found_interpolation -> true
+  let pending = Queue.create () in
+  (* Interpolated strings currently being read, innermost first. *)
+  let open_strings = ref [] in
+  (* Whether the next thing to read is a chunk of the innermost string rather
+     than a token. *)
+  let in_string = ref false in
+  let positions () = Sedlexing.lexing_bytes_positions lexbuf in
+  let read_chunk sep =
+    let startp, _ = positions () in
+    Lexer.read_string_chunk sep startp (Buffer.create 17) lexbuf
   in
-  let parse ~sep s pos =
-    let rex = Re.Pcre.regexp "#\\{([^}]*)\\}" in
-    let l = Re.Pcre.full_split ~rex s in
-    let l = if l = [] then [Re.Pcre.Text s] else l in
-    let add = add pos in
-    let rec parse = function
-      | Re.Pcre.Group (_, x) :: l ->
-          let x = Lexer.render_string ~pos ~sep x in
-          let lexbuf = Sedlexing.Utf8.from_string x in
-          let tokenizer = mk_tokenizer ?fname lexbuf in
-          let tokenizer () = (fst (tokenizer ()), pos) in
-          add (Expr tokenizer);
-          parse l
-      | Re.Pcre.Text x :: l ->
-          add (String x);
-          parse l
-      | Re.Pcre.NoGroup :: l | Re.Pcre.Delim _ :: l -> parse l
-      | [] -> add End
-    in
-    parse l
+  (* An empty chunk carries nothing: `"#{a}#{b}"` has no literal text between
+     the two interpolations, and emitting one would put `""` in the generated
+     `string.concat`. *)
+  let emit_chunk text pos next =
+    if text = "" then next () else (Parser.INTERPOLATED_STRING text, pos)
   in
   let rec token () =
-    if Queue.is_empty state then (
-      match tokenizer () with
-        | (Parser.STRING (sep, s), pos) as tok ->
-            parse ~sep s pos;
-            if is_interpolating () then (Parser.BEGIN_INTERPOLATION sep, pos)
-            else (
-              clear ();
-              tok)
-        | x -> x)
-    else (
-      let el, pos = Queue.peek state in
-      match el with
-        | String s ->
-            pop ();
-            (Parser.INTERPOLATED_STRING s, pos)
-        | Expr tokenizer -> (
-            match tokenizer () with
-              | Parser.EOF, _ ->
-                  pop ();
-                  token ()
-              | x, _ -> (x, pos))
-        | End ->
-            pop ();
-            (Parser.END_INTERPOLATION, pos))
-  in
-  token
-
-(** Special token in order to avoid 3.{s = "a"} to be parsed as a float followed
-    by a record. *)
-let int_meth tokenizer =
-  let q = Queue.create () in
-  let fill () =
-    match tokenizer () with
-      | Parser.PP_INT_DOT_LCUR n, (spos, epos) ->
-          let a n pos =
-            { pos with Lexing.pos_cnum = pos.Lexing.pos_cnum - n }
-          in
-          Queue.add_seq q
-            (List.to_seq
-               [
-                 (Parser.INT n, (spos, a 2 epos));
-                 (Parser.DOT, (a 2 spos, a 1 epos));
-                 (Parser.LCUR, (a 1 spos, epos));
-               ])
-      | t -> Queue.add t q
-  in
-  let token () =
-    if Queue.is_empty q then fill ();
-    Queue.pop q
-  in
-  token
-
-(* Replace DOTVAR v with DOT, VAR v
-   and NULLDOT with "_null", DOT *)
-let dotter tokenizer =
-  let state = ref None in
-  let token () =
-    match !state with
-      | Some t ->
-          state := None;
-          t
+    match Queue.take_opt pending with
+      | Some t -> t
+      | None when !in_string -> (
+          let { sep; _ } = List.hd !open_strings in
+          let startp, _ = positions () in
+          match read_chunk sep with
+            | `Interpolation text ->
+                in_string := false;
+                emit_chunk text (startp, snd (positions ())) token
+            | `Done text ->
+                in_string := false;
+                open_strings := List.tl !open_strings;
+                let pos = (startp, snd (positions ())) in
+                Queue.add (Parser.END_INTERPOLATION, pos) pending;
+                emit_chunk text pos token)
       | None -> (
-          match tokenizer () with
-            | Parser.NULLDOT, pos ->
-                state := Some (Parser.DOT, pos);
-                (Parser.VAR "_null", pos)
-            | Parser.DOTVAR v, pos ->
-                state := Some (Parser.VAR v, pos);
+          match Lexer.token lexbuf with
+            | Parser.PP_STRING_START sep -> (
+                let startp, _ = positions () in
+                match read_chunk sep with
+                  | `Done text ->
+                      (Parser.STRING (sep, text), (startp, snd (positions ())))
+                  | `Interpolation text ->
+                      let pos = (startp, snd (positions ())) in
+                      open_strings := { sep; depth = 0 } :: !open_strings;
+                      if text <> "" then
+                        Queue.add (Parser.INTERPOLATED_STRING text, pos) pending;
+                      (Parser.BEGIN_INTERPOLATION sep, pos))
+            | Parser.PP_REGEXP (r, flags, pos) -> (Parser.REGEXP (r, flags), pos)
+            (* `3.{a = 1}` lexes as one token so that `3.` is not taken for a
+               float followed by a record. *)
+            | Parser.PP_INT_DOT_LCUR n ->
+                let spos, epos = positions () in
+                let back n pos =
+                  { pos with Lexing.pos_cnum = pos.Lexing.pos_cnum - n }
+                in
+                Queue.add (Parser.DOT, (back 2 spos, back 1 epos)) pending;
+                Queue.add (Parser.LCUR, (back 1 spos, epos)) pending;
+                (Parser.INT n, (spos, back 2 epos))
+            | Parser.DOTVAR v ->
+                let pos = positions () in
+                Queue.add (Parser.VAR v, pos) pending;
                 (Parser.DOT, pos)
-            | t -> t)
+            | Parser.NULLDOT ->
+                let pos = positions () in
+                Queue.add (Parser.DOT, pos) pending;
+                (Parser.VAR "_null", pos)
+            | Parser.LCUR when !open_strings <> [] ->
+                let frame = List.hd !open_strings in
+                frame.depth <- frame.depth + 1;
+                (Parser.LCUR, positions ())
+            | Parser.RCUR when !open_strings <> [] ->
+                let frame = List.hd !open_strings in
+                if frame.depth = 0 then (
+                  (* Closes the interpolation: back to reading the string. *)
+                  in_string := true;
+                  token ())
+                else (
+                  frame.depth <- frame.depth - 1;
+                  (Parser.RCUR, positions ()))
+            | token -> (token, positions ()))
   in
   token
 
@@ -153,6 +130,7 @@ let uminus tokenizer =
         | Parser.FLOAT _, _
         | Parser.VAR _, _
         | Parser.RPAR, _
+        | Parser.RBRA, _
         | Parser.RCUR, _ ) as t ->
           no_uminus := true;
           t
@@ -210,10 +188,7 @@ let strip_newlines tokenizer =
 
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname lexbuf =
-  let tokenizer =
-    mk_tokenizer ?fname lexbuf |> expand_string ?fname |> int_meth |> dotter
-    |> uminus |> strip_newlines
-  in
+  let tokenizer = mk_tokenizer ?fname lexbuf |> uminus |> strip_newlines in
   fun () ->
     let t, (startp, endp) = tokenizer () in
     (t, startp, endp)

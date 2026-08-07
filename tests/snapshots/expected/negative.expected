@@ -3,8 +3,17 @@ x = 3
 (-x, -1, 1 - -2)
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "x" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "3" }
+  },
+    {
     "type": "tuple",
     "value": [
       {
@@ -25,15 +34,11 @@ x = 3
       }
     }
     ]
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "x" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": { "type": "ground", "value": "3" }
+  }
+  ]
 }
 --- hash ---
-37ff9cbfafd948c4fcc896e3b52b6282
+7ad67eca690659e3e6da3796bead63a5
 --- term ---
 x = 3
 (~-(x), ~-(1), -(1, ~-(2)))

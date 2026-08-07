@@ -67,7 +67,32 @@ type _if = {
   if_end_pos : pos; [@hash.ignore]
 }
 
-and block = { block_body : t; block_pos : pos [@hash.ignore] }
+(* A binding scopes over the statements that follow it in its own block.
+   Constructs that stand for several statements -- `%include`, the static
+   conditionals -- splice into the list. *)
+and block = { block_body : statement list; block_pos : pos [@hash.ignore] }
+
+and statement = {
+  stmt : statement_ast;
+  stmt_pos : pos; [@hash.ignore]
+  mutable stmt_comments : (pos * comment) list; [@hash.ignore]
+}
+
+and statement_ast =
+  [ `Expr of t | `Binding of _let | `Open of t | `Include of inc ]
+
+(* %ifdef / %ifversion / %ifencoder: resolved before typechecking, against the
+   builtin environment, the build version and the available encoders. *)
+and static_cond =
+  [ `Defined of bool * string
+  | `Version of [ `Eq | `Geq | `Leq | `Gt | `Lt ] * Lang_string.Version.t
+  | `Encoder of bool * string ]
+
+and static_if = {
+  static_cond : static_cond;
+  static_then : block;
+  static_else : block option;
+}
 
 and if_elsif = {
   elsif_condition : t;
@@ -114,7 +139,12 @@ and let_decoration =
   | `Xml_parse
   | `Json_parse of (string * t) list ]
 
+(* Which surface syntax produced the binding. Semantically irrelevant -- all
+   three reduce to the same `Let` -- but the formatter round-trips it. *)
+and binding_kind = [ `Bare | `Let | `Def ]
+
 and _let = {
+  kind : binding_kind;
   decoration : let_decoration;
   pat : pattern;
   arglist : fun_arg list option;
@@ -137,27 +167,6 @@ and parsed_func_argument = {
 
 and fun_arg = [ `Term of parsed_func_argument | `Argsof of _of ]
 and list_el = [ `Term of t | `Ellipsis of t ]
-
-and if_def = {
-  if_def_negative : bool;
-  if_def_condition : string;
-  if_def_then_block : block;
-  if_def_else_block : block option;
-}
-
-and if_version = {
-  if_version_op : [ `Eq | `Geq | `Leq | `Gt | `Lt ];
-  if_version_version : Lang_string.Version.t;
-  if_version_then_block : block;
-  if_version_else_block : block option;
-}
-
-and if_encoder = {
-  if_encoder_negative : bool;
-  if_encoder_condition : string;
-  if_encoder_then_block : block;
-  if_encoder_else_block : block option;
-}
 
 and time_el = {
   week : int option;
@@ -204,9 +213,7 @@ and type_annotation =
 and parsed_ast =
   [ `If of _if
   | `Inline_if of _if
-  | `If_def of if_def
-  | `If_version of if_version
-  | `If_encoder of if_encoder
+  | `Static_if of static_if
   | `While of _while
   | `For of _for
   | `Iterable_for of iterable_for
@@ -215,9 +222,6 @@ and parsed_ast =
   | `Regexp of string * char list
   | `Time_interval of time_el * time_el
   | `Time of time_el
-  | `Def of _let * t
-  | `Let of _let * t
-  | `Binding of _let * t
   | `App of t * app_arg list
   | `Invoke of invoke
   | `Fun of fun_arg list * t
@@ -233,18 +237,16 @@ and parsed_ast =
   | `BoolOp of string * t list
   | `Coalesce of t * t
   | `At of t * t
-  | `Simple_fun of t
+  | `Simple_fun of block
   | `String_interpolation of char * string_interpolation list
-  | `Include of inc
   | `Int of string
   | `Bool of bool
   | `Float of string
   | `String of char * string
   | `Raw_string of string * string
-  | `Block of t
+  | `Block of block
   | `Parenthesis of t
   | `Encoder of encoder
-  | `Eof
   | (t, type_annotation) common_ast ]
 
 and t = {
@@ -271,140 +273,220 @@ let unit = `Tuple []
 let make ?(comments = []) ?(annotations = []) ~pos term =
   { pos; term; comments; annotations }
 
-let rec iter_term fn ({ term } as tm) =
-  if term <> `Eof then fn tm;
-  match term with
-    | `If p | `Inline_if p -> (
-        iter_term fn p.if_condition;
-        iter_term fn p.if_then_block.block_body;
-        List.iter
-          (fun { elsif_condition; elsif_then_block; _ } ->
-            iter_term fn elsif_condition;
-            iter_term fn elsif_then_block.block_body)
-          p.if_elsif;
-        match p.if_else_block with
-          | None -> ()
-          | Some b -> iter_term fn b.block_body)
-    | `If_def { if_def_then_block; if_def_else_block } -> (
-        iter_term fn if_def_then_block.block_body;
-        match if_def_else_block with
-          | None -> ()
-          | Some b -> iter_term fn b.block_body)
-    | `If_version { if_version_then_block; if_version_else_block } -> (
-        iter_term fn if_version_then_block.block_body;
-        match if_version_else_block with
-          | None -> ()
-          | Some b -> iter_term fn b.block_body)
-    | `If_encoder { if_encoder_then_block; if_encoder_else_block } -> (
-        iter_term fn if_encoder_then_block.block_body;
-        match if_encoder_else_block with
-          | None -> ()
-          | Some b -> iter_term fn b.block_body)
-    | `While { while_condition; while_do_block } ->
-        iter_term fn while_condition;
-        iter_term fn while_do_block.block_body
-    | `For { for_from; for_to; for_do_block } ->
-        iter_term fn for_from;
-        iter_term fn for_to;
-        iter_term fn for_do_block.block_body
-    | `Iterable_for { iterable_for_iterator; iterable_for_do_block } ->
-        iter_term fn iterable_for_iterator;
-        iter_term fn iterable_for_do_block.block_body
-    | `List l ->
-        List.iter (function `Term tm | `Ellipsis tm -> iter_term fn tm) l
-    | `Try { try_body_block; try_handler; try_finally_block } -> (
-        iter_term fn try_body_block.block_body;
-        (match try_handler with
-          | None -> ()
-          | Some { try_handler_errors_list; try_handler_block; _ } ->
-              (match try_handler_errors_list with
-                | None -> ()
-                | Some tm -> iter_term fn tm);
-              iter_term fn try_handler_block.block_body);
-        match try_finally_block with
-          | None -> ()
-          | Some b -> iter_term fn b.block_body)
-    | `Regexp _ -> ()
-    | `Time_interval _ -> ()
-    | `Time _ -> ()
-    | `Def (_let, tm) | `Let (_let, tm) | `Binding (_let, tm) ->
-        (match _let.arglist with
-          | Some args -> iter_fun_args fn args
-          | None -> ());
-        iter_term fn _let.def;
-        iter_term fn tm
-    | `Cast { cast } -> iter_term fn cast
-    | `App (tm, args) ->
-        iter_term fn tm;
-        List.iter
-          (function `Term (_, tm) -> iter_term fn tm | `Argsof _ -> ())
-          args
-    | `Invoke { invoked; meth } -> (
-        iter_term fn invoked;
-        match meth with
-          | `String _ -> ()
-          | `App (_, args) ->
-              List.iter
-                (function `Argsof _ -> () | `Term (_, tm) -> iter_term fn tm)
-                args)
-    | `Fun (args, tm) | `RFun (_, args, tm) ->
-        iter_fun_args fn args;
-        iter_term fn tm
-    | `Not tm -> iter_term fn tm
-    | `Get tm -> iter_term fn tm
-    | `Set (tm, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
-    | `Negative tm -> iter_term fn tm
-    | `Append (tm, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
-    | `Assoc (tm, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
-    | `Infix (tm, _, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
-    | `BoolOp (_, l) -> List.iter (iter_term fn) l
-    | `Coalesce (tm, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
-    | `At (tm, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
-    | `Simple_fun tm -> iter_term fn tm
-    | `Include _ -> ()
-    | `Custom _ -> ()
-    | `Encoder _ -> ()
-    | `Tuple l -> List.iter (iter_term fn) l
-    | `Null -> ()
-    | `Open (tm, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
-    | `Parenthesis tm -> iter_term fn tm
-    | `Block tm -> iter_term fn tm
-    | `Methods (base, methods) ->
-        (match base with None -> () | Some tm -> iter_term fn tm);
-        List.iter
-          (function `Method (_, tm) | `Ellipsis tm -> iter_term fn tm)
-          methods
-    | `Int _ -> ()
-    | `Float _ -> ()
-    | `String _ -> ()
-    | `Raw_string _ -> ()
-    | `Bool _ -> ()
-    | `Var _ -> ()
-    | `Eof -> ()
-    | `String_interpolation (_, l) ->
-        List.iter (function `String _ -> () | `Term tm -> iter_term fn tm) l
-    | `Seq (tm, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
+(** [map_children fn ast] applies [fn] to every direct child term of [ast], and
+    [map_block] / [map_statement] do the same for blocks and statements.
 
-and iter_fun_args fn args =
-  List.iter
-    (function
-      | `Term tm -> (
-          match tm.default with Some tm -> iter_term fn tm | None -> ())
-      | `Argsof _ -> ())
-    args
+    Children are visited in source order, using explicit [let] bindings rather
+    than record literals: OCaml leaves record field evaluation order
+    unspecified, and [iter_term] below relies on the order to break ties when
+    attaching a comment to the closest of two equally distant terms.
+
+    These are the one place that knows the shape of [parsed_ast]; [iter_term]
+    and [Term_preprocessor.expand_term] are both written on top of them.
+
+    [?block] overrides how blocks are rebuilt. `%include` expansion needs it:
+    splicing turns one statement into several, which [map_statement] alone
+    cannot express. *)
+let rec map_children ?block:on_block fn ast =
+  let block b =
+    match on_block with Some f -> f b | None -> map_block ?block:on_block fn b
+  in
+  let opt_block = Option.map block in
+  let opt = Option.map fn in
+  let _if ({ if_condition; if_then_block; if_elsif; if_else_block; _ } as p) =
+    let if_condition = fn if_condition in
+    let if_then_block = block if_then_block in
+    let if_elsif =
+      List.map
+        (fun ({ elsif_condition; elsif_then_block; _ } as e) ->
+          let elsif_condition = fn elsif_condition in
+          let elsif_then_block = block elsif_then_block in
+          { e with elsif_condition; elsif_then_block })
+        if_elsif
+    in
+    let if_else_block = opt_block if_else_block in
+    { p with if_condition; if_then_block; if_elsif; if_else_block }
+  in
+  let fun_args =
+    List.map (function
+      | `Term arg -> `Term { arg with default = opt arg.default }
+      | `Argsof _ as v -> v)
+  in
+  let app_args =
+    List.map (function
+      | `Term (lbl, tm) -> `Term (lbl, fn tm)
+      | `Argsof _ as v -> v)
+  in
+  let rec encoder (lbl, params) =
+    ( lbl,
+      List.map
+        (function
+          | `Anonymous _ as v -> v
+          | `Labelled (s, tm) -> `Labelled (s, fn tm)
+          | `Encoder e -> `Encoder (encoder e))
+        params )
+  in
+  match ast with
+    | `If p -> `If (_if p)
+    | `Inline_if p -> `Inline_if (_if p)
+    | `Static_if p -> `Static_if (map_static_if ?block:on_block fn p)
+    | `While { while_condition; while_do_block } ->
+        let while_condition = fn while_condition in
+        let while_do_block = block while_do_block in
+        `While { while_condition; while_do_block }
+    | `For ({ for_from; for_to; for_do_block; _ } as p) ->
+        let for_from = fn for_from in
+        let for_to = fn for_to in
+        let for_do_block = block for_do_block in
+        `For { p with for_from; for_to; for_do_block }
+    | `Iterable_for ({ iterable_for_iterator; iterable_for_do_block; _ } as p)
+      ->
+        let iterable_for_iterator = fn iterable_for_iterator in
+        let iterable_for_do_block = block iterable_for_do_block in
+        `Iterable_for { p with iterable_for_iterator; iterable_for_do_block }
+    | `List l ->
+        `List
+          (List.map
+             (function
+               | `Term tm -> `Term (fn tm) | `Ellipsis tm -> `Ellipsis (fn tm))
+             l)
+    | `Try { try_body_block; try_handler; try_finally_block } ->
+        let try_body_block = block try_body_block in
+        let try_handler =
+          Option.map
+            (fun ({ try_handler_errors_list; try_handler_block; _ } as h) ->
+              let try_handler_errors_list = opt try_handler_errors_list in
+              let try_handler_block = block try_handler_block in
+              { h with try_handler_errors_list; try_handler_block })
+            try_handler
+        in
+        let try_finally_block = opt_block try_finally_block in
+        `Try { try_body_block; try_handler; try_finally_block }
+    | `Cast { cast; typ } -> `Cast { cast = fn cast; typ }
+    | `App (tm, args) ->
+        let tm = fn tm in
+        `App (tm, app_args args)
+    | `Invoke ({ invoked; meth; _ } as p) ->
+        let invoked = fn invoked in
+        let meth =
+          match meth with
+            | `String _ as s -> s
+            | `App (n, args) -> `App (n, app_args args)
+        in
+        `Invoke { p with invoked; meth }
+    | `Fun (args, tm) ->
+        let args = fun_args args in
+        `Fun (args, fn tm)
+    | `RFun (name, args, tm) ->
+        let args = fun_args args in
+        `RFun (name, args, fn tm)
+    | `Not tm -> `Not (fn tm)
+    | `Get tm -> `Get (fn tm)
+    | `Set (tm, tm') ->
+        let tm = fn tm in
+        `Set (tm, fn tm')
+    | `Negative tm -> `Negative (fn tm)
+    | `Append (tm, tm') ->
+        let tm = fn tm in
+        `Append (tm, fn tm')
+    | `Assoc (tm, tm') ->
+        let tm = fn tm in
+        `Assoc (tm, fn tm')
+    | `Infix (tm, op, tm') ->
+        let tm = fn tm in
+        `Infix (tm, op, fn tm')
+    | `BoolOp (op, l) -> `BoolOp (op, List.map fn l)
+    | `Coalesce (tm, tm') ->
+        let tm = fn tm in
+        `Coalesce (tm, fn tm')
+    | `At (tm, tm') ->
+        let tm = fn tm in
+        `At (tm, fn tm')
+    | `Simple_fun b -> `Simple_fun (block b)
+    | `Tuple l -> `Tuple (List.map fn l)
+    | `Open (tm, tm') ->
+        let tm = fn tm in
+        `Open (tm, fn tm')
+    | `Seq (tm, tm') ->
+        let tm = fn tm in
+        `Seq (tm, fn tm')
+    | `Parenthesis tm -> `Parenthesis (fn tm)
+    | `Block b -> `Block (block b)
+    | `Methods (base, methods) ->
+        let base = opt base in
+        `Methods
+          ( base,
+            List.map
+              (function
+                | `Method (name, tm) -> `Method (name, fn tm)
+                | `Ellipsis tm -> `Ellipsis (fn tm))
+              methods )
+    | `String_interpolation (sep, l) ->
+        `String_interpolation
+          ( sep,
+            List.map
+              (function `String _ as s -> s | `Term tm -> `Term (fn tm))
+              l )
+    | `Encoder e -> `Encoder (encoder e)
+    (* Leaves: no child terms. *)
+    | ( `Regexp _ | `Time_interval _ | `Time _ | `Int _ | `Float _ | `String _
+      | `Raw_string _ | `Bool _ | `Var _ | `Null | `Custom _ ) as ast ->
+        ast
+
+and map_block ?block fn b =
+  { b with block_body = List.map (map_statement ?block fn) b.block_body }
+
+and map_static_if ?block:on_block fn ({ static_then; static_else; _ } as p) =
+  let block b =
+    match on_block with Some f -> f b | None -> map_block ?block:on_block fn b
+  in
+  let static_then = block static_then in
+  let static_else = Option.map block static_else in
+  { p with static_then; static_else }
+
+and map_let fn ({ decoration; arglist; def; _ } as l) =
+  let decoration =
+    match decoration with
+      | `Json_parse args ->
+          `Json_parse (List.map (fun (lbl, tm) -> (lbl, fn tm)) args)
+      | ( `None | `Recursive | `Replaces | `Eval | `Sqlite_query | `Sqlite_row
+        | `Yaml_parse | `Xml_parse ) as d ->
+          d
+  in
+  let arglist =
+    Option.map
+      (List.map (function
+        | `Term arg -> `Term { arg with default = Option.map fn arg.default }
+        | `Argsof _ as v -> v))
+      arglist
+  in
+  let def = fn def in
+  { l with decoration; arglist; def }
+
+and map_statement ?block:_ fn stmt =
+  let stmt_ast =
+    match stmt.stmt with
+      | `Expr tm -> `Expr (fn tm)
+      | `Binding l -> `Binding (map_let fn l)
+      | `Open tm -> `Open (fn tm)
+      | `Include _ as v -> v
+  in
+  { stmt with stmt = stmt_ast }
+
+let rec iter_term fn tm =
+  fn tm;
+  ignore
+    (map_children
+       (fun tm ->
+         iter_term fn tm;
+         tm)
+       tm.term)
+
+(** Visit every term in [b], including those inside its statements. *)
+let iter_block fn b =
+  ignore
+    (map_block
+       (fun tm ->
+         iter_term fn tm;
+         tm)
+       b)

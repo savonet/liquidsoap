@@ -3,8 +3,39 @@ let {a, b?} = {a = 1}
 (a, b)
 --- parsed ---
 {
-  "type": "let",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "let",
+    "decoration": null,
+    "pat": {
+      "type": "pmeth",
+      "value": [
+        {
+        "type": "var",
+        "value": "a"
+      },
+        {
+        "type": "var",
+        "value": "b?"
+      }
+      ]
+    },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "methods",
+      "base": null,
+      "methods": [
+        {
+        "type": "method",
+        "name": "a",
+        "value": { "type": "ground", "value": "1" }
+      }
+      ]
+    }
+  },
+    {
     "type": "tuple",
     "value": [
       {
@@ -16,37 +47,11 @@ let {a, b?} = {a = 1}
       "value": "b"
     }
     ]
-  },
-  "decoration": null,
-  "pat": {
-    "type": "pmeth",
-    "value": [
-      {
-      "type": "var",
-      "value": "a"
-    },
-      {
-      "type": "var",
-      "value": "b?"
-    }
-    ]
-  },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "methods",
-    "base": null,
-    "methods": [
-      {
-      "type": "method",
-      "name": "a",
-      "value": { "type": "ground", "value": "1" }
-    }
-    ]
   }
+  ]
 }
 --- hash ---
-2f7b8c3c3c161d7b89e4ff2165c66251
+69431f68a7ea92151ce5083ff2a4f627
 --- term ---
 _pat0 = {a=1}
 a = _pat0.a

@@ -12,7 +12,12 @@
    error messages are part of the snapshot too.
 
    Everything runs against [liquidsoap_lang] alone, with no standard library
-   and no streaming core, so the output only depends on the language. *)
+   and no streaming core, so the output only depends on the language.
+
+   With [--canonical], it instead dumps [Parsed_json.parse_string]: the flat,
+   keyword-anchored JSON that liquidsoap-prettier consumes, positions included.
+   That is a separate contract from the [parsed] section above — it is spec'd in
+   [parsed_json.mli] — and positions are exactly what it turns on. *)
 
 open Liquidsoap_lang
 
@@ -65,16 +70,30 @@ let describe_error ~buffer ~throw exn =
         |> List.filter (fun l -> not (is_backtrace_frame l))
         |> String.concat "\n" |> String.trim
 
-let run_file file =
+let read_source file =
+  let ic = open_in_bin file in
+  Fun.protect
+    ~finally:(fun () -> close_in ic)
+    (fun () -> really_input_string ic (in_channel_length ic))
+
+let echo_source file source =
   Printf.printf "=== %s ===\n" (Filename.basename file);
-  let source =
-    let ic = open_in_bin file in
-    Fun.protect
-      ~finally:(fun () -> close_in ic)
-      (fun () -> really_input_string ic (in_channel_length ic))
-  in
   print_string source;
-  if not (String.ends_with ~suffix:"\n" source) then print_newline ();
+  if not (String.ends_with ~suffix:"\n" source) then print_newline ()
+
+(* The prettier ABI: block spans and comment offsets, which the pipeline
+   snapshots above deliberately strip. Nothing else covers this. *)
+let run_canonical_file file =
+  let source = read_source file in
+  echo_source file source;
+  section "canonical";
+  match Liquidsoap_tooling.Parsed_json.parse_string source with
+    | json -> print_endline (Json.to_string ~compact:false json)
+    | exception exn -> print_endline (Printexc.to_string exn)
+
+let run_file file =
+  let source = read_source file in
+  echo_source file source;
   let buffer = Buffer.create 1024 in
   let formatter = Format.formatter_of_buffer buffer in
   let lexbuf = Sedlexing.Utf8.from_string source in
@@ -95,7 +114,14 @@ let run_file file =
   in
   let parsed =
     stage "parsed" (fun () ->
-        let parsed = Runtime.program (Preprocessor.mk_tokenizer lexbuf) in
+        (* [expand_term] is what splices `%include`d files in, and the filename is
+           what relative include paths resolve against. Running it here also makes
+           the `hash` section below the actual cache key: [Term_cache] hashes the
+           expanded parsed term. *)
+        let parsed =
+          Term_preprocessor.expand_term
+            (Runtime.program (Preprocessor.mk_tokenizer ~fname:file lexbuf))
+        in
         print_string
           (Json.to_string ~compact:false
              (without_positions (Liquidsoap_tooling.Parsed_json.to_json parsed)));
@@ -129,5 +155,7 @@ let run_file file =
              print_endline (Value.to_string (Evaluation.eval term)))))
 
 let () =
-  let files = List.tl (Array.to_list Sys.argv) in
-  List.iter run_file (List.sort compare files)
+  match List.tl (Array.to_list Sys.argv) with
+    | "--canonical" :: files ->
+        List.iter run_canonical_file (List.sort compare files)
+    | files -> List.iter run_file (List.sort compare files)

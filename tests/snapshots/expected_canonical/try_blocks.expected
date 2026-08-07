@@ -1,0 +1,384 @@
+=== try_blocks.liq ===
+# `try` is emitted as a `parts` array of try_body / try_catch / try_finally,
+# each with its own keyword-anchored span.
+try
+  error.raise(error.not_found, "nope")
+catch err : [error.not_found] do
+  err.message
+finally
+  ()
+end
+--- canonical ---
+{
+  "ast": {
+    "type": "program",
+    "position": [
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 0
+    },
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 227
+    }
+    ],
+    "body": [
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 3,
+        "bol": 120,
+        "cnum": 120
+      },
+        {
+        "fname": "",
+        "lnum": 9,
+        "bol": 223,
+        "cnum": 226
+      }
+      ],
+      "type": "try",
+      "parts": [
+        {
+        "type": "try_body",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 3,
+          "bol": 120,
+          "cnum": 120
+        },
+          {
+          "fname": "",
+          "lnum": 5,
+          "bol": 163,
+          "cnum": 163
+        }
+        ],
+        "body": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 4,
+            "bol": 124,
+            "cnum": 126
+          },
+            {
+            "fname": "",
+            "lnum": 4,
+            "bol": 124,
+            "cnum": 162
+          }
+          ],
+          "type": "invoke",
+          "invoked": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 4,
+              "bol": 124,
+              "cnum": 126
+            },
+              {
+              "fname": "",
+              "lnum": 4,
+              "bol": 124,
+              "cnum": 131
+            }
+            ],
+            "type": "var",
+            "value": "error"
+          },
+          "optional": false,
+          "meth": {
+            "type": "app",
+            "op": { "type": "var", "value": "raise" },
+            "args": [
+              {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 4,
+                "bol": 124,
+                "cnum": 138
+              },
+                {
+                "fname": "",
+                "lnum": 4,
+                "bol": 124,
+                "cnum": 153
+              }
+              ],
+              "type": "term",
+              "value": {
+                "type": "app_arg",
+                "label": "",
+                "value": {
+                  "position": [
+                    {
+                    "fname": "",
+                    "lnum": 4,
+                    "bol": 124,
+                    "cnum": 138
+                  },
+                    {
+                    "fname": "",
+                    "lnum": 4,
+                    "bol": 124,
+                    "cnum": 153
+                  }
+                  ],
+                  "type": "invoke",
+                  "invoked": {
+                    "position": [
+                      {
+                      "fname": "",
+                      "lnum": 4,
+                      "bol": 124,
+                      "cnum": 138
+                    },
+                      {
+                      "fname": "",
+                      "lnum": 4,
+                      "bol": 124,
+                      "cnum": 143
+                    }
+                    ],
+                    "type": "var",
+                    "value": "error"
+                  },
+                  "optional": false,
+                  "meth": { "type": "var", "value": "not_found" }
+                }
+              }
+            },
+              {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 4,
+                "bol": 124,
+                "cnum": 155
+              },
+                {
+                "fname": "",
+                "lnum": 4,
+                "bol": 124,
+                "cnum": 161
+              }
+              ],
+              "type": "term",
+              "value": {
+                "type": "app_arg",
+                "label": "",
+                "value": {
+                  "position": [
+                    {
+                    "fname": "",
+                    "lnum": 4,
+                    "bol": 124,
+                    "cnum": 155
+                  },
+                    {
+                    "fname": "",
+                    "lnum": 4,
+                    "bol": 124,
+                    "cnum": 161
+                  }
+                  ],
+                  "type": "string",
+                  "value": "\"nope\""
+                }
+              }
+            }
+            ]
+          }
+        }
+        ]
+      },
+        {
+        "type": "try_catch",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 5,
+          "bol": 163,
+          "cnum": 163
+        },
+          {
+          "fname": "",
+          "lnum": 7,
+          "bol": 210,
+          "cnum": 210
+        }
+        ],
+        "variable": "err",
+        "errors_list": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 5,
+            "bol": 163,
+            "cnum": 175
+          },
+            {
+            "fname": "",
+            "lnum": 5,
+            "bol": 163,
+            "cnum": 192
+          }
+          ],
+          "type": "list",
+          "value": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 5,
+              "bol": 163,
+              "cnum": 176
+            },
+              {
+              "fname": "",
+              "lnum": 5,
+              "bol": 163,
+              "cnum": 191
+            }
+            ],
+            "type": "term",
+            "value": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 5,
+                "bol": 163,
+                "cnum": 176
+              },
+                {
+                "fname": "",
+                "lnum": 5,
+                "bol": 163,
+                "cnum": 191
+              }
+              ],
+              "type": "invoke",
+              "invoked": {
+                "position": [
+                  {
+                  "fname": "",
+                  "lnum": 5,
+                  "bol": 163,
+                  "cnum": 176
+                },
+                  {
+                  "fname": "",
+                  "lnum": 5,
+                  "bol": 163,
+                  "cnum": 181
+                }
+                ],
+                "type": "var",
+                "value": "error"
+              },
+              "optional": false,
+              "meth": { "type": "var", "value": "not_found" }
+            }
+          }
+          ]
+        },
+        "body": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 196,
+            "cnum": 198
+          },
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 196,
+            "cnum": 209
+          }
+          ],
+          "type": "invoke",
+          "invoked": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 196,
+              "cnum": 198
+            },
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 196,
+              "cnum": 201
+            }
+            ],
+            "type": "var",
+            "value": "err"
+          },
+          "optional": false,
+          "meth": { "type": "var", "value": "message" }
+        }
+        ]
+      },
+        {
+        "type": "try_finally",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 7,
+          "bol": 210,
+          "cnum": 210
+        },
+          {
+          "fname": "",
+          "lnum": 9,
+          "bol": 223,
+          "cnum": 223
+        }
+        ],
+        "body": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 8,
+            "bol": 218,
+            "cnum": 220
+          },
+            {
+            "fname": "",
+            "lnum": 8,
+            "bol": 218,
+            "cnum": 222
+          }
+          ],
+          "type": "tuple",
+          "value": []
+        }
+        ]
+      }
+      ]
+    }
+    ]
+  },
+  "comments": [
+    {
+    "start": 0,
+    "end": 119,
+    "lnum": 1,
+    "value": "# `try` is emitted as a `parts` array of try_body / try_catch / try_finally,\n# each with its own keyword-anchored span."
+  }
+  ]
+}

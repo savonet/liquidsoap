@@ -38,24 +38,30 @@ type lexer_let_decoration =
   | `Sqlite_row
   | `Sqlite_query ]
 
-type explicit_binding = [ `Def of Parsed_term._let | `Let of Parsed_term._let ]
-type binding = [ explicit_binding | `Binding of Parsed_term._let ]
 type let_opt_el = string * Parsed_term.t
 
 val clear_comments : unit -> unit
 val get_pending_comments : unit -> (pos * string list) list
 val append_comment : pos:pos -> string -> unit
 val attach_comments : Parsed_term.t -> unit
+val mk_stmt : pos:pos -> Parsed_term.statement_ast -> Parsed_term.statement
+val mk_block : pos:pos -> Parsed_term.statement list -> Parsed_term.block
 
-val mk_let :
-  pos:pos ->
-  [< `Binding of Parsed_term._let
-  | `Def of Parsed_term._let
-  | `Let of Parsed_term._let ] ->
-  Parsed_term.t ->
-  Parsed_term.t
+(** A block where an expression is expected. A single-expression block is
+    returned unwrapped, which is the common case (`if a then`, `def f() = e
+    end`) and keeps the AST free of redundant `Block` nodes. *)
+val expr_of_block : pos:pos -> Parsed_term.block -> Parsed_term.t
+
+val block_expr : pos:pos -> Parsed_term.statement list -> Parsed_term.t
+
+(** Reinterpret a bare binding's left-hand side, parsed as an expression, as a
+    pattern plus an optional type annotation. Raises [Term.Parse_error] if it is
+    not a valid target. *)
+val binding_target :
+  Parsed_term.t -> Parsed_term.pattern * Parsed_term.type_annotation option
 
 val let_args :
+  kind:Parsed_term.binding_kind ->
   decoration:Parsed_term.let_decoration ->
   pat:Parsed_term.pattern ->
   ?arglist:arglist ->
@@ -105,5 +111,4 @@ val mk_encoder :
   pos:pos -> string -> Parsed_term.encoder_params -> Parsed_term.t
 
 val args_of_json_parse : pos:pos -> (string * 'a) list -> (string * 'a) list
-val render_string_ref : (pos:pos -> char * string -> string) ref
 val render_string : pos:pos -> char * string -> string
