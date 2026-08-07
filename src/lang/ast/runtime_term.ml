@@ -83,6 +83,24 @@ type 'a let_t = {
 
 type cached_env = { var_name : int; var_id : int; env : Typing.env }
 
+(* [`Cache_env] is a sentinel appended to the end of the standard library's
+   let-chain, filled by the typechecker with the environment in scope at that
+   point -- that is, every stdlib binding -- along with the global type-variable
+   counters.
+
+   It lives in the term rather than beside it for two reasons. The typing
+   environment is an immutable object threaded *down* the recursion, so once
+   [Typechecking.check] returns, the extensions made by the top-level lets are
+   out of scope; the innermost body is the only place the full environment can
+   be observed. And the environment has to be marshalled in the same call as the
+   term, so that they share one [Type.t] graph: serialised apart, every type
+   variable in the environment would be a distinct copy from the term's, and
+   unifying the user script against it would silently do the wrong thing.
+
+   Reconstructing the environment from the checked term instead would mean
+   replaying the [`Let] case of the typechecker -- [type_of_pat], the [replace]
+   remeth, and the nested-path [Type.meths] case -- in a second place. *)
+
 type 'a runtime_ast =
   [ `Int of int
   | `Cache_env of cached_env ref
