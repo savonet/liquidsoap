@@ -41,71 +41,35 @@ let mk_expr ?fname processor lexbuf =
   let parsed_term = Term_preprocessor.mk_expr ?fname processor lexbuf in
   Term_preprocessor.expand_term parsed_term
 
-let pp_if_reducer ~env ~pos = function
-  | `If_def
-      {
-        if_def_negative;
-        if_def_condition;
-        if_def_then_block;
-        if_def_else_block;
-      } -> (
-      let if_def_else =
-        Option.value
-          ~default:(mk_parsed ~pos (`Tuple []))
-          (Option.map (fun b -> b.block_body) if_def_else_block)
-      in
-      match
-        ( List.mem_assoc if_def_condition env
-          || Environment.has_builtin if_def_condition,
-          if_def_negative )
-      with
-        | true, false | false, true -> if_def_then_block.block_body
-        | _ -> if_def_else)
-  | `If_version
-      {
-        if_version_op;
-        if_version_version;
-        if_version_then_block;
-        if_version_else_block;
-      } -> (
-      let if_version_else =
-        Option.value
-          ~default:(mk_parsed ~pos (`Tuple []))
-          (Option.map (fun b -> b.block_body) if_version_else_block)
-      in
-      let current_version =
-        Lang_string.Version.of_string Build_config.version
-      in
-      match
-        ( if_version_op,
-          Lang_string.Version.compare current_version if_version_version )
-      with
-        | `Eq, 0 -> if_version_then_block.block_body
-        | `Geq, v when v >= 0 -> if_version_then_block.block_body
-        | `Leq, v when v <= 0 -> if_version_then_block.block_body
-        | `Gt, v when v > 0 -> if_version_then_block.block_body
-        | `Lt, v when v < 0 -> if_version_then_block.block_body
-        | _ -> if_version_else)
-  | `If_encoder
-      {
-        if_encoder_negative;
-        if_encoder_condition;
-        if_encoder_then_block;
-        if_encoder_else_block;
-      } -> (
-      let if_encoder_else =
-        Option.value
-          ~default:(mk_parsed ~pos (`Tuple []))
-          (Option.map (fun b -> b.block_body) if_encoder_else_block)
-      in
-      try
-        let encoder =
-          !Hooks.make_encoder ~pos:None (if_encoder_condition, [])
-        in
-        match (!Hooks.has_encoder encoder, if_encoder_negative) with
-          | true, false | false, true -> if_encoder_then_block.block_body
-          | _ -> if_encoder_else
-      with _ -> if_encoder_else)
+(* Select the branch of a static conditional. Returns the statements of the
+   selected block, which the caller splices into the enclosing block. *)
+let static_branch ~env { static_cond; static_then; static_else } =
+  let taken =
+    match static_cond with
+      | `Defined (negative, name) ->
+          let defined =
+            List.mem_assoc name env || Environment.has_builtin name
+          in
+          defined <> negative
+      | `Version (op, version) -> (
+          let current = Lang_string.Version.of_string Build_config.version in
+          match (op, Lang_string.Version.compare current version) with
+            | `Eq, 0 -> true
+            | `Geq, v -> v >= 0
+            | `Leq, v -> v <= 0
+            | `Gt, v -> v > 0
+            | `Lt, v -> v < 0
+            | _ -> false)
+      | `Encoder (negative, name) -> (
+          try
+            let encoder = !Hooks.make_encoder ~pos:None (name, []) in
+            !Hooks.has_encoder encoder <> negative
+            (* An unknown encoder name is treated as "not available", i.e. the
+               else branch, for both %ifencoder and %ifnencoder. *)
+          with _ -> false)
+  in
+  if taken then static_then.block_body
+  else (match static_else with Some b -> b.block_body | None -> [])
 
 let to_encoder_string = function
   | `Verbatim s -> s
@@ -125,17 +89,21 @@ and to_encoder ~env ~to_term (lbl, params) =
 let rec to_ast ~throw ~env ~pos ~comments ast =
   let to_ast = to_ast ~throw in
   let to_term = to_term ~throw in
+  let to_block = to_block ~throw in
   match ast with
-    | `Methods _ | `Block _ | `Parenthesis _ | `Eof | `Include _ -> assert false
-    | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
-        (to_term ~env (pp_if_reducer ~pos ~env ast)).term
+    | `Methods _ | `Block _ | `Parenthesis _ -> assert false
+    | `Static_if p ->
+        (* Value position: the selected branch is a block used as a value. *)
+        (to_block ~env { block_body = static_branch ~env p; block_pos = pos })
+          .term
     | `Get _ as ast -> get_reducer ~pos ~env ~to_term ast
     | `Set _ as ast -> set_reducer ~pos ~env ~to_term ast
-    | `Inline_if _ as ast -> if_reducer ~pos ~env ~to_term ast
-    | `If _ as ast -> if_reducer ~pos ~env ~to_term ast
-    | `While _ as ast -> while_reducer ~pos ~env ~to_term ast
-    | `For _ as ast -> for_reducer ~pos ~env ~to_term ast
-    | `Iterable_for _ as ast -> iterable_for_reducer ~pos ~env ~to_term ast
+    | `Inline_if _ as ast -> if_reducer ~pos ~env ~to_term ~to_block ast
+    | `If _ as ast -> if_reducer ~pos ~env ~to_term ~to_block ast
+    | `While _ as ast -> while_reducer ~pos ~env ~to_term ~to_block ast
+    | `For _ as ast -> for_reducer ~pos ~env ~to_term ~to_block ast
+    | `Iterable_for _ as ast ->
+        iterable_for_reducer ~pos ~env ~to_term ~to_block ast
     | `Not _ as ast -> not_reducer ~pos ~env ~to_term ast
     | `Negative _ as ast -> negative_reducer ~pos ~env ~to_term ast
     | `Append _ as ast -> append_reducer ~pos ~env ~to_term ast
@@ -143,9 +111,9 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
     | `Infix _ as ast -> infix_reducer ~pos ~env ~to_term ast
     | `Bool _ as ast -> ast
     | `BoolOp _ as ast -> bool_op_reducer ~pos ~env ~to_term ast
-    | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~env ~to_term ast
+    | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~env ~to_block ast
     | `Regexp _ as ast -> regexp_reducer ~pos ~env ~to_term ast
-    | `Try _ as ast -> try_reducer ~pos ~env ~to_term ast
+    | `Try _ as ast -> try_reducer ~pos ~env ~to_term ~to_block ast
     | `String_interpolation (sep, l) ->
         let l =
           List.map
@@ -168,8 +136,6 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
         in
         to_ast ~env ~pos ~comments
           (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
-    | `Def p | `Let p | `Binding p ->
-        mk_let ~throw ~pos ~env ~to_term ~comments p
     | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
     | `At (t, t') -> `App (to_term ~env t', [("", to_term ~env t)])
     | `Time t -> mk_time_pred ~pos (during ~pos t)
@@ -211,18 +177,39 @@ and to_func ~pos ~env ~to_term ~throw ?name arguments body =
   let mk_def, arguments = expand_argsof ~throw ~pos ~env ~to_term arguments in
   { name; arguments; body = mk_def (to_term ~env body); free_vars = None }
 
+(* The scoping rule, in one place: a binding scopes over the statements that
+   follow it in its own block, and a static conditional splices the statements
+   of the branch it selects in front of them. *)
+and to_block ~throw ~env ({ block_body; block_pos } : Parsed_term.block) :
+    Term.t =
+  let rec fold ~env = function
+    | [] -> mk ~pos:block_pos (`Tuple [])
+    (* A static conditional in statement position splices the statements of the
+       branch it selects, so a binding made under `%ifdef` scopes over the rest
+       of the block. In expression position it is a value: see `to_ast`. *)
+    | { stmt = `Expr { term = `Static_if p; _ }; _ } :: rest ->
+        fold ~env (static_branch ~env p @ rest)
+    | [{ stmt = `Expr tm; _ }] -> to_term ~throw ~env tm
+    | { stmt; stmt_pos = pos; stmt_comments = comments } :: rest -> (
+        match stmt with
+          | `Expr tm -> mk ~pos (`Seq (to_term ~throw ~env tm, fold ~env rest))
+          | `Open tm -> mk ~pos (`Open (to_term ~throw ~env tm, fold ~env rest))
+          | `Binding l ->
+              mk ~pos
+                (mk_let ~throw ~pos ~env ~to_term:(to_term ~throw) ~comments
+                   ~body:(fun env -> fold ~env rest)
+                   l)
+          (* Removed by Term_preprocessor.expand_term. *)
+          | `Include _ -> assert false)
+  in
+  fold ~env block_body
+
 and to_term ~throw ~env (tm : Parsed_term.t) : Term.t =
   let to_term = to_term ~throw in
   report_annotations ~throw ~pos:tm.pos tm.annotations;
   match tm.term with
-    | `Seq ({ pos; term = `If_def _ as ast }, t')
-    | `Seq ({ pos; term = `If_encoder _ as ast }, t')
-    | `Seq ({ pos; term = `If_version _ as ast }, t') ->
-        let t = pp_if_reducer ~pos ~env ast in
-        to_term ~env (Term_preprocessor.concat_term t t')
-    | `Block tm -> to_term ~env tm
+    | `Block b -> to_block ~throw ~env b
     | `Parenthesis tm -> to_term ~env tm
-    | `Eof -> to_term ~env { tm with term = `Tuple [] }
     | `Methods (base, methods) ->
         (* let _ = src in
            let replaces _ = dst in
@@ -284,4 +271,8 @@ let to_encoder_params ~throw =
   to_encoder_params ~env:[] ~to_term
 
 let to_term ~throw tm = to_term ~throw ~env:[] tm
-let needs_toplevel = Term_reducer_let.needs_toplevel
+
+(* `let eval` desugars to a call to `_0_eval`, which parses a string at run time
+   and so needs the standard library to still be around. Asking the term rather
+   than remembering that we reduced one keeps this a property of the script. *)
+let needs_toplevel term = Vars.mem "_0_eval" (Term.free_vars term)

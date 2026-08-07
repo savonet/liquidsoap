@@ -3,8 +3,74 @@ let [x, [y, z]] = [[1], [2, 3]]
 (x, y, z)
 --- parsed ---
 {
-  "type": "let",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "let",
+    "decoration": null,
+    "pat": {
+      "type": "plist",
+      "left": [
+        {
+        "type": "pvar",
+        "value": [ "x" ]
+      },
+        {
+        "type": "plist",
+        "left": [
+          {
+          "type": "pvar",
+          "value": [ "y" ]
+        },
+          {
+          "type": "pvar",
+          "value": [ "z" ]
+        }
+        ],
+        "middle": null,
+        "right": []
+      }
+      ],
+      "middle": null,
+      "right": []
+    },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "list",
+      "value": [
+        {
+        "type": "term",
+        "value": {
+          "type": "list",
+          "value": [
+            {
+            "type": "term",
+            "value": { "type": "ground", "value": "1" }
+          }
+          ]
+        }
+      },
+        {
+        "type": "term",
+        "value": {
+          "type": "list",
+          "value": [
+            {
+            "type": "term",
+            "value": { "type": "ground", "value": "2" }
+          },
+            {
+            "type": "term",
+            "value": { "type": "ground", "value": "3" }
+          }
+          ]
+        }
+      }
+      ]
+    }
+  },
+    {
     "type": "tuple",
     "value": [
       {
@@ -20,72 +86,11 @@ let [x, [y, z]] = [[1], [2, 3]]
       "value": "z"
     }
     ]
-  },
-  "decoration": null,
-  "pat": {
-    "type": "plist",
-    "left": [
-      {
-      "type": "pvar",
-      "value": [ "x" ]
-    },
-      {
-      "type": "plist",
-      "left": [
-        {
-        "type": "pvar",
-        "value": [ "y" ]
-      },
-        {
-        "type": "pvar",
-        "value": [ "z" ]
-      }
-      ],
-      "middle": null,
-      "right": []
-    }
-    ],
-    "middle": null,
-    "right": []
-  },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "list",
-    "value": [
-      {
-      "type": "term",
-      "value": {
-        "type": "list",
-        "value": [
-          {
-          "type": "term",
-          "value": { "type": "ground", "value": "1" }
-        }
-        ]
-      }
-    },
-      {
-      "type": "term",
-      "value": {
-        "type": "list",
-        "value": [
-          {
-          "type": "term",
-          "value": { "type": "ground", "value": "2" }
-        },
-          {
-          "type": "term",
-          "value": { "type": "ground", "value": "3" }
-        }
-        ]
-      }
-    }
-    ]
   }
+  ]
 }
 --- hash ---
-2e22064665d7c994f8d88e0f78e092fa
+ec04c3b0cea3480dadaca14d6b239163
 --- term ---
 _pat0 = [[1], [2, 3]]
 _pat1 = list.length(_pat0)

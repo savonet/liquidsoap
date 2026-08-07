@@ -34,7 +34,7 @@ let report_annotations ~throw ~pos annotations =
     annotations
 
 let parse_error ~pos msg = raise (Term.Parse_error (pos, msg))
-let render_string ~pos ~sep s = Lexer.render_string ~pos ~sep s
+let render_string = String_literal.render
 let mk ?pos = Term.make ?pos:(Option.map Pos.of_lexing_pos pos)
 let mk_ty ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
 let mk_var ?pos = Type.var ?pos:(Option.map Pos.of_lexing_pos pos)

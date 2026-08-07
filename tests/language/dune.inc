@@ -499,6 +499,25 @@
   (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
 
 (rule
+ (alias test_record_methods_eager)
+ (package liquidsoap)
+ (deps
+  record_methods_eager.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   record_methods_eager.liq
+   liquidsoap
+   %{test_liq}
+   record_methods_eager.liq)))
+
+(rule
  (alias test_ref)
  (package liquidsoap)
  (deps
@@ -765,6 +784,7 @@
   (alias test_process)
   (alias test_rec)
   (alias test_record)
+  (alias test_record_methods_eager)
   (alias test_ref)
   (alias test_regexp)
   (alias test_replaygain)

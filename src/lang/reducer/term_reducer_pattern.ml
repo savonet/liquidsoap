@@ -27,6 +27,9 @@ open Parsed_term
 include Runtime_term
 open Term_reducer_helpers
 
+(* Names the desugaring binds are spelled with a digit right after the leading
+   underscore. `Lexer.var_lit` requires an alphabetic character there, so no
+   script can write one, and user code cannot shadow what the sugar expands to. *)
 let pat_var_name =
   let idx = ref 1 in
   fun () ->

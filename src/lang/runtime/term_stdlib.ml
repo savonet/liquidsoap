@@ -30,21 +30,22 @@ let rec prepend_stdlib ~term =
   | { term = `Cache_env _ } -> term
   | _ -> assert false
 
-let rec prepend_parsed_stdlib =
+(* The user script runs in the scope of the whole standard library, which with
+   statement lists is plain concatenation. *)
+let prepend_parsed_stdlib ~parsed_term stdlib =
   let open Parsed_term in
-  fun ~parsed_term -> function
-    | { term = `Let (def, body) } as tm ->
-        { tm with term = `Let (def, prepend_parsed_stdlib ~parsed_term body) }
-    | { term = `Def (def, body) } as tm ->
-        { tm with term = `Def (def, prepend_parsed_stdlib ~parsed_term body) }
-    | { term = `Binding (def, body) } as tm ->
+  match (stdlib.term, parsed_term.term) with
+    | `Block stdlib_block, `Block user_block ->
         {
-          tm with
-          term = `Binding (def, prepend_parsed_stdlib ~parsed_term body);
+          stdlib with
+          term =
+            `Block
+              {
+                stdlib_block with
+                block_body = stdlib_block.block_body @ user_block.block_body;
+              };
         }
-    | { term = `Seq (t1, t2) } as tm ->
-        { tm with term = `Seq (t1, prepend_parsed_stdlib ~parsed_term t2) }
-    | tm -> Parsed_term.make ~pos:tm.pos (`Seq (tm, parsed_term))
+    | _ -> assert false
 
 (** To be cacheable, the standard library is parsed and converted to a term. We
     add [`Cache_env] to it and type-check it. This results in having the full

@@ -8,54 +8,60 @@ end
 r()
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
-    "type": "seq",
-    "left": {
-      "type": "try",
-      "body": {
-        "type": "infix",
-        "left": { "type": "var", "value": "r" },
-        "op": ":=",
-        "right": { "type": "ground", "value": "1" }
-      },
-      "variable": "_",
-      "errors_list": null,
-      "handler": null,
-      "finally": {
-        "type": "infix",
-        "left": { "type": "var", "value": "r" },
-        "op": ":=",
-        "right": { "type": "ground", "value": "2" }
-      }
-    },
-    "right": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "r" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
       "type": "app",
-      "op": { "type": "var", "value": "r" },
-      "args": []
+      "op": { "type": "var", "value": "ref" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "ground", "value": "0" }
+        }
+      }
+      ]
     }
   },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "r" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "app",
-    "op": { "type": "var", "value": "ref" },
-    "args": [
+    {
+    "type": "try",
+    "body": [
       {
-      "type": "term",
-      "value": {
-        "type": "app_arg",
-        "label": "",
-        "value": { "type": "ground", "value": "0" }
-      }
+      "type": "infix",
+      "left": { "type": "var", "value": "r" },
+      "op": ":=",
+      "right": { "type": "ground", "value": "1" }
+    }
+    ],
+    "variable": "_",
+    "errors_list": null,
+    "handler": null,
+    "finally": [
+      {
+      "type": "infix",
+      "left": { "type": "var", "value": "r" },
+      "op": ":=",
+      "right": { "type": "ground", "value": "2" }
     }
     ]
+  },
+    {
+    "type": "app",
+    "op": { "type": "var", "value": "r" },
+    "args": []
   }
+  ]
 }
 --- hash ---
-c2138805e99e5458f17f12f65dee8b28
+f7c87e793beef4ef392bad627c9aa06b
 --- term ---
 r = ref(0)
 error.catch(errors=null, body=fun () -> (r.set(1) : unit), catch=fun (_) -> (), finally=fun () -> (r.set(2) : unit))

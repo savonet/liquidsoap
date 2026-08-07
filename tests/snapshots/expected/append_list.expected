@@ -2,41 +2,47 @@
 [1, 2] @ [3, 4]
 --- parsed ---
 {
-  "type": "infix",
-  "left": {
-    "type": "list",
-    "value": [
-      {
-      "type": "term",
-      "value": { "type": "ground", "value": "1" }
+  "type": "block",
+  "value": [
+    {
+    "type": "infix",
+    "left": {
+      "type": "list",
+      "value": [
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "1" }
+      },
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "2" }
+      }
+      ]
     },
-      {
-      "type": "term",
-      "value": { "type": "ground", "value": "2" }
+    "op": "@",
+    "right": {
+      "type": "list",
+      "value": [
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "3" }
+      },
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "4" }
+      }
+      ]
     }
-    ]
-  },
-  "op": "@",
-  "right": {
-    "type": "list",
-    "value": [
-      {
-      "type": "term",
-      "value": { "type": "ground", "value": "3" }
-    },
-      {
-      "type": "term",
-      "value": { "type": "ground", "value": "4" }
-    }
-    ]
   }
+  ]
 }
 --- hash ---
-31c8043d953d7b3f649c8c0bc2f2022d
+9346863f202a44e5bc80626a51e6192e
 --- term ---
 [3, 4]([1, 2])
 --- type ---
-At line 1, char 9-15:
+At cases/append_list.liq, line 1, char 9-15:
+[1, 2] @ [3, 4]
 
 Error 5: this value has type
   [_]

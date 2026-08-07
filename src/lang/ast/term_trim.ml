@@ -54,19 +54,11 @@ and trim_ast tm =
     | `List l -> `List (List.map trim_term l)
     | `Cast c -> `Cast { c with cast = trim_term c.cast }
     | `App (t, l) ->
-        `App
-          ( { (trim_term t) with methods = Methods.empty },
-            List.map (fun (lbl, t) -> (lbl, trim_term t)) l )
+        `App (trim_term t, List.map (fun (lbl, t) -> (lbl, trim_term t)) l)
     | `Invoke { invoked; invoke_default; meth } ->
-        let invoked = trim_term invoked in
         `Invoke
           {
-            invoked =
-              {
-                invoked with
-                methods =
-                  Methods.filter (fun lbl _ -> lbl = meth) invoked.methods;
-              };
+            invoked = trim_term invoked;
             invoke_default = Option.map trim_term invoke_default;
             meth;
           }
@@ -92,6 +84,10 @@ and trim_ast tm =
                 arguments;
           }
 
+(* Trimming only hollows out types: they are what a checked term mostly weighs,
+   and past typechecking only their positions are read. It must not touch terms
+   themselves -- method bodies are ordinary terms and are evaluated eagerly, so
+   dropping one would decide whether its effects happen. *)
 and trim_term ({ t; term; methods } as tm) =
   {
     tm with

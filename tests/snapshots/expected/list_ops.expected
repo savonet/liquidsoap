@@ -3,8 +3,33 @@ l = [1, 2, 3]
 [0, ...l, 4]
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "l" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "list",
+      "value": [
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "1" }
+      },
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "2" }
+      },
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "3" }
+      }
+      ]
+    }
+  },
+    {
     "type": "list",
     "value": [
       {
@@ -20,31 +45,11 @@ l = [1, 2, 3]
       "value": { "type": "ground", "value": "4" }
     }
     ]
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "l" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "list",
-    "value": [
-      {
-      "type": "term",
-      "value": { "type": "ground", "value": "1" }
-    },
-      {
-      "type": "term",
-      "value": { "type": "ground", "value": "2" }
-    },
-      {
-      "type": "term",
-      "value": { "type": "ground", "value": "3" }
-    }
-    ]
   }
+  ]
 }
 --- hash ---
-0b8de44d63429383530400b9d14a968f
+5a5d7b7d281997f697ee292613186983
 --- term ---
 l = [1, 2, 3]
 _::_(0, list.append(l, [4]))

@@ -1,0 +1,4 @@
+# A misspelled contextual keyword names what was expected and points at the
+# offending token, rather than reporting the whole type as invalid.
+let json.parse (m : [(string * int)] as json.objct) = "{}"
+ignore(m)

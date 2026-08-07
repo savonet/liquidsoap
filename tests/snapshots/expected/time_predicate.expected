@@ -2,27 +2,33 @@
 10h-12h
 --- parsed ---
 {
-  "type": "time_interval",
-  "left": {
-    "type": "time",
-    "week": null,
-    "hours": 10,
-    "minutes": null,
-    "seconds": null
-  },
-  "right": {
-    "type": "time",
-    "week": null,
-    "hours": 12,
-    "minutes": null,
-    "seconds": null
+  "type": "block",
+  "value": [
+    {
+    "type": "time_interval",
+    "left": {
+      "type": "time",
+      "week": null,
+      "hours": 10,
+      "minutes": null,
+      "seconds": null
+    },
+    "right": {
+      "type": "time",
+      "week": null,
+      "hours": 12,
+      "minutes": null,
+      "seconds": null
+    }
   }
+  ]
 }
 --- hash ---
-399f1328cc6b3379033388a7e72d4182
+858caea84adebcca6bdae020cc6a98ac
 --- term ---
 time_in_mod(36000, 43200, 86400)
 --- type ---
-At line 1, char 0-7:
+At cases/time_predicate.liq, line 1, char 0-7:
+10h-12h
 
 Error 4: Undefined variable time_in_mod

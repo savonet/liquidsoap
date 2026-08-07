@@ -30,7 +30,7 @@ open Parser_helper
 %token <string> VARLPAR
 %token <string> VARLBRA
 %token <Lang_string.Version.t> VERSION
-%token <char * string * Parsed_term.pos> PP_STRING
+%token <char> PP_STRING_START
 %token <string * char list * Parsed_term.pos> PP_REGEXP
 %token <char * string > STRING
 %token <string * string> RAW_STRING
@@ -50,11 +50,9 @@ open Parser_helper
 %token QUESTION_DOT
 (* name, arguments, methods *)
 %token <Parser_helper.lexer_let_decoration> DEF
-%token REPLACES
 %token COALESCE
 %token TRY CATCH FINALLY DO
 %token IF THEN ELSE ELSIF
-%token SLASH
 %token OPEN
 %token LPAR RPAR COMMA SEQ SEQSEQ COLON COLONCOLON DOT
 %token <string> DOTVAR
@@ -133,14 +131,14 @@ open Parser_helper
 %type <string list * string list> args_of_params
 %type <Parsed_term.type_annotation Type.argument list> argsty
 %type <Parsed_term.type_annotation Type.argument> argty
-%type <Parser_helper.explicit_binding> explicit_binding
-%type <Parser_helper.binding> binding
+%type <Parsed_term._let> explicit_binding
+%type <Parsed_term._let> binding
 %type <Parsed_term.encoder_params> encoder_params
 %type <Parsed_term.t> expr
-%type <Parsed_term.t> exprs
-%type <Parsed_term.t> simple_fun_body
+%type <Parsed_term.statement list> exprs
+%type <Parsed_term.statement list> simple_fun_body
 %type <unit> g
-%type <Parsed_term.if_elsif list * (Parsed_term.pos * Parsed_term.t) option> if_elsif
+%type <Parsed_term.if_elsif list * (Parsed_term.pos * Parsed_term.statement list) option> if_elsif
 %type <string list> in_subfield
 %type <string list> in_subfield_lbra
 %type <Parsed_term.list_el list> inner_list
@@ -171,39 +169,50 @@ open Parser_helper
 
 program:
   | error { raise (Term.Parse_error ($loc, "Syntax error!")) }
-  | EOF { mk ~pos:$loc `Eof }
-  | exprs EOF { $1 }
+  | EOF { mk ~pos:$loc (`Block (mk_block ~pos:$loc [])) }
+  | exprs EOF { mk ~pos:$loc (`Block (mk_block ~pos:$loc $1)) }
 
 interactive:
   | error { raise (Term.Parse_error ($loc, "Syntax error!")) }
-  | exprs SEQSEQ { $1 }
+  | exprs SEQSEQ { mk ~pos:$loc (`Block (mk_block ~pos:$loc $1)) }
   | EOF { raise End_of_file }
 
 s: | {} | SEQ  {}
 g: | {} | GETS {}
 
-exprs:
-  | OPEN expr s exprs        { mk ~pos:$loc (`Open ($2,$4)) }
-  | expr s                   { $1 }
-  | expr s exprs             { mk ~pos:$loc (`Seq ($1,$3)) }
-  | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc `Eof) }
-  | binding s exprs          { mk_let ~pos:$loc($1) $1 $3 }
+(* A block is a flat list of statements. A binding scopes over the statements
+   that follow it in the same block; that is the only scoping rule, and the
+   reducer implements it in exactly one place. *)
+block_body(STMT):
+  | STMT s                   { [$1] }
+  | STMT s block_body(STMT)  { $1::$3 }
 
-(* Simple fun body, syntax: { ... }. Same as expressions except initial x = 1
-   which conflicts with record declaration: { x = 1 } *)
+exprs: block_body(stmt) { $1 }
+
+(* Inside `{ ... }` only the *first* statement is restricted: a leading
+   `x = 1` is the record literal `{ x = 1 }`, so it must be written
+   `let x = 1`. Once past that, `{ ... }` is an ordinary block. *)
 simple_fun_body:
-  | OPEN expr s exprs        { mk ~pos:$loc (`Open ($2,$4)) }
-  | expr s                   { $1 }
-  | expr s exprs             { mk ~pos:$loc (`Seq ($1,$3)) }
-  | explicit_binding s       { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
-  | explicit_binding s exprs { mk_let ~pos:$loc($1) $1 $3 }
+  | fun_stmt s        { [$1] }
+  | fun_stmt s exprs  { $1::$3 }
+
+stmt:
+  | expr             { mk_stmt ~pos:$loc (`Expr $1) }
+  | binding          { mk_stmt ~pos:$loc (`Binding $1) }
+  | common_stmt      { mk_stmt ~pos:$loc $1 }
+
+fun_stmt:
+  | expr             { mk_stmt ~pos:$loc (`Expr $1) }
+  | explicit_binding { mk_stmt ~pos:$loc (`Binding $1) }
+  | common_stmt      { mk_stmt ~pos:$loc $1 }
+
+common_stmt:
+  | OPEN expr        { `Open $2 }
+  | INCLUDE          { `Include $1 }
 
 (* General expressions. *)
 expr:
-  | INCLUDE                          { mk ~pos:$loc (`Include $1) }
-  | if_def                           { mk ~pos:$loc (`If_def $1) }
-  | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
-  | if_version                       { mk ~pos:$loc (`If_version $1) }
+  | static_if                        { mk ~pos:$loc (`Static_if $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast {cast = $2; typ = $4}) }
   | UMINUS expr                      { mk ~pos:$loc (`Negative $2) }
   | LPAR expr RPAR                   { mk ~pos:$loc (`Parenthesis $2) }
@@ -235,9 +244,9 @@ expr:
   | VARLBRA expr RBRA                { mk ~pos:$loc (`Assoc (mk ~pos:$loc($1) (`Var $1), $2)) }
   | expr DOT VARLBRA expr RBRA       { let src = mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; optional = false; meth = `String $3})) in
                                        mk ~pos:$loc (`Assoc (src, $4)) }
-  | BEGIN exprs END                  { mk ~pos:$loc (`Block $2) }
+  | BEGIN exprs END                  { mk ~pos:$loc (`Block (mk_block ~pos:($startpos($1),$endpos($3)) $2)) }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
-  | LCUR simple_fun_body RCUR        { mk ~pos:$loc (`Simple_fun $2) }
+  | LCUR simple_fun_body RCUR        { mk ~pos:$loc (`Simple_fun (mk_block ~pos:($startpos($1),$endpos($3)) $2)) }
   | WHILE expr DO exprs END
       { mk ~pos:$loc (`While {
           while_condition = $2;
@@ -310,7 +319,7 @@ expr:
               | None -> $startpos($6))
         in
         mk ~pos:$loc (`If {
-          if_condition = $2;
+          if_condition = expr_of_block ~pos:$loc($2) (mk_block ~pos:$loc($2) $2);
           if_then_block = { block_body = $4; block_pos = ($startpos($3), if_then_end) };
           if_elsif;
           if_else_block;
@@ -319,10 +328,10 @@ expr:
   | expr QUESTION expr COLON expr
       { mk ~pos:$loc (`Inline_if {
           if_condition = $1;
-          if_then_block = { block_body = $3;
+          if_then_block = { block_body = [mk_stmt ~pos:$loc($3) (`Expr $3)];
                             block_pos = ($startpos($2), $startpos($4)) };
           if_elsif = [];
-          if_else_block = Some { block_body = $5;
+          if_else_block = Some { block_body = [mk_stmt ~pos:$loc($5) (`Expr $5)];
                                  block_pos = ($startpos($4), $endpos($5)) };
           if_end_pos = ($startpos($5), $endpos($5)) }) }
   | expr AND expr                  { match $1.term, $3.term with
@@ -351,12 +360,23 @@ time_predicate:
   | INTERVAL { mk ~pos:$loc (`Time_interval $1) }
   | TIME     { mk ~pos:$loc (`Time $1) }
 
+(* Contextual keywords. These are ordinary identifiers elsewhere, so they are
+   matched as variables and their spelling is checked in the action. %inline
+   means the generated automaton is the same as writing the tokens out. *)
+%inline as_kw:
+  | VAR { Parser_helper.expect_keyword ~pos:$loc "as" $1 }
+
+%inline json_object_kw:
+  | VAR DOT VAR { Parser_helper.expect_keyword ~pos:$loc($1) "json" $1;
+                  Parser_helper.expect_keyword ~pos:$loc($3) "object" $3 }
+
 ty:
   | UNDERSCORE                   { `Named "_" }
   | VAR                          { `Named $1 }
   | ty QUESTION                  { `Nullable $1 }
   | LBRA ty RBRA                 { `List $2 }
-  | LBRA ty RBRA VAR VAR DOT VAR { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$5,$7) }
+  | LBRA ty RBRA as_kw json_object_kw
+                                 { mk_json_object_ty ~pos:$loc($2) $2 }
   | LPAR ty_tuple RPAR           { `Tuple $2 }
   | LPAR argsty RPAR YIELDS ty   { `Arrow ($2,$5) }
   | LCUR record_ty RCUR          { `Record $2 }
@@ -376,14 +396,10 @@ record_ty:
 meth_ty:
   | VAR COLON ty            { { optional_meth = false; name = $1; typ = $3; json_name = None } }
   | VAR QUESTION COLON ty   { { optional_meth = true; name = $1; typ = $4; json_name = None } }
-  | STRING VAR VAR COLON ty {
-       match $2 with
-         |"as" ->             { optional_meth = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc $1) }
-         | _ -> raise (Term.Parse_error ($loc, "Invalid type constructor")) }
-  | STRING VAR VAR QUESTION COLON ty {
-       match $2 with
-         |"as" ->             { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
-         | _ -> raise (Term.Parse_error ($loc, "Invalid type constructor")) }
+  | STRING as_kw VAR COLON ty
+                            { { optional_meth = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc($1) $1) } }
+  | STRING as_kw VAR QUESTION COLON ty
+                            { { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc($1) $1) } }
 
 ty_source_tracks:
   | VAR GETS ty_content { { extensible = false; tracks = [{track_name = $1; track_type = fst $3; track_params = snd $3}] } }
@@ -558,20 +574,22 @@ def:
   | DEF { Parser_helper.let_decoration_of_lexer_let_decoration $1 }
 
 explicit_binding:
-  | _let pattern GETS expr   { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$2 ~def:$4 ()) }
+  | _let pattern GETS expr   { Parser_helper.(let_args ~kind:`Let ~decoration:$1 ~pat:$2 ~def:$4 ()) }
   | _let LPAR pattern COLON ty RPAR GETS expr
-                             { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 ()) }
-  | _let subfield GETS expr  { `Let Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~def:$4 ()) }
-  | def optvar g exprs END   { `Def Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar [$2] }) ~def:$4 ()) }
+                             { Parser_helper.(let_args ~kind:`Let ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 ()) }
+  | _let subfield GETS expr  { Parser_helper.(let_args ~kind:`Let ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~def:$4 ()) }
+  | def optvar g exprs END   { Parser_helper.(let_args ~kind:`Def ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar [$2] }) ~def:(block_expr ~pos:$loc($4) $4) ()) }
   | def LPAR optvar COLON ty RPAR g exprs END
-                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($3); pat_entry =`PVar [$3] }) ~def:$8 ~cast:$5 ()) }
-  | def subfield g exprs END { `Def Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~def:$4 ()) }
+                             { Parser_helper.(let_args ~kind:`Def ~decoration:$1 ~pat:({ pat_pos = $loc($3); pat_entry =`PVar [$3] }) ~def:(block_expr ~pos:$loc($8) $8) ~cast:$5 ()) }
+  | def subfield g exprs END { Parser_helper.(let_args ~kind:`Def ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~def:(block_expr ~pos:$loc($4) $4) ()) }
   | def subfield_lpar arglist RPAR g exprs END
-                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~arglist:$3 ~def:$6 ()) }
+                             { Parser_helper.(let_args ~kind:`Def ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~arglist:$3 ~def:(block_expr ~pos:$loc($6) $6) ()) }
 
 binding:
-  | optvar GETS expr         { `Binding Parser_helper.(let_args ~decoration:`None ~pat:({ pat_pos = $loc($1); pat_entry = `PVar [$1] }) ~def:$3 ()) }
-  | explicit_binding         { ($1 :> binding) }
+  | expr GETS expr           { let pat, cast = Parser_helper.binding_target $1 in
+                               Parser_helper.(let_args ~kind:`Bare ~decoration:`None ~pat ?cast ~def:$3 ()) }
+  | UNDERSCORE GETS expr     { Parser_helper.(let_args ~kind:`Bare ~decoration:`None ~pat:({ pat_pos = $loc($1); pat_entry = `PVar ["_"] }) ~def:$3 ()) }
+  | explicit_binding         { $1 }
 
 subfield_lpar:
   | VARLPAR               { [$1] }
@@ -633,7 +651,7 @@ if_elsif:
   | ELSIF exprs THEN exprs if_elsif
       { let (rest, else_opt) = $5 in
         let e : Parsed_term.if_elsif = {
-            elsif_condition = $2;
+            elsif_condition = expr_of_block ~pos:$loc($2) (mk_block ~pos:$loc($2) $2);
             elsif_then_block = { block_body = $4; block_pos = ($startpos($3), $endpos($4)) };
             elsif_pos = ($startpos($1), $endpos($1)) }
         in (e :: rest, else_opt) }
@@ -684,33 +702,36 @@ if_def_var:
   | VAR                { [$1] }
   | VAR DOT if_def_var { $1::$3 }
 
-if_def:
-  | PP_IFDEF if_def_var exprs PP_ENDIF { {
-      if_def_negative = $1;
-      if_def_condition = String.concat "." $2;
-      if_def_then_block = { block_body = $3; block_pos = ($startpos($3), $startpos($4)) };
-      if_def_else_block = None
-   } }
-  | PP_IFDEF if_def_var exprs PP_ELSE exprs PP_ENDIF { {
-      if_def_negative = $1;
-      if_def_condition = String.concat "." $2;
-      if_def_then_block = { block_body = $3; block_pos = ($startpos($3), $startpos($4)) };
-      if_def_else_block = Some { block_body = $5; block_pos = ($startpos($4), $startpos($6)) };
-  } }
+(* %ifdef / %ifversion / %ifencoder. These are statements, not expressions:
+   the selected branch splices its statements into the enclosing block, so a
+   binding made under a `%ifdef` scopes over the code that follows it. *)
+static_if:
+  | PP_IFDEF if_def_var static_body PP_ENDIF
+      { { static_cond = `Defined ($1, String.concat "." $2);
+          static_then = mk_block ~pos:($startpos($3), $startpos($4)) $3;
+          static_else = None } }
+  | PP_IFDEF if_def_var static_body PP_ELSE static_body PP_ENDIF
+      { { static_cond = `Defined ($1, String.concat "." $2);
+          static_then = mk_block ~pos:($startpos($3), $startpos($4)) $3;
+          static_else = Some (mk_block ~pos:($startpos($4), $startpos($6)) $5) } }
+  | PP_IFENCODER ENCODER static_body PP_ENDIF
+      { { static_cond = `Encoder ($1, $2);
+          static_then = mk_block ~pos:($startpos($3), $startpos($4)) $3;
+          static_else = None } }
+  | PP_IFENCODER ENCODER static_body PP_ELSE static_body PP_ENDIF
+      { { static_cond = `Encoder ($1, $2);
+          static_then = mk_block ~pos:($startpos($3), $startpos($4)) $3;
+          static_else = Some (mk_block ~pos:($startpos($4), $startpos($6)) $5) } }
+  | PP_IFVERSION if_version_op if_version_version static_body PP_ENDIF
+      { { static_cond = `Version ($2, $3);
+          static_then = mk_block ~pos:($startpos($4), $startpos($5)) $4;
+          static_else = None } }
+  | PP_IFVERSION if_version_op if_version_version static_body PP_ELSE static_body PP_ENDIF
+      { { static_cond = `Version ($2, $3);
+          static_then = mk_block ~pos:($startpos($4), $startpos($5)) $4;
+          static_else = Some (mk_block ~pos:($startpos($5), $startpos($7)) $6) } }
 
-if_encoder:
-  | PP_IFENCODER ENCODER exprs PP_ENDIF { {
-      if_encoder_negative = $1;
-      if_encoder_condition = $2;
-      if_encoder_then_block = { block_body = $3; block_pos = ($startpos($3), $startpos($4)) };
-      if_encoder_else_block = None
-   } }
-  | PP_IFENCODER ENCODER exprs PP_ELSE exprs PP_ENDIF { {
-      if_encoder_negative = $1;
-      if_encoder_condition = $2;
-      if_encoder_then_block = { block_body = $3; block_pos = ($startpos($3), $startpos($4)) };
-      if_encoder_else_block = Some { block_body = $5; block_pos = ($startpos($4), $startpos($6)) };
-  } }
+static_body: exprs { $1 }
 
 if_version_op:
   | BIN1 {
@@ -727,20 +748,6 @@ if_version_version:
   | VERSION  { $1 }
   | INT      { Lang_string.Version.of_string $1 }
   | FLOAT    { Lang_string.Version.of_string $1 }
-
-if_version:
-  | PP_IFVERSION if_version_op if_version_version exprs PP_ENDIF { {
-      if_version_op = $2;
-      if_version_version = $3;
-      if_version_then_block = { block_body = $4; block_pos = ($startpos($4), $startpos($5)) };
-      if_version_else_block = None
-   } }
-  | PP_IFVERSION if_version_op if_version_version exprs PP_ELSE exprs PP_ENDIF { {
-      if_version_op = $2;
-      if_version_version = $3;
-      if_version_then_block = { block_body = $4; block_pos = ($startpos($4), $startpos($5)) };
-      if_version_else_block = Some { block_body = $6; block_pos = ($startpos($5), $startpos($7)) };
-  } }
 
 annotate:
   | annotate_metadata COLON { $1 }

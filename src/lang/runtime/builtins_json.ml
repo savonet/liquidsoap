@@ -333,7 +333,7 @@ let _ =
       Lang.string v)
 
 let _ =
-  Lang.add_builtin "_internal_json_parser_" ~category:`String ~flags:[`Hidden]
+  Lang.add_builtin "_0_json_parser" ~category:`String ~flags:[`Hidden]
     ~descr:"Internal json parser"
     [
       ("type", Value.RuntimeType.t, None, Some "Runtime type");

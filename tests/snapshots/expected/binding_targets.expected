@@ -1,0 +1,178 @@
+=== binding_targets.liq ===
+# A bare binding takes the same targets as `let`: a variable, a field path, a
+# type annotation, and destructuring patterns. The left-hand side is parsed as
+# an expression and reinterpreted as a pattern.
+x = {a = 1}
+x.b = 2
+
+(p, q) = (1, 2)
+[r, s] = [3, 4]
+(n : int) = 5
+_ = 6
+
+(x.b, p, q, r, s, n)
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "x" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "methods",
+      "base": null,
+      "methods": [
+        {
+        "type": "method",
+        "name": "a",
+        "value": { "type": "ground", "value": "1" }
+      }
+      ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "x", "b" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "2" }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": {
+      "type": "ptuple",
+      "value": [
+        {
+        "type": "pvar",
+        "value": [ "p" ]
+      },
+        {
+        "type": "pvar",
+        "value": [ "q" ]
+      }
+      ]
+    },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "tuple",
+      "value": [
+        {
+        "type": "ground",
+        "value": "1"
+      },
+        {
+        "type": "ground",
+        "value": "2"
+      }
+      ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": {
+      "type": "plist",
+      "left": [
+        {
+        "type": "pvar",
+        "value": [ "r" ]
+      },
+        {
+        "type": "pvar",
+        "value": [ "s" ]
+      }
+      ],
+      "middle": null,
+      "right": []
+    },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "list",
+      "value": [
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "3" }
+      },
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "4" }
+      }
+      ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "n" ] },
+    "arglist": null,
+    "cast": { "type": "type_annotation", "subtype": "named", "value": "int" },
+    "definition": { "type": "ground", "value": "5" }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "_" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "6" }
+  },
+    {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "invoke",
+      "invoked": { "type": "var", "value": "x" },
+      "optional": false,
+      "meth": { "type": "var", "value": "b" }
+    },
+      {
+      "type": "var",
+      "value": "p"
+    },
+      {
+      "type": "var",
+      "value": "q"
+    },
+      {
+      "type": "var",
+      "value": "r"
+    },
+      {
+      "type": "var",
+      "value": "s"
+    },
+      {
+      "type": "var",
+      "value": "n"
+    }
+    ]
+  }
+  ]
+}
+--- hash ---
+a31d24ebcf3f785efcc0c74ccf24b04c
+--- term ---
+x = {a=1}
+let x.b = 2
+let (p, q) = (1, 2)
+_pat0 = [3, 4]
+_pat1 = list.length(_pat0)
+if(<(_pat1, 2), then=fun () -> error.raise(error.register("not_found"), "List value does not have enough elements to fit the extraction pattern!"), else={()})
+s = list.nth(_pat0, 1)
+r = list.nth(_pat0, 0)
+n = (5 : int)
+_ = 6
+(x.b, p, q, r, s, n)
+--- doc ---
+x: A bare binding takes the same targets as `let`: a variable, a field path, a type annotation, and destructuring patterns. The left-hand side is parsed as an expression and reinterpreted as a pattern.
+--- type ---
+int * int * int * int * int * int
+--- value ---
+(2, 1, 2, 3, 4, 5)

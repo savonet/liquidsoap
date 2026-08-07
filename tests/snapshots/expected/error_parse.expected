@@ -1,6 +1,7 @@
 === error_parse.invalid-liq ===
 def f( =
 --- parsed ---
-At line 1, char 7:
+At cases/error_parse.invalid-liq, line 1, char 7:
+def f( =
 
 Error 2: Parse error

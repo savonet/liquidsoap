@@ -39,16 +39,7 @@ type lexer_let_decoration =
   | `Sqlite_row
   | `Sqlite_query ]
 
-type explicit_binding = [ `Def of Parsed_term._let | `Let of Parsed_term._let ]
-type binding = [ explicit_binding | `Binding of Parsed_term._let ]
-
-let render_string_ref = ref (fun ~pos:_ _ -> assert false)
-
-(* This is filled by Lexer to make it possible to use this function in the parser. *)
-let render_string ~pos s =
-  let fn = !render_string_ref in
-  fn ~pos s
-
+let render_string ~pos (sep, s) = String_literal.render ~pos ~sep s
 let pending_comments = ref []
 let clear_comments () = pending_comments := []
 let get_pending_comments () = !pending_comments
@@ -82,52 +73,190 @@ let sort_comments comments =
 let attach_comments term =
   List.iter
     (fun (comment_pos, c) ->
-      let closest_term = ref term in
+      let attach = ref (fun update -> term.comments <- update term.comments) in
       let distance = ref (comment_distance term.pos comment_pos) in
-      Parsed_term.iter_term
-        (fun term ->
-          match (comment_distance term.pos comment_pos, !distance) with
+      let kind_of_closest = ref `Term in
+      Parsed_term.iter_anchors
+        (fun pos kind set ->
+          match (comment_distance pos comment_pos, !distance) with
             | (t, d), (t', d')
               when 0 <= d
                    && (d' < 0
-                      || if t = `Before && t' = `After then d <= d' else d < d'
-                      ) ->
+                      ||
+                      if t = `Before && t' = `After then d <= d'
+                      else if d = d' then
+                        (* Nodes are visited outermost first, so an enclosing
+                           block spans the same lines as the statement it opens
+                           with. A doc comment belongs to the statement. *)
+                        kind = `Statement && !kind_of_closest <> `Statement
+                      else d < d') ->
                 distance := (t, d);
-                closest_term := term
+                kind_of_closest := kind;
+                attach := set
             | _ -> ())
         term;
       let comment =
         match !distance with `Before, _ -> `Before c | `After, _ -> `After c
       in
-      !closest_term.comments <-
-        sort_comments ((comment_pos, comment) :: !closest_term.comments))
+      !attach (fun comments ->
+          sort_comments ((comment_pos, comment) :: comments)))
     !pending_comments;
   pending_comments := []
 
-let let_args ~decoration ~pat ?arglist ~def ?cast () =
-  { decoration; pat; arglist; def; cast }
+let let_args ~kind ~decoration ~pat ?arglist ~def ?cast () =
+  { kind; decoration; pat; arglist; def; cast }
 
-let mk_json_assoc_object_ty ~pos = function
-  | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty
-  | _ -> raise (Term.Parse_error (pos, "Invalid type constructor"))
+let mk = Parsed_term.make
+let mk_stmt ~pos stmt = { stmt; stmt_pos = pos; stmt_comments = [] }
+let mk_block ~pos block_body = { block_body; block_pos = pos }
+
+(* A block used where an expression is expected. The singleton case is by far
+   the most common (`if a then`, `def f() = e end`) and would otherwise wrap
+   every one of them in a redundant `Block` node. *)
+let expr_of_block ~pos b =
+  match b.block_body with
+    | [{ stmt = `Expr tm; _ }] -> tm
+    | _ -> mk ~pos (`Block b)
+
+let block_expr ~pos stmts = expr_of_block ~pos (mk_block ~pos stmts)
+
+(* A bare binding's left-hand side is parsed as an expression and converted
+   here. `(a, b)` is both a tuple expression and a tuple pattern, and LR(1)
+   cannot tell which until it reaches the `=`, so the grammar commits to the
+   expression and this decides afterwards. Invalid targets are reported here,
+   with a message naming what is allowed. *)
+let rec pattern_of_expr (tm : Parsed_term.t) : Parsed_term.pattern =
+  let pat_pos = tm.pos in
+  let entry =
+    match tm.term with
+      | `Var v -> `PVar [v]
+      (* `x.y.z = ...`: an invoke chain is a dotted path. *)
+      | `Invoke _ -> `PVar (path_of_invoke tm)
+      | `Tuple l -> `PTuple (List.map pattern_of_expr l)
+      | `List l ->
+          `PList
+            ( List.map
+                (function
+                  | `Term tm -> pattern_of_expr tm
+                  | `Ellipsis tm ->
+                      raise
+                        (Term.Parse_error
+                           ( tm.pos,
+                             "Invalid binding: use `...x` for the spread \
+                              element." )))
+                l,
+              None,
+              [] )
+      | `Parenthesis tm | `Block { block_body = [{ stmt = `Expr tm; _ }]; _ } ->
+          (pattern_of_expr tm).pat_entry
+      | `Methods (base, methods) ->
+          `PMeth
+            ( Option.map pattern_of_expr base,
+              List.map
+                (function
+                  | `Method (name, tm) -> (name, `Pattern (pattern_of_expr tm))
+                  | `Ellipsis tm ->
+                      raise
+                        (Term.Parse_error (tm.pos, "Invalid binding target.")))
+                methods )
+      | _ ->
+          raise
+            (Term.Parse_error
+               ( tm.pos,
+                 "Invalid binding: the left-hand side of `=` must be a \
+                  variable, a field path or a destructuring pattern." ))
+  in
+  { pat_pos; pat_entry = entry }
+
+(* `(n : int) = 3`: the annotation parses as a cast expression around the
+   target, and belongs on the binding rather than in the pattern. *)
+and binding_target (tm : Parsed_term.t) =
+  match tm.term with
+    | `Cast { cast; typ } -> (pattern_of_expr cast, Some typ)
+    | _ -> (pattern_of_expr tm, None)
+
+and path_of_invoke (tm : Parsed_term.t) : string list =
+  match tm.term with
+    | `Var v -> [v]
+    | `Invoke { invoked; meth = `String m; optional = false } ->
+        path_of_invoke invoked @ [m]
+    | _ ->
+        raise
+          (Term.Parse_error (tm.pos, "Invalid binding: not a valid field path."))
+
+(* `as`, `json` and `object` are contextual keywords: they stay ordinary
+   identifiers everywhere else, so the lexer cannot single them out and the
+   grammar matches a plain variable and checks the spelling here. *)
+let expect_keyword ~pos expected found =
+  if found <> expected then
+    raise
+      (Term.Parse_error
+         (pos, Printf.sprintf "Expected `%s`, found `%s`." expected found))
+
+(* `[(string * t)] as json.object` types a JSON object as an association
+   list. *)
+let mk_json_object_ty ~pos = function
+  | `Tuple [`Named "string"; ty] -> `Json_object ty
+  | _ ->
+      raise
+        (Term.Parse_error
+           ( pos,
+             "`as json.object` describes a JSON object as a list of key/value \
+              pairs, so it applies to a list of `(string * _)`." ))
+
+(* `ref`, `getter` and `source` name types but are ordinary identifiers too --
+   `ref(x)` is also a function -- so the lexer cannot single them out and the
+   grammar matches any variable applied to parentheses. *)
+type ty_constructor =
+  [ `Unary of Parsed_term.type_annotation -> Parsed_term.type_annotation
+  | `Source ]
+
+(* The type constructors, and the only place naming them: the error listing
+   what is accepted is derived from this. *)
+let ty_constructors : (string * ty_constructor) list =
+  [
+    ("ref", `Unary (fun t -> `Ref t));
+    ("getter", `Unary (fun t -> `Getter t));
+    ("source", `Source);
+  ]
+
+let unknown_type_constructor ~pos name =
+  let usage (name, kind) =
+    match kind with
+      | `Unary _ -> Printf.sprintf "`%s(t)`" name
+      | `Source -> Printf.sprintf "`%s(...)`" name
+  in
+  raise
+    (Term.Parse_error
+       ( pos,
+         Printf.sprintf "Unknown type constructor: %s. Expected one of %s." name
+           (String.concat ", " (List.map usage ty_constructors)) ))
 
 let mk_source_ty ~pos name tracks =
-  match name with
-    | "source" -> `Source (name, tracks)
-    | _ -> raise (Term.Parse_error (pos, "Invalid type constructor: " ^ name))
+  match List.assoc_opt name ty_constructors with
+    | Some `Source -> `Source (name, tracks)
+    | _ -> unknown_type_constructor ~pos name
 
 let mk_named_ty ~pos name ty =
-  match (name, ty) with
-    | "ref", Some t -> `Ref t
-    | "ref", None ->
-        raise (Term.Parse_error (pos, "ref type requires a type parameter"))
-    | "getter", Some t -> `Getter t
-    | "getter", None ->
-        raise (Term.Parse_error (pos, "getter type requires a type parameter"))
-    | "source", _ ->
+  match (List.assoc_opt name ty_constructors, ty) with
+    | None, _ -> unknown_type_constructor ~pos name
+    | Some (`Unary mk), Some t -> mk t
+    | Some (`Unary _), None ->
+        raise
+          (Term.Parse_error
+             ( pos,
+               Printf.sprintf
+                 "Type constructor %s takes a type parameter, as in `%s(int)`."
+                 name name ))
+    | Some `Source, None ->
         mk_source_ty ~pos name { Parsed_term.extensible = false; tracks = [] }
-    | _, _ ->
-        raise (Term.Parse_error (pos, "Invalid type constructor: " ^ name))
+    | Some `Source, Some _ ->
+        raise
+          (Term.Parse_error
+             ( pos,
+               "`source(...)` takes track declarations, as in \
+                `source(audio=pcm)`. Write `source` on its own for a source \
+                with any tracks." ))
 
 type let_opt_el = string * Parsed_term.t
 
@@ -150,7 +279,6 @@ let args_of_json_parse ~pos = function
         (Term.Parse_error
            (pos, "Invalid argument " ^ lbl ^ " for json.parse let constructor"))
 
-let mk = Parsed_term.make
 let mk_fun ~pos arguments body = mk ~pos (`Fun (arguments, body))
 
 let mk_try ?handler ?finally_block ~body_block ~pos () =
@@ -161,14 +289,5 @@ let mk_try ?handler ?finally_block ~body_block ~pos () =
          try_handler = handler;
          try_finally_block = finally_block;
        })
-
-let mk_let ~pos _let body =
-  let ast =
-    match _let with
-      | `Let v -> `Let (v, body)
-      | `Def v -> `Def (v, body)
-      | `Binding v -> `Binding (v, body)
-  in
-  mk ~pos ast
 
 let mk_encoder ~pos e p = mk ~pos (`Encoder (e, p))

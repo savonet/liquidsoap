@@ -3,9 +3,13 @@ open list
 length([1, 2])
 --- parsed ---
 {
-  "type": "open",
-  "left": { "type": "var", "value": "list" },
-  "right": {
+  "type": "block",
+  "value": [
+    {
+    "type": "open",
+    "left": { "type": "var", "value": "list" }
+  },
+    {
     "type": "app",
     "op": { "type": "var", "value": "length" },
     "args": [
@@ -31,9 +35,10 @@ length([1, 2])
     }
     ]
   }
+  ]
 }
 --- hash ---
-de8263689327b08f5b7a37d6f1affabc
+8b53ad1f6d25cba05e41fed60b35000b
 --- term ---
 open list
 length([1, 2])
