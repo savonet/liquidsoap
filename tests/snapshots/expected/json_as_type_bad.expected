@@ -1,0 +1,10 @@
+=== json_as_type_bad.invalid-liq ===
+# A misspelled contextual keyword names what was expected and points at the
+# offending token, rather than reporting the whole type as invalid.
+let json.parse (m : [(string * int)] as json.objct) = "{}"
+ignore(m)
+--- parsed ---
+At cases/json_as_type_bad.invalid-liq, line 3, char 44-50:
+let json.parse (m : [(string * int)] as json.objct) = "{}"
+
+Error 3: Expected `object`, found `objct`.

@@ -73,10 +73,12 @@ val let_args :
 val let_decoration_of_lexer_let_decoration :
   lexer_let_decoration -> Parsed_term.let_decoration
 
-val mk_json_assoc_object_ty :
-  pos:pos ->
-  Parsed_term.type_annotation * string * string * string ->
-  Parsed_term.type_annotation
+(** Check a contextual keyword's spelling, e.g. the `as` of `as json.object`.
+    Raises [Term.Parse_error] naming what was expected. *)
+val expect_keyword : pos:pos -> string -> string -> unit
+
+val mk_json_object_ty :
+  pos:pos -> Parsed_term.type_annotation -> Parsed_term.type_annotation
 
 val mk_source_ty :
   pos:pos ->

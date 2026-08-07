@@ -184,9 +184,25 @@ and path_of_invoke (tm : Parsed_term.t) : string list =
         raise
           (Term.Parse_error (tm.pos, "Invalid binding: not a valid field path."))
 
-let mk_json_assoc_object_ty ~pos = function
-  | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty
-  | _ -> raise (Term.Parse_error (pos, "Invalid type constructor"))
+(* `as`, `json` and `object` are contextual keywords: they stay ordinary
+   identifiers everywhere else, so the lexer cannot single them out and the
+   grammar matches a plain variable and checks the spelling here. *)
+let expect_keyword ~pos expected found =
+  if found <> expected then
+    raise
+      (Term.Parse_error
+         (pos, Printf.sprintf "Expected `%s`, found `%s`." expected found))
+
+(* `[(string * t)] as json.object` types a JSON object as an association
+   list. *)
+let mk_json_object_ty ~pos = function
+  | `Tuple [`Named "string"; ty] -> `Json_object ty
+  | _ ->
+      raise
+        (Term.Parse_error
+           ( pos,
+             "`as json.object` describes a JSON object as a list of key/value \
+              pairs, so it applies to a list of `(string * _)`." ))
 
 let mk_source_ty ~pos name tracks =
   match name with

@@ -360,12 +360,23 @@ time_predicate:
   | INTERVAL { mk ~pos:$loc (`Time_interval $1) }
   | TIME     { mk ~pos:$loc (`Time $1) }
 
+(* Contextual keywords. These are ordinary identifiers elsewhere, so they are
+   matched as variables and their spelling is checked in the action. %inline
+   means the generated automaton is the same as writing the tokens out. *)
+%inline as_kw:
+  | VAR { Parser_helper.expect_keyword ~pos:$loc "as" $1 }
+
+%inline json_object_kw:
+  | VAR DOT VAR { Parser_helper.expect_keyword ~pos:$loc($1) "json" $1;
+                  Parser_helper.expect_keyword ~pos:$loc($3) "object" $3 }
+
 ty:
   | UNDERSCORE                   { `Named "_" }
   | VAR                          { `Named $1 }
   | ty QUESTION                  { `Nullable $1 }
   | LBRA ty RBRA                 { `List $2 }
-  | LBRA ty RBRA VAR VAR DOT VAR { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$5,$7) }
+  | LBRA ty RBRA as_kw json_object_kw
+                                 { mk_json_object_ty ~pos:$loc($2) $2 }
   | LPAR ty_tuple RPAR           { `Tuple $2 }
   | LPAR argsty RPAR YIELDS ty   { `Arrow ($2,$5) }
   | LCUR record_ty RCUR          { `Record $2 }
@@ -385,14 +396,10 @@ record_ty:
 meth_ty:
   | VAR COLON ty            { { optional_meth = false; name = $1; typ = $3; json_name = None } }
   | VAR QUESTION COLON ty   { { optional_meth = true; name = $1; typ = $4; json_name = None } }
-  | STRING VAR VAR COLON ty {
-       match $2 with
-         |"as" ->             { optional_meth = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc $1) }
-         | _ -> raise (Term.Parse_error ($loc, "Invalid type constructor")) }
-  | STRING VAR VAR QUESTION COLON ty {
-       match $2 with
-         |"as" ->             { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
-         | _ -> raise (Term.Parse_error ($loc, "Invalid type constructor")) }
+  | STRING as_kw VAR COLON ty
+                            { { optional_meth = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc($1) $1) } }
+  | STRING as_kw VAR QUESTION COLON ty
+                            { { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc($1) $1) } }
 
 ty_source_tracks:
   | VAR GETS ty_content { { extensible = false; tracks = [{track_name = $1; track_type = fst $3; track_params = snd $3}] } }
