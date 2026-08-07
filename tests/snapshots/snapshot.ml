@@ -70,6 +70,24 @@ let describe_error ~buffer ~throw exn =
         |> List.filter (fun l -> not (is_backtrace_frame l))
         |> String.concat "\n" |> String.trim
 
+(* Doc comments attach to *statements*, and nothing else in this dump would
+   show them, so a binding silently losing its documentation would not fail any
+   other section. *)
+let rec doc_bindings (tm : Term.t) =
+  match tm.Term.term with
+    | `Let { Term.doc; pat; def; body; _ } ->
+        let name =
+          match pat with
+            | `PVar l -> String.concat "." l
+            | `PTuple l -> "(" ^ String.concat ", " l ^ ")"
+        in
+        (match doc with
+          | Some d -> [(name, d.Doc.Value.description)]
+          | None -> [])
+        @ doc_bindings def @ doc_bindings body
+    | `Seq (a, b) -> doc_bindings a @ doc_bindings b
+    | _ -> []
+
 let read_source file =
   let ic = open_in_bin file in
   Fun.protect
@@ -118,10 +136,15 @@ let run_file file =
            what relative include paths resolve against. Running it here also makes
            the `hash` section below the actual cache key: [Term_cache] hashes the
            expanded parsed term. *)
+        (* Comments are collected by the lexer into a global and attached
+           afterwards, exactly as Term_preprocessor.mk_expr does; without this
+           no binding would carry its doc comment. *)
+        Parser_helper.clear_comments ();
         let parsed =
-          Term_preprocessor.expand_term
-            (Runtime.program (Preprocessor.mk_tokenizer ~fname:file lexbuf))
+          Runtime.program (Preprocessor.mk_tokenizer ~fname:file lexbuf)
         in
+        Parser_helper.attach_comments parsed;
+        let parsed = Term_preprocessor.expand_term parsed in
         print_string
           (Json.to_string ~compact:false
              (without_positions (Liquidsoap_tooling.Parsed_json.to_json parsed)));
@@ -142,6 +165,18 @@ let run_file file =
             print_endline (stable_generated_names (Term.to_string term));
             term))
   in
+  ignore
+    (Option.map
+       (fun term ->
+         match doc_bindings term with
+           | [] -> ()
+           | docs ->
+               section "doc";
+               List.iter
+                 (fun (name, description) ->
+                   Printf.printf "%s: %s\n" name description)
+                 docs)
+       term);
   let typed =
     Option.bind term (fun term ->
         stage "type" (fun () ->

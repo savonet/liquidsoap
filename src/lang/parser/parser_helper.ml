@@ -73,25 +73,33 @@ let sort_comments comments =
 let attach_comments term =
   List.iter
     (fun (comment_pos, c) ->
-      let closest_term = ref term in
+      let attach = ref (fun update -> term.comments <- update term.comments) in
       let distance = ref (comment_distance term.pos comment_pos) in
-      Parsed_term.iter_term
-        (fun term ->
-          match (comment_distance term.pos comment_pos, !distance) with
+      let kind_of_closest = ref `Term in
+      Parsed_term.iter_anchors
+        (fun pos kind set ->
+          match (comment_distance pos comment_pos, !distance) with
             | (t, d), (t', d')
               when 0 <= d
                    && (d' < 0
-                      || if t = `Before && t' = `After then d <= d' else d < d'
-                      ) ->
+                      ||
+                      if t = `Before && t' = `After then d <= d'
+                      else if d = d' then
+                        (* Nodes are visited outermost first, so an enclosing
+                           block spans the same lines as the statement it opens
+                           with. A doc comment belongs to the statement. *)
+                        kind = `Statement && !kind_of_closest <> `Statement
+                      else d < d') ->
                 distance := (t, d);
-                closest_term := term
+                kind_of_closest := kind;
+                attach := set
             | _ -> ())
         term;
       let comment =
         match !distance with `Before, _ -> `Before c | `After, _ -> `After c
       in
-      !closest_term.comments <-
-        sort_comments ((comment_pos, comment) :: !closest_term.comments))
+      !attach (fun comments ->
+          sort_comments ((comment_pos, comment) :: comments)))
     !pending_comments;
   pending_comments := []
 

@@ -91,6 +91,8 @@ end
 --- term ---
 f = fun (x) -> getter.get(x)
 (f(1), f({2}))
+--- doc ---
+f: `{e}` is shorthand for `fun () -> e`, which is what makes a getter.
 --- type ---
 int * int
 --- value ---

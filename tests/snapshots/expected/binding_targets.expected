@@ -170,6 +170,8 @@ r = list.nth(_pat0, 0)
 n = (5 : int)
 _ = 6
 (x.b, p, q, r, s, n)
+--- doc ---
+x: A bare binding takes the same targets as `let`: a variable, a field path, a type annotation, and destructuring patterns. The left-hand side is parsed as an expression and reinterpreted as a pattern.
 --- type ---
 int * int * int * int * int * int
 --- value ---

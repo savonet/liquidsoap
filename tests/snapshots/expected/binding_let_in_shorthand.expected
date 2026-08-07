@@ -45,6 +45,8 @@ f()
 f = fun () -> x = 1
 +(x, 1)
 f()
+--- doc ---
+f: The form `{ … }` does accept: `let`, unlike a bare binding.
 --- type ---
 int
 --- value ---
