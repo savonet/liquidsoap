@@ -1,0 +1,725 @@
+=== blocks_and_ternary.liq ===
+# An explicit `begin ... end` must survive as a block node: a `def` body is an
+# implicit block and flattens into `body`, but a `fun` body is a single
+# expression, so a block there was written by hand and the formatter would
+# delete it if it were flattened too.
+f =
+  fun () ->
+    begin
+      a = 1
+      a
+    end
+
+def g() =
+  b = 2
+  b
+end
+
+# A ternary's branches are expression nodes, not statement arrays.
+l = [1, ...(true ? [2] : []), 3]
+h = true ? "yes" : "no"
+
+(f(), g(), l, h)
+--- canonical ---
+{
+  "ast": {
+    "type": "program",
+    "position": [
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 0
+    },
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 488
+    }
+    ],
+    "body": [
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 5,
+        "bol": 264,
+        "cnum": 264
+      },
+        {
+        "fname": "",
+        "lnum": 10,
+        "bol": 310,
+        "cnum": 317
+      }
+      ],
+      "type": "binding",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "f" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 6,
+          "bol": 268,
+          "cnum": 270
+        },
+          {
+          "fname": "",
+          "lnum": 10,
+          "bol": 310,
+          "cnum": 317
+        }
+        ],
+        "type": "fun",
+        "arguments": [],
+        "body": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 7,
+            "bol": 280,
+            "cnum": 284
+          },
+            {
+            "fname": "",
+            "lnum": 10,
+            "bol": 310,
+            "cnum": 317
+          }
+          ],
+          "type": "block",
+          "body": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 8,
+              "bol": 290,
+              "cnum": 296
+            },
+              {
+              "fname": "",
+              "lnum": 8,
+              "bol": 290,
+              "cnum": 301
+            }
+            ],
+            "type": "binding",
+            "decoration": null,
+            "pat": { "type": "pvar", "value": [ "a" ] },
+            "arglist": null,
+            "cast": null,
+            "definition": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 8,
+                "bol": 290,
+                "cnum": 300
+              },
+                {
+                "fname": "",
+                "lnum": 8,
+                "bol": 290,
+                "cnum": 301
+              }
+              ],
+              "type": "ground",
+              "value": "1"
+            }
+          },
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 9,
+              "bol": 302,
+              "cnum": 308
+            },
+              {
+              "fname": "",
+              "lnum": 9,
+              "bol": 302,
+              "cnum": 309
+            }
+            ],
+            "type": "var",
+            "value": "a"
+          }
+          ]
+        }
+        ]
+      }
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 12,
+        "bol": 319,
+        "cnum": 319
+      },
+        {
+        "fname": "",
+        "lnum": 15,
+        "bol": 341,
+        "cnum": 344
+      }
+      ],
+      "type": "def",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "g" ] },
+      "arglist": [],
+      "cast": null,
+      "body": [
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 13,
+          "bol": 329,
+          "cnum": 331
+        },
+          {
+          "fname": "",
+          "lnum": 13,
+          "bol": 329,
+          "cnum": 336
+        }
+        ],
+        "type": "binding",
+        "decoration": null,
+        "pat": { "type": "pvar", "value": [ "b" ] },
+        "arglist": null,
+        "cast": null,
+        "definition": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 13,
+            "bol": 329,
+            "cnum": 335
+          },
+            {
+            "fname": "",
+            "lnum": 13,
+            "bol": 329,
+            "cnum": 336
+          }
+          ],
+          "type": "ground",
+          "value": "2"
+        }
+      },
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 14,
+          "bol": 337,
+          "cnum": 339
+        },
+          {
+          "fname": "",
+          "lnum": 14,
+          "bol": 337,
+          "cnum": 340
+        }
+        ],
+        "type": "var",
+        "value": "b"
+      }
+      ]
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 18,
+        "bol": 413,
+        "cnum": 413
+      },
+        {
+        "fname": "",
+        "lnum": 18,
+        "bol": 413,
+        "cnum": 445
+      }
+      ],
+      "type": "binding",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "l" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 18,
+          "bol": 413,
+          "cnum": 417
+        },
+          {
+          "fname": "",
+          "lnum": 18,
+          "bol": 413,
+          "cnum": 445
+        }
+        ],
+        "type": "list",
+        "value": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 18,
+            "bol": 413,
+            "cnum": 418
+          },
+            {
+            "fname": "",
+            "lnum": 18,
+            "bol": 413,
+            "cnum": 419
+          }
+          ],
+          "type": "term",
+          "value": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 18,
+              "bol": 413,
+              "cnum": 418
+            },
+              {
+              "fname": "",
+              "lnum": 18,
+              "bol": 413,
+              "cnum": 419
+            }
+            ],
+            "type": "ground",
+            "value": "1"
+          }
+        },
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 18,
+            "bol": 413,
+            "cnum": 424
+          },
+            {
+            "fname": "",
+            "lnum": 18,
+            "bol": 413,
+            "cnum": 441
+          }
+          ],
+          "type": "ellipsis",
+          "value": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 18,
+              "bol": 413,
+              "cnum": 424
+            },
+              {
+              "fname": "",
+              "lnum": 18,
+              "bol": 413,
+              "cnum": 441
+            }
+            ],
+            "type": "parenthesis",
+            "value": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 18,
+                "bol": 413,
+                "cnum": 425
+              },
+                {
+                "fname": "",
+                "lnum": 18,
+                "bol": 413,
+                "cnum": 440
+              }
+              ],
+              "type": "inline_if",
+              "condition": {
+                "position": [
+                  {
+                  "fname": "",
+                  "lnum": 18,
+                  "bol": 413,
+                  "cnum": 425
+                },
+                  {
+                  "fname": "",
+                  "lnum": 18,
+                  "bol": 413,
+                  "cnum": 429
+                }
+                ],
+                "type": "ground",
+                "value": "true"
+              },
+              "then": {
+                "position": [
+                  {
+                  "fname": "",
+                  "lnum": 18,
+                  "bol": 413,
+                  "cnum": 432
+                },
+                  {
+                  "fname": "",
+                  "lnum": 18,
+                  "bol": 413,
+                  "cnum": 435
+                }
+                ],
+                "type": "list",
+                "value": [
+                  {
+                  "position": [
+                    {
+                    "fname": "",
+                    "lnum": 18,
+                    "bol": 413,
+                    "cnum": 433
+                  },
+                    {
+                    "fname": "",
+                    "lnum": 18,
+                    "bol": 413,
+                    "cnum": 434
+                  }
+                  ],
+                  "type": "term",
+                  "value": {
+                    "position": [
+                      {
+                      "fname": "",
+                      "lnum": 18,
+                      "bol": 413,
+                      "cnum": 433
+                    },
+                      {
+                      "fname": "",
+                      "lnum": 18,
+                      "bol": 413,
+                      "cnum": 434
+                    }
+                    ],
+                    "type": "ground",
+                    "value": "2"
+                  }
+                }
+                ]
+              },
+              "else": {
+                "position": [
+                  {
+                  "fname": "",
+                  "lnum": 18,
+                  "bol": 413,
+                  "cnum": 438
+                },
+                  {
+                  "fname": "",
+                  "lnum": 18,
+                  "bol": 413,
+                  "cnum": 440
+                }
+                ],
+                "type": "list",
+                "value": []
+              }
+            }
+          }
+        },
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 18,
+            "bol": 413,
+            "cnum": 443
+          },
+            {
+            "fname": "",
+            "lnum": 18,
+            "bol": 413,
+            "cnum": 444
+          }
+          ],
+          "type": "term",
+          "value": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 18,
+              "bol": 413,
+              "cnum": 443
+            },
+              {
+              "fname": "",
+              "lnum": 18,
+              "bol": 413,
+              "cnum": 444
+            }
+            ],
+            "type": "ground",
+            "value": "3"
+          }
+        }
+        ]
+      }
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 19,
+        "bol": 446,
+        "cnum": 446
+      },
+        {
+        "fname": "",
+        "lnum": 19,
+        "bol": 446,
+        "cnum": 469
+      }
+      ],
+      "type": "binding",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "h" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 19,
+          "bol": 446,
+          "cnum": 450
+        },
+          {
+          "fname": "",
+          "lnum": 19,
+          "bol": 446,
+          "cnum": 469
+        }
+        ],
+        "type": "inline_if",
+        "condition": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 19,
+            "bol": 446,
+            "cnum": 450
+          },
+            {
+            "fname": "",
+            "lnum": 19,
+            "bol": 446,
+            "cnum": 454
+          }
+          ],
+          "type": "ground",
+          "value": "true"
+        },
+        "then": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 19,
+            "bol": 446,
+            "cnum": 457
+          },
+            {
+            "fname": "",
+            "lnum": 19,
+            "bol": 446,
+            "cnum": 462
+          }
+          ],
+          "type": "string",
+          "value": "\"yes\""
+        },
+        "else": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 19,
+            "bol": 446,
+            "cnum": 465
+          },
+            {
+            "fname": "",
+            "lnum": 19,
+            "bol": 446,
+            "cnum": 469
+          }
+          ],
+          "type": "string",
+          "value": "\"no\""
+        }
+      }
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 21,
+        "bol": 471,
+        "cnum": 471
+      },
+        {
+        "fname": "",
+        "lnum": 21,
+        "bol": 471,
+        "cnum": 487
+      }
+      ],
+      "type": "tuple",
+      "value": [
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 21,
+          "bol": 471,
+          "cnum": 472
+        },
+          {
+          "fname": "",
+          "lnum": 21,
+          "bol": 471,
+          "cnum": 475
+        }
+        ],
+        "type": "app",
+        "op": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 21,
+            "bol": 471,
+            "cnum": 472
+          },
+            {
+            "fname": "",
+            "lnum": 21,
+            "bol": 471,
+            "cnum": 474
+          }
+          ],
+          "type": "var",
+          "value": "f"
+        },
+        "args": []
+      },
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 21,
+          "bol": 471,
+          "cnum": 477
+        },
+          {
+          "fname": "",
+          "lnum": 21,
+          "bol": 471,
+          "cnum": 480
+        }
+        ],
+        "type": "app",
+        "op": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 21,
+            "bol": 471,
+            "cnum": 477
+          },
+            {
+            "fname": "",
+            "lnum": 21,
+            "bol": 471,
+            "cnum": 479
+          }
+          ],
+          "type": "var",
+          "value": "g"
+        },
+        "args": []
+      },
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 21,
+          "bol": 471,
+          "cnum": 482
+        },
+          {
+          "fname": "",
+          "lnum": 21,
+          "bol": 471,
+          "cnum": 483
+        }
+        ],
+        "type": "var",
+        "value": "l"
+      },
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 21,
+          "bol": 471,
+          "cnum": 485
+        },
+          {
+          "fname": "",
+          "lnum": 21,
+          "bol": 471,
+          "cnum": 486
+        }
+        ],
+        "type": "var",
+        "value": "h"
+      }
+      ]
+    }
+    ]
+  },
+  "comments": [
+    {
+    "start": 0,
+    "end": 263,
+    "lnum": 1,
+    "value": "# An explicit `begin ... end` must survive as a block node: a `def` body is an\n# implicit block and flattens into `body`, but a `fun` body is a single\n# expression, so a block there was written by hand and the formatter would\n# delete it if it were flattened too."
+  },
+    {
+    "start": 346,
+    "end": 412,
+    "lnum": 17,
+    "value": "# A ternary's branches are expression nodes, not statement arrays."
+  }
+  ]
+}

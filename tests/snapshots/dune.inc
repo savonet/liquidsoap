@@ -1063,6 +1063,25 @@
   (diff expected_canonical/blocks.expected canonical_blocks.actual)))
 
 (rule
+ (target canonical_blocks_and_ternary.actual)
+ (deps
+  (:case cases_canonical/blocks_and_ternary.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --canonical %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_canonical/blocks_and_ternary.expected
+   canonical_blocks_and_ternary.actual)))
+
+(rule
  (target canonical_comments.actual)
  (deps
   (:case cases_canonical/comments.liq)
