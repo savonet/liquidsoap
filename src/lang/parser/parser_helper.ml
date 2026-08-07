@@ -204,23 +204,59 @@ let mk_json_object_ty ~pos = function
              "`as json.object` describes a JSON object as a list of key/value \
               pairs, so it applies to a list of `(string * _)`." ))
 
+(* `ref`, `getter` and `source` name types but are ordinary identifiers too --
+   `ref(x)` is also a function -- so the lexer cannot single them out and the
+   grammar matches any variable applied to parentheses. *)
+type ty_constructor =
+  [ `Unary of Parsed_term.type_annotation -> Parsed_term.type_annotation
+  | `Source ]
+
+(* The type constructors, and the only place naming them: the error listing
+   what is accepted is derived from this. *)
+let ty_constructors : (string * ty_constructor) list =
+  [
+    ("ref", `Unary (fun t -> `Ref t));
+    ("getter", `Unary (fun t -> `Getter t));
+    ("source", `Source);
+  ]
+
+let unknown_type_constructor ~pos name =
+  let usage (name, kind) =
+    match kind with
+      | `Unary _ -> Printf.sprintf "`%s(t)`" name
+      | `Source -> Printf.sprintf "`%s(...)`" name
+  in
+  raise
+    (Term.Parse_error
+       ( pos,
+         Printf.sprintf "Unknown type constructor: %s. Expected one of %s." name
+           (String.concat ", " (List.map usage ty_constructors)) ))
+
 let mk_source_ty ~pos name tracks =
-  match name with
-    | "source" -> `Source (name, tracks)
-    | _ -> raise (Term.Parse_error (pos, "Invalid type constructor: " ^ name))
+  match List.assoc_opt name ty_constructors with
+    | Some `Source -> `Source (name, tracks)
+    | _ -> unknown_type_constructor ~pos name
 
 let mk_named_ty ~pos name ty =
-  match (name, ty) with
-    | "ref", Some t -> `Ref t
-    | "ref", None ->
-        raise (Term.Parse_error (pos, "ref type requires a type parameter"))
-    | "getter", Some t -> `Getter t
-    | "getter", None ->
-        raise (Term.Parse_error (pos, "getter type requires a type parameter"))
-    | "source", _ ->
+  match (List.assoc_opt name ty_constructors, ty) with
+    | None, _ -> unknown_type_constructor ~pos name
+    | Some (`Unary mk), Some t -> mk t
+    | Some (`Unary _), None ->
+        raise
+          (Term.Parse_error
+             ( pos,
+               Printf.sprintf
+                 "Type constructor %s takes a type parameter, as in `%s(int)`."
+                 name name ))
+    | Some `Source, None ->
         mk_source_ty ~pos name { Parsed_term.extensible = false; tracks = [] }
-    | _, _ ->
-        raise (Term.Parse_error (pos, "Invalid type constructor: " ^ name))
+    | Some `Source, Some _ ->
+        raise
+          (Term.Parse_error
+             ( pos,
+               "`source(...)` takes track declarations, as in \
+                `source(audio=pcm)`. Write `source` on its own for a source \
+                with any tracks." ))
 
 type let_opt_el = string * Parsed_term.t
 
