@@ -89,8 +89,8 @@ as = "still an identifier"
 --- hash ---
 bcf8db21b96e03b3e36edc416d1c2022
 --- term ---
-m = (_internal_json_parser_(json5=false, type=type, "{\"a\": 1}") : [string * int] as json.object)
-r = (_internal_json_parser_(json5=false, type=type, "{\"start\": \"x\"}") : {"start" as spin_start : string})
+m = (_0_json_parser(json5=false, type=type, "{\"a\": 1}") : [string * int] as json.object)
+r = (_0_json_parser(json5=false, type=type, "{\"start\": \"x\"}") : {"start" as spin_start : string})
 as = "still an identifier"
 (m, r.spin_start, as)
 --- type ---

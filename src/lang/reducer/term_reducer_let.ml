@@ -39,7 +39,7 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
       | Some v -> v
       | None -> Term.(make (`Bool false))
   in
-  let parser = mk ~pos (`Var "_internal_json_parser_") in
+  let parser = mk ~pos (`Var "_0_json_parser") in
   let def =
     mk ~pos (`App (parser, [("json5", json5); ("type", tty); ("", def)]))
   in
@@ -49,7 +49,7 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
 let mk_let_xml_parse ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
-  let parser = mk ~pos (`Var "_internal_xml_parser_") in
+  let parser = mk ~pos (`Var "_0_xml_parser") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
   let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
@@ -57,7 +57,7 @@ let mk_let_xml_parse ~pos (pat, def, cast) body =
 let mk_let_yaml_parse ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
-  let parser = mk ~pos (`Var "_internal_yaml_parser_") in
+  let parser = mk ~pos (`Var "_0_yaml_parser") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
   let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
@@ -65,7 +65,7 @@ let mk_let_yaml_parse ~pos (pat, def, cast) body =
 let mk_let_sqlite_row ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
-  let parser = mk ~pos (`Var "_sqlite_row_parser_") in
+  let parser = mk ~pos (`Var "_0_sqlite_row_parser") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
   let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
@@ -76,7 +76,7 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
   Typing.(
     ty <: mk_ty ~pos (Type.List { Type.t = inner_list_ty; json_repr = `Tuple }));
   let tty = Value.RuntimeType.to_term inner_list_ty in
-  let parser = mk ~pos (`Var "_sqlite_row_parser_") in
+  let parser = mk ~pos (`Var "_0_sqlite_row_parser") in
   let mapper =
     let query = mk ~pos (`Var "query") in
     mk ~pos (`App (parser, [("type", tty); ("", query)]))
@@ -119,7 +119,7 @@ let mk_rec_fun ~pos pat arguments body =
 let mk_eval ~pos (pat, def, body, cast) =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
-  let eval = mk ~pos (`Var "_eval_") in
+  let eval = mk ~pos (`Var "_0_eval") in
   let def = mk ~pos (`App (eval, [("type", tty); ("", def)])) in
   let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def

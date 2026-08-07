@@ -39,7 +39,7 @@ a
 --- hash ---
 2a969f235d1c6f2db6979ad098ae1888
 --- term ---
-_pat0 = (_internal_json_parser_(json5=false, type=type, "{\"a\": 1}") : {a : int})
+_pat0 = (_0_json_parser(json5=false, type=type, "{\"a\": 1}") : {a : int})
 a = _pat0.a
 a
 --- type ---
