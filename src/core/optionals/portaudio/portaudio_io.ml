@@ -225,10 +225,6 @@ class output ~self_sync ~start ~infallible ~register_telnet ~device_name
     method start = self#open_device
     method stop = self#close_device
 
-    method! reset =
-      self#close_device;
-      self#open_device
-
     method send_frame memo =
       let stream = Option.get stream in
       let buf = AFrame.pcm memo in

@@ -168,10 +168,6 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync
             Pcm.close d;
             pcm <- None
         | None -> ()
-
-    method reset =
-      self#close_device;
-      self#open_device
   end
 
 class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
@@ -185,7 +181,7 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
         ~infallible ~register_telnet ~name ~output_kind:"output.alsa" val_source
           start
 
-    inherit!
+    inherit
       base
         ~buffer_size ~self_sync
         ~default_self_sync:(fun () -> s#self_sync)
@@ -253,7 +249,7 @@ class input ~buffer_size ~self_sync ~start ~fallible dev =
   object (self)
     inherit base ~buffer_size ~self_sync dev [Pcm.Capture]
 
-    inherit!
+    inherit
       Start_stop.active_source
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
         ~fallible ~autostart:start () as active_source
