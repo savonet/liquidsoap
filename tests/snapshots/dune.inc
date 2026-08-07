@@ -464,6 +464,40 @@
   (diff expected/iterable_for.expected iterable_for.actual)))
 
 (rule
+ (target json_as_type.actual)
+ (deps
+  (:case cases/json_as_type.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected/json_as_type.expected json_as_type.actual)))
+
+(rule
+ (target json_as_type_bad.actual)
+ (deps
+  (:case cases/json_as_type_bad.invalid-liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected/json_as_type_bad.expected json_as_type_bad.actual)))
+
+(rule
  (target json_parse.actual)
  (deps
   (:case cases/json_parse.liq)
