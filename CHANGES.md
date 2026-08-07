@@ -120,6 +120,10 @@
   of the segment grid. The drift rate depends on the encoder's frame size, so
   variants using different codecs, e.g. HE-AAC and AAC-LC, diverged from each
   other without bound (#5319).
+- Record fields are evaluated when the record is built, whether or not they are ever invoked. Previously a field of a
+  record that was invoked directly, as in `{a = 1, b = f()}.a`, was dropped along with its effects when running a
+  script normally, but not under `--interactive` or in the standard library, and not if the record was bound to a name
+  first.
 - Inline `ffmpeg.encode.*` operators report unrecognized codec options, as the
   container encoder does.
 - Fixed `%ffmpeg` copy encoder initializing the video stream twice and setting the
