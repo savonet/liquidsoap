@@ -2,64 +2,72 @@
 for x = list.iterator([1, 2, 3]) do ignore(x) end
 --- parsed ---
 {
-  "type": "iterable_for",
-  "variable": "x",
-  "iterator": {
-    "type": "invoke",
-    "invoked": { "type": "var", "value": "list" },
-    "optional": false,
-    "meth": {
+  "type": "block",
+  "value": [
+    {
+    "type": "iterable_for",
+    "variable": "x",
+    "iterator": {
+      "type": "invoke",
+      "invoked": { "type": "var", "value": "list" },
+      "optional": false,
+      "meth": {
+        "type": "app",
+        "op": { "type": "var", "value": "iterator" },
+        "args": [
+          {
+          "type": "term",
+          "value": {
+            "type": "app_arg",
+            "label": "",
+            "value": {
+              "type": "list",
+              "value": [
+                {
+                "type": "term",
+                "value": { "type": "ground", "value": "1" }
+              },
+                {
+                "type": "term",
+                "value": { "type": "ground", "value": "2" }
+              },
+                {
+                "type": "term",
+                "value": { "type": "ground", "value": "3" }
+              }
+              ]
+            }
+          }
+        }
+        ]
+      }
+    },
+    "loop": [
+      {
       "type": "app",
-      "op": { "type": "var", "value": "iterator" },
+      "op": { "type": "var", "value": "ignore" },
       "args": [
         {
         "type": "term",
         "value": {
           "type": "app_arg",
           "label": "",
-          "value": {
-            "type": "list",
-            "value": [
-              {
-              "type": "term",
-              "value": { "type": "ground", "value": "1" }
-            },
-              {
-              "type": "term",
-              "value": { "type": "ground", "value": "2" }
-            },
-              {
-              "type": "term",
-              "value": { "type": "ground", "value": "3" }
-            }
-            ]
-          }
+          "value": { "type": "var", "value": "x" }
         }
       }
       ]
     }
-  },
-  "loop": {
-    "type": "app",
-    "op": { "type": "var", "value": "ignore" },
-    "args": [
-      {
-      "type": "term",
-      "value": {
-        "type": "app_arg",
-        "label": "",
-        "value": { "type": "var", "value": "x" }
-      }
-    }
     ]
   }
+  ]
 }
 --- hash ---
-78a1ec263395a31bb34d931b86d029fd
+ae42910cd311b37e94795ae6f1f713a2
 --- term ---
 for(list.iterator([1, 2, 3]), fun (x) -> ignore(x))
 --- type ---
-At line 1, char 8-12:
+At cases/iterable_for.liq, line 1, char 8-12:
+for x = list.iterator([1, 2, 3]) do ignore(x) end
 
 Error 5: this value has no method `iterator`
   Its type is {

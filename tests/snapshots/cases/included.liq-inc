@@ -1,0 +1,4 @@
+# Pulled in by pp_include.liq. Both bindings must scope over the code that
+# follows the `%include`, which is what Term_preprocessor.concat_term arranges.
+from_include = 1
+let also_from_include = 2

@@ -1,0 +1,122 @@
+=== binding_positions.liq ===
+# A binding scopes over the rest of its block, in every block position.
+def outer() =
+  a = 1
+  a + 1
+end
+
+inner_if = if true then b = 2; b else 0 end
+
+def last_statement() =
+  # A binding as the last statement of a block: its body is `Eof`, which
+  # reduces to unit.
+  c = 3
+end
+
+(outer(), inner_if, last_statement())
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "def",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "outer" ] },
+    "arglist": [],
+    "cast": null,
+    "body": [
+      {
+      "type": "binding",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "a" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": { "type": "ground", "value": "1" }
+    },
+      {
+      "type": "infix",
+      "left": { "type": "var", "value": "a" },
+      "op": "+",
+      "right": { "type": "ground", "value": "1" }
+    }
+    ]
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "inner_if" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "if",
+      "condition": { "type": "ground", "value": "true" },
+      "then": [
+        {
+        "type": "binding",
+        "decoration": null,
+        "pat": { "type": "pvar", "value": [ "b" ] },
+        "arglist": null,
+        "cast": null,
+        "definition": { "type": "ground", "value": "2" }
+      },
+        {
+        "type": "var",
+        "value": "b"
+      }
+      ],
+      "elsif": [],
+      "else": [ { "type": "ground", "value": "0" } ]
+    }
+  },
+    {
+    "type": "def",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "last_statement" ] },
+    "arglist": [],
+    "cast": null,
+    "body": [
+      {
+      "type": "binding",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "c" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": { "type": "ground", "value": "3" }
+    }
+    ]
+  },
+    {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "app",
+      "op": { "type": "var", "value": "outer" },
+      "args": []
+    },
+      {
+      "type": "var",
+      "value": "inner_if"
+    },
+      {
+      "type": "app",
+      "op": { "type": "var", "value": "last_statement" },
+      "args": []
+    }
+    ]
+  }
+  ]
+}
+--- hash ---
+5a9a1e1ed260610a6d06e6955c2b2a67
+--- term ---
+outer = fun () -> a = 1
++(a, 1)
+inner_if = if(true, then=fun () -> b = 2
+b, else={0})
+last_statement = fun () -> c = 3
+()
+(outer(), inner_if, last_statement())
+--- type ---
+int * int * unit
+--- value ---
+(2, 2, ())

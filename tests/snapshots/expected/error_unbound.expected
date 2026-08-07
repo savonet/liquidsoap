@@ -1,12 +1,16 @@
 === error_unbound.liq ===
 undefined_variable
 --- parsed ---
-{ "type": "var", "value": "undefined_variable" }
+{
+  "type": "block",
+  "value": [ { "type": "var", "value": "undefined_variable" } ]
+}
 --- hash ---
-85659f605d2206b1c269ea49a5144d54
+20d2d1bd6cc78ad3607ad9c150b4c081
 --- term ---
 undefined_variable
 --- type ---
-At line 1, char 0-18:
+At cases/error_unbound.liq, line 1, char 0-18:
+undefined_variable
 
 Error 4: Undefined variable undefined_variable

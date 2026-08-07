@@ -3,8 +3,17 @@ r = r/ab+c/gi
 r.test("abbc")
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "r" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "regexp", "name": "ab+c", "flags": [ "g", "i" ] }
+  },
+    {
     "type": "invoke",
     "invoked": { "type": "var", "value": "r" },
     "optional": false,
@@ -22,15 +31,11 @@ r.test("abbc")
       }
       ]
     }
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "r" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": { "type": "regexp", "name": "ab+c", "flags": [ "g", "i" ] }
+  }
+  ]
 }
 --- hash ---
-a6984d8dd9a09a17f778e5be689aae3b
+1737ceef0f2e746f8e8adf03277ae928
 --- term ---
 r = regexp("ab+c", flags=["i", "g"])
 r.test("abbc")

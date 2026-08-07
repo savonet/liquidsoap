@@ -6,68 +6,78 @@ catch err : [error.not_found] do
 end
 --- parsed ---
 {
-  "type": "try",
-  "body": {
-    "type": "invoke",
-    "invoked": { "type": "var", "value": "error" },
-    "optional": false,
-    "meth": {
-      "type": "app",
-      "op": { "type": "var", "value": "raise" },
-      "args": [
-        {
-        "type": "term",
-        "value": {
-          "type": "app_arg",
-          "label": "",
+  "type": "block",
+  "value": [
+    {
+    "type": "try",
+    "body": [
+      {
+      "type": "invoke",
+      "invoked": { "type": "var", "value": "error" },
+      "optional": false,
+      "meth": {
+        "type": "app",
+        "op": { "type": "var", "value": "raise" },
+        "args": [
+          {
+          "type": "term",
           "value": {
-            "type": "invoke",
-            "invoked": { "type": "var", "value": "error" },
-            "optional": false,
-            "meth": { "type": "var", "value": "not_found" }
+            "type": "app_arg",
+            "label": "",
+            "value": {
+              "type": "invoke",
+              "invoked": { "type": "var", "value": "error" },
+              "optional": false,
+              "meth": { "type": "var", "value": "not_found" }
+            }
+          }
+        },
+          {
+          "type": "term",
+          "value": {
+            "type": "app_arg",
+            "label": "",
+            "value": { "type": "string", "value": "\"nope\"" }
           }
         }
-      },
+        ]
+      }
+    }
+    ],
+    "variable": "err",
+    "errors_list": {
+      "type": "list",
+      "value": [
         {
         "type": "term",
         "value": {
-          "type": "app_arg",
-          "label": "",
-          "value": { "type": "string", "value": "\"nope\"" }
+          "type": "invoke",
+          "invoked": { "type": "var", "value": "error" },
+          "optional": false,
+          "meth": { "type": "var", "value": "not_found" }
         }
       }
       ]
-    }
-  },
-  "variable": "err",
-  "errors_list": {
-    "type": "list",
-    "value": [
+    },
+    "handler": [
       {
-      "type": "term",
-      "value": {
-        "type": "invoke",
-        "invoked": { "type": "var", "value": "error" },
-        "optional": false,
-        "meth": { "type": "var", "value": "not_found" }
-      }
+      "type": "invoke",
+      "invoked": { "type": "var", "value": "err" },
+      "optional": false,
+      "meth": { "type": "var", "value": "message" }
     }
-    ]
-  },
-  "handler": {
-    "type": "invoke",
-    "invoked": { "type": "var", "value": "err" },
-    "optional": false,
-    "meth": { "type": "var", "value": "message" }
-  },
-  "finally": null
+    ],
+    "finally": null
+  }
+  ]
 }
 --- hash ---
-43675712c2cc2253be15e78c1d467166
+0cf8b4287e9d04e6e3f24ef6126b36cb
 --- term ---
 error.catch(errors=[error.not_found], body=fun () -> error.raise(error.not_found, "nope"), catch=fun (err) -> err.message, finally={()})
 --- type ---
-At line 3, char 13-18:
+At cases/try_catch.liq, line 3, char 13-18:
+catch err : [error.not_found] do
 
 Error 5: this value has no method `not_found`
   Its type is {

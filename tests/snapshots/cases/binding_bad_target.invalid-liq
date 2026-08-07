@@ -1,0 +1,3 @@
+# The left-hand side of a bare binding must be a valid pattern. A call is not,
+# and is reported as such rather than as a bare syntax error.
+f(1) = 2

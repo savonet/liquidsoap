@@ -2,31 +2,36 @@
 true and false or not true
 --- parsed ---
 {
-  "type": "bool",
-  "op": "and",
+  "type": "block",
   "value": [
     {
-    "type": "ground",
-    "value": "true"
-  },
-    {
     "type": "bool",
-    "op": "or",
+    "op": "and",
     "value": [
       {
       "type": "ground",
-      "value": "false"
+      "value": "true"
     },
       {
-      "type": "not",
-      "value": { "type": "ground", "value": "true" }
+      "type": "bool",
+      "op": "or",
+      "value": [
+        {
+        "type": "ground",
+        "value": "false"
+      },
+        {
+        "type": "not",
+        "value": { "type": "ground", "value": "true" }
+      }
+      ]
     }
     ]
   }
   ]
 }
 --- hash ---
-64920271173667b323678224208ccfd2
+119b8113c392cbd3cda80ec442acc78d
 --- term ---
 and({true}, fun () -> or({false}, fun () -> not(true)))
 --- type ---

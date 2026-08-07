@@ -1,0 +1,44 @@
+=== pp_ifdef_value.liq ===
+# `%ifdef` in value position: the selected branch is a block used as a value,
+# not a statement splice. src/libs/playlist.liq relies on this.
+s =
+%ifdef list.length
+  1
+%else
+  2
+%endif
+
+s
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "s" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "if_def",
+      "negative": false,
+      "condition": "list.length",
+      "then": [ { "type": "ground", "value": "1" } ],
+      "else": [ { "type": "ground", "value": "2" } ]
+    }
+  },
+    {
+    "type": "var",
+    "value": "s"
+  }
+  ]
+}
+--- hash ---
+84d551af3206b61f83b6dfa3737f691b
+--- term ---
+s = 1
+s
+--- type ---
+int
+--- value ---
+1

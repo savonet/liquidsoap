@@ -3,33 +3,41 @@ let json.parse ({a} : {a: int}) = '{"a": 1}'
 a
 --- parsed ---
 {
-  "type": "let",
-  "body": { "type": "var", "value": "a" },
-  "decoration": { "type": "var", "value": "json.parse" },
-  "pat": { "type": "pmeth", "value": [ { "type": "var", "value": "a" } ] },
-  "arglist": null,
-  "cast": {
-    "type": "type_annotation",
-    "subtype": "record",
-    "value": [
-      {
+  "type": "block",
+  "value": [
+    {
+    "type": "let",
+    "decoration": { "type": "var", "value": "json.parse" },
+    "pat": { "type": "pmeth", "value": [ { "type": "var", "value": "a" } ] },
+    "arglist": null,
+    "cast": {
       "type": "type_annotation",
-      "subtype": "method_annotation",
-      "value": {
+      "subtype": "record",
+      "value": [
+        {
         "type": "type_annotation",
-        "subtype": "named",
-        "value": "int"
-      },
-      "optional": false,
-      "name": "a",
-      "json_name": null
-    }
-    ]
+        "subtype": "method_annotation",
+        "value": {
+          "type": "type_annotation",
+          "subtype": "named",
+          "value": "int"
+        },
+        "optional": false,
+        "name": "a",
+        "json_name": null
+      }
+      ]
+    },
+    "definition": { "type": "string", "value": "'{\"a\": 1}'" }
   },
-  "definition": { "type": "string", "value": "'{\"a\": 1}'" }
+    {
+    "type": "var",
+    "value": "a"
+  }
+  ]
 }
 --- hash ---
-972cb196e3f67259137e78ca0283e978
+2a969f235d1c6f2db6979ad098ae1888
 --- term ---
 _pat0 = (_internal_json_parser_(json5=false, type=type, "{\"a\": 1}") : {a : int})
 a = _pat0.a

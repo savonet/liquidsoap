@@ -3,8 +3,27 @@ r = {a = 1}
 r?.a ?? 0
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "r" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "methods",
+      "base": null,
+      "methods": [
+        {
+        "type": "method",
+        "name": "a",
+        "value": { "type": "ground", "value": "1" }
+      }
+      ]
+    }
+  },
+    {
     "type": "coalesce",
     "left": {
       "type": "invoke",
@@ -13,25 +32,11 @@ r?.a ?? 0
       "meth": { "type": "var", "value": "a" }
     },
     "right": { "type": "ground", "value": "0" }
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "r" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "methods",
-    "base": null,
-    "methods": [
-      {
-      "type": "method",
-      "name": "a",
-      "value": { "type": "ground", "value": "1" }
-    }
-    ]
   }
+  ]
 }
 --- hash ---
-30b23f36634cc6f3bf7c3d3a78d0f9a8
+21adb5087478236aeca83cef57825f68
 --- term ---
 r = {a=1}
 (r.a ?? 0)

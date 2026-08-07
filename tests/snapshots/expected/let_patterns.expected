@@ -5,64 +5,52 @@ let {foo} = {foo = 3, bar = 4}
 (a, b, c, x, y, foo)
 --- parsed ---
 {
-  "type": "let",
-  "body": {
+  "type": "block",
+  "value": [
+    {
     "type": "let",
-    "body": {
-      "type": "let",
-      "body": {
-        "type": "tuple",
-        "value": [
-          {
-          "type": "var",
-          "value": "a"
-        },
-          {
-          "type": "var",
-          "value": "b"
-        },
-          {
-          "type": "var",
-          "value": "c"
-        },
-          {
-          "type": "var",
-          "value": "x"
-        },
-          {
-          "type": "var",
-          "value": "y"
-        },
-          {
-          "type": "var",
-          "value": "foo"
-        }
-        ]
+    "decoration": null,
+    "pat": {
+      "type": "plist",
+      "left": [
+        {
+        "type": "pvar",
+        "value": [ "a" ]
       },
-      "decoration": null,
-      "pat": {
-        "type": "pmeth",
-        "value": [ { "type": "var", "value": "foo" } ]
-      },
-      "arglist": null,
-      "cast": null,
-      "definition": {
-        "type": "methods",
-        "base": null,
-        "methods": [
-          {
-          "type": "method",
-          "name": "foo",
-          "value": { "type": "ground", "value": "3" }
-        },
-          {
-          "type": "method",
-          "name": "bar",
-          "value": { "type": "ground", "value": "4" }
-        }
-        ]
+        {
+        "type": "pvar",
+        "value": [ "b" ]
       }
+      ],
+      "middle": "c",
+      "right": []
     },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "list",
+      "value": [
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "1" }
+      },
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "2" }
+      },
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "3" }
+      },
+        {
+        "type": "term",
+        "value": { "type": "ground", "value": "4" }
+      }
+      ]
+    }
+  },
+    {
+    "type": "let",
     "decoration": null,
     "pat": {
       "type": "ptuple",
@@ -93,48 +81,65 @@ let {foo} = {foo = 3, bar = 4}
       ]
     }
   },
-  "decoration": null,
-  "pat": {
-    "type": "plist",
-    "left": [
-      {
-      "type": "pvar",
-      "value": [ "a" ]
+    {
+    "type": "let",
+    "decoration": null,
+    "pat": {
+      "type": "pmeth",
+      "value": [ { "type": "var", "value": "foo" } ]
     },
-      {
-      "type": "pvar",
-      "value": [ "b" ]
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "methods",
+      "base": null,
+      "methods": [
+        {
+        "type": "method",
+        "name": "foo",
+        "value": { "type": "ground", "value": "3" }
+      },
+        {
+        "type": "method",
+        "name": "bar",
+        "value": { "type": "ground", "value": "4" }
+      }
+      ]
     }
-    ],
-    "middle": "c",
-    "right": []
   },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "list",
+    {
+    "type": "tuple",
     "value": [
       {
-      "type": "term",
-      "value": { "type": "ground", "value": "1" }
+      "type": "var",
+      "value": "a"
     },
       {
-      "type": "term",
-      "value": { "type": "ground", "value": "2" }
+      "type": "var",
+      "value": "b"
     },
       {
-      "type": "term",
-      "value": { "type": "ground", "value": "3" }
+      "type": "var",
+      "value": "c"
     },
       {
-      "type": "term",
-      "value": { "type": "ground", "value": "4" }
+      "type": "var",
+      "value": "x"
+    },
+      {
+      "type": "var",
+      "value": "y"
+    },
+      {
+      "type": "var",
+      "value": "foo"
     }
     ]
   }
+  ]
 }
 --- hash ---
-c64dd274b5c59995632b4364efe7943a
+a1734de72beb8112bcd0abaa667a3993
 --- term ---
 _pat0 = [1, 2, 3, 4]
 _pat1 = list.length(_pat0)

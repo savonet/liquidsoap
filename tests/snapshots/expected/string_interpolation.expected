@@ -3,8 +3,17 @@ name = "world"
 "hello #{name}!"
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "name" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "string", "value": "\"world\"" }
+  },
+    {
     "type": "string_interpolation",
     "value": [
       {
@@ -28,15 +37,11 @@ name = "world"
       "value": "\""
     }
     ]
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "name" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": { "type": "string", "value": "\"world\"" }
+  }
+  ]
 }
 --- hash ---
-a41cf1995824e09bfcbde93750e8478e
+1b648c5d32246c787af7097170555513
 --- term ---
 name = "world"
 string.concat(["hello ", string(name), "!"])

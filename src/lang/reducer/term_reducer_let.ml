@@ -140,8 +140,11 @@ let string_of_let_decoration = function
   | `Xml_parse -> "xml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~env ~pos ~to_term ~comments ~throw
-    ({ decoration; pat; arglist; def; cast }, body) =
+(* [body] is a continuation rather than a term: what a binding scopes over is
+   the rest of its block, which the caller folds once the extended environment
+   is known. *)
+let mk_let ~env ~pos ~to_term ~comments ~throw ~body
+    { kind = _; decoration; pat; arglist; def; cast } =
   let def = to_term ~env def in
   let mk_body def =
     let env =
@@ -159,7 +162,7 @@ let mk_let ~env ~pos ~to_term ~comments ~throw
             (path, def) :: env
         | _ -> env
     in
-    to_term ~env body
+    body env
   in
   let cast = Option.map (mk_parsed_ty ~pos ~env ~to_term) cast in
   let arglist = Option.map (expand_argsof ~throw ~pos ~env ~to_term) arglist in

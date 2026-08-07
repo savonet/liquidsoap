@@ -1,0 +1,262 @@
+=== string_interpolation_nested.liq ===
+# An interpolation is read as ordinary tokens, and the `}` that closes it is
+# found by counting braces over tokens. A record, a string or another
+# interpolated string inside `#{ … }` therefore nests correctly.
+m = [("k", "v")]
+r = {a = 1}
+
+by_key = "got #{m["k"]}"
+record = "a #{ {a = 1}.a } b"
+nested = "#{ "#{r.a}" }"
+adjacent = "#{r.a}#{r.a}"
+
+(by_key, record, nested, adjacent)
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "m" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "list",
+      "value": [
+        {
+        "type": "term",
+        "value": {
+          "type": "tuple",
+          "value": [
+            {
+            "type": "string",
+            "value": "\"k\""
+          },
+            {
+            "type": "string",
+            "value": "\"v\""
+          }
+          ]
+        }
+      }
+      ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "r" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "methods",
+      "base": null,
+      "methods": [
+        {
+        "type": "method",
+        "name": "a",
+        "value": { "type": "ground", "value": "1" }
+      }
+      ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "by_key" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "string_interpolation",
+      "value": [
+        {
+        "type": "interpolated_string",
+        "value": "\""
+      },
+        {
+        "type": "interpolated_string",
+        "value": "got "
+      },
+        {
+        "type": "interpolated_term",
+        "value": {
+          "type": "assoc",
+          "left": { "type": "var", "value": "m" },
+          "right": { "type": "string", "value": "\"k\"" }
+        }
+      },
+        {
+        "type": "interpolated_string",
+        "value": "\""
+      }
+      ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "record" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "string_interpolation",
+      "value": [
+        {
+        "type": "interpolated_string",
+        "value": "\""
+      },
+        {
+        "type": "interpolated_string",
+        "value": "a "
+      },
+        {
+        "type": "interpolated_term",
+        "value": {
+          "type": "invoke",
+          "invoked": {
+            "type": "methods",
+            "base": null,
+            "methods": [
+              {
+              "type": "method",
+              "name": "a",
+              "value": { "type": "ground", "value": "1" }
+            }
+            ]
+          },
+          "optional": false,
+          "meth": { "type": "var", "value": "a" }
+        }
+      },
+        {
+        "type": "interpolated_string",
+        "value": " b"
+      },
+        {
+        "type": "interpolated_string",
+        "value": "\""
+      }
+      ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "nested" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "string_interpolation",
+      "value": [
+        {
+        "type": "interpolated_string",
+        "value": "\""
+      },
+        {
+        "type": "interpolated_term",
+        "value": {
+          "type": "string_interpolation",
+          "value": [
+            {
+            "type": "interpolated_string",
+            "value": "\""
+          },
+            {
+            "type": "interpolated_term",
+            "value": {
+              "type": "invoke",
+              "invoked": { "type": "var", "value": "r" },
+              "optional": false,
+              "meth": { "type": "var", "value": "a" }
+            }
+          },
+            {
+            "type": "interpolated_string",
+            "value": "\""
+          }
+          ]
+        }
+      },
+        {
+        "type": "interpolated_string",
+        "value": "\""
+      }
+      ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "adjacent" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "string_interpolation",
+      "value": [
+        {
+        "type": "interpolated_string",
+        "value": "\""
+      },
+        {
+        "type": "interpolated_term",
+        "value": {
+          "type": "invoke",
+          "invoked": { "type": "var", "value": "r" },
+          "optional": false,
+          "meth": { "type": "var", "value": "a" }
+        }
+      },
+        {
+        "type": "interpolated_term",
+        "value": {
+          "type": "invoke",
+          "invoked": { "type": "var", "value": "r" },
+          "optional": false,
+          "meth": { "type": "var", "value": "a" }
+        }
+      },
+        {
+        "type": "interpolated_string",
+        "value": "\""
+      }
+      ]
+    }
+  },
+    {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "var",
+      "value": "by_key"
+    },
+      {
+      "type": "var",
+      "value": "record"
+    },
+      {
+      "type": "var",
+      "value": "nested"
+    },
+      {
+      "type": "var",
+      "value": "adjacent"
+    }
+    ]
+  }
+  ]
+}
+--- hash ---
+785def64d2144f373e62aa381a984f0d
+--- term ---
+m = [("k", "v")]
+r = {a=1}
+by_key = string.concat(["got ", string(_[_](m, "k"))])
+record = string.concat(["a ", string({a=1}.a), " b"])
+nested = string.concat([string(string.concat([string(r.a)]))])
+adjacent = string.concat([string(r.a), string(r.a)])
+(by_key, record, nested, adjacent)
+--- type ---
+string * string * string * string
+--- value ---
+("got v", "a 1 b", "1", "11")

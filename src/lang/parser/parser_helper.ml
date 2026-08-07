@@ -39,16 +39,7 @@ type lexer_let_decoration =
   | `Sqlite_row
   | `Sqlite_query ]
 
-type explicit_binding = [ `Def of Parsed_term._let | `Let of Parsed_term._let ]
-type binding = [ explicit_binding | `Binding of Parsed_term._let ]
-
-let render_string_ref = ref (fun ~pos:_ _ -> assert false)
-
-(* This is filled by Lexer to make it possible to use this function in the parser. *)
-let render_string ~pos s =
-  let fn = !render_string_ref in
-  fn ~pos s
-
+let render_string ~pos (sep, s) = String_literal.render ~pos ~sep s
 let pending_comments = ref []
 let clear_comments () = pending_comments := []
 let get_pending_comments () = !pending_comments
@@ -104,8 +95,86 @@ let attach_comments term =
     !pending_comments;
   pending_comments := []
 
-let let_args ~decoration ~pat ?arglist ~def ?cast () =
-  { decoration; pat; arglist; def; cast }
+let let_args ~kind ~decoration ~pat ?arglist ~def ?cast () =
+  { kind; decoration; pat; arglist; def; cast }
+
+let mk = Parsed_term.make
+let mk_stmt ~pos stmt = { stmt; stmt_pos = pos; stmt_comments = [] }
+let mk_block ~pos block_body = { block_body; block_pos = pos }
+
+(* A block used where an expression is expected. The singleton case is by far
+   the most common (`if a then`, `def f() = e end`) and would otherwise wrap
+   every one of them in a redundant `Block` node. *)
+let expr_of_block ~pos b =
+  match b.block_body with
+    | [{ stmt = `Expr tm; _ }] -> tm
+    | _ -> mk ~pos (`Block b)
+
+let block_expr ~pos stmts = expr_of_block ~pos (mk_block ~pos stmts)
+
+(* A bare binding's left-hand side is parsed as an expression and converted
+   here. `(a, b)` is both a tuple expression and a tuple pattern, and LR(1)
+   cannot tell which until it reaches the `=`, so the grammar commits to the
+   expression and this decides afterwards. Invalid targets are reported here,
+   with a message naming what is allowed. *)
+let rec pattern_of_expr (tm : Parsed_term.t) : Parsed_term.pattern =
+  let pat_pos = tm.pos in
+  let entry =
+    match tm.term with
+      | `Var v -> `PVar [v]
+      (* `x.y.z = ...`: an invoke chain is a dotted path. *)
+      | `Invoke _ -> `PVar (path_of_invoke tm)
+      | `Tuple l -> `PTuple (List.map pattern_of_expr l)
+      | `List l ->
+          `PList
+            ( List.map
+                (function
+                  | `Term tm -> pattern_of_expr tm
+                  | `Ellipsis tm ->
+                      raise
+                        (Term.Parse_error
+                           ( tm.pos,
+                             "Invalid binding: use `...x` for the spread \
+                              element." )))
+                l,
+              None,
+              [] )
+      | `Parenthesis tm | `Block { block_body = [{ stmt = `Expr tm; _ }]; _ } ->
+          (pattern_of_expr tm).pat_entry
+      | `Methods (base, methods) ->
+          `PMeth
+            ( Option.map pattern_of_expr base,
+              List.map
+                (function
+                  | `Method (name, tm) -> (name, `Pattern (pattern_of_expr tm))
+                  | `Ellipsis tm ->
+                      raise
+                        (Term.Parse_error (tm.pos, "Invalid binding target.")))
+                methods )
+      | _ ->
+          raise
+            (Term.Parse_error
+               ( tm.pos,
+                 "Invalid binding: the left-hand side of `=` must be a \
+                  variable, a field path or a destructuring pattern." ))
+  in
+  { pat_pos; pat_entry = entry }
+
+(* `(n : int) = 3`: the annotation parses as a cast expression around the
+   target, and belongs on the binding rather than in the pattern. *)
+and binding_target (tm : Parsed_term.t) =
+  match tm.term with
+    | `Cast { cast; typ } -> (pattern_of_expr cast, Some typ)
+    | _ -> (pattern_of_expr tm, None)
+
+and path_of_invoke (tm : Parsed_term.t) : string list =
+  match tm.term with
+    | `Var v -> [v]
+    | `Invoke { invoked; meth = `String m; optional = false } ->
+        path_of_invoke invoked @ [m]
+    | _ ->
+        raise
+          (Term.Parse_error (tm.pos, "Invalid binding: not a valid field path."))
 
 let mk_json_assoc_object_ty ~pos = function
   | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty
@@ -150,7 +219,6 @@ let args_of_json_parse ~pos = function
         (Term.Parse_error
            (pos, "Invalid argument " ^ lbl ^ " for json.parse let constructor"))
 
-let mk = Parsed_term.make
 let mk_fun ~pos arguments body = mk ~pos (`Fun (arguments, body))
 
 let mk_try ?handler ?finally_block ~body_block ~pos () =
@@ -161,14 +229,5 @@ let mk_try ?handler ?finally_block ~body_block ~pos () =
          try_handler = handler;
          try_finally_block = finally_block;
        })
-
-let mk_let ~pos _let body =
-  let ast =
-    match _let with
-      | `Let v -> `Let (v, body)
-      | `Def v -> `Def (v, body)
-      | `Binding v -> `Binding (v, body)
-  in
-  mk ~pos ast
 
 let mk_encoder ~pos e p = mk ~pos (`Encoder (e, p))

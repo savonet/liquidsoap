@@ -27,6 +27,12 @@
 
 ## Changed:
 
+- Bindings written without `let` accept the same targets as `let`: destructuring patterns, field paths and type
+  annotations. `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid. A leading binding inside the
+  `{ … }` function shorthand still requires `let`, since `{ x = 1 }` is a record literal. An invalid left-hand side
+  reports what is allowed instead of a bare syntax error.
+- String interpolation accepts any expression: `"#{m["key"]}"`, `"#{ {a = 1}.a }"` and nested interpolated strings
+  now work. Error positions inside `#{ … }` point at the offending code rather than at the start of the string.
 - `http.transport.ssl` and `http.transport.tls`: `key` parameter is now optional in server mode when the certificate file also contains the private key.
 - `switch`, `fallback`, `rotate`, `random`: replaced the parallel list parameters
   (`transitions`, `transition_length`, `override`, `track_sensitive`,
