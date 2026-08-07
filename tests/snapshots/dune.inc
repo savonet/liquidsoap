@@ -838,6 +838,23 @@
   (diff expected/regexp_literal.expected regexp_literal.actual)))
 
 (rule
+ (target reserved_names.actual)
+ (deps
+  (:case cases/reserved_names.invalid-liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected/reserved_names.expected reserved_names.actual)))
+
+(rule
  (target seq_and_ignore.actual)
  (deps
   (:case cases/seq_and_ignore.liq)

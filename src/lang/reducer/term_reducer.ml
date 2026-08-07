@@ -272,7 +272,7 @@ let to_encoder_params ~throw =
 
 let to_term ~throw tm = to_term ~throw ~env:[] tm
 
-(* `let eval` desugars to a call to `_eval_`, which parses a string at run time
+(* `let eval` desugars to a call to `_0_eval`, which parses a string at run time
    and so needs the standard library to still be around. Asking the term rather
    than remembering that we reduced one keeps this a property of the script. *)
-let needs_toplevel term = Vars.mem "_eval_" (Term.free_vars term)
+let needs_toplevel term = Vars.mem "_0_eval" (Term.free_vars term)

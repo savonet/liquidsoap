@@ -69,6 +69,10 @@
 
 ## Fixed:
 
+- The names liquidsoap's syntactic sugar expands to are no longer writable in a script: they now start with an
+  underscore followed by a digit, which the lexer does not accept as an identifier, so user code cannot shadow what
+  `let eval`, `let json.parse`, `let xml.parse`, `let yaml.parse`, `let sqlite.row`/`sqlite.query` or `%argsof` expand
+  to. `_null` is unchanged, being a real callable builtin.
 - Record fields are evaluated when the record is built, whether or not they are ever invoked. Previously a field of a
   record that was invoked directly, as in `{a = 1, b = f()}.a`, was dropped along with its effects when running a
   script normally, but not under `--interactive` or in the standard library, and not if the record was bound to a name
