@@ -308,6 +308,9 @@ let print_string ?(pager = false) s =
   let pager =
     if
       Sys.win32
+      (* Paging a redirected stream would write the pager's control sequences
+         into the output, e.g. `liquidsoap --list-functions-md > reference.md`. *)
+      || (not (Unix.isatty Unix.stdout))
       || Sys.getenv_opt "TERM" = None
       || Sys.getenv_opt "PAGER" = Some "none"
     then false
