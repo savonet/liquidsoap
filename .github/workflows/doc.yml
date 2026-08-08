@@ -22,6 +22,10 @@ jobs:
     env:
       HOME: /home/opam
     steps:
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
         id: cpu_cores
@@ -36,9 +40,6 @@ jobs:
           cd /tmp/liquidsoap
           sudo -u opam git fetch --depth 1 origin ${{ inputs.sha }}
           sudo -u opam git checkout ${{ inputs.sha }}
-          sudo -u opam git clone --depth 1 https://github.com/savonet/liquidsoap-full.git /tmp/liquidsoap-full
-          rmdir /tmp/liquidsoap-full/liquidsoap
-          ln -s /tmp/liquidsoap /tmp/liquidsoap-full/liquidsoap
       - name: Build doc
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -51,10 +52,34 @@ jobs:
           # Copy JS artifacts after build to avoid dune overwriting them
           mkdir -p _build/default/src/js
           cp -f /tmp/${{ github.run_number }}/js-artifacts/* _build/default/src/js/
-          cd /tmp/liquidsoap-full/website
-          make dist
+      - name: Build the website
+        run: |
+          set -eu
+          git clone --depth 1 https://github.com/savonet/website.git /tmp/website
+
+          # The in-development version comes straight out of the build above: doc/content
+          # for the prose, _build/default/doc for the five files only the binary can
+          # produce, and dune-project for the version the site labels it with. -L because
+          # doc/content/images is a symlink to ../orig/images.
+          BUNDLE=/tmp/doc-bundle
+          mkdir -p "$BUNDLE"
+          cp -RL /tmp/liquidsoap/doc/content "$BUNDLE/content"
+          for f in reference reference-extras reference-deprecated protocols settings; do
+            cp "/tmp/liquidsoap/_build/default/doc/$f.md" "$BUNDLE/$f.md"
+          done
+          sed -n 's/^(version \(.*\))$/\1/p' /tmp/liquidsoap/dune-project > "$BUNDLE/version"
+
+          cd /tmp/website
+          npm ci
+          node scripts/sync-docs.mjs --version dev --bundle "$BUNDLE"
+          npm run build
+
+          # The playground is built by js.yml and copied in as a static asset.
+          mkdir -p build/try
+          cp -f /tmp/${{ github.run_number }}/js-artifacts/* build/try/
+
           mkdir -p /tmp/${{ github.run_number }}/html
-          cp -rf html/* /tmp/${{ github.run_number }}/html
+          cp -rf build/* /tmp/${{ github.run_number }}/html
       - name: Push doc content
         if: success() && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@1d6ee9b181a81033a16bd707a1401afa978daab4 # v5.0.0
