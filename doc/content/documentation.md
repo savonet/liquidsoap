@@ -82,3 +82,4 @@ If you are migrating from a previous version, you might want to checkout
 ## Behind the curtains
 
 - [Some presentations and publications](publications.md) explaining the theory underlying Liquidsoap
+- [OCaml API documentation](pathname:///liquidsoap/index.html) for Liquidsoap's internals and the libraries it is built on
