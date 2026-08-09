@@ -35,6 +35,7 @@
 #include <lame/lame.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "config.h"
@@ -44,6 +45,15 @@
 #endif
 
 #define Lame_val(v) (*(lame_global_flags **)Data_custom_val(v))
+
+/* LAME_MAXMP3BUFFER is 144KB, larger than a musl thread stack (128KB by
+   default), so the encoder's output buffer cannot live on the stack. */
+static unsigned char *alloc_mp3_buffer(void) {
+  unsigned char *buffer = malloc(LAME_MAXMP3BUFFER);
+  if (buffer == NULL)
+    caml_raise_out_of_memory();
+  return buffer;
+}
 
 static inline int16_t bswap_16(int16_t x) {
   return ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8));
@@ -194,7 +204,7 @@ CAMLprim value ocaml_lame_encode_buffer_interleaved(value l, value _buf,
   int samples = Int_val(_samples);
   int inbuf_len = caml_string_length(_buf);
   short int *inbuf = malloc(inbuf_len);
-  unsigned char outbuf[LAME_MAXMP3BUFFER];
+  unsigned char *outbuf = alloc_mp3_buffer();
   int ans;
 
   memcpy(inbuf, String_val(_buf), inbuf_len);
@@ -206,16 +216,19 @@ CAMLprim value ocaml_lame_encode_buffer_interleaved(value l, value _buf,
     inbuf[i] = bswap_16(inbuf[i]);
 #endif
   ans = lame_encode_buffer_interleaved(lgf, inbuf, samples, outbuf,
-                                       sizeof(outbuf));
+                                       LAME_MAXMP3BUFFER);
   caml_acquire_runtime_system();
 
   free(inbuf);
 
-  if (ans < 0)
+  if (ans < 0) {
+    free(outbuf);
     raise_enc_err(ans);
+  }
 
   ret = caml_alloc_string(ans);
   memcpy(Bytes_val(ret), outbuf, ans);
+  free(outbuf);
 
   CAMLreturn(ret);
 }
@@ -246,7 +259,7 @@ CAMLprim value ocaml_lame_encode_buffer_float(value l, value _bufl, value _bufr,
   int samples = Int_val(_samples);
   float *inbufl = malloc(sizeof(float) * samples);
   float *inbufr = malloc(sizeof(float) * samples);
-  unsigned char outbuf[LAME_MAXMP3BUFFER];
+  unsigned char *outbuf = alloc_mp3_buffer();
   int i, ans;
 
   for (i = 0; i < samples; i++) {
@@ -256,17 +269,20 @@ CAMLprim value ocaml_lame_encode_buffer_float(value l, value _bufl, value _bufr,
 
   caml_release_runtime_system();
   ans = lame_encode_buffer_float(lgf, inbufl, inbufr, samples, outbuf,
-                                 sizeof(outbuf));
+                                 LAME_MAXMP3BUFFER);
   caml_acquire_runtime_system();
 
   free(inbufl);
   free(inbufr);
 
-  if (ans < 0)
+  if (ans < 0) {
+    free(outbuf);
     raise_enc_err(ans);
+  }
 
   ret = caml_alloc_string(ans);
   memcpy(Bytes_val(ret), outbuf, ans);
+  free(outbuf);
 
   CAMLreturn(ret);
 }
@@ -284,21 +300,24 @@ CAMLprim value ocaml_lame_encode_buffer_float_ba(value l, value _bufl,
   if (bar->dim[0] != samples)
     caml_failwith("Invalid argument: buffers must be of same length");
 
-  caml_release_runtime_system();
-
-  unsigned char outbuf[LAME_MAXMP3BUFFER];
+  unsigned char *outbuf = alloc_mp3_buffer();
   int ans;
 
+  caml_release_runtime_system();
+
   ans = lame_encode_buffer_float(lgf, bufl, bufr, samples, outbuf,
-                                 sizeof(outbuf));
+                                 LAME_MAXMP3BUFFER);
 
   caml_acquire_runtime_system();
 
-  if (ans < 0)
+  if (ans < 0) {
+    free(outbuf);
     raise_enc_err(ans);
+  }
 
   ret = caml_alloc_string(ans);
   memcpy(Bytes_val(ret), outbuf, ans);
+  free(outbuf);
 
   CAMLreturn(ret);
 }
@@ -308,17 +327,20 @@ CAMLprim value ocaml_lame_encode_flush(value l) {
   CAMLlocal1(ret);
   lame_global_flags *lgf = Lame_val(l);
   int ans;
-  unsigned char outbuf[LAME_MAXMP3BUFFER];
+  unsigned char *outbuf = alloc_mp3_buffer();
 
   caml_release_runtime_system();
-  ans = lame_encode_flush(lgf, outbuf, sizeof(outbuf));
+  ans = lame_encode_flush(lgf, outbuf, LAME_MAXMP3BUFFER);
   caml_acquire_runtime_system();
 
-  if (ans < 0)
+  if (ans < 0) {
+    free(outbuf);
     raise_enc_err(ans);
+  }
 
   ret = caml_alloc_string(ans);
   memcpy(Bytes_val(ret), outbuf, ans);
+  free(outbuf);
 
   CAMLreturn(ret);
 }
@@ -328,17 +350,20 @@ CAMLprim value ocaml_lame_encode_flush_nogap(value l) {
   CAMLlocal1(ret);
   lame_global_flags *lgf = Lame_val(l);
   int ans;
-  unsigned char outbuf[LAME_MAXMP3BUFFER];
+  unsigned char *outbuf = alloc_mp3_buffer();
 
   caml_release_runtime_system();
-  ans = lame_encode_flush_nogap(lgf, outbuf, sizeof(outbuf));
+  ans = lame_encode_flush_nogap(lgf, outbuf, LAME_MAXMP3BUFFER);
   caml_acquire_runtime_system();
 
-  if (ans < 0)
+  if (ans < 0) {
+    free(outbuf);
     raise_enc_err(ans);
+  }
 
   ret = caml_alloc_string(ans);
   memcpy(Bytes_val(ret), outbuf, ans);
+  free(outbuf);
 
   CAMLreturn(ret);
 }

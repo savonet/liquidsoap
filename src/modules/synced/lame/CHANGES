@@ -1,3 +1,8 @@
+0.3.8 (unreleased)
+=====
+* Allocate the encoder's output buffer on the heap: `LAME_MAXMP3BUFFER` is 144KB,
+  more than a musl thread stack can hold, which segfaulted on Alpine.
+
 0.3.7 (05-07-2023)
 ======
 * Add `frame_size`, `set_disable_bitreservoir` and `set_bWriteVbrTag`

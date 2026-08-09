@@ -75,6 +75,9 @@
 - `output.file` reports `Unix` errors, e.g. `Permission denied` when creating the
   destination directory, as `system` errors, like it already did for `Sys_error`
   (#2437).
+- Fixed `%mp3` segfaulting on musl-based systems such as Alpine: the lame
+  bindings held their 144KB output buffer on the stack, more than a musl thread
+  stack can take (#3936).
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so
