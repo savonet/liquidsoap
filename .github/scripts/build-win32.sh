@@ -44,7 +44,9 @@ export CC=""
 echo "::group::Installing deps"
 
 eval "$(opam config env)"
-opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
+# Pinned: on the moving branch the solver picks ppxlib-windows.0.34.0, which
+# needs a newer dune language version than this image ships.
+opam repository set-url windows git+https://github.com/ocaml-cross/opam-cross-windows.git#2aa5a88581dcf0f9c1090d6fbf00892d13e056d0
 opam update
 
 opam install -y posix-socket.3.0.0 srt-windows.0.3.4 prometheus-app-windows cohttp-lwt-unix-windows ffmpeg-avutil-windows.1.2.5
