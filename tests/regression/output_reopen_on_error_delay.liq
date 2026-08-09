@@ -1,3 +1,5 @@
+# Regression test for #2437.
+#
 # Failing to open the file leaves the output in its `Idle` state, so the delay
 # returned by `reopen_on_error` used to be ignored and the output retried on
 # every streaming cycle.
