@@ -1,127 +1,127 @@
 - name: "record with  2 fields"
   category: "performance"
-  value: 0.30784201622
+  value: 0.310828208923
   unit: "s"
-  time: 1786296961.03
+  time: 1786296962.0
   min: 0.0
 
 - name: "record with  5 fields"
   category: "performance"
-  value: 0.58476805687
+  value: 0.59579205513
   unit: "s"
-  time: 1786296961.61
+  time: 1786296962.6
   min: 0.0
 
 - name: "record with 10 fields"
   category: "performance"
-  value: 1.09605002403
+  value: 1.12515497208
   unit: "s"
-  time: 1786296962.71
+  time: 1786296963.72
   min: 0.0
 
 - name: "record with 20 fields"
   category: "performance"
-  value: 2.27817392349
+  value: 2.25191187859
   unit: "s"
-  time: 1786296964.99
+  time: 1786296965.98
   min: 0.0
 
 - name: "Memory usage: process private memory"
   category: "memory"
-  value: 76.97265625
+  value: 77.26953125
   unit: "MiB"
-  time: 1786297026.01
+  time: 1786297026.7
   min: 0.0
 
 - name: "Memory usage: process swapped memory"
   category: "memory"
   value: 0.0
   unit: "MiB"
-  time: 1786297026.01
+  time: 1786297026.7
   min: 0.0
 
 - name: "Memory usage: process physical memory"
   category: "memory"
-  value: 134.82421875
+  value: 134.75
   unit: "MiB"
-  time: 1786297026.01
+  time: 1786297026.7
   min: 0.0
 
 - name: "Memory usage: process virtual memory"
   category: "memory"
   value: 1219.5234375
   unit: "MiB"
-  time: 1786297026.01
+  time: 1786297026.7
   min: 0.0
 
 - name: "Memory usage: total physical memory"
   category: "memory"
   value: 15659.3632812
   unit: "MiB"
-  time: 1786297026.01
+  time: 1786297026.7
   min: 0.0
 
 - name: "Memory usage: total virtual memory"
   category: "memory"
   value: 19755.359375
   unit: "MiB"
-  time: 1786297026.01
+  time: 1786297026.7
   min: 0.0
 
 - name: "Memory usage: total used physical memory"
   category: "memory"
-  value: 14140.2265625
+  value: 14051.6679688
   unit: "MiB"
-  time: 1786297026.01
+  time: 1786297026.7
   min: 0.0
 
 - name: "Memory usage: total used virtual memory"
   category: "memory"
-  value: 14227.6875
+  value: 14142.5820312
   unit: "MiB"
-  time: 1786297026.01
+  time: 1786297026.7
   min: 0.0
 
 - name: "functions"
   category: "language"
   value: 1648.0
   unit: "functions"
-  time: 1786297027.29
+  time: 1786297027.6
 
 - name: "protocols"
   category: "language"
   value: 24.0
   unit: "protocols"
-  time: 1786297027.29
+  time: 1786297027.6
 
 - name: "sum of fields (big record)"
   category: "performance"
-  value: 2.24240088463
+  value: 2.08000302315
   unit: "s"
-  time: 1786297108.8
+  time: 1786297110.31
   min: 0.0
 
 - name: "Erathostenes (imperative)"
   category: "performance"
-  value: 9.28321194649
+  value: 9.3561258316
   unit: "s"
-  time: 1786297218.67
+  time: 1786297219.41
   min: 0.0
 
 - name: "Erathostenes (recursive)"
   category: "performance"
-  value: 12.4374990463
+  value: 12.3343479633
   unit: "s"
-  time: 1786297231.1
+  time: 1786297231.74
   min: 0.0
 
 - name: "Process managed memory"
   category: "memory"
   value: 362.180084229
   unit: "Mio"
-  time: 1786297232.04
+  time: 1786297232.69
   min: 0.0
 
-- commit: 8a33b4ae5e919700aaef1033da49c4342dd2788a
-  branch: renovate_ocaml-setup-ocaml-digest
+- commit: e9e346ac6abe0bb44e7361132eef712de3ac82a7
+  branch: renovate_pin-dependencies
   time: 1786297232
