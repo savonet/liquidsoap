@@ -1215,11 +1215,34 @@ def replaces playlist(
   elsif
     reload_mode == "watch"
   then
+    # A writer that truncates before writing, `cat new > playlist.m3u` being the
+    # usual one, fires the watcher twice, and the first event sees the file
+    # empty or half written. Let the burst settle before reloading, or the two
+    # reloads race each other and the playlist restarts twice.
+    settle = 0.5
+    reload_scheduled = ref(false)
+
+    def on_watch_event() =
+      if
+        not reload_scheduled()
+      then
+        reload_scheduled := true
+        thread.run(
+          delay=settle,
+          fun () ->
+            begin
+              reload_scheduled := false
+              s.reload()
+            end
+        )
+      end
+    end
+
     watcher =
       if
         file.exists(playlist_uri())
       then
-        ref(null(file.watch(playlist_uri(), s.reload)))
+        ref(null(file.watch(playlist_uri(), on_watch_event)))
       else
         ref(null)
       end
@@ -1234,7 +1257,7 @@ def replaces playlist(
         if null.defined(w) then null.get(w).unwatch() end
         watched_uri := uri
         watcher :=
-          if file.exists(uri) then file.watch(uri, s.reload) else null end
+          if file.exists(uri) then file.watch(uri, on_watch_event) else null end
       end
     end
 
