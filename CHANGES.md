@@ -2,6 +2,9 @@
 
 ## Fixed:
 
+- Anything logged while evaluating the script, deprecation warnings in
+  particular, was silently dropped when liquidsoap exited before reaching the
+  streaming loop, e.g. on `No output defined, nothing to do.` (#3375)
 - Added Unifier path compression to avoid unbounded deref cost growth (#5257)
 - Fixed unbounded buffer growth (#5287)
 - Fixed `sequence` dropping the first chunk of a source, along with its
