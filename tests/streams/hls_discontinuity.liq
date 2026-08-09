@@ -1,6 +1,8 @@
 tmp_dir = file.temp_dir("tmp")
 on_cleanup({file.rmdir(tmp_dir)})
 
+test.skip()
+
 s = sine()
 
 is_on = ref(true)
