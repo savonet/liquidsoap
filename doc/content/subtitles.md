@@ -23,7 +23,7 @@ SubRip (.srt) files are natively supported by all builds of liquidsoap:
 let {subtitles} = source.tracks(single("subtitles.srt"))
 ```
 
-For decoding subtitles from media containers, see [FFmpeg Subtitles](ffmpeg_subtitles.html).
+For decoding subtitles from media containers, see [FFmpeg Subtitles](./ffmpeg_subtitles.md).
 
 ## Subtitle callbacks
 
@@ -130,4 +130,4 @@ let {subtitles} = source.tracks(subtitles_source)
 
 ## FFmpeg integration
 
-For advanced subtitle handling including encoding to various formats, copying encoded subtitles, and decoding from media containers, see [FFmpeg Subtitles](ffmpeg_subtitles.html).
+For advanced subtitle handling including encoding to various formats, copying encoded subtitles, and decoding from media containers, see [FFmpeg Subtitles](./ffmpeg_subtitles.md).

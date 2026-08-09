@@ -123,4 +123,4 @@ Other useful methods include
 
 Finally, if your aim is to index file metadata, you might be interested in the
 `medialib.sqlite`{.liquidsoap} operator which is implemented in the standard
-library as described above (see the [cookbook](cookbook.html)).
+library as described above (see the [cookbook](./cookbook.md)).

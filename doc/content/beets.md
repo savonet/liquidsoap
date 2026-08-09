@@ -122,7 +122,7 @@ what's needed by protocol resolution:
 ```
 
 Once this is done,
-you can push a beets query from [the telnet server](server.html):
+you can push a beets query from [the telnet server](./server.md):
 if you created `request.queue(id="userrequested")`,
 the server command
 `userrequested.push beets:All along the watchtower`

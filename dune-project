@@ -116,8 +116,7 @@
     (sdl-liquidsoap (< 2))
     (theora (< 1.0.0))
     (vorbis (< 1.0.0))
-    (pandoc :with-doc)
-    (pandoc-include :with-doc))
+    (pandoc :with-doc))
   (synopsis "Swiss-army knife for multimedia streaming")
   (description
 "\| Liquidsoap is a powerful and flexible language for describing your

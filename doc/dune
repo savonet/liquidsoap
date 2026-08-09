@@ -1,5 +1,10 @@
 ; Regenerate using dune build @gendune --auto-promote
 
+; Dune ignores dot-directories; .scripts has to be declared for the
+; serve-website rule below to see its script.
+
+(data_only_dirs .scripts)
+
 (include dune.inc)
 
 (rule
@@ -32,6 +37,26 @@
  (alias gendune)
  (action
   (diff dune.inc dune.inc.gen.formatted)))
+
+; Preview the documentation website locally: builds the reference, then serves
+; savonet/website against this checkout with live reload on doc/content.
+;
+;   dune build @doc/serve-website
+;
+; Set LIQUIDSOAP_WEBSITE to use your own checkout of the site.
+
+(rule
+ (alias serve-website)
+ (deps
+  reference.md
+  reference-extras.md
+  reference-deprecated.md
+  protocols.md
+  settings.md
+  ../dune-project
+  .scripts/serve-website.sh)
+ (action
+  (run sh .scripts/serve-website.sh)))
 
 (rule
  (alias doc)

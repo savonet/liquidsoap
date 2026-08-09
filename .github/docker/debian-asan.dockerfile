@@ -44,8 +44,6 @@ WORKDIR /tmp
 
 USER opam
 
-RUN opam pin -y add https://github.com/smimram/ocaml-pandoc.git
-
 RUN git clone https://github.com/savonet/liquidsoap.git && \
     cd liquidsoap && git fetch origin "$LIQUIDSOAP_SHA" && git checkout "$LIQUIDSOAP_SHA"
 
@@ -66,7 +64,7 @@ ENV OPTIONAL_OPAM_PACKAGES="\
 ENV EXT_PACKAGES="\
     camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap \
     tls-liquidsoap syslog memtrace ssl posix-time2 \
-    yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include"
+    yaml js_of_ocaml js_of_ocaml-ppx re sqlite3"
 
 ENV APT_PACKAGES="\
     aspcud autoconf automake rsync build-essential ca-certificates curl \

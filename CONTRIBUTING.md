@@ -363,6 +363,45 @@ dune exec -- liquidsoap -c 'my_function(...)'
 dune build @citest @mediatest
 ```
 
+### "I want to work on the documentation"
+
+Pages live in `doc/content/*.md` and are published at
+[liquidsoap.info](https://www.liquidsoap.info) by
+[savonet/website](https://github.com/savonet/website). There is no rendered copy in this
+repository: the markdown is the source, and the site is built from it.
+
+Preview your changes against the real site:
+
+```bash
+dune build @doc/serve-website
+```
+
+That builds the reference, fetches the site, and serves it on
+<http://localhost:3000>. Editing a page under `doc/content` re-syncs and reloads it in the
+browser. Set `LIQUIDSOAP_WEBSITE` to a checkout of savonet/website to work on the site
+itself at the same time.
+
+A few things to know when writing:
+
+- **Link pages as `.md`**: `[clocks](./clocks.md)`, not `clocks.html`. That resolves on
+  GitHub, in an editor and on the website, and a typo shows up as a missing file rather
+  than as a 404 nobody notices.
+- **Code samples live in `doc/content/liq/`** and are included rather than pasted:
+
+  ````markdown
+  ```{.liquidsoap include="my-example.liq"}
+
+  ```
+  ````
+
+  Every snippet is run through `liquidsoap --check` by `dune build @doctest`, so an
+  example that stops compiling fails the build.
+
+- **`reference.md`, `reference-extras.md`, `reference-deprecated.md`, `protocols.md` and
+  `settings.md` are generated** by the binary from the `@category` and `@param` comments
+  in `src/libs/*.liq` and the OCaml sources. Do not edit them; change the documentation
+  comment instead.
+
 ### "I want to add an FFmpeg feature"
 
 FFmpeg integration is in `src/core/optionals/ffmpeg/`. Key files:

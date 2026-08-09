@@ -50,7 +50,7 @@ Every time the system needs audio, this little pipeline wakes up and produces a 
 Operators like `random`, `fallback`, `switch` and `rotate` have to decide _when_ to
 hand over from one source to another, and what that handoff sounds like. Each source
 carries its own answer, so you rarely have to configure the operator itself — see
-[source composition](composition.html).
+[source composition](./composition.md).
 
 ## Sources Are Not Always Reliable (And That’s Okay) ⚠️
 
@@ -121,5 +121,5 @@ Now that you understand what sources are and how they work, you’ve unlocked th
 Want to go deeper?
 
 - Explore the [scripting API reference](reference.html)
-- Learn about [clocks](clocks.html)
+- Learn about [clocks](./clocks.md)
 - Experiment with your own custom source graphs

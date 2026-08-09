@@ -11,8 +11,8 @@ operators like `crossfade` that manipulate the flow of time, the picture becomes
 more complex. This page explains why multiple clocks exist, what happens when
 they conflict, and how to manage them explicitly when needed.
 
-Before reading on, it helps to be familiar with [sources](sources.html) and
-[latency](latency_control.html), which tie closely into clock behavior.
+Before reading on, it helps to be familiar with [sources](./sources.md) and
+[latency](./latency_control.md), which tie closely into clock behavior.
 
 ## Why multiple clocks?
 

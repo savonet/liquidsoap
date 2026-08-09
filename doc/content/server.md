@@ -17,16 +17,16 @@ file. This is more constraining, which allows one to restrict the use of the
 socket to some privileged users.
 
 You can find more details on how to configure the server in the
-[documentation](help.html#settings) of the settings key `server`, in particular
+[documentation](./help.md#settings) of the settings key `server`, in particular
 `server.telnet` for the TCP interface and `server.socket` for the Unix
-interface. Liquidsoap also embeds some [documentation](help.html#server) about
+interface. Liquidsoap also embeds some [documentation](./help.md#server) about
 the available server commands.
 
 ### Using telnet
 
 Now, we shall simply enable the Telnet interface to the server, by setting
 `settings.server.telnet := true` or simply passing the `-t` option on the
-command-line. In a [complete case analysis](complete_case.html) we set up a
+command-line. In a [complete case analysis](./complete_case.md) we set up a
 `request.queue()` instance to play user requests. It had the identifier
 `"queue"`. We are now going to interact via the server to push requests into
 that queue:

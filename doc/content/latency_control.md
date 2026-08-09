@@ -58,7 +58,7 @@ For instance, in the above, only one of the two sources will ever be used to pro
 is CPU-controled, otherwise it is `self-sync`.
 
 Which of the two is playing at a given moment is a separate question, answered by
-[source composition](composition.html): `input.srt` is a live source, so it cuts into
+[source composition](./composition.md): `input.srt` is a live source, so it cuts into
 `single` mid-track rather than waiting for the end of the file.
 
 ### Synchronization conflicts ⚠️

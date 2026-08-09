@@ -130,4 +130,4 @@ opam pin -ny .
 opam install liquidsoap
 ```
 
-For a developer build using dune directly, see the [build instructions](build.html).
+For a developer build using dune directly, see the [build instructions](./build.md).

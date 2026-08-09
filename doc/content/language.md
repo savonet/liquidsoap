@@ -1,6 +1,6 @@
 # Liquidsoap's scripting language
 
-_The following is adapted from the [Liquidsoap book](book.html). The reader is avised to check out the whole
+_The following is adapted from the [Liquidsoap book](./book.md). The reader is avised to check out the whole
 chapter in the book for more details about the liquidsoap language_
 
 ## General features
@@ -1428,7 +1428,7 @@ Some other useful functions include
 
 ### Runtime evaluation of scripting values
 
-Similarly to how JSON is [parsed](json.html), you can evaluate string into values at runtime
+Similarly to how JSON is [parsed](./json.md), you can evaluate string into values at runtime
 using the `eval` decorator. As with JSON, too, the recommended way to use it is by adding an
 explicit type annotation:
 

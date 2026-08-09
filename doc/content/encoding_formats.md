@@ -44,11 +44,11 @@ The right encoder depends on your use case:
 
 **Live streaming** (Icecast, SHOUTcast): Use a format your listeners' players support. `%mp3` has the widest compatibility. `%opus` and `%vorbis` are well-supported in modern browsers and offer good quality at lower bitrates. `%fdkaac` is a good choice when AAC is required for Icecast. Lossless formats like `%flac` (via `%ogg(%flac)`) are an option if your listeners can handle the bandwidth.
 
-**HLS**: Use `%ffmpeg` — it is the only encoder that can produce the container formats (MPEG-TS, fMP4) that HLS segments require. See the [FFmpeg encoder](ffmpeg_encoder.html) page for details.
+**HLS**: Use `%ffmpeg` — it is the only encoder that can produce the container formats (MPEG-TS, fMP4) that HLS segments require. See the [FFmpeg encoder](./ffmpeg_encoder.md) page for details.
 
 **Archiving**: Use lossless formats when quality matters: `%flac` for compressed lossless, `%wav` for raw PCM. If storage is a concern, `%mp3` or `%opus` at high bitrate are good lossy choices.
 
-**Re-encoding / transcoding**: Use `%ffmpeg`, which gives access to all FFmpeg codecs and containers. It is the most flexible option and the only one supporting video. See the [FFmpeg encoder](ffmpeg_encoder.html) page for details.
+**Re-encoding / transcoding**: Use `%ffmpeg`, which gives access to all FFmpeg codecs and containers. It is the most flexible option and the only one supporting video. See the [FFmpeg encoder](./ffmpeg_encoder.md) page for details.
 
 **Real-time / embedded**: `%shine` (fixed-point MP3) is designed for architectures without a hardware FPU (e.g. some ARM boards). `%opus` at small frame sizes (`frame_size=10.`) is well-suited for low-latency applications like voice.
 
@@ -288,7 +288,7 @@ See the [Opus documentation](http://www.opus-codec.org/docs/) for full details.
 
 The `%ffmpeg` encoder provides access to all FFmpeg codecs and containers, including video. It is the most powerful and flexible option, and the only one suitable for HLS output.
 
-See the dedicated [FFmpeg encoder](ffmpeg_encoder.html) page for full documentation.
+See the dedicated [FFmpeg encoder](./ffmpeg_encoder.md) page for full documentation.
 
 ```{.liquidsoap include="enc-ffmpeg.liq" from="BEGIN" to="END"}
 

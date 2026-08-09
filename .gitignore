@@ -16,3 +16,7 @@ src/tooling/prettier-plugin-liquidsoap/dist/web.mjs
 src/tooling/prettier-plugin-liquidsoap/dist/node.js
 *.conflicts
 tests/liquidsoap-test-assets
+
+# Local documentation website preview (dune build @doc/serve-website)
+/doc/.website/
+/doc/.website-bundle/

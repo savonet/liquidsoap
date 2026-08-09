@@ -115,7 +115,7 @@ These metadata need to be provided at the request level so that they are availab
 
 ## Other Built-in Protocols
 
-- **`autocue`** 🎯 — Automatically detects cue points and fades for smooth transitions. See the [autocue](autocue.html) documentation for details.
+- **`autocue`** 🎯 — Automatically detects cue points and fades for smooth transitions. See the [autocue](./crossfade.md) documentation for details.
 - **`http` / `https`** 🌐 — Handles web-based media by downloading it before playback, just like any other protocol.
 - **`say`** 🗣 — Generates speech from text when configured, useful for automated announcements or DJ-style breaks.
 
@@ -133,6 +133,6 @@ It’s one of the features that makes Liquidsoap adaptable to many streaming set
 
 To explore further:
 
-- Read the [Protocol API documentation](protocols-presentation.html) to learn how to implement your own.
+- Read the [Protocol API documentation](./protocols-presentation.md) to learn how to implement your own.
 - Experiment with `annotate:` in your playlists.
 - Try chaining protocols to create more complex behavior.

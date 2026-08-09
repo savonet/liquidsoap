@@ -185,7 +185,7 @@ s = random([music.{weight = 2}, jingles])
 
 #### `transitions`, `transition_length`, `override` (breaking change)
 
-The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source. See [source composition](composition.html) for the concepts behind them:
+The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source. See [source composition](./composition.md) for the concepts behind them:
 
 - `on_select`: a method of the source being _entered_. Called when it is selected. Receives `{starting, ending, replay_metadata}` and returns the source to play. `ending` is `null` when nothing was interrupted — the source being left reached a track boundary or is no longer available — and non-null when it was preempted mid-track. `replay_metadata` mirrors the per-source `replay_metadata` method (default `true`). By default, both file and live profiles replay the latest metadata when `replay_metadata` is `true` and fade out `ending` when non-null and the source has only PCM audio content (no video, no encoded audio such as `ffmpeg.copy`).
 - `on_leave`: a method of the source being _left_. Called when switching away from it. Receives `{source, track_sensitive}`, where `track_sensitive` reports whether it finished its track naturally (`true`) or was preempted mid-track (`false`). By default, skips the source when it was preempted so it starts fresh on next selection.
@@ -468,7 +468,7 @@ RUN mkdir -p $LIQ_CACHE_USER_DIR && \
     liquidsoap --cache-only /path/to/script.liq
 ```
 
-See [the language page](language.html#caching) for more details!
+See [the language page](./language.md#caching) for more details!
 
 ### Default frame size
 
@@ -664,8 +664,8 @@ when creating requests or `playlist` sources.
 ### Harbor HTTP server and SSL support
 
 The API for registering HTTP server endpoint and using SSL was completely rewritten. It should be more flexible and
-provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](harbor_http.html)
-for more details. The [Https support](harbor_http.html#https-support) section also explains the new SSL/TLS API.
+provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](./harbor_http.md)
+for more details. The [Https support](./harbor_http.md#https-support) section also explains the new SSL/TLS API.
 
 ### Timeout
 
@@ -749,7 +749,7 @@ output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 
 ### Regular expressions
 
-First-class [regular expression](language.html#regular-expressions) are introduced and are used to replace the following operators:
+First-class [regular expression](./language.md#regular-expressions) are introduced and are used to replace the following operators:
 
 - `string.match(pattern=<regexp>, <string>` is replaced by: `r/<regexp>/.test(<string>)`
 - `string.extract(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/.exec(<string>)`
@@ -799,7 +799,7 @@ end
 ### JSON parsing
 
 JSON parsing was greatly improved and is now much more user-friendly.
-You can check out our detailed presentation [here](json.html).
+You can check out our detailed presentation [here](./json.md).
 
 ### Runtime evaluation
 
@@ -1016,7 +1016,7 @@ inspect and set their own request queues.
 `json_of` has been renamed `json.stringify` and `of_json` has been renamed `json.parse`.
 
 JSON export has been enhanced with a new generic object exporter. Associative lists of type `(string, 'a)` are
-now exported as objects. See the [JSON documentation page](json.html) for more details.
+now exported as objects. See the [JSON documentation page](./json.md) for more details.
 
 Convenience functions have been added to convert metadata to and from JSON object format: `metadata.json.stringify` and
 `metadata.json.parse`.

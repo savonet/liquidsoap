@@ -372,6 +372,6 @@ Here's a complete example showing a radio station setup with multiple mounts and
 
 ## See Also
 
-- [Harbor Input](harbor.html): The underlying technology for receiving source connections
-- [Harbor HTTP](harbor_http.html): HTTP interface capabilities
-- [HLS Output](hls_output.html): Alternative streaming output method
+- [Harbor Input](./harbor.md): The underlying technology for receiving source connections
+- [Harbor HTTP](./harbor_http.md): HTTP interface capabilities
+- [HLS Output](./hls_output.md): Alternative streaming output method
