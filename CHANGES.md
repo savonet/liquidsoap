@@ -83,6 +83,13 @@
 - Fixed `clock.create` documenting and reporting sync modes, `"CPU"` and
   `"unsynced"`, that it does not accept. The accepted values are `"auto"`,
   `"cpu"`, `"none"` and `"passive"`.
+- Fixed `file.watch` losing track of a file that gets replaced rather than
+  written in place: an inotify watch follows the inode, so a writer doing the
+  usual write-to-temporary-then-rename silenced the watcher for good. The
+  containing directory is watched instead. `playlist` with `reload_mode="watch"`
+  also waits for a burst of events to settle before reloading, so a writer that
+  truncates before writing no longer triggers two racing reloads and plays
+  tracks out of order (#3343).
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so
