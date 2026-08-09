@@ -78,9 +78,13 @@ jobs:
           node scripts/sync-docs.mjs --version dev --bundle "$BUNDLE"
           npm run build
 
-          # The playground is built by js.yml and copied in as a static asset.
+          # /try is a page of the site, emitted as try.html; only the interpreter and the
+          # editor bundle come from js.yml, into the directory the page loads them from.
+          # The artifact's own index.html is the local dev harness, and is not copied.
           mkdir -p build/try
-          cp -f /tmp/${{ github.run_number }}/js-artifacts/* build/try/
+          cp -f /tmp/${{ github.run_number }}/js-artifacts/interactive_js.bc.js \
+                /tmp/${{ github.run_number }}/js-artifacts/playground.bundle.js \
+                build/try/
 
           mkdir -p /tmp/${{ github.run_number }}/html
           cp -rf build/* /tmp/${{ github.run_number }}/html
