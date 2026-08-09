@@ -203,7 +203,7 @@ Before reading the script, it helps to visualize the streaming process with the 
 
 ## What's next?
 
-You can first have a look at a [more complex example](complete_case.html). There is also a second tutorial about [advanced techniques](advanced.html).
+You can first have a look at a [more complex example](complete_case.html). For a deeper treatment of the language and its uses, see [the Liquidsoap book](book.html).
 
 You should definitely learn [how to get help](help.html).
 If you know enough liquidsoap for your use, you'll only need to refer to the

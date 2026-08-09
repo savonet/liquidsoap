@@ -93,7 +93,7 @@ and put them in the primary queue.
 You can set how many requests will be in that primary queue
 by tweaking the common parameters of all queued request sources.
 
-The two sources are controlled via the [command server](advanced.html).
+The two sources are controlled via the [command server](server.html).
 They both feature commands for looking up the queues,
 queuing new requests, and the `equeue` operator also allows
 removal and exchange of requests in the secondary queue.

@@ -48,7 +48,7 @@ Here are a few things you can easily achieve using Liquidsoap:
 - Multiple outputs in the same instance: you can have several quality settings, use several media or even broadcast several contents from the same instance.
 - Output to HLS/Icecast/Shoutcast (MP3/Ogg) or a local file (WAV/MP3/Ogg/AAC).
 - Input/output via Jack, ALSA, OSS and PortAudio. Output via `libao`.
-- [Interactive control](advanced.html) of many operators via Telnet or UNIX domain socket, and indirectly using scripts, graphical/web/IRC interfaces.
+- [Interactive control](server.html) of many operators via Telnet or UNIX domain socket, and indirectly using scripts, graphical/web/IRC interfaces.
 
 If you need something else, it's highly possible that you can have it -- at least by programming new sources/operators. Send us a request, we'll be happy to discuss these questions.
 

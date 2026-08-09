@@ -115,7 +115,7 @@ These metadata need to be provided at the request level so that they are availab
 
 ## Other Built-in Protocols
 
-- **`autocue`** 🎯 — Automatically detects cue points and fades for smooth transitions. See the [autocue](autocue.html) documentation for details.
+- **`autocue`** 🎯 — Automatically detects cue points and fades for smooth transitions. See the [autocue](crossfade.html) documentation for details.
 - **`http` / `https`** 🌐 — Handles web-based media by downloading it before playback, just like any other protocol.
 - **`say`** 🗣 — Generates speech from text when configured, useful for automated announcements or DJ-style breaks.
 

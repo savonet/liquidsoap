@@ -15,7 +15,7 @@ If you are migrating from a previous version, you might want to checkout
 
 ## General tutorials
 
-- [The book](bool.html): The Liquidsoap book
+- [The book](book.html): The Liquidsoap book
 - [Video presentations](presentations.html): some presentations we did about liquidsoap
 - [How to find help](help.html) about operators, settings, server commands, etc.
 - [Frequently Asked Questions, Troubleshooting](faq.html)
@@ -27,7 +27,7 @@ If you are migrating from a previous version, you might want to checkout
 
 - [Script language](language.html): A more detailed presentation.
 - [Core API](reference.html): The core liquidsoap API
-- [Extra API](reference-extra.html): Extra functions and libraries.
+- [Extra API](reference-extras.html): Extra functions and libraries.
 - [Protocols](protocols.html): List of protocols supported by liquidsoap.
 - [Settings](settings.html): The list of available settings for liquidsoap.
 - [FFmpeg](ffmpeg.html): FFmpeg support documentation.
@@ -67,7 +67,7 @@ If you are migrating from a previous version, you might want to checkout
 - [Requests-based sources](request_sources.html): create advanced sources using requests.
 - [Seek and cue support](seek.html): seek and set cue-in and cue-out points in sources.
 - [Shoutcast output](shoutcast.html): output to shoutcast.
-- [Smart crossfading](smartcrossfade.html): define custom crossfade transitions.
+- [Smart crossfading](crossfade.html): define custom crossfade transitions.
 - [Using in production](in_production.html): integrate liquidsoap scripts in a production environment.
 
 ## User scripts
