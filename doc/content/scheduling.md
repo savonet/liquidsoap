@@ -41,7 +41,7 @@ In this case, we assume that `request_queue` is a `request.queue` source used el
 
 ## `thread.when`: Run at a Specific Time
 
-To schedule a task at a specific time, use `thread.when`. It takes a [time predicate](language.html#time-predicates) — a Liquidsoap-specific language construct that returns `true` when the current time matches the given interval or time.
+To schedule a task at a specific time, use `thread.when`. It takes a [time predicate](./language.md#time-predicates) — a Liquidsoap-specific language construct that returns `true` when the current time matches the given interval or time.
 
 ### Example: Run a task at 9:00 AM
 

@@ -15,9 +15,9 @@ recipe = # <fill this>
 output(recipe)
 ```
 
-See the [quickstart guide](quick_start.html) for more information on how to run [Liquidsoap](index.html), on what is this `output(..)` operator, etc.
+See the [quickstart guide](./quick_start.md) for more information on how to run [Liquidsoap](./index.md), on what is this `output(..)` operator, etc.
 
-See also the [ffmpeg cookbook](ffmpeg_cookbook.html) for examples specific to the ffmpeg support.
+See also the [ffmpeg cookbook](./ffmpeg_cookbook.md) for examples specific to the ffmpeg support.
 
 ## Contents
 
@@ -121,12 +121,12 @@ can use the `medialib.sqlite` operator as follows:
 
 ```
 
-(we also support more advanced uses of [databases](database.html)).
+(we also support more advanced uses of [databases](./database.md)).
 
 ### Dynamic requests
 
 Liquidsoap can create a source that uses files provided by the result of the execution of any arbitrary function of your own.
-This is explained in the documentation for [request-based sources](request_sources.html).
+This is explained in the documentation for [request-based sources](./request_sources.md).
 
 For instance, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
 
@@ -134,9 +134,9 @@ For instance, the following snippet defines a source which repeatedly plays the 
 
 ```
 
-Of course a more interesting behaviour is obtained with a more interesting program than `cat`, see [Beets](beets.html) for example.
+Of course a more interesting behaviour is obtained with a more interesting program than `cat`, see [Beets](./beets.md) for example.
 
-Another way of using an external program is to define a new protocol which uses it to resolve URIs. `protocol.add` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program; it is another way to integrate [Beets](beets.html), for example:
+Another way of using an external program is to define a new protocol which uses it to resolve URIs. `protocol.add` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program; it is another way to integrate [Beets](./beets.md), for example:
 
 ```{.liquidsoap include="beets-protocol-short.liq"}
 
@@ -218,7 +218,7 @@ Switch to a live show as soon as one is available. Make the show unavailable whe
 
 ```
 
-Live inputs such as `input.http` automatically use immediate switching (they default to `track_sensitive=false`). To override this and wait for track boundaries, use `.{track_sensitive = true}` on the source, or set its `composition_type` to `"file"` — see [source composition](composition.html). When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
+Live inputs such as `input.http` automatically use immediate switching (they default to `track_sensitive=false`). To override this and wait for track boundaries, use `.{track_sensitive = true}` on the source, or set its `composition_type` to `"file"` — see [source composition](./composition.md). When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
 
 ## Transitions
 
@@ -234,7 +234,7 @@ The `cross.simple` operator provides a ready-to-use crossfade transition suitabl
 
 ### Transcoding
 
-[Liquidsoap](index.html) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. If you want to get the best use of CPUs (multicore, memory footprint etc.) when encoding media with Liquidsoap, we recommend using the `%ffmpeg` encoders.
+[Liquidsoap](./index.md) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. If you want to get the best use of CPUs (multicore, memory footprint etc.) when encoding media with Liquidsoap, we recommend using the `%ffmpeg` encoders.
 
 ```{.liquidsoap include="transcoding.liq"}
 
@@ -258,7 +258,7 @@ liquidsoap when streaming is finished.
 
 ### RTMP server
 
-With our [FFmpeg support](ffmpeg.html), it is possible to create a simple RTMP server with no re-encoding:
+With our [FFmpeg support](./ffmpeg.md), it is possible to create a simple RTMP server with no re-encoding:
 
 ```{.liquidsoap include="rtmp.liq"}
 
@@ -266,7 +266,7 @@ With our [FFmpeg support](ffmpeg.html), it is possible to create a simple RTMP s
 
 ### Transmitting signal
 
-It is possible to send raw PCM signals between two instances using the [FFmpeg encoder](ffmpeg.html). Here's an example using the SRT transport protocol:
+It is possible to send raw PCM signals between two instances using the [FFmpeg encoder](./ffmpeg.md). Here's an example using the SRT transport protocol:
 
 Sender:
 
@@ -331,7 +331,7 @@ coming from `s`:
 
 ```
 
-In the two examples we use [string interpolation](language.html) and time
+In the two examples we use [string interpolation](./language.md) and time
 literals to generate the output file name.
 
 In order to limit the disk space used by this archive, on unix systems we can
@@ -346,7 +346,7 @@ recordings:
 
 ### ALSA output delay
 
-You can use [Liquidsoap](index.html) to capture and play through ALSA with minimal delay. This is particularly useful when running a live show from your computer, allowing you to capture and play audio through external speakers without audible delay.
+You can use [Liquidsoap](./index.md) to capture and play through ALSA with minimal delay. This is particularly useful when running a live show from your computer, allowing you to capture and play audio through external speakers without audible delay.
 
 This configuration is not trivial since it depends on your hardware. Some hardware allows both recording and playing at the same time, some only one at once, and some none at all. These notes describe what works for us — your mileage may vary.
 

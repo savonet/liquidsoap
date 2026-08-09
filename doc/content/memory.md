@@ -77,10 +77,10 @@ amount of memory per number.
 If you are concerned with reducing your audio memory footprint, for instance if your applications has a lot of audio sources with buffers, you can
 do a couple of things:
 
-1. Use the [ffmpeg raw content](ffmpeg.html).
+1. Use the [ffmpeg raw content](./ffmpeg.md).
 
 This means storing all the audio content as ffmpeg audio frames. This is an opaque format that works very well if your script can use ffmpeg end-to-end, for instance processing
-audio using [ffmpeg filters](ffmpeg_filters.html)..
+audio using [ffmpeg filters](./ffmpeg_filters.md)..
 
 2. Use one of the `pcm_f32` or `pcm_s16` audio format.
 

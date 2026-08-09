@@ -1,6 +1,6 @@
 # FFmpeg Subtitles
 
-FFmpeg provides subtitle support including encoding, decoding from media containers, and copying encoded subtitle streams. For general subtitle concepts, see [Subtitles](subtitles.html).
+FFmpeg provides subtitle support including encoding, decoding from media containers, and copying encoded subtitle streams. For general subtitle concepts, see [Subtitles](./subtitles.md).
 
 ## Decoding from media files
 

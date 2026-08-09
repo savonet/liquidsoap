@@ -1,5 +1,5 @@
 Playing files is the most common way to build an audio stream.
-In liquidsoap, files are accessed through [requests](requests.html),
+In liquidsoap, files are accessed through [requests](./requests.md),
 which combine the retrieval of a possibly remote file, and its
 decoding.
 
@@ -9,7 +9,7 @@ Liquidsoap provides several operators for playing requests:
 In a few cases (`single` with a local file,
 or `playlist.safe`) a request operator will know
 that it can always get a ready request instantaneously.
-It will then be [infallible](sources.html).
+It will then be [infallible](./sources.md).
 Otherwise, it will have a queue of requests ready
 to be played (local files with a valid content), and will
 feed this queue in the background.
@@ -53,7 +53,7 @@ to use the `request.create` function which has type
 The first string is the initial URI of the request,
 which is resolved to get an audio file.
 The second argument can be used to directly specify the first row of URIs
-(see the page about [requests](requests.html) for more details),
+(see the page about [requests](./requests.md) for more details),
 in which case the initial URI is just here for naming,
 and the resolving process will try your list of indicators one by one
 until a valid audio file is obtained.
@@ -93,7 +93,7 @@ and put them in the primary queue.
 You can set how many requests will be in that primary queue
 by tweaking the common parameters of all queued request sources.
 
-The two sources are controlled via the [command server](server.html).
+The two sources are controlled via the [command server](./server.md).
 They both feature commands for looking up the queues,
 queuing new requests, and the `equeue` operator also allows
 removal and exchange of requests in the secondary queue.

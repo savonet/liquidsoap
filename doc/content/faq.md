@@ -50,11 +50,11 @@ Indeed, `fallback` expects a source, but `source.mux.audio(x)` is still a functi
 
 ### That source is fallible!
 
-See the [quickstart](quick_start.html), or read more about [sources](sources.html).
+See the [quickstart](./quick_start.md), or read more about [sources](./sources.md).
 
 ### Clock error
 
-Read about [clocks](clocks.html) for the errors
+Read about [clocks](./clocks.md) for the errors
 `a source cannot belong to two clocks`
 and
 `cannot unify two nested clocks`.
@@ -84,7 +84,7 @@ lags will result in glitches.
 In some situations, it is possible to isolate parts of a script from the
 latency caused by other parts. For example, you can produce a clean stream
 and back it up to a file, independently of the output to Icecast (which is
-sensitive to network lag). For more details, read about [clocks](clocks.html).
+sensitive to network lag). For more details, read about [clocks](./clocks.md).
 
 ### Unable to decode a file
 
@@ -109,7 +109,7 @@ type: not_found, message: "File not found!"
 ```
 
 These are errors that a script can catch and handle — they typically occur
-when trying to read a file that does not exist. The [language page](language.html)
+when trying to read a file that does not exist. The [language page](./language.md)
 has more details about errors, how to raise them, and how to catch them.
 
 ### Crashes

@@ -1,6 +1,6 @@
 # Blank detection
 
-[Liquidsoap](index.html) has three operators for dealing with blanks.
+[Liquidsoap](./index.md) has three operators for dealing with blanks.
 
 On GeekRadio, we play many files, some of which include bonus tracks, which
 means that they end with a very long blank and then a little extra music. It's
@@ -28,7 +28,7 @@ for live shows:
 ```
 
 If you don't get the difference between these two operators, you should learn
-more about liquidsoap's notion of [source](sources.html).
+more about liquidsoap's notion of [source](./sources.md).
 
 Finally, if you need to do some custom action when there's too much blank, we
 have `blank.detect`:

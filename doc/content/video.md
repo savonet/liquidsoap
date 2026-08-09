@@ -13,7 +13,7 @@ vorbis as codecs for audio and video) you can simply type:
 ```
 
 And of course you could have used a `playlist` instead of `single` to have
-multiple files, or used other [formats](encoding_formats.html) for the stream.
+multiple files, or used other [formats](./encoding_formats.md) for the stream.
 
 In order to test a video stream, it is often convenient to use the `output.sdl`
 operator (or `output.graphics`) which will open a window and display the video
@@ -66,7 +66,7 @@ of audio and video formats but it can also send and receive data to many differe
 and `output.url`. On top of that, it also supports all the [FFmpeg filters](https://ffmpeg.org/ffmpeg-filters.html)
 and passing encoded data, if your script does not need re-encoding.
 
-The syntax for the encoder is detailed in the [encoders page](encoding_formats.html). Here are some examples:
+The syntax for the encoder is detailed in the [encoders page](./encoding_formats.md). Here are some examples:
 
 ```liquidsoap
 # AC3 audio and H264 video encapsulated in a MPEG-TS bitstream

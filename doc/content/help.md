@@ -14,7 +14,7 @@ If you can't find what you need, you can also reach the community:
 
 When scripting in liquidsoap, one uses functions that are either _builtin_
 (_e.g._ `input.http` or `output.icecast`)
-or defined in the [script library](script_loading.html) (_e.g_ `output`).
+or defined in the [script library](./script_loading.md) (_e.g_ `output`).
 All these functions come with a documentation, that you can access by
 executing `liquidsoap -h FUNCTION` on the command-line. For example:
 
@@ -101,7 +101,7 @@ If you don't know which function you need, browse the [API reference](reference.
 Note that some functions are optional and may not be available in your local
 `liquidsoap` install — they require an optional dependency to be enabled. You
 can see the list of optional dependencies via `opam info liquidsoap` or on the
-[build page](build.html).
+[build page](./build.md).
 
 ## Settings
 
@@ -119,7 +119,7 @@ You can have a list of available settings, with their documentation,
 by running `liquidsoap --list-settings`.
 
 The output is a valid liquidsoap script that you can edit to set the values
-you want, then load it ([implicitly](script_loading.html) or explicitly) before
+you want, then load it ([implicitly](./script_loading.md) or explicitly) before
 your other scripts.
 
 You can browse online the [list of available settings](settings.html).

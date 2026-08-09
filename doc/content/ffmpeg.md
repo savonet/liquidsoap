@@ -122,15 +122,15 @@ The same approach works with `playlist` or `request.dynamic`.
 
 ## Encoders
 
-See detailed [ffmpeg encoders](ffmpeg_encoder.html) article.
+See detailed [ffmpeg encoders](./ffmpeg_encoder.md) article.
 
 ## Filters
 
-See detailed [ffmpeg filters](ffmpeg_filters.html) article.
+See detailed [ffmpeg filters](./ffmpeg_filters.md) article.
 
 ## Subtitles
 
-See detailed [ffmpeg subtitles](ffmpeg_subtitles.html) article.
+See detailed [ffmpeg subtitles](./ffmpeg_subtitles.md) article.
 
 ## Bitstream filters
 
@@ -300,4 +300,4 @@ output.file.hls(
 
 ## Examples
 
-See detailed [ffmpeg cookbook](ffmpeg_cookbook.html) article.
+See detailed [ffmpeg cookbook](./ffmpeg_cookbook.md) article.

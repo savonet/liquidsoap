@@ -104,7 +104,7 @@ Where:
 - `<codec>` is a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command.
 - `<option_name>` is any syntactically valid variable name or string. Strings are used for option names of the form `foo-bar`.
 - `%audio(...)` sets options for the audio codec. Unused options raise an exception. Any option supported by `ffmpeg` may be passed. Streams encoded with `%audio` use liquidsoap's internal frame format.
-- `%audio.raw(...)` behaves like `%audio` but keeps audio data in ffmpeg's internal format. This avoids data copies and is required for [ffmpeg filters](ffmpeg_filters.html).
+- `%audio.raw(...)` behaves like `%audio` but keeps audio data in ffmpeg's internal format. This avoids data copies and is required for [ffmpeg filters](./ffmpeg_filters.md).
 - `%audio.copy` passes data through without decoding or re-encoding. This avoids CPU usage but the data cannot be processed by operators like `fade.{in,out}` or `smart_cross`. All streams must share the same data format.
 - `%video(...)` sets options for the video codec. Unused options raise an exception. Any option supported by `ffmpeg` may be passed.
 - `%video.raw` and `%video.copy` behave like their `%audio` counterparts.
