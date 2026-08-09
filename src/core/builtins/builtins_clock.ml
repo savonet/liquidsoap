@@ -64,9 +64,8 @@ let _ =
         Lang.string_t,
         Some (Lang.string "auto"),
         Some
-          "Clock sync mode. Should be one of: `\"auto\"`, `\"CPU\"`, \
-           `\"unsynced\"` or `\"passive\"`. Defaults to `\"auto\"`. Defaults \
-           to: \"auto\"" );
+          "Clock sync mode. Should be one of: `\"auto\"`, `\"cpu\"`, \
+           `\"none\"` or `\"passive\"`. Defaults to `\"auto\"`." );
     ]
     Lang_clock.ClockValue.t
     (fun p ->
@@ -88,8 +87,8 @@ let _ =
           raise
             (Error.Invalid_value
                ( sync,
-                 "Invalid sync mode! Should be one of: `\"auto\"`, `\"CPU\"`, \
-                  `\"unsynced\"` or `\"passive\"`",
+                 "Invalid sync mode! Should be one of: `\"auto\"`, `\"cpu\"`, \
+                  `\"none\"` or `\"passive\"`",
                  [] ))
       in
       Lang_clock.ClockValue.to_value
