@@ -88,7 +88,6 @@ end
 thread.run(delay=1., every=0.5, poll)
 
 output.file.hls(
-  wait_for_keyframe=true,
   segment_duration=segment_duration,
   segments=10,
   tmp_dir,

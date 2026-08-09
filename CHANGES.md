@@ -2,11 +2,12 @@
 
 ## New:
 
-- HLS: added `wait_for_keyframe`. When reaching `segment_duration` with no
-  keyframe to split on, the output waits for the next one instead of splitting
-  anyway, which is what the `ffmpeg` HLS muxer does with `-hls_time`. Segments
-  then last longer than `segment_duration` but can always be decoded on their
-  own (#5266).
+- HLS: reaching `segment_duration` with no keyframe to split on, the output now
+  waits for the next one instead of splitting anyway, which is what the `ffmpeg`
+  HLS muxer does with `-hls_time`. Segments then last longer than
+  `segment_duration`, and `EXT-X-TARGETDURATION` grows to cover them, but they
+  start on a keyframe. The previous behaviour is available as
+  `wait_for_keyframe=false` (#5266).
 - Added `getter(t)` type annotation syntax for getter types (#TODO).
 - Added `source.content` operator returning an associative list of frame field names to their content format, `track.format` returning the content format of a single track, and `format.description` returning a typed record description of a content format.
 - Renamed internal video content type from `canvas` to `yuv420p` to better reflect the actual content. The video content remains organized as a canvas (superposition of `yuv420p` layers) internally. Type annotations such as `source(video=canvas)` must be updated to `source(video=yuv420p)`.

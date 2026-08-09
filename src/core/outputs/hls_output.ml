@@ -126,13 +126,14 @@ let hls_proto frame_t =
         Some "Segment duration (in seconds)." );
       ( "wait_for_keyframe",
         Lang.bool_t,
-        Some (Lang.bool false),
+        Some (Lang.bool true),
         Some
           "When reaching `segment_duration` with no keyframe to split on, wait \
            for the next one instead of splitting anyway. Segments then last \
            longer than `segment_duration` and `EXT-X-TARGETDURATION` follows \
-           them, but they can always be decoded on their own. This is what the \
-           `ffmpeg` HLS muxer does with `-hls_time`." );
+           them, but they start on a keyframe. This is what the `ffmpeg` HLS \
+           muxer does with `-hls_time`. Set to `false` to cut at \
+           `segment_duration` regardless." );
       ( "segment_name",
         segment_name_t,
         Some default_name,

@@ -37,13 +37,14 @@ Keyframes are very common in video codecs and can exist in audio codecs.
 In order to make sure that a HLS playlist can be decoded starting from any segment, liquidsoap tries to split segments on keyframe boundaries. When not possible,
 you will see a warning in the logs.
 
-Segment split is forced when reaching `segment_duration`, so that segments stay close to the requested length. When no keyframe is available at that point, the
-segment is split anyway and a warning is logged: the resulting segment does not start with a keyframe and cannot be decoded on its own. For metadata and extra tags,
-segment split always waits for the next keyframe.
+When `segment_duration` is reached and no keyframe is available to split on, the segment is held open until the next one arrives, which is what the `ffmpeg` HLS muxer
+does with `-hls_time`. Segments then last until that keyframe, longer than `segment_duration`, and `EXT-X-TARGETDURATION` grows to cover them. This matters most when
+you do not control the keyframe frequency, typically when relaying an existing stream with `%ffmpeg(%audio.copy, %video.copy)`.
 
-Passing `wait_for_keyframe=true` makes the duration split wait as well, which is what the `ffmpeg` HLS muxer does with `-hls_time`. Segments then last until the next
-keyframe, longer than `segment_duration`, and `EXT-X-TARGETDURATION` grows to cover them. Use it when you do not control the keyframe frequency, typically when
-relaying an existing stream with `%ffmpeg(%audio.copy, %video.copy)`.
+Pass `wait_for_keyframe=false` to cut at `segment_duration` regardless. Segments then stay close to the requested length, but one that had to be cut without a
+keyframe does not start with one, cannot be decoded on its own, and is reported in the logs.
+
+For metadata and extra tags, segment split always waits for the next keyframe.
 
 To make sure that all these requirements operate correctly, you should make sure to set a keyframe frequency in your encoder's settings that generates at lease one
 keyframe per segment.
