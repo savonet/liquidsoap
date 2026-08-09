@@ -48,15 +48,14 @@ opam repository set-url windows https://github.com/ocaml-cross/opam-cross-window
 opam update
 
 # The image ships a dune that cannot parse the dune language version the
-# cross-compiled packages now declare.
-opam install -y dune.3.24.2
-
-opam install -y posix-socket.3.0.0 srt-windows.0.3.4 prometheus-app-windows cohttp-lwt-unix-windows ffmpeg-avutil-windows.1.2.5
+# cross-compiled packages declare. Request it in every transaction: on its
+# own it gets downgraded again by the next one.
+opam install -y dune.3.24.2 posix-socket.3.0.0 srt-windows.0.3.4 prometheus-app-windows cohttp-lwt-unix-windows ffmpeg-avutil-windows.1.2.5
 
 echo "::endgroup::"
 
 echo "::group::Install liquidsoap-windows"
-opam install -y liquidsoap-windows
+opam install -y liquidsoap-windows dune.3.24.2
 echo "::endgroup::"
 
 echo "::group::Save build config"
