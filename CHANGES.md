@@ -30,6 +30,11 @@
   header was looked up before normalization, so clients never received
   in-stream metadata (thanks to @uhthomas, #5279)
 - Fixed `srt` restart logic (##5309)
+- Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
+  closing on a stale split position re-anchored the next boundary on it instead
+  of the segment grid. The drift rate depends on the encoder's frame size, so
+  variants using different codecs, e.g. HE-AAC and AAC-LC, diverged from each
+  other without bound (#5319).
 
 ---
 
