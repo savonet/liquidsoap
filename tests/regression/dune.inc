@@ -1162,6 +1162,23 @@
  (action (run %{run_test} GH5287 liquidsoap %{test_liq} GH5287.liq)))
   
 (rule
+ (alias GH5319)
+ (package liquidsoap)
+ 
+ (deps
+  GH5319.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH5319 liquidsoap %{test_liq} GH5319.liq)))
+  
+(rule
  (alias LS268)
  (package liquidsoap)
  
@@ -1792,6 +1809,7 @@
     (alias GH5110)
     (alias GH5148)
     (alias GH5287)
+    (alias GH5319)
     (alias LS268)
     (alias LS354-1)
     (alias LS354-2)

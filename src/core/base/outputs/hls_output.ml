@@ -193,6 +193,9 @@ type segment = {
   mutable out_channel : atomic_out_channel option;
   (* Segment length in main ticks. *)
   mutable len : int;
+  (* Part of [len] carried over from the previous segment: excluded from the
+     split decision so that boundaries stay on the [segment_duration] grid. *)
+  mutable carried_len : int;
   mutable last_segmentable_position : (int * int) option;
 }
 
@@ -227,6 +230,7 @@ let json_of_segment
       filename;
       segment_extra_tags;
       len;
+      carried_len;
       last_segmentable_position;
     } =
   `Assoc
@@ -240,6 +244,7 @@ let json_of_segment
     @ [
         ("extra_tags", `Tuple (List.map (fun s -> `String s) segment_extra_tags));
         ("len", `Int len);
+        ("carried_len", `Int carried_len);
       ]
     @ json_optional "last_segmentable_position"
         (fun (len, offset) -> `Tuple [`Int len; `Int offset])
@@ -261,6 +266,9 @@ let segment_of_json = function
           l
       in
       let len = parse_json_int "len" l in
+      let carried_len =
+        match List.assoc_opt "carried_len" l with Some (`Int i) -> i | _ -> 0
+      in
       let init_filename =
         parse_json_optional "init_filename"
           (function `String s -> s | _ -> raise Invalid_state)
@@ -284,6 +292,7 @@ let segment_of_json = function
         current_discontinuity;
         init_filename;
         len;
+        carried_len;
         segment_extra_tags;
         filename;
         out_channel = None;
@@ -743,6 +752,7 @@ class hls_output p =
           discontinuous;
           current_discontinuity;
           len = 0;
+          carried_len = 0;
           segment_extra_tags;
           init_filename =
             (match s.init_state with `Has_init f -> Some f | _ -> None);
@@ -792,7 +802,8 @@ class hls_output p =
           let segment = Option.get s.current_segment in
           let oc = Option.get segment.out_channel in
           oc#output_string rem;
-          segment.len <- current_len - len
+          segment.len <- current_len - len;
+          segment.carried_len <- current_len - len
       | _ -> assert false
 
     method private cleanup_streams =
@@ -1048,7 +1059,7 @@ class hls_output p =
         | Some _ -> raise Encoder.Not_enough_data
 
     method private should_reopen ~segment ~len s =
-      if segment.len + len > segment_main_duration then
+      if segment.len - segment.carried_len + len > segment_main_duration then
         ( true,
           Printf.sprintf
             "Terminating current segment %d on stream %s to make expected \
