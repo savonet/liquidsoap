@@ -124,6 +124,15 @@ let hls_proto frame_t =
         Lang.float_t,
         Some (Lang.float 10.),
         Some "Segment duration (in seconds)." );
+      ( "wait_for_keyframe",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "When reaching `segment_duration` with no keyframe to split on, wait \
+           for the next one instead of splitting anyway. Segments then last \
+           longer than `segment_duration` and `EXT-X-TARGETDURATION` follows \
+           them, but they can always be decoded on their own. This is what the \
+           `ffmpeg` HLS muxer does with `-hls_time`." );
       ( "segment_name",
         segment_name_t,
         Some default_name,
@@ -463,6 +472,7 @@ class hls_output p =
   in
   let strict_persist = Lang.to_bool (List.assoc "strict_persist" p) in
   (* better choice? *)
+  let wait_for_keyframe = Lang.to_bool (List.assoc "wait_for_keyframe" p) in
   let segment_duration = Lang.to_float (List.assoc "segment_duration" p) in
   let segment_ticks =
     Frame.main_of_seconds segment_duration / Lazy.force Frame.size
@@ -882,6 +892,12 @@ class hls_output p =
               (current_discontinuity, id - 1)
           | [] -> (0, 0)
       in
+      (* Every segment has to fit within the announced target duration. *)
+      let target_duration =
+        List.fold_left
+          (fun d (_, { len }) -> Float.max d (Frame.seconds_of_main len))
+          segment_duration segments
+      in
       let filename = self#playlist_name s in
       self#log#debug "Writing playlist %s.." s.name;
       let oc = self#open_out (fun () -> filename) in
@@ -891,7 +907,7 @@ class hls_output p =
           oc#output_string "#EXTM3U\r\n";
           oc#output_string
             (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n"
-               (int_of_float (ceil segment_duration)));
+               (int_of_float (ceil target_duration)));
           oc#output_string (Printf.sprintf "#EXT-X-VERSION:%d\r\n" x_version);
           oc#output_string
             (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" media_sequence);
@@ -1120,7 +1136,7 @@ class hls_output p =
             "Terminating current segment %d on stream %s to make expected \
              length"
             segment.id s.name,
-          true )
+          not wait_for_keyframe )
       else if s.id3_enabled && pending_metadata s.metadata then
         ( true,
           Printf.sprintf

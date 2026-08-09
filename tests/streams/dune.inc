@@ -978,6 +978,42 @@
    hls_main_playlist.liq)))
 
 (rule
+ (alias test_hls_wait_for_keyframe)
+ (package liquidsoap)
+ (deps
+  hls_wait_for_keyframe.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   hls_wait_for_keyframe.liq
+   liquidsoap
+   %{test_liq}
+   hls_wait_for_keyframe.liq)))
+
+(rule
  (alias test_huge-playlist)
  (package liquidsoap)
  (deps
@@ -2462,6 +2498,7 @@
   (alias test_hls_id3v2)
   (alias test_hls_large_frame)
   (alias test_hls_main_playlist)
+  (alias test_hls_wait_for_keyframe)
   (alias test_huge-playlist)
   (alias test_icecast_last_meta)
   (alias test_icecast_no_restart)
