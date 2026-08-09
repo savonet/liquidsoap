@@ -117,7 +117,10 @@ def rotate(~id=null, sources) =
   s.on_track(synchronous=true, f)
 
   def replaces s =
-    fallback(id=id, s::sources)
+    rotation = s
+    s = fallback(id=id, rotation::sources)
+    source.set_id(rotation, "#{source.id(s)}.rotate")
+    s
   end
 
   s
@@ -185,7 +188,10 @@ def replaces random(~id=null, sources) =
   s.on_track(synchronous=true, f)
 
   def replaces s =
-    fallback(id=id, s::sources)
+    selection = s
+    s = fallback(id=id, selection::sources)
+    source.set_id(selection, "#{source.id(s)}.random")
+    s
   end
 
   s
