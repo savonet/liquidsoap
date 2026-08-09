@@ -78,6 +78,8 @@
 - Fixed `%mp3` segfaulting on musl-based systems such as Alpine: the lame
   bindings held their 144KB output buffer on the stack, more than a musl thread
   stack can take (#3936).
+- `rotate` and `random` name the switch they build internally after themselves,
+  e.g. `schedule_rotate`, instead of leaving it with an anonymous id (#3851).
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so
