@@ -56,14 +56,14 @@ let allow_root =
   Dtools.Conf.bool
     ~p:(Configure.conf_init#plug "allow_root")
     ~d:(Lazy.force Utils.is_docker)
-    "Allow liquidsoap to run as root"
+    "Do not warn when liquidsoap is run as root"
     ~comments:
       [
-        "This should be reserved for advanced dynamic uses of liquidsoap ";
-        "such as running inside an isolated environment like docker.";
+        "Running as root should be reserved for advanced dynamic uses of ";
+        "liquidsoap such as running inside an isolated environment like docker.";
       ]
 
-let root_error () =
+let root_warning () =
   match (allow_root#get, Unix.geteuid (), Unix.getegid ()) with
     | false, 0, 0 -> Some "root euid & guid (user & group)"
     | false, 0, _ -> Some "root euid (user)"
@@ -621,10 +621,6 @@ let final_cleanup () =
   Gc.full_major ();
   Gc.full_major ()
 
-let sync_cleanup () =
-  initial_cleanup ();
-  final_cleanup ()
-
 let () =
   (* Shutdown *)
   Lifecycle.before_core_shutdown ~name:"log shutdown" (fun () ->
@@ -744,18 +740,16 @@ let () =
 
       if Dtools.Init.conf_daemon#get then daemonize ();
 
-      (match root_error () with
+      check_directories ();
+      start_log ();
+
+      match root_warning () with
         | None -> ()
         | Some err ->
-            Printf.eprintf
-              "init: security exit, %s. Override with settings.init.allow_root \
-               := true\n"
-              err;
-            sync_cleanup ();
-            exit (-1));
-
-      check_directories ();
-      start_log ());
+            log#severe
+              "WARNING: liquidsoap is running with %s. Set \
+               `settings.init.allow_root := true` to silence this warning."
+              err);
 
   Lifecycle.on_start ~name:"main application start" (fun () ->
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
