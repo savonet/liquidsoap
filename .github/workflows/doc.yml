@@ -9,9 +9,14 @@ on:
       branch:
         required: true
         type: string
+      publish:
+        description: Push the built site. Off for pull requests, which build it as a check.
+        required: false
+        default: false
+        type: boolean
     secrets:
       WEBSITE_TOKEN:
-        required: true
+        required: false
 
 jobs:
   update_doc:
@@ -59,11 +64,10 @@ jobs:
 
           # The in-development version comes straight out of the build above: doc/content
           # for the prose, _build/default/doc for the five files only the binary can
-          # produce, and dune-project for the version the site labels it with. -L because
-          # doc/content/images is a symlink to ../orig/images.
+          # produce, and dune-project for the version the site labels it with.
           BUNDLE=/tmp/doc-bundle
           mkdir -p "$BUNDLE"
-          cp -RL /tmp/liquidsoap/doc/content "$BUNDLE/content"
+          cp -R /tmp/liquidsoap/doc/content "$BUNDLE/content"
           for f in reference reference-extras reference-deprecated protocols settings; do
             cp "/tmp/liquidsoap/_build/default/doc/$f.md" "$BUNDLE/$f.md"
           done
@@ -81,7 +85,7 @@ jobs:
           mkdir -p /tmp/${{ github.run_number }}/html
           cp -rf build/* /tmp/${{ github.run_number }}/html
       - name: Push doc content
-        if: success() && github.repository_owner == 'savonet'
+        if: success() && inputs.publish && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@1d6ee9b181a81033a16bd707a1401afa978daab4 # v5.0.0
         with:
           repo: savonet/savonet.github.io
@@ -91,7 +95,7 @@ jobs:
         env:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
       - name: Push odoc content
-        if: success() && github.repository_owner == 'savonet'
+        if: success() && inputs.publish && github.repository_owner == 'savonet'
         uses: crazy-max/ghaction-github-pages@1d6ee9b181a81033a16bd707a1401afa978daab4 # v5.0.0
         with:
           repo: savonet/liquidsoap

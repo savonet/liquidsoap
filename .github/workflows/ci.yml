@@ -120,10 +120,13 @@ jobs:
   update_doc:
     uses: ./.github/workflows/doc.yml
     needs: [build_details, build_js]
-    if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
+    if: github.repository_owner == 'savonet' && needs.build_details.outputs.is_fork != 'true'
     with:
       sha: ${{ github.sha }}
       branch: ${{ needs.build_details.outputs.branch }}
+      # Pull requests build the website without publishing it: nothing else here
+      # exercises that build, so it first broke on main.
+      publish: ${{ github.event_name != 'pull_request' && needs.build_details.outputs.branch == 'main' }}
     secrets:
       WEBSITE_TOKEN: ${{ secrets.WEBSITE_TOKEN }}
 
