@@ -63,6 +63,11 @@
 
 ## Fixed:
 
+- Fixed the ffmpeg decoder leaving up to ~150ms of silence after a seek: the
+  packets between the seek point and the target were dropped without being
+  decoded, so codecs carrying state across packets, mp3 and its bit reservoir
+  in particular, started cold. This is what made a CUE playlist click between
+  tracks (#3971).
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so
