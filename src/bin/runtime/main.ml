@@ -47,19 +47,36 @@ let allow_root =
   Dtools.Conf.bool
     ~p:(Configure.conf_init#plug "allow_root")
     ~d:(Lazy.force Utils.is_docker)
-    "Allow liquidsoap to run as root"
+    "Do not warn when liquidsoap is run as root"
     ~comments:
       [
-        "This should be reserved for advanced dynamic uses of liquidsoap ";
-        "such as running inside an isolated environment like docker.";
+        "Running as root should be reserved for advanced dynamic uses of ";
+        "liquidsoap such as running inside an isolated environment like docker.";
       ]
 
-let root_error () =
+let root_warning () =
   match (allow_root#get, Unix.geteuid (), Unix.getegid ()) with
     | false, 0, 0 -> Some "root euid & guid (user & group)"
     | false, 0, _ -> Some "root euid (user)"
     | false, _, 0 -> Some "root guid (group)"
     | _ -> None
+
+(* Dtools drops everything that was logged before the log was started. Anything
+   logged while evaluating the script is thus lost when we exit before
+   reaching the streaming loop, e.g. when no output was defined. *)
+let log_started = ref false
+
+let start_log () =
+  if not !log_started then (
+    log_started := true;
+    Dtools.Init.exec Dtools.Log.start)
+
+(* Tooling modes (--check, -h, --list-settings, ...) set [run_streams] to
+   [false] and are expected to stay quiet, so we only flush pending logs when
+   the script was meant to run. *)
+let stop_log () =
+  if !run_streams then start_log ();
+  if !log_started then Dtools.Init.exec Dtools.Log.stop
 
 let eval_mode : [ `Parse_only | `Parse_and_type | `Eval | `Eval_toplevel ] ref =
   ref `Eval
@@ -134,7 +151,7 @@ let eval () =
     eval_script script;
     log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
   with Liquidsoap_lang.Runtime.Error ->
-    Dtools.Init.exec Dtools.Log.stop;
+    stop_log ();
     flush_all ();
     exit 1
 
@@ -590,14 +607,10 @@ let final_cleanup () =
   log#important "Cleaning downloaded files...";
   Request.cleanup ();
   log#important "Freeing memory...";
-  Dtools.Init.exec Dtools.Log.stop;
+  stop_log ();
   flush_all ();
   Gc.full_major ();
   Gc.full_major ()
-
-let sync_cleanup () =
-  initial_cleanup ();
-  final_cleanup ()
 
 let () =
   (* Shutdown *)
@@ -718,18 +731,16 @@ let () =
 
       if Dtools.Init.conf_daemon#get then daemonize ();
 
-      (match root_error () with
+      check_directories ();
+      start_log ();
+
+      match root_warning () with
         | None -> ()
         | Some err ->
-            Printf.eprintf
-              "init: security exit, %s. Override with settings.init.allow_root \
-               := true\n"
-              err;
-            sync_cleanup ();
-            exit (-1));
-
-      check_directories ();
-      Dtools.Init.exec Dtools.Log.start);
+            log#severe
+              "WARNING: liquidsoap is running with %s. Set \
+               `settings.init.allow_root := true` to silence this warning."
+              err);
 
   Lifecycle.on_start ~name:"main application start" (fun () ->
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for

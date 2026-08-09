@@ -380,12 +380,17 @@ class virtual piped_output ?clock ~name p =
     method private reopen_on_error ~bt exn =
       open_date <- reopen_time_on_error ~log:self#log reopen_on_error ~bt exn
 
+    (* [open_date] is in the future while we are waiting to re-open after an
+       error. Failing to open the pipe leaves the output in its [`Idle] state so,
+       without this guard, the next streaming cycle would retry right away and
+       the delay returned by [reopen_on_error] would be ignored. *)
     method! output =
-      try base#output
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        (try self#cleanup_pipe with _ -> ());
-        self#reopen_on_error ~bt exn
+      if self#is_open || open_date <= Unix.gettimeofday () then (
+        try base#output
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          (try self#cleanup_pipe with _ -> ());
+          self#reopen_on_error ~bt exn)
 
     method! send b = if self#is_open then base#send b
 
@@ -484,7 +489,7 @@ class virtual ['a] file_output_base p =
               Utils.ensure_dir ~perm:dir_perm filename;
               Atomic.set current_filename (Some filename);
               (filename, mode, perm)
-            with Sys_error _ as exn ->
+            with (Sys_error _ | Unix.Unix_error _) as exn ->
               let bt = Printexc.get_raw_backtrace () in
               Lang.raise_as_runtime ~bt ~kind:"system" exn)
 
@@ -492,7 +497,7 @@ class virtual ['a] file_output_base p =
       try
         let filename, mode, perm = self#prepare_filename in
         self#open_out_gen mode perm filename
-      with Sys_error _ as exn ->
+      with (Sys_error _ | Unix.Unix_error _) as exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"system" exn
 
@@ -505,7 +510,7 @@ class virtual ['a] file_output_base p =
           | Some f -> self#on_close f
           | None -> ());
         Atomic.set current_filename None
-      with Sys_error _ as exn ->
+      with (Sys_error _ | Unix.Unix_error _) as exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"system" exn
 
