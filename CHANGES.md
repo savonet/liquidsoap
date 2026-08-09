@@ -63,6 +63,9 @@
 
 ## Fixed:
 
+- Anything logged while evaluating the script, deprecation warnings in
+  particular, was silently dropped when liquidsoap exited before reaching the
+  streaming loop, e.g. on `No output defined, nothing to do.` (#3375).
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so

@@ -61,6 +61,23 @@ let root_error () =
     | false, _, 0 -> Some "root guid (group)"
     | _ -> None
 
+(* Dtools drops everything that was logged before the log was started. Anything
+   logged while evaluating the script is thus lost when we exit before
+   reaching the streaming loop, e.g. when no output was defined. *)
+let log_started = ref false
+
+let start_log () =
+  if not !log_started then (
+    log_started := true;
+    Dtools.Init.exec Dtools.Log.start)
+
+(* Tooling modes (--check, -h, --list-settings, ...) set [run_streams] to
+   [false] and are expected to stay quiet, so we only flush pending logs when
+   the script was meant to run. *)
+let stop_log () =
+  if !run_streams then start_log ();
+  if !log_started then Dtools.Init.exec Dtools.Log.stop
+
 let eval_mode : [ `Parse_only | `Parse_and_type | `Eval | `Eval_toplevel ] ref =
   ref `Eval
 
@@ -134,7 +151,7 @@ let eval () =
     eval_script script;
     log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
   with Liquidsoap_lang.Runtime.Error ->
-    Dtools.Init.exec Dtools.Log.stop;
+    stop_log ();
     flush_all ();
     exit 1
 
@@ -590,7 +607,7 @@ let final_cleanup () =
   log#important "Cleaning downloaded files...";
   Request.cleanup ();
   log#important "Freeing memory...";
-  Dtools.Init.exec Dtools.Log.stop;
+  stop_log ();
   flush_all ();
   Gc.full_major ();
   Gc.full_major ()
@@ -729,7 +746,7 @@ let () =
             exit (-1));
 
       check_directories ();
-      Dtools.Init.exec Dtools.Log.start);
+      start_log ());
 
   Lifecycle.on_start ~name:"main application start" (fun () ->
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
