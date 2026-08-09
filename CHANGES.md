@@ -16,6 +16,9 @@
   (#2437)
 - `rotate` and `random` name the switch they build internally after themselves,
   e.g. `schedule_rotate`, instead of leaving it with an anonymous id (#3851)
+- Fixed `clock.create` documenting and reporting sync modes, `"CPU"` and
+  `"unsynced"`, that it does not accept. The accepted values are `"auto"`,
+  `"cpu"`, `"none"` and `"passive"`
 - Added Unifier path compression to avoid unbounded deref cost growth (#5257)
 - Fixed unbounded buffer growth (#5287)
 - Fixed `sequence` dropping the first chunk of a source, along with its
