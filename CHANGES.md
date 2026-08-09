@@ -2,6 +2,15 @@
 
 ## Fixed:
 
+- HLS: `EXT-X-TARGETDURATION` now covers the longest segment in the playlist
+  instead of always announcing `segment_duration`. A segment that overshoots,
+  which already happened at frame boundaries, made the playlist violate the HLS
+  specification (#5266)
+- HLS: added `wait_for_keyframe`. When reaching `segment_duration` with no
+  keyframe to split on, the output waits for the next one instead of splitting
+  anyway, which is what the `ffmpeg` HLS muxer does with `-hls_time`. Segments
+  then last longer than `segment_duration` but start on a keyframe. Defaults to
+  `false` on this branch, keeping the existing behaviour (#5266)
 - Fixed `file.watch` losing track of a file that gets replaced rather than
   written in place: an inotify watch follows the inode, so a writer doing the
   usual write-to-temporary-then-rename silenced the watcher for good. The
