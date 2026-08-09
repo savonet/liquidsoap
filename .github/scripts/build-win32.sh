@@ -38,6 +38,8 @@ else
 fi
 
 export OPAMSOLVERTIMEOUT=480
+# Do not truncate build logs: opam cuts the line naming the failing file.
+export OPAMERRLOGLEN=0
 export OPAMJOBS="$CPU_CORES"
 export CC=""
 

@@ -23,7 +23,8 @@ repos:
       - id: mixed-line-ending
         exclude: dune.inc
       - id: trailing-whitespace
-        exclude: dune.inc
+        # Patches are byte-exact: a blank context line is a single space.
+        exclude: dune.inc|\.patch$
 
   - repo: https://github.com/savonet/pre-commit-liquidsoap
     rev: 9faad7d141f99a45d9597ebe8e42e880d2c68d65
