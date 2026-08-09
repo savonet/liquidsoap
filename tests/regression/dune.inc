@@ -1570,6 +1570,23 @@
  (action (run %{run_test} output_on_track liquidsoap %{test_liq} output_on_track.liq)))
   
 (rule
+ (alias output_reopen_on_error_delay)
+ (package liquidsoap)
+ 
+ (deps
+  output_reopen_on_error_delay.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} output_reopen_on_error_delay liquidsoap %{test_liq} output_reopen_on_error_delay.liq)))
+  
+(rule
  (alias playlist-id)
  (package liquidsoap)
  
@@ -1816,6 +1833,7 @@
     (alias metadata_cache)
     (alias output_on_metadata)
     (alias output_on_track)
+    (alias output_reopen_on_error_delay)
     (alias playlist-id)
     (alias replaygain)
     (alias seek_track_map)
