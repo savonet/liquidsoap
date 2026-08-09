@@ -11,6 +11,11 @@ package-lock.json
 node_modules/
 pnpm-lock.yaml
 package-lock.json
+
+# The playground's manifest is committed on purpose: it pins the bundle's
+# dependencies, which the rules above would otherwise leave to whatever npm resolves.
+!src/js/.scripts/playground/package.json
+!src/js/.scripts/playground/package-lock.json
 src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
 src/tooling/prettier-plugin-liquidsoap/dist/web.mjs
 src/tooling/prettier-plugin-liquidsoap/dist/node.js

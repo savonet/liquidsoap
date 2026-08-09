@@ -26,9 +26,12 @@
 (rule
  (target playground.bundle.js)
  (enabled_if %{bin-available:npm})
- (deps .scripts/bundle-playground.sh)
+ (deps
+  (:script .scripts/bundle-playground.sh)
+  .scripts/playground/package.json
+  .scripts/playground/package-lock.json)
  (action
-  (run sh %{deps} %{target})))
+  (run sh %{script} %{target})))
 
 (rule
  (target playground.bundle.js)

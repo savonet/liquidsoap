@@ -1,0 +1,12 @@
+{
+  "name": "liquidsoap-playground-bundle",
+  "private": true,
+  "overrides": {
+    "@codemirror/state": "$@codemirror/state"
+  },
+  "dependencies": {
+    "@codemirror/state": "^6.7.1",
+    "esbuild": "^0.24.2",
+    "liquidsoap-playground": "^1.1.4"
+  }
+}

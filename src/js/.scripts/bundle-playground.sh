@@ -9,15 +9,18 @@ fi
 # Resolve to absolute path before changing directories
 OUTPUT="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 
+# The manifest is pinned and locked: an unlocked install resolved several copies of
+# @codemirror/state, and bundling them all broke the editor's instanceof checks at
+# runtime. npm still needs a directory it owns, so it gets a temporary one.
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
+cp "$HERE/playground/package.json" "$HERE/playground/package-lock.json" "$TMPDIR"
 cd "$TMPDIR"
 
-npm init -y > /dev/null 2>&1
-npm install --silent \
-  liquidsoap-playground@1.1.4 \
-  esbuild@0.24.2
+npm ci --silent
 
 # Exclude Node.js built-ins that prettier conditionally imports but doesn't use in browser
 npx esbuild node_modules/liquidsoap-playground/index.js \
