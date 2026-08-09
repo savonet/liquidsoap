@@ -33,6 +33,26 @@
  (action
   (diff dune.inc dune.inc.gen.formatted)))
 
+; Preview the documentation website locally: builds the reference, then serves
+; savonet/website against this checkout with live reload on doc/content.
+;
+;   dune build @doc/serve-website
+;
+; Set LIQUIDSOAP_WEBSITE to use your own checkout of the site.
+(rule
+ (alias serve-website)
+ (deps
+  reference.md
+  reference-extras.md
+  reference-deprecated.md
+  protocols.md
+  settings.md
+  (source_tree content)
+  ../dune-project
+  .scripts/serve-website.sh)
+ (action
+  (run sh .scripts/serve-website.sh %{workspace_root})))
+
 (rule
  (alias doc)
  (target liquidsoap.1)
