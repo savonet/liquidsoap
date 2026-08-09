@@ -79,10 +79,6 @@ If you are migrating from a previous version, you might want to checkout
 - [Video with a single static image](./video-static.md)
 - [Split a CUE sheet](./split-cue.md)
 
-## Code snippets
-
-- [Code example index](scripts/index.html)
-
 ## Behind the curtains
 
 - [Some presentations and publications](publications.md) explaining the theory underlying Liquidsoap
