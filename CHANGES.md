@@ -66,6 +66,9 @@
 - Anything logged while evaluating the script, deprecation warnings in
   particular, was silently dropped when liquidsoap exited before reaching the
   streaming loop, e.g. on `No output defined, nothing to do.` (#3375).
+- Liquidsoap no longer exits when started as `root`: it now logs a warning
+  instead. Container detection through `/proc/1/cgroup` does not work under
+  cgroup v2, which made the check fire on plain `docker run` (#3406).
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so
