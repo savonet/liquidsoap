@@ -63,6 +63,11 @@
 
 ## Fixed:
 
+- Fixed the ffmpeg decoder leaving up to ~150ms of silence after a seek: the
+  packets between the seek point and the target were dropped without being
+  decoded, so codecs carrying state across packets, mp3 and its bit reservoir
+  in particular, started cold. This is what made a CUE playlist click between
+  tracks (#3971).
 - Anything logged while evaluating the script, deprecation warnings in
   particular, was silently dropped when liquidsoap exited before reaching the
   streaming loop, e.g. on `No output defined, nothing to do.` (#3375).

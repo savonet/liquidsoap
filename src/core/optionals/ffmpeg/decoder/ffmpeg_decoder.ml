@@ -297,17 +297,21 @@ let get_type ?format ~ctype ~url container =
   log#important "FFmpeg recognizes %s as %s" uri description;
   Ffmpeg_stream_description.get_type ~ctype c
 
+(* Codecs carrying state across packets, mp3 and its bit reservoir in
+   particular, need their preceding packets before they produce sound again:
+   decoding straight from the seek point yields up to ~150ms of silence. We
+   land this much ahead of the target instead and decode our way to it,
+   discarding what comes out. *)
+let seek_preroll = 0.5
+
 let seek ~state ~target_position ~container ticks =
   Mutex_utils.mutable_lock ~state
     (fun () ->
       let tpos = Frame.seconds_of_main ticks in
       log#important "Setting target position to %f" tpos;
       Atomic.set target_position (Some ticks);
-      let ts = Int64.of_float (tpos *. 1000.) in
-      let frame_duration = Lazy.force Frame.duration in
-      let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
-      let max_ts = ts in
-      Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container)
+      let ts = Int64.of_float (max 0. (tpos -. seek_preroll) *. 1000.) in
+      Av.seek ~fmt:`Millisecond ~min_ts:Int64.min_int ~max_ts:ts ~ts container)
     ()
 
 let mk_eof streams buffer =
@@ -401,10 +405,31 @@ let mk_push_flush ~target_position =
 let mk_check_position ~streams ~target_position () =
   let push, flush = mk_push_flush ~target_position in
   let update_position = mk_update_position () in
+  (* The pre-roll is decoded into a buffer of its own. Decoding it into the real
+     generator and truncating it away would not do: truncating shrinks the
+     metadata and track mark contents along with the media ones, and nothing
+     grows those back, which caps every later slice at zero. *)
+  let discarded = ref None in
+  let discard_buffer generator =
+    match !discarded with
+      | Some (buffer, generator) ->
+          Generator.clear generator;
+          buffer
+      | None ->
+          let ctype = Generator.content_type generator in
+          let generator = Generator.create ~log ctype in
+          let buffer = Decoder.mk_buffer ~ctype generator in
+          discarded := Some (buffer, generator);
+          buffer
+  in
   fun ~buffer ~decode ~ts ~stream pts ->
     update_position ~buffer ~pts ~streams stream;
     match (stream.pts, Atomic.get target_position) with
-      | Some pts, Some target_position when pts < target_position -> ()
+      | Some pts, Some target when pts < target ->
+          (* Feed the decoder its pre-roll and throw the result away: codecs
+             carrying state across packets, mp3 and its bit reservoir in
+             particular, stay silent until they have caught up. *)
+          decode (discard_buffer buffer.Decoder.generator)
       | Some pts, _ ->
           if not stream.seen then stream.seen <- true;
           let all_seen =
@@ -412,13 +437,13 @@ let mk_check_position ~streams ~target_position () =
           in
           if all_seen then (
             flush pts;
-            decode ())
-          else push (pts, ts, decode)
+            decode buffer)
+          else push (pts, ts, fun () -> decode buffer)
       | None, _ ->
           log#important
             "Got packet or frame with no timestamp! Synchronization issues may \
              happen.";
-          decode ()
+          decode buffer
 
 let mk_decoder ~streams ~target_position ~state container =
   let check_position = mk_check_position ~streams ~target_position () in
@@ -454,7 +479,7 @@ let mk_decoder ~streams ~target_position ~state container =
         | Some stream ->
             check_position ~buffer
               ~ts:(Option.value ~default:0L ts)
-              ~decode:(fun () -> decode_data ~buffer data stream.decoder)
+              ~decode:(fun buffer -> decode_data ~buffer data stream.decoder)
               ~stream pts
     with
       | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> decode buffer
