@@ -43,9 +43,6 @@ WORKDIR /tmp
 
 USER opam
 
-RUN git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc && \
-    opam pin -y add ocaml-pandoc
-
 RUN git clone https://github.com/savonet/liquidsoap.git && \
     cd liquidsoap && git fetch origin "$LIQUIDSOAP_SHA" && git checkout "$LIQUIDSOAP_SHA"
 
@@ -93,7 +90,7 @@ USER root
 # Stage 4: Install remaining external and opam dependencies
 FROM static-packages AS build
 
-ENV EXT_PACKAGES="camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
+ENV EXT_PACKAGES="camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 odoc"
 
 USER opam
 
@@ -123,8 +120,8 @@ RUN eval $(opam env) && \
     PACKAGES=$(cat /tmp/packages | grep -Ev "^(speex|theora)$" | xargs echo) && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
-    opam pin list --short | grep -v '^ocaml-pandoc$' | xargs -r opam pin remove -y && \
-    rm -rf /tmp/liquidsoap /tmp/ocaml-pandoc && \
+    opam pin list --short | xargs -r opam pin remove -y && \
+    rm -rf /tmp/liquidsoap && \
     opam clean
 
 USER root

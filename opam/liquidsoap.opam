@@ -116,7 +116,6 @@ conflicts: [
   "theora" {< "1.0.0"}
   "vorbis" {< "1.0.0"}
   "pandoc" {with-doc}
-  "pandoc-include" {with-doc}
 ]
 build: [
   [
