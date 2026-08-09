@@ -1,4 +1,5 @@
 _build
+.website
 language.dtd
 liquidsoap.1
 pdf

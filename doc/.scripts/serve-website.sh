@@ -8,9 +8,20 @@
 # your own; otherwise one is cloned into doc/.website and reused.
 set -e
 
-WORKSPACE="$1"
-PORT="${2:-3000}"
-BUNDLE="$(pwd)/.website-bundle"
+PORT="${1:-3000}"
+
+# Dune runs this in a sandbox holding copies of the deps, and plants an invalid .git
+# there so nothing walks out. The site has to watch the real sources for edits to
+# reload, and DUNE_SOURCEROOT is the way to them; git covers running this by hand.
+BUILT="$(pwd)"
+WORKSPACE="${DUNE_SOURCEROOT:-$(git rev-parse --show-toplevel 2> /dev/null || true)}"
+if [ ! -f "$WORKSPACE/dune-project" ]; then
+  echo "Cannot locate the liquidsoap checkout from $BUILT." >&2
+  exit 1
+fi
+
+BUNDLE="$(mktemp -d)"
+trap 'rm -rf "$BUNDLE"; kill $SYNC 2> /dev/null || true' EXIT INT TERM
 
 if [ -n "$LIQUIDSOAP_WEBSITE" ]; then
   WEBSITE="$LIQUIDSOAP_WEBSITE"
@@ -30,11 +41,9 @@ fi
 
 # content is linked, not copied, so that editing doc/content/*.md re-syncs live. The five
 # generated files come from the dune build that produced this action.
-rm -rf "$BUNDLE"
-mkdir -p "$BUNDLE"
 ln -s "$WORKSPACE/doc/content" "$BUNDLE/content"
 for f in reference reference-extras reference-deprecated protocols settings; do
-  cp "$f.md" "$BUNDLE/$f.md"
+  cp "$BUILT/$f.md" "$BUNDLE/$f.md"
 done
 sed -n 's/^(version \(.*\))$/\1/p' "$WORKSPACE/dune-project" > "$BUNDLE/version"
 
@@ -51,13 +60,12 @@ ulimit -n 4096 2> /dev/null || true
 rm -f sidebars.dev.json
 node scripts/sync-docs.mjs --version dev --bundle "$BUNDLE" --watch &
 SYNC=$!
-trap 'kill $SYNC 2>/dev/null || true' EXIT INT TERM
 
 while [ ! -f sidebars.dev.json ]; do
-  kill -0 "$SYNC" 2> /dev/null || {
-                                   echo "Documentation sync failed." >&2
-                                                                          exit 1
-  }
+  if ! kill -0 "$SYNC" 2> /dev/null; then
+    echo "Documentation sync failed." >&2
+    exit 1
+  fi
   sleep 0.5
 done
 

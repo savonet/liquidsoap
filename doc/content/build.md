@@ -10,7 +10,7 @@ Our recommended way of installing liquidsoap is via [opam](http://opam.ocaml.org
 care of installing the correct OCaml compiler, optional and required dependencies as well as system-specific
 package dependencies.
 
-The `opam` method is described in details in the [documentation](doc/content/install.md).
+The `opam` method is described in details in the [documentation](install.md).
 We recommend that any interested user head over to this link to install the software via `opam`.
 
 The remainder of this document describes how to compile liquidsoap locally for developers.

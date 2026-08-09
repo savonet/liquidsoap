@@ -1,5 +1,10 @@
 ; Regenerate using dune build @gendune --auto-promote
 
+; Dune ignores dot-directories; .scripts has to be declared for the
+; serve-website rule below to see its script.
+
+(data_only_dirs .scripts)
+
 (include dune.inc)
 
 (rule
@@ -48,11 +53,10 @@
   reference-deprecated.md
   protocols.md
   settings.md
-  (source_tree content)
   ../dune-project
   .scripts/serve-website.sh)
  (action
-  (run sh .scripts/serve-website.sh %{workspace_root})))
+  (run sh .scripts/serve-website.sh)))
 
 (rule
  (alias doc)
