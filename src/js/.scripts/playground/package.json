@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "@codemirror/state": "^6.7.1",
-    "esbuild": "^0.24.2",
+    "esbuild": "^0.25.0",
     "liquidsoap-playground": "^1.1.4"
   }
 }
