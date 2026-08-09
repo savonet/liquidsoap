@@ -71,3 +71,4 @@ repos:
         entry: opam exec dune -- build @gendune --auto-promote
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
