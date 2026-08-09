@@ -181,6 +181,20 @@
   (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
 
 (rule
+ (alias test_file.watch3)
+ (package liquidsoap)
+ (deps
+  file.watch3.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} file.watch3.liq liquidsoap %{test_liq} file.watch3.liq)))
+
+(rule
  (alias test_file_protocol)
  (package liquidsoap)
  (deps
@@ -743,6 +757,7 @@
   (alias test_file)
   (alias test_file.watch)
   (alias test_file.watch2)
+  (alias test_file.watch3)
   (alias test_file_protocol)
   (alias test_functions)
   (alias test_getter)
