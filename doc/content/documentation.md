@@ -85,7 +85,4 @@ If you are migrating from a previous version, you might want to checkout
 
 ## Behind the curtains
 
-- [Some presentations and publications](../publications.html) explaining the theory underlying Liquidsoap
-- [OCaml libraries](../modules.html) used in Liquidsoap, that can be reused in other projects
-- [Documentation of some internals](../modules/liquidsoap/index.html) of Liquidsoap
-- [Documentation for previous versions](../previously.html)
+- [Some presentations and publications](publications.md) explaining the theory underlying Liquidsoap
