@@ -48,9 +48,10 @@
     (echo "let version = \"%{version:liquidsoap-lang}\"\n")
     (echo "let version_len = String.length version\n")
     (echo "let parsed_sha = String.trim \"")
-    (with-accepted-exit-codes
-     (or 0 128)
-     (run git rev-parse --short HEAD))
+    (ignore-stderr
+     (with-accepted-exit-codes
+      (or 0 128)
+      (run git rev-parse --short HEAD)))
     (echo "\"\n")
     (echo "let parsed_sha_len = String.length parsed_sha\n")
     (echo "let dune_sha_len = 7\n")
