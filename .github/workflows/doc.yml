@@ -30,7 +30,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
         id: cpu_cores
