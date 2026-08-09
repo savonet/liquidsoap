@@ -47,6 +47,10 @@ eval "$(opam config env)"
 opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
 opam update
 
+# camomile 2.0.0 caps dune below 3.24, which the cross-compiled packages
+# need. The fix is merged upstream but not released yet.
+opam pin add -y -n camomile git+https://github.com/ocaml-community/Camomile.git#main
+
 # The image ships a dune that cannot parse the dune language version the
 # cross-compiled packages declare. Request it in every transaction: on its
 # own it gets downgraded again by the next one.
