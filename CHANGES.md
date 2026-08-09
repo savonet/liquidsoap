@@ -14,6 +14,8 @@
 - `output.file` reports `Unix` errors, e.g. `Permission denied` when creating the
   destination directory, as `system` errors, like it already did for `Sys_error`
   (#2437)
+- `rotate` and `random` name the switch they build internally after themselves,
+  e.g. `schedule_rotate`, instead of leaving it with an anonymous id (#3851)
 - Added Unifier path compression to avoid unbounded deref cost growth (#5257)
 - Fixed unbounded buffer growth (#5287)
 - Fixed `sequence` dropping the first chunk of a source, along with its
