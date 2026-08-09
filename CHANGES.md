@@ -63,6 +63,11 @@
 
 ## Fixed:
 
+- Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
+  closing on a stale split position re-anchored the next boundary on it instead
+  of the segment grid. The drift rate depends on the encoder's frame size, so
+  variants using different codecs, e.g. HE-AAC and AAC-LC, diverged from each
+  other without bound (#5319).
 - Inline `ffmpeg.encode.*` operators report unrecognized codec options, as the
   container encoder does.
 - Fixed `%ffmpeg` copy encoder initializing the video stream twice and setting the
