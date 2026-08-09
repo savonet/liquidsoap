@@ -69,6 +69,12 @@
 - Liquidsoap no longer exits when started as `root`: it now logs a warning
   instead. Container detection through `/proc/1/cgroup` does not work under
   cgroup v2, which made the check fire on plain `docker run` (#3406).
+- Fixed `output.file` and the other piped outputs ignoring the delay returned by
+  `reopen_on_error` when the failure happened while opening the file: the output
+  stays `Idle` in that case and retried on every streaming cycle (#2437).
+- `output.file` reports `Unix` errors, e.g. `Permission denied` when creating the
+  destination directory, as `system` errors, like it already did for `Sys_error`
+  (#2437).
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so
