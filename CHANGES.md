@@ -42,6 +42,11 @@
   of the segment grid. The drift rate depends on the encoder's frame size, so
   variants using different codecs, e.g. HE-AAC and AAC-LC, diverged from each
   other without bound (#5319).
+- Fixed a clock's `on_error` handler being defeated by the shutdown of the
+  source it just contained: putting the failed source to sleep runs its cleanup,
+  e.g. `output.file.hls` closing its current segment when `persist_at` is set,
+  and an error raised there escaped uncaught and killed the process. Shutdown
+  errors are logged instead (#5260)
 
 ---
 
