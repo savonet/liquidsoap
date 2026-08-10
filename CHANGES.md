@@ -63,6 +63,20 @@
 
 ## Fixed:
 
+- An FFmpeg filter graph is no longer finished off by an input that runs dry.
+  A source is unavailable for all sorts of passing reasons, a `buffer` filling
+  up or a queue waiting on a request, and liquidsoap has no way to tell those
+  from a stream that is over, so the graph treats every one of them as the end:
+  it flushes the filters, hands over the tail they were holding and tears the
+  graph down. What is new is that this is no longer final. avfilter cannot
+  reopen a graph that has seen end of file, so when the input comes back the
+  graph is built again from what the script described, and each generation is
+  announced as a new stream so its timestamps line up with the last. Graphs
+  holding a lookahead, `loudnorm` in particular, went silent within a second of
+  starting behind a `buffer` (#3944).
+- An FFmpeg filter graph dropped the tail its filters were holding at end of
+  stream: the sink never asked its duration converter for what it had left. A
+  5.00s source through `loudnorm` produced 2.08s, and now produces 4.98s.
 - Fixed the ffmpeg decoder leaving up to ~150ms of silence after a seek: the
   packets between the seek point and the target were dropped without being
   decoded, so codecs carrying state across packets, mp3 and its bit reservoir

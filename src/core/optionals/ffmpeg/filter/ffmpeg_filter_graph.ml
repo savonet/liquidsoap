@@ -47,7 +47,7 @@ type sink = {
   eof : unit -> bool;
 }
 
-class source ~name ~pull ~is_ready ~flush_inputs ~self_sync () =
+class source ~name ~pull ~is_ready ~flush_inputs ~reset ~self_sync () =
   object (self)
     inherit Source.source ~name ()
     val mutable sinks = []
@@ -97,17 +97,23 @@ class source ~name ~pull ~is_ready ~flush_inputs ~self_sync () =
         self#check_buffer
       in
       let done_ () = List.for_all (fun sink -> sink.eof ()) sinks in
+      (* A generation of the graph is over once the inputs have been told so and
+         every sink has handed back what it was holding. Tearing it down here
+         rather than leaving it closed is what lets an input that comes back
+         start a new one: avfilter cannot reopen a graph that has seen end of
+         file, so we build another. *)
+      let end_generation () =
+        flush_inputs ();
+        drain ();
+        if done_ () then reset ()
+      in
       let rec loop () =
         drain ();
         if Generator.length self#buffer < size && not (done_ ()) then
           if is_ready () then (
             pull ();
             loop ())
-          else (
-            (* The inputs have run dry. Telling the graph so is what makes
-               filters holding a tail hand it over. *)
-            flush_inputs ();
-            drain ())
+          else end_generation ()
       in
       (* Ticking the inputs is also what gets the graph launched. *)
       let rec wait_for_launch () =

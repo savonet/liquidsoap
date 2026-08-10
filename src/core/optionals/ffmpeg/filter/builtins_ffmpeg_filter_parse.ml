@@ -71,7 +71,8 @@ let _ =
        ])
     (fun p ->
       let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
+      (* Only to reject a graph variable used outside of its create block. *)
+      ignore (get_config graph_v);
       let graph = Graph.of_value graph_v in
       let description = Lang.to_string (List.assoc "description" p) in
 
@@ -103,139 +104,132 @@ let _ =
 
       let output_format_filters = ref None in
 
-      Queue.push graph.init
-        (Lazy.from_fun (fun () ->
-             let audio_output_formats =
-               List.map
-                 (fun name ->
-                   let aformat_name = uniq_name ("parse_aformat_out_" ^ name) in
-                   let aformat =
-                     Avfilter.attach ~name:aformat_name
-                       (Avfilter.find "aformat") config
-                   in
-                   (name, aformat))
-                 audio_output_names
-             in
+      Queue.push graph.init (fun () ->
+          let config = Builtins_ffmpeg_filters.current_config graph in
+          let audio_output_formats =
+            List.map
+              (fun name ->
+                let aformat_name = uniq_name ("parse_aformat_out_" ^ name) in
+                let aformat =
+                  Avfilter.attach ~name:aformat_name (Avfilter.find "aformat")
+                    config
+                in
+                (name, aformat))
+              audio_output_names
+          in
 
-             let video_output_formats =
-               List.map
-                 (fun name ->
-                   let format_name = uniq_name ("parse_format_out_" ^ name) in
-                   let format_ =
-                     Avfilter.attach ~name:format_name (Avfilter.find "format")
-                       config
-                   in
-                   (name, format_))
-                 video_output_names
-             in
+          let video_output_formats =
+            List.map
+              (fun name ->
+                let format_name = uniq_name ("parse_format_out_" ^ name) in
+                let format_ =
+                  Avfilter.attach ~name:format_name (Avfilter.find "format")
+                    config
+                in
+                (name, format_))
+              video_output_names
+          in
 
-             let audio_output_pads =
-               List.map
-                 (fun (name, pad_v) ->
-                   let caller_output =
-                     match Audio.of_value pad_v with
-                       | `Output lazy_pad -> Lazy.force lazy_pad
-                       | `Input _ ->
-                           failwith
-                             "ffmpeg.filter.parse: input pads must be output \
-                              pads from previous filters"
-                   in
-                   Avfilter.
-                     {
-                       node_name = name;
-                       node_args = None;
-                       node_pad = caller_output;
-                     })
-                 audio_input_pads
-             in
+          let audio_output_pads =
+            List.map
+              (fun (name, pad_v) ->
+                let caller_output =
+                  match Audio.of_value pad_v with
+                    | `Output pad -> pad ()
+                    | `Input _ ->
+                        failwith
+                          "ffmpeg.filter.parse: input pads must be output pads \
+                           from previous filters"
+                in
+                Avfilter.
+                  {
+                    node_name = name;
+                    node_args = None;
+                    node_pad = caller_output;
+                  })
+              audio_input_pads
+          in
 
-             let video_output_pads =
-               List.map
-                 (fun (name, pad_v) ->
-                   let caller_output =
-                     match Video.of_value pad_v with
-                       | `Output lazy_pad -> Lazy.force lazy_pad
-                       | `Input _ ->
-                           failwith
-                             "ffmpeg.filter.parse: input pads must be output \
-                              pads from previous filters"
-                   in
-                   Avfilter.
-                     {
-                       node_name = name;
-                       node_args = None;
-                       node_pad = caller_output;
-                     })
-                 video_input_pads
-             in
+          let video_output_pads =
+            List.map
+              (fun (name, pad_v) ->
+                let caller_output =
+                  match Video.of_value pad_v with
+                    | `Output pad -> pad ()
+                    | `Input _ ->
+                        failwith
+                          "ffmpeg.filter.parse: input pads must be output pads \
+                           from previous filters"
+                in
+                Avfilter.
+                  {
+                    node_name = name;
+                    node_args = None;
+                    node_pad = caller_output;
+                  })
+              video_input_pads
+          in
 
-             let audio_input_pads =
-               List.map
-                 (fun (name, aformat) ->
-                   Avfilter.
-                     {
-                       node_name = name;
-                       node_args = None;
-                       node_pad = List.hd aformat.io.inputs.audio;
-                     })
-                 audio_output_formats
-             in
+          let audio_input_pads =
+            List.map
+              (fun (name, aformat) ->
+                Avfilter.
+                  {
+                    node_name = name;
+                    node_args = None;
+                    node_pad = List.hd aformat.io.inputs.audio;
+                  })
+              audio_output_formats
+          in
 
-             let video_input_pads =
-               List.map
-                 (fun (name, format_) ->
-                   Avfilter.
-                     {
-                       node_name = name;
-                       node_args = None;
-                       node_pad = List.hd format_.io.inputs.video;
-                     })
-                 video_output_formats
-             in
+          let video_input_pads =
+            List.map
+              (fun (name, format_) ->
+                Avfilter.
+                  {
+                    node_name = name;
+                    node_args = None;
+                    node_pad = List.hd format_.io.inputs.video;
+                  })
+              video_output_formats
+          in
 
-             let parse_io =
-               Avfilter.
-                 {
-                   inputs =
-                     { audio = audio_input_pads; video = video_input_pads };
-                   outputs =
-                     { audio = audio_output_pads; video = video_output_pads };
-                 }
-             in
+          let parse_io =
+            Avfilter.
+              {
+                inputs = { audio = audio_input_pads; video = video_input_pads };
+                outputs =
+                  { audio = audio_output_pads; video = video_output_pads };
+              }
+          in
 
-             Avfilter.parse parse_io description config;
+          Avfilter.parse parse_io description config;
 
-             output_format_filters :=
-               Some (audio_output_formats, video_output_formats)));
+          output_format_filters :=
+            Some (audio_output_formats, video_output_formats));
 
       Builtins_ffmpeg_filters.init_graph graph;
 
       let make_audio_output name =
-        let lazy_pad =
-          Lazy.from_fun (fun () ->
-              let audio_formats, _video_formats =
-                Option.get !output_format_filters
-              in
-              let _, aformat =
-                List.find (fun (n, _) -> n = name) audio_formats
-              in
-              List.hd aformat.io.outputs.audio)
+        let pad () =
+          let audio_formats, _video_formats =
+            Option.get !output_format_filters
+          in
+          let _, aformat = List.find (fun (n, _) -> n = name) audio_formats in
+          List.hd aformat.io.outputs.audio
         in
-        Lang.product (Lang.string name) (Audio.to_value (`Output lazy_pad))
+        Lang.product (Lang.string name) (Audio.to_value (`Output pad))
       in
 
       let make_video_output name =
-        let lazy_pad =
-          Lazy.from_fun (fun () ->
-              let _audio_formats, video_formats =
-                Option.get !output_format_filters
-              in
-              let _, format_ =
-                List.find (fun (n, _) -> n = name) video_formats
-              in
-              List.hd format_.io.outputs.video)
+        let pad () =
+          let _audio_formats, video_formats =
+            Option.get !output_format_filters
+          in
+          let _, format_ = List.find (fun (n, _) -> n = name) video_formats in
+          List.hd format_.io.outputs.video
         in
-        Lang.product (Lang.string name) (Video.to_value (`Output lazy_pad))
+        Lang.product (Lang.string name) (Video.to_value (`Output pad))
       in
 
       Lang.record
