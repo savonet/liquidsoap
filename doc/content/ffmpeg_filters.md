@@ -61,6 +61,8 @@ When applying FFmpeg filters to sources with both audio and video, pass all trac
 
 A graph is a single source, whatever its number of outputs. All of its outputs are produced together and share one buffer, one set of track marks and one readiness state: a track boundary reaching any output cuts every output of that graph. Consequently they must be consumed at converging rates, since waiting on the slowest lets the others accumulate; past `settings.ffmpeg.filter_max_buffer` (10s by default) this raises rather than growing without bound. For the same reason, `id` on any of the outputs names the graph itself, so passing it on more than one output of the same graph leaves the last one in effect.
 
+A graph lives for as long as its inputs keep delivering. When one runs dry — a `buffer` filling up, a request queue waiting on a resolution, a file-based source reaching its end — the graph is told the stream is over, hands over whatever its filters were holding back, and is torn down. It is built again from scratch when the input comes back, so a passing gap costs nothing but the filters' internal state: `loudnorm` measures the loudness of the new generation from zero, as it would on a fresh stream. Sources that run dry often and filters that take a while to settle therefore do not mix well; give such a graph an input that stays available, with `mksafe` for instance.
+
 Here is an example:
 
 ```{.liquidsoap include="ffmpeg-filter-hflip2.liq"}

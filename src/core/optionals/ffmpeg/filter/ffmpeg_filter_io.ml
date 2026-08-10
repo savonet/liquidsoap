@@ -250,6 +250,13 @@ class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
 
     val mutable flushed = false
 
+    (* Ready to feed the next generation of the graph. The duration converter is
+       deliberately left alone: its timestamps carry on across the seam, which is
+       what keeps what we push monotonic. *)
+    method reset_graph =
+      flushed <- false;
+      input <- (fun _ -> ())
+
     (* Filters with internal delay only emit their tail once the graph sees end
        of file. Sending it twice is an error, hence the flag. *)
     method flush_input =
@@ -277,12 +284,17 @@ let video_output ~pass_metadata ~name ~frame_t ~field source =
    graph source's generator that this output was given. The graph source owns
    the buffer and does the pulling. *)
 class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
-  let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit ['a] duration_converter
     method log = log
     val mutable output = None
     method connected = output <> None
+
+    (* A rebuilt graph starts its timestamps over. [convert_duration] only lines
+       two runs up when the stream index changes, so each generation has to look
+       like a new stream -- otherwise the restart emits timestamps that go
+       backwards and the content is rejected as non-monotonic. *)
+    val mutable stream_idx = Ffmpeg_content_base.new_stream_idx ()
 
     (* The sink knows the format the graph settled on; give it to the content
        type the script was type-checked against. *)
@@ -395,6 +407,11 @@ class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
 
     (* [true] once the graph has told this sink that nothing more is coming. *)
     method eof = eof
+
+    method reset_graph =
+      output <- None;
+      eof <- false;
+      stream_idx <- Ffmpeg_content_base.new_stream_idx ()
 
     method drain ~generator =
       match output with
