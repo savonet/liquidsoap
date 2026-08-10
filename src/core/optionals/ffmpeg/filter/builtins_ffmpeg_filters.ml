@@ -259,6 +259,11 @@ let get_config graph =
                "Graph variables cannot be used outside of ffmpeg.filter.create!",
                [] ))
 
+(* A graph value only means anything inside the [ffmpeg.filter.create] call that
+   made it. Operators that no longer attach anything while the script runs still
+   have to say so. *)
+let check_graph_scope graph_v = ignore (get_config graph_v)
+
 let apply_filter ~args_parser ~filter ~sources_t p =
   Avfilter.(
     let graph_v = Lang.assoc "" 1 p in
@@ -568,7 +573,7 @@ let _ =
          in
          let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
          let graph_v = Lang.assoc "" 1 p in
-         let config = get_config graph_v in
+         check_graph_scope graph_v;
          let graph = Graph.of_value graph_v in
          let track_val = Lang.assoc "" 2 p in
          let field, source = Lang.to_track track_val in
@@ -595,8 +600,6 @@ let _ =
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
          Queue.push graph.input_flushes (fun () -> s#flush_input);
-
-         ignore config;
 
          (* Settled from the first frame of each generation: a source that comes
             back at a different rate gets a buffer that says so. *)
@@ -639,7 +642,7 @@ let _ =
        (fun p ->
          let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
          let graph_v = Lang.assoc "" 1 p in
-         let config = get_config graph_v in
+         check_graph_scope graph_v;
          let graph = Graph.of_value graph_v in
 
          (* No frame type is built here: [add_track_operator] constrains the
@@ -660,8 +663,6 @@ let _ =
              drain = (fun ~generator -> sink#drain ~generator);
              eof = (fun () -> sink#eof);
            };
-
-         ignore config;
 
          let pad = Audio.of_value (Lang.assoc "" 2 p) in
          let name = uniq_name "abuffersink" in
@@ -703,7 +704,7 @@ let _ =
          in
          let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
          let graph_v = Lang.assoc "" 1 p in
-         let config = get_config graph_v in
+         check_graph_scope graph_v;
          let graph = Graph.of_value graph_v in
          let track_val = Lang.assoc "" 2 p in
          let field, source = Lang.to_track track_val in
@@ -730,8 +731,6 @@ let _ =
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
          Queue.push graph.input_flushes (fun () -> s#flush_input);
-
-         ignore config;
 
          let args = ref None in
          let input_node =
@@ -771,7 +770,7 @@ let _ =
     (fun p ->
       let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
       let graph_v = Lang.assoc "" 1 p in
-      let config = get_config graph_v in
+      check_graph_scope graph_v;
       let graph = Graph.of_value graph_v in
 
       let s = graph_source graph in
@@ -789,8 +788,6 @@ let _ =
           drain = (fun ~generator -> sink#drain ~generator);
           eof = (fun () -> sink#eof);
         };
-
-      ignore config;
 
       let pad = Video.of_value (Lang.assoc "" 2 p) in
       let name = uniq_name "buffersink" in
