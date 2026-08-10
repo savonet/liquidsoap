@@ -422,7 +422,19 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           | `Passive | `Active _ ->
               Clock.detach self#clock (self :> Clock.source)
           | `Output _ -> ());
-        List.iter (fun fn -> fn ()) on_sleep)
+        (* Sources are typically put to sleep while already failing: a shutdown
+           error escaping here would kill the clock thread, defeating the
+           clock's [on_error] containment. *)
+        List.iter
+          (fun fn ->
+            try fn ()
+            with exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              Utils.log_exception ~log
+                ~bt:(Printexc.raw_backtrace_to_string bt)
+                (Printf.sprintf "Error while shutting down source %s: %s!"
+                   self#id (Printexc.to_string exn)))
+          on_sleep)
 
     method sleep (src : Clock.activation) =
       if not (WeakQueue.exists activations (fun a -> a == src)) then (
