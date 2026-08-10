@@ -153,8 +153,8 @@ class virtual ['a] duration_converter =
        here. *)
     method flush_duration =
       match duration_converter with
-        | None -> []
-        | Some { converter; _ } -> snd (Ffmpeg_utils.Duration.flush converter)
+        | None -> (0, [])
+        | Some { converter; _ } -> Ffmpeg_utils.Duration.flush converter
   end
 
 class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
@@ -255,7 +255,7 @@ class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
     method flush_input =
       if not flushed then (
         flushed <- true;
-        List.iter (fun (_, frame) -> self#push frame) self#flush_duration;
+        List.iter (fun (_, frame) -> self#push frame) (snd self#flush_duration);
         input `Flush)
 
     initializer self#on_sleep (fun () -> self#flush_input)
@@ -333,6 +333,26 @@ class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
                    chunks = [chunk];
                  })
 
+    method private emit ~generator ~time_base ~length frames =
+      List.iter
+        (fun (pos, frame) ->
+          let metadata = Avutil.Frame.metadata frame in
+          (* Offsets are relative to this field, not to the generator: fields of
+             the same generator can be filled at different rates. *)
+          let pos = Generator.field_length generator field + pos in
+          if List.mem_assoc track_mark_metadata metadata then
+            Generator.add_track_mark ~pos generator;
+          if pass_metadata then (
+            let m =
+              List.filter (fun (k, _) -> k <> track_mark_metadata) metadata
+            in
+            if m <> [] then
+              Generator.add_metadata ~pos generator
+                (Frame.Metadata.from_list
+                   (m @ self#metadata_timestamps ~time_base frame))))
+        frames;
+      self#put_data ~generator ~length frames
+
     method private read_one ~generator output =
       let time_base = Avfilter.(time_base output.context) in
       let frame = output.Avfilter.handler () in
@@ -341,27 +361,33 @@ class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
       with
         | None -> ()
         | Some (length, frames) ->
-            List.iter
-              (fun (pos, frame) ->
-                let metadata = Avutil.Frame.metadata frame in
-                (* Offsets are relative to this field, not to the generator:
-                   fields of the same generator can be filled at different
-                   rates. *)
-                let pos = Generator.field_length generator field + pos in
-                if List.mem_assoc track_mark_metadata metadata then
-                  Generator.add_track_mark ~pos generator;
-                if pass_metadata then (
-                  let m =
-                    List.filter
-                      (fun (k, _) -> k <> track_mark_metadata)
-                      metadata
-                  in
-                  if m <> [] then
-                    Generator.add_metadata ~pos generator
-                      (Frame.Metadata.from_list
-                         (m @ self#metadata_timestamps ~time_base frame))))
-              frames;
-            self#put_data ~generator ~length frames
+            self#emit ~generator ~time_base ~length frames
+
+    (* [Duration] works out how long a frame lasted from the timestamp of the
+       next one, so it is always holding the most recent frames back. At end of
+       stream there is no next one: whatever it still has is the tail of the
+       filters -- everything `loudnorm` and friends were sitting on -- and it
+       only comes out if we ask for it here. *)
+    method private emit_tail ~generator =
+      match (output, self#flush_duration) with
+        | _, (_, []) | None, _ -> ()
+        | Some output, (_, frames) ->
+            let time_base = Avfilter.(time_base output.context) in
+            let dst = Ffmpeg_utils.liq_main_ticks_time_base () in
+            (* [Duration.flush] reports the longest packet, not their total. *)
+            let length =
+              List.fold_left
+                (fun length (_, frame) ->
+                  match Avutil.Frame.duration frame with
+                    | None -> length
+                    | Some d ->
+                        length
+                        + Int64.to_int
+                            (Ffmpeg_utils.convert_time_base ~src:time_base ~dst
+                               d))
+                0 frames
+            in
+            self#emit ~generator ~time_base ~length frames
 
     (* Take everything the sink has ready. Stops on [`Eagain], which means the
        graph needs more input, and on [`Eof], which means it never will. *)
@@ -380,7 +406,9 @@ class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
               done
             with
               | Avutil.Error `Eagain -> ()
-              | Avutil.Error `Eof -> eof <- true)
+              | Avutil.Error `Eof ->
+                  self#emit_tail ~generator;
+                  eof <- true)
   end
 
 let audio_sink ~field ~pass_metadata ~log ~content_type () =
