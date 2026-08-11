@@ -1,4 +1,6 @@
-# A misspelled contextual keyword names what was expected and points at the
+# A wrong contextual keyword names what was expected and points at the
 # offending token, rather than reporting the whole type as invalid.
-let json.parse (m : [(string * int)] as json.objct) = "{}"
+# The bad keyword has to be a non-word: codespell rewrites anything close
+# enough to `object` to be in its dictionary, here and in the expected output.
+let json.parse (m : [(string * int)] as json.nope) = "{}"
 ignore(m)
