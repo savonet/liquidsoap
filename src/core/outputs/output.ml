@@ -84,7 +84,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
         ignore (Queue.pop metadata_queue)
 
     initializer
-      self#on_frame (`Metadata self#add_metadata);
+      ignore (self#on_frame (`Metadata self#add_metadata) : unit -> unit);
       if register_telnet then (
         self#register_command "start"
           (fun _ ->

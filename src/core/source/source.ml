@@ -667,8 +667,17 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
-    val mutable on_frame : on_frame list = []
-    method on_frame fn = on_frame <- on_frame @ [fn]
+    val mutable on_frame : (int * on_frame) list = []
+
+    (* Returns a function to deregister the callback. Callbacks registered on a
+       source that outlives them (e.g. a transition registering on the source it
+       is given) must be released, otherwise they accumulate for the lifetime of
+       that source. *)
+    method on_frame fn =
+      let id = Atomic.fetch_and_add callback_id_counter 1 in
+      self#atomic_lock (fun () -> on_frame <- on_frame @ [(id, fn)]) ();
+      self#atomic_lock (fun () ->
+          on_frame <- List.filter (fun (i, _) -> i <> id) on_frame)
     val mutable reset_last_metadata_on_track = Atomic.make true
 
     method reset_last_metadata_on_track =
@@ -698,7 +707,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           Option.value ~default:(0, Frame.Metadata.empty) last_metadata
         in
         self#log#debug "calling on_track handlers..";
-        List.iter (function `Track fn -> fn m | _ -> ()) on_frame)
+        List.iter (function _, `Track fn -> fn m | _ -> ()) on_frame)
 
     val mutable last_images = Hashtbl.create 0
 
@@ -788,7 +797,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       in
       List.iter
         (function
-          | `Position p when is_allowed p ->
+          | _, `Position p when is_allowed p ->
               p.executed <- true;
               p.on_position ~pos:(position p) m
           | _ -> ())
@@ -797,11 +806,11 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
       let on_frame = self#atomic_lock (fun () -> on_frame) () in
-      List.iter (function `Before_frame fn -> fn _cache | _ -> ()) on_frame;
+      List.iter (function _, `Before_frame fn -> fn _cache | _ -> ()) on_frame;
       let buf = self#normalize_video_content self#generate_frame in
       List.iter
         (function
-          | `After_frame fn -> fn { frame = buf; cache = _cache } | _ -> ())
+          | _, `After_frame fn -> fn { frame = buf; cache = _cache } | _ -> ())
         on_frame;
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
@@ -836,7 +845,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
               elapsed <- 0;
               if self#reset_last_metadata_on_track then self#clear_last_metadata;
               List.iter
-                (function `Position p -> p.executed <- false | _ -> ())
+                (function _, `Position p -> p.executed <- false | _ -> ())
                 on_frame;
               self#on_position ~end_of_track:false new_track;
               true
@@ -865,7 +874,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
               | _ -> false
           in
           List.iter
-            (fun cb ->
+            (fun (_, cb) ->
               match cb with
                 | `Metadata fn -> fn m
                 | `Track fn when is_on_track -> fn m

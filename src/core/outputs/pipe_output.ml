@@ -142,11 +142,13 @@ let url_callbacks =
         arg_t = [(false, "", Lang.error_t)];
         register =
           (fun ~params:_ s f ->
+            let f, remove = Lang_source.disarmable f in
             s#on_error (fun ~bt exn ->
                 let error =
                   Lang.runtime_error_of_exception ~bt ~kind:"output" exn
                 in
-                f [("", Lang.error error)]));
+                f [("", Lang.error error)]);
+            remove);
       };
     ]
 
@@ -306,7 +308,11 @@ let pipe_callbacks =
         descr = "when the output is reopened.";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_reopen (fun () -> f []));
+        register =
+          (fun ~params:_ s f ->
+            let f, remove = Lang_source.disarmable f in
+            s#on_reopen (fun () -> f []);
+            remove);
       };
     ]
 

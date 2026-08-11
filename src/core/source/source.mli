@@ -283,7 +283,7 @@ object
     ?usage:string -> descr:string -> string -> (string -> string) -> unit
 
   (** Register a callback to be called when computing frames. *)
-  method on_frame : on_frame -> unit
+  method on_frame : on_frame -> unit -> unit
 
   (** These two are used by [generate_from_multiple_sources] and should not be
       used otherwise. *)

@@ -63,6 +63,12 @@
 
 ## Fixed:
 
+- Fixed callbacks registered via `source.on_frame` and friends accumulating for
+  the lifetime of the source they were registered on. `fade.in`, `fade.out` and
+  `fade.skip` register on the source they are given, so a switch transition
+  calling them on the same long-lived source leaked closures on every switch.
+  Callback registration now returns a `remove` method (#TODO)
+
 - An FFmpeg filter graph is no longer finished off by an input that runs dry.
   A source is unavailable for all sorts of passing reasons, a `buffer` filling
   up or a queue waiting on a request, and liquidsoap has no way to tell those

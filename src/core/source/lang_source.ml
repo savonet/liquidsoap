@@ -124,8 +124,30 @@ type 'a callback = {
   descr : string;
   register_deprecated_argument : bool;
   arg_t : (bool * string * t) list;
-  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit -> unit;
 }
+
+(* Adapter for registration functions that have no deregistration path of their
+   own. Returns the callback guarded by a flag, plus a function that lowers the
+   flag: the callback stops firing, which is what [remove] promises, even though
+   the closure itself stays registered. Only safe where registration happens a
+   bounded number of times. *)
+let disarmable f =
+  let armed = Atomic.make true in
+  ( (fun args -> if Atomic.get armed then f args),
+    fun () -> Atomic.set armed false )
+
+(* Callbacks return unit decorated with a [remove] method. Because [can_ignore]
+   strips methods before checking for unit, existing scripts that discard the
+   return value keep typechecking, while new code can hold on to the handle and
+   release the callback. *)
+let callback_return_t () =
+  method_t unit_t
+    [
+      ( "remove",
+        ([], fun_t [] unit_t),
+        "Deregister the callback. Calling it more than once is a no-op." );
+    ]
 
 let callback { name; params; descr; arg_t; register } : _ Lang.meth =
   {
@@ -140,7 +162,7 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
               (false, "synchronous", Lang.bool_t);
               (false, "", fun_t arg_t unit_t);
             ])
-          unit_t );
+          (callback_return_t ()) );
     descr = Printf.sprintf "Call a given handler %s" descr;
     value =
       (fun s ->
@@ -168,8 +190,18 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
             in
             (s#log : Log.t)#debug "Registering %s %s callback" name
               (if synchronous then "synchronous" else "asynchronous");
-            register ~params:p s fn;
-            unit));
+            let remove = register ~params:p s fn in
+            let removed = Atomic.make false in
+            meth unit
+              [
+                ( "remove",
+                  val_fun []
+                    (fun _ ->
+                      if Atomic.compare_and_set removed false true then (
+                        (s#log : Log.t)#debug "Removing %s callback" name;
+                        remove ());
+                      unit) );
+              ]));
   }
 
 let source_callbacks =
@@ -191,7 +223,11 @@ let source_callbacks =
       params = [];
       register_deprecated_argument = false;
       arg_t = [];
-      register = (fun ~params:_ s f -> s#on_wake_up (fun () -> f []));
+      register =
+        (fun ~params:_ s f ->
+          let f, remove = disarmable f in
+          s#on_wake_up (fun () -> f []);
+          remove);
     };
     {
       name = "on_shutdown";
@@ -199,7 +235,11 @@ let source_callbacks =
       descr = "to be called when source shuts down";
       register_deprecated_argument = false;
       arg_t = [];
-      register = (fun ~params:_ s f -> s#on_sleep (fun () -> f []));
+      register =
+        (fun ~params:_ s f ->
+          let f, remove = disarmable f in
+          s#on_sleep (fun () -> f []);
+          remove);
     };
     {
       name = "on_collect";
@@ -262,20 +302,23 @@ let source_callbacks =
       register =
         (fun ~params:p s after_cb ->
           let before_cb = Lang.to_option (List.assoc "before" p) in
-          Option.iter
-            (fun cb ->
-              s#on_frame
-                (`Before_frame
-                   (fun cache ->
-                     let checksum =
-                       match cache with
-                         | Some frame -> Lang.string (Frame.checksum frame)
-                         | None -> Lang.null
-                     in
-                     ignore (apply cb [("", checksum)]))))
-            before_cb;
-          s#on_frame
-            (`After_frame
+          let remove_before =
+            Option.map
+              (fun cb ->
+                s#on_frame
+                  (`Before_frame
+                     (fun cache ->
+                       let checksum =
+                         match cache with
+                           | Some frame -> Lang.string (Frame.checksum frame)
+                           | None -> Lang.null
+                       in
+                       ignore (apply cb [("", checksum)]))))
+              before_cb
+          in
+          let remove_after =
+            s#on_frame
+              (`After_frame
                (fun { Source.frame; cache } ->
                  let frame_checksum = Lang.string (Frame.checksum frame) in
                  let cache_checksum =
@@ -283,7 +326,11 @@ let source_callbacks =
                      | Some c -> Lang.string (Frame.checksum c)
                      | None -> Lang.null
                  in
-                 after_cb [("cache", cache_checksum); ("", frame_checksum)])));
+                 after_cb [("cache", cache_checksum); ("", frame_checksum)]))
+          in
+          fun () ->
+            Option.iter (fun remove -> remove ()) remove_before;
+            remove_after ());
     };
     {
       name = "on_position";

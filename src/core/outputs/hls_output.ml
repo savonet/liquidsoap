@@ -1324,6 +1324,7 @@ let _ =
              ];
            register =
              (fun ~params:_ s on_file_change ->
+               let on_file_change, remove = Lang_source.disarmable on_file_change in
                let on_file_change ~state path =
                  on_file_change
                    [
@@ -1335,7 +1336,8 @@ let _ =
                          ] );
                    ]
                in
-               s#on_file_change on_file_change);
+               s#on_file_change on_file_change;
+               remove);
          };
        ]
       @ Start_stop.callbacks ~label:"output")

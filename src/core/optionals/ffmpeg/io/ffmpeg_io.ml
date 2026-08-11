@@ -431,10 +431,12 @@ let register_input protocol =
                   arg_t = [(false, "", Lang.metadata_t)];
                   register =
                     (fun ~params:_ s on_connect ->
+                      let on_connect, remove = Lang_source.disarmable on_connect in
                       let on_connect m =
                         on_connect [("", Lang.metadata_list m)]
                       in
-                      s#on_connect on_connect);
+                      s#on_connect on_connect;
+                      remove);
                 };
               ]
             else
@@ -447,8 +449,10 @@ let register_input protocol =
                   arg_t = [];
                   register =
                     (fun ~params:_ s on_connect ->
+                      let on_connect, remove = Lang_source.disarmable on_connect in
                       let on_connect _ = on_connect [] in
-                      s#on_connect on_connect);
+                      s#on_connect on_connect;
+                      remove);
                 };
               ])
          @ [
@@ -459,7 +463,10 @@ let register_input protocol =
                register_deprecated_argument = true;
                arg_t = [];
                register =
-                 (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+                 (fun ~params:_ s f ->
+                   let f, remove = Lang_source.disarmable f in
+                   s#on_disconnect (fun () -> f []);
+                   remove);
              };
              {
                name = "on_error";
@@ -469,7 +476,9 @@ let register_input protocol =
                arg_t = [(false, "", Lang.error_t)];
                register =
                  (fun ~params:_ s f ->
-                   s#on_error (fun err -> f [("", Lang.error err)]));
+                   let f, remove = Lang_source.disarmable f in
+                   s#on_error (fun err -> f [("", Lang.error err)]);
+                   remove);
              };
            ])
        ~meth:

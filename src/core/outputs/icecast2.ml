@@ -691,7 +691,9 @@ let _ =
             arg_t = [];
             register =
               (fun ~params:_ s on_connect ->
-                s#on_connect (fun () -> on_connect []));
+                let on_connect, remove = Lang_source.disarmable on_connect in
+                s#on_connect (fun () -> on_connect []);
+                remove);
           };
           {
             Lang_source.name = "on_disconnect";
@@ -701,7 +703,9 @@ let _ =
             arg_t = [];
             register =
               (fun ~params:_ s on_disconnect ->
-                s#on_disconnect (fun () -> on_disconnect []));
+                let on_disconnect, remove = Lang_source.disarmable on_disconnect in
+                s#on_disconnect (fun () -> on_disconnect []);
+                remove);
           };
           {
             Lang_source.name = "on_error";
@@ -727,6 +731,7 @@ let _ =
               ];
             register =
               (fun ~params:_ s on_error ->
+                let on_error, remove = Lang_source.disarmable on_error in
                 s#on_error (fun ~restart_in ~bt exn ->
                     let restart_in =
                       Lang.val_fun
@@ -743,7 +748,8 @@ let _ =
                       Lang.error
                         (Lang.runtime_error_of_exception ~bt ~kind:"source" exn)
                     in
-                    on_error [("restart_in", restart_in); ("", err)]));
+                    on_error [("restart_in", restart_in); ("", err)]);
+                remove);
           };
         ])
     (proto return_t) ~return_t

@@ -161,6 +161,35 @@ def fade.scale(~id="fade.scale", x, s) =
   amplify(id=id, override=null, x, s)
 end
 
+# Bind the lifetime of callbacks registered on a fade operator's input source to
+# the per-invocation source that operator returns. The input source typically
+# outlives the fade: a switch transition hands the same source to a new fade on
+# every switch, and without this the registrations pile up on it for good.
+# @category Source / Fade
+# @flag hidden
+# @param wrapper The source returned by the operator.
+# @param register Registers the callbacks and returns their handles.
+def fade.bind_overrides(wrapper, register) =
+  handles = ref([])
+
+  def acquire() =
+    if
+      list.length(handles()) == 0
+    then
+      handles := register()
+    end
+  end
+
+  def release() =
+    list.iter(fun (h) -> h.remove(), handles())
+    handles := []
+  end
+
+  acquire()
+  wrapper.on_wake_up(synchronous=true, acquire)
+  wrapper.on_shutdown(synchronous=true, release)
+end
+
 # Fade the end of tracks.
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
@@ -352,9 +381,22 @@ def fade.out(
   end
 
   s = source.methods(s)
-  s.on_track(synchronous=true, reset_overrides)
-  s.on_metadata(synchronous=true, update_fade)
-  if track_sensitive then s.on_track(synchronous=true, stop_fade) end
+
+  def register_overrides() =
+    handles =
+      [
+        s.on_track(synchronous=true, reset_overrides),
+        s.on_metadata(synchronous=true, update_fade)
+      ]
+
+    if
+      track_sensitive
+    then
+      [...handles, s.on_track(synchronous=true, stop_fade)]
+    else
+      handles
+    end
+  end
 
   d = source.dynamic(memoize({s}))
 
@@ -383,10 +425,9 @@ def fade.out(
     memoize({if s.is_ready() then s.generate_frame() end})
   )
 
-  fade.scale(id=id, apply, d).{
-    fade_duration = {duration()},
-    fade_type = {type()}
-  }
+  wrapper = fade.scale(id=id, apply, d)
+  fade.bind_overrides(wrapper, register_overrides)
+  wrapper.{fade_duration = {duration()}, fade_type = {type()}}
 end
 
 # Fade when the metadata trigger is received and then skip.
@@ -547,14 +588,18 @@ def fade.skip(
   end
 
   s = source.methods(s)
-  s.on_track(synchronous=true, reset_overrides)
-  s.on_metadata(synchronous=true, update_fade)
-  s.on_track(synchronous=true, stop_fade)
 
-  fade.scale(id=id, apply, s).{
-    fade_duration = {duration()},
-    fade_type = {type()}
-  }
+  def register_overrides() =
+    [
+      s.on_track(synchronous=true, reset_overrides),
+      s.on_metadata(synchronous=true, update_fade),
+      s.on_track(synchronous=true, stop_fade)
+    ]
+  end
+
+  wrapper = fade.scale(id=id, apply, s)
+  fade.bind_overrides(wrapper, register_overrides)
+  wrapper.{fade_duration = {duration()}, fade_type = {type()}}
 end
 
 # Fade the beginning of tracks.
@@ -730,12 +775,24 @@ def fade.in(
   end
 
   s = source.methods(s)
-  s.on_track(synchronous=true, reset_overrides)
-  s.on_metadata(synchronous=true, update_fade)
 
-  # Register start_fade on the inner source so it fires before the amplify
+  # start_fade is registered on the inner source so it fires before the amplify
   # operator processes the new track head.
-  if track_sensitive then s.on_track(synchronous=true, start_fade) end
+  def register_overrides() =
+    handles =
+      [
+        s.on_track(synchronous=true, reset_overrides),
+        s.on_metadata(synchronous=true, update_fade)
+      ]
+
+    if
+      track_sensitive
+    then
+      [...handles, s.on_track(synchronous=true, start_fade)]
+    else
+      handles
+    end
+  end
 
   # Initial duration for fade.in should be computed after fetching the initial
   # frame from s to make sure any initial metadata is taken into account
@@ -772,14 +829,19 @@ def fade.in(
       )
     )
 
-  s = fade.scale(id=id, apply, s)
+  wrapper = fade.scale(id=id, apply, s)
+  fade.bind_overrides(wrapper, register_overrides)
 
   if
     not track_sensitive
   then
-    s.on_frame(synchronous=true, before=false, memoize({start_fade([])}))
+    wrapper.on_frame(synchronous=true, before=false, memoize({start_fade([])}))
   end
-  s.{fade_duration = {duration()}, fade_delay = {delay()}, fade_type = {type()}}
+  wrapper.{
+    fade_duration = {duration()},
+    fade_delay = {delay()},
+    fade_type = {type()}
+  }
 end
 
 # Simple transition for crossfade

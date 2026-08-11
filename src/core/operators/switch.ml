@@ -178,8 +178,10 @@ class switch ~all_predicates children =
     val mutable resuming = false
 
     initializer
-      self#on_frame
-        (`After_frame (fun _ -> last_streamed_tick <- Clock.ticks self#clock));
+      ignore
+        (self#on_frame
+           (`After_frame (fun _ -> last_streamed_tick <- Clock.ticks self#clock))
+          : unit -> unit);
       self#on_before_streaming_cycle (fun () ->
           resuming <- 1 < Clock.ticks self#clock - last_streamed_tick;
           excluded_sources <- [];
@@ -190,8 +192,10 @@ class switch ~all_predicates children =
               c.effective_track_sensitive <- None;
               c.effective_predicate <- None)
             children);
-      self#on_frame
-        (`After_frame (fun _ -> self#release_leaving ~force:false ()))
+      ignore
+        (self#on_frame
+           (`After_frame (fun _ -> self#release_leaving ~force:false ()))
+          : unit -> unit)
 
     (* We are at a track boundary when the selected source has no more data for
        its current track: either it could not fill the frame past the position

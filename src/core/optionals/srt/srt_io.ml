@@ -250,7 +250,11 @@ let callbacks =
         descr = "when connected.";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_connect (fun () -> f []));
+        register =
+          (fun ~params:_ s f ->
+            let f, remove = Lang_source.disarmable f in
+            s#on_connect (fun () -> f []);
+            remove);
       };
       {
         name = "on_disconnect";
@@ -258,7 +262,11 @@ let callbacks =
         descr = "when disconnected.";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+        register =
+          (fun ~params:_ s f ->
+            let f, remove = Lang_source.disarmable f in
+            s#on_disconnect (fun () -> f []);
+            remove);
       };
       {
         name = "on_socket";
@@ -278,6 +286,7 @@ let callbacks =
           ];
         register =
           (fun ~params:_ s f ->
+            let f, remove = Lang_source.disarmable f in
             s#on_socket (fun ~mode socket ->
                 let mode =
                   match mode with
@@ -288,7 +297,8 @@ let callbacks =
                 in
                 let mode = Lang.string mode in
                 let socket = Builtins_srt.Socket_value.to_value socket in
-                f [("", socket); ("mode", mode)]));
+                f [("", socket); ("mode", mode)]);
+            remove);
       };
     ]
 

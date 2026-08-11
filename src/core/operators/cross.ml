@@ -183,7 +183,10 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
               self#set_main_duration
             with _ -> ())
 
-    initializer self#on_frame (`Metadata self#process_override_metadata)
+    initializer
+      ignore
+        (self#on_frame (`Metadata self#process_override_metadata)
+          : unit -> unit)
 
     method private append mode buf_frame =
       let l = Frame.get_all_metadata buf_frame in

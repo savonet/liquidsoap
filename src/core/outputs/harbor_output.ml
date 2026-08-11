@@ -480,12 +480,14 @@ class virtual ['a] base p =
 
     initializer
       let has_stopped = ref false in
-      self#on_frame
-        (`Before_frame
-           (fun _ ->
-             if Atomic.get stopped && not !has_stopped then (
-               has_stopped := true;
-               List.iter self#handle_disconnect self#get_listeners)))
+      ignore
+        (self#on_frame
+           (`Before_frame
+              (fun _ ->
+                if Atomic.get stopped && not !has_stopped then (
+                  has_stopped := true;
+                  List.iter self#handle_disconnect self#get_listeners)))
+          : unit -> unit)
 
     (* The task waits on the wake pipe and a delay firing at the earliest
        pending timeout deadline. It does not watch listener sockets for
@@ -948,6 +950,7 @@ let _ =
              ];
            register =
              (fun ~params:_ s on_connect ->
+               let on_connect, remove = Lang_source.disarmable on_connect in
                let callback ~headers ~uri ~protocol ip =
                  on_connect
                    [
@@ -961,7 +964,8 @@ let _ =
                          ] );
                    ]
                in
-               s#on_connect callback);
+               s#on_connect callback;
+               remove);
          };
          {
            name = "on_disconnect";
@@ -971,7 +975,9 @@ let _ =
            arg_t = [(false, "", Lang.string_t)];
            register =
              (fun ~params:_ s callback ->
-               s#on_disconnect (fun ip -> callback [("", Lang.string ip)]));
+               let callback, remove = Lang_source.disarmable callback in
+               s#on_disconnect (fun ip -> callback [("", Lang.string ip)]);
+               remove);
          };
        ]
       @ Start_stop.callbacks ~label:"output")

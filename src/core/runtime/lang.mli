@@ -127,8 +127,13 @@ type 'a callback = 'a Lang_source.callback = {
   descr : string;
   register_deprecated_argument : bool;
   arg_t : (bool * string * t) list;
-  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit -> unit;
 }
+
+(** Adapter for registration functions with no deregistration path: returns the
+    callback guarded by a flag, plus a function lowering it. Only safe where
+    registration happens a bounded number of times. *)
+val disarmable : ('a -> unit) -> ('a -> unit) * (unit -> unit)
 
 val add_operator :
   category:Doc.Value.source ->
