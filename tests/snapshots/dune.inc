@@ -804,6 +804,25 @@
   (diff expected/pp_include.expected pp_include.actual)))
 
 (rule
+ (target pp_include_extra_missing.actual)
+ (deps
+  (:case cases/pp_include_extra_missing.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected/pp_include_extra_missing.expected
+   pp_include_extra_missing.actual)))
+
+(rule
  (target record_update.actual)
  (deps
   (:case cases/record_update.liq)

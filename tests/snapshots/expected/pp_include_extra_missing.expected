@@ -1,0 +1,34 @@
+=== pp_include_extra_missing.liq ===
+# An absent `%include_extra` is skipped, which is how the minimal distributions
+# build: they ship none of the files `src/libs/stdlib.liq` pulls in this way.
+%include_extra "definitely_not_here.liq-inc"
+
+before = 0
+before
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "before" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "0" }
+  },
+    {
+    "type": "var",
+    "value": "before"
+  }
+  ]
+}
+--- hash ---
+e54ce4809b8da0393d408bba07b6db83
+--- term ---
+before = 0
+before
+--- type ---
+int
+--- value ---
+0

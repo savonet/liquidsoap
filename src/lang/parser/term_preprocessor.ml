@@ -73,6 +73,8 @@ let mk_expr ?fname processor lexbuf =
           ~filename:(`String ('"', Lang_string.escape_utf8_string fname))
           parsed_term
 
+(* An `%include_extra` naming a file that is not installed. The include then
+   contributes no statements, which is how the minimal distributions build. *)
 exception No_extra
 
 let includer_reducer ~pos = function
@@ -104,7 +106,9 @@ let includer_reducer ~pos = function
             with (Parser.Error | Parsing.Parse_error) as exn ->
               let bt = Printexc.get_raw_backtrace () in
               raise (Includer_error (exn, lexbuf, bt)))
-      with No_extra -> Parsed_term.make ~pos (`Tuple []))
+      with No_extra ->
+        Parsed_term.make ~pos
+          (`Block { Parsed_term.block_body = []; block_pos = pos }))
 
 (* The included program is a `Block`. Its statements are concatenated into the
    including block, so a binding in an included file scopes over the code that
