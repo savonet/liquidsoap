@@ -1909,6 +1909,29 @@
   (run %{run_test} metadata_cache liquidsoap %{test_liq} metadata_cache.liq)))
 
 (rule
+ (alias test_on-frame-deregistration)
+ (package liquidsoap)
+ (deps
+  on-frame-deregistration.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   on-frame-deregistration
+   liquidsoap
+   %{test_liq}
+   on-frame-deregistration.liq)))
+
+(rule
  (alias test_output_on_metadata)
  (package liquidsoap)
  (deps
@@ -2513,6 +2536,7 @@
   (alias test_input_rtmp)
   (alias test_metadata-resolvers-metadata)
   (alias test_metadata_cache)
+  (alias test_on-frame-deregistration)
   (alias test_output_on_metadata)
   (alias test_output_on_track)
   (alias test_output_reopen_on_error_delay)
