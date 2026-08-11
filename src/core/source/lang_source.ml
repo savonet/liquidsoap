@@ -195,8 +195,7 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
             meth unit
               [
                 ( "remove",
-                  val_fun []
-                    (fun _ ->
+                  val_fun [] (fun _ ->
                       if Atomic.compare_and_set removed false true then (
                         (s#log : Log.t)#debug "Removing %s callback" name;
                         remove ());
@@ -323,14 +322,14 @@ let source_callbacks =
           let remove_after =
             s#on_frame
               (`After_frame
-               (fun { Source.frame; cache } ->
-                 let frame_checksum = Lang.string (Frame.checksum frame) in
-                 let cache_checksum =
-                   match cache with
-                     | Some c -> Lang.string (Frame.checksum c)
-                     | None -> Lang.null
-                 in
-                 after_cb [("cache", cache_checksum); ("", frame_checksum)]))
+                 (fun { Source.frame; cache } ->
+                   let frame_checksum = Lang.string (Frame.checksum frame) in
+                   let cache_checksum =
+                     match cache with
+                       | Some c -> Lang.string (Frame.checksum c)
+                       | None -> Lang.null
+                   in
+                   after_cb [("cache", cache_checksum); ("", frame_checksum)]))
           in
           fun () ->
             Option.iter (fun remove -> remove ()) remove_before;

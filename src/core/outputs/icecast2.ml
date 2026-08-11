@@ -703,7 +703,9 @@ let _ =
             arg_t = [];
             register =
               (fun ~params:_ s on_disconnect ->
-                let on_disconnect, remove = Lang_source.disarmable on_disconnect in
+                let on_disconnect, remove =
+                  Lang_source.disarmable on_disconnect
+                in
                 s#on_disconnect (fun () -> on_disconnect []);
                 remove);
           };

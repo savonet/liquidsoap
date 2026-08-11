@@ -678,6 +678,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       self#atomic_lock (fun () -> on_frame <- on_frame @ [(id, fn)]) ();
       self#atomic_lock (fun () ->
           on_frame <- List.filter (fun (i, _) -> i <> id) on_frame)
+
     val mutable reset_last_metadata_on_track = Atomic.make true
 
     method reset_last_metadata_on_track =

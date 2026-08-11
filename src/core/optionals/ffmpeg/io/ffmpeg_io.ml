@@ -431,7 +431,9 @@ let register_input protocol =
                   arg_t = [(false, "", Lang.metadata_t)];
                   register =
                     (fun ~params:_ s on_connect ->
-                      let on_connect, remove = Lang_source.disarmable on_connect in
+                      let on_connect, remove =
+                        Lang_source.disarmable on_connect
+                      in
                       let on_connect m =
                         on_connect [("", Lang.metadata_list m)]
                       in
@@ -449,7 +451,9 @@ let register_input protocol =
                   arg_t = [];
                   register =
                     (fun ~params:_ s on_connect ->
-                      let on_connect, remove = Lang_source.disarmable on_connect in
+                      let on_connect, remove =
+                        Lang_source.disarmable on_connect
+                      in
                       let on_connect _ = on_connect [] in
                       s#on_connect on_connect;
                       remove);
