@@ -173,11 +173,7 @@ def fade.bind_overrides(wrapper, register) =
   handles = ref([])
 
   def acquire() =
-    if
-      list.length(handles()) == 0
-    then
-      handles := register()
-    end
+    if list.length(handles()) == 0 then handles := register() end
   end
 
   def release() =
