@@ -278,15 +278,18 @@ let attach ?args ~name filter graph =
 external link : filter_ctx -> int -> filter_ctx -> int -> unit
   = "ocaml_avfilter_link"
 
-let get_some = function Some x -> x | None -> assert false
+let get_some = function
+  | Some x -> x
+  | None -> failwith "ffmpeg API error: filter is not attached!"
 
 let link src dst =
   link (get_some src.filter_ctx) src.idx (get_some dst.filter_ctx) dst.idx
 
 type command_flag = [ `Fast ]
 
-(* For now.. *)
-let int_of_flag = function `Fast -> 1
+(* AVFILTER_CMD_FLAG_FAST. Spelled here rather than generated: the OCaml name
+   is chosen, not derived from the C one. *)
+let int_of_command_flag = function `Fast -> 2
 
 external process_command :
   flags:int -> cmd:string -> arg:string -> filter_ctx -> string
@@ -297,7 +300,7 @@ external get_context : [ `Attached ] filter -> filter_ctx
 
 let process_command ?(flags = []) ~cmd ?(arg = "") filter =
   let flags =
-    List.fold_left (fun cur flag -> cur land int_of_flag flag) 0 flags
+    List.fold_left (fun cur flag -> cur lor int_of_command_flag flag) 0 flags
   in
   process_command ~flags ~cmd ~arg (get_context filter)
 

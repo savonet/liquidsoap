@@ -253,6 +253,13 @@ val open_output :
   string ->
   output container
 
+(** [Av.open_output_format ?interleaved ?opts format] open an output container
+    on [format] itself, with no file name. Used for output devices. After
+    returning, if [opts] was passed, unused options are left in the hash table.
+    Raise Error if the opening failed. *)
+val open_output_format :
+  ?interleaved:bool -> ?opts:opts -> (output, _) format -> output container
+
 (** [Av.open_stream callbacks] open the output container with the given
     callbacks. [opts] may contain any option settable on Ffmpeg avformat. After
     returning, if [opts] was passed, unused options are left in the hash table.

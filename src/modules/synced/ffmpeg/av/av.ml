@@ -314,6 +314,21 @@ let open_output ?interrupt ?format ?(interleaved = true) ?opts fname =
   Gc.finalise ocaml_av_cleanup_av ret;
   ret
 
+external ocaml_av_open_output_format :
+  (output, _) format ->
+  bool ->
+  (string * string) array ->
+  output container * string array = "ocaml_av_open_output_format"
+
+let open_output_format ?(interleaved = true) ?opts format =
+  let opts = opts_default opts in
+  let ret, unused =
+    ocaml_av_open_output_format format interleaved (mk_opts_array opts)
+  in
+  filter_opts unused opts;
+  Gc.finalise ocaml_av_cleanup_av ret;
+  ret
+
 external ocaml_av_open_output_stream :
   (output, _) format ->
   avio ->

@@ -500,26 +500,32 @@ CAMLprim value ocaml_avutil_get_channel_layout(value _name) {
 
 /**** Sample format ****/
 
-static const enum AVSampleFormat SAMPLE_FORMATS[] = {
-    AV_SAMPLE_FMT_NONE, AV_SAMPLE_FMT_U8,   AV_SAMPLE_FMT_S16,
-    AV_SAMPLE_FMT_S32,  AV_SAMPLE_FMT_FLT,  AV_SAMPLE_FMT_DBL,
-    AV_SAMPLE_FMT_U8P,  AV_SAMPLE_FMT_S16P, AV_SAMPLE_FMT_S32P,
-    AV_SAMPLE_FMT_FLTP, AV_SAMPLE_FMT_DBLP};
-#define SAMPLE_FORMATS_LEN                                                     \
-  (sizeof(SAMPLE_FORMATS) / sizeof(enum AVSampleFormat))
-
-static const enum caml_ba_kind BIGARRAY_KINDS[SAMPLE_FORMATS_LEN] = {
-    CAML_BA_KIND_MASK, CAML_BA_UINT8,   CAML_BA_SINT16, CAML_BA_INT32,
-    CAML_BA_FLOAT32,   CAML_BA_FLOAT64, CAML_BA_UINT8,  CAML_BA_SINT16,
-    CAML_BA_INT32,     CAML_BA_FLOAT32, CAML_BA_FLOAT64};
-
+/* Raises rather than returning a sentinel: callers OR the result straight
+   into a bigarray flag word, where a bogus kind is silent corruption. */
 enum caml_ba_kind bigarray_kind_of_AVSampleFormat(enum AVSampleFormat sf) {
-  int i;
-  for (i = 0; i < SAMPLE_FORMATS_LEN; i++) {
-    if (sf == SAMPLE_FORMATS[i])
-      return BIGARRAY_KINDS[i];
+  switch (sf) {
+  case AV_SAMPLE_FMT_U8:
+  case AV_SAMPLE_FMT_U8P:
+    return CAML_BA_UINT8;
+  case AV_SAMPLE_FMT_S16:
+  case AV_SAMPLE_FMT_S16P:
+    return CAML_BA_SINT16;
+  case AV_SAMPLE_FMT_S32:
+  case AV_SAMPLE_FMT_S32P:
+    return CAML_BA_INT32;
+  case AV_SAMPLE_FMT_S64:
+  case AV_SAMPLE_FMT_S64P:
+    return CAML_BA_INT64;
+  case AV_SAMPLE_FMT_FLT:
+  case AV_SAMPLE_FMT_FLTP:
+    return CAML_BA_FLOAT32;
+  case AV_SAMPLE_FMT_DBL:
+  case AV_SAMPLE_FMT_DBLP:
+    return CAML_BA_FLOAT64;
+  default:
+    ocaml_avutil_raise_error(AVERROR(EINVAL));
+    return CAML_BA_KIND_MASK;
   }
-  return CAML_BA_KIND_MASK;
 }
 
 CAMLprim value ocaml_avutil_find_sample_fmt(value _name) {
@@ -1526,7 +1532,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Int:
-    err = av_opt_get_int((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_int(AvObj_val(obj), (const char *)String_val(name),
                          search_flags, &i);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1535,7 +1541,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Int64:
-    err = av_opt_get_int((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_int(AvObj_val(obj), (const char *)String_val(name),
                          search_flags, &i);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1544,7 +1550,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Float:
-    err = av_opt_get_double((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_double(AvObj_val(obj), (const char *)String_val(name),
                             search_flags, &d);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1553,7 +1559,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Rational:
-    err = av_opt_get_q((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_q(AvObj_val(obj), (const char *)String_val(name),
                        search_flags, &r);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1564,7 +1570,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Image_size:
-    err = av_opt_get_image_size((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_image_size(AvObj_val(obj), (const char *)String_val(name),
                                 search_flags, &w_out, &h_out);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1577,7 +1583,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Pixel_fmt:
-    err = av_opt_get_pixel_fmt((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_pixel_fmt(AvObj_val(obj), (const char *)String_val(name),
                                search_flags, &pf);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1586,7 +1592,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Sample_fmt:
-    err = av_opt_get_sample_fmt((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_sample_fmt(AvObj_val(obj), (const char *)String_val(name),
                                 search_flags, &sf);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1595,7 +1601,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Video_rate:
-    err = av_opt_get_video_rate((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_video_rate(AvObj_val(obj), (const char *)String_val(name),
                                 search_flags, &r);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1606,7 +1612,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Channel_layout:
-    err = av_opt_get_chlayout((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_chlayout(AvObj_val(obj), (const char *)String_val(name),
                               search_flags, &channel_layout);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1617,7 +1623,7 @@ CAMLprim value ocaml_avutil_get_opt(value _type, value search_children,
     break;
 
   case PVV_Dict:
-    err = av_opt_get_dict_val((void *)obj, (const char *)String_val(name),
+    err = av_opt_get_dict_val(AvObj_val(obj), (const char *)String_val(name),
                               search_flags, &dict);
     if (err < 0)
       ocaml_avutil_raise_error(err);
@@ -1650,15 +1656,11 @@ static value value_of_cursor_opt(const struct AVOption *option, void *cursor,
 
   _payload = caml_alloc_tuple(1);
   Store_field(_payload, 0, caml_alloc_tuple(2));
-#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(56, 53, 100)
-  Store_field(Field(_payload, 0), 0, value_of_avoptions(_cursor, option));
-#else
   Store_field(Field(_payload, 0), 0, caml_alloc_tuple(2));
   Store_field(Field(Field(_payload, 0), 0), 0,
               value_of_avobj(&_cursor, cursor));
   Store_field(Field(Field(_payload, 0), 0), 1,
               value_of_avoptions(&_cursor, option));
-#endif
   Store_field(Field(_payload, 0), 1, value_of_avclass(&_cursor, class));
 
   CAMLreturn(_payload);
@@ -1722,11 +1724,7 @@ CAMLprim value ocaml_avutil_av_opt_iter(value _cursor, value _class) {
 
   const AVClass *class;
   const struct AVOption *option;
-#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(56, 53, 100)
-  const struct AVOption *cursor;
-#else
   void *cursor;
-#endif
   AVRational r;
 
   if (_cursor == Val_none) {
@@ -1734,13 +1732,8 @@ CAMLprim value ocaml_avutil_av_opt_iter(value _cursor, value _class) {
     option = NULL;
     class = AvClass_val(_class);
   } else {
-#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(56, 53, 100)
-    cursor = AvOptions_val(Field(Some_val(_cursor), 0));
-    option = cursor;
-#else
     cursor = AvObj_val(Field(Field(Some_val(_cursor), 0), 0));
     option = AvOptions_val(Field(Field(Some_val(_cursor), 0), 1));
-#endif
     class = AvClass_val(Field(Some_val(_cursor), 1));
   }
 
@@ -1751,12 +1744,7 @@ CAMLprim value ocaml_avutil_av_opt_iter(value _cursor, value _class) {
 
   if (option == NULL) {
     do {
-      class =
-#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(56, 53, 100)
-          av_opt_child_class_next(AvClass_val(_class), class);
-#else
-          av_opt_child_class_iterate(AvClass_val(_class), &cursor);
-#endif
+      class = av_opt_child_class_iterate(AvClass_val(_class), &cursor);
 
       if (class == NULL)
         CAMLreturn(Val_none);
@@ -1806,10 +1794,12 @@ CAMLprim value ocaml_avutil_av_opt_iter(value _cursor, value _class) {
     }
     break;
   case AV_OPT_TYPE_CHLAYOUT:
+    /* av_channel_layout_from_string returns 0 on success. */
     if (option->default_val.str &&
-        av_channel_layout_from_string(&channel_layout,
-                                      option->default_val.str)) {
+        !av_channel_layout_from_string(&channel_layout,
+                                       option->default_val.str)) {
       value_of_channel_layout(&_ch_layout, &channel_layout);
+      av_channel_layout_uninit(&channel_layout);
       Store_field(_tmp, 0, _ch_layout);
       Store_field(_spec, 0, _tmp);
     }
@@ -2054,11 +2044,6 @@ CAMLprim value ocaml_avutil_create_device_context(value _device_type,
   caml_acquire_runtime_system();
 
   if (err < 0) {
-    char errbuf[AV_ERROR_MAX_STRING_SIZE] = "";
-    printf(
-        "failed with error: %s\n",
-        av_make_error_string(errbuf, AV_ERROR_MAX_STRING_SIZE, AVERROR(err)));
-    fflush(stdout);
     av_dict_free(&options);
     ocaml_avutil_raise_error(err);
   }
