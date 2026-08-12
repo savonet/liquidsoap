@@ -20,6 +20,36 @@ c =
 c.release()
 c.release()
 
+# Same, through the collector a script can use around its own functions. It
+# takes several sources, and hands back what the function returned.
+collected_hits = ref(0)
+collected = sine(id="collected")
+collected_too = sine(id="collected_too")
+
+def register_on_collected() =
+  collected.on_frame(
+    synchronous=true,
+    before=false,
+    fun () -> ref.incr(collected_hits)
+  )
+  collected_too.on_frame(
+    synchronous=true,
+    before=false,
+    fun () -> ref.incr(collected_hits)
+  )
+  "returned"
+end
+
+for _ = 1 to 3 do
+  let {release, result} =
+    source.collect_callback_releases(
+      [collected, collected_too],
+      register_on_collected
+    )
+  if result != "returned" then test.fail() end
+  release()
+end
+
 base = sine(id="base")
 other = sine(id="other")
 
@@ -64,7 +94,7 @@ s.on_frame(
         selections() >= 5 and frames() > 100
       then
         if
-          released_hits() > 0
+          released_hits() > 0 or collected_hits() > 0
         then
           log.important(
             "released callback still fired!"

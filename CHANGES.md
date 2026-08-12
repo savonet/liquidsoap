@@ -32,6 +32,9 @@
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
   `on_leave` and transition functions are now released when the selection or the crossing
   ends, instead of accumulating on those sources for as long as they live.
+- Added `source.collect_callback_releases`, which runs a function and gathers the callbacks
+  it registered on a given list of sources into a single `release`. This is what `switch` and
+  `cross` use, available to scripts calling their own functions more than once.
 - Added the `source(_)` type: a source whose content is unknown. Any source can be used where
   one is expected, so sources of different content can be held together, for instance in a
   list, without their content types being unified into one. The converse is rejected: nothing
