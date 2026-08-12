@@ -15,7 +15,6 @@
  (synopsis "Bindings to ffmpeg's avcodec library")
  (enabled_if
   (= %{read:../detect/avcodec_available} "true"))
- (optional)
  (foreign_stubs
   (language c)
   (names avcodec_stubs)
