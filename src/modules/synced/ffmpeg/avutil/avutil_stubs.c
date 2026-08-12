@@ -102,6 +102,7 @@ void ocaml_avutil_raise_error(int err) {
 }
 
 CAMLprim value ocaml_avutil_qp2lambda(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLreturn(Val_int(FF_QP2LAMBDA));
 }
@@ -179,6 +180,7 @@ static pthread_key_t ocaml_c_thread_key;
 static pthread_once_t ocaml_c_thread_key_once = PTHREAD_ONCE_INIT;
 
 static void ocaml_ffmpeg_on_thread_exit(void *key) {
+  (void)key;
   caml_c_thread_unregister();
 }
 
@@ -273,6 +275,7 @@ static void av_log_ocaml_callback(void *ptr, int level, const char *fmt,
 }
 
 CAMLprim value ocaml_ffmpeg_wait_for_logs(value unit) {
+  (void)unit;
   CAMLparam0();
 
   caml_release_runtime_system();
@@ -285,12 +288,14 @@ CAMLprim value ocaml_ffmpeg_wait_for_logs(value unit) {
 }
 
 CAMLprim value ocaml_ffmpeg_signal_logs(value unit) {
+  (void)unit;
   CAMLparam0();
   pthread_cond_signal(&log_condition);
   CAMLreturn(Val_unit);
 }
 
 CAMLprim value ocaml_ffmpeg_get_pending_logs(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLlocal2(result, cons);
   log_msg_t *msgs, *prev, *curr, *next;
@@ -324,12 +329,14 @@ CAMLprim value ocaml_ffmpeg_get_pending_logs(value unit) {
 }
 
 CAMLprim value ocaml_avutil_setup_log_callback(value unit) {
+  (void)unit;
   CAMLparam0();
   av_log_set_callback(&av_log_ocaml_callback);
   CAMLreturn(Val_unit);
 }
 
 CAMLprim value ocaml_avutil_clear_log_callback(value unit) {
+  (void)unit;
   CAMLparam0();
   av_log_set_callback(&av_log_default_callback);
   CAMLreturn(Val_unit);
@@ -353,9 +360,10 @@ static void finalize_channel_layout(value v) {
 }
 
 static struct custom_operations channel_layout_ops = {
-    "ocaml_avchannel_layout", finalize_channel_layout,
-    custom_compare_default,   custom_hash_default,
-    custom_serialize_default, custom_deserialize_default};
+    "ocaml_avchannel_layout",   finalize_channel_layout,
+    custom_compare_default,     custom_hash_default,
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 void value_of_channel_layout(value *ret,
                              const AVChannelLayout *channel_layout) {
@@ -387,7 +395,8 @@ static void finalize_opaque(value v) {
 static struct custom_operations opaque_ops = {
     "ocaml_avchannel_layout_opaque", finalize_opaque,
     custom_compare_default,          custom_hash_default,
-    custom_serialize_default,        custom_deserialize_default};
+    custom_serialize_default,        custom_deserialize_default,
+    custom_compare_ext_default,      custom_fixed_length_default};
 
 CAMLprim value ocaml_avutil_start_standard_iteration() {
   CAMLparam0();
@@ -802,9 +811,14 @@ static void finalize_frame(value v) {
   av_frame_free(&frame);
 }
 
-static struct custom_operations frame_ops = {
-    "ocaml_avframe",     finalize_frame,           custom_compare_default,
-    custom_hash_default, custom_serialize_default, custom_deserialize_default};
+static struct custom_operations frame_ops = {"ocaml_avframe",
+                                             finalize_frame,
+                                             custom_compare_default,
+                                             custom_hash_default,
+                                             custom_serialize_default,
+                                             custom_deserialize_default,
+                                             custom_compare_ext_default,
+                                             custom_fixed_length_default};
 
 void value_of_frame(value *ret, AVFrame *frame) {
   if (!frame)
@@ -933,10 +947,9 @@ CAMLprim value ocaml_avutil_frame_set_metadata(value _frame, value _metadata) {
   CAMLparam2(_frame, _metadata);
   AVFrame *frame = Frame_val(_frame);
   AVDictionary *metadata = NULL;
-  AVDictionaryEntry *entry = NULL;
   int i, ret;
 
-  for (i = 0; i < Wosize_val(_metadata); i++) {
+  for (i = 0; i < (int)Wosize_val(_metadata); i++) {
     ret = av_dict_set(&metadata, String_val(Field(Field(_metadata, i), 0)),
                       String_val(Field(Field(_metadata, i), 1)), 0);
     if (ret < 0)
@@ -1251,8 +1264,10 @@ void static finalize_subtitle(value v) {
 }
 
 static struct custom_operations subtitle_ops = {
-    "ocaml_avsubtitle",  finalize_subtitle,        custom_compare_default,
-    custom_hash_default, custom_serialize_default, custom_deserialize_default};
+    "ocaml_avsubtitle",         finalize_subtitle,
+    custom_compare_default,     custom_hash_default,
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 void value_of_subtitle(value *ret, AVSubtitle *subtitle) {
   if (!subtitle)
@@ -2006,9 +2021,10 @@ CAMLprim value ocaml_avutil_av_opt_int_of_flag(value _flag) {
 static void finalize_buffer_ref(value v) { av_buffer_unref(&BufferRef_val(v)); }
 
 static struct custom_operations buffer_ref_ops = {
-    "ocaml_avutil_buffer_ref", finalize_buffer_ref,
-    custom_compare_default,    custom_hash_default,
-    custom_serialize_default,  custom_deserialize_default};
+    "ocaml_avutil_buffer_ref",  finalize_buffer_ref,
+    custom_compare_default,     custom_hash_default,
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 CAMLprim value ocaml_avutil_create_device_context(value _device_type,
                                                   value _name, value _opts) {

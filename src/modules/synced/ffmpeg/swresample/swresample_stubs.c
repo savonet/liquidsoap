@@ -140,7 +140,8 @@ static int get_in_samples_planar_string(swr_t *swr, value *in_vector,
   for (i = 0; i < swr->in.nb_channels; i++) {
     str = Field(*in_vector, i);
 
-    if (str_len != caml_string_length(str) - offset * swr->in.bytes_per_samples)
+    if (str_len !=
+        (int)caml_string_length(str) - offset * swr->in.bytes_per_samples)
       Fail("Swresample failed to convert channel %d's %lu bytes : %d "
            "bytes "
            "were expected",
@@ -189,7 +190,7 @@ static int get_in_samples_planar_float_array(swr_t *swr, value *in_vector,
   for (i = 0; i < swr->in.nb_channels; i++) {
     fa = Field(*in_vector, i);
 
-    if (nb_words != Wosize_val(fa))
+    if (nb_words != (int)Wosize_val(fa))
       Fail("Swresample failed to convert channel %d's %lu bytes : %d "
            "bytes "
            "were expected",
@@ -352,7 +353,7 @@ static void convert_to_float_array(swr_t *swr, int in_nb_samples,
   if (ret < 0)
     ocaml_avutil_raise_error(ret);
 
-  size_t len = ret * swr->out.nb_channels;
+  int len = ret * swr->out.nb_channels;
   int i;
 
   *out_vect = caml_alloc(len * Double_wosize, Double_array_tag);
@@ -551,7 +552,8 @@ void ocaml_swresample_finalize(value v) { swresample_free(Swr_val(v)); }
 static struct custom_operations swr_ops = {
     "ocaml_swresample_context", ocaml_swresample_finalize,
     custom_compare_default,     custom_hash_default,
-    custom_serialize_default,   custom_deserialize_default};
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 #define NB_OPTIONS_TYPES 3
 
@@ -758,7 +760,7 @@ CAMLprim value ocaml_swresample_create(
   int out_sample_rate = Int_val(_out_sample_rate);
   int i;
 
-  for (i = 0; i < Wosize_val(_options) && i < NB_OPTIONS_TYPES; i++)
+  for (i = 0; i < (int)Wosize_val(_options) && i < NB_OPTIONS_TYPES; i++)
     options[i] = Field(_options, i);
 
   options[i] = 0;
@@ -775,6 +777,7 @@ CAMLprim value ocaml_swresample_create(
 }
 
 CAMLprim value ocaml_swresample_create_byte(value *argv, int argn) {
+  (void)argn;
   return ocaml_swresample_create(argv[0], argv[1], argv[2], argv[3], argv[4],
                                  argv[5], argv[6], argv[7], argv[8]);
 }

@@ -21,16 +21,19 @@
 #define ALIGNMENT_BYTES 16
 
 CAMLprim value ocaml_swscale_version(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLreturn(Val_int(swscale_version()));
 }
 
 CAMLprim value ocaml_swscale_configuration(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLreturn(caml_copy_string(swscale_configuration()));
 }
 
 CAMLprim value ocaml_swscale_license(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLreturn(caml_copy_string(swscale_license()));
 }
@@ -72,9 +75,10 @@ static void finalize_context(value v) {
 }
 
 static struct custom_operations context_ops = {
-    "ocaml_swscale_context",  finalize_context,
-    custom_compare_default,   custom_hash_default,
-    custom_serialize_default, custom_deserialize_default};
+    "ocaml_swscale_context",    finalize_context,
+    custom_compare_default,     custom_hash_default,
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 CAMLprim value ocaml_swscale_get_context(value flags_, value src_w_,
                                          value src_h_, value src_format_,
@@ -93,7 +97,7 @@ CAMLprim value ocaml_swscale_get_context(value flags_, value src_w_,
   int i;
   struct SwsContext *c;
 
-  for (i = 0; i < Wosize_val(flags_); i++)
+  for (i = 0; i < (int)Wosize_val(flags_); i++)
     flags |= Flag_val(Field(flags_, i));
 
   caml_release_runtime_system();
@@ -111,6 +115,7 @@ CAMLprim value ocaml_swscale_get_context(value flags_, value src_w_,
 }
 
 CAMLprim value ocaml_swscale_get_context_byte(value *argv, int argn) {
+  (void)argn;
   return ocaml_swscale_get_context(argv[0], argv[1], argv[2], argv[3], argv[4],
                                    argv[5], argv[6]);
 }
@@ -158,6 +163,7 @@ CAMLprim value ocaml_swscale_scale(value context_, value src_, value off_,
 }
 
 CAMLprim value ocaml_swscale_scale_byte(value *argv, int argn) {
+  (void)argn;
   return ocaml_swscale_scale(argv[0], argv[1], argv[2], argv[3], argv[4],
                              argv[5]);
 }
@@ -216,7 +222,7 @@ static int get_in_pixels_string(sws_t *sws, value *in_vector) {
     sws->in.stride[i] = Int_val(Field(v, 1));
     size_t str_len = caml_string_length(str);
 
-    if (sws->in.sizes_tab[i] < str_len) {
+    if (sws->in.sizes_tab[i] < (int)str_len) {
       sws->in.slice[i] = (uint8_t *)av_realloc(sws->in.slice[i], str_len);
       sws->in.sizes_tab[i] = str_len;
     }
@@ -254,6 +260,7 @@ static int get_in_pixels_packed_ba(sws_t *sws, value *in_vector) {
 }
 
 static int alloc_out_frame(sws_t *sws, value *out_vect, value *tmp) {
+  (void)tmp;
   int ret;
   AVFrame *frame = av_frame_alloc();
 
@@ -428,9 +435,10 @@ void swscale_free(sws_t *sws) {
 static void ocaml_swscale_finalize(value v) { swscale_free(Sws_val(v)); }
 
 static struct custom_operations sws_ops = {
-    "ocaml_swscale_context",  ocaml_swscale_finalize,
-    custom_compare_default,   custom_hash_default,
-    custom_serialize_default, custom_deserialize_default};
+    "ocaml_swscale_context",    ocaml_swscale_finalize,
+    custom_compare_default,     custom_hash_default,
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 CAMLprim value ocaml_swscale_create(value flags_, value in_vector_kind_,
                                     value in_width_, value in_height_,
@@ -466,7 +474,7 @@ CAMLprim value ocaml_swscale_create(value flags_, value in_vector_kind_,
   sws->out.height = Int_val(out_height_);
   sws->out.pixel_format = PixelFormat_val(out_pixel_format_);
 
-  for (i = 0; i < Wosize_val(flags_); i++)
+  for (i = 0; i < (int)Wosize_val(flags_); i++)
     flags |= Flag_val(Field(flags_, i));
 
   caml_release_runtime_system();
@@ -532,6 +540,7 @@ CAMLprim value ocaml_swscale_create(value flags_, value in_vector_kind_,
 }
 
 CAMLprim value ocaml_swscale_create_byte(value *argv, int argn) {
+  (void)argn;
   return ocaml_swscale_create(argv[0], argv[1], argv[2], argv[3], argv[4],
                               argv[5], argv[6], argv[7], argv[8]);
 }

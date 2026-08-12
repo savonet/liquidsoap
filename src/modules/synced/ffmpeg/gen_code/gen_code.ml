@@ -171,7 +171,8 @@ let translate_enum_lines ?h_oc ?ml_oc lines labels =
         c_type_name;
         " t){\nint i;\nfor(i=0;i<";
         tab_len;
-        "; i++){\nif(t==";
+        (* The table is int64_t; c_type_name may be unsigned. *)
+        "; i++){\nif((int64_t)t==";
         tab_name;
         "[i][1])return ";
         tab_name;
