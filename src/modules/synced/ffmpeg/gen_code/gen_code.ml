@@ -57,15 +57,29 @@ let rec id_to_pv_value id values =
 
   if List.mem value values then id_to_pv_value (id ^ "_") values else (id, value)
 
+(* One block of constants scanned out of one header. *)
+type enum_spec = {
+  start_pat : string; (* where to start scanning; "" means the top *)
+  pat : string; (* matches one member, capturing its name *)
+  end_pat : string; (* where to stop; "" means the end *)
+  enum_prefix : string; (* C member prefix, e.g. "AVCOL_SPC_" *)
+  c_type_name : string; (* type of the C value *)
+  c_fun_radix : string; (* Xxx in Xxx_val / Val_Xxx *)
+  ml_type_name : string;
+  extra_entries : string list; (* members to inject before scanning *)
+}
+
 let translate_enum_lines ?h_oc ?ml_oc lines labels =
-  let ( start_pat,
-        pat,
-        end_pat,
-        enum_prefix,
-        c_type_name,
-        c_fun_radix,
-        ml_type_name,
-        extra_entries ) =
+  let {
+    start_pat;
+    pat;
+    end_pat;
+    enum_prefix;
+    c_type_name;
+    c_fun_radix;
+    ml_type_name;
+    extra_entries;
+  } =
     labels
   in
 
@@ -347,345 +361,269 @@ let gen_polymorphic_variant = function
   | "h" -> gen_polymorphic_variant_h ()
   | _ -> assert false
 
-let gen_codec_id mode =
-  (* translate_c_values parameters : *)
-  (* in_name out_name title (start_pat, pat, end_pat, enum_prefix, c_type_name, c_fun_radix, ml_type_name) *)
-  translate_c_values ~pre_process:true
-    ["/libavcodec/codec_id.h"; "/libavcodec/avcodec.h"]
-    "codec_id"
-    [
-      ( "[ \t]*AV_CODEC_ID_NONE",
-        "[ \t]*AV_CODEC_ID_\\([A-Z0-9_]+\\)",
-        "[ \t]*AV_CODEC_ID_FIRST_AUDIO",
-        "AV_CODEC_ID_",
-        "enum AVCodecID",
-        "VideoCodecID",
-        "video",
-        ["WRAPPED_AVFRAME"; "NONE"] );
-      ( "[ \t]*AV_CODEC_ID_FIRST_AUDIO",
-        "[ \t]*AV_CODEC_ID_\\([A-Z0-9_]+\\)",
-        "[ \t]*AV_CODEC_ID_FIRST_SUBTITLE",
-        "AV_CODEC_ID_",
-        "enum AVCodecID",
-        "AudioCodecID",
-        "audio",
-        ["WRAPPED_AVFRAME"; "NONE"] );
-      ( "[ \t]*AV_CODEC_ID_FIRST_SUBTITLE",
-        "[ \t]*AV_CODEC_ID_\\([A-Z0-9_]+\\)",
-        "[ \t]*AV_CODEC_ID_FIRST_UNKNOWN",
-        "AV_CODEC_ID_",
-        "enum AVCodecID",
-        "SubtitleCodecID",
-        "subtitle",
-        ["NONE"] );
-      ( "[ \t]*AV_CODEC_ID_FIRST_UNKNOWN",
-        "[ \t]*AV_CODEC_ID_\\([A-Z0-9_]+\\)",
-        "",
-        "AV_CODEC_ID_",
-        "enum AVCodecID",
-        "UnknownCodecID",
-        "unknown",
-        ["NONE"] );
-      ( "[ \t]*AV_CODEC_ID_NONE",
-        "[ \t]*AV_CODEC_ID_\\([A-Z0-9_]+\\)",
-        "",
-        "AV_CODEC_ID_",
-        "enum AVCodecID",
-        "CodecID",
-        "codec_id",
-        ["NONE"] );
-    ]
-    mode
+(* One generator = one name passed as argv(2) = one pair of output files. *)
+type generator = {
+  name : string;
+  headers : string list;
+  pre_process : bool;
+  enums : enum_spec list;
+}
 
-let gen_pixel_format mode =
-  translate_c_values ~pre_process:true ["/libavutil/pixfmt.h"] "pixel_format"
-    [
-      ( "enum AVPixelFormat",
-        "[ \t]*AV_PIX_FMT_\\([A-Z0-9_]+\\)",
-        "[ \t]*AV_PIX_FMT_NB",
-        "AV_PIX_FMT_",
-        "enum AVPixelFormat",
-        "PixelFormat",
-        "t",
-        [] );
-    ]
-    mode
+let enum ?(start = "") ?(stop = "") ?(ml_name = "t") ?(extra = []) ~prefix
+    ~c_type ~radix () =
+  {
+    start_pat = start;
+    pat = "[ \t]*" ^ prefix ^ "\\([A-Z0-9_]+\\)";
+    end_pat = stop;
+    enum_prefix = prefix;
+    c_type_name = c_type;
+    c_fun_radix = radix;
+    ml_type_name = ml_name;
+    extra_entries = extra;
+  }
 
-let gen_color_space mode =
-  translate_c_values ~pre_process:true ["/libavutil/pixfmt.h"] "color_space"
-    [
-      ( "enum AVColorSpace",
-        "[ \t]*AVCOL_SPC_\\([A-Z0-9_]+\\)",
-        "[ \t]*AVCOL_SPC_NB",
-        "AVCOL_SPC_",
-        "enum AVColorSpace",
-        "ColorSpace",
-        "t",
-        [] );
-    ]
-    mode
+(* A family of #define'd flags rather than a C enum: no delimiters, and the
+   member pattern is anchored on the #define. *)
+let flags ?(ml_name = "t") ~prefix ~c_type ~radix () =
+  {
+    start_pat = "";
+    pat = "#define " ^ prefix ^ "\\([A-Z0-9_]+\\)";
+    end_pat = "";
+    enum_prefix = prefix;
+    c_type_name = c_type;
+    c_fun_radix = radix;
+    ml_type_name = ml_name;
+    extra_entries = [];
+  }
 
-let gen_color_range mode =
-  translate_c_values ~pre_process:true ["/libavutil/pixfmt.h"] "color_range"
-    [
-      ( "enum AVColorRange",
-        "[ \t]*AVCOL_RANGE_\\([A-Z0-9_]+\\)",
-        "[ \t]*AVCOL_RANGE_NB",
-        "AVCOL_RANGE_",
-        "enum AVColorRange",
-        "ColorRange",
-        "t",
-        [] );
-    ]
-    mode
+let pixfmt = ["/libavutil/pixfmt.h"]
+let avcodec_h = ["/libavcodec/avcodec.h"]
 
-let gen_color_primaries mode =
-  translate_c_values ~pre_process:true ["/libavutil/pixfmt.h"] "color_primaries"
-    [
-      ( "enum AVColorPrimaries",
-        "[ \t]*AVCOL_PRI_\\([A-Z0-9_]+\\)",
-        "[ \t]*AVCOL_PRI_NB",
-        "AVCOL_PRI_",
-        "enum AVColorPrimaries",
-        "ColorPrimaries",
-        "t",
-        [] );
-    ]
-    mode
+(* Every codec id range shares a header, prefix and C type; they differ only
+   in which slice of the enum they cover. *)
+let codec_id_range ~start ~stop ~radix ~ml_name ~extra =
+  enum ~start ~stop ~prefix:"AV_CODEC_ID_" ~c_type:"enum AVCodecID" ~radix
+    ~ml_name ~extra ()
 
-let gen_color_trc mode =
-  translate_c_values ~pre_process:true ["/libavutil/pixfmt.h"] "color_trc"
-    [
-      ( "enum AVColorTransferCharacteristic",
-        "[ \t]*AVCOL_TRC_\\([A-Z0-9_]+\\)",
-        "[ \t]*AVCOL_TRC_NB",
-        "AVCOL_TRC_",
-        "enum AVColorTransferCharacteristic",
-        "ColorTrc",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_chroma_location mode =
-  translate_c_values ~pre_process:true ["/libavutil/pixfmt.h"] "chroma_location"
-    [
-      ( "enum AVChromaLocation",
-        "[ \t]*AVCHROMA_LOC_\\([A-Z0-9_]+\\)",
-        "[ \t]*AVCHROMA_LOC_NB",
-        "AVCHROMA_LOC_",
-        "enum AVChromaLocation",
-        "ChromaLocation",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_pixel_format_flag mode =
-  translate_c_values ~pre_process:false ["/libavutil/pixdesc.h"]
-    "pixel_format_flag"
-    [
-      ( "",
-        "#define AV_PIX_FMT_FLAG_\\([A-Z0-9_]+\\)",
-        "",
-        "AV_PIX_FMT_FLAG_",
-        "uint64_t",
-        "PixelFormatFlag",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_hw_config_method mode =
-  translate_c_values ~pre_process:true ["/libavcodec/avcodec.h"]
-    "hw_config_method"
-    [
-      ( "",
-        "[ \t]*AV_CODEC_HW_CONFIG_METHOD_\\([A-Z0-9_]+\\)",
-        "",
-        "AV_CODEC_HW_CONFIG_METHOD_",
-        "uint64_t",
-        "HwConfigMethod",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_hw_device_type mode =
-  translate_c_values ~pre_process:true ["/libavutil/hwcontext.h"]
-    "hw_device_type"
-    [
-      ( "enum AVHWDeviceType",
-        "[ \t]*AV_HWDEVICE_TYPE_\\([A-Z0-9_]+\\)",
-        "[ \t]*AV_HWDEVICE_TYPE_NONE ",
-        "AV_HWDEVICE_TYPE_",
-        "enum AVHWDeviceType",
-        "HwDeviceType",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_channel_layout mode =
-  translate_c_values ~pre_process:false
-    ["/libavutil/channel_layout.h"]
-    "channel_layout"
-    [
-      ( "",
-        "#define AV_CH_LAYOUT_\\([A-Z0-9_]+\\)",
-        "",
-        "AV_CH_LAYOUT_",
-        "uint64_t",
-        "ChannelLayout",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_codec_capabilities mode =
-  translate_c_values ~pre_process:false
-    ["/libavcodec/codec.h"; "/libavcodec/avcodec.h"]
-    "codec_capabilities"
-    [
-      ( "",
-        "#define AV_CODEC_CAP_\\([A-Z0-9_]+\\)",
-        "",
-        "AV_CODEC_CAP_",
-        "uint64_t",
-        "CodecCapabilities",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_codec_properties mode =
-  translate_c_values ~pre_process:false
-    ["/libavcodec/codec_desc.h"; "/libavcodec/avcodec.h"]
-    "codec_properties"
-    [
-      ( "",
-        "#define AV_CODEC_PROP_\\([A-Z0-9_]+\\)",
-        "",
-        "AV_CODEC_PROP_",
-        "uint64_t",
-        "CodecProperties",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_media_types mode =
-  translate_c_values ~pre_process:false
-    ["/libavutil/avutil.h"; "/libavutil/avutil.h"]
-    "media_types"
-    [
-      ( "enum AVMediaType",
-        "[ \t]*AVMEDIA_TYPE_\\([A-Z0-9_]+\\)",
-        "[ \t]*AVMEDIA_TYPE_NB",
-        "AVMEDIA_TYPE_",
-        "uint64_t",
-        "MediaTypes",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_sample_format mode =
-  translate_c_values ~pre_process:true ["/libavutil/samplefmt.h"]
-    "sample_format"
-    [
-      ( "enum AVSampleFormat",
-        "[ \t]*AV_SAMPLE_FMT_\\([A-Z0-9_]+\\)",
-        "[ \t]*AV_SAMPLE_FMT_NB",
-        "AV_SAMPLE_FMT_",
-        "enum AVSampleFormat",
-        "SampleFormat",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_subtitle_type mode =
-  translate_c_values ~pre_process:true ["/libavcodec/avcodec.h"] "subtitle_type"
-    [
-      ( "enum AVSubtitleType",
-        "[ \t]*SUBTITLE_\\([A-Z0-9_]+\\)",
-        "\\};",
-        "SUBTITLE_",
-        "enum AVSubtitleType",
-        "SubtitleType",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_subtitle_flag mode =
-  translate_c_values ~pre_process:false ["/libavcodec/avcodec.h"]
-    "subtitle_flag"
-    [
-      ( "",
-        "#define AV_SUBTITLE_FLAG_\\([A-Z0-9_]+\\)",
-        "",
-        "AV_SUBTITLE_FLAG_",
-        "int",
-        "SubtitleFlag",
-        "t",
-        [] );
-    ]
-    mode
-
-let gen_swresample_options mode =
-  translate_c_values ~pre_process:true
-    ["/libswresample/swresample.h"]
-    "swresample_options"
-    [
-      ( "[ \t]*SWR_DITHER_NONE",
-        "[ \t]*SWR_\\([A-Z0-9_]+\\)",
-        "[ \t]*SWR_DITHER_NS",
-        "SWR_",
-        "enum SwrDitherType",
-        "DitherType",
-        "dither_type",
-        [] );
-      ( "enum SwrEngine",
-        "[ \t]*SWR_\\([A-Z0-9_]+\\)",
-        "[ \t]*SWR_ENGINE_NB",
-        "SWR_",
-        "enum SwrEngine",
-        "Engine",
-        "engine",
-        [] );
-      ( "enum SwrFilterType",
-        "[ \t]*SWR_\\([A-Z0-9_]+\\)",
-        "\\};",
-        "SWR_",
-        "enum SwrFilterType",
-        "FilterType",
-        "filter_type",
-        [] );
-    ]
-    mode
+let generators =
+  [
+    {
+      name = "codec_id";
+      headers = ["/libavcodec/codec_id.h"; "/libavcodec/avcodec.h"];
+      pre_process = true;
+      enums =
+        [
+          codec_id_range ~start:"[ \t]*AV_CODEC_ID_NONE"
+            ~stop:"[ \t]*AV_CODEC_ID_FIRST_AUDIO" ~radix:"VideoCodecID"
+            ~ml_name:"video"
+            ~extra:["WRAPPED_AVFRAME"; "NONE"];
+          codec_id_range ~start:"[ \t]*AV_CODEC_ID_FIRST_AUDIO"
+            ~stop:"[ \t]*AV_CODEC_ID_FIRST_SUBTITLE" ~radix:"AudioCodecID"
+            ~ml_name:"audio"
+            ~extra:["WRAPPED_AVFRAME"; "NONE"];
+          codec_id_range ~start:"[ \t]*AV_CODEC_ID_FIRST_SUBTITLE"
+            ~stop:"[ \t]*AV_CODEC_ID_FIRST_UNKNOWN" ~radix:"SubtitleCodecID"
+            ~ml_name:"subtitle" ~extra:["NONE"];
+          codec_id_range ~start:"[ \t]*AV_CODEC_ID_FIRST_UNKNOWN" ~stop:""
+            ~radix:"UnknownCodecID" ~ml_name:"unknown" ~extra:["NONE"];
+          codec_id_range ~start:"[ \t]*AV_CODEC_ID_NONE" ~stop:""
+            ~radix:"CodecID" ~ml_name:"codec_id" ~extra:["NONE"];
+        ];
+    };
+    {
+      name = "pixel_format";
+      headers = pixfmt;
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVPixelFormat" ~stop:"[ \t]*AV_PIX_FMT_NB"
+            ~prefix:"AV_PIX_FMT_" ~c_type:"enum AVPixelFormat"
+            ~radix:"PixelFormat" ();
+        ];
+    };
+    {
+      name = "color_space";
+      headers = pixfmt;
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVColorSpace" ~stop:"[ \t]*AVCOL_SPC_NB"
+            ~prefix:"AVCOL_SPC_" ~c_type:"enum AVColorSpace" ~radix:"ColorSpace"
+            ();
+        ];
+    };
+    {
+      name = "color_range";
+      headers = pixfmt;
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVColorRange" ~stop:"[ \t]*AVCOL_RANGE_NB"
+            ~prefix:"AVCOL_RANGE_" ~c_type:"enum AVColorRange"
+            ~radix:"ColorRange" ();
+        ];
+    };
+    {
+      name = "color_primaries";
+      headers = pixfmt;
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVColorPrimaries" ~stop:"[ \t]*AVCOL_PRI_NB"
+            ~prefix:"AVCOL_PRI_" ~c_type:"enum AVColorPrimaries"
+            ~radix:"ColorPrimaries" ();
+        ];
+    };
+    {
+      name = "color_trc";
+      headers = pixfmt;
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVColorTransferCharacteristic"
+            ~stop:"[ \t]*AVCOL_TRC_NB" ~prefix:"AVCOL_TRC_"
+            ~c_type:"enum AVColorTransferCharacteristic" ~radix:"ColorTrc" ();
+        ];
+    };
+    {
+      name = "chroma_location";
+      headers = pixfmt;
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVChromaLocation" ~stop:"[ \t]*AVCHROMA_LOC_NB"
+            ~prefix:"AVCHROMA_LOC_" ~c_type:"enum AVChromaLocation"
+            ~radix:"ChromaLocation" ();
+        ];
+    };
+    {
+      name = "hw_device_type";
+      headers = ["/libavutil/hwcontext.h"];
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVHWDeviceType" ~stop:"[ \t]*AV_HWDEVICE_TYPE_NONE "
+            ~prefix:"AV_HWDEVICE_TYPE_" ~c_type:"enum AVHWDeviceType"
+            ~radix:"HwDeviceType" ();
+        ];
+    };
+    {
+      name = "sample_format";
+      headers = ["/libavutil/samplefmt.h"];
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVSampleFormat" ~stop:"[ \t]*AV_SAMPLE_FMT_NB"
+            ~prefix:"AV_SAMPLE_FMT_" ~c_type:"enum AVSampleFormat"
+            ~radix:"SampleFormat" ();
+        ];
+    };
+    {
+      name = "subtitle_type";
+      headers = avcodec_h;
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"enum AVSubtitleType" ~stop:"\\};" ~prefix:"SUBTITLE_"
+            ~c_type:"enum AVSubtitleType" ~radix:"SubtitleType" ();
+        ];
+    };
+    {
+      name = "media_types";
+      headers = ["/libavutil/avutil.h"; "/libavutil/avutil.h"];
+      pre_process = false;
+      enums =
+        [
+          enum ~start:"enum AVMediaType" ~stop:"[ \t]*AVMEDIA_TYPE_NB"
+            ~prefix:"AVMEDIA_TYPE_" ~c_type:"uint64_t" ~radix:"MediaTypes" ();
+        ];
+    };
+    {
+      name = "hw_config_method";
+      headers = avcodec_h;
+      pre_process = true;
+      enums =
+        [
+          enum ~prefix:"AV_CODEC_HW_CONFIG_METHOD_" ~c_type:"uint64_t"
+            ~radix:"HwConfigMethod" ();
+        ];
+    };
+    {
+      name = "pixel_format_flag";
+      headers = ["/libavutil/pixdesc.h"];
+      pre_process = false;
+      enums =
+        [
+          flags ~prefix:"AV_PIX_FMT_FLAG_" ~c_type:"uint64_t"
+            ~radix:"PixelFormatFlag" ();
+        ];
+    };
+    {
+      name = "channel_layout";
+      headers = ["/libavutil/channel_layout.h"];
+      pre_process = false;
+      enums =
+        [
+          flags ~prefix:"AV_CH_LAYOUT_" ~c_type:"uint64_t"
+            ~radix:"ChannelLayout" ();
+        ];
+    };
+    {
+      name = "codec_capabilities";
+      headers = ["/libavcodec/codec.h"; "/libavcodec/avcodec.h"];
+      pre_process = false;
+      enums =
+        [
+          flags ~prefix:"AV_CODEC_CAP_" ~c_type:"uint64_t"
+            ~radix:"CodecCapabilities" ();
+        ];
+    };
+    {
+      name = "codec_properties";
+      headers = ["/libavcodec/codec_desc.h"; "/libavcodec/avcodec.h"];
+      pre_process = false;
+      enums =
+        [
+          flags ~prefix:"AV_CODEC_PROP_" ~c_type:"uint64_t"
+            ~radix:"CodecProperties" ();
+        ];
+    };
+    {
+      name = "subtitle_flag";
+      headers = avcodec_h;
+      pre_process = false;
+      enums =
+        [
+          flags ~prefix:"AV_SUBTITLE_FLAG_" ~c_type:"int" ~radix:"SubtitleFlag"
+            ();
+        ];
+    };
+    {
+      name = "swresample_options";
+      headers = ["/libswresample/swresample.h"];
+      pre_process = true;
+      enums =
+        [
+          enum ~start:"[ \t]*SWR_DITHER_NONE" ~stop:"[ \t]*SWR_DITHER_NS"
+            ~prefix:"SWR_" ~c_type:"enum SwrDitherType" ~radix:"DitherType"
+            ~ml_name:"dither_type" ();
+          enum ~start:"enum SwrEngine" ~stop:"[ \t]*SWR_ENGINE_NB"
+            ~prefix:"SWR_" ~c_type:"enum SwrEngine" ~radix:"Engine"
+            ~ml_name:"engine" ();
+          enum ~start:"enum SwrFilterType" ~stop:"\\};" ~prefix:"SWR_"
+            ~c_type:"enum SwrFilterType" ~radix:"FilterType"
+            ~ml_name:"filter_type" ();
+        ];
+    };
+  ]
 
 let () =
   let mode = Sys.argv.(3) in
   match Sys.argv.(2) with
     | "polymorphic_variant" -> gen_polymorphic_variant mode
-    | "codec_id" -> gen_codec_id mode
-    | "color_space" -> gen_color_space mode
-    | "color_range" -> gen_color_range mode
-    | "color_primaries" -> gen_color_primaries mode
-    | "color_trc" -> gen_color_trc mode
-    | "chroma_location" -> gen_chroma_location mode
-    | "pixel_format" -> gen_pixel_format mode
-    | "pixel_format_flag" -> gen_pixel_format_flag mode
-    | "hw_config_method" -> gen_hw_config_method mode
-    | "hw_device_type" -> gen_hw_device_type mode
-    | "channel_layout" -> gen_channel_layout mode
-    | "sample_format" -> gen_sample_format mode
-    | "swresample_options" -> gen_swresample_options mode
-    | "codec_capabilities" -> gen_codec_capabilities mode
-    | "codec_properties" -> gen_codec_properties mode
-    | "media_types" -> gen_media_types mode
-    | "subtitle_type" -> gen_subtitle_type mode
-    | "subtitle_flag" -> gen_subtitle_flag mode
-    | _ -> assert false
+    | name -> (
+        match List.find_opt (fun g -> g.name = name) generators with
+          | Some g ->
+              translate_c_values ~pre_process:g.pre_process g.headers g.name
+                g.enums mode
+          | None -> failwith ("gen_code: unknown generator " ^ name))
