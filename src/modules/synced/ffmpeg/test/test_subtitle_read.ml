@@ -22,10 +22,7 @@ let () =
         (Avcodec.Subtitle.string_of_id codec_id))
     subtitle_streams;
 
-  if List.length subtitle_streams = 0 then (
-    Printf.printf "No subtitles found.\n";
-    Av.close src;
-    exit 0);
+  Test_assert.check "input has a subtitle stream" (subtitle_streams <> []);
 
   let time_base = time_base () in
   let count = ref 0 in
@@ -59,10 +56,13 @@ let () =
       | exception Error `Eof ->
           Printf.printf "End of file. Read %d subtitle(s).\n%!" !count
       | exception Error err ->
-          Printf.eprintf "Error: %s\n%!" (string_of_error err)
+          Test_assert.checkf false "read_input failed: %s" (string_of_error err)
       | _ -> read_loop ()
   in
   read_loop ();
 
+  Test_assert.checkf (!count > 0) "read %d subtitles" !count;
+
   Av.close src;
-  Gc.full_major ()
+  Gc.full_major ();
+  Test_assert.finish ()

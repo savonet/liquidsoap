@@ -1,14 +1,21 @@
-let stanza name libraries =
-  Printf.printf "(executable\n (name %s)\n (modules %s)\n (libraries %s))\n\n"
-    name name
+(* One [executables] stanza rather than one per test: they share
+   [test_assert], and dune rejects a module claimed by several stanzas. *)
+let stanza names libraries =
+  Printf.printf
+    "(executables\n (names %s)\n (modules %s test_assert)\n (libraries %s))\n\n"
+    (String.concat " " names) (String.concat " " names)
     (String.concat " " libraries)
 
 let () =
   if Sys.argv.(1) = "true" then begin
-    stanza "test_resample" ["ffmpeg-av"; "ffmpeg-swresample"];
-    stanza "test_info" ["ffmpeg-av"; "ffmpeg-swresample"];
-    stanza "test_subtitle_read" ["ffmpeg-av"];
-    stanza "test_unhandled_packet" ["ffmpeg-av"];
+    stanza
+      [
+        "test_resample";
+        "test_info";
+        "test_subtitle_read";
+        "test_unhandled_packet";
+      ]
+      ["ffmpeg-av"; "ffmpeg-swresample"];
     print_string
       {|
 (rule
@@ -52,14 +59,15 @@ let () =
    (run %{runner} "hw_encode_device" %{hw_encode} nvenc.mp4 h264_nvenc device)
    (run %{runner} "hw_encode_frame" %{hw_encode} nvenc.mp4 h264_nvenc frame)
    (run %{runner} "interrupt" %{interrupt})
-   (run %{runner} "resample" %{resample})
-   (run %{runner} "info" %{info})
    (run %{runner} "encode_audio_flac" %{encode_audio} A4.flac flac)
    (run %{runner} "encode_audio_mp2" %{encode_audio} A4.mp2 mp2)
    (run %{runner} "encode_video_webm" %{encode_video} video.webm yuva420p libvpx-vp9)
    (run %{runner} "encode_stream_flac" %{encode_stream} S4.flac flac)
    (run %{runner} "encode_stream_mp2" %{encode_stream} S4.mp2 mp2)
    (run %{runner} "encoding" %{encoding} out.mkv aac mpeg4 ass)
+   ; resample and info need real media: they run after the encoders above.
+   (run %{runner} "resample" %{resample} A4.flac)
+   (run %{runner} "info" %{info} out.mkv A4.flac)
    (run %{runner} "decode_stream_mp3" %{decode_stream} A4.flac A4.mp3 libmp3lame)
    (run %{runner} "decode_stream_ogg" %{decode_stream} A4.mp2 A4.ogg libvorbis)
    (run %{runner} "audio_decoding_ogg" %{audio_decoding} A4.ogg ogg A4)
