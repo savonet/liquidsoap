@@ -132,7 +132,7 @@ let callbacks ~label =
         descr = "when " ^ label ^ " starts";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_start (fun () -> f []));
+        register = (fun ~params:_ s f -> s#register_on_start (fun () -> f []));
       };
       {
         name = "on_stop";
@@ -140,7 +140,7 @@ let callbacks ~label =
         descr = "when " ^ label ^ " stops";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_stop (fun () -> f []));
+        register = (fun ~params:_ s f -> s#register_on_stop (fun () -> f []));
       };
     ]
 

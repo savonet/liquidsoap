@@ -127,7 +127,7 @@ type 'a callback = 'a Lang_source.callback = {
   descr : string;
   register_deprecated_argument : bool;
   arg_t : (bool * string * t) list;
-  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit -> unit;
 }
 
 val add_operator :

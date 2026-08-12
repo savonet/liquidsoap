@@ -965,7 +965,7 @@ let _ =
                          ] );
                    ]
                in
-               s#on_connect callback);
+               s#register_on_connect callback);
          };
          {
            name = "on_disconnect";
@@ -975,7 +975,8 @@ let _ =
            arg_t = [(false, "", Lang.string_t)];
            register =
              (fun ~params:_ s callback ->
-               s#on_disconnect (fun ip -> callback [("", Lang.string ip)]));
+               s#register_on_disconnect (fun ip ->
+                   callback [("", Lang.string ip)]));
          };
        ]
       @ Start_stop.callbacks ~label:"output")

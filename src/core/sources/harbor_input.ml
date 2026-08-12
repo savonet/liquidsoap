@@ -553,7 +553,7 @@ let callbacks () =
       register =
         (fun ~params:_ s on_connect ->
           let on_connect m = on_connect [("", Lang.metadata_list m)] in
-          s#on_connect on_connect);
+          s#register_on_connect on_connect);
     };
     {
       name = "on_disconnect";
@@ -561,7 +561,8 @@ let callbacks () =
       descr = "when a source is disconnected.";
       register_deprecated_argument = true;
       arg_t = [];
-      register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+      register =
+        (fun ~params:_ s f -> s#register_on_disconnect (fun () -> f []));
     };
   ]
 

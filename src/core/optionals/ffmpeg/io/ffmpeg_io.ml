@@ -437,7 +437,7 @@ let register_input protocol =
                       let on_connect m =
                         on_connect [("", Lang.metadata_list m)]
                       in
-                      s#on_connect on_connect);
+                      s#register_on_connect on_connect);
                 };
               ]
             else
@@ -451,7 +451,7 @@ let register_input protocol =
                   register =
                     (fun ~params:_ s on_connect ->
                       let on_connect _ = on_connect [] in
-                      s#on_connect on_connect);
+                      s#register_on_connect on_connect);
                 };
               ])
          @ [
@@ -462,7 +462,8 @@ let register_input protocol =
                register_deprecated_argument = true;
                arg_t = [];
                register =
-                 (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+                 (fun ~params:_ s f ->
+                   s#register_on_disconnect (fun () -> f []));
              };
              {
                name = "on_error";
@@ -472,7 +473,7 @@ let register_input protocol =
                arg_t = [(false, "", Lang.error_t)];
                register =
                  (fun ~params:_ s f ->
-                   s#on_error (fun err -> f [("", Lang.error err)]));
+                   s#register_on_error (fun err -> f [("", Lang.error err)]));
              };
            ])
        ~meth:

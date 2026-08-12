@@ -258,7 +258,7 @@ let callbacks =
         descr = "when connected.";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_connect (fun () -> f []));
+        register = (fun ~params:_ s f -> s#register_on_connect (fun () -> f []));
       };
       {
         name = "on_disconnect";
@@ -266,7 +266,8 @@ let callbacks =
         descr = "when disconnected.";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+        register =
+          (fun ~params:_ s f -> s#register_on_disconnect (fun () -> f []));
       };
       {
         name = "on_socket";
@@ -286,7 +287,7 @@ let callbacks =
           ];
         register =
           (fun ~params:_ s f ->
-            s#on_socket (fun ~mode socket ->
+            s#register_on_socket (fun ~mode socket ->
                 let mode =
                   match mode with
                     | `Connect -> "connect"

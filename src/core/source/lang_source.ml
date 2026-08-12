@@ -124,8 +124,97 @@ type 'a callback = {
   descr : string;
   register_deprecated_argument : bool;
   arg_t : (bool * string * t) list;
-  register : params:(string * value) list -> 'a -> (env -> unit) -> unit;
+  register : params:(string * value) list -> 'a -> (env -> unit) -> unit -> unit;
 }
+
+(* Performed for every callback a script registers, carrying what releases it.
+   Registering is the only way a script can add a callback to a source, so an
+   operator handing sources to a script function can take back everything that
+   function registered on them, and nothing else: the engine's own wiring does
+   not go through here. *)
+type _ Effect.t +=
+  | Callback_registered : {
+      owner : int;
+      release : unit -> unit;
+    }
+      -> unit Effect.t
+
+type 'a collected = { release : unit -> unit; result : 'a }
+
+(* Sources are identified by [Oo.id]: callbacks are registered on outputs and
+   other objects too, and this is the one identity they all share. *)
+let collect_callback_releases sources fn =
+  let owners = List.map Oo.id sources in
+  let releases = ref [] in
+  let result =
+    Effect.Deep.try_with fn ()
+      {
+        Effect.Deep.effc =
+          (fun (type a) (eff : a Effect.t) ->
+            match eff with
+              | Callback_registered { owner; release }
+                when List.mem owner owners ->
+                  Some
+                    (fun (k : (a, _) Effect.Deep.continuation) ->
+                      releases := release :: !releases;
+                      Effect.Deep.continue k ())
+              | _ -> None);
+      }
+  in
+  let release () =
+    List.iter (fun release -> release ()) !releases;
+    releases := []
+  in
+  { release; result }
+
+(* Callbacks are registered from every thread that runs script code, and effects
+   do not cross thread boundaries. Rather than install a default handler at each
+   thread entry, where a missed one would raise at runtime, registration outside
+   any collector is simply not observed. *)
+let notify_callback_registered ~owner release =
+  try Effect.perform (Callback_registered { owner; release })
+  with Effect.Unhandled _ -> ()
+
+let max_script_callbacks = 5
+
+(* Script callbacks currently registered, per source and callback: naming the
+   callback that is piling up is what makes it findable. Counting the callback
+   lists themselves would not do: they also hold the engine's own wiring, of
+   which a handful is normal. What is not normal is a script piling them up,
+   which is what a function registering on a source it is given does every time
+   it runs. *)
+let script_callbacks : (int * string, int) Hashtbl.t = Hashtbl.create 10
+let script_callbacks_m = Mutex.create ()
+
+let count_script_callback ~log ~id ~name ~owner release =
+  let key = (owner, name) in
+  let count =
+    Mutex_utils.mutexify script_callbacks_m
+      (fun () ->
+        let count =
+          1 + Option.value ~default:0 (Hashtbl.find_opt script_callbacks key)
+        in
+        Hashtbl.replace script_callbacks key count;
+        count)
+      ()
+  in
+  if count = max_script_callbacks + 1 then
+    (log : Log.t)#important
+      "%d %s callbacks registered on %s. If you are registering from a \
+       function that runs more than once, keep the value it returns and call \
+       its release() method."
+      count name id;
+  let released = Atomic.make false in
+  fun () ->
+    if Atomic.compare_and_set released false true then (
+      Mutex_utils.mutexify script_callbacks_m
+        (fun () ->
+          match Hashtbl.find_opt script_callbacks key with
+            | Some count when count <= 1 -> Hashtbl.remove script_callbacks key
+            | Some count -> Hashtbl.replace script_callbacks key (count - 1)
+            | None -> ())
+        ();
+      release ())
 
 let callback { name; params; descr; arg_t; register } : _ Lang.meth =
   {
@@ -140,7 +229,13 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
               (false, "synchronous", Lang.bool_t);
               (false, "", fun_t arg_t unit_t);
             ])
-          unit_t );
+          (method_t unit_t
+             [
+               ( "release",
+                 ([], fun_t [] unit_t),
+                 "Release the callback. Calling it more than once is a no-op."
+               );
+             ]) );
     descr = Printf.sprintf "Call a given handler %s" descr;
     value =
       (fun s ->
@@ -168,8 +263,19 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
             in
             (s#log : Log.t)#debug "Registering %s %s callback" name
               (if synchronous then "synchronous" else "asynchronous");
-            register ~params:p s fn;
-            unit));
+            let owner = Oo.id s in
+            let release =
+              count_script_callback ~log:s#log ~id:s#id ~name ~owner
+                (register ~params:p s fn)
+            in
+            notify_callback_registered ~owner release;
+            meth unit
+              [
+                ( "release",
+                  val_fun [] (fun _ ->
+                      release ();
+                      unit) );
+              ]));
   }
 
 let source_callbacks =
@@ -183,7 +289,7 @@ let source_callbacks =
       register =
         (fun ~params:_ s f ->
           let f m = f [("", metadata m)] in
-          s#on_frame (`Metadata f));
+          s#register_on_frame (`Metadata f));
     };
     {
       name = "on_wake_up";
@@ -191,7 +297,7 @@ let source_callbacks =
       params = [];
       register_deprecated_argument = false;
       arg_t = [];
-      register = (fun ~params:_ s f -> s#on_wake_up (fun () -> f []));
+      register = (fun ~params:_ s f -> s#register_on_wake_up (fun () -> f []));
     };
     {
       name = "on_shutdown";
@@ -199,7 +305,7 @@ let source_callbacks =
       descr = "to be called when source shuts down";
       register_deprecated_argument = false;
       arg_t = [];
-      register = (fun ~params:_ s f -> s#on_sleep (fun () -> f []));
+      register = (fun ~params:_ s f -> s#register_on_sleep (fun () -> f []));
     };
     {
       name = "on_collect";
@@ -207,7 +313,7 @@ let source_callbacks =
       descr = "to be called when source is collected";
       register_deprecated_argument = false;
       arg_t = [];
-      register = (fun ~params:_ s f -> s#on_collect (fun () -> f []));
+      register = (fun ~params:_ s f -> s#register_on_collect (fun () -> f []));
     };
     {
       name = "on_track";
@@ -218,7 +324,7 @@ let source_callbacks =
       register =
         (fun ~params:_ s f ->
           let f m = f [("", metadata m)] in
-          s#on_frame (`Track f));
+          s#register_on_frame (`Track f));
     };
     {
       name = "on_frame";
@@ -235,8 +341,8 @@ let source_callbacks =
         (fun ~params:p s on_frame ->
           let on_frame _ = on_frame [] in
           let before = Lang.to_bool (List.assoc "before" p) in
-          if before then s#on_frame (`Before_frame on_frame)
-          else s#on_frame (`After_frame (fun _ -> on_frame ())));
+          if before then s#register_on_frame (`Before_frame on_frame)
+          else s#register_on_frame (`After_frame (fun _ -> on_frame ())));
     };
     {
       name = "on_frame_checksum";
@@ -262,28 +368,35 @@ let source_callbacks =
       register =
         (fun ~params:p s after_cb ->
           let before_cb = Lang.to_option (List.assoc "before" p) in
-          Option.iter
-            (fun cb ->
-              s#on_frame
-                (`Before_frame
-                   (fun cache ->
-                     let checksum =
-                       match cache with
-                         | Some frame -> Lang.string (Frame.checksum frame)
-                         | None -> Lang.null
-                     in
-                     ignore (apply cb [("", checksum)]))))
-            before_cb;
-          s#on_frame
-            (`After_frame
-               (fun { Source.frame; cache } ->
-                 let frame_checksum = Lang.string (Frame.checksum frame) in
-                 let cache_checksum =
-                   match cache with
-                     | Some c -> Lang.string (Frame.checksum c)
-                     | None -> Lang.null
-                 in
-                 after_cb [("cache", cache_checksum); ("", frame_checksum)])));
+          let release_before =
+            Option.map
+              (fun cb ->
+                s#register_on_frame
+                  (`Before_frame
+                     (fun cache ->
+                       let checksum =
+                         match cache with
+                           | Some frame -> Lang.string (Frame.checksum frame)
+                           | None -> Lang.null
+                       in
+                       ignore (apply cb [("", checksum)]))))
+              before_cb
+          in
+          let release_after =
+            s#register_on_frame
+              (`After_frame
+                 (fun { Source.frame; cache } ->
+                   let frame_checksum = Lang.string (Frame.checksum frame) in
+                   let cache_checksum =
+                     match cache with
+                       | Some c -> Lang.string (Frame.checksum c)
+                       | None -> Lang.null
+                   in
+                   after_cb [("cache", cache_checksum); ("", frame_checksum)]))
+          in
+          fun () ->
+            Option.iter (fun release -> release ()) release_before;
+            release_after ());
     };
     {
       name = "on_position";
@@ -322,7 +435,7 @@ let source_callbacks =
           let mode = if remaining then `Remaining else `Elapsed in
           let position = Lang.to_float_getter (List.assoc "position" p) in
           let position () = Frame.main_of_seconds (position ()) in
-          s#on_frame
+          s#register_on_frame
             (`Position
                {
                  Source.allow_partial;

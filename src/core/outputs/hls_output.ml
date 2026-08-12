@@ -1343,7 +1343,7 @@ let _ =
                          ] );
                    ]
                in
-               s#on_file_change on_file_change);
+               s#register_on_file_change on_file_change);
          };
        ]
       @ Start_stop.callbacks ~label:"output")

@@ -700,7 +700,7 @@ let _ =
             arg_t = [];
             register =
               (fun ~params:_ s on_connect ->
-                s#on_connect (fun () -> on_connect []));
+                s#register_on_connect (fun () -> on_connect []));
           };
           {
             Lang_source.name = "on_disconnect";
@@ -710,7 +710,7 @@ let _ =
             arg_t = [];
             register =
               (fun ~params:_ s on_disconnect ->
-                s#on_disconnect (fun () -> on_disconnect []));
+                s#register_on_disconnect (fun () -> on_disconnect []));
           };
           {
             Lang_source.name = "on_error";
@@ -736,7 +736,7 @@ let _ =
               ];
             register =
               (fun ~params:_ s on_error ->
-                s#on_error (fun ~restart_in ~bt exn ->
+                s#register_on_error (fun ~restart_in ~bt exn ->
                     let restart_in =
                       Lang.val_fun
                         [("", "", None)]

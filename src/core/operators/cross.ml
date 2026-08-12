@@ -144,10 +144,15 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
           | `After of Clock.activation * Source.source ] =
       `Idle
 
+    (* Releases what the transition registered, if we are holding one. *)
+    val mutable release_transition = fun () -> ()
+
     method set_status v =
       (match status with
         | `Idle -> ()
         | `Before (a, s) | `After (a, s) -> s#sleep a);
+      release_transition ();
+      release_transition <- (fun () -> ());
       status <- v
 
     method! child_clock_controller =
@@ -353,7 +358,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
       let buffered_seconds = Frame.seconds_of_main buffered in
       self#fade_out_adjustements buffered_seconds;
       self#fade_in_adjustements buffered_seconds;
-      let compound =
+      let compound, release_callbacks =
         let metadata = function None -> Frame.Metadata.empty | Some m -> m in
         let before_metadata = metadata before_metadata in
         let after_metadata = metadata after_metadata in
@@ -413,7 +418,10 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
           db_after
           (Frame.seconds_of_main buffered_before)
           (Frame.seconds_of_main buffered_after);
-        let compound =
+        (* The transition runs on every crossing, so what it registers on the
+           sources it can reach — the two we hand it, and the source we cross,
+           which it may well have captured — is released with the crossing. *)
+        let { Lang_source.release = release_callbacks; result = compound } =
           let params =
             [
               ( "",
@@ -432,7 +440,9 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
                   ] );
             ]
           in
-          Lang.to_source (Lang.apply transition params)
+          Lang_source.collect_callback_releases
+            [(before :> Source.source); (after :> Source.source); s]
+            (fun () -> Lang.to_source (Lang.apply transition params))
         in
         Typing.(compound#frame_type <: self#frame_type);
         let compound =
@@ -451,11 +461,12 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
             | Some _, Some _ -> assert false
         in
         Typing.(compound#frame_type <: self#frame_type);
-        compound
+        (compound, release_callbacks)
       in
       let a = self#prepare_source compound in
       self#reset_analysis;
-      self#set_status (`After (a, compound))
+      self#set_status (`After (a, compound));
+      release_transition <- release_callbacks
 
     method remaining =
       match status with
