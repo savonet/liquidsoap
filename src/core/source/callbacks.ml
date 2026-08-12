@@ -20,13 +20,21 @@
 
  *****************************************************************************)
 
-(** Sources. *)
+module Queue = Queues.Queue
 
-module Callbacks = Callbacks
-module External_input = External_input
-module Lang_clock = Lang_clock
-module Lang_source = Lang_source
-module Source = Source
-module Source_tracks = Source_tracks
-module Start_stop = Start_stop
-module Track = Track
+(* [Queues.Queue] preserves order, locks internally and iterates over a
+   snapshot, so a callback can be released while the list is being iterated. *)
+type 'a t = { ids : int Atomic.t; entries : (int * 'a) Queue.t }
+
+let create () = { ids = Atomic.make 0; entries = Queue.create () }
+let elements { entries } = List.map snd (Queue.elements entries)
+let count { entries } = Queue.length entries
+
+let register t fn =
+  let id = Atomic.fetch_and_add t.ids 1 in
+  Queue.push t.entries (id, fn);
+  fun () -> Queue.filter_out t.entries (fun (id', _) -> id' = id)
+
+let add t fn =
+  let _release = register t fn in
+  ()

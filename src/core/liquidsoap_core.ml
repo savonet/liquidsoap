@@ -74,6 +74,7 @@ module Generator = Generator
 
 (* Sources and clocks *)
 module Source = Source
+module Callbacks = Callbacks
 module Clock = Clock
 module Clock_utils = Clock_utils
 module Output = Output

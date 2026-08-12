@@ -499,10 +499,12 @@ class output p =
 
     val mutable encoder = None
     method self_sync = source#self_sync
-    val mutable on_connect = []
-    method on_connect fn = on_connect <- on_connect @ [fn]
-    val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
+    val on_connect = Callbacks.create ()
+    method register_on_connect fn = Callbacks.register on_connect fn
+    method on_connect fn = Callbacks.add on_connect fn
+    val on_disconnect = Callbacks.create ()
+    method register_on_disconnect fn = Callbacks.register on_disconnect fn
+    method on_disconnect fn = Callbacks.add on_disconnect fn
 
     val mutable on_error
         : restart_in:(float option -> unit) ->
@@ -512,6 +514,13 @@ class output p =
       fun ~restart_in:_ ~bt:_ _ -> ()
 
     method on_error fn = on_error <- fn
+
+    (* A single handler decides how long to wait before restarting, so this one
+       replaces rather than appends: releasing puts the previous one back. *)
+    method register_on_error fn =
+      let previous = on_error in
+      on_error <- fn;
+      fun () -> if on_error == fn then on_error <- previous
 
     method call_on_error ~bt exn =
       let delay = ref (Some 3.) in
@@ -642,7 +651,7 @@ class output p =
               with _ -> ())
           | _ -> ());
 
-        List.iter (fun fn -> fn ()) on_connect
+        List.iter (fun fn -> fn ()) (Callbacks.elements on_connect)
       with
       (* In restart mode, no_connect and no_login are not fatal.
          The output will just try to reconnect later. *)
@@ -670,7 +679,7 @@ class output p =
                Utils.log_exception ~log:self#log ~bt
                  (Printf.sprintf "Error while closing connection: %s"
                     (Printexc.to_string exn)));
-            List.iter (fun fn -> fn ()) on_disconnect
+            List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect)
       end;
       match dump with Some f -> close_out f | None -> ()
   end

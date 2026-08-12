@@ -402,14 +402,16 @@ class virtual ['a] base p =
     val burst_buffer = Strings.Mutable.empty ()
     val shared_metadata : Frame.metadata option Atomic.t = Atomic.make None
     val mutable dump_channel : out_channel option = None
-    val mutable on_connect_callbacks = []
-    val mutable on_disconnect_callbacks = []
+    val on_connect_callbacks = Callbacks.create ()
+    val on_disconnect_callbacks = Callbacks.create ()
     val start_stop_mutex = Mutex.create ()
-    method on_connect fn = on_connect_callbacks <- fn :: on_connect_callbacks
+    method register_on_connect fn = Callbacks.register on_connect_callbacks fn
+    method on_connect fn = Callbacks.add on_connect_callbacks fn
 
-    method on_disconnect fn =
-      on_disconnect_callbacks <- fn :: on_disconnect_callbacks
+    method register_on_disconnect fn =
+      Callbacks.register on_disconnect_callbacks fn
 
+    method on_disconnect fn = Callbacks.add on_disconnect_callbacks fn
     method self_sync = source#self_sync
     method private get_metadata = Atomic.get shared_metadata
 
@@ -451,7 +453,9 @@ class virtual ['a] base p =
             handler =
               (fun _ ->
                 self#stop_listener_encoder listener;
-                List.iter (fun fn -> fn listener.id) on_disconnect_callbacks;
+                List.iter
+                  (fun fn -> fn listener.id)
+                  (Callbacks.elements on_disconnect_callbacks);
                 []);
           }
       end
@@ -696,7 +700,7 @@ class virtual ['a] base p =
       self#log#info "Listener %s connected" client_id;
       List.iter
         (fun fn -> fn ~headers ~uri:request_uri ~protocol client_id)
-        on_connect_callbacks;
+        (Callbacks.elements on_connect_callbacks);
       Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler (Harbor.custom ())
 
     method private register_http_handler =

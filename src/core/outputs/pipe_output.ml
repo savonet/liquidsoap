@@ -172,15 +172,16 @@ class url_output p =
     method private encoder_factory = encoder_factory ~format format_val
     val mutable restart_time = 0.
     method can_connect = restart_time <= Unix.gettimeofday ()
-    val mutable on_error = []
-    method on_error fn = on_error <- on_error @ [fn]
+    val on_error = Callbacks.create ()
+    method register_on_error fn = Callbacks.register on_error fn
+    method on_error fn = Callbacks.add on_error fn
 
     method apply_on_error ~bt exn =
       (try ignore self#close_encoder with _ -> ());
       Utils.log_exception ~log:self#log
         ~bt:(Printexc.raw_backtrace_to_string bt)
         (Printf.sprintf "Error while connecting: %s" (Printexc.to_string exn));
-      List.iter (fun fn -> fn ~bt exn) on_error;
+      List.iter (fun fn -> fn ~bt exn) (Callbacks.elements on_error);
       match restart_delay with
         | None -> Printexc.raise_with_backtrace exn bt
         | Some delay ->
@@ -366,8 +367,9 @@ class virtual piped_output ?clock ~name p =
         (try base#send self#close_encoder with _ -> ());
         self#close_pipe)
 
-    val mutable on_reopen = []
-    method on_reopen fn = on_reopen <- on_reopen @ [fn]
+    val on_reopen = Callbacks.create ()
+    method register_on_reopen fn = Callbacks.register on_reopen fn
+    method on_reopen fn = Callbacks.add on_reopen fn
     method start = self#prepare_pipe
     method stop = self#cleanup_pipe
 
@@ -375,7 +377,7 @@ class virtual piped_output ?clock ~name p =
       self#log#important "Re-opening output pipe.";
       self#cleanup_pipe;
       self#prepare_pipe;
-      List.iter (fun fn -> fn ()) on_reopen
+      List.iter (fun fn -> fn ()) (Callbacks.elements on_reopen)
 
     method private reopen_on_error ~bt exn =
       open_date <- reopen_time_on_error ~log:self#log reopen_on_error ~bt exn

@@ -22,6 +22,7 @@
 
 (* See liquidsoap_core_source.mli. *)
 
+module Callbacks = Callbacks
 module External_input = External_input
 module Lang_clock = Lang_clock
 module Lang_source = Lang_source

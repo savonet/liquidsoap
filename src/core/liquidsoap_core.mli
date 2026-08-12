@@ -93,6 +93,9 @@ module Generator = Generator
     The streaming model: sources produce frames, clocks animate them. *)
 module Source = Source
 
+(** Ordered callback lists a callback can be removed from. *)
+module Callbacks = Callbacks
+
 module Clock = Clock
 module Clock_utils = Clock_utils
 module Output = Output

@@ -102,14 +102,14 @@ let check_sleep ~activations ~s =
 
 let on_finalize ~on_collect id =
  fun () ->
-  List.iter (fun fn -> fn ()) !on_collect;
+  List.iter (fun fn -> fn ()) (Callbacks.elements on_collect);
   source_log#info "Source %s is collected." !id
 
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
   let id = ref (Lang_string.generate_id ~category:"source" name) in
-  let on_collect = ref [] in
+  let on_collect = Callbacks.create () in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -249,23 +249,19 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method source_state = source_state
 
     val state_callbacks
-        : (int
-          * (old:Clock.sync_source option -> Clock.sync_source option -> unit))
-          Queue.t =
-      Queue.create ()
+        : (old:Clock.sync_source option -> Clock.sync_source option -> unit)
+          Callbacks.t =
+      Callbacks.create ()
 
-    val callback_id_counter = Atomic.make 0
-
-    method on_sync_source_change fn =
-      let id = Atomic.fetch_and_add callback_id_counter 1 in
-      Queue.push state_callbacks (id, fn);
-      fun () -> Queue.filter_out state_callbacks (fun (i, _) -> i = id)
+    method on_sync_source_change fn = Callbacks.register state_callbacks fn
 
     method private notify_sync_source new_state =
       if sync_source_changed new_state source_state then (
         let old = source_state in
         source_state <- new_state;
-        Queue.iter state_callbacks (fun (_, fn) -> fn ~old new_state))
+        List.iter
+          (fun fn -> fn ~old new_state)
+          (Callbacks.elements state_callbacks))
 
     method private on_child_state_change ~child:_ ~old:_ _ =
       self#notify_sync_source (snd self#self_sync)
@@ -354,8 +350,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             dim
         | Some dim -> dim
 
-    val mutable on_wake_up = []
-    method on_wake_up fn = on_wake_up <- on_wake_up @ [fn]
+    val on_wake_up : (unit -> unit) Callbacks.t = Callbacks.create ()
+    method register_on_wake_up fn = Callbacks.register on_wake_up fn
+    method on_wake_up fn = Callbacks.add on_wake_up fn
     val mutable on_activation = []
     method on_activation fn = on_activation <- on_activation @ [fn]
 
@@ -400,7 +397,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           self#log#debug "Clock is %s." (Clock.id self#clock);
           self#log#important "Content type is %s."
             (Frame.string_of_content_type self#content_type);
-          List.iter (fun fn -> fn ()) on_wake_up
+          List.iter (fun fn -> fn ()) (Callbacks.elements on_wake_up)
         with exn ->
           Atomic.set is_up `Error;
           let bt = Printexc.get_raw_backtrace () in
@@ -412,8 +409,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       List.iter (fun fn -> fn ()) on_activation;
       activation
 
-    val mutable on_sleep = []
-    method on_sleep fn = on_sleep <- on_sleep @ [fn]
+    val on_sleep : (unit -> unit) Callbacks.t = Callbacks.create ()
+    method register_on_sleep fn = Callbacks.register on_sleep fn
+    method on_sleep fn = Callbacks.add on_sleep fn
 
     method private actual_sleep =
       if Atomic.compare_and_set is_up `True `False then (
@@ -434,7 +432,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                 ~bt:(Printexc.raw_backtrace_to_string bt)
                 (Printf.sprintf "Error while shutting down source %s: %s!"
                    self#id (Printexc.to_string exn)))
-          on_sleep)
+          (Callbacks.elements on_sleep))
 
     method sleep (src : Clock.activation) =
       if not (WeakQueue.exists activations (fun a -> a == src)) then (
@@ -458,7 +456,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | 0, _, _ -> self#actual_sleep
         | _ -> ()
 
-    method on_collect fn = on_collect := fn :: !on_collect
+    method register_on_collect fn = Callbacks.register on_collect fn
+    method on_collect fn = Callbacks.add on_collect fn
 
     initializer
       Gc.finalise_last (on_finalize ~on_collect id) self;
@@ -667,8 +666,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
-    val mutable on_frame : on_frame list = []
-    method on_frame fn = on_frame <- on_frame @ [fn]
+    val on_frame : on_frame Callbacks.t = Callbacks.create ()
+    method register_on_frame fn = Callbacks.register on_frame fn
+    method on_frame fn = Callbacks.add on_frame fn
     val mutable reset_last_metadata_on_track = Atomic.make true
 
     method reset_last_metadata_on_track =
@@ -698,7 +698,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           Option.value ~default:(0, Frame.Metadata.empty) last_metadata
         in
         self#log#debug "calling on_track handlers..";
-        List.iter (function `Track fn -> fn m | _ -> ()) on_frame)
+        List.iter
+          (function `Track fn -> fn m | _ -> ())
+          (Callbacks.elements on_frame))
 
     val mutable last_images = Hashtbl.create 0
 
@@ -792,11 +794,11 @@ class virtual operator ?(stack = []) ?clock ~name sources =
               p.executed <- true;
               p.on_position ~pos:(position p) m
           | _ -> ())
-        on_frame
+        (Callbacks.elements on_frame)
 
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
-      let on_frame = self#atomic_lock (fun () -> on_frame) () in
+      let on_frame = Callbacks.elements on_frame in
       List.iter (function `Before_frame fn -> fn _cache | _ -> ()) on_frame;
       let buf = self#normalize_video_content self#generate_frame in
       List.iter

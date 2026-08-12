@@ -152,6 +152,11 @@ object
   (** Register a callback to be executed when the source is collected. *)
   method on_collect : (unit -> unit) -> unit
 
+  (** Same, returning the function that releases the callback. Registrations
+      that outlive their registrant have to be released, otherwise they pile up
+      on the source for as long as it lives. *)
+  method register_on_collect : (unit -> unit) -> unit -> unit
+
   (** The clock under which the source will run. *)
   method clock : Clock.t
 
@@ -184,6 +189,9 @@ object
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit
 
+  (** Same, returning the function that releases the callback. *)
+  method register_on_wake_up : (unit -> unit) -> unit -> unit
+
   (** Register a callback called on every activation, i.e. each time [wake_up]
       is called, not just the first one. *)
   method on_activation : (unit -> unit) -> unit
@@ -196,6 +204,9 @@ object
 
   (** Register a callback when sleep is called. *)
   method on_sleep : (unit -> unit) -> unit
+
+  (** Same, returning the function that releases the callback. *)
+  method register_on_sleep : (unit -> unit) -> unit -> unit
 
   (** Called when the source can release all its resources. Can be called
       concurrently and multiple times. *)
@@ -284,6 +295,9 @@ object
 
   (** Register a callback to be called when computing frames. *)
   method on_frame : on_frame -> unit
+
+  (** Same, returning the function that releases the callback. *)
+  method register_on_frame : on_frame -> unit -> unit
 
   (** These two are used by [generate_from_multiple_sources] and should not be
       used otherwise. *)

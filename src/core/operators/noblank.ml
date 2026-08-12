@@ -97,10 +97,12 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method remaining = source#remaining
     method effective_source = source#effective_source
     method self_sync = source#self_sync
-    val mutable on_blank = []
-    method on_blank fn = on_blank <- on_blank @ [fn]
-    val mutable on_noise = []
-    method on_noise fn = on_noise <- on_noise @ [fn]
+    val on_blank = Callbacks.create ()
+    method register_on_blank fn = Callbacks.register on_blank fn
+    method on_blank fn = Callbacks.add on_blank fn
+    val on_noise = Callbacks.create ()
+    method register_on_noise fn = Callbacks.register on_noise fn
+    method on_noise fn = Callbacks.add on_noise fn
 
     method private generate_frame =
       let buf = source#get_frame in
@@ -110,8 +112,10 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
         self#is_blank
       in
       (match (was_blank, is_blank) with
-        | true, false -> List.iter (fun fn -> fn ()) on_noise
-        | false, true -> List.iter (fun fn -> fn ()) on_blank
+        | true, false ->
+            List.iter (fun fn -> fn ()) (Callbacks.elements on_noise)
+        | false, true ->
+            List.iter (fun fn -> fn ()) (Callbacks.elements on_blank)
         | _ -> ());
       buf
   end
