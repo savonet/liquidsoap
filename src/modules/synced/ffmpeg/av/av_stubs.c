@@ -2130,25 +2130,47 @@ CAMLprim value ocaml_av_write_stream_packet(value _stream, value _time_base,
   CAMLreturn(Val_unit);
 }
 
+/* Writes the container header on first use. Caller holds the runtime system
+   released. */
+static int ensure_header_written(av_t *av) {
+  int ret = 0;
+
+  if (!av->header_written) {
+    ret = avformat_write_header(av->format_context, NULL);
+
+    if (ret >= 0)
+      av->header_written = 1;
+  }
+
+  return ret;
+}
+
+/* Stamps [packet] for [stream_index], rescaling from [src_tb] to the
+   stream's time base, and hands it to the muxer. Caller holds the runtime
+   system released. */
+static int send_packet(av_t *av, AVPacket *packet, int stream_index,
+                       AVRational src_tb) {
+  packet->stream_index = stream_index;
+  packet->pos = -1;
+  av_packet_rescale_ts(packet, src_tb,
+                       av->format_context->streams[stream_index]->time_base);
+
+  return av->write_frame(av->format_context, packet);
+}
+
 static void write_frame(av_t *av, int stream_index, AVCodecContext *enc_ctx,
                         value _on_keyframe, AVFrame *frame) {
   CAMLparam1(_on_keyframe);
-  AVStream *avstream = av->format_context->streams[stream_index];
   AVFrame *hw_frame = NULL;
   int ret;
 
   caml_release_runtime_system();
 
-  if (!av->header_written) {
-    // write output file header
-    ret = avformat_write_header(av->format_context, NULL);
+  ret = ensure_header_written(av);
 
-    if (ret < 0) {
-      caml_acquire_runtime_system();
-      ocaml_avutil_raise_error(ret);
-    }
-
-    av->header_written = 1;
+  if (ret < 0) {
+    caml_acquire_runtime_system();
+    ocaml_avutil_raise_error(ret);
   }
 
   AVPacket *packet = av_packet_alloc();
@@ -2236,11 +2258,7 @@ static void write_frame(av_t *av, int stream_index, AVCodecContext *enc_ctx,
       caml_release_runtime_system();
     }
 
-    packet->stream_index = stream_index;
-    packet->pos = -1;
-    av_packet_rescale_ts(packet, enc_ctx->time_base, avstream->time_base);
-
-    ret = av->write_frame(av->format_context, packet);
+    ret = send_packet(av, packet, stream_index, enc_ctx->time_base);
   }
 
   if (hw_frame)
@@ -2258,7 +2276,9 @@ static void write_frame(av_t *av, int stream_index, AVCodecContext *enc_ctx,
   CAMLreturn0;
 }
 
-static void write_audio_frame(av_t *av, unsigned int stream_index,
+/* Audio and video both go through the send_frame/receive_packet encoder
+   API; subtitles use the legacy one-shot avcodec_encode_subtitle. */
+static void write_media_frame(av_t *av, unsigned int stream_index,
                               value _on_keyframe, AVFrame *frame) {
   if (!av->streams)
     Fail("Failed to write in closed output");
@@ -2269,23 +2289,7 @@ static void write_audio_frame(av_t *av, unsigned int stream_index,
   stream_t *stream = av->streams[stream_index];
 
   if (!stream->codec_context)
-    Fail("Could not find stream index");
-
-  write_frame(av, stream_index, stream->codec_context, _on_keyframe, frame);
-}
-
-static void write_video_frame(av_t *av, unsigned int stream_index,
-                              value _on_keyframe, AVFrame *frame) {
-  if (!av->streams)
-    Fail("Failed to write in closed output");
-
-  if (stream_index >= av->format_context->nb_streams)
-    Fail("Stream index not found!");
-
-  stream_t *stream = av->streams[stream_index];
-
-  if (!stream->codec_context)
-    Fail("Failed to write video frame with no encoder");
+    Fail("Failed to write frame with no encoder");
 
   write_frame(av, stream_index, stream->codec_context, _on_keyframe, frame);
 }
@@ -2299,8 +2303,6 @@ static void write_subtitle_frame(av_t *av, unsigned int stream_index,
     Fail("Stream index not found!");
 
   stream_t *stream = av->streams[stream_index];
-
-  AVStream *avstream = av->format_context->streams[stream->index];
 
   if (!stream->codec_context)
     Fail("Failed to write subtitle frame with no encoder");
@@ -2324,8 +2326,17 @@ static void write_subtitle_frame(av_t *av, unsigned int stream_index,
   }
 
   caml_release_runtime_system();
-  err = avcodec_encode_subtitle(stream->codec_context, packet->data,
-                                packet->size, subtitle);
+
+  /* Header first: it can update the stream time base before the rescale
+     below, and deferring it until a subtitle encodes to something leaves a
+     stream whose subtitles are all empty with no header, hence no trailer
+     at close. */
+  err = ensure_header_written(av);
+
+  if (err >= 0)
+    err = avcodec_encode_subtitle(stream->codec_context, packet->data,
+                                  packet->size, subtitle);
+
   caml_acquire_runtime_system();
 
   if (err < 0) {
@@ -2345,19 +2356,6 @@ static void write_subtitle_frame(av_t *av, unsigned int stream_index,
   // Update packet size to actual encoded size
   packet->size = encoded_size;
 
-  // Write header before rescaling timestamps (header write can update
-  // time_base)
-  if (!av->header_written) {
-    caml_release_runtime_system();
-    err = avformat_write_header(av->format_context, NULL);
-    caml_acquire_runtime_system();
-    if (err < 0) {
-      av_packet_free(&packet);
-      ocaml_avutil_raise_error(err);
-    }
-    av->header_written = 1;
-  }
-
   // subtitle->pts is in AV_TIME_BASE units
   // start_display_time and end_display_time are in milliseconds relative to
   // pts Note: avcodec_encode_subtitle requires start_display_time == 0
@@ -2369,13 +2367,8 @@ static void write_subtitle_frame(av_t *av, unsigned int stream_index,
       (int64_t)(subtitle->end_display_time - subtitle->start_display_time) *
       AV_TIME_BASE / 1000;
 
-  av_packet_rescale_ts(packet, AV_TIME_BASE_Q, avstream->time_base);
-
-  packet->stream_index = stream_index;
-  packet->pos = -1;
-
   caml_release_runtime_system();
-  err = av->write_frame(av->format_context, packet);
+  err = send_packet(av, packet, stream_index, AV_TIME_BASE_Q);
   caml_acquire_runtime_system();
 
   av_packet_free(&packet);
@@ -2397,10 +2390,8 @@ CAMLprim value ocaml_av_write_stream_frame(value _on_keyframe, value _stream,
 
   enum AVMediaType type = av->streams[index]->codec_context->codec_type;
 
-  if (type == AVMEDIA_TYPE_AUDIO) {
-    write_audio_frame(av, index, _on_keyframe, Frame_val(_frame));
-  } else if (type == AVMEDIA_TYPE_VIDEO) {
-    write_video_frame(av, index, _on_keyframe, Frame_val(_frame));
+  if (type == AVMEDIA_TYPE_AUDIO || type == AVMEDIA_TYPE_VIDEO) {
+    write_media_frame(av, index, _on_keyframe, Frame_val(_frame));
   } else if (type == AVMEDIA_TYPE_SUBTITLE) {
     write_subtitle_frame(av, index, Subtitle_val(_frame));
   }
@@ -2466,11 +2457,11 @@ CAMLprim value ocaml_av_close(value _av) {
       if (!enc_ctx)
         continue;
 
-      if (enc_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-        write_audio_frame(av, i, Val_none, NULL);
-      } else if (enc_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
-        write_video_frame(av, i, Val_none, NULL);
-      }
+      /* Subtitles are not flushed: avcodec_encode_subtitle is stateless,
+         there is no delayed output to drain. */
+      if (enc_ctx->codec_type == AVMEDIA_TYPE_AUDIO ||
+          enc_ctx->codec_type == AVMEDIA_TYPE_VIDEO)
+        write_media_frame(av, i, Val_none, NULL);
     }
 
     // write the trailer
