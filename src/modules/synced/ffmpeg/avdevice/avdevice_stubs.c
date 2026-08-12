@@ -14,6 +14,7 @@
 #include "avutil_stubs.h"
 
 CAMLprim value ocaml_avdevice_init(value unit) {
+  (void)unit;
   CAMLparam0();
   avdevice_register_all();
   CAMLreturn(Val_unit);
@@ -45,11 +46,13 @@ static value get_input_devices(avioformat_const AVInputFormat *(
 }
 
 CAMLprim value ocaml_avdevice_get_audio_input_formats(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLreturn(get_input_devices(av_input_audio_device_next));
 }
 
 CAMLprim value ocaml_avdevice_get_video_input_formats(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLreturn(get_input_devices(av_input_video_device_next));
 }
@@ -79,11 +82,13 @@ static value get_output_devices(avioformat_const AVOutputFormat *(
 }
 
 CAMLprim value ocaml_avdevice_get_audio_output_formats(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLreturn(get_output_devices(av_output_audio_device_next));
 }
 
 CAMLprim value ocaml_avdevice_get_video_output_formats(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLreturn(get_output_devices(av_output_video_device_next));
 }
@@ -156,6 +161,7 @@ CAMLprim value ocaml_avdevice_app_to_dev_control_message(value _message,
 
 static int ocaml_control_message_callback(struct AVFormatContext *ctx, int type,
                                           void *data, size_t data_size) {
+  (void)data_size;
   CAMLparam0();
   CAMLlocal3(msg, opt, res);
   enum AVDevToAppMessageType message_type = (enum AVDevToAppMessageType)type;

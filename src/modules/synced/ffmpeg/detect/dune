@@ -46,7 +46,11 @@
    %{context_name}
    avutil
    "libavutil libavcodec"
-   "libavutil >= 57.28.100, libavcodec >= 59.24.100")))
+   "libavutil >= 57.28.100, libavcodec >= 59.24.100"
+   -Wall
+   -Wextra
+   -Werror=unused-variable
+   -Werror=unused-parameter)))
 
 (rule
  (targets
@@ -63,7 +67,11 @@
    %{context_name}
    avcodec
    libavcodec
-   "libavcodec >= 59.24.100")))
+   "libavcodec >= 59.24.100"
+   -Wall
+   -Wextra
+   -Werror=unused-variable
+   -Werror=unused-parameter)))
 
 (rule
  (targets av_available av_c_flags av_c_flags.sexp av_c_library_flags.sexp)
@@ -97,7 +105,11 @@
    %{context_name}
    avfilter
    libavfilter
-   "libavfilter >= 8.28.100")))
+   "libavfilter >= 8.28.100"
+   -Wall
+   -Wextra
+   -Werror=unused-variable
+   -Werror=unused-parameter)))
 
 (rule
  (targets
@@ -114,7 +126,11 @@
    %{context_name}
    avdevice
    libavdevice
-   "libavdevice >= 57.10.100")))
+   "libavdevice >= 57.10.100"
+   -Wall
+   -Wextra
+   -Werror=unused-variable
+   -Werror=unused-parameter)))
 
 (rule
  (targets
@@ -131,7 +147,11 @@
    %{context_name}
    swscale
    libswscale
-   "libswscale >= 4.8.100")))
+   "libswscale >= 4.8.100"
+   -Wall
+   -Wextra
+   -Werror=unused-variable
+   -Werror=unused-parameter)))
 
 (rule
  (targets
@@ -148,4 +168,8 @@
    %{context_name}
    swresample
    libswresample
-   "libswresample >= 2.9.100")))
+   "libswresample >= 2.9.100"
+   -Wall
+   -Wextra
+   -Werror=unused-variable
+   -Werror=unused-parameter)))

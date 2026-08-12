@@ -26,6 +26,7 @@ static inline value value_of_avfiltercontext(value ret,
 }
 
 CAMLprim value ocaml_avfilter_register_all(value unit) {
+  (void)unit;
   CAMLparam0();
 #if LIBAVFILTER_VERSION_INT < AV_VERSION_INT(7, 14, 100)
   avfilter_register_all();
@@ -79,6 +80,7 @@ CAMLprim value ocaml_avfilter_alloc_pads(const AVFilterPad *pads, int pad_count,
 }
 
 CAMLprim value ocaml_avfilter_get_all_filters(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLlocal5(pad, pads, cur, ret, tmp);
   int c = 0;
@@ -146,9 +148,11 @@ static void finalize_filter_graph(value v) {
 static struct custom_operations filter_graph_ops = {
     "ocaml_avfilter_filter_graph", finalize_filter_graph,
     custom_compare_default,        custom_hash_default,
-    custom_serialize_default,      custom_deserialize_default};
+    custom_serialize_default,      custom_deserialize_default,
+    custom_compare_ext_default,    custom_fixed_length_default};
 
 CAMLprim value ocaml_avfilter_init(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLlocal1(ret);
   AVFilterGraph *graph = avfilter_graph_alloc();
@@ -292,7 +296,7 @@ CAMLprim value ocaml_avfilter_parse(value _inputs, value _outputs,
   AVFilterContext *filter_ctx;
   char *filters, *name;
 
-  for (c = 0; c < Wosize_val(_inputs); c++) {
+  for (c = 0; c < (int)Wosize_val(_inputs); c++) {
     _pad = Field(_inputs, c);
     name = av_strdup(String_val(Field(_pad, 0)));
     filter_ctx = AvFilterContext_val(Field(_pad, 1));
@@ -301,7 +305,7 @@ CAMLprim value ocaml_avfilter_parse(value _inputs, value _outputs,
     append_avfilter_in_out(&inputs, name, filter_ctx, idx);
   }
 
-  for (c = 0; c < Wosize_val(_outputs); c++) {
+  for (c = 0; c < (int)Wosize_val(_outputs); c++) {
     _pad = Field(_outputs, c);
     name = av_strdup(String_val(Field(_pad, 0)));
     filter_ctx = AvFilterContext_val(Field(_pad, 1));

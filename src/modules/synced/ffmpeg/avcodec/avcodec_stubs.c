@@ -25,6 +25,7 @@
 #endif
 
 value ocaml_avcodec_init(value unit) {
+  (void)unit;
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
   avcodec_register_all();
 #endif
@@ -32,6 +33,7 @@ value ocaml_avcodec_init(value unit) {
 }
 
 CAMLprim value ocaml_avcodec_flag_qscale(value unit) {
+  (void)unit;
   return Val_int(AV_CODEC_FLAG_QSCALE);
 }
 
@@ -78,7 +80,8 @@ static void finalize_codec_parameters(value v) {
 static struct custom_operations codec_parameters_ops = {
     "ocaml_avcodec_parameters", finalize_codec_parameters,
     custom_compare_default,     custom_hash_default,
-    custom_serialize_default,   custom_deserialize_default};
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 void value_of_codec_parameters_copy(AVCodecParameters *src, value *pvalue) {
   if (!src)
@@ -108,9 +111,14 @@ static void finalize_packet(value v) {
   av_packet_free(&packet);
 }
 
-static struct custom_operations packet_ops = {
-    "ocaml_packet",      finalize_packet,          custom_compare_default,
-    custom_hash_default, custom_serialize_default, custom_deserialize_default};
+static struct custom_operations packet_ops = {"ocaml_packet",
+                                              finalize_packet,
+                                              custom_compare_default,
+                                              custom_hash_default,
+                                              custom_serialize_default,
+                                              custom_deserialize_default,
+                                              custom_compare_ext_default,
+                                              custom_fixed_length_default};
 
 value value_of_ffmpeg_packet(value *ret, AVPacket *packet) {
   if (!packet)
@@ -174,6 +182,7 @@ CAMLprim value ocaml_avcodec_packet_add_side_data(value _packet,
     break;
   default:
     Fail("Invalid value");
+    CAMLreturn(Val_unit); /* unreachable: Fail raises */
   }
 
   switch (type) {
@@ -449,9 +458,10 @@ static void finalize_codec_context(value v) {
 }
 
 static struct custom_operations codec_context_ops = {
-    "ocaml_codec_context",    finalize_codec_context,
-    custom_compare_default,   custom_hash_default,
-    custom_serialize_default, custom_deserialize_default};
+    "ocaml_codec_context",      finalize_codec_context,
+    custom_compare_default,     custom_hash_default,
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 CAMLprim value ocaml_avcodec_create_decoder(value _params, value _codec) {
   CAMLparam2(_params, _codec);
@@ -1370,8 +1380,10 @@ CAMLprim value ocaml_avcodec_get_supported_color_spaces(value _codec) {
     ocaml_avutil_raise_error(err);
 #endif
 
+  /* Terminated by AVCOL_SPC_UNSPECIFIED, not -1: enum AVColorSpace is
+     unsigned, so comparing against -1 never terminates. */
   if (color_spaces) {
-    for (i = 0; color_spaces[i] != -1; i++)
+    for (i = 0; color_spaces[i] != AVCOL_SPC_UNSPECIFIED; i++)
       List_add(list, cons, Val_ColorSpace(color_spaces[i]));
   }
 
@@ -1396,8 +1408,9 @@ CAMLprim value ocaml_avcodec_get_supported_color_ranges(value _codec) {
     ocaml_avutil_raise_error(err);
 #endif
 
+  /* Terminated by AVCOL_RANGE_UNSPECIFIED, not -1. */
   if (color_ranges) {
-    for (i = 0; color_ranges[i] != -1; i++)
+    for (i = 0; color_ranges[i] != AVCOL_RANGE_UNSPECIFIED; i++)
       List_add(list, cons, Val_ColorRange(color_ranges[i]));
   }
 
@@ -1660,9 +1673,10 @@ static void finalize_bsf_filter(value v) {
 }
 
 static struct custom_operations bsf_filter_ops = {
-    "bsf_filter_parameters",  finalize_bsf_filter,
-    custom_compare_default,   custom_hash_default,
-    custom_serialize_default, custom_deserialize_default};
+    "bsf_filter_parameters",    finalize_bsf_filter,
+    custom_compare_default,     custom_hash_default,
+    custom_serialize_default,   custom_deserialize_default,
+    custom_compare_ext_default, custom_fixed_length_default};
 
 CAMLprim value ocaml_avcodec_bsf_init(value _opts, value _name, value _params) {
   CAMLparam3(_opts, _name, _params);
