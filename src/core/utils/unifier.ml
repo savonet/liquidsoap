@@ -22,48 +22,61 @@
 
 (* Simple unification module for variables with no unknown value *)
 
-type 'a t = [ `Value of 'a | `Link of 'a t Atomic.t ]
+(* A node retains whatever it links to, and [find_root] only compresses paths
+   that are actually walked. Ranks let [<--] attach the shallower tree under
+   the deeper one, so a node never ends up pointing at one created after it. *)
+type 'a t = [ `Value of 'a | `Link of 'a link ]
+and 'a link = { atom : 'a t Atomic.t; mutable rank : int }
 
-let make v = `Link (Atomic.make (`Value v))
+let make v = `Link { atom = Atomic.make (`Value v); rank = 0 }
 
 (* Return the terminal atom of a chain (the one holding `Value), compressing
    the path behind it: every link visited is re-pointed directly at the
    terminal atom, so subsequent walks are O(1) instead of O(chain length).
    Without this, chains only ever grow (each [<--] appends one), and code
    that derefs in a hot loop pays for the full history of unifications. *)
-let find_root a =
-  let rec find a =
-    match Atomic.get a with `Value _ -> a | `Link a' -> find a'
+let find_root l =
+  let rec find l =
+    match Atomic.get l.atom with `Value _ -> l | `Link l' -> find l'
   in
-  let root = find a in
-  let rec compress a =
-    match Atomic.get a with
+  let root = find l in
+  let rec compress l =
+    match Atomic.get l.atom with
       | `Value _ -> ()
-      | `Link a' ->
-          if a' != root then Atomic.set a (`Link root);
-          compress a'
+      | `Link l' ->
+          if l' != root then Atomic.set l.atom (`Link root);
+          compress l'
   in
-  compress a;
+  compress l;
   root
 
 let rec deref x =
   match x with
     | `Value v -> v
-    | `Link a -> (
-        match Atomic.get (find_root a) with
+    | `Link l -> (
+        match Atomic.get (find_root l).atom with
           | `Value v -> v
           (* A concurrent [<--] may have linked our root onward; retry. *)
-          | `Link _ as l -> deref l)
+          | `Link _ as x -> deref x)
 
 let set x v =
   match x with
     | `Value _ -> assert false
-    | `Link a -> Atomic.set (find_root a) (`Value v)
+    | `Link l -> Atomic.set (find_root l).atom (`Value v)
 
 let ( <-- ) x x' =
   match (x, x') with
     | `Value _, _ | _, `Value _ -> assert false
-    | `Link a, `Link a' ->
-        let r = find_root a in
-        let r' = find_root a' in
-        if r != r' then Atomic.set r (`Link r')
+    | `Link l, `Link l' ->
+        let r = find_root l in
+        let r' = find_root l' in
+        if r != r' then
+          if r.rank <= r'.rank then (
+            Atomic.set r.atom (`Link r');
+            if r.rank = r'.rank then r'.rank <- r'.rank + 1)
+          else (
+            (* [r'] holds the value that must survive, so move it into [r]
+               before pointing [r'] there. *)
+            let surviving = Atomic.get r'.atom in
+            Atomic.set r.atom surviving;
+            Atomic.set r'.atom (`Link r))
