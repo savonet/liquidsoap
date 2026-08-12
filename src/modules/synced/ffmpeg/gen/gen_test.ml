@@ -17,6 +17,7 @@ let () =
         "test_codec";
         "test_options";
         "test_swscale";
+        "test_swresample";
       ]
       ["ffmpeg-av"; "ffmpeg-swresample"; "ffmpeg-swscale"];
     print_string
@@ -29,6 +30,7 @@ let () =
   (:codec test_codec.exe)
   (:options test_options.exe)
   (:swscale test_swscale.exe)
+  (:swresample test_swresample.exe)
   (:list_filters ../examples/list_filters.exe)
   (:all_codecs ../examples/all_codecs.exe)
   (:all_channel_layouts ../examples/all_channel_layouts.exe)
@@ -60,6 +62,7 @@ let () =
   (progn
    (run %{runner} "codec" %{codec})
    (run %{runner} "swscale" %{swscale})
+   (run %{runner} "swresample" %{swresample})
    (run %{runner} "list_filters" %{list_filters})
    (run %{runner} "all_codecs" %{all_codecs})
    (run %{runner} "all_channel_layouts" %{all_channel_layouts})
