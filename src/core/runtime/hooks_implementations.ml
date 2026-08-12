@@ -116,26 +116,30 @@ let () =
         ?pos:(Option.map Liquidsoap_lang_prelude.Pos.of_lexing_pos pos)
         Lang_clock.ClockValue.base_t.Type.descr
 
-let mk_source_ty ?pos name { Parsed_term.extensible; tracks } =
+let mk_source_ty ?pos name annotation =
   if name <> "source" then (
     let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
     raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")));
 
-  match tracks with
-    | [] -> Lang_source.source_t ?pos (Lang.univ_t ())
-    | tracks ->
-        let fields =
-          List.fold_left
-            (fun fields { Parsed_term.track_name; track_type; track_params } ->
-              Frame.Fields.add
-                (Frame.Fields.field_of_string track_name)
-                (mk_field_t ?pos track_type track_params)
-                fields)
-            Frame.Fields.empty tracks
-        in
-        let base = if extensible then Lang.univ_t () else Lang.unit_t in
+  match annotation with
+    | `Abstract -> Lang_source.abstract_source_t ?pos ()
+    | `Tracks { Parsed_term.extensible; tracks } -> (
+        match tracks with
+          | [] -> Lang_source.source_t ?pos (Lang.univ_t ())
+          | tracks ->
+              let fields =
+                List.fold_left
+                  (fun fields
+                       { Parsed_term.track_name; track_type; track_params } ->
+                    Frame.Fields.add
+                      (Frame.Fields.field_of_string track_name)
+                      (mk_field_t ?pos track_type track_params)
+                      fields)
+                  Frame.Fields.empty tracks
+              in
+              let base = if extensible then Lang.univ_t () else Lang.unit_t in
 
-        Lang_source.source_t ?pos (Frame_type.make base fields)
+              Lang_source.source_t ?pos (Frame_type.make base fields))
 
 let register () =
   Hooks.liq_libs_dir := Configure.liq_libs_dir;

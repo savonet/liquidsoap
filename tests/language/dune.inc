@@ -1,4 +1,23 @@
 (rule
+ (alias test_abstract_source)
+ (package liquidsoap)
+ (deps
+  abstract_source.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   abstract_source.liq
+   liquidsoap
+   %{test_liq}
+   abstract_source.liq)))
+
+(rule
  (alias test_argsof)
  (package liquidsoap)
  (deps
@@ -763,6 +782,7 @@
 (alias
  (name citest)
  (deps
+  (alias test_abstract_source)
   (alias test_argsof)
   (alias test_bool)
   (alias test_comments)

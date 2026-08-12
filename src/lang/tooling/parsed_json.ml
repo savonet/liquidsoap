@@ -177,10 +177,15 @@ and json_of_meth_annotation { optional_meth; name; typ; json_name } =
       ]
     (json_of_type_annotation typ)
 
-and json_of_source_annotation { extensible; tracks } =
-  type_node ~typ:"source_annotation"
-    ~extra:[("extensible", `Bool extensible)]
-    (`Tuple (List.map json_of_source_track_annotation tracks))
+and json_of_source_annotation = function
+  | `Abstract ->
+      type_node ~typ:"source_annotation"
+        ~extra:[("abstract", `Bool true)]
+        (`Tuple [])
+  | `Tracks { extensible; tracks } ->
+      type_node ~typ:"source_annotation"
+        ~extra:[("extensible", `Bool extensible)]
+        (`Tuple (List.map json_of_source_track_annotation tracks))
 
 and json_of_source_track_annotation { track_name; track_type; track_params } =
   type_node ~typ:"source_track_annotation"

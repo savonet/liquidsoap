@@ -5,6 +5,7 @@ module Flags = Liquidsoap_lang_data.Flags
 module Http = Liq_http
 
 let source_t = source_t ?pos:None
+let abstract_source_t = abstract_source_t ?pos:None
 let () = Hooks_implementations.register ()
 
 (** Helpers for defining protocols. *)

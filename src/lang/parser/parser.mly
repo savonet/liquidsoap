@@ -402,9 +402,12 @@ meth_ty:
                             { { optional_meth = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc($1) $1) } }
 
 ty_source_tracks:
-  | VAR GETS ty_content { { extensible = false; tracks = [{track_name = $1; track_type = fst $3; track_params = snd $3}] } }
-  | DOTDOTDOT { { extensible = true; tracks = [] } }
-  | VAR GETS ty_content COMMA ty_source_tracks { { $5 with tracks = { track_name = $1; track_type = fst $3; track_params = snd $3}::$5.tracks } }
+  | VAR GETS ty_content { `Tracks { extensible = false; tracks = [{track_name = $1; track_type = fst $3; track_params = snd $3}] } }
+  | DOTDOTDOT { `Tracks { extensible = true; tracks = [] } }
+  | VAR GETS ty_content COMMA ty_source_tracks {
+      match $5 with
+        | `Abstract -> raise (Term.Parse_error ($loc, "Invalid source type: _ cannot be mixed with tracks"))
+        | `Tracks t -> `Tracks { t with tracks = { track_name = $1; track_type = fst $3; track_params = snd $3}::t.tracks } }
 
 ty_content:
   | VAR                           { $1, [] }

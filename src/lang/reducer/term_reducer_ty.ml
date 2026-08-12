@@ -36,7 +36,8 @@ let mk_named_ty ?pos = function
   | "string" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.String
   | "ref" -> Type.reference (Type.var ())
   | "clock" -> mk_clock_ty ?pos ()
-  | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
+  | "source" ->
+      mk_source_ty ?pos "source" (`Tracks { extensible = true; tracks = [] })
   | "source_methods" -> !Hooks.source_methods_t ()
   | name -> (
       match Type.find_opt_typ name with

@@ -936,6 +936,9 @@ let source_t ?(pos : Term.parsed_pos option) ?(methods = false) frame_t =
   in
   if methods then source_methods_t t else t
 
+let abstract_source_t ?(pos : Term.parsed_pos option) () =
+  make_t ?pos (Type.Constr { Type.constructor = "source"; params = [] })
+
 let of_source_t t =
   match (Type.demeth t).Type.descr with
     | Type.Constr { Type.constructor = "source"; params = [(_, t)] } -> t

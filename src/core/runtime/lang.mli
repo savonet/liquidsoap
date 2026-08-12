@@ -219,6 +219,11 @@ val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
 val source_t : ?methods:bool -> t -> t
+
+(** The type of a source whose content is unknown: any source can be used where
+    one is expected, but not the other way around. *)
+val abstract_source_t : unit -> t
+
 val of_source_t : t -> t
 val format_t : t -> t
 val metadata_track_t : t

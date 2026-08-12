@@ -188,11 +188,9 @@ and source_track_annotation = {
   track_params : track_annotation list;
 }
 
-and source_annotation = {
-  extensible : bool;
-  tracks : source_track_annotation list;
-}
-
+(* [`Abstract] is [source(_)], whose content is unknown. *)
+and source_annotation = [ `Abstract | `Tracks of source_tracks ]
+and source_tracks = { extensible : bool; tracks : source_track_annotation list }
 and argument = bool * string * type_annotation
 
 and type_annotation =
