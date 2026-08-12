@@ -7,6 +7,7 @@
 
 #include <libavcodec/avcodec.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/dict.h>
 #include <libavutil/frame.h>
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
@@ -39,6 +40,19 @@
 void ocaml_avutil_raise_error(int err);
 
 extern char ocaml_av_exn_msg[];
+
+/***** Option dictionaries *****/
+
+/* Fill [*options] from an OCaml (string * string) array. Frees [*options]
+   and raises on failure. Allocates nothing on the OCaml heap, so [_opts]
+   needs no root beyond the caller's own. */
+void ocaml_avutil_dict_of_options(value _opts, AVDictionary **options);
+
+/* Consumes [*options]: returns the keys ffmpeg did not use as a fresh
+   tuple, then frees the dict and clears the pointer. The result is
+   unrooted, so assign it straight into a caller CAMLlocal with no
+   intervening allocation. */
+value ocaml_avutil_unused_options(AVDictionary **options);
 
 #define List_init(list) (list) = Val_emptylist
 
