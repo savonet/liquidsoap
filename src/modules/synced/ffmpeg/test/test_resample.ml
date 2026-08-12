@@ -84,21 +84,34 @@ let () =
       44100
   in
 
+  let direct_bytes = ref 0 and chained_bytes = ref 0 in
+
   for note = 0 to 95 do
     let freq = 22.5 *. (2. ** (foi note /. 12.)) in
     let len = int_of_float (frate /. freq *. floor (freq /. 4.)) in
     let c = 2. *. pi *. freq /. frate in
     let src = Array.init len (fun t -> sin (foi t *. c)) in
 
-    src |> R.convert r |> write_bytes dst1;
+    let direct = R.convert r src in
+    direct_bytes := !direct_bytes + Bytes.length direct;
+    write_bytes dst1 direct;
 
-    src |> R0.convert r0 |> R1.convert r1 |> R2.convert r2 |> R3.convert r3
-    |> R4.convert r4 |> R5.convert r5 |> R6.convert r6 |> R7.convert r7
-    |> R8.convert r8 |> R9.convert r9 |> R10.convert r10 |> write_bytes dst2
+    let chained =
+      src |> R0.convert r0 |> R1.convert r1 |> R2.convert r2 |> R3.convert r3
+      |> R4.convert r4 |> R5.convert r5 |> R6.convert r6 |> R7.convert r7
+      |> R8.convert r8 |> R9.convert r9 |> R10.convert r10
+    in
+    chained_bytes := !chained_bytes + Bytes.length chained;
+    write_bytes dst2 chained
   done;
 
   close_out dst1;
   close_out dst2;
+
+  Test_assert.checkf (!direct_bytes > 0) "direct conversion produced %d bytes"
+    !direct_bytes;
+  Test_assert.checkf (!chained_bytes > 0) "chained conversion produced %d bytes"
+    !chained_bytes;
 
   let output_planar_float_to_s16le audio_output_file planes =
     let nb_chan = Array.length planes in
@@ -116,35 +129,43 @@ let () =
     done
   in
 
-  Sys.argv |> Array.to_list |> List.tl
-  |> List.iter (fun url ->
-      try
-        let src = Av.open_input url in
-        let idx, is, ic = src |> Av.find_best_audio_stream in
-        let rsp = Converter.from_codec ic Avutil.Channel_layout.stereo 44100 in
+  let urls = Sys.argv |> Array.to_list |> List.tl in
+  Test_assert.check "at least one input file was given" (urls <> []);
 
-        let p = try String.rindex url '/' + 1 with Not_found -> 0 in
-        let audio_output_filename =
-          String.(
-            sub url p (length url - p) ^ "." ^ string_of_int idx ^ ".s16le.raw")
-        in
-        let audio_output_file = open_out_bin audio_output_filename in
+  List.iter
+    (fun url ->
+      let src = Av.open_input url in
+      let idx, is, ic = src |> Av.find_best_audio_stream in
+      let rsp = Converter.from_codec ic Avutil.Channel_layout.stereo 44100 in
 
-        print_endline ("Convert " ^ url ^ " to " ^ audio_output_filename);
-        let rec f () =
-          match Av.read_input ~audio_frame:[is] src with
-            | `Audio_frame (i, frame) when i = idx ->
-                Converter.convert rsp frame
-                |> output_planar_float_to_s16le audio_output_file;
-                f ()
-            | exception Avutil.Error `Eof -> ()
-            | _ -> f ()
-        in
-        f ();
+      let p = try String.rindex url '/' + 1 with Not_found -> 0 in
+      let audio_output_filename =
+        String.(
+          sub url p (length url - p) ^ "." ^ string_of_int idx ^ ".s16le.raw")
+      in
+      let audio_output_file = open_out_bin audio_output_filename in
 
-        Av.get_input is |> Av.close;
-        close_out audio_output_file
-      with _ -> print_endline ("No audio stream in " ^ url));
+      print_endline ("Convert " ^ url ^ " to " ^ audio_output_filename);
+      let converted = ref 0 in
+      let rec f () =
+        match Av.read_input ~audio_frame:[is] src with
+          | `Audio_frame (i, frame) when i = idx ->
+              let planes = Converter.convert rsp frame in
+              converted := !converted + Array.length planes.(0);
+              output_planar_float_to_s16le audio_output_file planes;
+              f ()
+          | exception Avutil.Error `Eof -> ()
+          | _ -> f ()
+      in
+      f ();
+
+      Test_assert.checkf (!converted > 0) "converted %d samples from %s"
+        !converted url;
+
+      Av.get_input is |> Av.close;
+      close_out audio_output_file)
+    urls;
 
   Gc.full_major ();
-  Gc.full_major ()
+  Gc.full_major ();
+  Test_assert.finish ()
