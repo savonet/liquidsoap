@@ -578,12 +578,9 @@ let compare_clock_identity clock clock' =
 (* {1 Registry}
 
    Global registries tracking the clocks of the application:
-   - [pending] is the weak set of clocks waiting to be started by the next
-     call to [start_pending]. Clocks are returned to it when they stop. Being
+   - [pending] is the weak set of clocks that could not be started yet, having
+     no output to animate. Clocks are returned to it when they stop. Being
      weak, it lets unused clocks be garbage collected.
-   - [retained] holds strong references to freshly created clocks so that
-     they survive at least until the next call to [flush_pending], even when
-     nothing else references them yet.
    - [started] holds strong references to the clocks started by
      [start_pending], removed when they stop.
 
@@ -595,25 +592,15 @@ let compare_clock_identity clock clock' =
 module Registry = struct
   let started : t Queue.t = Queue.create ()
   let pending : t WeakQueue.t = WeakQueue.create ()
-  let retained : t Queue.t = Queue.create ()
   let all_clocks : t WeakQueue.t = WeakQueue.create ()
 
   (* Register a freshly created handle: no dedup scan needed. *)
   let register c = WeakQueue.push_raw all_clocks c
 
-  let add_pending c =
-    Queue.push retained c;
-    WeakQueue.push pending c
-
-  (* Re-add a clock that could not be started by [start_pending]. No strong
-     retention: if nothing else references it, it can be collected. *)
-  let readd_pending c = WeakQueue.push_raw pending c
-
-  let flush_pending () =
-    let elements = WeakQueue.flush_elements pending in
-    Queue.clear retained;
-    elements
-
+  (* Weak: a deferred clock nothing else references has nothing to animate. *)
+  let add_pending c = WeakQueue.push_raw pending c
+  let flush_pending () = WeakQueue.flush_elements pending
+  let no_pending () = WeakQueue.length pending = 0
   let mark_started c = Queue.push started c
 
   let mark_stopped ~clock c =
@@ -1189,6 +1176,15 @@ let _clock_thread ~clock ~c params =
    animate. Passive clocks are never started by [start_pending]: they are
    started by whoever controls them (see [Child_support]). *)
 
+(* A clock cannot be started when it is created: the graph is still being built
+   and unification may still merge it into another one. *)
+type _ Effect.t += Clock_created : t -> unit Effect.t
+
+(* Outside any handler, fall back to deferring: the next application starts it. *)
+let notify_clock_created c =
+  try Effect.perform (Clock_created c)
+  with Effect.Unhandled _ -> Registry.add_pending c
+
 let _can_start ?(force = false) clock =
   let has_output =
     force
@@ -1300,11 +1296,12 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id
       }
   in
   Registry.register c;
-  if sync <> `Passive then Registry.add_pending c;
+  if sync <> `Passive then notify_clock_created c;
   c
 
-let start_pending () =
-  let pending = Registry.flush_pending () in
+(* A clock with no output has nothing to animate, so it is deferred again. *)
+let start_pending ?(clocks = []) () =
+  let pending = clocks @ Registry.flush_pending () in
   let pending = List.map (fun c -> (c, Unifier.deref c)) pending in
   let pending =
     List.sort_uniq
@@ -1319,7 +1316,7 @@ let start_pending () =
               if clock.sync <> `Passive then (
                 _start ~c clock;
                 Registry.mark_started c))
-            else Registry.readd_pending c
+            else Registry.add_pending c
         | _ -> ())
     pending
 
@@ -1328,7 +1325,28 @@ let () =
       Atomic.set clocks_started true;
       start_pending ())
 
-let after_eval () = if not (Atomic.get global_stop) then start_pending ()
+let with_new_clocks fn =
+  let created = ref [] in
+  let start () =
+    (* Callbacks come through here on every frame: keep the idle case free. *)
+    if
+      (not (Atomic.get global_stop))
+      && ((not (Registry.no_pending ())) || !created <> [])
+    then start_pending ~clocks:(List.rev !created) ()
+  in
+  Fun.protect ~finally:start (fun () ->
+      Effect.Deep.try_with fn ()
+        {
+          Effect.Deep.effc =
+            (fun (type a) (eff : a Effect.t) ->
+              match eff with
+                | Clock_created c ->
+                    Some
+                      (fun (k : (a, _) Effect.Deep.continuation) ->
+                        created := c :: !created;
+                        Effect.Deep.continue k ())
+                | _ -> None);
+        })
 
 (* {1 Ticking API} *)
 
