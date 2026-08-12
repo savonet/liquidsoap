@@ -52,6 +52,16 @@ let all_codecs =
   in
   f [] None
 
+(* Shared by the Audio, Video and Subtitle modules, which each filter the same
+   list by their own set of codec ids. *)
+let codecs_of ~encoder codec_ids =
+  List.filter_map
+    (function
+      | c, Some id, e when e = encoder && List.mem id codec_ids ->
+          Some (Obj.magic c)
+      | _ -> None)
+    all_codecs
+
 external name : _ codec -> string = "ocaml_avcodec_name"
 
 type capability = Codec_capabilities.t
@@ -228,20 +238,8 @@ module Audio = struct
   let codec_ids = Codec_id.audio
   let get_name = get_name
   let get_description = get_description
-
-  let encoders =
-    List.filter_map
-      (function
-        | c, Some id, true when List.mem id codec_ids -> Some (Obj.magic c)
-        | _ -> None)
-      all_codecs
-
-  let decoders =
-    List.filter_map
-      (function
-        | c, Some id, false when List.mem id codec_ids -> Some (Obj.magic c)
-        | _ -> None)
-      all_codecs
+  let encoders = codecs_of ~encoder:true codec_ids
+  let decoders = codecs_of ~encoder:false codec_ids
 
   external frame_size : audio encoder -> int = "ocaml_avcodec_frame_size"
   external get_id : _ t -> id = "ocaml_avcodec_get_audio_codec_id"
@@ -363,21 +361,8 @@ module Video = struct
 
   let descriptor id = mk_descriptor (video_descriptor id)
   let codec_ids = Codec_id.video
-
-  let encoders =
-    List.filter_map
-      (function
-        | c, Some id, true when List.mem id codec_ids -> Some (Obj.magic c)
-        | _ -> None)
-      all_codecs
-
-  let decoders =
-    List.filter_map
-      (function
-        | c, Some id, false when List.mem id codec_ids -> Some (Obj.magic c)
-        | _ -> None)
-      all_codecs
-
+  let encoders = codecs_of ~encoder:true codec_ids
+  let decoders = codecs_of ~encoder:false codec_ids
   let get_name = get_name
   let get_description = get_description
 
@@ -513,21 +498,8 @@ module Subtitle = struct
 
   let descriptor id = mk_descriptor (subtitle_descriptor id)
   let codec_ids = Codec_id.subtitle
-
-  let encoders =
-    List.filter_map
-      (function
-        | c, Some id, true when List.mem id codec_ids -> Some (Obj.magic c)
-        | _ -> None)
-      all_codecs
-
-  let decoders =
-    List.filter_map
-      (function
-        | c, Some id, false when List.mem id codec_ids -> Some (Obj.magic c)
-        | _ -> None)
-      all_codecs
-
+  let encoders = codecs_of ~encoder:true codec_ids
+  let decoders = codecs_of ~encoder:false codec_ids
   let get_name = get_name
   let get_description = get_description
 
