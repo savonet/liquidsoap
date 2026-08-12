@@ -34,7 +34,7 @@ Copyright 2003-2026 Savonet team
 
 Full installation and build instructions are available [here](https://www.liquidsoap.info/doc.html?path=install.html). For quick reference:
 
-Liquidsoap uses [dune](https://dune.build) as its build system and [opam](https://opam.ocaml.org) for package management. OCaml ≥ 4.14 and dune ≥ 3.23 are required.
+Liquidsoap uses [dune](https://dune.build) as its build system and [opam](https://opam.ocaml.org) for package management. OCaml ≥ 5.4 and dune ≥ 3.23 are required.
 
 ### Developer build
 

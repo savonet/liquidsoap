@@ -71,7 +71,6 @@
  (libraries
   camomile.lib
   cry
-  domain_shims
   dtools
   dune-build-info
   dune-site

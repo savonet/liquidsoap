@@ -17,14 +17,13 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.23"}
-  "ocaml" {>= "4.14"}
+  "ocaml" {>= "5.4"}
   "base-bytes"
   "mm" {>= "0.8.6"}
   "re" {>= "1.11.0" & < "1.14.0"}
   "curl"
   "camomile" {>= "2.0.0"}
   "uri"
-  "domain_shims"
   "mem_usage" {>= "0.1.1"}
   "metadata" {>= "0.3.0"}
   "magic-mime"
