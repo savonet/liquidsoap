@@ -15,6 +15,7 @@ let () =
         "test_subtitle_read";
         "test_unhandled_packet";
         "test_codec";
+        "test_options";
         "test_swscale";
       ]
       ["ffmpeg-av"; "ffmpeg-swresample"; "ffmpeg-swscale"];
@@ -26,6 +27,7 @@ let () =
  (deps
   (:runner test_runner.exe)
   (:codec test_codec.exe)
+  (:options test_options.exe)
   (:swscale test_swscale.exe)
   (:list_filters ../examples/list_filters.exe)
   (:all_codecs ../examples/all_codecs.exe)
@@ -74,6 +76,7 @@ let () =
    ; resample and info need real media: they run after the encoders above.
    (run %{runner} "resample" %{resample} A4.flac)
    (run %{runner} "info" %{info} out.mkv A4.flac)
+   (run %{runner} "options" %{options} out.mkv)
    (run %{runner} "decode_stream_mp3" %{decode_stream} A4.flac A4.mp3 libmp3lame)
    (run %{runner} "decode_stream_ogg" %{decode_stream} A4.mp2 A4.ogg libvorbis)
    (run %{runner} "audio_decoding_ogg" %{audio_decoding} A4.ogg ogg A4)

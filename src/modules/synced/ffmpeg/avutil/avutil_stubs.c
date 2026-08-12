@@ -101,6 +101,44 @@ void ocaml_avutil_raise_error(int err) {
   caml_raise_with_arg(*caml_named_value(EXN_ERROR), _err);
 }
 
+/* No CAML frame on purpose: nothing between reading the bytes and
+   av_dict_set copying them can move [_opts]. */
+void ocaml_avutil_dict_of_options(value _opts, AVDictionary **options) {
+  int i, err, len = Wosize_val(_opts);
+
+  for (i = 0; i < len; i++) {
+    // Dictionaries copy key/values by default!
+    err = av_dict_set(options, (char *)Bytes_val(Field(Field(_opts, i), 0)),
+                      (char *)Bytes_val(Field(Field(_opts, i), 1)), 0);
+    if (err < 0) {
+      av_dict_free(options);
+      ocaml_avutil_raise_error(err);
+    }
+  }
+}
+
+value ocaml_avutil_unused_options(AVDictionary **options) {
+  CAMLparam0();
+  CAMLlocal2(unused, key);
+  AVDictionaryEntry *entry = NULL;
+  int i, count = av_dict_count(*options);
+
+  unused = caml_alloc_tuple(count);
+
+  for (i = 0; i < count; i++) {
+    entry = av_dict_get(*options, "", entry, AV_DICT_IGNORE_SUFFIX);
+    /* Via a local: the order of Store_field's two arguments is
+       unspecified, so allocating inside it may compute the destination
+       address before the allocation moves [unused]. */
+    key = caml_copy_string(entry->key);
+    Store_field(unused, i, key);
+  }
+
+  av_dict_free(options);
+
+  CAMLreturn(unused);
+}
+
 CAMLprim value ocaml_avutil_qp2lambda(value unit) {
   (void)unit;
   CAMLparam0();
@@ -2033,9 +2071,7 @@ CAMLprim value ocaml_avutil_create_device_context(value _device_type,
   AVBufferRef *hw_device_ctx = NULL;
   AVDictionary *options = NULL;
   const char *name;
-  char *key, *val;
-  int len = Wosize_val(_opts);
-  int i, err, count;
+  int err;
 
   if (caml_string_length(_name) > 0) {
     name = String_val(_name);
@@ -2043,16 +2079,7 @@ CAMLprim value ocaml_avutil_create_device_context(value _device_type,
     name = NULL;
   }
 
-  for (i = 0; i < len; i++) {
-    // Dictionaries copy key/values by default!
-    key = (char *)Bytes_val(Field(Field(_opts, i), 0));
-    val = (char *)Bytes_val(Field(Field(_opts, i), 1));
-    err = av_dict_set(&options, key, val, 0);
-    if (err < 0) {
-      av_dict_free(&options);
-      ocaml_avutil_raise_error(err);
-    }
-  }
+  ocaml_avutil_dict_of_options(_opts, &options);
 
   caml_release_runtime_system();
   err = av_hwdevice_ctx_create(&hw_device_ctx, HwDeviceType_val(_device_type),
@@ -2064,17 +2091,7 @@ CAMLprim value ocaml_avutil_create_device_context(value _device_type,
     ocaml_avutil_raise_error(err);
   }
 
-  // Return unused keys
-  count = av_dict_count(options);
-
-  unused = caml_alloc_tuple(count);
-  AVDictionaryEntry *entry = NULL;
-  for (i = 0; i < count; i++) {
-    entry = av_dict_get(options, "", entry, AV_DICT_IGNORE_SUFFIX);
-    Store_field(unused, i, caml_copy_string(entry->key));
-  }
-
-  av_dict_free(&options);
+  unused = ocaml_avutil_unused_options(&options);
 
   ans = caml_alloc_custom(&buffer_ref_ops, sizeof(AVBufferRef *), 0, 1);
   BufferRef_val(ans) = hw_device_ctx;

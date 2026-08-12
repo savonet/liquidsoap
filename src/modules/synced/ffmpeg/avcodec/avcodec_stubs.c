@@ -534,20 +534,9 @@ CAMLprim value ocaml_avcodec_create_audio_encoder(value _sample_fmt,
   const AVCodec *codec = AvCodec_val(_codec);
 
   AVDictionary *options = NULL;
-  char *key, *val;
-  int len = Wosize_val(_opts);
-  int i, err, count;
+  int err;
 
-  for (i = 0; i < len; i++) {
-    // Dictionaries copy key/values by default!
-    key = (char *)Bytes_val(Field(Field(_opts, i), 0));
-    val = (char *)Bytes_val(Field(Field(_opts, i), 1));
-    err = av_dict_set(&options, key, val, 0);
-    if (err < 0) {
-      av_dict_free(&options);
-      ocaml_avutil_raise_error(err);
-    }
-  }
+  ocaml_avutil_dict_of_options(_opts, &options);
 
   codec_context_t *ctx = (codec_context_t *)av_mallocz(sizeof(codec_context_t));
   if (!ctx) {
@@ -586,17 +575,7 @@ CAMLprim value ocaml_avcodec_create_audio_encoder(value _sample_fmt,
     ocaml_avutil_raise_error(err);
   }
 
-  // Return unused keys
-  count = av_dict_count(options);
-
-  unused = caml_alloc_tuple(count);
-  AVDictionaryEntry *entry = NULL;
-  for (i = 0; i < count; i++) {
-    entry = av_dict_get(options, "", entry, AV_DICT_IGNORE_SUFFIX);
-    Store_field(unused, i, caml_copy_string(entry->key));
-  }
-
-  av_dict_free(&options);
+  unused = ocaml_avutil_unused_options(&options);
 
   ret = caml_alloc_tuple(2);
   Store_field(ret, 0, ans);
@@ -624,20 +603,9 @@ CAMLprim value ocaml_avcodec_create_video_encoder(value _device_context,
     frame_ctx = BufferRef_val(Some_val(_frame_context));
 
   AVDictionary *options = NULL;
-  char *key, *val;
-  int len = Wosize_val(_opts);
-  int i, err, count;
+  int err;
 
-  for (i = 0; i < len; i++) {
-    // Dictionaries copy key/values by default!
-    key = (char *)Bytes_val(Field(Field(_opts, i), 0));
-    val = (char *)Bytes_val(Field(Field(_opts, i), 1));
-    err = av_dict_set(&options, key, val, 0);
-    if (err < 0) {
-      av_dict_free(&options);
-      ocaml_avutil_raise_error(err);
-    }
-  }
+  ocaml_avutil_dict_of_options(_opts, &options);
 
   codec_context_t *ctx = (codec_context_t *)av_mallocz(sizeof(codec_context_t));
   if (!ctx) {
@@ -684,17 +652,7 @@ CAMLprim value ocaml_avcodec_create_video_encoder(value _device_context,
     ocaml_avutil_raise_error(err);
   }
 
-  // Return unused keys
-  count = av_dict_count(options);
-
-  unused = caml_alloc_tuple(count);
-  AVDictionaryEntry *entry = NULL;
-  for (i = 0; i < count; i++) {
-    entry = av_dict_get(options, "", entry, AV_DICT_IGNORE_SUFFIX);
-    Store_field(unused, i, caml_copy_string(entry->key));
-  }
-
-  av_dict_free(&options);
+  unused = ocaml_avutil_unused_options(&options);
 
   ret = caml_alloc_tuple(2);
   Store_field(ret, 0, ans);
@@ -1693,20 +1651,7 @@ CAMLprim value ocaml_avcodec_bsf_init(value _opts, value _name, value _params) {
     caml_raise_not_found();
   }
 
-  char *key, *val;
-  int len = Wosize_val(_opts);
-  int i, err, count;
-
-  for (i = 0; i < len; i++) {
-    // Dictionaries copy key/values by default!
-    key = (char *)Bytes_val(Field(Field(_opts, i), 0));
-    val = (char *)Bytes_val(Field(Field(_opts, i), 1));
-    err = av_dict_set(&options, key, val, 0);
-    if (err < 0) {
-      av_dict_free(&options);
-      ocaml_avutil_raise_error(err);
-    }
-  }
+  ocaml_avutil_dict_of_options(_opts, &options);
 
   ret = av_bsf_alloc(filter, &bsf);
   if (ret < 0) {
@@ -1739,17 +1684,7 @@ CAMLprim value ocaml_avcodec_bsf_init(value _opts, value _name, value _params) {
     ocaml_avutil_raise_error(ret);
   }
 
-  // Return unused keys
-  count = av_dict_count(options);
-
-  unused = caml_alloc_tuple(count);
-  AVDictionaryEntry *entry = NULL;
-  for (i = 0; i < count; i++) {
-    entry = av_dict_get(options, "", entry, AV_DICT_IGNORE_SUFFIX);
-    Store_field(unused, i, caml_copy_string(entry->key));
-  }
-
-  av_dict_free(&options);
+  unused = ocaml_avutil_unused_options(&options);
 
   tmp = caml_alloc_custom(&bsf_filter_ops, sizeof(AVBSFContext *), 0, 1);
   BsfFilter_val(tmp) = bsf;
