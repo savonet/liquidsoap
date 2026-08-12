@@ -286,9 +286,11 @@ static int alloc_out_string(sws_t *sws, value *out_vect, value *tmp) {
   *out_vect = caml_alloc_tuple(sws->out.nb_planes);
 
   for (i = 0; i < sws->out.nb_planes; i++) {
-    len = sws->out.stride[i] * sws->out.height;
+    /* plane_sizes accounts for chroma subsampling; stride * height does not. */
+    len = sws->out.plane_sizes[i];
 
     if (sws->out.sizes_tab[i] < len) {
+      /* Some filters and swscale can read up to 16 bytes beyond the planes. */
       sws->out.slice[i] = (uint8_t *)av_realloc(sws->out.slice[i], len + 16);
       sws->out.sizes_tab[i] = len;
     }
@@ -311,8 +313,10 @@ static int copy_out_string(sws_t *sws, value *out_vect) {
   for (i = 0; i < sws->out.nb_planes; i++) {
     str = Field(Field(*out_vect, i), 0);
 
+    /* sizes_tab is a high-water mark and can exceed the string just
+       allocated: copy what the destination actually holds. */
     memcpy((uint8_t *)String_val(str), sws->out.slice[i],
-           sws->out.sizes_tab[i]);
+           caml_string_length(str));
   }
 
   CAMLreturnT(int, 0);
@@ -405,13 +409,16 @@ void swscale_free(sws_t *sws) {
   if (sws->context)
     sws_freeContext(sws->context);
 
+  /* slice points at a 4-slot table, zero-initialised: walking it until a NULL
+     runs into stride_tab for a 4-plane format, so bound by the table size and
+     let av_free ignore the unused slots. */
   if (sws->in.owns_data) {
-    for (i = 0; sws->in.slice[i]; i++)
+    for (i = 0; i < 4; i++)
       av_free(sws->in.slice[i]);
   }
 
   if (sws->out.owns_data) {
-    for (i = 0; sws->out.slice[i]; i++)
+    for (i = 0; i < 4; i++)
       av_free(sws->out.slice[i]);
   }
 

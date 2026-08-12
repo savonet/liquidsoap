@@ -46,7 +46,7 @@
    %{context_name}
    avutil
    "libavutil libavcodec"
-   "libavutil >= 55.78.100, libavcodec >= 57.107.100")))
+   "libavutil >= 57.28.100, libavcodec >= 59.24.100")))
 
 (rule
  (targets

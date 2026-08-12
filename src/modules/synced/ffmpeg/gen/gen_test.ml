@@ -14,8 +14,10 @@ let () =
         "test_info";
         "test_subtitle_read";
         "test_unhandled_packet";
+        "test_codec";
+        "test_swscale";
       ]
-      ["ffmpeg-av"; "ffmpeg-swresample"];
+      ["ffmpeg-av"; "ffmpeg-swresample"; "ffmpeg-swscale"];
     print_string
       {|
 (rule
@@ -23,6 +25,8 @@ let () =
  (package ffmpeg)
  (deps
   (:runner test_runner.exe)
+  (:codec test_codec.exe)
+  (:swscale test_swscale.exe)
   (:list_filters ../examples/list_filters.exe)
   (:all_codecs ../examples/all_codecs.exe)
   (:all_channel_layouts ../examples/all_channel_layouts.exe)
@@ -52,6 +56,8 @@ let () =
   (:srt fixtures/sample.srt))
  (action
   (progn
+   (run %{runner} "codec" %{codec})
+   (run %{runner} "swscale" %{swscale})
    (run %{runner} "list_filters" %{list_filters})
    (run %{runner} "all_codecs" %{all_codecs})
    (run %{runner} "all_channel_layouts" %{all_channel_layouts})

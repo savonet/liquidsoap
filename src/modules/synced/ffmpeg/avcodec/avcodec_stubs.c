@@ -35,10 +35,6 @@ CAMLprim value ocaml_avcodec_flag_qscale(value unit) {
   return Val_int(AV_CODEC_FLAG_QSCALE);
 }
 
-CAMLprim value ocaml_avcodec_subtitle_codec_id_to_AVCodecID(value _codec_id) {
-  return Val_int(SubtitleCodecID_val(_codec_id));
-}
-
 /***** AVCodecContext *****/
 
 static AVCodecContext *create_AVCodecContext(AVCodecParameters *params,
@@ -142,7 +138,7 @@ CAMLprim value ocaml_avcodec_create_packet(value _data) {
 
   int err = av_new_packet(packet, len);
   if (err != 0) {
-    av_freep(packet);
+    av_packet_free(&packet);
     ocaml_avutil_raise_error(err);
   }
 
@@ -997,7 +993,7 @@ CAMLprim value ocaml_avcodec_capabilities(value _codec) {
   len = 0;
   for (i = 0; i < AV_CODEC_CAP_T_TAB_LEN; i++)
     if (codec->capabilities & AV_CODEC_CAP_T_TAB[i][1])
-      Store_field(ret, len++, Val_int(AV_CODEC_CAP_T_TAB[i][0]));
+      Store_field(ret, len++, AV_CODEC_CAP_T_TAB[i][0]);
 
   CAMLreturn(ret);
 }
@@ -1463,35 +1459,6 @@ CAMLprim value ocaml_avcodec_parameters_get_pixel_aspect(value _cp) {
   CAMLreturn(ret);
 }
 
-CAMLprim value ocaml_avcodec_parameters_video_copy(value _codec_id,
-                                                   value _width, value _height,
-                                                   value _sample_aspect_ratio,
-                                                   value _pixel_format,
-                                                   value _bit_rate, value _cp) {
-  CAMLparam5(_codec_id, _width, _height, _sample_aspect_ratio, _pixel_format);
-  CAMLxparam2(_bit_rate, _cp);
-  CAMLlocal1(ans);
-
-  value_of_codec_parameters_copy(CodecParameters_val(_cp), &ans);
-
-  AVCodecParameters *dst = CodecParameters_val(ans);
-
-  dst->codec_id = VideoCodecID_val(_codec_id);
-  dst->width = Int_val(_width);
-  dst->height = Int_val(_height);
-  dst->sample_aspect_ratio.num = Int_val(Field(_sample_aspect_ratio, 0));
-  dst->sample_aspect_ratio.den = Int_val(Field(_sample_aspect_ratio, 1));
-  dst->format = PixelFormat_val(_pixel_format);
-  dst->bit_rate = Int_val(_bit_rate);
-
-  CAMLreturn(ans);
-}
-
-CAMLprim value ocaml_avcodec_parameters_video_copy_byte(value *argv, int argn) {
-  return ocaml_avcodec_parameters_video_copy(argv[0], argv[1], argv[2], argv[3],
-                                             argv[4], argv[5], argv[7]);
-}
-
 /**** Unknown codec ID *****/
 
 CAMLprim value ocaml_avcodec_get_unknown_codec_id_name(value _codec_id) {
@@ -1544,20 +1511,6 @@ CAMLprim value ocaml_avcodec_find_subtitle_encoder(value _id) {
 CAMLprim value ocaml_avcodec_parameters_get_subtitle_codec_id(value _cp) {
   CAMLparam1(_cp);
   CAMLreturn(Val_SubtitleCodecID(CodecParameters_val(_cp)->codec_id));
-}
-
-CAMLprim value ocaml_avcodec_parameters_subtitle_copy(value _codec_id,
-                                                      value _cp) {
-  CAMLparam2(_codec_id, _cp);
-  CAMLlocal1(ans);
-
-  value_of_codec_parameters_copy(CodecParameters_val(_cp), &ans);
-
-  AVCodecParameters *dst = CodecParameters_val(ans);
-
-  dst->codec_id = SubtitleCodecID_val(_codec_id);
-
-  CAMLreturn(ans);
 }
 
 CAMLprim value ocaml_avcodec_int_of_flag(value _flag) {
@@ -1743,17 +1696,21 @@ CAMLprim value ocaml_avcodec_bsf_init(value _opts, value _name, value _params) {
 
   ret = av_bsf_alloc(filter, &bsf);
   if (ret < 0) {
+    av_dict_free(&options);
     ocaml_avutil_raise_error(ret);
   }
 
   ret = avcodec_parameters_copy(bsf->par_in, params);
   if (ret < 0) {
+    av_dict_free(&options);
     av_bsf_free(&bsf);
     ocaml_avutil_raise_error(ret);
   }
 
+  /* av_opt_set_dict consumes and replaces options. */
   ret = av_opt_set_dict(bsf, &options);
   if (ret < 0) {
+    av_dict_free(&options);
     av_bsf_free(&bsf);
     ocaml_avutil_raise_error(ret);
   }
@@ -1763,6 +1720,7 @@ CAMLprim value ocaml_avcodec_bsf_init(value _opts, value _name, value _params) {
   caml_acquire_runtime_system();
 
   if (ret < 0) {
+    av_dict_free(&options);
     av_bsf_free(&bsf);
     ocaml_avutil_raise_error(ret);
   }
