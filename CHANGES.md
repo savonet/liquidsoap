@@ -32,11 +32,11 @@
   metadata, when the source it follows leaves no room in the current frame.
   This showed up as the track after a `cross`/`crossfade` transition built with
   `sequence` keeping the previous track's metadata until the next track
-  boundary (#TODO).
+  boundary (#5296).
 - Fixed ICY metadata negotiation in `output.harbor`: the `Icy-MetaData` request
   header was looked up before normalization, so clients never received
   in-stream metadata (thanks to @uhthomas, #5279)
-- Fixed `srt` restart logic (##5309)
+- Fixed `srt` restart logic (#5309)
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so
@@ -47,6 +47,10 @@
   e.g. `output.file.hls` closing its current segment when `persist_at` is set,
   and an error raised there escaped uncaught and killed the process. Shutdown
   errors are logged instead (#5260)
+- Fixed `switch` and `sequence` not notifying their new sync source when
+  switching child, leaving the clock synced on the source they just left
+- Fixed the type unifier retaining collapsed variables forever, by merging
+  unified variables using union by rank (#5342)
 
 ---
 
