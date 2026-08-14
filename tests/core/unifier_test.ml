@@ -27,3 +27,22 @@ let () =
   Unifier.set x 2;
   assert (Unifier.deref y = 2);
   assert (Unifier.deref z = 2)
+
+(* Unifying through the most recently created node each time means nothing
+   ever dereferences from the head, so its path is never compressed. *)
+let () =
+  let n = 100_000 in
+  Gc.full_major ();
+  let before = (Gc.stat ()).Gc.live_words in
+  let head = Unifier.make 0 in
+  let cur = ref head in
+  for i = 1 to n do
+    let fresh = Unifier.make i in
+    Unifier.(!cur <-- fresh);
+    cur := fresh
+  done;
+  Gc.full_major ();
+  let retained = (Gc.stat ()).Gc.live_words - before in
+  assert (Unifier.deref head = n);
+  (* Retention must not scale with the number of unifications. *)
+  assert (retained < n)
