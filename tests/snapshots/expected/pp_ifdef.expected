@@ -7,34 +7,41 @@ x = 2
 x
 --- parsed ---
 {
-  "type": "seq",
-  "left": {
+  "type": "block",
+  "value": [
+    {
     "type": "if_def",
     "negative": false,
     "condition": "list.length",
-    "then": {
+    "then": [
+      {
       "type": "binding",
-      "body": { "type": "eof" },
       "decoration": null,
       "pat": { "type": "pvar", "value": [ "x" ] },
       "arglist": null,
       "cast": null,
       "definition": { "type": "ground", "value": "1" }
-    },
-    "else": {
+    }
+    ],
+    "else": [
+      {
       "type": "binding",
-      "body": { "type": "eof" },
       "decoration": null,
       "pat": { "type": "pvar", "value": [ "x" ] },
       "arglist": null,
       "cast": null,
       "definition": { "type": "ground", "value": "2" }
     }
+    ]
   },
-  "right": { "type": "var", "value": "x" }
+    {
+    "type": "var",
+    "value": "x"
+  }
+  ]
 }
 --- hash ---
-acfc1873139d0c22402886fb61fbcfa8
+59b59d1ea23154f836168f9311924443
 --- term ---
 x = 1
 x

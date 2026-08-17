@@ -1,0 +1,102 @@
+=== json_as_type.liq ===
+# `as` is a contextual keyword, not a reserved word: it stays an ordinary
+# identifier everywhere else. `as json.object` reads a JSON object as an
+# association list; `"name" as field` renames a field whose JSON name is not a
+# valid identifier.
+let json.parse (m : [(string*int)] as json.object) =
+  "{\"a\": 1}"
+let json.parse (r : {"start" as spin_start: string}) =
+  "{\"start\": \"x\"}"
+
+as =
+  "still an identifier"
+
+(m, r.spin_start, as)
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "let",
+    "decoration": { "type": "var", "value": "json.parse" },
+    "pat": { "type": "pvar", "value": [ "m" ] },
+    "arglist": null,
+    "cast": {
+      "type": "type_annotation",
+      "subtype": "json_object",
+      "value": {
+        "type": "type_annotation",
+        "subtype": "named",
+        "value": "int"
+      }
+    },
+    "definition": { "type": "string", "value": "\"{\\\"a\\\": 1}\"" }
+  },
+    {
+    "type": "let",
+    "decoration": { "type": "var", "value": "json.parse" },
+    "pat": { "type": "pvar", "value": [ "r" ] },
+    "arglist": null,
+    "cast": {
+      "type": "type_annotation",
+      "subtype": "record",
+      "value": [
+        {
+        "type": "type_annotation",
+        "subtype": "method_annotation",
+        "value": {
+          "type": "type_annotation",
+          "subtype": "named",
+          "value": "string"
+        },
+        "optional": false,
+        "name": "spin_start",
+        "json_name": "start"
+      }
+      ]
+    },
+    "definition": {
+      "type": "string",
+      "value": "\"{\\\"start\\\": \\\"x\\\"}\""
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "as" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "string", "value": "\"still an identifier\"" }
+  },
+    {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "var",
+      "value": "m"
+    },
+      {
+      "type": "invoke",
+      "invoked": { "type": "var", "value": "r" },
+      "optional": false,
+      "meth": { "type": "var", "value": "spin_start" }
+    },
+      {
+      "type": "var",
+      "value": "as"
+    }
+    ]
+  }
+  ]
+}
+--- hash ---
+bcf8db21b96e03b3e36edc416d1c2022
+--- term ---
+m = (_0_json_parser(json5=false, type=type, "{\"a\": 1}") : [string * int] as json.object)
+r = (_0_json_parser(json5=false, type=type, "{\"start\": \"x\"}") : {"start" as spin_start : string})
+as = "still an identifier"
+(m, r.spin_start, as)
+--- type ---
+[string * int] as json.object * string * string
+--- value ---
+([("a", 1)], "x", "still an identifier")

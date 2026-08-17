@@ -48,7 +48,8 @@
 (rule
  (alias gendune)
  (deps
-  (source_tree cases))
+  (source_tree cases)
+  (source_tree cases_canonical))
  (target dune.inc.gen)
  (action
   (progn

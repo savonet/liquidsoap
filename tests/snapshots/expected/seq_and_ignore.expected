@@ -4,8 +4,9 @@ ignore("two")
 3
 --- parsed ---
 {
-  "type": "seq",
-  "left": {
+  "type": "block",
+  "value": [
+    {
     "type": "app",
     "op": { "type": "var", "value": "ignore" },
     "args": [
@@ -19,27 +20,28 @@ ignore("two")
     }
     ]
   },
-  "right": {
-    "type": "seq",
-    "left": {
-      "type": "app",
-      "op": { "type": "var", "value": "ignore" },
-      "args": [
-        {
-        "type": "term",
-        "value": {
-          "type": "app_arg",
-          "label": "",
-          "value": { "type": "string", "value": "\"two\"" }
-        }
+    {
+    "type": "app",
+    "op": { "type": "var", "value": "ignore" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": { "type": "string", "value": "\"two\"" }
       }
-      ]
-    },
-    "right": { "type": "ground", "value": "3" }
+    }
+    ]
+  },
+    {
+    "type": "ground",
+    "value": "3"
   }
+  ]
 }
 --- hash ---
-618d28af57eb5cdb415f7d41153cd1e9
+5e29bdd9399c8264af73e9d404f0b2bf
 --- term ---
 ignore(1)
 ignore("two")

@@ -144,6 +144,15 @@ print("The number #{random.float()} is random.")
 will print `The number 0.663455738438 is random.` (at least it did last time I
 tried).
 
+The interpolated expression is ordinary Liquidsoap code, so it can contain
+strings, records and further interpolations:
+
+```liquidsoap
+m = [("key", "value")]
+print("got #{m["key"]}")
+print("a #{ {a = 1}.a } b")
+```
+
 #### Raw strings
 
 When a string should be taken verbatim — without any interpolation or escape
@@ -1083,6 +1092,26 @@ reading the code.
 
 Patterns are constructed using _variable placeholders_, which are either a variable name such as: `x`, `foo`, etc. or
 the special symbol `_` for any ignored value.
+
+The `let` keyword is optional: a pattern, a field path or a type annotation can all appear on the left of a plain `=`.
+
+```liquidsoap
+(x, y) = (1, 2)
+[a, b] = [3, 4]
+(n : int) = 5
+
+r = {}
+r.field = 6
+```
+
+There is one exception. Inside the `{ … }` function shorthand a _leading_ binding must use `let`, because `{ x = 1 }`
+is a record literal:
+
+```liquidsoap
+f = { let x = 1; x + 1 }
+```
+
+Only the first statement is affected; the ones after it can be written either way.
 
 ### Tuple patterns
 

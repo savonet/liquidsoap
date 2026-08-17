@@ -3,28 +3,35 @@ f = {1 + 1}
 f()
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "f" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "simple_fun",
+      "value": [
+        {
+        "type": "infix",
+        "left": { "type": "ground", "value": "1" },
+        "op": "+",
+        "right": { "type": "ground", "value": "1" }
+      }
+      ]
+    }
+  },
+    {
     "type": "app",
     "op": { "type": "var", "value": "f" },
     "args": []
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "f" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "simple_fun",
-    "value": {
-      "type": "infix",
-      "left": { "type": "ground", "value": "1" },
-      "op": "+",
-      "right": { "type": "ground", "value": "1" }
-    }
   }
+  ]
 }
 --- hash ---
-521434f303ada8a80912cc38a9962948
+d8f0b44d791411c9686d34f3133f1646
 --- term ---
 f = fun () -> +(1, 1)
 f()

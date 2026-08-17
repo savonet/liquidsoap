@@ -10,6 +10,9 @@ module Parser_helper = Parser_helper
 (** The tokenizer. *)
 module Lexer = Lexer
 
+(** Escape decoding for string and regexp literal bodies. *)
+module String_literal = String_literal
+
 (** Token-level preprocessing: string interpolation and conditionals. *)
 module Preprocessor = Preprocessor
 

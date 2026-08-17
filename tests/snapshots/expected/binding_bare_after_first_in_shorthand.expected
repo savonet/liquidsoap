@@ -1,0 +1,72 @@
+=== binding_bare_after_first_in_shorthand.liq ===
+# The record ambiguity only affects the *first* statement of a `{ ... }` body.
+# A leading `x = 1` would be the record `{ x = 1 }`, but once past it a bare
+# binding is fine. src/libs/extra/fades.liq relies on this.
+f =
+  {
+    let a = 1
+    b = a + 1
+    b
+  }
+f()
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "f" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "simple_fun",
+      "value": [
+        {
+        "type": "let",
+        "decoration": null,
+        "pat": { "type": "pvar", "value": [ "a" ] },
+        "arglist": null,
+        "cast": null,
+        "definition": { "type": "ground", "value": "1" }
+      },
+        {
+        "type": "binding",
+        "decoration": null,
+        "pat": { "type": "pvar", "value": [ "b" ] },
+        "arglist": null,
+        "cast": null,
+        "definition": {
+          "type": "infix",
+          "left": { "type": "var", "value": "a" },
+          "op": "+",
+          "right": { "type": "ground", "value": "1" }
+        }
+      },
+        {
+        "type": "var",
+        "value": "b"
+      }
+      ]
+    }
+  },
+    {
+    "type": "app",
+    "op": { "type": "var", "value": "f" },
+    "args": []
+  }
+  ]
+}
+--- hash ---
+ea2c3b373a4655197062f947d19e346e
+--- term ---
+f = fun () -> a = 1
+b = +(a, 1)
+b
+f()
+--- doc ---
+f: The record ambiguity only affects the *first* statement of a `{ ... }` body. A leading `x = 1` would be the record `{ x = 1 }`, but once past it a bare binding is fine. src/libs/extra/fades.liq relies on this.
+--- type ---
+int
+--- value ---
+2

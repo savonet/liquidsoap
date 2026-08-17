@@ -3,8 +3,47 @@ v = ().{a = ().{b = ().{c = 1}}}
 v.a.b.c
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "v" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "methods",
+      "base": { "type": "tuple", "value": [] },
+      "methods": [
+        {
+        "type": "method",
+        "name": "a",
+        "value": {
+          "type": "methods",
+          "base": { "type": "tuple", "value": [] },
+          "methods": [
+            {
+            "type": "method",
+            "name": "b",
+            "value": {
+              "type": "methods",
+              "base": { "type": "tuple", "value": [] },
+              "methods": [
+                {
+                "type": "method",
+                "name": "c",
+                "value": { "type": "ground", "value": "1" }
+              }
+              ]
+            }
+          }
+          ]
+        }
+      }
+      ]
+    }
+  },
+    {
     "type": "invoke",
     "invoked": {
       "type": "invoke",
@@ -19,45 +58,11 @@ v.a.b.c
     },
     "optional": false,
     "meth": { "type": "var", "value": "c" }
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "v" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "methods",
-    "base": { "type": "tuple", "value": [] },
-    "methods": [
-      {
-      "type": "method",
-      "name": "a",
-      "value": {
-        "type": "methods",
-        "base": { "type": "tuple", "value": [] },
-        "methods": [
-          {
-          "type": "method",
-          "name": "b",
-          "value": {
-            "type": "methods",
-            "base": { "type": "tuple", "value": [] },
-            "methods": [
-              {
-              "type": "method",
-              "name": "c",
-              "value": { "type": "ground", "value": "1" }
-            }
-            ]
-          }
-        }
-        ]
-      }
-    }
-    ]
   }
+  ]
 }
 --- hash ---
-d6126113119a3abc8140d3e4f5e781e1
+27a9f60a62fee9b7055bcac5e13f6545
 --- term ---
 v = {a={b={c=1}}}
 v.a.b.c

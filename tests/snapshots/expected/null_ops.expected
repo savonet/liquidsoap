@@ -3,8 +3,17 @@ x = null
 (null.defined(x), x ?? 1)
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "x" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "null" }
+  },
+    {
     "type": "tuple",
     "value": [
       {
@@ -32,20 +41,17 @@ x = null
       "right": { "type": "ground", "value": "1" }
     }
     ]
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "x" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": { "type": "null" }
+  }
+  ]
 }
 --- hash ---
-a057ef51cf27cf6eebeafbe1678ca8c9
+a498f3fdb792cd666f14af766e27ac40
 --- term ---
 x = null
 (_null.defined(x), _null.default(x, {1}))
 --- type ---
-At line 2, char 1-6:
+At cases/null_ops.liq, line 2, char 1-6:
+(null.defined(x), x ?? 1)
 
 Error 5: this value has no method `defined`
   Its type is ((?'A) -> 'A?)

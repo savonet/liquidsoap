@@ -1,0 +1,184 @@
+=== comments.liq ===
+# The `comments` array: raw text plus absolute cnum offsets, reported
+# independently of the AST so prettier can place them itself.
+
+# A doc comment on a binding.
+x = 1 # trailing, same line
+
+# Leading a block.
+def g() =
+  # Inside the block.
+  x
+end
+
+g()
+--- canonical ---
+{
+  "ast": {
+    "type": "program",
+    "position": [
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 0
+    },
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 256
+    }
+    ],
+    "body": [
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 5,
+        "bol": 163,
+        "cnum": 163
+      },
+        {
+        "fname": "",
+        "lnum": 5,
+        "bol": 163,
+        "cnum": 168
+      }
+      ],
+      "type": "binding",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "x" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 5,
+          "bol": 163,
+          "cnum": 167
+        },
+          {
+          "fname": "",
+          "lnum": 5,
+          "bol": 163,
+          "cnum": 168
+        }
+        ],
+        "type": "ground",
+        "value": "1"
+      }
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 8,
+        "bol": 211,
+        "cnum": 211
+      },
+        {
+        "fname": "",
+        "lnum": 11,
+        "bol": 247,
+        "cnum": 250
+      }
+      ],
+      "type": "def",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "g" ] },
+      "arglist": [],
+      "cast": null,
+      "body": [
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 10,
+          "bol": 243,
+          "cnum": 245
+        },
+          {
+          "fname": "",
+          "lnum": 10,
+          "bol": 243,
+          "cnum": 246
+        }
+        ],
+        "type": "var",
+        "value": "x"
+      }
+      ]
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 13,
+        "bol": 252,
+        "cnum": 252
+      },
+        {
+        "fname": "",
+        "lnum": 13,
+        "bol": 252,
+        "cnum": 255
+      }
+      ],
+      "type": "app",
+      "op": {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 13,
+          "bol": 252,
+          "cnum": 252
+        },
+          {
+          "fname": "",
+          "lnum": 13,
+          "bol": 252,
+          "cnum": 254
+        }
+        ],
+        "type": "var",
+        "value": "g"
+      },
+      "args": []
+    }
+    ]
+  },
+  "comments": [
+    {
+    "start": 0,
+    "end": 131,
+    "lnum": 1,
+    "value": "# The `comments` array: raw text plus absolute cnum offsets, reported\n# independently of the AST so prettier can place them itself."
+  },
+    {
+    "start": 133,
+    "end": 162,
+    "lnum": 4,
+    "value": "# A doc comment on a binding."
+  },
+    {
+    "start": 169,
+    "end": 190,
+    "lnum": 5,
+    "value": "# trailing, same line"
+  },
+    {
+    "start": 192,
+    "end": 210,
+    "lnum": 7,
+    "value": "# Leading a block."
+  },
+    {
+    "start": 223,
+    "end": 242,
+    "lnum": 9,
+    "value": "# Inside the block."
+  }
+  ]
+}

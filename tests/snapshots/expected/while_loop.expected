@@ -3,8 +3,30 @@ n = ref(0)
 while n() < 3 do n := n() + 1  end
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "n" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "app",
+      "op": { "type": "var", "value": "ref" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "ground", "value": "0" }
+        }
+      }
+      ]
+    }
+  },
+    {
     "type": "while",
     "condition": {
       "type": "infix",
@@ -16,7 +38,8 @@ while n() < 3 do n := n() + 1  end
       "op": "<",
       "right": { "type": "ground", "value": "3" }
     },
-    "loop": {
+    "loop": [
+      {
       "type": "infix",
       "left": { "type": "var", "value": "n" },
       "op": ":=",
@@ -31,28 +54,12 @@ while n() < 3 do n := n() + 1  end
         "right": { "type": "ground", "value": "1" }
       }
     }
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "n" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "app",
-    "op": { "type": "var", "value": "ref" },
-    "args": [
-      {
-      "type": "term",
-      "value": {
-        "type": "app_arg",
-        "label": "",
-        "value": { "type": "ground", "value": "0" }
-      }
-    }
     ]
   }
+  ]
 }
 --- hash ---
-fac37728de195176c3cba0b8da7b7cf4
+f2baa58b54f809f927dfb9887f543a09
 --- term ---
 n = ref(0)
 while(fun () -> <(n(), 3), fun () -> (n.set(+(n(), 1)) : unit))

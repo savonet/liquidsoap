@@ -31,21 +31,33 @@ exception Includer_error of (exn * Sedlexing.lexbuf * Printexc.raw_backtrace)
 
 let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
 
-let let_script_path ~filename tm =
-  Parser_helper.mk ~pos:tm.Parsed_term.pos
-    (`Let
-       ( {
-           Parsed_term.decoration = `None;
+(* Every program starts with a `liquidsoap.script.path` binding, so that it
+   scopes over the whole script. *)
+let let_script_path ~filename ({ Parsed_term.pos; _ } as block) =
+  let binding =
+    Parser_helper.mk_stmt ~pos
+      (`Binding
+         {
+           Parsed_term.kind = `Let;
+           decoration = `None;
            pat =
              {
-               pat_pos = tm.pos;
+               pat_pos = pos;
                pat_entry = `PVar ["liquidsoap"; "script"; "path"];
              };
            arglist = None;
            cast = None;
-           def = Parser_helper.mk ~pos:tm.pos filename;
-         },
-         tm ))
+           def = Parser_helper.mk ~pos filename;
+         })
+  in
+  match block.Parsed_term.term with
+    | `Block b ->
+        {
+          block with
+          Parsed_term.term =
+            `Block { b with block_body = binding :: b.block_body };
+        }
+    | _ -> assert false
 
 let mk_expr ?fname processor lexbuf =
   let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
@@ -61,20 +73,9 @@ let mk_expr ?fname processor lexbuf =
           ~filename:(`String ('"', Lang_string.escape_utf8_string fname))
           parsed_term
 
+(* An `%include_extra` naming a file that is not installed. The include then
+   contributes no statements, which is how the minimal distributions build. *)
 exception No_extra
-
-let rec concat_term (t : t) (t' : t) =
-  match t with
-    | { term = `Let (def, body) } ->
-        { t with term = `Let (def, concat_term body t') }
-    | { term = `Def (def, body) } ->
-        { t with term = `Def (def, concat_term body t') }
-    | { term = `Binding (def, body) } ->
-        { t with term = `Binding (def, concat_term body t') }
-    | { term = `Seq (t1, t2) } as tm ->
-        { tm with term = `Seq (t1, concat_term t2 t') }
-    | { term = `Eof } | { term = `Tuple [] } -> t'
-    | _ -> Parsed_term.make ~pos:t.Parsed_term.pos (`Seq (t, t'))
 
 let includer_reducer ~pos = function
   | `Include { inc_type; inc_name; inc_pos } -> (
@@ -105,320 +106,40 @@ let includer_reducer ~pos = function
             with (Parser.Error | Parsing.Parse_error) as exn ->
               let bt = Printexc.get_raw_backtrace () in
               raise (Includer_error (exn, lexbuf, bt)))
-      with No_extra -> Parsed_term.make ~pos (`Tuple []))
+      with No_extra ->
+        Parsed_term.make ~pos
+          (`Block { Parsed_term.block_body = []; block_pos = pos }))
 
-let rec expand_encoder (lbl, params) =
-  ( lbl,
-    List.map
-      (function
-        | `Encoder enc -> `Encoder (expand_encoder enc)
-        | `Labelled (lbl, t) -> `Labelled (lbl, expand_term t)
-        | `Anonymous _ as v -> v)
-      params )
+(* The included program is a `Block`. Its statements are concatenated into the
+   including block, so a binding in an included file scopes over the code that
+   follows the `%include`. *)
+let included_statements ~pos ast =
+  match (includer_reducer ~pos ast).Parsed_term.term with
+    | `Block b -> b.block_body
+    | _ -> assert false
 
-and expand_term tm =
-  let expand_decoration = function
-    | `None -> `None
-    | `Recursive -> `Recursive
-    | `Replaces -> `Replaces
-    | `Eval -> `Eval
-    | `Sqlite_query -> `Sqlite_query
-    | `Sqlite_row -> `Sqlite_row
-    | `Yaml_parse -> `Yaml_parse
-    | `Xml_parse -> `Xml_parse
-    | `Json_parse l ->
-        `Json_parse (List.map (fun (lbl, t) -> (lbl, expand_term t)) l)
+(** Expand every `%include` in [tm] and normalize `Inline_if` into `If`.
+    Everything else is left alone: the recursion over the other constructors is
+    [Parsed_term.map_children], with the block hook doing the splicing. *)
+let rec expand_term tm =
+  let ast =
+    match tm.Parsed_term.term with `Inline_if p -> `If p | ast -> ast
   in
-  let expand_func_arg ({ default } as arg) =
-    { arg with default = Option.map expand_term default }
-  in
-  let expand_arglist =
-    List.map (function
-      | `Term arg -> `Term (expand_func_arg arg)
-      | `Argsof _ as el -> el)
-  in
-  let expand_app_arg =
-    List.map (function
-      | `Argsof _ as el -> el
-      | `Term (lbl, t) -> `Term (lbl, expand_term t))
-  in
-  let expand_fun_args =
-    List.map (function
-      | `Term arg -> `Term (expand_func_arg arg)
-      | `Argsof _ as v -> v)
-  in
-  let comments = ref tm.Parsed_term.comments in
-  let term =
-    match tm.Parsed_term.term with
-      | `Include _ as ast ->
-          let { term; comments = expanded_comments } =
-            expand_term (includer_reducer ~pos:tm.Parsed_term.pos ast)
-          in
-          comments := expanded_comments;
-          term
-      | `Seq ({ pos; term = `Include _ as ast }, t') ->
-          let t = expand_term (includer_reducer ~pos ast) in
-          let t' = expand_term t' in
-          let { term; comments = expanded_comments } = concat_term t t' in
-          comments := expanded_comments;
-          term
-      | `Seq (t, t') -> `Seq (expand_term t, expand_term t')
-      | `If_def ({ if_def_then_block; if_def_else_block } as if_def) ->
-          `If_def
-            {
-              if_def with
-              if_def_then_block =
-                {
-                  if_def_then_block with
-                  block_body = expand_term if_def_then_block.block_body;
-                };
-              if_def_else_block =
-                Option.map
-                  (fun b -> { b with block_body = expand_term b.block_body })
-                  if_def_else_block;
-            }
-      | `If_version
-          ({ if_version_then_block; if_version_else_block } as if_version) ->
-          `If_version
-            {
-              if_version with
-              if_version_then_block =
-                {
-                  if_version_then_block with
-                  block_body = expand_term if_version_then_block.block_body;
-                };
-              if_version_else_block =
-                Option.map
-                  (fun b -> { b with block_body = expand_term b.block_body })
-                  if_version_else_block;
-            }
-      | `If_encoder
-          ({ if_encoder_then_block; if_encoder_else_block } as if_encoder) ->
-          `If_encoder
-            {
-              if_encoder with
-              if_encoder_then_block =
-                {
-                  if_encoder_then_block with
-                  block_body = expand_term if_encoder_then_block.block_body;
-                };
-              if_encoder_else_block =
-                Option.map
-                  (fun b -> { b with block_body = expand_term b.block_body })
-                  if_encoder_else_block;
-            }
-      | `If ({ if_condition; if_then_block; if_elsif; if_else_block; _ } as _if)
-        ->
-          `If
-            {
-              _if with
-              if_condition = expand_term if_condition;
-              if_then_block =
-                {
-                  if_then_block with
-                  block_body = expand_term if_then_block.block_body;
-                };
-              if_elsif =
-                List.map
-                  (fun ({ elsif_condition; elsif_then_block; _ } as e) ->
-                    {
-                      e with
-                      elsif_condition = expand_term elsif_condition;
-                      elsif_then_block =
-                        {
-                          elsif_then_block with
-                          block_body = expand_term elsif_then_block.block_body;
-                        };
-                    })
-                  if_elsif;
-              if_else_block =
-                Option.map
-                  (fun b -> { b with block_body = expand_term b.block_body })
-                  if_else_block;
-            }
-      | `Inline_if
-          ({ if_condition; if_then_block; if_elsif; if_else_block; _ } as _if)
-        ->
-          `If
-            {
-              _if with
-              if_condition = expand_term if_condition;
-              if_then_block =
-                {
-                  if_then_block with
-                  block_body = expand_term if_then_block.block_body;
-                };
-              if_elsif =
-                List.map
-                  (fun ({ elsif_condition; elsif_then_block; _ } as e) ->
-                    {
-                      e with
-                      elsif_condition = expand_term elsif_condition;
-                      elsif_then_block =
-                        {
-                          elsif_then_block with
-                          block_body = expand_term elsif_then_block.block_body;
-                        };
-                    })
-                  if_elsif;
-              if_else_block =
-                Option.map
-                  (fun b -> { b with block_body = expand_term b.block_body })
-                  if_else_block;
-            }
-      | `While { while_condition; while_do_block } ->
-          `While
-            {
-              while_condition = expand_term while_condition;
-              while_do_block =
-                {
-                  while_do_block with
-                  block_body = expand_term while_do_block.block_body;
-                };
-            }
-      | `For ({ for_from; for_to; for_do_block } as _for) ->
-          `For
-            {
-              _for with
-              for_from = expand_term for_from;
-              for_to = expand_term for_to;
-              for_do_block =
-                {
-                  for_do_block with
-                  block_body = expand_term for_do_block.block_body;
-                };
-            }
-      | `Iterable_for ({ iterable_for_iterator; iterable_for_do_block } as _for)
-        ->
-          `Iterable_for
-            {
-              _for with
-              iterable_for_iterator = expand_term iterable_for_iterator;
-              iterable_for_do_block =
-                {
-                  iterable_for_do_block with
-                  block_body = expand_term iterable_for_do_block.block_body;
-                };
-            }
-      | `List l ->
-          `List
-            (List.map
-               (function
-                 | `Term t -> `Term (expand_term t)
-                 | `Ellipsis t -> `Ellipsis (expand_term t))
-               l)
-      | `Try { try_body_block; try_handler; try_finally_block } ->
-          `Try
-            {
-              try_body_block =
-                {
-                  try_body_block with
-                  block_body = expand_term try_body_block.block_body;
-                };
-              try_handler =
-                Option.map
-                  (fun ({ try_handler_errors_list; try_handler_block; _ } as h)
-                     ->
-                    {
-                      h with
-                      try_handler_errors_list =
-                        Option.map expand_term try_handler_errors_list;
-                      try_handler_block =
-                        {
-                          try_handler_block with
-                          block_body = expand_term try_handler_block.block_body;
-                        };
-                    })
-                  try_handler;
-              try_finally_block =
-                Option.map
-                  (fun b -> { b with block_body = expand_term b.block_body })
-                  try_finally_block;
-            }
-      | `Regexp _ as ast -> ast
-      | `Time_interval _ as ast -> ast
-      | `Time _ as ast -> ast
-      | `Def (({ decoration; arglist; def } as _let), body) ->
-          `Def
-            ( {
-                _let with
-                decoration = expand_decoration decoration;
-                def = expand_term def;
-                arglist = Option.map expand_arglist arglist;
-              },
-              expand_term body )
-      | `Let (({ decoration; arglist; def } as _let), body) ->
-          `Let
-            ( {
-                _let with
-                decoration = expand_decoration decoration;
-                def = expand_term def;
-                arglist = Option.map expand_arglist arglist;
-              },
-              expand_term body )
-      | `Binding (({ decoration; arglist; def } as _let), body) ->
-          `Binding
-            ( {
-                _let with
-                decoration = expand_decoration decoration;
-                def = expand_term def;
-                arglist = Option.map expand_arglist arglist;
-              },
-              expand_term body )
-      | `Cast { cast = t; typ } -> `Cast { cast = expand_term t; typ }
-      | `App (t, app_arg) -> `App (expand_term t, expand_app_arg app_arg)
-      | `Invoke ({ invoked; meth } as invoke) ->
-          `Invoke
-            {
-              invoke with
-              invoked = expand_term invoked;
-              meth =
-                (match meth with
-                  | `String _ as s -> s
-                  | `App (n, app_arg) -> `App (n, expand_app_arg app_arg));
-            }
-      | `Fun (fun_args, t) -> `Fun (expand_fun_args fun_args, expand_term t)
-      | `RFun (name, fun_args, t) ->
-          `RFun (name, expand_fun_args fun_args, expand_term t)
-      | `Not t -> `Not (expand_term t)
-      | `Get t -> `Get (expand_term t)
-      | `Set (t, t') -> `Set (expand_term t, expand_term t')
-      | `Methods (t, methods) ->
-          `Methods
-            ( Option.map expand_term t,
-              List.map
-                (function
-                  | `Ellipsis t -> `Ellipsis (expand_term t)
-                  | `Method (name, t) -> `Method (name, expand_term t))
-                methods )
-      | `Negative t -> `Negative (expand_term t)
-      | `Append (t, t') -> `Append (expand_term t, expand_term t')
-      | `Assoc (t, t') -> `Assoc (expand_term t, expand_term t')
-      | `Infix (t, op, t') -> `Infix (expand_term t, op, expand_term t')
-      | `BoolOp (b, l) -> `BoolOp (b, List.map expand_term l)
-      | `Coalesce (t, t') -> `Coalesce (expand_term t, expand_term t')
-      | `At (t, t') -> `At (expand_term t, expand_term t')
-      | `Simple_fun t -> `Simple_fun (expand_term t)
-      | `String_interpolation (c, l) ->
-          `String_interpolation
-            ( c,
-              List.map
-                (function
-                  | `String _ as s -> s | `Term t -> `Term (expand_term t))
-                l )
-      | `Int _ as ast -> ast
-      | `Float _ as ast -> ast
-      | `Raw_string _ as ast -> ast
-      | `String _ as ast -> ast
-      | `Bool _ as ast -> ast
-      | `Eof -> `Eof
-      | `Block t -> `Block (expand_term t)
-      | `Parenthesis t -> `Parenthesis (expand_term t)
-      | `Encoder enc -> `Encoder (expand_encoder enc)
-      | `Custom _ as ast -> ast
-      | `Open (t, t') -> `Open (expand_term t, expand_term t')
-      | `Tuple l -> `Tuple (List.map expand_term l)
-      | `Var _ as ast -> ast
-      | `Null -> `Null
-  in
-  { tm with Parsed_term.term; comments = !comments }
+  {
+    tm with
+    Parsed_term.term =
+      Parsed_term.map_children ~block:expand_block expand_term ast;
+  }
+
+and expand_block b =
+  {
+    b with
+    Parsed_term.block_body = List.concat_map expand_statement b.block_body;
+  }
+
+and expand_statement stmt =
+  match stmt.Parsed_term.stmt with
+    | `Include _ as ast ->
+        List.concat_map expand_statement
+          (included_statements ~pos:stmt.Parsed_term.stmt_pos ast)
+    | _ -> [Parsed_term.map_statement ~block:expand_block expand_term stmt]

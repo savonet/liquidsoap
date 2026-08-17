@@ -60,8 +60,8 @@ def ot(m) =
   end
 end
 
-radio = rotate(id="rotate", [music.{weight=3}, jingles.{weight=1}])
-radio = rotate(id="rotate2", [radio.{weight=1}, music2.{weight=1}])
+radio = rotate(id="rotate", [music.{weight = 3}, jingles.{weight = 1}])
+radio = rotate(id="rotate2", [radio.{weight = 1}, music2.{weight = 1}])
 
 radio.on_track(synchronous=true, ot)
 

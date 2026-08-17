@@ -1,0 +1,11 @@
+=== binding_bare_in_shorthand.invalid-liq ===
+# A leading bare binding inside `{ … }` is not allowed: `{ x = 1 }` is a record
+# literal. Write `let x = 1` instead. Only the first statement is restricted,
+# see binding_bare_after_first_in_shorthand.liq.
+f = { x = 1; x + 1 }
+f()
+--- parsed ---
+At cases/binding_bare_in_shorthand.invalid-liq, line 4, char 11:
+f = { x = 1; x + 1 }
+
+Error 2: Parse error

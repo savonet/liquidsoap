@@ -28,6 +28,32 @@ streaming core — so the output only depends on the language implementation.
 Scripts that use core builtins (sources, `time_in_mod`, …) still show their
 desugaring; they simply fail at the `type` stage, which is fine and expected.
 
+## The canonical suite
+
+`cases_canonical/` → `expected_canonical/` is a second, much smaller suite that
+dumps `Parsed_json.parse_string` instead: the flat, keyword-anchored JSON that
+liquidsoap-prettier consumes, spec'd in `src/lang/tooling/parsed_json.mli`.
+
+It exists because the pipeline snapshots above **strip every position**, while
+block spans and comment offsets are precisely what prettier depends on — so a
+parser change can leave `expected/` untouched and still break the formatter.
+Keep these cases few and focused on block structure; the output is verbose.
+
+Both suites share `snapshot.exe` (`--canonical` selects the second) and the same
+two `--auto-promote` commands.
+
+## File extensions in `cases/`
+
+| extension      | what it is                                               |
+| -------------- | -------------------------------------------------------- |
+| `.liq`         | a case                                                   |
+| `.invalid-liq` | a case that is deliberately not valid Liquidsoap         |
+| `.liq-inc`     | not a case; a fixture some case pulls in with `%include` |
+
+Only `.liq` is picked up by the repo-wide `**/*.liq` glob that the external
+tree-sitter and lezer grammars are checked against, which is why the other two
+are spelled the way they are.
+
 ## Adding a case
 
 Drop a `.liq` file in `cases/`, then:

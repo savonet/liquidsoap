@@ -5,8 +5,66 @@ end
 fact(5)
 --- parsed ---
 {
-  "type": "def",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "def",
+    "decoration": { "type": "var", "value": "rec" },
+    "pat": { "type": "pvar", "value": [ "fact" ] },
+    "arglist": [
+      {
+      "type": "term",
+      "value": {
+        "type": "fun_arg",
+        "label": "",
+        "as_variable": { "type": "pvar", "value": [ "n" ] },
+        "typ": null,
+        "default": null
+      }
+    }
+    ],
+    "cast": null,
+    "body": [
+      {
+      "type": "if",
+      "condition": {
+        "type": "infix",
+        "left": { "type": "var", "value": "n" },
+        "op": "<=",
+        "right": { "type": "ground", "value": "1" }
+      },
+      "then": [ { "type": "ground", "value": "1" } ],
+      "elsif": [],
+      "else": [
+        {
+        "type": "infix",
+        "left": { "type": "var", "value": "n" },
+        "op": "*",
+        "right": {
+          "type": "app",
+          "op": { "type": "var", "value": "fact" },
+          "args": [
+            {
+            "type": "term",
+            "value": {
+              "type": "app_arg",
+              "label": "",
+              "value": {
+                "type": "infix",
+                "left": { "type": "var", "value": "n" },
+                "op": "-",
+                "right": { "type": "ground", "value": "1" }
+              }
+            }
+          }
+          ]
+        }
+      }
+      ]
+    }
+    ]
+  },
+    {
     "type": "app",
     "op": { "type": "var", "value": "fact" },
     "args": [
@@ -19,60 +77,11 @@ fact(5)
       }
     }
     ]
-  },
-  "decoration": { "type": "var", "value": "rec" },
-  "pat": { "type": "pvar", "value": [ "fact" ] },
-  "arglist": [
-    {
-    "type": "term",
-    "value": {
-      "type": "fun_arg",
-      "label": "",
-      "as_variable": { "type": "pvar", "value": [ "n" ] },
-      "typ": null,
-      "default": null
-    }
   }
-  ],
-  "cast": null,
-  "definition": {
-    "type": "if",
-    "condition": {
-      "type": "infix",
-      "left": { "type": "var", "value": "n" },
-      "op": "<=",
-      "right": { "type": "ground", "value": "1" }
-    },
-    "then": { "type": "ground", "value": "1" },
-    "elsif": [],
-    "else": {
-      "type": "infix",
-      "left": { "type": "var", "value": "n" },
-      "op": "*",
-      "right": {
-        "type": "app",
-        "op": { "type": "var", "value": "fact" },
-        "args": [
-          {
-          "type": "term",
-          "value": {
-            "type": "app_arg",
-            "label": "",
-            "value": {
-              "type": "infix",
-              "left": { "type": "var", "value": "n" },
-              "op": "-",
-              "right": { "type": "ground", "value": "1" }
-            }
-          }
-        }
-        ]
-      }
-    }
-  }
+  ]
 }
 --- hash ---
-d26e7eadfaa8b0b71adda2a9b15181c6
+651778ea958a654e22211c9acff56cab
 --- term ---
 def rec fact(n) =
   if(<=(n, 1), then={1}, else=fun () -> *(n, fact(-(n, 1))))

@@ -1,0 +1,136 @@
+=== type_constructors.liq ===
+# `ref` and `getter` name types but are ordinary functions too, so they are
+# recognized by name in the grammar rather than lexed as keywords.
+r = ref(1)
+ignore((r : ref(int)))
+ignore((1 : getter(int)))
+
+# Still ordinary identifiers.
+ref =
+  "a variable"
+getter = "another"
+(ref, getter)
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "r" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "app",
+      "op": { "type": "var", "value": "ref" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "ground", "value": "1" }
+        }
+      }
+      ]
+    }
+  },
+    {
+    "type": "app",
+    "op": { "type": "var", "value": "ignore" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": {
+          "type": "cast",
+          "left": { "type": "var", "value": "r" },
+          "right": {
+            "type": "type_annotation",
+            "subtype": "ref",
+            "value": {
+              "type": "type_annotation",
+              "subtype": "named",
+              "value": "int"
+            }
+          }
+        }
+      }
+    }
+    ]
+  },
+    {
+    "type": "app",
+    "op": { "type": "var", "value": "ignore" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "",
+        "value": {
+          "type": "cast",
+          "left": { "type": "ground", "value": "1" },
+          "right": {
+            "type": "type_annotation",
+            "subtype": "getter",
+            "value": {
+              "type": "type_annotation",
+              "subtype": "named",
+              "value": "int"
+            }
+          }
+        }
+      }
+    }
+    ]
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "ref" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "string", "value": "\"a variable\"" }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "getter" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "string", "value": "\"another\"" }
+  },
+    {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "var",
+      "value": "ref"
+    },
+      {
+      "type": "var",
+      "value": "getter"
+    }
+    ]
+  }
+  ]
+}
+--- hash ---
+400e47ff308e750430db503ff900ee85
+--- term ---
+r = ref(1)
+ignore((r : (() -> int).{set : (int) -> unit}))
+ignore((1 : {int}))
+ref = "a variable"
+getter = "another"
+(ref, getter)
+--- doc ---
+r: `ref` and `getter` name types but are ordinary functions too, so they are recognized by name in the grammar rather than lexed as keywords.
+ref: Still ordinary identifiers.
+--- type ---
+string * string
+--- value ---
+("a variable", "another")

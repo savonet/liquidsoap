@@ -206,36 +206,9 @@ let rec to_string (v : t) =
         (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
     ^ "}")
 
-(** Create a new value. *)
-let id =
-  let counter = Atomic.make 0 in
-  fun () -> Atomic.fetch_and_add counter 1
-
 let make ?pos ?t ?(flags = Flags.empty) ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
   { t; term = e; methods; flags }
-
-let rec free_vars_pat = function
-  | `PVar [] -> assert false
-  | `PVar [_] -> Vars.empty
-  | `PVar (x :: _) -> Vars.singleton x
-  | `PTuple l -> List.fold_left Vars.union Vars.empty (List.map free_vars_pat l)
-  | `PList (l, spread, l') ->
-      List.fold_left Vars.union Vars.empty
-        (List.map free_vars_pat
-           (l @ (match spread with None -> [] | Some v -> [`PVar [v]]) @ l'))
-  | `PMeth (pat, l) ->
-      List.fold_left Vars.union
-        (match pat with None -> Vars.empty | Some pat -> free_vars_pat pat)
-        (List.map free_vars_pat
-           (List.fold_left
-              (fun cur (lbl, pat) ->
-                [`PVar [lbl]]
-                @ (match pat with
-                  | `None | `Nullable -> []
-                  | `Pattern pat -> [pat])
-                @ cur)
-              [] l))
 
 let bound_vars_pat = function
   | `PVar [] -> assert false

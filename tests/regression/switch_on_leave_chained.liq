@@ -12,9 +12,11 @@ def track(name) =
 end
 
 # None of these ever end a track on their own, so every handoff is a preemption.
-a = (sine(id="a") : source).{track_sensitive=false, on_leave=track("a")}
-b = (sine(id="b", 550.) : source).{track_sensitive=false, on_leave=track("b")}
-c = (sine(id="c", 660.) : source).{track_sensitive=false, on_leave=track("c")}
+a = (sine(id="a") : source).{track_sensitive = false, on_leave = track("a")}
+b =
+  (sine(id="b", 550.) : source).{track_sensitive = false, on_leave = track("b")}
+c =
+  (sine(id="c", 660.) : source).{track_sensitive = false, on_leave = track("c")}
 
 use_b = ref(false)
 use_c = ref(false)
@@ -39,9 +41,7 @@ thread.run(
   delay=4.,
   {
     begin
-      log(
-        "left=#{left()}"
-      )
+      log("left=#{left()}")
       if
         list.mem("a", left()) and list.mem("b", left())
       then

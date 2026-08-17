@@ -5,7 +5,6 @@ let empty = 0
 let octal_int = 1
 let hex_int = 1 lsl 1
 let checked_value = 1 lsl 2
-let itered_value = 1 lsl 3
 let has flags flag = flags land flag <> 0
 let add flags flag = flags lor flag
 let merge f f' = f lor f'

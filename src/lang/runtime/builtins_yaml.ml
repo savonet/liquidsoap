@@ -23,7 +23,7 @@ let rec json_of_yaml = function
   | `Null -> `Null
 
 let _ =
-  Lang.add_builtin "_internal_yaml_parser_" ~category:`String ~flags:[`Hidden]
+  Lang.add_builtin "_0_yaml_parser" ~category:`String ~flags:[`Hidden]
     ~descr:"Internal yaml parser"
     [
       ("type", Value.RuntimeType.t, None, Some "Runtime type");

@@ -1,26 +1,53 @@
 === argsof.liq ===
-def base(~a=1, ~b=2) = a + b end
-def wrapper(%argsof(base)) = base(%argsof(base)) end
+def base(~a=1, ~b=2) =
+  a + b
+end
+def wrapper(%argsof(base)) =
+  base(%argsof(base))
+end
 wrapper(a=3)
 --- parsed ---
 {
-  "type": "def",
-  "body": {
+  "type": "block",
+  "value": [
+    {
     "type": "def",
-    "body": {
-      "type": "app",
-      "op": { "type": "var", "value": "wrapper" },
-      "args": [
-        {
-        "type": "term",
-        "value": {
-          "type": "app_arg",
-          "label": "a",
-          "value": { "type": "ground", "value": "3" }
-        }
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "base" ] },
+    "arglist": [
+      {
+      "type": "term",
+      "value": {
+        "type": "fun_arg",
+        "label": "a",
+        "as_variable": null,
+        "typ": null,
+        "default": { "type": "ground", "value": "1" }
       }
-      ]
     },
+      {
+      "type": "term",
+      "value": {
+        "type": "fun_arg",
+        "label": "b",
+        "as_variable": null,
+        "typ": null,
+        "default": { "type": "ground", "value": "2" }
+      }
+    }
+    ],
+    "cast": null,
+    "body": [
+      {
+      "type": "infix",
+      "left": { "type": "var", "value": "a" },
+      "op": "+",
+      "right": { "type": "var", "value": "b" }
+    }
+    ]
+  },
+    {
+    "type": "def",
     "decoration": null,
     "pat": { "type": "pvar", "value": [ "wrapper" ] },
     "arglist": [
@@ -32,7 +59,8 @@ wrapper(a=3)
     }
     ],
     "cast": null,
-    "definition": {
+    "body": [
+      {
       "type": "app",
       "op": { "type": "var", "value": "base" },
       "args": [
@@ -44,41 +72,26 @@ wrapper(a=3)
       }
       ]
     }
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "base" ] },
-  "arglist": [
-    {
-    "type": "term",
-    "value": {
-      "type": "fun_arg",
-      "label": "a",
-      "as_variable": null,
-      "typ": null,
-      "default": { "type": "ground", "value": "1" }
-    }
+    ]
   },
     {
-    "type": "term",
-    "value": {
-      "type": "fun_arg",
-      "label": "b",
-      "as_variable": null,
-      "typ": null,
-      "default": { "type": "ground", "value": "2" }
+    "type": "app",
+    "op": { "type": "var", "value": "wrapper" },
+    "args": [
+      {
+      "type": "term",
+      "value": {
+        "type": "app_arg",
+        "label": "a",
+        "value": { "type": "ground", "value": "3" }
+      }
     }
+    ]
   }
-  ],
-  "cast": null,
-  "definition": {
-    "type": "infix",
-    "left": { "type": "var", "value": "a" },
-    "op": "+",
-    "right": { "type": "var", "value": "b" }
-  }
+  ]
 }
 --- hash ---
-3128e45dbc1bebcdb2a9c13c90fde250
+2c650336bfa19bdf288865f942c87764
 --- term ---
 base = fun (~a=1, ~b=2) -> +(a, b)
 wrapper = fun (~a=1, ~b=2) -> base(a=a, b=b)

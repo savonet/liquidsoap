@@ -1,0 +1,13 @@
+=== reserved_names.invalid-liq ===
+# The desugaring binds names with a digit right after the leading underscore.
+# `Lexer.var_lit` requires an alphabetic character there, so a script cannot
+# write one, and so cannot shadow what the sugar expands to: `_0_eval`,
+# `_0_json_parser`, `_0_ann_0`, `_2_pat` and friends are all unwritable.
+# `_null` is deliberately not in that namespace -- it is a real, callable
+# builtin.
+_0_eval = 1
+--- parsed ---
+At cases/reserved_names.invalid-liq, line 7, char 1-3:
+_0_eval = 1
+
+Error 2: Parse error

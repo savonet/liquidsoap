@@ -35,13 +35,13 @@ def rotate.merge(~id=null("rotate.merge"), sources) =
   sources =
     list.mapi(
       fun (i, (s:source)) ->
-        if i == 0 then s.{on_select=to_first} else (s : source) end,
+        if i == 0 then s.{on_select = to_first} else (s : source) end,
       sources
     )
 
   s = rotate(sources)
   let {track_marks = _, ...tracks} = source.tracks(s)
-  s = source(tracks).{replay_metadata=false}
+  s = source(tracks).{replay_metadata = false}
   switch(id=id, [(ready, s), ({not ready()}, s)])
 end
 

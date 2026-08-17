@@ -3,40 +3,45 @@ v = "x".{count = 3, twice = fun () -> 6}
 v.count
 --- parsed ---
 {
-  "type": "binding",
-  "body": {
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "v" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "methods",
+      "base": { "type": "string", "value": "\"x\"" },
+      "methods": [
+        {
+        "type": "method",
+        "name": "count",
+        "value": { "type": "ground", "value": "3" }
+      },
+        {
+        "type": "method",
+        "name": "twice",
+        "value": {
+          "type": "fun",
+          "arguments": [],
+          "body": { "type": "ground", "value": "6" }
+        }
+      }
+      ]
+    }
+  },
+    {
     "type": "invoke",
     "invoked": { "type": "var", "value": "v" },
     "optional": false,
     "meth": { "type": "var", "value": "count" }
-  },
-  "decoration": null,
-  "pat": { "type": "pvar", "value": [ "v" ] },
-  "arglist": null,
-  "cast": null,
-  "definition": {
-    "type": "methods",
-    "base": { "type": "string", "value": "\"x\"" },
-    "methods": [
-      {
-      "type": "method",
-      "name": "count",
-      "value": { "type": "ground", "value": "3" }
-    },
-      {
-      "type": "method",
-      "name": "twice",
-      "value": {
-        "type": "fun",
-        "arguments": [],
-        "body": { "type": "ground", "value": "6" }
-      }
-    }
-    ]
   }
+  ]
 }
 --- hash ---
-ec355eba01df35a7df302351033e4531
+60f3fe20435e8fe9419d6296563e581c
 --- term ---
 v = "x".{twice={6}, count=3}
 v.count

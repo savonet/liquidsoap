@@ -1,0 +1,69 @@
+=== binding_forms.liq ===
+# `x = e`, `let x = e` and `def x = e end` are three grammar productions
+# (`binding` / `explicit_binding` in parser.mly) that reduce to the same `let`.
+c = 1
+let d = 1
+def e =
+  1
+end
+(c, d, e)
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "c" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "1" }
+  },
+    {
+    "type": "let",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "d" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "1" }
+  },
+    {
+    "type": "def",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "e" ] },
+    "arglist": null,
+    "cast": null,
+    "body": [ { "type": "ground", "value": "1" } ]
+  },
+    {
+    "type": "tuple",
+    "value": [
+      {
+      "type": "var",
+      "value": "c"
+    },
+      {
+      "type": "var",
+      "value": "d"
+    },
+      {
+      "type": "var",
+      "value": "e"
+    }
+    ]
+  }
+  ]
+}
+--- hash ---
+4999b6a7f8dc2cb3af5eba94d86e8aea
+--- term ---
+c = 1
+d = 1
+e = 1
+(c, d, e)
+--- doc ---
+c: `x = e`, `let x = e` and `def x = e end` are three grammar productions (`binding` / `explicit_binding` in parser.mly) that reduce to the same `let`.
+--- type ---
+int * int * int
+--- value ---
+(1, 1, 1)

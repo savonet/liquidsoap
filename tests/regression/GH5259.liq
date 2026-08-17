@@ -15,10 +15,15 @@ def on_file_change({state, path = fname}) =
     state == "created"
     and string.contains(prefix="stream_", path.basename(fname))
   then
-    if not made_unavailable() then
+    if
+      not made_unavailable()
+    then
       made_unavailable := true
       file.move(atomic=true, hls_dir, saved_dir)
-      file.write(data="not a directory", hls_dir)
+      file.write(
+        data="not a directory",
+        hls_dir
+      )
     else
       test.pass()
     end
@@ -43,4 +48,11 @@ o =
 
 o.on_file_change(synchronous=true, on_file_change)
 
-thread.run(delay=20., {test.fail("HLS output did not recover")})
+thread.run(
+  delay=20.,
+  {
+    test.fail(
+      "HLS output did not recover"
+    )
+  }
+)

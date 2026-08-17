@@ -1,0 +1,9 @@
+=== binding_bad_target.invalid-liq ===
+# The left-hand side of a bare binding must be a valid pattern. A call is not,
+# and is reported as such rather than as a bare syntax error.
+f(1) = 2
+--- parsed ---
+At cases/binding_bad_target.invalid-liq, line 3, char 0-4:
+f(1) = 2
+
+Error 3: Invalid binding: the left-hand side of `=` must be a variable, a field path or a destructuring pattern.

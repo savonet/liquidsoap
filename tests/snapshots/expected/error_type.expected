@@ -2,19 +2,25 @@
 1 + "one"
 --- parsed ---
 {
-  "type": "infix",
-  "left": { "type": "ground", "value": "1" },
-  "op": "+",
-  "right": { "type": "string", "value": "\"one\"" }
+  "type": "block",
+  "value": [
+    {
+    "type": "infix",
+    "left": { "type": "ground", "value": "1" },
+    "op": "+",
+    "right": { "type": "string", "value": "\"one\"" }
+  }
+  ]
 }
 --- hash ---
-31170116e0aedccf2a7a43899a869dfc
+bbb537d8225c0776f09ea07947c90aab
 --- term ---
 +(1, "one")
 --- type ---
-At line 1, char 4-9:
+At cases/error_type.liq, line 1, char 4-9:
+1 + "one"
 
 Error 5: this value has type
   string
 but it should be a subtype of
-  int (inferred at line 1, char 0)
+  int (inferred at cases/error_type.liq, line 1, char 0)

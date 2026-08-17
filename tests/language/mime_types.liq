@@ -16,7 +16,8 @@ def f() =
   # Custom mime_types_extnames overrides defaults
   test.equal(
     file.mime.extension(
-      mime_types_extnames=[("image/png", ".PNG")], "image/png"
+      mime_types_extnames=[("image/png", ".PNG")],
+      "image/png"
     ),
     ".PNG"
   )
@@ -24,7 +25,8 @@ def f() =
   # Custom mime_types_extnames: unknown type returns null
   test.equal(
     file.mime.extension(
-      mime_types_extnames=[("image/png", ".png")], "audio/mpeg"
+      mime_types_extnames=[("image/png", ".png")],
+      "audio/mpeg"
     ),
     null
   )

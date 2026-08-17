@@ -1,0 +1,871 @@
+=== blocks.liq ===
+# Every construct whose canonical JSON carries keyword-anchored block spans:
+# `then_block` starts at `then`, `else_block` at `else`, `*_body` at `do`, and
+# each spans to the start of the next keyword. Prettier uses those spans to
+# decide which block a comment belongs to.
+def f(x) =
+  if x > 0 then 1 elsif x < 0 then -1 else 0 end
+end
+
+while false do f(1)  end
+
+for i = 0 to 2 do f(i)  end
+
+for j = [1, 2] do f(j)  end
+--- canonical ---
+{
+  "ast": {
+    "type": "program",
+    "position": [
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 0
+    },
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 423
+    }
+    ],
+    "body": [
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 5,
+        "bol": 275,
+        "cnum": 275
+      },
+        {
+        "fname": "",
+        "lnum": 7,
+        "bol": 335,
+        "cnum": 338
+      }
+      ],
+      "type": "def",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "f" ] },
+      "arglist": [
+        {
+        "type": "term",
+        "value": {
+          "type": "fun_arg",
+          "label": "",
+          "as_variable": { "type": "pvar", "value": [ "x" ] },
+          "typ": null,
+          "default": null
+        }
+      }
+      ],
+      "cast": null,
+      "body": [
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 6,
+          "bol": 286,
+          "cnum": 288
+        },
+          {
+          "fname": "",
+          "lnum": 6,
+          "bol": 286,
+          "cnum": 334
+        }
+        ],
+        "type": "if",
+        "condition": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 291
+          },
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 296
+          }
+          ],
+          "type": "infix",
+          "left": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 291
+            },
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 292
+            }
+            ],
+            "type": "var",
+            "value": "x"
+          },
+          "op": ">",
+          "right": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 295
+            },
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 296
+            }
+            ],
+            "type": "ground",
+            "value": "0"
+          }
+        },
+        "then_block": {
+          "type": "then_block",
+          "position": [
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 297
+          },
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 304
+          }
+          ],
+          "body": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 302
+            },
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 303
+            }
+            ],
+            "type": "ground",
+            "value": "1"
+          }
+          ]
+        },
+        "elsif": [
+          {
+          "type": "elsif",
+          "position": [
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 304
+          },
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 324
+          }
+          ],
+          "condition": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 310
+            },
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 315
+            }
+            ],
+            "type": "infix",
+            "left": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 310
+              },
+                {
+                "fname": "",
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 311
+              }
+              ],
+              "type": "var",
+              "value": "x"
+            },
+            "op": "<",
+            "right": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 314
+              },
+                {
+                "fname": "",
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 315
+              }
+              ],
+              "type": "ground",
+              "value": "0"
+            }
+          },
+          "body": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 321
+            },
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 323
+            }
+            ],
+            "type": "negative",
+            "value": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 322
+              },
+                {
+                "fname": "",
+                "lnum": 6,
+                "bol": 286,
+                "cnum": 323
+              }
+              ],
+              "type": "ground",
+              "value": "1"
+            }
+          }
+          ]
+        }
+        ],
+        "else_block": {
+          "type": "else_block",
+          "position": [
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 324
+          },
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 286,
+            "cnum": 331
+          }
+          ],
+          "body": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 329
+            },
+              {
+              "fname": "",
+              "lnum": 6,
+              "bol": 286,
+              "cnum": 330
+            }
+            ],
+            "type": "ground",
+            "value": "0"
+          }
+          ]
+        }
+      }
+      ]
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 9,
+        "bol": 340,
+        "cnum": 340
+      },
+        {
+        "fname": "",
+        "lnum": 9,
+        "bol": 340,
+        "cnum": 364
+      }
+      ],
+      "type": "while",
+      "parts": [
+        {
+        "type": "while_header",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 9,
+          "bol": 340,
+          "cnum": 340
+        },
+          {
+          "fname": "",
+          "lnum": 9,
+          "bol": 340,
+          "cnum": 352
+        }
+        ],
+        "condition": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 9,
+            "bol": 340,
+            "cnum": 346
+          },
+            {
+            "fname": "",
+            "lnum": 9,
+            "bol": 340,
+            "cnum": 351
+          }
+          ],
+          "type": "ground",
+          "value": "false"
+        }
+      },
+        {
+        "type": "while_body",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 9,
+          "bol": 340,
+          "cnum": 352
+        },
+          {
+          "fname": "",
+          "lnum": 9,
+          "bol": 340,
+          "cnum": 361
+        }
+        ],
+        "body": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 9,
+            "bol": 340,
+            "cnum": 355
+          },
+            {
+            "fname": "",
+            "lnum": 9,
+            "bol": 340,
+            "cnum": 359
+          }
+          ],
+          "type": "app",
+          "op": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 9,
+              "bol": 340,
+              "cnum": 355
+            },
+              {
+              "fname": "",
+              "lnum": 9,
+              "bol": 340,
+              "cnum": 357
+            }
+            ],
+            "type": "var",
+            "value": "f"
+          },
+          "args": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 9,
+              "bol": 340,
+              "cnum": 357
+            },
+              {
+              "fname": "",
+              "lnum": 9,
+              "bol": 340,
+              "cnum": 358
+            }
+            ],
+            "type": "term",
+            "value": {
+              "type": "app_arg",
+              "label": "",
+              "value": {
+                "position": [
+                  {
+                  "fname": "",
+                  "lnum": 9,
+                  "bol": 340,
+                  "cnum": 357
+                },
+                  {
+                  "fname": "",
+                  "lnum": 9,
+                  "bol": 340,
+                  "cnum": 358
+                }
+                ],
+                "type": "ground",
+                "value": "1"
+              }
+            }
+          }
+          ]
+        }
+        ]
+      }
+      ]
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 11,
+        "bol": 366,
+        "cnum": 366
+      },
+        {
+        "fname": "",
+        "lnum": 11,
+        "bol": 366,
+        "cnum": 393
+      }
+      ],
+      "type": "for",
+      "parts": [
+        {
+        "type": "for_header",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 11,
+          "bol": 366,
+          "cnum": 366
+        },
+          {
+          "fname": "",
+          "lnum": 11,
+          "bol": 366,
+          "cnum": 381
+        }
+        ],
+        "variable": "i",
+        "from": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 374
+          },
+            {
+            "fname": "",
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 375
+          }
+          ],
+          "type": "ground",
+          "value": "0"
+        },
+        "to": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 379
+          },
+            {
+            "fname": "",
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 380
+          }
+          ],
+          "type": "ground",
+          "value": "2"
+        }
+      },
+        {
+        "type": "for_body",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 11,
+          "bol": 366,
+          "cnum": 381
+        },
+          {
+          "fname": "",
+          "lnum": 11,
+          "bol": 366,
+          "cnum": 390
+        }
+        ],
+        "body": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 384
+          },
+            {
+            "fname": "",
+            "lnum": 11,
+            "bol": 366,
+            "cnum": 388
+          }
+          ],
+          "type": "app",
+          "op": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 11,
+              "bol": 366,
+              "cnum": 384
+            },
+              {
+              "fname": "",
+              "lnum": 11,
+              "bol": 366,
+              "cnum": 386
+            }
+            ],
+            "type": "var",
+            "value": "f"
+          },
+          "args": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 11,
+              "bol": 366,
+              "cnum": 386
+            },
+              {
+              "fname": "",
+              "lnum": 11,
+              "bol": 366,
+              "cnum": 387
+            }
+            ],
+            "type": "term",
+            "value": {
+              "type": "app_arg",
+              "label": "",
+              "value": {
+                "position": [
+                  {
+                  "fname": "",
+                  "lnum": 11,
+                  "bol": 366,
+                  "cnum": 386
+                },
+                  {
+                  "fname": "",
+                  "lnum": 11,
+                  "bol": 366,
+                  "cnum": 387
+                }
+                ],
+                "type": "var",
+                "value": "i"
+              }
+            }
+          }
+          ]
+        }
+        ]
+      }
+      ]
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 13,
+        "bol": 395,
+        "cnum": 395
+      },
+        {
+        "fname": "",
+        "lnum": 13,
+        "bol": 395,
+        "cnum": 422
+      }
+      ],
+      "type": "iterable_for",
+      "parts": [
+        {
+        "type": "iterable_for_header",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 13,
+          "bol": 395,
+          "cnum": 395
+        },
+          {
+          "fname": "",
+          "lnum": 13,
+          "bol": 395,
+          "cnum": 410
+        }
+        ],
+        "variable": "j",
+        "iterator": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 13,
+            "bol": 395,
+            "cnum": 403
+          },
+            {
+            "fname": "",
+            "lnum": 13,
+            "bol": 395,
+            "cnum": 409
+          }
+          ],
+          "type": "list",
+          "value": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 404
+            },
+              {
+              "fname": "",
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 405
+            }
+            ],
+            "type": "term",
+            "value": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 13,
+                "bol": 395,
+                "cnum": 404
+              },
+                {
+                "fname": "",
+                "lnum": 13,
+                "bol": 395,
+                "cnum": 405
+              }
+              ],
+              "type": "ground",
+              "value": "1"
+            }
+          },
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 407
+            },
+              {
+              "fname": "",
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 408
+            }
+            ],
+            "type": "term",
+            "value": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 13,
+                "bol": 395,
+                "cnum": 407
+              },
+                {
+                "fname": "",
+                "lnum": 13,
+                "bol": 395,
+                "cnum": 408
+              }
+              ],
+              "type": "ground",
+              "value": "2"
+            }
+          }
+          ]
+        }
+      },
+        {
+        "type": "iterable_for_body",
+        "position": [
+          {
+          "fname": "",
+          "lnum": 13,
+          "bol": 395,
+          "cnum": 410
+        },
+          {
+          "fname": "",
+          "lnum": 13,
+          "bol": 395,
+          "cnum": 419
+        }
+        ],
+        "body": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 13,
+            "bol": 395,
+            "cnum": 413
+          },
+            {
+            "fname": "",
+            "lnum": 13,
+            "bol": 395,
+            "cnum": 417
+          }
+          ],
+          "type": "app",
+          "op": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 413
+            },
+              {
+              "fname": "",
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 415
+            }
+            ],
+            "type": "var",
+            "value": "f"
+          },
+          "args": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 415
+            },
+              {
+              "fname": "",
+              "lnum": 13,
+              "bol": 395,
+              "cnum": 416
+            }
+            ],
+            "type": "term",
+            "value": {
+              "type": "app_arg",
+              "label": "",
+              "value": {
+                "position": [
+                  {
+                  "fname": "",
+                  "lnum": 13,
+                  "bol": 395,
+                  "cnum": 415
+                },
+                  {
+                  "fname": "",
+                  "lnum": 13,
+                  "bol": 395,
+                  "cnum": 416
+                }
+                ],
+                "type": "var",
+                "value": "j"
+              }
+            }
+          }
+          ]
+        }
+        ]
+      }
+      ]
+    }
+    ]
+  },
+  "comments": [
+    {
+    "start": 0,
+    "end": 274,
+    "lnum": 1,
+    "value": "# Every construct whose canonical JSON carries keyword-anchored block spans:\n# `then_block` starts at `then`, `else_block` at `else`, `*_body` at `do`, and\n# each spans to the start of the next keyword. Prettier uses those spans to\n# decide which block a comment belongs to."
+  }
+  ]
+}

@@ -12,7 +12,7 @@ frames = ref(0)
 s =
   switch(
     [
-      ({live()}, (sine(id="cutter") : source).{track_sensitive=false}),
+      ({live()}, (sine(id="cutter") : source).{track_sensitive = false}),
       ({true}, blank(id="always"))
     ]
   )
@@ -26,11 +26,7 @@ s.on_frame(
       ref.incr(frames)
       if not source.is_ready(s) then gap := true end
       if frames() mod 60 == 0 then live := not live() end
-      if
-        frames() >= 900
-      then
-        if gap() then test.fail() else test.pass() end
-      end
+      if frames() >= 900 then if gap() then test.fail() else test.pass() end end
     end
 )
 

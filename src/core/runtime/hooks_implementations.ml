@@ -69,7 +69,7 @@ let eval_check ~env:_ ~tm v =
 
 let render_string = function
   | `Verbatim s -> s
-  | `String (pos, (sep, s)) -> Lexer.render_string ~pos ~sep s
+  | `String (pos, (sep, s)) -> String_literal.render ~pos ~sep s
 
 let mk_field_t ?pos kind params =
   let err_pos =

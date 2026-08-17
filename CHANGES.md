@@ -27,6 +27,12 @@
 
 ## Changed:
 
+- Bindings written without `let` accept the same targets as `let`: destructuring patterns, field paths and type
+  annotations. `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid. A leading binding inside the
+  `{ … }` function shorthand still requires `let`, since `{ x = 1 }` is a record literal. An invalid left-hand side
+  reports what is allowed instead of a bare syntax error.
+- String interpolation accepts any expression: `"#{m["key"]}"`, `"#{ {a = 1}.a }"` and nested interpolated strings
+  now work. Error positions inside `#{ … }` point at the offending code rather than at the start of the string.
 - `http.transport.ssl` and `http.transport.tls`: `key` parameter is now optional in server mode when the certificate file also contains the private key.
 - `switch`, `fallback`, `rotate`, `random`: replaced the parallel list parameters
   (`transitions`, `transition_length`, `override`, `track_sensitive`,
@@ -114,6 +120,14 @@
   of the segment grid. The drift rate depends on the encoder's frame size, so
   variants using different codecs, e.g. HE-AAC and AAC-LC, diverged from each
   other without bound (#5319).
+- The names liquidsoap's syntactic sugar expands to are no longer writable in a script: they now start with an
+  underscore followed by a digit, which the lexer does not accept as an identifier, so user code cannot shadow what
+  `let eval`, `let json.parse`, `let xml.parse`, `let yaml.parse`, `let sqlite.row`/`sqlite.query` or `%argsof` expand
+  to. `_null` is unchanged, being a real callable builtin.
+- Record fields are evaluated when the record is built, whether or not they are ever invoked. Previously a field of a
+  record that was invoked directly, as in `{a = 1, b = f()}.a`, was dropped along with its effects when running a
+  script normally, but not under `--interactive` or in the standard library, and not if the record was bound to a name
+  first.
 - Inline `ffmpeg.encode.*` operators report unrecognized codec options, as the
   container encoder does.
 - Fixed `%ffmpeg` copy encoder initializing the video stream twice and setting the

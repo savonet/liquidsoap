@@ -23,7 +23,7 @@
 let raise ~bt exn = Lang.raise_as_runtime ~bt ~kind:"eval" exn
 
 let _ =
-  Lang.add_builtin ~category:`Liquidsoap "_eval_"
+  Lang.add_builtin ~category:`Liquidsoap "_0_eval"
     ~descr:"Parse and evaluate a string." ~flags:[`Hidden]
     [("type", Value.RuntimeType.t, None, None); ("", Lang.string_t, None, None)]
     (Lang.univ_t ())

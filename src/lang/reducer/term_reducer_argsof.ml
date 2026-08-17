@@ -205,7 +205,7 @@ let expand_argsof ~pos ~env ~to_term ~throw args =
                 | Some { pat_entry = `PVar [v] } -> (mk_def, Some v)
                 | Some pat ->
                     incr anonymous_var_id;
-                    let v = Printf.sprintf "_ann_%d" !anonymous_var_id in
+                    let v = Printf.sprintf "_0_ann_%d" !anonymous_var_id in
                     let mk_def def =
                       mk_def
                         (mk ~pos (pattern_reducer ~body:def ~pat (mk (`Var v))))
