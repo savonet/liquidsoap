@@ -30,9 +30,6 @@
   needs to release what it registered. Past five callbacks on the same source, a log message
   says so. Existing scripts are unaffected: the returned value is still ignorable. See the
   new [source callbacks](doc/content/callbacks.md) page.
-- Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
-  `on_leave` and transition functions are now released when the selection or the crossing
-  ends, instead of accumulating on those sources for as long as they live.
 - Added `source.collect_callback_releases`, which runs a function and gathers the callbacks
   it registered on a given list of sources into a single `release`. This is what `switch` and
   `cross` use, available to scripts calling their own functions more than once.
@@ -86,6 +83,9 @@
 
 ## Fixed:
 
+- Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
+  `on_leave` and transition functions are now released when the selection or the crossing
+  ends, instead of accumulating on those sources for as long as they live.
 - An FFmpeg filter graph is no longer finished off by an input that runs dry.
   A source is unavailable for all sorts of passing reasons, a `buffer` filling
   up or a queue waiting on a request, and liquidsoap has no way to tell those
