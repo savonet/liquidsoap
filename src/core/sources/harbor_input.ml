@@ -64,7 +64,9 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
     val mime_type : string option Atomic.t = Atomic.make None
     val mutable dump = None
     val mutable logf = None
-    val mutable on_connect : ((string * string) list -> unit) list = []
+
+    val on_connect : ((string * string) list -> unit) Callbacks.t =
+      Callbacks.create ()
 
     initializer
       self#on_wake_up (fun () ->
@@ -72,9 +74,11 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
             (Some (Frame.main_of_seconds max)));
       self#on_sleep (fun () -> self#disconnect)
 
-    method on_connect fn = on_connect <- on_connect @ [fn]
-    val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
+    method register_on_connect fn = Callbacks.register on_connect fn
+    method on_connect fn = Callbacks.add on_connect fn
+    val on_disconnect = Callbacks.create ()
+    method register_on_disconnect fn = Callbacks.register on_disconnect fn
+    method on_disconnect fn = Callbacks.add on_disconnect fn
     val mutable on_relay : (unit -> unit) option = None
     method on_relay fn = on_relay <- Some fn
 
@@ -183,7 +187,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       self#register_decoder (Option.get (Atomic.get mime_type));
       Option.iter (Generator.add_metadata self#buffer) pending_metadata;
       pending_metadata <- None;
-      List.iter (fun fn -> fn pending_headers) on_connect;
+      List.iter (fun fn -> fn pending_headers) (Callbacks.elements on_connect);
       begin match dumpfile with
         | Some f -> (
             try dump <- Some (open_out_bin (Lang_string.home_unrelate f))
@@ -242,7 +246,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                   close_out f;
                   logf <- None
               | None -> ());
-            List.iter (fun fn -> fn ()) on_disconnect
+            List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect)
   end
 
 class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
@@ -549,7 +553,7 @@ let callbacks () =
       register =
         (fun ~params:_ s on_connect ->
           let on_connect m = on_connect [("", Lang.metadata_list m)] in
-          s#on_connect on_connect);
+          s#register_on_connect on_connect);
     };
     {
       name = "on_disconnect";
@@ -557,7 +561,8 @@ let callbacks () =
       descr = "when a source is disconnected.";
       register_deprecated_argument = true;
       arg_t = [];
-      register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+      register =
+        (fun ~params:_ s f -> s#register_on_disconnect (fun () -> f []));
     };
   ]
 

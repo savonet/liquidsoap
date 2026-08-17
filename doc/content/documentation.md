@@ -42,6 +42,7 @@ If you are migrating from a previous version, you might want to checkout
 
 - Basic concepts: [sources](./sources.md), [clocks](./clocks.md) and [requests](./requests.md).
 - [Source composition](./composition.md): how `fallback`, `switch`, `rotate` and `random` hand over from one source to another.
+- [Source callbacks](./callbacks.md): how long `on_track`, `on_metadata` and friends stay attached, and how to release them.
 - [Stream contents](./stream_content.md): what kind of streams are supported, and how.
 - [Script loading](./script_loading.md): load several scripts, learn about the script library.
 - [Execution phases](./phases.md)

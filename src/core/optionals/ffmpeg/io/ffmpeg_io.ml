@@ -82,13 +82,16 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method self_sync =
       (`Dynamic, self#source_sync (self#get_self_sync && self#is_connected))
 
-    val mutable on_connect = []
-    method on_connect fn = on_connect <- on_connect @ [fn]
+    val on_connect = Callbacks.create ()
+    method register_on_connect fn = Callbacks.register on_connect fn
+    method on_connect fn = Callbacks.add on_connect fn
     method on_connect_metadata_map _ : (string * string) list = []
-    val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
-    val mutable on_error = []
-    method on_error fn = on_error <- on_error @ [fn]
+    val on_disconnect = Callbacks.create ()
+    method register_on_disconnect fn = Callbacks.register on_disconnect fn
+    method on_disconnect fn = Callbacks.add on_disconnect fn
+    val on_error = Callbacks.create ()
+    method register_on_error fn = Callbacks.register on_error fn
+    method on_error fn = Callbacks.add on_error fn
     method private start = self#connect
     method private stop = self#disconnect
     val mutable url = url
@@ -136,7 +139,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         in
         let buffer = Decoder.mk_buffer ~ctype:self#content_type self#buffer in
         let m = self#on_connect_metadata_map container in
-        List.iter (fun fn -> fn m) on_connect;
+        List.iter (fun fn -> fn m) (Callbacks.elements on_connect);
         Generator.add_track_mark self#buffer;
         let container = { decoder; remaining; buffer; closed } in
         Atomic.set source_status (`Connected (url, container));
@@ -151,7 +154,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
               ~bt:(Printexc.raw_backtrace_to_string bt)
               (Printf.sprintf "Decoding failed: %s" (Printexc.to_string e));
             let err = Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" e in
-            List.iter (fun fn -> fn err) on_error;
+            List.iter (fun fn -> fn err) (Callbacks.elements on_error);
             if debug then Printexc.raise_with_backtrace e bt;
             Atomic.set source_status `Starting;
             poll_delay
@@ -190,7 +193,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                Utils.log_exception ~log:self#log ~bt
                  (Printf.sprintf "Error while disconnecting: %s"
                     (Printexc.to_string exn)));
-            List.iter (fun fn -> fn ()) on_disconnect;
+            List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect);
             stop_task ()
 
     method private reconnect =
@@ -237,7 +240,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           ~bt:(Printexc.raw_backtrace_to_string bt)
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         let err = Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn in
-        List.iter (fun fn -> fn err) on_error;
+        List.iter (fun fn -> fn err) (Callbacks.elements on_error);
         self#reconnect;
         Frame.append (Generator.slice self#buffer size) self#end_of_track
   end
@@ -294,7 +297,7 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~max_buffer ?format
             (Printf.sprintf "Error while fetching icy headers: %s"
                (Printexc.to_string exn));
           let err = Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn in
-          List.iter (fun fn -> fn err) on_error;
+          List.iter (fun fn -> fn err) (Callbacks.elements on_error);
           []
       in
       Atomic.set is_icy (icy_headers <> []);
@@ -434,7 +437,7 @@ let register_input protocol =
                       let on_connect m =
                         on_connect [("", Lang.metadata_list m)]
                       in
-                      s#on_connect on_connect);
+                      s#register_on_connect on_connect);
                 };
               ]
             else
@@ -448,7 +451,7 @@ let register_input protocol =
                   register =
                     (fun ~params:_ s on_connect ->
                       let on_connect _ = on_connect [] in
-                      s#on_connect on_connect);
+                      s#register_on_connect on_connect);
                 };
               ])
          @ [
@@ -459,7 +462,8 @@ let register_input protocol =
                register_deprecated_argument = true;
                arg_t = [];
                register =
-                 (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+                 (fun ~params:_ s f ->
+                   s#register_on_disconnect (fun () -> f []));
              };
              {
                name = "on_error";
@@ -469,7 +473,7 @@ let register_input protocol =
                arg_t = [(false, "", Lang.error_t)];
                register =
                  (fun ~params:_ s f ->
-                   s#on_error (fun err -> f [("", Lang.error err)]));
+                   s#register_on_error (fun err -> f [("", Lang.error err)]));
              };
            ])
        ~meth:

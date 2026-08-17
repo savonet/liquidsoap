@@ -33,8 +33,12 @@ type input =
   ; get_sockets : (Unix.sockaddr * Srt.socket) list
   ; set_should_stop : bool -> unit
   ; on_socket : (mode:socket_mode -> Srt.socket -> unit) -> unit
+  ; register_on_socket :
+      (mode:socket_mode -> Srt.socket -> unit) -> unit -> unit
   ; on_connect : (unit -> unit) -> unit
+  ; register_on_connect : (unit -> unit) -> unit -> unit
   ; on_disconnect : (unit -> unit) -> unit
+  ; register_on_disconnect : (unit -> unit) -> unit -> unit
   ; connect : unit
   ; disconnect : unit >
 
@@ -43,8 +47,12 @@ type output =
   ; get_sockets : (Unix.sockaddr * Srt.socket) list
   ; set_should_stop : bool -> unit
   ; on_socket : (mode:socket_mode -> Srt.socket -> unit) -> unit
+  ; register_on_socket :
+      (mode:socket_mode -> Srt.socket -> unit) -> unit -> unit
   ; on_connect : (unit -> unit) -> unit
+  ; register_on_connect : (unit -> unit) -> unit -> unit
   ; on_disconnect : (unit -> unit) -> unit
+  ; register_on_disconnect : (unit -> unit) -> unit -> unit
   ; connect : unit
   ; disconnect : unit >
 
@@ -250,7 +258,7 @@ let callbacks =
         descr = "when connected.";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_connect (fun () -> f []));
+        register = (fun ~params:_ s f -> s#register_on_connect (fun () -> f []));
       };
       {
         name = "on_disconnect";
@@ -258,7 +266,8 @@ let callbacks =
         descr = "when disconnected.";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_disconnect (fun () -> f []));
+        register =
+          (fun ~params:_ s f -> s#register_on_disconnect (fun () -> f []));
       };
       {
         name = "on_socket";
@@ -278,7 +287,7 @@ let callbacks =
           ];
         register =
           (fun ~params:_ s f ->
-            s#on_socket (fun ~mode socket ->
+            s#register_on_socket (fun ~mode socket ->
                 let mode =
                   match mode with
                     | `Connect -> "connect"
@@ -589,18 +598,26 @@ class virtual base () =
     method private should_stop = Atomic.get shutdown || Atomic.get should_stop
     method set_should_stop v = Atomic.set should_stop v
     method srt_id = id
-    val mutable on_socket = []
-    method on_socket fn = on_socket <- on_socket @ [fn]
+    val on_socket = Callbacks.create ()
+    method register_on_socket fn = Callbacks.register on_socket fn
+    method on_socket fn = Callbacks.add on_socket fn
 
     method apply_on_socket ~(mode : socket_mode) (s : Srt.socket) =
-      List.iter (fun fn -> fn ~mode s) on_socket
+      List.iter (fun fn -> fn ~mode s) (Callbacks.elements on_socket)
 
-    val mutable on_connect = []
-    method on_connect fn = on_connect <- on_connect @ [fn]
-    method apply_on_connect = List.iter (fun fn -> fn ()) on_connect
-    val mutable on_disconnect = []
-    method on_disconnect fn = on_disconnect <- on_disconnect @ [fn]
-    method apply_on_disconnect = List.iter (fun fn -> fn ()) on_disconnect
+    val on_connect = Callbacks.create ()
+    method register_on_connect fn = Callbacks.register on_connect fn
+    method on_connect fn = Callbacks.add on_connect fn
+
+    method apply_on_connect =
+      List.iter (fun fn -> fn ()) (Callbacks.elements on_connect)
+
+    val on_disconnect = Callbacks.create ()
+    method register_on_disconnect fn = Callbacks.register on_disconnect fn
+    method on_disconnect fn = Callbacks.add on_disconnect fn
+
+    method apply_on_disconnect =
+      List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect)
   end
 
 class virtual networking_agent =

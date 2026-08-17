@@ -41,10 +41,12 @@ class virtual base =
     method virtual private start : unit
     method virtual private stop : unit
     method virtual on_before_streaming_cycle : (unit -> unit) -> unit
-    val mutable on_start = []
-    val mutable on_stop = []
-    method on_start fn = on_start <- on_start @ [fn]
-    method on_stop fn = on_stop <- on_stop @ [fn]
+    val on_start = Callbacks.create ()
+    val on_stop = Callbacks.create ()
+    method register_on_start fn = Callbacks.register on_start fn
+    method on_start fn = Callbacks.add on_start fn
+    method register_on_stop fn = Callbacks.register on_stop fn
+    method on_stop fn = Callbacks.add on_stop fn
 
     (* Default [reset] method. Can be overridden if necessary. *)
     method reset =
@@ -60,18 +62,18 @@ class virtual base =
       match (s, self#state) with
         | `Started, `Stopped | `Started, `Idle ->
             self#start;
-            List.iter (fun fn -> fn ()) on_start;
+            List.iter (fun fn -> fn ()) (Callbacks.elements on_start);
             state <- `Started
         | `Started, `Started -> ()
         | `Stopped, `Started ->
             self#stop;
-            List.iter (fun fn -> fn ()) on_stop;
+            List.iter (fun fn -> fn ()) (Callbacks.elements on_stop);
             state <- `Stopped
         | `Stopped, `Idle -> state <- `Stopped
         | `Stopped, `Stopped -> ()
         | `Idle, `Started ->
             self#stop;
-            List.iter (fun fn -> fn ()) on_stop;
+            List.iter (fun fn -> fn ()) (Callbacks.elements on_stop);
             state <- `Idle
         | `Idle, `Stopped | `Idle, `Idle -> ()
 
@@ -130,7 +132,7 @@ let callbacks ~label =
         descr = "when " ^ label ^ " starts";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_start (fun () -> f []));
+        register = (fun ~params:_ s f -> s#register_on_start (fun () -> f []));
       };
       {
         name = "on_stop";
@@ -138,7 +140,7 @@ let callbacks ~label =
         descr = "when " ^ label ^ " stops";
         register_deprecated_argument = true;
         arg_t = [];
-        register = (fun ~params:_ s f -> s#on_stop (fun () -> f []));
+        register = (fun ~params:_ s f -> s#register_on_stop (fun () -> f []));
       };
     ]
 

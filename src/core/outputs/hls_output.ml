@@ -656,8 +656,12 @@ class hls_output p =
     val mutable current_position = (0, 0)
     val mutable stopped = false
     method self_sync = source#self_sync
-    val mutable on_file_change : (state:file_state -> string -> unit) list = []
-    method on_file_change fn = on_file_change <- on_file_change @ [fn]
+
+    val on_file_change : (state:file_state -> string -> unit) Callbacks.t =
+      Callbacks.create ()
+
+    method register_on_file_change fn = Callbacks.register on_file_change fn
+    method on_file_change fn = Callbacks.add on_file_change fn
 
     method private open_out filename =
       let temp_dir = Option.value ~default:hls_directory temp_dir in
@@ -724,12 +728,16 @@ class hls_output p =
                    ~mode:[Open_creat; Open_trunc; Open_binary]
                    ~perms tmp_file fname;
                  Sys.remove tmp_file);
-              List.iter (fun fn -> fn ~state fname) on_file_change)
+              List.iter
+                (fun fn -> fn ~state fname)
+                (Callbacks.elements on_file_change))
       end
 
     method private unlink filename =
       self#log#debug "Cleaning up %s.." filename;
-      List.iter (fun fn -> fn ~state:`Deleted filename) on_file_change;
+      List.iter
+        (fun fn -> fn ~state:`Deleted filename)
+        (Callbacks.elements on_file_change);
       try Unix.unlink filename
       with Unix.Unix_error (e, _, _) ->
         self#log#important "Could not remove file %s: %s" filename
@@ -1335,7 +1343,7 @@ let _ =
                          ] );
                    ]
                in
-               s#on_file_change on_file_change);
+               s#register_on_file_change on_file_change);
          };
        ]
       @ Start_stop.callbacks ~label:"output")

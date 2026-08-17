@@ -1504,6 +1504,52 @@
   (run %{run_test} append liquidsoap %{test_liq} append.liq)))
 
 (rule
+ (alias test_callback_release)
+ (package liquidsoap)
+ (deps
+  callback_release.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   callback_release
+   liquidsoap
+   %{test_liq}
+   callback_release.liq)))
+
+(rule
+ (alias test_callback_release_mixed_content)
+ (package liquidsoap)
+ (deps
+  callback_release_mixed_content.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   callback_release_mixed_content
+   liquidsoap
+   %{test_liq}
+   callback_release_mixed_content.liq)))
+
+(rule
  (alias test_cleanup)
  (package liquidsoap)
  (deps
@@ -2494,6 +2540,8 @@
   (alias test_append)
   (alias test_append-merge)
   (alias test_append-merge2)
+  (alias test_callback_release)
+  (alias test_callback_release_mixed_content)
   (alias test_cleanup)
   (alias test_default_format)
   (alias test_delay_dry_between_tracks)

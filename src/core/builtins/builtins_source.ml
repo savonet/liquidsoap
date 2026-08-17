@@ -153,6 +153,39 @@ let _ =
       Lang.float frame_position)
 
 let _ =
+  let univ = Lang.univ_t () in
+  Lang.add_builtin ~base:source "collect_callback_releases"
+    ~category:(`Source `Liquidsoap)
+    [
+      ("", Lang.list_t (Lang.abstract_source_t ()), None, None);
+      ("", Lang.fun_t [] univ, None, None);
+    ]
+    (Lang.record_t [("release", Lang.fun_t [] Lang.unit_t); ("result", univ)])
+    ~descr:
+      "Run the given function, collecting the callbacks it registers on any of \
+       the given sources into a single `release`. Use this when calling a \
+       function more than once with the same sources: the callbacks it \
+       registers on them live as long as those sources do, so they pile up \
+       unless they are released."
+    (fun p ->
+      let sources =
+        List.map Lang.to_source (Lang.to_list (Lang.assoc "" 1 p))
+      in
+      let fn = Lang.assoc "" 2 p in
+      let { Lang_source.release; result } =
+        Lang_source.collect_callback_releases sources (fun () ->
+            Lang.apply fn [])
+      in
+      Lang.record
+        [
+          ( "release",
+            Lang.val_fun [] (fun _ ->
+                release ();
+                Lang.unit) );
+          ("result", result);
+        ])
+
+let _ =
   Lang.add_builtin ~base:source "on_shutdown" ~category:(`Source `Liquidsoap)
     [
       ("", Lang.source_t (Lang.univ_t ()), None, None);

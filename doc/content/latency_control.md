@@ -110,7 +110,7 @@ If timing is CPU-controlled, then Liquidsoap needs to generate chunks fast enoug
 - 💽 Disk access is slow—especially with network-based filesystems like NFS.
 - 🔄 Blocking code inside the streaming loop.
 
-💡 **Pro Tip:** Before version 2.4.0, all callbacks in Liquidsoap were synchronous (blocking). Since 2.4.0, most callbacks are **asynchronous** by default.
+💡 **Pro Tip:** Before version 2.4.0, all callbacks in Liquidsoap were synchronous (blocking). Since 2.4.0, source callbacks take a mandatory `synchronous` parameter: pass `synchronous=false` and the callback runs off the streaming loop. See [source callbacks](./callbacks.md).
 
 #### ✅ 4. Are other processes slowing things down?
 

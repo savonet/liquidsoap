@@ -247,13 +247,25 @@ class switch ~all_predicates children =
       in
       Typing.(starting#frame_type <: self#frame_type);
 
-      let effective_source = child.on_select ending starting in
+      (* [on_select] runs on every selection, so what it registers on the
+         sources it can reach — the ones we hand it, and our own children, which
+         it may well have captured — would otherwise pile up on them for good.
+         They only need to be around for as long as this selection. *)
+      let { Lang_source.release = release_callbacks; result = effective_source }
+          =
+        Lang_source.collect_callback_releases
+          (sources @ ((starting :> Source.source) :: Option.to_list ending))
+          (fun () -> child.on_select ending starting)
+      in
       Typing.(effective_source#frame_type <: self#frame_type);
 
       (* Wake the new graph before putting the previous selection to sleep: when
          it holds [previous.proxy] this keeps that source continuously up. *)
       let a = effective_source#wake_up (self :> Clock.source) in
-      let sleep () = effective_source#sleep a in
+      let sleep () =
+        effective_source#sleep a;
+        release_callbacks ()
+      in
 
       Option.iter
         (self#push_leaving ~track_sensitive:(Option.is_none ending))

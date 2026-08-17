@@ -214,6 +214,48 @@
    content/liq/blank-sorry.liq)))
 
 (rule
+ (alias test-doc-callback-collect)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/callback-collect.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/callback-collect.liq)))
+
+(rule
+ (alias test-doc-callback-release-per-call)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/callback-release-per-call.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/callback-release-per-call.liq)))
+
+(rule
+ (alias test-doc-callback-release)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/callback-release.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/callback-release.liq)))
+
+(rule
  (alias test-doc-clock-alsa-file)
  (package liquidsoap)
  (deps
@@ -2145,6 +2187,9 @@
   (alias test-doc-beets-source)
   (alias test-doc-blank-detect)
   (alias test-doc-blank-sorry)
+  (alias test-doc-callback-collect)
+  (alias test-doc-callback-release)
+  (alias test-doc-callback-release-per-call)
   (alias test-doc-clock-alsa-file)
   (alias test-doc-clock-alsa-pulseaudio-buffer)
   (alias test-doc-clock-alsa-pulseaudio-conflict)

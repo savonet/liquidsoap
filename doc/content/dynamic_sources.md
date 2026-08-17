@@ -24,3 +24,8 @@ After executing this script, you should see two telnet commands:
 - `restream.stop <uri>`
 
 which you can use to create/destroy dynamically your sources.
+
+Note that `create_stream` reuses `s`, which lives for as long as the script
+does. Any callback it registers on `s` — directly, or through an operator such
+as `fade.in` — stays there once the stream is deleted, and one is added on every
+call. See [source callbacks](./callbacks.md) for how to release them.

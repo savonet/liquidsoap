@@ -48,7 +48,9 @@ object
   method effective_source : Source.source
   method output : unit
   method on_start : (unit -> unit) -> unit
+  method register_on_start : (unit -> unit) -> unit -> unit
   method on_stop : (unit -> unit) -> unit
+  method register_on_stop : (unit -> unit) -> unit -> unit
   method private video_dimensions : int * int
   method private reset : unit
   method virtual private send_frame : Frame.t -> unit
