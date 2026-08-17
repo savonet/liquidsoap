@@ -1,15 +1,15 @@
 music = playlist("~/Music")
 
-# Registers on the source it is given, so each call leaves one more callback
-# on `music`.
-def announce(s) =
-  s.on_metadata(
-    synchronous=true,
-    fun (m) ->
-      log(
-        "Now playing: #{m["title"]}"
-      )
+def print_title(m) =
+  log(
+    "Now playing: #{m["title"]}"
   )
+end
+
+# Registers on the source it is given, so each call leaves one more callback on
+# that source.
+def announce(s) =
+  s.on_metadata(synchronous=true, print_title)
 end
 
 announcement = ref(null)

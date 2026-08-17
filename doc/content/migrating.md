@@ -286,6 +286,35 @@ Several operators are built on top of `fallback` and used to pass a fixed `track
 
 The deprecated `mkavailable` lost its `track_sensitive` parameter with no replacement; use `source.available` instead, as the deprecation warning already suggests.
 
+### Source callbacks return a release
+
+Registering a callback on a source — `on_track`, `on_metadata`, `on_frame`, `on_connect`, `on_start`, `on_blank`, and the rest — now returns a value carrying a `release` method:
+
+```liquidsoap
+announce = s.on_metadata(synchronous=true, fn)
+announce.release()
+```
+
+The value is still `unit` underneath, so nothing needs to change in existing scripts: dropping the result, or annotating it as `unit`, both remain valid.
+
+What this is for is the case where a callback outlives whatever registered it. A callback belongs to the source it is registered on and fires for as long as that source lives, so a function that registers on a source it is given and runs more than once leaves one more callback behind on every call. That shows up as a script that gets slower and noisier over time rather than as an error. See [source callbacks](./callbacks.md) for the full picture, including `source.collect_callback_releases` for the callbacks operators such as `fade.in` register on your behalf.
+
+Liquidsoap also reports the pile-up. Past five callbacks of the same kind on the same source, it logs:
+
+```
+[music:3] 6 on_metadata callbacks registered on music. If you are registering
+from a function that runs more than once, keep the value it returns and call
+its release() method.
+```
+
+If you see this and the registrations are deliberate — five `on_track` handlers set up once at startup is fine — nothing needs fixing.
+
+### Callbacks registered in transitions are released
+
+`switch` (and `fallback`, `rotate`, `random`) now releases the callbacks that `on_select` and `on_leave` register on the sources they are handed, once the selection ends. `cross` does the same for its transition, once the crossing ends. Both also cover the callbacks those functions register on their own children.
+
+This is what keeps a custom transition building `fade.in`/`fade.out` on the sources it receives from piling callbacks up on them for the lifetime of the stream. It only affects transitions that register callbacks: if one of yours registered a callback on `ending` or `starting` and relied on it still firing after the handoff was over, it will not any more. Register from outside the transition instead.
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation

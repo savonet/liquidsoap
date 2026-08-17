@@ -122,4 +122,5 @@ Want to go deeper?
 
 - Explore the [scripting API reference](reference.html)
 - Learn about [clocks](./clocks.md)
+- See how [source callbacks](./callbacks.md) hook into what a source is doing
 - Experiment with your own custom source graphs

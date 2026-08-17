@@ -203,6 +203,11 @@ would never run.
 it is created and started right there, then torn down when the handoff is over.
 Keep it cheap: no blocking calls, no file or network access.
 
+It also runs on every selection, so any callback it registers on `ending` or
+`starting` would pile up on sources that live much longer than the handoff. The
+switch releases those for you when the selection ends, and `cross` does the same
+for its transition — see [source callbacks](./callbacks.md).
+
 To keep the previous behaviour, where switching mid-track cut straight over with
 no fade, there is a ready-made transition:
 

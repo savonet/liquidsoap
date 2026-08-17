@@ -28,7 +28,8 @@
   `release` method taking the callback back. A function registering on a source it is given
   keeps the callback alive for as long as that source lives, so one that runs more than once
   needs to release what it registered. Past five callbacks on the same source, a log message
-  says so. Existing scripts are unaffected: the returned value is still ignorable.
+  says so. Existing scripts are unaffected: the returned value is still ignorable. See the
+  new [source callbacks](doc/content/callbacks.md) page.
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
   `on_leave` and transition functions are now released when the selection or the crossing
   ends, instead of accumulating on those sources for as long as they live.
