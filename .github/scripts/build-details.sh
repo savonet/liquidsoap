@@ -44,7 +44,7 @@ fi
 
 BUILD_OS='["debian_trixie", "debian_forky", "ubuntu_plucky", "ubuntu_resolute", "alpine"]'
 BUILD_PLATFORM='["amd64", "arm64"]'
-BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "depot-ubuntu-24.04-4", "alpine-arch": "x86_64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": "depot-ubuntu-24.04-arm-4", "alpine-arch": "aarch64", "docker-debian-os": "trixie"}]'
+BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-24.04", "alpine-arch": "x86_64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": "ubuntu-24.04-arm", "alpine-arch": "aarch64", "docker-debian-os": "trixie"}]'
 
 SHA=$(git rev-parse --short HEAD)
 

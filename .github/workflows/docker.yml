@@ -255,7 +255,7 @@ jobs:
           sbom: false
 
   build_docker_release:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     needs: [actual_build, actual_build_docker_alpine]
     if: inputs.docker_release == 'true'
     steps:
@@ -275,7 +275,7 @@ jobs:
         run: .github/scripts/push-docker.sh
 
   build_docker_release_minimal:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     needs: [build_docker_minimal, build_docker_alpine_minimal]
     if: inputs.docker_release == 'true'
     steps:
@@ -295,7 +295,7 @@ jobs:
         run: .github/scripts/push-docker.sh
 
   build_docker:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     needs: actual_build
     if: always()
     steps:
@@ -309,7 +309,7 @@ jobs:
           fi
 
   build_docker_alpine:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     needs: actual_build_docker_alpine
     if: always()
     steps:

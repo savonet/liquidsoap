@@ -42,7 +42,7 @@ on:
 jobs:
   build-debian-ci:
     if: ${{ inputs.build_debian }}
-    runs-on: depot-ubuntu-24.04-32
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -85,7 +85,7 @@ jobs:
 
   build-alpine-ci:
     if: ${{ inputs.build_alpine }}
-    runs-on: depot-ubuntu-24.04-32
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:

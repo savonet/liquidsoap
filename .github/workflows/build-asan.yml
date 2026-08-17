@@ -20,7 +20,7 @@ on:
 
 jobs:
   build:
-    runs-on: depot-ubuntu-24.04-32
+    runs-on: ubuntu-24.04
     container:
       image: ghcr.io/savonet/liquidsoap:ci-asan-${{ inputs.ocaml_version || '5.4.0' }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/artifacts
@@ -72,7 +72,7 @@ jobs:
 
   docker:
     needs: build
-    runs-on: depot-ubuntu-24.04-32
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Download debian package

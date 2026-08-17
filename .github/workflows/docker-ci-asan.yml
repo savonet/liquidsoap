@@ -21,7 +21,7 @@ on:
 
 jobs:
   build-asan:
-    runs-on: depot-ubuntu-24.04-32
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
