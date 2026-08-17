@@ -15,16 +15,15 @@ sources = [(audio_source : source(_)), (video_source : source(_))]
 def check() =
   audio_content = source.content(audio_source)
   video_content = source.content(video_source)
-  log.important("audio: #{audio_content}, video: #{video_content}")
+  log.important(
+    "audio: #{audio_content}, video: #{video_content}"
+  )
 
   if
     list.length(sources) == 2
-  and
-    list.assoc.mem("audio", audio_content)
-  and
-    not list.assoc.mem("video", audio_content)
-  and
-    list.assoc.mem("video", video_content)
+    and list.assoc.mem("audio", audio_content)
+    and not list.assoc.mem("video", audio_content)
+    and list.assoc.mem("video", video_content)
   then
     test.pass()
   else
