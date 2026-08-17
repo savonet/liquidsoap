@@ -21,12 +21,12 @@ on:
       debian_ocaml_versions:
         description: "OCaml versions for Debian/Ubuntu (JSON array)"
         required: false
-        default: '["4.14.2","5.4.0"]'
+        default: '["5.5.0"]'
         type: string
       alpine_ocaml_versions:
         description: "OCaml versions for Alpine (JSON array)"
         required: false
-        default: '["4.14.2","5.4.0"]'
+        default: '["5.5.0"]'
         type: string
       push:
         description: "Push images to registry"

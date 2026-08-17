@@ -21,14 +21,13 @@
 (package
   (name liquidsoap)
    (depends
-    (ocaml (>= 4.14))
+    (ocaml (>= 5.4))
     base-bytes
     (mm (>= 0.8.6))
     (re (and (>= 1.11.0) (< 1.14.0)))
     curl
     (camomile (>= 2.0.0))
     uri
-    domain_shims
     (mem_usage (>= 0.1.1))
     (metadata (>= 0.3.0))
     magic-mime
@@ -130,9 +129,8 @@
 (package
   (name liquidsoap-lang)
   (depends
-    (ocaml (>= 4.14))
+    (ocaml (>= 5.4))
     dune-site
-    domain_shims
     (re (>= 1.11.0))
     (ppx_string :build)
     (ppx_hash :build)
@@ -145,7 +143,7 @@
 (package
   (name liquidsoap-js)
   (depends
-    (ocaml (>= 4.14))
+    (ocaml (>= 5.4))
     (liquidsoap-lang (= :version))
     js_of_ocaml-ppx
     (js_of_ocaml (>= 5.7.2)))

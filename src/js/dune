@@ -62,6 +62,11 @@
    -open
    Liquidsoap_lang_values))
  (js_of_ocaml
+  ; The lang has no effect handlers of its own; the ones OCaml 5 links in are
+  ; never performed here. Saying so keeps js_of_ocaml from asking for the cps
+  ; backend, which costs 15% bundle size for support nothing uses.
+  (flags
+   (:standard --effects=disabled))
   (javascript_files filesystem.js))
  (preprocess
   (pps ppx_string js_of_ocaml-ppx))

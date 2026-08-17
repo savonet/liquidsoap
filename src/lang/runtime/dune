@@ -22,7 +22,6 @@
  (preprocess
   (pps ppx_string))
  (libraries
-  domain_shims
   gen
   liquidsoap-lang.ast
   liquidsoap-lang.cache
