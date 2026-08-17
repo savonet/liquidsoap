@@ -12,9 +12,42 @@ A callback attached this way belongs to the source. It fires every time the
 event happens, for as long as that source is alive — which, for a source defined
 at the top level of a script, means until liquidsoap shuts down.
 
-That is what most scripts want, and if all your callbacks are registered once at
-startup there is nothing else to know here. The rest of this page is about the
-case where they are not.
+That is what most scripts want. Two things are still worth deciding: which
+thread the callback runs in, and what happens when a registration is not meant
+to last as long as the source.
+
+## Synchronous or not
+
+`synchronous` has no default: every registration has to say which of the two
+behaviours it wants.
+
+With `synchronous=true` the callback runs where the event happened, which for
+stream events — `on_track`, `on_metadata`, `on_frame` — is the streaming thread.
+The stream waits for it. That is what you want when the callback has to take
+effect before the stream moves on, and it means the callback must be quick:
+no HTTP request, no database query, no `thread.pause`, nothing that waits on
+something else. A callback that takes too long makes the streaming loop fall
+behind and produces [catchup errors](./latency_control.md).
+
+With `synchronous=false` the callback is handed to liquidsoap's scheduler and
+runs on one of its generic queues instead. Blocking is fine there, so this is
+the setting for posting to an API, writing to a database or calling out to an
+external program. In exchange you give up three things:
+
+- **Timing.** The callback runs shortly after the event, not at it. By then the
+  source may have moved on, so use what the callback is handed rather than
+  asking the source what it is doing now.
+- **Ordering.** Firings are queued independently and the queues run in parallel,
+  so they can overlap and complete out of order. With the default five generic
+  queues, five copies of a slow callback can be running at once.
+- **Room for other work.** Those queues also resolve requests — downloads,
+  playlist reloads. A callback slower than the events feeding it builds a
+  backlog and crowds them out. `settings.scheduler.generic_queues` and
+  `settings.scheduler.fast_queues` control how many queues there are.
+
+When in doubt, ask what the callback does: if it only reads its arguments and
+sets a variable, `synchronous=true`; if it talks to anything outside
+liquidsoap, `synchronous=false`.
 
 ## Taking a callback back
 
@@ -26,6 +59,11 @@ Registering returns a value with a `release` method that detaches the callback:
 
 Once released, the callback stops firing and the function it wrapped is
 forgotten. Releasing twice is harmless.
+
+Releasing takes the callback off the source; it does not cancel work already in
+flight. An asynchronous firing that the scheduler has already queued still runs,
+so code that releases a callback and then tears down what that callback touches
+should be able to cope with one last call.
 
 The returned value is otherwise `unit`, so you can keep ignoring it: a
 registration whose result you drop is still valid liquidsoap.
