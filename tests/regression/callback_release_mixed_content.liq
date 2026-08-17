@@ -32,6 +32,7 @@ for _ = 1 to 3 do
         end
     )
   release()
+
 end
 
 def check() =
@@ -45,8 +46,7 @@ def check() =
 
   if
     not list.assoc.mem("audio", audio_content)
-  or
-    not list.assoc.mem("video", video_content)
+    or not list.assoc.mem("video", video_content)
   then
     test.fail()
   elsif

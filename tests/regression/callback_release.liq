@@ -48,6 +48,7 @@ for _ = 1 to 3 do
     )
   if result != "returned" then test.fail() end
   release()
+
 end
 
 base = sine(id="base")
