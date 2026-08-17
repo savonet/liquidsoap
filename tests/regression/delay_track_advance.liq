@@ -25,7 +25,9 @@ s.on_metadata(
   fun (m) ->
     begin
       title = m["title"]
-      if title != "" and not list.mem(title, seen()) then
+      if
+        title != "" and not list.mem(title, seen())
+      then
         seen := [...seen(), title]
       end
       if list.length(seen()) >= 3 then test.pass() end

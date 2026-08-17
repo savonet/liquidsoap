@@ -1,5 +1,6 @@
 icecast.server(
-  serve_html=fun (_) -> "<!DOCTYPE html><html><body>Not found.</body></html>",
+  serve_html=fun (_) ->
+    "<!DOCTYPE html><html><body>Not found.</body></html>",
   serve_json=fun (stats) ->
     begin
       mounts =

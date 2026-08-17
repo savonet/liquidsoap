@@ -13,7 +13,7 @@ def f() =
   test.equal(literal(), true)
 
   default = ref(false)
-  def with_default(~x = default := true) =
+  def with_default(~x=default := true) =
     ignore(x)
   end
   ignore(with_default)

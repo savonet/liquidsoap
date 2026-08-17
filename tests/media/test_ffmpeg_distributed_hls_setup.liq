@@ -36,7 +36,11 @@ streams = [("mp4", mp4), ("mpegts", mpegts)]
 # Fixed relative path so dune can track it as a directory target.
 output_dir = "hls_resume_output"
 
-ignore(process.run("mkdir -p #{output_dir}"))
+ignore(
+  process.run(
+    "mkdir -p #{output_dir}"
+  )
+)
 
 # Use position-only names (no timestamp) for deterministic output that
 # dune can cache across runs.

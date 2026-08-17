@@ -4,6 +4,7 @@ let input.jack = blank
 %ifndef output.jack
 let output.jack = output.dummy
 %endif
+
 # BEGIN
 # Cross from the JACK clock to another output using buffer():
 output.ao(buffer(input.jack(id="input")))

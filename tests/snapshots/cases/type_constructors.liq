@@ -5,6 +5,7 @@ ignore((r : ref(int)))
 ignore((1 : getter(int)))
 
 # Still ordinary identifiers.
-ref = "a variable"
+ref =
+  "a variable"
 getter = "another"
 (ref, getter)
