@@ -1,5 +1,5 @@
 === iterable_for.liq ===
-for x = list.iterator([1, 2, 3]) do ignore(x) end
+for x = list.iterator([1, 2, 3]) do ignore(x)  end
 --- parsed ---
 {
   "type": "block",
@@ -67,7 +67,7 @@ ae42910cd311b37e94795ae6f1f713a2
 for(list.iterator([1, 2, 3]), fun (x) -> ignore(x))
 --- type ---
 At cases/iterable_for.liq, line 1, char 8-12:
-for x = list.iterator([1, 2, 3]) do ignore(x) end
+for x = list.iterator([1, 2, 3]) do ignore(x)  end
 
 Error 5: this value has no method `iterator`
   Its type is {
