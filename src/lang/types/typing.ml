@@ -403,6 +403,15 @@ and ( <: ) a b =
           a <: b
       | _, Var { contents = Link (_, b) } -> a <: b
       | Var { contents = Link (_, a) }, _ -> a <: b
+      (* A source can be streamed without knowing what it streams, so any
+         source is a source of unknown content. The converse would let a
+         caller assume content the source may not have. *)
+      | ( Constr { constructor = "source"; params = _ :: _ },
+          Constr { constructor = "source"; params = [] } ) ->
+          ()
+      | ( Constr { constructor = "source"; params = [] },
+          Constr { constructor = "source"; params = _ :: _ } ) ->
+          raise (Error (Repr.make a, Repr.make b))
       | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
           let rec aux pre p1 p2 =
             match (p1, p2) with

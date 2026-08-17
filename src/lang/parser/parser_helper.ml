@@ -248,15 +248,19 @@ let mk_named_ty ~pos name ty =
                Printf.sprintf
                  "Type constructor %s takes a type parameter, as in `%s(int)`."
                  name name ))
+    (* [source(_)] reaches us here rather than through [ty_source_tracks]:
+       [_] parses as a type of its own. *)
+    | Some `Source, Some (`Named "_") -> mk_source_ty ~pos name `Abstract
     | Some `Source, None ->
-        mk_source_ty ~pos name { Parsed_term.extensible = false; tracks = [] }
+        mk_source_ty ~pos name
+          (`Tracks { Parsed_term.extensible = false; tracks = [] })
     | Some `Source, Some _ ->
         raise
           (Term.Parse_error
              ( pos,
                "`source(...)` takes track declarations, as in \
-                `source(audio=pcm)`. Write `source` on its own for a source \
-                with any tracks." ))
+                `source(audio=pcm)`, or `_` for a source of unknown content. \
+                Write `source` on its own for a source with any tracks." ))
 
 type let_opt_el = string * Parsed_term.t
 

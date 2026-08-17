@@ -250,6 +250,11 @@ let print f t =
         Format.fprintf f ")";
         Format.close_box ();
         vars
+    (* The source constructor with no content parameter is [source(_)]: print it
+       the way it is written. *)
+    | `Constr ("source", []) ->
+        Format.fprintf f "source(_)";
+        vars
     | `Constr (name, []) ->
         Format.fprintf f "%s" name;
         vars

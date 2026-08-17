@@ -24,6 +24,19 @@
   `crossfade` or `stretch` may buffer from its child source. Operators sharing a child
   source must consume it at converging rates; past this value, an error names the operator
   that fell behind instead of letting the buffer grow without bound (#5267).
+- Source callbacks (`on_track`, `on_metadata`, `on_frame`, `on_connect`, ...) now return a
+  `release` method taking the callback back. A function registering on a source it is given
+  keeps the callback alive for as long as that source lives, so one that runs more than once
+  needs to release what it registered. Past five callbacks on the same source, a log message
+  says so. Existing scripts are unaffected: the returned value is still ignorable.
+- Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
+  `on_leave` and transition functions are now released when the selection or the crossing
+  ends, instead of accumulating on those sources for as long as they live.
+- Added the `source(_)` type: a source whose content is unknown. Any source can be used where
+  one is expected, so sources of different content can be held together, for instance in a
+  list, without their content types being unified into one. The converse is rejected: nothing
+  can be assumed about what a `source(_)` streams. `source` and `source(...)` are unchanged
+  and still mean a source whose content is inferred.
 
 ## Changed:
 
