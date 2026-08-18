@@ -92,6 +92,37 @@
   (run %{clock_error_print_test})))
 
 (executable
+ (name clock_retention_test)
+ (modules clock_retention_test)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias clock_retention_test)
+ (package liquidsoap)
+ (deps
+  (:clock_retention_test clock_retention_test.exe))
+ (action
+  (run %{clock_retention_test})))
+
+(executable
  (name clock_tick_test)
  (modules clock_tick_test)
  (flags
@@ -1221,6 +1252,7 @@
   (alias binary_strings_test)
   (alias child_support_test)
   (alias clock_error_print_test)
+  (alias clock_retention_test)
   (alias clock_tick_test)
   (alias clock_unify_test)
   (alias clock_utils_test)
