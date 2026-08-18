@@ -110,14 +110,3 @@ there might be an increase in CPU usage if your script needs to process audio (f
 
 Finally, if you need to store large amount of audio data, for instance to create a one hour delay, you should consider using the `track.audio.defer` operator which was designed for
 this purpose.
-
-### `jemalloc`
-
-Lastly, the user-land memory allocator [jemalloc](https://github.com/jemalloc/jemalloc) can be used to control all memory allocations (C and OCaml). This allocator is particularly
-good at preventing memory fragmentation, which is an important topic for an application like liquidsoap running short streaming cycle involving small amount of memory (FFmpeg frames etc).
-
-The allocator is enabled by installing the `jemalloc` opam package and is included in all our production builds (except windows). It also comes with a lot of customization options
-that are exported via the [runtime.jemalloc.\*](https://www.liquidsoap.info/doc-dev/reference.html#runtime.jemalloc.epoch) functions.
-
-If you want to explore more, we recommend [reading about it](https://engineering.fb.com/2011/01/03/core-data/scalable-memory-allocation-using-jemalloc/) and
-then exploring the [manual page](http://jemalloc.net/jemalloc.3.html) which contains details about all the available settings.
