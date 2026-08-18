@@ -449,7 +449,12 @@ Liquidsoap maintains stable release branches using the following workflow:
 
 - **Development branch**: `main`
 - **Stable branches**: `v2.4.x-latest`, `v2.3.x-latest`, etc.
-- **Rolling release tags**: `rolling-release-v2.4.x`, `rolling-release-v2.3.x`, etc.
+- **Rolling release tags**: `rolling-release-v2.5.x`, `rolling-release-v2.4.x`, etc.
+
+Which branches publish a rolling release, and under which version, is configured in
+[`.github/release-matrix.json`](.github/release-matrix.json). `main` is listed there as the
+in-development line, so it rolls alongside the stable branches. That file also generates the
+release table in `README.md`.
 
 ### Backporting PRs
 
@@ -462,7 +467,7 @@ To backport a PR from `main` to a stable branch:
 
 ### Rolling Release Tags
 
-When CI passes on a stable branch (e.g., `v2.4.x-latest`), a corresponding rolling release tag (`rolling-release-v2.4.x`) is automatically created/updated. This tag always points to the latest CI-validated commit on that branch.
+When CI passes on a branch listed in the release matrix (e.g., `main` or `v2.4.x-latest`), the corresponding rolling release tag (`rolling-release-v2.5.x`, `rolling-release-v2.4.x`) is automatically created/updated, its release assets are replaced, and Docker images are published under the same name. The tag always points to the latest CI-validated commit on that branch.
 
 ## Getting Help
 

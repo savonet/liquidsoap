@@ -62,12 +62,18 @@ opam install liquidsoap
 
 ## Release Details
 
-Current release status by version:
-| Branch | Latest release | Supported | Rolling Release |
-| --------|----------------|-----------|-----------------|
-| `2.5.x` | 🚧 | 🚧 | [main](https://github.com/savonet/liquidsoap) (docker: `savonet/liquidsoap`) |
-| `2.4.x` | [2.4.5](https://github.com/savonet/liquidsoap/releases/tag/v2.4.5) (docker: `savonet/liquidsoap:v2.4.5`)| ✅ | [2.4.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.4.x) (docker: `savonet/liquidsoap:rolling-release-v2.4.x`) |
-| `2.3.x` |[2.3.3](https://github.com/savonet/liquidsoap/releases/tag/v2.3.3) (docker: `savonet/liquidsoap:v2.3.3`) | ❌ | [2.3.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.3.x) (docker: `savonet/liquidsoap:rolling-release-v2.3.x`) |
+Current release status by version. This table is generated from
+[`.github/release-matrix.json`](.github/release-matrix.json); edit that file, not the table.
+
+<!-- release-table:start -->
+
+| Branch  | Latest release                                                                                           | Supported | Rolling Release                                                                                                                          |
+| ------- | -------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `2.5.x` | 🚧                                                                                                       | 🚧        | [2.5.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.5.x) (docker: `savonet/liquidsoap:rolling-release-v2.5.x`) |
+| `2.4.x` | [2.4.5](https://github.com/savonet/liquidsoap/releases/tag/v2.4.5) (docker: `savonet/liquidsoap:v2.4.5`) | ✅        | [2.4.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.4.x) (docker: `savonet/liquidsoap:rolling-release-v2.4.x`) |
+| `2.3.x` | [2.3.3](https://github.com/savonet/liquidsoap/releases/tag/v2.3.3) (docker: `savonet/liquidsoap:v2.3.3`) | ❌        | ❌                                                                                                                                       |
+
+<!-- release-table:end -->
 
 ### Versions
 
