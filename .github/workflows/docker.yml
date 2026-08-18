@@ -279,6 +279,7 @@ jobs:
       - name: Push consolidated manifest
         env:
           TAG: ${{ inputs.docker_tag || inputs.branch }}
+          SOURCE_TAG: ${{ inputs.branch }}
           USER: ${{ secrets.DOCKERHUB_USER }}
           PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
           GHCR_USER: ${{ github.actor }}
@@ -299,6 +300,7 @@ jobs:
       - name: Push consolidated manifest
         env:
           TAG: ${{ inputs.docker_tag || inputs.branch }}-minimal
+          SOURCE_TAG: ${{ inputs.branch }}-minimal
           USER: ${{ secrets.DOCKERHUB_USER }}
           PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
           GHCR_USER: ${{ github.actor }}
