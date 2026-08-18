@@ -33,6 +33,9 @@
 - Added `source.collect_callback_releases`, which runs a function and gathers the callbacks
   it registered on a given list of sources into a single `release`. This is what `switch` and
   `cross` use, available to scripts calling their own functions more than once.
+- Clocks created by script code running after startup are now started by the code that
+  created them, through an effect handler scoped to that code, instead of a global registry
+  polled after every script application.
 - Added the `source(_)` type: a source whose content is unknown. Any source can be used where
   one is expected, so sources of different content can be held together, for instance in a
   list, without their content types being unified into one. The converse is rejected: nothing
