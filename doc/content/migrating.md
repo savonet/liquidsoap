@@ -280,11 +280,19 @@ s = fallback([live_show, s, backup])
 
 #### Stdlib operators that used to pin `track_sensitive`
 
-Several operators are built on top of `fallback` and used to pass a fixed `track_sensitive`. They now inherit it from the source they wrap, so their behavior follows that source's composition type: `append`, `prepend`, `fallback.skip`, `map_first_track`, `overlap_sources` and the deprecated `fade.final`. If you relied on one of them switching (or not switching) mid-track regardless of its input, set `track_sensitive` on the source you pass in.
+Several operators are built on top of `fallback` and used to pass a fixed `track_sensitive`. They now inherit it from the source they wrap, so their behavior follows that source's composition type: `append`, `prepend`, `map_first_track`, `overlap_sources` and the deprecated `fade.final`. If you relied on one of them switching (or not switching) mid-track regardless of its input, set `track_sensitive` on the source you pass in.
 
 `mksafe` is the exception: it pins `source.composition.legacy_on_select` on both branches, so falling back to `safe_blank` and coming back from it stay abrupt rather than fading.
 
 The deprecated `mkavailable` lost its `track_sensitive` parameter with no replacement; use `source.available` instead, as the deprecation warning already suggests.
+
+#### `fallback.skip` (deprecated)
+
+`fallback.skip` was a track insensitive `fallback` that skipped the fallback source before switching back to the main one. Both halves of that are now what a plain `fallback` does: a source with `track_sensitive = false` can be cut into mid-track, and the `file` composition profile's `on_leave` skips a source that was left mid-track. Set `track_sensitive` on the fallback source instead:
+
+```liquidsoap
+s = fallback([main, fallback_source.{track_sensitive = getter(false)}])
+```
 
 ### Source callbacks return a release
 

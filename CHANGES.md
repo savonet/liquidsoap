@@ -65,6 +65,10 @@
   only PCM audio. Handoffs that happen at a track boundary are unchanged: nothing
   was interrupted, so nothing is faded. Use
   `source.composition.legacy_on_select` to restore the previous behavior.
+- Deprecated `fallback.skip`. A source with `track_sensitive` set to `false` can be cut
+  into mid-track and the `file` composition profile skips a source it was left in the
+  middle of, so `fallback([main, fallback_source.{track_sensitive = getter(false)}])`
+  now does natively what the operator polled for on every frame.
 - Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
   with a single unified `duration` parameter. Removed autocue-specific code and
   `assume_autocue` setting. Metadata overrides `liq_cross_start_duration` and

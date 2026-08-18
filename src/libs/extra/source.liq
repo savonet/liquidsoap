@@ -225,29 +225,6 @@ def skipper(~every=getter(5.), s) =
   s
 end
 
-# Special track insensitive fallback that always skips current song before
-# switching.
-# @category Source / Track processing
-# @flag extra
-# @param s The main source.
-# @param ~fallback The fallback source. Defaults to `blank` if `null`.
-def fallback.skip(s, ~fallback:f=null) =
-  f = f ?? (blank() : source)
-  avail = ref(true)
-
-  def check() =
-    old = avail()
-    avail := source.is_ready(s)
-    if not old and avail() then source.skip(f) end
-  end
-
-  s = fallback([s, f])
-
-  # TODO: could we have something more efficient that checking on every frame
-  s.on_frame(synchronous=true, check)
-  s
-end
-
 # Generate a CUE file for the source. This function will generate a new track in
 # the file for each metadata of the source. This function tries to map metadata to
 # the appropriate CUE file standard values. You can use the `map_metadata` argument

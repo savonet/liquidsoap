@@ -505,6 +505,18 @@ def mkavailable(
   switch(id=id, [(getter.function(available), s)])
 end
 
+# Deprecated: a source left mid-track is skipped by the `file` composition
+# profile, so `fallback` on a fallback source with `track_sensitive` set to
+# `false` does this natively.
+# @flag deprecated
+# @param s The main source.
+# @param ~fallback The fallback source. Defaults to `blank` if `null`.
+def fallback.skip(s, ~fallback:f=null) =
+  deprecated("fallback.skip", "fallback")
+  f = f ?? (blank() : source)
+  fallback([s, f.{track_sensitive = getter(false)}])
+end
+
 # Deprecated: use `at` instead.
 # @flag deprecated
 def at(pred, s) =
