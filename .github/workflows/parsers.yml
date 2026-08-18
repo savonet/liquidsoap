@@ -5,7 +5,7 @@ on:
 
 jobs:
   tree_sitter_parse:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout latest code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -21,7 +21,7 @@ jobs:
           npm exec tree-sitter -- parse -q -s ../../**/*.liq
 
   lezer_parse:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout latest code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

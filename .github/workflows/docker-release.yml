@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_details:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     outputs:
       sha: ${{ steps.build_details.outputs.sha }}
       build_platform: ${{ steps.build_details.outputs.build_platform }}

@@ -20,7 +20,7 @@ on:
 
 jobs:
   build:
-    runs-on: depot-ubuntu-24.04-32
+    runs-on: ubuntu-24.04
     container:
       image: ghcr.io/savonet/liquidsoap:ci-asan-${{ inputs.ocaml_version || '5.4.0' }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/artifacts
@@ -72,7 +72,7 @@ jobs:
 
   docker:
     needs: build
-    runs-on: depot-ubuntu-24.04-32
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Download debian package
@@ -86,6 +86,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Depot CLI
+        uses: depot/setup-action@15c09a5f77a0840ad4bce955686522a257853461 # v1.7.1
       - name: Build and push
         uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
         with:

@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   build_details:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-24.04
     outputs:
       branch: ${{ steps.build_details.outputs.branch }}
       release_tag: ${{ steps.build_details.outputs.release_tag }}
