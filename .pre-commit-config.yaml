@@ -46,6 +46,14 @@ repos:
 
   - repo: local
     hooks:
+      - id: release-table
+        name: release-table
+        language: node
+        entry: .github/scripts/gen-release-table.sh
+        additional_dependencies: ["prettier@3.6.0"]
+        pass_filenames: false
+        files: (\.github/release-matrix\.json|\.github/scripts/gen-release-table\.sh|README\.md)$
+
       - id: shfmt
         name: shfmt
         language: docker_image

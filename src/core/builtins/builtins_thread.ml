@@ -103,9 +103,8 @@ let _ =
             (fun _ ->
               let delay = f () in
               if Atomic.get should_stop then []
-              else (
-                Clock.after_eval ();
-                if delay >= 0. then [task delay] else []));
+              else if delay >= 0. then [task delay]
+              else []);
         }
       in
       Lifecycle.after_start ~name:"thread start" (fun () ->

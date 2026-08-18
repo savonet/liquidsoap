@@ -25,21 +25,27 @@ IS_ROLLING_RELEASE=
 IS_RELEASE=
 DOCKER_RELEASE=
 
-if [[ "${IS_FORK}" != "true" ]]; then
-  if [[ "${BRANCH}" =~ ^v[0-9]+\.[0-9]+\.[a-z0-9]+-latest$ ]]; then
-    echo "Branch is rolling release branch"
-    VERSION="${BRANCH%-latest}"
-    RELEASE_TAG="rolling-release-${VERSION}"
-    IS_ROLLING_RELEASE=true
-    IS_RELEASE=true
-    DOCKER_RELEASE=true
-  elif [[ "${BRANCH}" =~ ^v[0-9]\.[0-9]\.[0-9] ]]; then
-    echo "Branch is release branch"
-    IS_RELEASE=true
-    DOCKER_RELEASE=true
-  else
-    echo "Branch is not release branch"
-  fi
+# Released tags predate the matrix and are rebuilt from their own checkout.
+RELEASE_MATRIX=".github/release-matrix.json"
+# shellcheck disable=SC2016 # $branch is a jq variable
+MATRIX_QUERY='map(select(.branch == $branch)) | first // empty'
+ENTRY=
+if [ "${IS_FORK}" != "true" ] && [ -f "${RELEASE_MATRIX}" ]; then
+  ENTRY=$(jq -c --arg branch "${BRANCH}" "${MATRIX_QUERY}" "${RELEASE_MATRIX}")
+fi
+
+if [ -n "${ENTRY}" ]; then
+  echo "Branch is rolling release branch"
+  RELEASE_TAG="rolling-release-v$(echo "${ENTRY}" | jq -r '.version')"
+  IS_ROLLING_RELEASE=true
+  IS_RELEASE=true
+  DOCKER_RELEASE=true
+elif [ "${IS_FORK}" != "true" ] && [[ "${BRANCH}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+  echo "Branch is release branch"
+  IS_RELEASE=true
+  DOCKER_RELEASE=true
+else
+  echo "Branch is not release branch"
 fi
 
 BUILD_OS='["debian_trixie", "debian_forky", "ubuntu_plucky", "ubuntu_resolute", "alpine"]'
@@ -48,12 +54,19 @@ BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-24.04", "alpine-arch": 
 
 SHA=$(git rev-parse --short HEAD)
 
-if [ "${IS_FORK}" != "true" ] && [ "${IS_RELEASE}" != "true" ] && [ "${IS_ROLLING_RELEASE}" != "true" ]; then
+SAVE_TRACES=
+if [ "${IS_FORK}" != "true" ]; then
+  if [ "${IS_RELEASE}" != "true" ]; then
+    SAVE_TRACES=true
+  elif [ "$(echo "${ENTRY:-null}" | jq -r '.save_traces // false')" = "true" ]; then
+    SAVE_TRACES=true
+  fi
+fi
+
+if [ -n "${SAVE_TRACES}" ]; then
   echo "Save tests traces"
-  SAVE_TRACES=true
 else
   echo "Disable tests traces upload"
-  SAVE_TRACES=
 fi
 
 if [ "${IS_RELEASE}" != "true" ] || [ "${IS_ROLLING_RELEASE}"  == "true" ]; then

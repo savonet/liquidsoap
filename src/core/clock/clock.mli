@@ -256,8 +256,10 @@ val time_implementation : unit -> Liq_time.implementation
     do not need liquidsoap's timing. *)
 val unconstrained_time : Liq_time.implementation
 
-(** Start the clocks created during the last script evaluation. *)
-val after_eval : unit -> unit
+(** Run the given function, then start the clocks it created: a clock cannot be
+    started as it is created, since the graph is still being built. Clocks
+    created outside any such call are started by the next one. *)
+val with_new_clocks : (unit -> 'a) -> 'a
 
 val dump : unit -> string
 val dump_sources : t -> string

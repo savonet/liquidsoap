@@ -37,7 +37,7 @@ jobs:
         id: release_assets
         run: |
           echo "release_assets<<EOF" >> $GITHUB_OUTPUT
-          find artifacts/${{ inputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config|\.zip$' | sort -u >> $GITHUB_OUTPUT
+          find artifacts/${{ inputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config$|\.zip$' | sort -u >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Generate release notes
         id: release_notes

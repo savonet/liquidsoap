@@ -35,11 +35,10 @@ let eval ?toplevel ?typecheck ?cache ?deprecated ?ty ?name ~stdlib s =
           (Liquidsoap_lang.Runtime.throw ~lexbuf:None ~bt ()) exn;
           Printexc.raise_with_backtrace Runtime.Error bt)
 
+(* Every application of a script function from the core goes through here, so a
+   graph one builds is finished by the time it returns. *)
 let apply ?pos v env =
-  try
-    let ret = apply ?pos v env in
-    Clock.after_eval ();
-    ret
+  try Clock.with_new_clocks (fun () -> apply ?pos v env)
   with exn -> (
     let bt = Printexc.get_raw_backtrace () in
     match exn with

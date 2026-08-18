@@ -3,6 +3,8 @@ on:
   merge_group:
   pull_request:
   push:
+    # Rolling sources are configured in .github/release-matrix.json; a branch
+    # listed there must also match here or its release never runs.
     branches:
       - main
       - "v*-latest"
@@ -159,6 +161,7 @@ jobs:
       is_fork: ${{ needs.build_details.outputs.is_fork }}
       publish_docker_image: ${{ needs.build_details.outputs.publish_docker_image }}
       docker_release: ${{ needs.build_details.outputs.docker_release }}
+      docker_tag: ${{ needs.build_details.outputs.release_tag }}
       build_platform: ${{ needs.build_details.outputs.build_platform }}
       build_include: ${{ needs.build_details.outputs.build_include }}
       ocaml_version: ${{ needs.build_details.outputs.ocaml_version }}

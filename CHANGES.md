@@ -33,6 +33,9 @@
 - Added `source.collect_callback_releases`, which runs a function and gathers the callbacks
   it registered on a given list of sources into a single `release`. This is what `switch` and
   `cross` use, available to scripts calling their own functions more than once.
+- Clocks created by script code running after startup are now started by the code that
+  created them, through an effect handler scoped to that code, instead of a global registry
+  polled after every script application.
 - Added the `source(_)` type: a source whose content is unknown. Any source can be used where
   one is expected, so sources of different content can be held together, for instance in a
   list, without their content types being unified into one. The converse is rejected: nothing
@@ -62,6 +65,10 @@
   only PCM audio. Handoffs that happen at a track boundary are unchanged: nothing
   was interrupted, so nothing is faded. Use
   `source.composition.legacy_on_select` to restore the previous behavior.
+- Deprecated `fallback.skip`. A source with `track_sensitive` set to `false` can be cut
+  into mid-track and the `file` composition profile skips a source it was left in the
+  middle of, so `fallback([main, fallback_source.{track_sensitive = getter(false)}])`
+  now does natively what the operator polled for on every frame.
 - Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
   with a single unified `duration` parameter. Removed autocue-specific code and
   `assume_autocue` setting. Metadata overrides `liq_cross_start_duration` and

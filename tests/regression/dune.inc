@@ -1568,6 +1568,29 @@
   (run %{run_test} cleanup liquidsoap %{test_liq} cleanup.liq)))
 
 (rule
+ (alias test_clock_started_at_runtime)
+ (package liquidsoap)
+ (deps
+  clock_started_at_runtime.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   clock_started_at_runtime
+   liquidsoap
+   %{test_liq}
+   clock_started_at_runtime.liq)))
+
+(rule
  (alias test_default_format)
  (package liquidsoap)
  (deps
@@ -2543,6 +2566,7 @@
   (alias test_callback_release)
   (alias test_callback_release_mixed_content)
   (alias test_cleanup)
+  (alias test_clock_started_at_runtime)
   (alias test_default_format)
   (alias test_delay_dry_between_tracks)
   (alias test_delay_gap)
