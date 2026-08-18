@@ -35,6 +35,11 @@ on:
         required: false
         default: ""
         type: string
+      docker_tag:
+        description: Tag the published images under this name instead of the branch name.
+        required: false
+        default: ""
+        type: string
     secrets:
       DOCKERHUB_USER:
         required: true
@@ -265,7 +270,7 @@ jobs:
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
       - name: Push consolidated manifest
         env:
-          TAG: ${{ inputs.branch }}
+          TAG: ${{ inputs.docker_tag || inputs.branch }}
           USER: ${{ secrets.DOCKERHUB_USER }}
           PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
           GHCR_USER: ${{ github.actor }}
@@ -285,7 +290,7 @@ jobs:
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
       - name: Push consolidated manifest
         env:
-          TAG: ${{ inputs.branch }}-minimal
+          TAG: ${{ inputs.docker_tag || inputs.branch }}-minimal
           USER: ${{ secrets.DOCKERHUB_USER }}
           PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
           GHCR_USER: ${{ github.actor }}

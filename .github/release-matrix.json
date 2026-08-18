@@ -1,0 +1,20 @@
+[
+  {
+    "version": "2.5.x",
+    "branch": "main",
+    "save_traces": true,
+    "supported": "wip",
+    "latest_release": null
+  },
+  {
+    "version": "2.4.x",
+    "branch": "v2.4.x-latest",
+    "supported": true,
+    "latest_release": "2.4.5"
+  },
+  {
+    "version": "2.3.x",
+    "supported": false,
+    "latest_release": "2.3.3"
+  }
+]
