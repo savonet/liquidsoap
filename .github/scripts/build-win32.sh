@@ -20,6 +20,12 @@ echo "::group::Build liquidsoap-windows"
 
 eval "$(opam env)"
 
+# The CI image does not register the local opam overlay, and its repository
+# snapshot predates camomile-embedded. Delete the repo add once the image is
+# rebuilt: it registers liquidsoap-devel itself and a duplicate name fails.
+opam repo add liquidsoap-devel "${BASE_DIR}/.github/opam"
+opam update
+
 opam install -y --deps-only .github/opam/liquidsoap-windows.opam
 
 export LIQUIDSOAP_BUILD_VERSION="${TAG}${VERSION}"
