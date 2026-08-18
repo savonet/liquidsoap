@@ -581,8 +581,8 @@ let compare_clock_identity clock clock' =
    - [pending] is the weak set of clocks that could not be started yet, having
      no output to animate. Clocks are returned to it when they stop. Being
      weak, it lets unused clocks be garbage collected.
-   - [retained] holds strong references to the clocks created outside any
-     [with_new_clocks] call, until the next [flush_pending].
+   - [retained] holds strong references to the clocks deferred as [`Strong],
+     until the next [flush_pending].
    - [started] holds strong references to the clocks started by
      [start_pending], removed when they stop.
 
@@ -600,21 +600,18 @@ module Registry = struct
   (* Register a freshly created handle: no dedup scan needed. *)
   let register c = WeakQueue.push_raw all_clocks c
 
-  (* A clock created outside any handler has no other root until it starts: its
-     graph is a cycle through its outputs. *)
-  let add_pending c =
-    Queue.push retained c;
-    WeakQueue.push_raw pending c
-
-  (* Weak: a deferred clock nothing else references has nothing to animate. *)
-  let readd_pending c = WeakQueue.push_raw pending c
+  (* [`Strong] roots a clock until the next flush: one whose graph is still
+     being built has no other root, being a cycle through its own outputs.
+     [`Weak] is for a clock deferred for an unbounded time, having no output to
+     animate: nothing else referencing it means nothing left to animate. *)
+  let defer = function
+    | `Strong c -> Queue.push retained c
+    | `Weak c -> WeakQueue.push_raw pending c
 
   let flush_pending () =
-    let elements = WeakQueue.flush_elements pending in
-    Queue.clear retained;
-    elements
+    Queue.flush_elements retained @ WeakQueue.flush_elements pending
 
-  let no_pending () = WeakQueue.length pending = 0
+  let no_pending () = Queue.is_empty retained && WeakQueue.length pending = 0
   let mark_started c = Queue.push started c
 
   let mark_stopped ~clock c =
@@ -625,11 +622,16 @@ module Registry = struct
      dereferences to remains registered through its own handle. *)
   let forget_handle c =
     Queue.filter_out started (fun el -> el == c);
+    Queue.filter_out retained (fun el -> el == c);
     WeakQueue.filter_out pending (fun el -> el == c);
     WeakQueue.filter_out all_clocks (fun el -> el == c)
 
   let iter_started fn = Queue.iter started fn
-  let managed () = WeakQueue.elements pending @ Queue.elements started
+
+  let managed () =
+    Queue.elements retained @ WeakQueue.elements pending
+    @ Queue.elements started
+
   let all () = WeakQueue.elements all_clocks
 end
 
@@ -1197,7 +1199,7 @@ type _ Effect.t += Clock_created : t -> unit Effect.t
 (* Outside any handler, fall back to deferring: the next application starts it. *)
 let notify_clock_created c =
   try Effect.perform (Clock_created c)
-  with Effect.Unhandled _ -> Registry.add_pending c
+  with Effect.Unhandled _ -> Registry.defer (`Strong c)
 
 let _can_start ?(force = false) clock =
   let has_output =
@@ -1330,7 +1332,7 @@ let start_pending ?(clocks = []) () =
               if clock.sync <> `Passive then (
                 _start ~c clock;
                 Registry.mark_started c))
-            else Registry.readd_pending c
+            else Registry.defer (`Weak c)
         | _ -> ())
     pending
 
