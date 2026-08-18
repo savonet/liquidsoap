@@ -581,6 +581,8 @@ let compare_clock_identity clock clock' =
    - [pending] is the weak set of clocks that could not be started yet, having
      no output to animate. Clocks are returned to it when they stop. Being
      weak, it lets unused clocks be garbage collected.
+   - [retained] holds strong references to the clocks created outside any
+     [with_new_clocks] call, until the next [flush_pending].
    - [started] holds strong references to the clocks started by
      [start_pending], removed when they stop.
 
@@ -592,14 +594,26 @@ let compare_clock_identity clock clock' =
 module Registry = struct
   let started : t Queue.t = Queue.create ()
   let pending : t WeakQueue.t = WeakQueue.create ()
+  let retained : t Queue.t = Queue.create ()
   let all_clocks : t WeakQueue.t = WeakQueue.create ()
 
   (* Register a freshly created handle: no dedup scan needed. *)
   let register c = WeakQueue.push_raw all_clocks c
 
+  (* A clock created outside any handler has no other root until it starts: its
+     graph is a cycle through its outputs. *)
+  let add_pending c =
+    Queue.push retained c;
+    WeakQueue.push_raw pending c
+
   (* Weak: a deferred clock nothing else references has nothing to animate. *)
-  let add_pending c = WeakQueue.push_raw pending c
-  let flush_pending () = WeakQueue.flush_elements pending
+  let readd_pending c = WeakQueue.push_raw pending c
+
+  let flush_pending () =
+    let elements = WeakQueue.flush_elements pending in
+    Queue.clear retained;
+    elements
+
   let no_pending () = WeakQueue.length pending = 0
   let mark_started c = Queue.push started c
 
@@ -1316,7 +1330,7 @@ let start_pending ?(clocks = []) () =
               if clock.sync <> `Passive then (
                 _start ~c clock;
                 Registry.mark_started c))
-            else Registry.add_pending c
+            else Registry.readd_pending c
         | _ -> ())
     pending
 
