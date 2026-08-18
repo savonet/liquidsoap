@@ -134,13 +134,11 @@ own are live, files are not — and you only set it when a source does not behav
 like its type suggests.
 
 Operators that wrap a source inherit its type, and operators that combine
-several are file-based only if all of their children are. Two cases are worth
-knowing about, because there is nothing static to inherit from:
-
-- `buffer` reports `"live"` even around a playlist. It is a generator on its own
-  clock, so it has no child to inherit from. If you use `buffer` to resolve a
-  clock conflict around file content, set `composition_type := "file"` on it.
-- `source.dynamic` reports `"live"` while it holds nothing.
+several are file-based only if all of their children are. One case is worth
+knowing about, because there is nothing static to inherit from: `buffer` reports
+`"live"` even around a playlist. It is a generator on its own clock, so it has
+no child to inherit from. If you use `buffer` to resolve a clock conflict around
+file content, set `composition_type := "file"` on it.
 
 You can always ask a source what it settled on:
 
