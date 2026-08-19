@@ -643,34 +643,6 @@
    (echo "let enabled = false\nlet detected = \"no (requires winsvc)\"\n"))))
 
 (rule
- (target xml_option.enabled.ml)
- (action
-  (with-stdout-to
-   %{target}
-   (echo "let enabled = true\nlet detected = \"yes\"\n"))))
-
-(rule
- (target xml_option.disabled.ml)
- (action
-  (with-stdout-to
-   %{target}
-   (echo "let enabled = false\nlet detected = \"no (requires xml)\"\n"))))
-
-(rule
- (target yaml_option.enabled.ml)
- (action
-  (with-stdout-to
-   %{target}
-   (echo "let enabled = true\nlet detected = \"yes\"\n"))))
-
-(rule
- (target yaml_option.disabled.ml)
- (action
-  (with-stdout-to
-   %{target}
-   (echo "let enabled = false\nlet detected = \"no (requires yaml)\"\n"))))
-
-(rule
  (target xmlplaylist_option.enabled.ml)
  (action
   (with-stdout-to
@@ -970,16 +942,6 @@
    from
    (winsvc -> winsvc_option.enabled.ml)
    (-> winsvc_option.disabled.ml))
-  (select
-   xml_option.ml
-   from
-   (liquidsoap_xml -> xml_option.enabled.ml)
-   (-> xml_option.disabled.ml))
-  (select
-   yaml_option.ml
-   from
-   (liquidsoap_yaml -> yaml_option.enabled.ml)
-   (-> yaml_option.disabled.ml))
   (select
    xmlplaylist_option.ml
    from

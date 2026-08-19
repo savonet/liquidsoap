@@ -1,7 +1,0 @@
-(library
- (name liquidsoap_xml)
- (flags
-  (:standard -open Liquidsoap_core))
- (libraries liquidsoap-lang liquidsoap_core xml-light)
- (wrapped false)
- (optional))

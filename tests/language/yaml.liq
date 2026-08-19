@@ -34,6 +34,18 @@ baz: 3.14
     }
   )
 
+  # Integers parse as int, and still widen when the type asks for a float.
+  let yaml.parse (i : {int_field: int, float_field: float}) =
+    "int_field: 42\nfloat_field: 42\n"
+
+  test.equal(i, {int_field = 42, float_field = 42.})
+
+  # Wider than OCaml's native int: degrades to float instead of wrapping.
+  let yaml.parse (w : {wide: float}) =
+    "wide: 9223372036854775807\n"
+
+  test.equal(w, {wide = 9223372036854775807.})
+
   test.pass()
 end
 

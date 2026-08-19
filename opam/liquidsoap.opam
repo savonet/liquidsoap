@@ -76,8 +76,6 @@ depopts: [
   "theora"
   "sdl-liquidsoap"
   "vorbis"
-  "xml-light"
-  "yaml"
 ]
 conflicts: [
   "alsa" {< "0.3.0"}
