@@ -27,6 +27,10 @@ eval "$(opam env)"
 opam repo add liquidsoap-devel "${BASE_DIR}/.github/opam"
 opam update --repositories default
 
+# Diagnostic: surface the full dune error, which opam elides from the
+# combined install output.
+opam install -y -v camomile-embedded-windows
+
 opam install -y --deps-only .github/opam/liquidsoap-windows.opam
 
 export LIQUIDSOAP_BUILD_VERSION="${TAG}${VERSION}"
