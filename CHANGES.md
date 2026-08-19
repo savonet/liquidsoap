@@ -2,9 +2,11 @@
 
 ## New:
 
-- Added `getter(t)` type annotation syntax for getter types (#TODO).
+- Added `getter(t)` type annotation syntax for getter types (#5078).
 - Added `source.content` operator returning an associative list of frame field names to their content format, `track.format` returning the content format of a single track, and `format.description` returning a typed record description of a content format.
-- Renamed internal video content type from `canvas` to `yuv420p` to better reflect the actual content. The video content remains organized as a canvas (superposition of `yuv420p` layers) internally. Type annotations such as `source(video=canvas)` must be updated to `source(video=yuv420p)`.
+- Renamed the internal video content type from `canvas` to `yuv420p`, which better reflects the
+  actual content; the content itself is still organized as a canvas of `yuv420p` layers. Type
+  annotations such as `source(video=canvas)` must be updated to `source(video=yuv420p)`.
 - Added subtitles support as a dedicated content type. Includes native SRT decoding,
   FFmpeg subtitle encoding/decoding (`%subtitle`), passthrough for bitmap subtitles
   (`%subtitle.copy`), callbacks (`on_subtitle`), transformations (`subtitles.map`),
@@ -25,11 +27,10 @@
   source must consume it at converging rates; past this value, an error names the operator
   that fell behind instead of letting the buffer grow without bound (#5267).
 - Source callbacks (`on_track`, `on_metadata`, `on_frame`, `on_connect`, ...) now return a
-  `release` method taking the callback back. A function registering on a source it is given
-  keeps the callback alive for as long as that source lives, so one that runs more than once
-  needs to release what it registered. Past five callbacks on the same source, a log message
-  says so. Existing scripts are unaffected: the returned value is still ignorable. See the
-  new [source callbacks](doc/content/callbacks.md) page.
+  `release` method taking the callback back, so a function registering on a source it is given
+  can release what it registered instead of keeping it alive for as long as that source lives.
+  Existing scripts are unaffected, the returned value being still ignorable; see the new
+  [source callbacks](doc/content/callbacks.md) page.
 - Added `source.collect_callback_releases`, which runs a function and gathers the callbacks
   it registered on a given list of sources into a single `release`. This is what `switch` and
   `cross` use, available to scripts calling their own functions more than once.
@@ -37,17 +38,16 @@
   created them, through an effect handler scoped to that code, instead of a global registry
   polled after every script application.
 - Added the `source(_)` type: a source whose content is unknown. Any source can be used where
-  one is expected, so sources of different content can be held together, for instance in a
-  list, without their content types being unified into one. The converse is rejected: nothing
-  can be assumed about what a `source(_)` streams. `source` and `source(...)` are unchanged
-  and still mean a source whose content is inferred.
+  one is expected, so sources of different content can be held together, for instance in a list,
+  without unifying their content types, while nothing can be assumed about what a `source(_)`
+  streams.
 
 ## Changed:
 
-- Bindings written without `let` accept the same targets as `let`: destructuring patterns, field paths and type
-  annotations. `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid. A leading binding inside the
-  `{ … }` function shorthand still requires `let`, since `{ x = 1 }` is a record literal. An invalid left-hand side
-  reports what is allowed instead of a bare syntax error.
+- Bindings written without `let` accept the same targets as `let` — destructuring patterns, field paths and type
+  annotations — so `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid, and an invalid left-hand side
+  reports what is allowed instead of a bare syntax error. A leading binding inside the `{ … }` function shorthand
+  still requires `let`, since `{ x = 1 }` is a record literal.
 - String interpolation accepts any expression: `"#{m["key"]}"`, `"#{ {a = 1}.a }"` and nested interpolated strings
   now work. Error positions inside `#{ … }` point at the offending code rather than at the start of the string.
 - `http.transport.ssl` and `http.transport.tls`: `key` parameter is now optional in server mode when the certificate file also contains the private key.
@@ -55,25 +55,24 @@
   (`transitions`, `transition_length`, `override`, `track_sensitive`,
   `replay_metadata`, `single`, `weights`) with per-source composition methods
   (`composition_type`, `track_sensitive`, `replay_metadata`, `single`, `weight`,
-  `on_select`, `on_leave`) registered on every source. Switching behavior now
-  defaults automatically based on whether a source is file-based or live. See the
+  `on_select`, `on_leave`) registered on every source, switching behavior now
+  defaulting automatically based on whether a source is file-based or live. See the
   new [source composition](doc/content/composition.md) page, and
   `doc/content/migrating.md` for the parameter-by-parameter mapping (#5074).
-- **Switching now fades by default.** Previously a switch that cut into a playing
-  track did so abruptly; the leaving source is now faded out over up to
-  `settings.source.composition.max_fade` seconds (default `1.`), when it carries
-  only PCM audio. Handoffs that happen at a track boundary are unchanged: nothing
-  was interrupted, so nothing is faded. Use
-  `source.composition.legacy_on_select` to restore the previous behavior.
+- **Switching now fades by default**: a switch cutting into a playing track fades the
+  leaving source out over up to `settings.source.composition.max_fade` seconds (default
+  `1.`) when it carries only PCM audio, handoffs happening at a track boundary being
+  unchanged since nothing was interrupted. Use `source.composition.legacy_on_select` to
+  restore the previous behavior.
 - Deprecated `fallback.skip`. A source with `track_sensitive` set to `false` can be cut
   into mid-track and the `file` composition profile skips a source it was left in the
   middle of, so `fallback([main, fallback_source.{track_sensitive = getter(false)}])`
   now does natively what the operator polled for on every frame.
-- Simplified `cross`/`crossfade` implementation: replaced `start_duration` and `end_duration`
-  with a single unified `duration` parameter. Removed autocue-specific code and
-  `assume_autocue` setting. Metadata overrides `liq_cross_start_duration` and
-  `liq_cross_end_duration` replaced by `liq_cross_duration`. Methods `start_duration()`
-  and `end_duration()` replaced by `cross_duration()` (#4893).
+- Simplified the `cross`/`crossfade` implementation: `start_duration` and `end_duration` are
+  replaced by a single `duration` parameter, the metadata overrides `liq_cross_start_duration`
+  and `liq_cross_end_duration` by `liq_cross_duration`, and the `start_duration()` and
+  `end_duration()` methods by `cross_duration()`. Autocue-specific code and the
+  `assume_autocue` setting are removed (#4893).
 - Add metadata from all sources/tracks in `add` operators (#4892).
 - Make sure script fails on `on_close` errors in `output.file` to prevent
   fatal errors from being ignored. Use `reopen_on_error` to ignore errors
@@ -95,17 +94,11 @@
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
   `on_leave` and transition functions are now released when the selection or the crossing
   ends, instead of accumulating on those sources for as long as they live.
-- An FFmpeg filter graph is no longer finished off by an input that runs dry.
-  A source is unavailable for all sorts of passing reasons, a `buffer` filling
-  up or a queue waiting on a request, and liquidsoap has no way to tell those
-  from a stream that is over, so the graph treats every one of them as the end:
-  it flushes the filters, hands over the tail they were holding and tears the
-  graph down. What is new is that this is no longer final. avfilter cannot
-  reopen a graph that has seen end of file, so when the input comes back the
-  graph is built again from what the script described, and each generation is
-  announced as a new stream so its timestamps line up with the last. Graphs
-  holding a lookahead, `loudnorm` in particular, went silent within a second of
-  starting behind a `buffer` (#3944).
+- An FFmpeg filter graph is no longer finished off by an input that runs dry. A source
+  going unavailable for a passing reason, a `buffer` filling up or a queue waiting on a
+  request, still tears the graph down, since avfilter cannot reopen a graph that has seen
+  end of file, but the graph is now rebuilt when the input comes back, each generation
+  announced as a new stream so its timestamps line up with the last (#3944).
 - An FFmpeg filter graph dropped the tail its filters were holding at end of
   stream: the sink never asked its duration converter for what it had left. A
   5.00s source through `loudnorm` produced 2.08s, and now produces 4.98s.
@@ -122,7 +115,7 @@
   cgroup v2, which made the check fire on plain `docker run` (#3406).
 - Fixed `output.file` and the other piped outputs ignoring the delay returned by
   `reopen_on_error` when the failure happened while opening the file: the output
-  stays `Idle` in that case and retried on every streaming cycle (#2437).
+  stays `Idle` in that case and was retried on every streaming cycle (#2437).
 - `output.file` reports `Unix` errors, e.g. `Permission denied` when creating the
   destination directory, as `system` errors, like it already did for `Sys_error`
   (#2437).
@@ -134,13 +127,12 @@
 - Fixed `clock.create` documenting and reporting sync modes, `"CPU"` and
   `"unsynced"`, that it does not accept. The accepted values are `"auto"`,
   `"cpu"`, `"none"` and `"passive"`.
-- Fixed `file.watch` losing track of a file that gets replaced rather than
-  written in place: an inotify watch follows the inode, so a writer doing the
-  usual write-to-temporary-then-rename silenced the watcher for good. The
-  containing directory is watched instead. `playlist` with `reload_mode="watch"`
-  also waits for a burst of events to settle before reloading, so a writer that
-  truncates before writing no longer triggers two racing reloads and plays
-  tracks out of order (#3343).
+- Fixed `file.watch` losing track of a file that gets replaced rather than written in
+  place: an inotify watch follows the inode, so a writer doing the usual
+  write-to-temporary-then-rename silenced the watcher for good, and the containing
+  directory is watched instead. `playlist` with `reload_mode="watch"` also waits for a
+  burst of events to settle before reloading, so a writer that truncates before writing
+  no longer triggers two racing reloads and plays tracks out of order (#3343).
 - Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
   closing on a stale split position re-anchored the next boundary on it instead
   of the segment grid. The drift rate depends on the encoder's frame size, so
@@ -170,7 +162,7 @@
   metadata, when the source it follows leaves no room in the current frame.
   This showed up as the track after a `cross`/`crossfade` transition built with
   `sequence` keeping the previous track's metadata until the next track
-  boundary (#TODO).
+  boundary (#5296).
 - Fixed `output.file.hls` terminating the process on transient filesystem
   errors. The output now supports a `reopen_on_error` callback (#5259).
 - Fixed `output.file.hls` accepting unwritable output, temporary and
@@ -188,10 +180,9 @@
 - Make sure `output.file` does not create files without data (#4899)
 - Fixed deadlock when a GC finalizer logged from inside another log call: the log
   queue no longer allocates while holding its mutex.
-- Added an `override` parameter to `insert_metadata`. When `false`, metadata the
-  source provides itself takes precedence over the inserted one. Used by the
-  composition profiles so that replaying metadata on selection never overwrites a
-  fresh track's own metadata.
+- Added an `override` parameter to `insert_metadata`: when `false`, metadata the source
+  provides itself takes precedence over the inserted one. The composition profiles use it
+  so that replaying metadata on selection never overwrites a fresh track's own metadata.
 
 ---
 
