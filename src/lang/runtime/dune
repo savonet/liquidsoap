@@ -37,4 +37,6 @@
   re
   sedlex
   str
-  unix))
+  unix
+  xml-light
+  yamlx))

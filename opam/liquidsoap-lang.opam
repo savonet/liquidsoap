@@ -17,6 +17,8 @@ depends: [
   "sedlex" {>= "3.2"}
   "menhir" {>= "20240715"}
   "fileutils"
+  "xml-light"
+  "yamlx"
   "odoc" {with-doc}
 ]
 build: [

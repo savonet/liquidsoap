@@ -77,9 +77,7 @@
     tls-liquidsoap
     theora
     sdl-liquidsoap
-    vorbis
-    xml-light
-    yamlx)
+    vorbis)
  (conflicts
     (alsa (< 0.3.0))
     (ao (< 0.2.0))
@@ -135,7 +133,9 @@
     (ppx_hash :build)
     (sedlex (>= 3.2))
     (menhir (>= 20240715))
-    fileutils)
+    fileutils
+    xml-light
+    yamlx)
   (sites (share libs) (share bin) (share cache) (lib_root lib_root))
   (synopsis "Liquidsoap language library"))
 

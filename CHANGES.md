@@ -87,6 +87,8 @@
   buffer and one set of track marks, so a track boundary cuts all of them, `id`
   on any output names the graph, and outputs consumed at diverging rates raise
   past `settings.ffmpeg.filter_max_buffer`.
+- `xml-light` and `yamlx` are now required dependencies of `liquidsoap-lang`, making XML and
+  YAML support always available. YAML integers parse as `int` instead of `float` (#5233).
 
 ## Fixed:
 

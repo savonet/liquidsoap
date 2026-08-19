@@ -1,27 +1,10 @@
-(* The XML tree, mirroring xml-light's, redeclared here so that the language
-   library does not depend on an XML parser. The actual parsing and printing is
-   injected by the optional `xml` module in src/core/optionals/xml. *)
-type xml =
-  [ `Text of string | `Element of string * (string * string) list * xml list ]
-
-let unavailable name _ =
-  Runtime_error.raise
-    ~message:
-      (Printf.sprintf
-         "XML support not enabled! Please re-compile liquidsoap with the `xml` \
-          module to enable XML %s."
-         name)
-    ~pos:[] "not_found"
-
-let xml_parser : (string -> xml) Atomic.t = Atomic.make (unavailable "parsing")
-
-let xml_printer : (compact:bool -> xml -> string) Atomic.t =
-  Atomic.make (fun ~compact:_ -> unavailable "rendering")
+let xml_printer ~compact xml =
+  if compact then Xml.to_string xml else Xml.to_string_fmt xml
 
 let xml_text_content = function
-  | `Text s -> Some s
-  | `Element (_, _, [`Text s]) -> Some s
-  | `Element (_, _, []) -> None
+  | Xml.PCData s -> Some s
+  | Xml.Element (_, _, [Xml.PCData s]) -> Some s
+  | Xml.Element (_, _, []) -> None
   | _ -> None
 
 let is_nullable ty =
@@ -33,14 +16,16 @@ let unwrap_nullable ty =
     | _ -> (false, ty)
 
 let xml_element_name = function
-  | `Text _ -> "xml_text"
-  | `Element (name, _, _) -> name
+  | Xml.PCData _ -> "xml_text"
+  | Xml.Element (name, _, _) -> name
 
-let xml_params = function `Text _ -> [] | `Element (_, params, _) -> params
+let xml_params = function
+  | Xml.PCData _ -> []
+  | Xml.Element (_, params, _) -> params
 
 let xml_children = function
-  | `Text _ -> []
-  | `Element (_, _, children) -> children
+  | Xml.PCData _ -> []
+  | Xml.Element (_, _, children) -> children
 
 let rec parse_ground_meths ~typ_meths xml =
   List.filter_map
@@ -272,8 +257,8 @@ and parse_xml_props ~typ_meths xml =
 
 and parse_untyped_xml xml =
   match xml with
-    | `Text s -> Lang.string s
-    | `Element (name, params, children) ->
+    | Xml.PCData s -> Lang.string s
+    | Xml.Element (name, params, children) ->
         let params_value =
           Lang.list
             (List.map
@@ -282,7 +267,7 @@ and parse_untyped_xml xml =
         in
         let children_value = Lang.list (List.map parse_untyped_xml children) in
         let text =
-          match children with [`Text s] -> Lang.string s | _ -> Lang.null
+          match children with [Xml.PCData s] -> Lang.string s | _ -> Lang.null
         in
         let props =
           Lang.record
@@ -307,7 +292,7 @@ let _ =
       let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
       let ty = Type.fresh ty in
       try
-        let xml = Atomic.get xml_parser s in
+        let xml = Xml.parse_string s in
         value_of_typed_xml ~ty xml
       with exn -> (
         let bt = Printexc.get_raw_backtrace () in
@@ -384,16 +369,16 @@ and xml_of_node ?xml_text ~name meths =
       meths
   in
   match (name, xml_params, xml_children, xml_text, meths) with
-    | "xml_text", None, None, Some s, [] -> `Text s
+    | "xml_text", None, None, Some s, [] -> Xml.PCData s
     | name, xml_params, None, Some s, [] ->
-        `Element (name, params_of_optional_params xml_params, [`Text s])
+        Xml.Element (name, params_of_optional_params xml_params, [Xml.PCData s])
     | name, xml_params, Some nodes, None, [] ->
-        `Element
+        Xml.Element
           ( name,
             params_of_optional_params xml_params,
             List.map xml_of_value nodes )
     | name, xml_params, None, None, nodes ->
-        `Element
+        Xml.Element
           ( name,
             params_of_optional_params xml_params,
             List.map
@@ -419,7 +404,7 @@ let _ =
       let compact = Lang.to_bool (List.assoc "compact" p) in
       try
         let xml = xml_of_value v in
-        Lang.string (Atomic.get xml_printer ~compact xml)
+        Lang.string (xml_printer ~compact xml)
       with _ ->
         let bt = Printexc.get_raw_backtrace () in
         Runtime_error.raise ~bt ~pos:(Lang.pos p)

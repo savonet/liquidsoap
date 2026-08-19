@@ -70,8 +70,6 @@ let deps =
     dep "tls" "liquidsoap_tls" ~requires:"tls-liquidsoap" ~build_config:"tls";
     dep "vorbis" "liquidsoap_vorbis" ~build_config:"vorbis";
     dep "winsvc" "winsvc" ~build_config:"winsvc";
-    dep "xml" "liquidsoap_xml";
-    dep "yaml" "liquidsoap_yaml";
     dep "xmlplaylist" "liquidsoap_xmlplaylist" ~requires:"xmlm"
       ~build_config:"xmlplaylist";
   ]
