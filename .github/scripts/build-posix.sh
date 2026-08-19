@@ -42,6 +42,9 @@ opam upgrade -y posix-socket
 # camomile-embedded.
 opam install -y camomile-embedded
 opam install -y domain_shims syslog dune.3.23.1
+# xml-light and yamlx are required dependencies of liquidsoap-lang. Delete once
+# the CI image is rebuilt with them.
+opam install -y xml-light yamlx
 
 echo "::endgroup::"
 
