@@ -10,8 +10,6 @@ let liq_libs_dir () = path "libs"
 let liq_libs_dir_descr = "./libs"
 let bin_dir () = path "bin"
 let bin_dir_descr = "./bin"
-let camomile_dir () = path "camomile"
-let camomile_dir_descr = "./camomile"
 
 let user_cache_override () =
   let dir = Filename.dirname Sys.executable_name in

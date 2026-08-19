@@ -22,8 +22,6 @@ override_dh_auto_install:
 	rm -rf _build/install
 	LIQUIDSOAP_BUILD_TARGET=posix LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true dune build @install --release
 	dune install --relocatable --prefix $(DESTDIR)
-	mkdir -p $(DESTDIR)/share/liquidsoap
-	cp -rf `opam var share`/camomile $(DESTDIR)/share/liquidsoap
 	dh_install
 
 override_dh_auto_clean:

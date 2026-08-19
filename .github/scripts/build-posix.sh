@@ -38,6 +38,9 @@ if [ -z "${SKIP_SDL}" ]; then
   opam pin -y add tsdl-ttf 0.6
 fi
 opam upgrade -y posix-socket
+# The CI image still ships camomile 2.0. Delete once it is rebuilt with
+# camomile-embedded.
+opam install -y camomile-embedded
 opam install -y domain_shims syslog dune.3.23.1
 
 echo "::endgroup::"

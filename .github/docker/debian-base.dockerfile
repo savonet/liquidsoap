@@ -90,7 +90,7 @@ USER root
 # Stage 4: Install remaining external and opam dependencies
 FROM static-packages AS build
 
-ENV EXT_PACKAGES="camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 odoc"
+ENV EXT_PACKAGES="camomile-embedded ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 odoc"
 
 USER opam
 

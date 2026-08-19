@@ -43,15 +43,17 @@ RUN printf "\ny\n" | bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/
 
 USER opam
 
-COPY .github/opam/liquidsoap-windows.opam /tmp/liquidsoap-windows.opam
+# Local opam overlay: camomile-embedded is not in opam-cross-windows.
+COPY .github/opam /tmp/opam-overlay
 
 RUN xvfb-run -a wineboot --init
 
 RUN eval $(opam env) && \
     opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git && \
     opam repo add archive git+https://github.com/ocaml/opam-repository-archive && \
+    opam repo add liquidsoap-devel /tmp/opam-overlay && \
     opam update && \
-    opam install --deps-only -y /tmp/liquidsoap-windows.opam && \
+    opam install --deps-only -y /tmp/opam-overlay/liquidsoap-windows.opam && \
     opam clean
 
 FROM scratch

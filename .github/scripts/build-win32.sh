@@ -20,6 +20,17 @@ echo "::group::Build liquidsoap-windows"
 
 eval "$(opam env)"
 
+# The CI image lacks the local opam overlay and predates crunch 4.1.0, which
+# camomile-embedded needs to build. Refreshing the windows repo there forces a
+# cross recompile that fails, hence default only; delete both lines once the
+# image is rebuilt.
+opam repo add liquidsoap-devel "${BASE_DIR}/.github/opam"
+opam update --repositories default
+
+# Diagnostic: surface the full dune error, which opam elides from the
+# combined install output.
+opam install -y -v camomile-embedded-windows
+
 opam install -y --deps-only .github/opam/liquidsoap-windows.opam
 
 export LIQUIDSOAP_BUILD_VERSION="${TAG}${VERSION}"
@@ -50,7 +61,6 @@ cp -R "${BASE_DIR}/.github/win32" "liquidsoap-$BUILD"
 cp -R "${BASE_DIR}/src/libs" "liquidsoap-$BUILD"
 cd "liquidsoap-$BUILD"
 cp "${BASE_DIR}/_build/default.windows/src/bin/liquidsoap.exe" ./liquidsoap.exe
-cp -R "$(ocamlfind -toolchain windows ocamlc -where)/../../share/camomile" .
 cd ..
 zip -r "liquidsoap-$BUILD.zip" "liquidsoap-$BUILD"
 
