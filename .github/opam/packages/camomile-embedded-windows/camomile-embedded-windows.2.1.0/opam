@@ -12,6 +12,7 @@ bug-reports: "https://github.com/ocaml-community/Camomile/issues"
 depends: [
   "ocaml-windows" {>= "4.13"}
   "dune" {>= "3.23"}
+  "camomile" {= version}
   "camomile-windows" {= version}
   "crunch" {build & >= "4.1.0"}
 ]
@@ -27,6 +28,10 @@ build: [
     jobs
     "@install"
   ]
+  ["rm" "%{name}%.install"]
+]
+install: [
+  ["dune" "install" "-x" "windows" "-p" "camomile-embedded"]
 ]
 dev-repo: "git+https://github.com/ocaml-community/Camomile.git"
 url {

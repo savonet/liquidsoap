@@ -33,6 +33,20 @@ build: [
     jobs
     "@install"
   ]
+  ["rm" "%{name}%.install"]
+]
+install: [
+  [
+    "env"
+    "CAMOMILE_CONFIG=env"
+    "CAMOMILE_PREFIX=%{prefix}%/windows-sysroot"
+    "dune"
+    "install"
+    "-x"
+    "windows"
+    "-p"
+    "camomile"
+  ]
 ]
 dev-repo: "git+https://github.com/ocaml-community/Camomile.git"
 url {
