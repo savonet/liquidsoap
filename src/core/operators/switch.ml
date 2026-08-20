@@ -171,17 +171,20 @@ class switch ~all_predicates children =
     (* We cannot reselect the same source twice during a streaming cycle. *)
     val mutable excluded_sources = []
 
-    (* A selection only holds while we are being streamed: when we resume after
+    (* A selection only holds while we are being animated: when we resume after
        going quiet it has to be re-evaluated, and nothing is playing for a new
-       one to interrupt. *)
-    val mutable last_streamed_tick = -1
+       one to interrupt. A parent that is not playing us does not animate us at
+       all, which is what we detect here. Being animated without being pulled is
+       not quiet: a passive clock is ticked by its parent on cycles where its
+       consumer asks for no data. *)
+    val mutable last_animated_tick = -1
     val mutable resuming = false
 
     initializer
-      self#on_frame
-        (`After_frame (fun _ -> last_streamed_tick <- Clock.ticks self#clock));
       self#on_before_streaming_cycle (fun () ->
-          resuming <- 1 < Clock.ticks self#clock - last_streamed_tick;
+          let tick = Clock.ticks self#clock in
+          resuming <- 1 < tick - last_animated_tick;
+          last_animated_tick <- tick;
           excluded_sources <- [];
           Atomic.set track_sensitive (List.for_all is_track_sensitive children));
       self#on_after_streaming_cycle (fun () ->
