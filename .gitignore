@@ -25,3 +25,5 @@ tests/liquidsoap-test-assets
 # Local documentation website preview (dune build @doc/serve-website)
 /doc/.website/
 /doc/.website-bundle/
+
+_opam/
