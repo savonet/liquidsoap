@@ -577,7 +577,8 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
     out_ticks := !out_ticks + stop - start
   in
 
-  let decoder = { decoder with decode; close = (fun () -> Unix.close fd) } in
+  let close () = Fun.protect ~finally:(fun () -> Unix.close fd) decoder.close in
+  let decoder = { decoder with decode; close } in
 
   let remaining () =
     let in_bytes = tell () in
