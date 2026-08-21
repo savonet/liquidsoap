@@ -32,7 +32,6 @@ type streaming_state =
 
 type active = < id : string ; reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
-type sync = [ `Auto | `CPU | `None ]
 
 module SourceSync = Clock.MkSyncSource (struct
   type t = < id : string >

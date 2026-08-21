@@ -22,19 +22,6 @@
 
 open Mm
 
-(** In [`CPU] mode, synchronization is governed by the CPU clock.
-
-    In [`None] mode, there is no synchronization control. Latency in is governed
-    by the time it takes for the sources to produce and output data.
-
-    In [`Auto] mode, synchronization is governed by the CPU unless at least one
-    active source is declared [self_sync] in which case latency is delegated to
-    this source. A typical example being a source linked to a sound card, in
-    which case the source latency is governed by the sound card's clock.
-
-    Another case is synchronous network protocol such as [input.srt]. *)
-type sync = [ `Auto | `CPU | `None ]
-
 (** A source can be: passive, active or output. Active sources and outputs are
     animated on each clock cycle. Output are kept around until they are manually
     shutdown. Active and passive sources can be garbage collected if they are
