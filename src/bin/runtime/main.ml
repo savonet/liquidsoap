@@ -71,12 +71,14 @@ let start_log () =
     log_started := true;
     Dtools.Init.exec Dtools.Log.start)
 
+let stop_log () = if !log_started then Dtools.Init.exec Dtools.Log.stop
+
 (* Tooling modes (--check, -h, --list-settings, ...) set [run_streams] to
    [false] and are expected to stay quiet, so we only flush pending logs when
    the script was meant to run. *)
-let stop_log () =
+let flush_log () =
   if !run_streams then start_log ();
-  if !log_started then Dtools.Init.exec Dtools.Log.stop
+  stop_log ()
 
 let eval_mode : [ `Parse_only | `Parse_and_type | `Eval | `Eval_toplevel ] ref =
   ref `Eval
@@ -151,6 +153,7 @@ let eval () =
     eval_script script;
     log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
   with Liquidsoap_lang.Runtime.Error ->
+    (* The error is reported on its own; pending logs would only bury it. *)
     stop_log ();
     flush_all ();
     exit 1
@@ -607,7 +610,7 @@ let final_cleanup () =
   log#important "Cleaning downloaded files...";
   Request.cleanup ();
   log#important "Freeing memory...";
-  stop_log ();
+  flush_log ();
   flush_all ();
   Gc.full_major ();
   Gc.full_major ()
