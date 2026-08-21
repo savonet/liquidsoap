@@ -659,6 +659,7 @@ let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "external"
     (pipe_proto return_t "Process to pipe data to.")
-    ~return_t ~category:`Output ~meth:pipe_meth ~callbacks:pipe_callbacks
-    ~descr:"Send the stream to a process' standard input." (fun p ->
-      (new external_output p :> piped_output))
+    ~return_t ~category:`Output ~meth:pipe_meth
+    ~callbacks:(pipe_callbacks @ Start_stop.callbacks ~label:"output")
+    ~descr:"Send the stream to a process' standard input."
+    (fun p -> (new external_output p :> piped_output))
