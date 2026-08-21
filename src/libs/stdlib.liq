@@ -42,7 +42,6 @@
 %include "medialib.liq"
 %include "runtime.liq"
 %include "server.liq"
-%include "sqlite.liq"
 %include "testing.liq"
 %include "liquidsoap.liq"
 
