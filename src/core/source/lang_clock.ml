@@ -92,7 +92,7 @@ module ClockValue = struct
       ( "sync",
         Lang.fun_t [] Lang.string_t,
         "The clock's current sync mode. One of: `\"stopped\"`, `\"stopping\"`, \
-         `\"auto\"`, `\"CPU\"`, `\"unsynced\"` or `\"passive\"`.",
+         `\"auto\"`, `\"cpu\"`, `\"none\"` or `\"passive\"`.",
         fun c ->
           Lang.val_fun [] (fun _ ->
               Lang.string Clock.(string_of_sync_mode (sync c))) );
