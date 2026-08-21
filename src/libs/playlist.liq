@@ -710,10 +710,6 @@ def playlist.files(~id=null, ~mime_type=null, ~timeout=null, uri) =
   end
 end
 
-%ifdef native
-let stdlib_native = native
-%endif
-
 # Play a list of files.
 # @category Source / Input / Passive
 # @param ~id Force the value of the source ID.
@@ -756,7 +752,6 @@ def playlist.list(
   ~cue_out_metadata=null("liq_cue_out"),
   playlist
 ) =
-  ignore(native)
   id = string.id.default(default="playlist.list", id)
   mode =
     if
@@ -804,23 +799,16 @@ def playlist.list(
   end
 
   # Instantiate the source
-  default =
-    fun () ->
-      request.dynamic(
-        id=id,
-        prefetch=prefetch,
-        timeout=timeout,
-        retry_delay=1.,
-        available={not has_stopped()},
-        next
-      )
-
   s =
-%ifdef native
-    if native then stdlib_native.request.dynamic(id=id, next) else default() end
-%else
-    default()
-%endif
+    request.dynamic(
+      id=id,
+      native=native,
+      prefetch=prefetch,
+      timeout=timeout,
+      retry_delay=1.,
+      available={not has_stopped()},
+      next
+    )
 
   # Prevent concurrent reload and next()
   is_reloading = ref(false)
