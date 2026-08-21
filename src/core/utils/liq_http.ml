@@ -1,10 +1,3 @@
-type uri = {
-  protocol : string;
-  host : string;
-  port : int option;
-  path : string;
-}
-
 type event = Cry.event
 
 type socket =
@@ -134,36 +127,8 @@ let args_split s =
   List.iter fill_arg (String.split_on_char '&' s);
   args
 
-let parse_url url =
-  let basic_rex =
-    Re.Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?)://([^/:]+)(:[0-9]+)?(/.*)?$"
-  in
-  let sub =
-    try Re.Pcre.exec ~rex:basic_rex url
-    with Not_found ->
-      (* raise Invalid_url *)
-      failwith "Invalid URL."
-  in
-  let protocol = Re.Pcre.get_substring sub 1 in
-  let host = Re.Pcre.get_substring sub 2 in
-  let port =
-    try
-      let port = Re.Pcre.get_substring sub 3 in
-      let port = String.sub port 1 (String.length port - 1) in
-      let port = int_of_string port in
-      Some port
-    with Not_found -> None
-  in
-  let path = try Re.Pcre.get_substring sub 4 with Not_found -> "/" in
-  { protocol; host; port; path }
-
 let is_url path =
   Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "^[Hh][Tt][Tt][Pp][sS]?://.+") path
-
-let dirname url =
-  let rex = Re.Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?://.+/)[^/]*$" in
-  let s = Re.Pcre.exec ~rex url in
-  Re.Pcre.get_substring s 1
 
 (* An ugly code to read until we see [\r]?\n n times. *)
 let read_crlf ?(log = fun _ -> ()) ?(max = 4096) ?(count = 2) ~timeout
