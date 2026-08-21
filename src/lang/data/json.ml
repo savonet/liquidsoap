@@ -107,7 +107,7 @@ let rec to_string_compact ~json5 = function
       let l =
         List.map
           (fun (l, v) ->
-            Printf.sprintf "\"%s\":%s" l (to_string_compact ~json5 v))
+            Printf.sprintf "%s:%s" (quote_string l) (to_string_compact ~json5 v))
           l
       in
       Printf.sprintf "{%s}" (String.concat "," l)
@@ -126,8 +126,7 @@ let rec to_string_pp ~json5 f v =
     | `Assoc [] -> Format.fprintf f "{}"
     | `Assoc l ->
         let format_field f (k, v) =
-          Format.fprintf f "@[<hv2>%s: %a@]"
-            (Lang_string.quote_string k)
+          Format.fprintf f "@[<hv2>%s: %a@]" (quote_string k)
             (to_string_pp ~json5) v
         in
         Format.fprintf f "{@;<1 0>%a@;<1 -2>}" (pp_list "," format_field) l

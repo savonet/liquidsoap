@@ -309,6 +309,24 @@ def f() =
   test.equal(json.stringify(json.value(123)), "123")
   test.equal(json.stringify(json.value(true)), "true")
 
+  # Object keys are escaped with the same rules as string values, in both the
+  # compact and pretty representations.
+  keys = json.object()
+  keys.add("a\"b", 1)
+  test.equal(json.stringify(compact=true, keys), "{\"a\\\"b\":1}")
+  test.equal(
+    json.stringify(compact=false, keys),
+    "{ \"a\\\"b\": 1 }"
+  )
+
+  backslash = json.object()
+  backslash.add("back\\slash", 1)
+  test.equal(json.stringify(compact=true, backslash), "{\"back\\\\slash\":1}")
+
+  control = json.object()
+  control.add("ctrl\x01x", 1)
+  test.equal(json.stringify(compact=true, control), "{\"ctrl\\u0001x\":1}")
+
   test.pass()
 end
 
