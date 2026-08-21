@@ -45,7 +45,12 @@ val mkdir : perm:Unix.file_perm -> string -> unit
 (** Create the directory and every missing parent. *)
 val ensure_dir : perm:Unix.file_perm -> string -> unit
 
-(** File extension. [get_ext] raises [Not_found] when there is none. *)
+(** A name's extension. [leading_dot] keeps the [.], [dir_sep] overrides the
+    platform separator -- both are exposed to scripts by [file.extension]. *)
+val file_extension : ?leading_dot:bool -> ?dir_sep:string -> string -> string
+
+(** [file_extension] lowercased, without the leading dot. Raises [Not_found]
+    when there is no extension. *)
 val get_ext : string -> string
 
 val get_ext_opt : string -> string option

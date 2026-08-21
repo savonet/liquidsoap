@@ -380,13 +380,35 @@ let get_tempdir () =
    be ok on reasonable cases. A problematic cases
    is for instance: http://bla.com/foo.mp3?gni=bla.truc *)
 
+(* From OCaml's Filename, which hardcodes [Filename.dir_sep]. *)
+let file_extension_len ~dir_sep name =
+  let rec check i0 i =
+    if i < 0 || name.[i] = dir_sep then 0
+    else if name.[i] = '.' then check i0 (i - 1)
+    else String.length name - i0
+  in
+  let rec search_dot i =
+    if i < 0 || name.[i] = dir_sep then 0
+    else if name.[i] = '.' then check i (i - 1)
+    else search_dot (i - 1)
+  in
+  search_dot (String.length name - 1)
+
+let file_extension ?(leading_dot = true) ?(dir_sep = Filename.dir_sep) name =
+  let dir_sep = dir_sep.[0] in
+  let l = file_extension_len ~dir_sep name in
+  let s = if l = 0 then "" else String.sub name (String.length name - l) l in
+  try
+    match (leading_dot, s.[0]) with
+      | false, '.' -> String.sub s 1 (String.length s - 1)
+      | _ -> s
+  with Invalid_argument _ -> s
+
 (** Get a file/uri extension. *)
 let get_ext s =
-  try
-    let rex = Re.Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
-    let ret = Re.Pcre.exec ~rex s in
-    String.lowercase_ascii (Re.Pcre.get_substring ret 1)
-  with _ -> raise Not_found
+  match file_extension ~leading_dot:false s with
+    | "" -> raise Not_found
+    | ext -> String.lowercase_ascii ext
 
 let get_ext_opt s = try Some (get_ext s) with Not_found -> None
 
