@@ -30,7 +30,6 @@
   liquidsoap-lang.parser
   liquidsoap-lang.prelude
   liquidsoap-lang.reducer
-  liquidsoap-lang.stdlib
   liquidsoap-lang.types
   liquidsoap-lang.values
   menhirLib
