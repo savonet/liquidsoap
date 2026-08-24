@@ -78,12 +78,13 @@ let start_server () =
     (Thread.create
        (fun () ->
          try
-           while !server <> None do
-             match Osc_unix.Udp.Server.recv s with
-               | Ok (Osc.Types.Message m, _) ->
-                   handler m.address (Array.of_list m.arguments)
-               | _ -> ()
-           done
+           Script_callback.uncollected (fun () ->
+               while !server <> None do
+                 match Osc_unix.Udp.Server.recv s with
+                   | Ok (Osc.Types.Message m, _) ->
+                       handler m.address (Array.of_list m.arguments)
+                   | _ -> ()
+               done)
          with exn ->
            let backtrace = Printexc.get_backtrace () in
            log#important "OSC server thread exited with exception: %s\n%s"

@@ -168,7 +168,7 @@ let create ~queue f x s =
         let process x =
           Utils.Thread.set_current_thread_name s;
           try
-            f x;
+            Script_callback.uncollected (fun () -> f x);
             Mutex_utils.mutexify lock
               (fun () ->
                 set := Set.remove (s, c) !set;
