@@ -195,8 +195,12 @@ def enable_lufs_track_gain_metadata(
   ~ratio=null
 ) =
   ratio = ratio ?? settings.lufs.decoding_ratio()
-  def lufs_metadata(~metadata:_, file_name) =
+  def lufs_metadata(~metadata, file_name) =
     if
+      list.assoc.mem(settings.normalize_track_gain_metadata(), metadata)
+    then
+      []
+    elsif
       compute and true_peak
     then
       # Single-pass scan: measure both LUFS and true peak, apply TP correction.
