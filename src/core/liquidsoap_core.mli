@@ -166,6 +166,7 @@ module Log = Log
 module Tutils = Tutils
 module Process_handler = Process_handler
 module Sandbox = Sandbox
+module Script_callback = Script_callback
 module Liq_time = Liq_time
 module Charset = Charset
 module Utils = Utils

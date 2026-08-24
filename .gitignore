@@ -26,4 +26,4 @@ tests/liquidsoap-test-assets
 /doc/.website/
 /doc/.website-bundle/
 
-_opam/
+_opam

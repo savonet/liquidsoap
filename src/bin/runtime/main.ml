@@ -783,10 +783,12 @@ let () =
         ignore
           (Thread.create
              (fun () ->
-               Runtime.interactive ();
+               Script_callback.uncollected Runtime.interactive;
                Tutils.shutdown 0)
              ()));
   Lifecycle.on_main_loop ~name:"main application main loop" Tutils.main
 
-(* Here we go! *)
-let start = Lifecycle.init
+(* Here we go! The main thread runs the script that builds the streaming graph,
+   so it needs the same outermost callback handler [Tutils] installs on the
+   threads it creates. *)
+let start () = Script_callback.uncollected Lifecycle.init

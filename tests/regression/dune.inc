@@ -1522,6 +1522,29 @@
   (run %{run_test} append liquidsoap %{test_liq} append.liq)))
 
 (rule
+ (alias test_callback_counts)
+ (package liquidsoap)
+ (deps
+  callback_counts.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   callback_counts
+   liquidsoap
+   %{test_liq}
+   callback_counts.liq)))
+
+(rule
  (alias test_callback_release)
  (package liquidsoap)
  (deps
@@ -2582,6 +2605,7 @@
   (alias test_append)
   (alias test_append-merge)
   (alias test_append-merge2)
+  (alias test_callback_counts)
   (alias test_callback_release)
   (alias test_callback_release_mixed_content)
   (alias test_cleanup)

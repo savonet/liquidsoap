@@ -126,94 +126,15 @@ type 'a callback = {
   register : params:(string * value) list -> 'a -> (env -> unit) -> unit -> unit;
 }
 
-(* Performed for every callback a script registers, carrying what releases it.
-   Registering is the only way a script can add a callback to a source, so an
-   operator handing sources to a script function can take back everything that
-   function registered on them, and nothing else: the engine's own wiring does
-   not go through here. *)
-type _ Effect.t +=
-  | Callback_registered : {
-      owner : int;
-      release : unit -> unit;
-    }
-      -> unit Effect.t
-
-type 'a collected = { release : unit -> unit; result : 'a }
+type 'a collected = 'a Script_callback.collected = {
+  release : unit -> unit;
+  result : 'a;
+}
 
 (* Sources are identified by [Oo.id]: callbacks are registered on outputs and
    other objects too, and this is the one identity they all share. *)
 let collect_callback_releases sources fn =
-  let owners = List.map Oo.id sources in
-  let releases = ref [] in
-  let result =
-    Effect.Deep.try_with fn ()
-      {
-        Effect.Deep.effc =
-          (fun (type a) (eff : a Effect.t) ->
-            match eff with
-              | Callback_registered { owner; release }
-                when List.mem owner owners ->
-                  Some
-                    (fun (k : (a, _) Effect.Deep.continuation) ->
-                      releases := release :: !releases;
-                      Effect.Deep.continue k ())
-              | _ -> None);
-      }
-  in
-  let release () =
-    List.iter (fun release -> release ()) !releases;
-    releases := []
-  in
-  { release; result }
-
-(* Callbacks are registered from every thread that runs script code, and effects
-   do not cross thread boundaries. Rather than install a default handler at each
-   thread entry, where a missed one would raise at runtime, registration outside
-   any collector is simply not observed. *)
-let notify_callback_registered ~owner release =
-  try Effect.perform (Callback_registered { owner; release })
-  with Effect.Unhandled _ -> ()
-
-let max_script_callbacks = 5
-
-(* Script callbacks currently registered, per source and callback: naming the
-   callback that is piling up is what makes it findable. Counting the callback
-   lists themselves would not do: they also hold the engine's own wiring, of
-   which a handful is normal. What is not normal is a script piling them up,
-   which is what a function registering on a source it is given does every time
-   it runs. *)
-let script_callbacks : (int * string, int) Hashtbl.t = Hashtbl.create 10
-let script_callbacks_m = Mutex.create ()
-
-let count_script_callback ~log ~id ~name ~owner release =
-  let key = (owner, name) in
-  let count =
-    Mutex_utils.mutexify script_callbacks_m
-      (fun () ->
-        let count =
-          1 + Option.value ~default:0 (Hashtbl.find_opt script_callbacks key)
-        in
-        Hashtbl.replace script_callbacks key count;
-        count)
-      ()
-  in
-  if count = max_script_callbacks + 1 then
-    (log : Log.t)#important
-      "%d %s callbacks registered on %s. If you are registering from a \
-       function that runs more than once, keep the value it returns and call \
-       its release() method."
-      count name id;
-  let released = Atomic.make false in
-  fun () ->
-    if Atomic.compare_and_set released false true then (
-      Mutex_utils.mutexify script_callbacks_m
-        (fun () ->
-          match Hashtbl.find_opt script_callbacks key with
-            | Some count when count <= 1 -> Hashtbl.remove script_callbacks key
-            | Some count -> Hashtbl.replace script_callbacks key (count - 1)
-            | None -> ())
-        ();
-      release ())
+  Script_callback.collect (List.map Oo.id sources) fn
 
 let callback { name; params; descr; arg_t; register } : _ Lang.meth =
   {
@@ -264,10 +185,9 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
               (if synchronous then "synchronous" else "asynchronous");
             let owner = Oo.id s in
             let release =
-              count_script_callback ~log:s#log ~id:s#id ~name ~owner
-                (register ~params:p s fn)
+              s#register_script_callback name (register ~params:p s fn)
             in
-            notify_callback_registered ~owner release;
+            Script_callback.notify ~owner release;
             meth unit
               [
                 ( "release",
@@ -453,6 +373,22 @@ let source_methods : source_meth list =
       scheme = (fun _ -> ([], fun_t [] string_t));
       descr = "Identifier of the source.";
       value = (fun s -> val_fun [] (fun _ -> string s#id));
+    };
+    {
+      name = "callbacks_count";
+      scheme = (fun _ -> ([], fun_t [] (list_t (product_t string_t int_t))));
+      descr =
+        "Callbacks a script has registered on this source, as pairs of \
+         callback name and count. A count that keeps growing is a function \
+         registering on a source it is handed without releasing what it \
+         registered.";
+      value =
+        (fun s ->
+          val_fun [] (fun _ ->
+              list
+                (List.map
+                   (fun (name, count) -> product (string name) (int count))
+                   s#script_callback_counts)));
     };
     {
       name = "is_ready";

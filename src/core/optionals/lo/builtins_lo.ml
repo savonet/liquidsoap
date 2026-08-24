@@ -82,9 +82,10 @@ let start_server () =
     (Thread.create
        (fun () ->
          try
-           while true do
-             S.recv s
-           done
+           Script_callback.uncollected (fun () ->
+               while true do
+                 S.recv s
+               done)
          with
            | Lo.Server.Stopped -> ()
            | exn ->

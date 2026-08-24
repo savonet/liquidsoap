@@ -41,6 +41,7 @@ module Pool = Pool
 module Process_handler = Process_handler
 module Queues = Queues
 module Sandbox = Sandbox
+module Script_callback = Script_callback
 module Server = Server
 module Sha1 = Sha1
 module Startup = Startup

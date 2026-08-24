@@ -99,6 +99,8 @@ let check_sleep ~activations ~s =
       src#id s#id;
     s#sleep src)
 
+let max_script_callbacks = 5
+
 let on_finalize ~on_collect id =
  fun () ->
   List.iter (fun fn -> fn ()) (Callbacks.elements on_collect);
@@ -457,6 +459,52 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method register_on_collect fn = Callbacks.register on_collect fn
     method on_collect fn = Callbacks.add on_collect fn
+    val script_callbacks : (string, int) Hashtbl.t = Hashtbl.create 0
+    val script_callbacks_m = Mutex.create ()
+
+    method script_callback_counts =
+      Mutex_utils.mutexify script_callbacks_m
+        (fun () ->
+          Hashtbl.fold
+            (fun name count l -> (name, count) :: l)
+            script_callbacks [])
+        ()
+
+    (* Callbacks a script registers live as long as this source does, so a
+       function registering on a source it is handed piles them up every time it
+       runs. Counting per name is what lets the warning name the one at fault;
+       the engine's own wiring does not come through here, and a handful of it
+       is normal anyway. *)
+    method register_script_callback name release =
+      let count =
+        Mutex_utils.mutexify script_callbacks_m
+          (fun () ->
+            let count =
+              1
+              + Option.value ~default:0 (Hashtbl.find_opt script_callbacks name)
+            in
+            Hashtbl.replace script_callbacks name count;
+            count)
+          ()
+      in
+      if count = max_script_callbacks + 1 then
+        self#log#important
+          "%d %s callbacks registered on %s. If you are registering from a \
+           function that runs more than once, keep the value it returns and \
+           call its release() method."
+          count name self#id;
+      let released = Atomic.make false in
+      fun () ->
+        if Atomic.compare_and_set released false true then (
+          Mutex_utils.mutexify script_callbacks_m
+            (fun () ->
+              match Hashtbl.find_opt script_callbacks name with
+                | Some count when count <= 1 ->
+                    Hashtbl.remove script_callbacks name
+                | Some count -> Hashtbl.replace script_callbacks name (count - 1)
+                | None -> ())
+            ();
+          release ())
 
     initializer
       Gc.finalise_last (on_finalize ~on_collect id) self;

@@ -144,6 +144,14 @@ object
       on the source for as long as it lives. *)
   method register_on_collect : (unit -> unit) -> unit -> unit
 
+  (** Register a callback a script asked for, returning the function releasing
+      it. Registrations are counted per name, and a script piling them up on a
+      source it is handed gets warned about the one at fault. *)
+  method register_script_callback : string -> (unit -> unit) -> unit -> unit
+
+  (** Script callbacks currently registered, per callback name. *)
+  method script_callback_counts : (string * int) list
+
   (** The clock under which the source will run. *)
   method clock : Clock.t
 
