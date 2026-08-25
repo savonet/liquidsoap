@@ -231,6 +231,9 @@ let scheduler : priority Duppy.scheduler =
       _exit 1)
     ~compare:(fun a b -> compare (priority_rank a) (priority_rank b))
     ~classify:(function `Non_blocking -> `Immediate | _ -> `Blocking)
+      (* Tasks run script code, which registers its callbacks through an
+         effect. *)
+    ~wrapper:{ Duppy.wrap = Script_callback.uncollected }
     ()
 
 let () =

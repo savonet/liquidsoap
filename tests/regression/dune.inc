@@ -1545,6 +1545,29 @@
    callback_counts.liq)))
 
 (rule
+ (alias test_callback_from_task)
+ (package liquidsoap)
+ (deps
+  callback_from_task.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   callback_from_task
+   liquidsoap
+   %{test_liq}
+   callback_from_task.liq)))
+
+(rule
  (alias test_callback_release)
  (package liquidsoap)
  (deps
@@ -2501,6 +2524,29 @@
    track_sensitive.liq)))
 
 (rule
+ (alias test_type_printing_from_task)
+ (package liquidsoap)
+ (deps
+  type_printing_from_task.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   type_printing_from_task
+   liquidsoap
+   %{test_liq}
+   type_printing_from_task.liq)))
+
+(rule
  (alias test_unified-pcm-types)
  (package liquidsoap)
  (deps
@@ -2629,6 +2675,7 @@
   (alias test_append-merge)
   (alias test_append-merge2)
   (alias test_callback_counts)
+  (alias test_callback_from_task)
   (alias test_callback_release)
   (alias test_callback_release_mixed_content)
   (alias test_cleanup)
@@ -2673,5 +2720,6 @@
   (alias test_switch_reselect_after_idle)
   (alias test_switch_skipped_track_metadata)
   (alias test_track_sensitive)
+  (alias test_type_printing_from_task)
   (alias test_unified-pcm-types)
   (alias test_video-only)))

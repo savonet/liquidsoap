@@ -42,6 +42,10 @@ type 'a t = {
 
 type execution_class = [ `Immediate | `Blocking ]
 
+(** Wraps every task body. Effect handlers do not cross the thread a task is
+    dispatched to, so a caller whose tasks need one installs it here. *)
+type wrapper = { wrap : 'a. (unit -> 'a) -> 'a }
+
 (** One domain of the pool. [wake] carries a signal across the window between
     registering as idle and blocking on [worker_c], so a wake-up sent in that
     window is not lost. [blocking] counts the tasks parked on this worker's
@@ -60,6 +64,7 @@ type 'a scheduler = {
   mutable log : (string -> unit) option;
   compare : 'a -> 'a -> int;
   classify : 'a -> execution_class;
+  wrapper : wrapper;
   out_pipe : fd;
   in_pipe : fd;
   mutable tasks : 'a t list;
@@ -87,7 +92,8 @@ let default_on_fatal exn bt =
 
 let create ?(on_error = Printexc.raise_with_backtrace)
     ?(on_fatal = default_on_fatal) ?(compare = compare)
-    ?(classify : 'a -> execution_class = fun _ -> `Blocking) () =
+    ?(classify : 'a -> execution_class = fun _ -> `Blocking)
+    ?(wrapper = { wrap = (fun fn -> fn ()) }) () =
   (* A socket pair rather than a pipe: on Windows only sockets can be made
      non-blocking, and a blocking wake-up write could hang its caller. *)
   let out_pipe, in_pipe = Unix_utils.socketpair () in
@@ -98,6 +104,7 @@ let create ?(on_error = Printexc.raise_with_backtrace)
     log = None;
     compare;
     classify;
+    wrapper;
     out_pipe;
     in_pipe;
     tasks = [];
@@ -303,7 +310,7 @@ let take_work s w =
     | _ -> (None, [])
 
 let run_task s fn =
-  match fn () with
+  match s.wrapper.wrap fn with
     | exception exn ->
         let bt = Printexc.get_raw_backtrace () in
         s.on_error exn bt;

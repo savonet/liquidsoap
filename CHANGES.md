@@ -112,6 +112,8 @@
 
 - `time.zone.set` now takes effect. Setting the time zone was silently ignored once anything had already
   read the local time, which in practice meant always.
+- Rendering a type no longer goes through `Format.str_formatter`, which is per-domain and shared with whatever else
+  formats a value there: a type printed from a scheduler task came out empty.
 - Log entries written during shutdown are no longer dropped: the logging thread returned without a final flush.
 
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,

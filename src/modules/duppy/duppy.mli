@@ -67,6 +67,11 @@ type 'a scheduler
     domain goes back to dispatching. *)
 type execution_class = [ `Immediate | `Blocking ]
 
+(** Wraps every task body. Effect handlers do not cross the thread a task is
+    dispatched to, so a caller whose tasks need one installs it here rather than
+    at each of its own entry points. *)
+type wrapper = { wrap : 'a. (unit -> 'a) -> 'a }
+
 (** Initiate a new scheduler. It has no domains until [start] is called.
   * @param on_error called when a task raises.
   * @param on_fatal called when the event loop itself crashes, which should be
@@ -74,12 +79,14 @@ type execution_class = [ `Immediate | `Blocking ]
   * the backtrace and exit.
   * @param compare the comparison function used to sort tasks according to priorities.
   * Works as in [List.sort]
-  * @param classify how each priority is run. Default: [fun _ -> `Blocking] *)
+  * @param classify how each priority is run. Default: [fun _ -> `Blocking]
+  * @param wrapper wraps every task body. Default: run it as is *)
 val create :
   ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
   ?on_fatal:(exn -> Printexc.raw_backtrace -> unit) ->
   ?compare:('a -> 'a -> int) ->
   ?classify:('a -> execution_class) ->
+  ?wrapper:wrapper ->
   unit ->
   'a scheduler
 
