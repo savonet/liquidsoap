@@ -66,6 +66,12 @@ repos:
         entry: koalaman/shellcheck --color=always
         types: [shell]
 
+      - id: mutexed-lazy
+        name: mutexed-lazy
+        language: system
+        entry: .github/scripts/check-mutexed-lazy.sh
+        files: ^src/(core|lang|js|bin)/.*\.mli?$
+
       - id: dunefmt
         name: dunefmt
         language: system
