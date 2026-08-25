@@ -92,6 +92,9 @@
 
 ## Fixed:
 
+- `time.zone.set` now takes effect. Setting the time zone was silently ignored once anything had already
+  read the local time, which in practice meant always.
+
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
   `on_leave` and transition functions are now released when the selection or the crossing
   ends, instead of accumulating on those sources for as long as they live.

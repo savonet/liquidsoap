@@ -59,12 +59,4 @@ def runtime.cpu.usage_getter() =
 end
 %endif
 
-# Set the current time zone. This is
-# equivalent to setting the `TZ` environment
-# variable.
-# @category Time
-def time.zone.set(tz) =
-  environment.set("TZ", tz)
-end
-
 runtime.gc.set(runtime.gc.get().{space_overhead = 80})
