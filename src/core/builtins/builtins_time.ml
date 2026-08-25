@@ -169,7 +169,7 @@ let _ =
             (Printf.sprintf "Failed to parse %s as time predicate" predicate)
           ~pos:(Lang.pos p) "string")
 
-let _ =
+let time_zone =
   let tz_t =
     Lang.method_t Lang.string_t
       [
@@ -186,6 +186,19 @@ let _ =
       let tz = Utils.timezone () in
       Lang.meth (Lang.string std)
         [("daylight", Lang.string dst); ("utc_diff", Lang.int tz)])
+
+let _ =
+  Lang.add_builtin ~category:`Time ~base:time_zone "set"
+    ~descr:
+      "Set the time zone for the running process. This is equivalent to \
+       setting the `TZ` environment variable, except that it takes effect \
+       immediately."
+    [("", Lang.string_t, None, Some "Time zone, e.g. `\"Europe/Paris\"`.")]
+    Lang.unit_t
+    (fun p ->
+      Unix.putenv "TZ" (Lang.to_string (List.assoc "" p));
+      Utils.tzset ();
+      Lang.unit)
 
 let _ =
   Lang.add_builtin ~category:`Time ~base:time "string"

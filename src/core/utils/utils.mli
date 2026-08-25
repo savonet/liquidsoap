@@ -104,6 +104,10 @@ external timezone : unit -> int = "liquidsoap_get_timezone" [@@noalloc]
 external timezone_by_name : unit -> string * string
   = "liquidsoap_get_timezone_by_name"
 
+(** Re-read [TZ]. The C library parses it once and caches it, so a change to the
+    variable is ignored until this runs. *)
+val tzset : unit -> unit
+
 (** [Unix.tm] with [tm_isdst] left unknown when it is [None], so that [mktime]
     works it out from the date rather than being told. *)
 type tm = {
