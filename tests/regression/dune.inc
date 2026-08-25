@@ -1919,6 +1919,29 @@
    ffmpeg_seek_preroll.liq)))
 
 (rule
+ (alias test_harbor_source_relay)
+ (package liquidsoap)
+ (deps
+  harbor_source_relay.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_source_relay
+   liquidsoap
+   %{test_liq}
+   harbor_source_relay.liq)))
+
+(rule
  (alias test_infallible-shutdown)
  (package liquidsoap)
  (deps
@@ -2692,6 +2715,7 @@
   (alias test_ffmpeg-copy-input-http)
   (alias test_ffmpeg-naming-convention)
   (alias test_ffmpeg_seek_preroll)
+  (alias test_harbor_source_relay)
   (alias test_infallible-shutdown)
   (alias test_init-error)
   (alias test_initial_request_queue)

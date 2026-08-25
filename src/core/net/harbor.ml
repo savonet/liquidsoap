@@ -725,6 +725,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           simple_reply
             (http_error_page 501 "Not Implemented"
                "This stream's format is not recognized.")
+      | Reply _ as e -> raise e
       | e ->
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
@@ -772,7 +773,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                     (mime, mount, user, password)
                 | _ -> error ())
           | _ -> error ()
-      with _ -> error ()
+      with
+        | Reply _ as e -> raise e
+        | _ -> error ()
     in
     let () =
       Io.write ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
@@ -1054,6 +1057,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           in
           Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
           handler ~protocol ~meth ~headers ~data ~socket ~query base_uri
+      | Reply _ as e -> raise e
       | e ->
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
