@@ -1,0 +1,113 @@
+(* Reports what the pool is worth: how CPU-bound tasks scale with the number of
+   domains, and how much a periodic thread — a clock's shape — is delayed while
+   they run. Not a gate; run it by hand with `dune build @bench`. *)
+
+type priority = Immediate | Blocking
+
+let classify = function Immediate -> `Immediate | Blocking -> `Blocking
+
+let burn n =
+  let x = ref 0.0 in
+  for i = 1 to n do
+    x := Sys.opaque_identity (!x +. sqrt (float_of_int i))
+  done;
+  ignore (Sys.opaque_identity !x)
+
+type latch = { m : Mutex.t; c : Condition.t; n : int Atomic.t }
+
+let latch () =
+  { m = Mutex.create (); c = Condition.create (); n = Atomic.make 0 }
+
+let bump l =
+  ignore (Atomic.fetch_and_add l.n 1);
+  Mutex.lock l.m;
+  Condition.broadcast l.c;
+  Mutex.unlock l.m
+
+let await l target =
+  Mutex.lock l.m;
+  while Atomic.get l.n < target do
+    Condition.wait l.c l.m
+  done;
+  Mutex.unlock l.m
+
+let scaling ~domains ~tasks ~work =
+  let s = Duppy.create ~classify () in
+  let l = latch () in
+  for _ = 1 to tasks do
+    Duppy.Task.add s
+      {
+        Duppy.Task.priority = Blocking;
+        events = [`Delay 0.];
+        handler =
+          (fun _ ->
+            burn work;
+            bump l;
+            []);
+      }
+  done;
+  let start = Unix.gettimeofday () in
+  Duppy.start ~domains s;
+  await l tasks;
+  let elapsed = Unix.gettimeofday () -. start in
+  Duppy.stop s;
+  elapsed
+
+let percentile l p =
+  let l = List.sort compare l in
+  List.nth l
+    (min (List.length l - 1) (int_of_float (p *. float_of_int (List.length l))))
+
+let jitter ~domains ~load =
+  let s = Duppy.create ~classify () in
+  let ticks = 300 and period = 0.02 in
+  let running = Atomic.make true in
+  let rec spin _ =
+    burn 200_000;
+    if Atomic.get running then
+      [{ Duppy.Task.priority = Blocking; events = [`Delay 0.]; handler = spin }]
+    else []
+  in
+  for _ = 1 to load do
+    Duppy.Task.add s
+      { Duppy.Task.priority = Blocking; events = [`Delay 0.]; handler = spin }
+  done;
+  Duppy.start ~domains s;
+  let start = Unix.gettimeofday () in
+  let lateness = ref [] in
+  for i = 1 to ticks do
+    let target = start +. (float_of_int i *. period) in
+    let now = Unix.gettimeofday () in
+    if target > now then Thread.delay (target -. now);
+    lateness := (Unix.gettimeofday () -. target) :: !lateness
+  done;
+  Atomic.set running false;
+  Duppy.stop s;
+  !lateness
+
+let () =
+  let cores = Domain.recommended_domain_count () in
+  Printf.printf "%d cores available\n\n%!" cores;
+  Printf.printf "CPU-bound tasks (32 tasks)\n";
+  let base = ref 0. in
+  List.iter
+    (fun domains ->
+      if domains <= cores then begin
+        let elapsed = scaling ~domains ~tasks:32 ~work:8_000_000 in
+        if domains = 1 then base := elapsed;
+        Printf.printf "  domains=%-2d  wall=%6.3fs  speed-up=%.1fx\n%!" domains
+          elapsed (!base /. elapsed)
+      end)
+    [1; 2; 4; 6; 8];
+  Printf.printf "\nLateness of a 20ms periodic thread\n";
+  List.iter
+    (fun load ->
+      if load < cores then begin
+        let l = jitter ~domains:cores ~load in
+        Printf.printf
+          "  busy tasks=%-2d  p50=%6.2fms  p99=%6.2fms  max=%6.2fms\n%!" load
+          (percentile l 0.5 *. 1e3)
+          (percentile l 0.99 *. 1e3)
+          (List.fold_left max 0. l *. 1e3)
+      end)
+    [0; 2; 4; 7]

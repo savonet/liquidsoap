@@ -29,15 +29,6 @@ let select, select_fname =
     | "Unix" -> (Unix_utils.poll, "poll")
     | _ -> (Unix_utils.select, "select")
 
-(** [remove f l] is like [List.find f l] but also returns the result of removing
-    * the found element from the original list. *)
-let remove f l =
-  let rec aux acc = function
-    | [] -> raise Not_found
-    | x :: l -> if f x then (x, List.rev_append acc l) else aux (x :: acc) l
-  in
-  aux [] l
-
 (** Events and tasks from the implementation point-of-view: * we have to hide
     the 'a parameter. *)
 
@@ -49,21 +40,37 @@ type 'a t = {
   is_ready : e -> (unit -> 'a t list) option;
 }
 
+type execution_class = [ `Immediate | `Blocking ]
+
+(** One domain of the pool. [wake] carries a signal across the window between
+    registering as idle and blocking on [worker_c], so a wake-up sent in that
+    window is not lost. [blocking] counts the tasks parked on this worker's
+    auxiliary threads. *)
+type worker = {
+  worker_m : Mutex.t;
+  worker_c : Condition.t;
+  mutable wake : bool;
+  blocking : int Atomic.t;
+}
+
 type 'a scheduler = {
   on_error : exn -> Printexc.raw_backtrace -> unit;
-  out_pipe : Unix.file_descr;
-  in_pipe : Unix.file_descr;
+  on_fatal : exn -> Printexc.raw_backtrace -> unit;
+  mutable log : (string -> unit) option;
   compare : 'a -> 'a -> int;
-  select_m : Mutex.t;
+  classify : 'a -> execution_class;
+  out_pipe : fd;
+  in_pipe : fd;
   mutable tasks : 'a t list;
   tasks_m : Mutex.t;
   mutable ready : ('a * (unit -> 'a t list)) list;
+  mutable idle : worker list;
   ready_m : Mutex.t;
-  mutable queues : Condition.t list;
-  queues_m : Mutex.t;
-  mutable stop : bool;
-  stop_m : Mutex.t;
-  queue_stopped_c : Condition.t;
+  started : bool Atomic.t;
+  stopped : bool Atomic.t;
+  mutable blocking_per_worker : int;
+  mutable workers : worker list;
+  mutable domains : unit Domain.t list;
 }
 
 let clear_tasks s =
@@ -71,27 +78,41 @@ let clear_tasks s =
   s.tasks <- [];
   Mutex.unlock s.tasks_m
 
-let create ?(on_error = Printexc.raise_with_backtrace) ?(compare = compare) () =
+let default_on_fatal exn bt =
+  Printf.eprintf "Duppy: event loop crashed with %s\n%s\n%!"
+    (Printexc.to_string exn)
+    (Printexc.raw_backtrace_to_string bt);
+  exit 1
+
+let create ?(on_error = Printexc.raise_with_backtrace)
+    ?(on_fatal = default_on_fatal) ?(compare = compare)
+    ?(classify : 'a -> execution_class = fun _ -> `Blocking) () =
   (* A socket pair rather than a pipe: on Windows only sockets can be made
      non-blocking, and a blocking wake-up write could hang its caller. *)
   let out_pipe, in_pipe = Unix_utils.socketpair () in
   Unix.set_nonblock in_pipe;
   {
     on_error;
+    on_fatal;
+    log = None;
+    compare;
+    classify;
     out_pipe;
     in_pipe;
-    compare;
-    select_m = Mutex.create ();
     tasks = [];
     tasks_m = Mutex.create ();
     ready = [];
+    idle = [];
     ready_m = Mutex.create ();
-    queues = [];
-    queues_m = Mutex.create ();
-    stop = false;
-    stop_m = Mutex.create ();
-    queue_stopped_c = Condition.create ();
+    started = Atomic.make false;
+    stopped = Atomic.make false;
+    blocking_per_worker = 1;
+    workers = [];
+    domains = [];
   }
+
+let started s = Atomic.get s.started
+let log s fn = match s.log with None -> () | Some log -> log (fn ())
 
 let wake_up s =
   try ignore (Unix_utils.write s.in_pipe (Bytes.of_string "x") 0 1)
@@ -100,6 +121,34 @@ let wake_up s =
   | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
   ->
     ()
+
+let signal_worker w =
+  Mutex.lock w.worker_m;
+  w.wake <- true;
+  Condition.signal w.worker_c;
+  Mutex.unlock w.worker_m
+
+(** Detach up to [n] idle workers. [s.ready_m] must be held. *)
+let take_idle s n =
+  let rec f n acc =
+    if n <= 0 then acc
+    else (
+      match s.idle with
+        | [] -> acc
+        | w :: l ->
+            s.idle <- l;
+            f (n - 1) (w :: acc))
+  in
+  f n []
+
+let wake_idle s n =
+  let workers = Mutex.protect s.ready_m (fun () -> take_idle s n) in
+  List.iter signal_worker workers
+
+let wake_worker s w =
+  Mutex.protect s.ready_m (fun () ->
+      s.idle <- List.filter (fun x -> x != w) s.idle);
+  signal_worker w
 
 module Task = struct
   (** Events and tasks from the user's point-of-view. *)
@@ -146,18 +195,21 @@ module Task = struct
     }
 
   let add_t s items =
+    let ready = ref 0 in
     let f item =
       match item.is_ready { r = []; w = []; x = []; t = 0. } with
         | Some f ->
             Mutex.lock s.ready_m;
             s.ready <- (item.prio, f) :: s.ready;
-            Mutex.unlock s.ready_m
+            Mutex.unlock s.ready_m;
+            incr ready
         | None ->
             Mutex.lock s.tasks_m;
             s.tasks <- item :: s.tasks;
             Mutex.unlock s.tasks_m
     in
     List.iter f items;
+    if 0 < !ready then wake_idle s !ready;
     wake_up s
 
   let add s t = add_t s [t_of_task t]
@@ -165,197 +217,202 @@ end
 
 open Task
 
-let stop s =
-  clear_tasks s;
-  Mutex.lock s.stop_m;
-  s.stop <- true;
-  Mutex.unlock s.stop_m;
-  Mutex.lock s.queues_m;
-  while List.length s.queues > 0 do
-    wake_up s;
-    Mutex.lock s.ready_m;
-    List.iter Condition.signal s.queues;
-    Mutex.unlock s.ready_m;
-    Condition.wait s.queue_stopped_c s.queues_m
-  done;
-  Mutex.unlock s.queues_m
-
 let tmp = Bytes.create 1024
 
-(** There should be only one call of #process at a time. * Process waits for
-    tasks to become ready, and moves ready tasks * to the ready queue. *)
-let process s log =
-  (* Compute the union of all events. *)
-  let e =
-    List.fold_left
-      (fun e t -> t.enrich e)
-      { r = [s.out_pipe]; w = []; x = []; t = infinity }
-      s.tasks
+type 'a work = Batch of (unit -> 'a t list) list | One of (unit -> 'a t list)
+
+(** Pick this worker's next unit of work and the idle workers to signal for what
+    is left behind. [s.ready_m] must be held.
+
+    Immediate tasks go as one batch: they do not block, so running them in
+    sequence on the calling domain costs less than a hand-off each. Blocking
+    tasks go one at a time, so they spread over the pool. *)
+let take_work s w =
+  let immediate, blocking =
+    List.partition (fun (p, _) -> s.classify p = `Immediate) s.ready
   in
-  (* Poll for an event. *)
+  match immediate with
+    | _ :: _ ->
+        s.ready <- blocking;
+        ( Some (Batch (List.rev_map snd immediate)),
+          take_idle s (List.length blocking) )
+    | [] -> (
+        match blocking with
+          | [] -> (None, [])
+          | _ when s.blocking_per_worker <= Atomic.get w.blocking -> (None, [])
+          | first :: _ ->
+              let best =
+                List.fold_left
+                  (fun best x ->
+                    if s.compare (fst x) (fst best) < 0 then x else best)
+                  first blocking
+              in
+              s.ready <- List.filter (fun x -> x != best) blocking;
+              (Some (One (snd best)), take_idle s (List.length s.ready)))
+
+let run_task s fn =
+  match fn () with
+    | exception exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        s.on_error exn bt;
+        []
+    | v -> v
+
+(** Blocking tasks run on an auxiliary systhread inside the worker's domain:
+    once the task parks in a syscall it releases the runtime lock and the domain
+    goes back to dispatching. One thread per task rather than a pool, since a
+    task in this class is long enough that the spawn does not show. *)
+let run_blocking s w fn =
+  Atomic.incr w.blocking;
+  ignore
+    (Thread.create
+       (fun () ->
+         let tasks = run_task s fn in
+         Atomic.decr w.blocking;
+         add_t s tasks;
+         wake_worker s w)
+       ())
+
+let wait_for_work s w =
+  Mutex.lock w.worker_m;
+  while (not w.wake) && not (Atomic.get s.stopped) do
+    Condition.wait w.worker_c w.worker_m
+  done;
+  w.wake <- false;
+  Mutex.unlock w.worker_m
+
+(** Let the tasks already parked on this worker finish before it returns. *)
+let drain w =
+  Mutex.lock w.worker_m;
+  while 0 < Atomic.get w.blocking do
+    Condition.wait w.worker_c w.worker_m
+  done;
+  Mutex.unlock w.worker_m
+
+let dispatch s w =
+  while not (Atomic.get s.stopped) do
+    Mutex.lock s.ready_m;
+    let work, wake = take_work s w in
+    (match work with None -> s.idle <- w :: s.idle | Some _ -> ());
+    Mutex.unlock s.ready_m;
+    List.iter signal_worker wake;
+    begin match work with
+      | Some (Batch fns) -> List.iter (fun fn -> add_t s (run_task s fn)) fns
+      | Some (One fn) -> run_blocking s w fn
+      | None -> wait_for_work s w
+    end
+  done;
+  drain w
+
+(** Wait for events, then move the tasks they woke to the ready list. *)
+let poll_once s =
+  let e =
+    Mutex.protect s.tasks_m (fun () ->
+        List.fold_left
+          (fun e t -> t.enrich e)
+          { r = [s.out_pipe]; w = []; x = []; t = infinity }
+          s.tasks)
+  in
   let r, w, x =
     try
       let timeout = if e.t = infinity then -1. else max 0. (e.t -. time ()) in
-      log
-        (Printf.sprintf "Enter %s at %f, timeout %f (%d/%d/%d)." select_fname
-           (time ()) timeout (List.length e.r) (List.length e.w)
-           (List.length e.x));
+      log s (fun () ->
+          Printf.sprintf "Enter %s at %f, timeout %f (%d/%d/%d)." select_fname
+            (time ()) timeout (List.length e.r) (List.length e.w)
+            (List.length e.x));
       let r, w, x = select e.r e.w e.x timeout in
-      log
-        (Printf.sprintf "Left %s at %f (%d/%d/%d)." select_fname (time ())
-           (List.length r) (List.length w) (List.length x));
+      log s (fun () ->
+          Printf.sprintf "Left %s at %f (%d/%d/%d)." select_fname (time ())
+            (List.length r) (List.length w) (List.length x));
       (r, w, x)
-    with e ->
-      (* Uncaught exception:
-       * 1) Discards all tasks currently in the loop (we do not know which
-       *    socket caused an error).
-       * 2) Re-Raise e *)
+    with exn ->
+      (* We do not know which socket caused the error, so every task currently
+         in the loop is discarded. *)
       clear_tasks s;
-      raise e
+      raise exn
   in
-  (* Empty the wake_up pipe if needed. *)
-  let () =
-    if List.mem s.out_pipe r then
-      (* For safety, we may absorb more than
-       * one write. This avoids bad situation
-       * when exceesive wake_up may fill up the
-       * pipe's write buffer, causing a wake_up
-       * to become blocking.. *)
-      ignore (Unix_utils.read s.out_pipe tmp 0 1024)
-  in
-  (* Move ready tasks to the ready list. *)
+  (* Absorb more than one write: excessive wake-ups would otherwise fill the
+     socket's buffer and make [wake_up] block. *)
+  if List.mem s.out_pipe r then ignore (Unix_utils.read s.out_pipe tmp 0 1024);
   let e = { r; w; x; t = 0. } in
-  Mutex.lock s.tasks_m;
-  (* Split [tasks] into [r]eady and still [w]aiting. *)
-  let r, w =
-    List.fold_left
-      (fun (r, w) t ->
-        match t.is_ready e with
-          | Some f -> ((t.prio, f) :: r, w)
-          | None -> (r, t :: w))
-      ([], []) s.tasks
-  in
-  s.tasks <- w;
-  Mutex.unlock s.tasks_m;
-  Mutex.lock s.ready_m;
-  s.ready <-
-    List.stable_sort (fun (p, _) (p', _) -> s.compare p p') (s.ready @ r);
-  Mutex.unlock s.ready_m
-
-(** Code for a queue to process ready tasks. * Returns true a task was found
-    (and hence processed). * * s.ready_m *must* be locked before calling * this
-    function, and is freed *only* * if some task was processed. *)
-let exec s (priorities : 'a -> bool) =
-  (* This assertion does not work on
-   * win32 because a thread can double-lock
-   * the same mutex.. *)
-  if Sys.os_type <> "Win32" then assert (not (Mutex.try_lock s.ready_m));
-  match remove (fun (p, _) -> priorities p) s.ready with
-    | (_, task), remaining ->
-        s.ready <- remaining;
-        Mutex.unlock s.ready_m;
-        let tasks =
-          match task () with
-            | exception exn ->
-                let bt = Printexc.get_raw_backtrace () in
-                s.on_error exn bt;
-                []
-            | v -> v
+  let ready =
+    Mutex.protect s.tasks_m (fun () ->
+        let ready, waiting =
+          List.fold_left
+            (fun (ready, waiting) t ->
+              match t.is_ready e with
+                | Some fn -> ((t.prio, fn) :: ready, waiting)
+                | None -> (ready, t :: waiting))
+            ([], []) s.tasks
         in
-        add_t s tasks;
-        true
-    | exception Not_found -> false
+        s.tasks <- waiting;
+        ready)
+  in
+  match ready with
+    | [] -> ()
+    | _ ->
+        let wake =
+          Mutex.protect s.ready_m (fun () ->
+              s.ready <- List.rev_append ready s.ready;
+              take_idle s (List.length ready))
+        in
+        List.iter signal_worker wake
 
-exception Queue_stopped
-exception Queue_processed
+let poller s =
+  while not (Atomic.get s.stopped) do
+    poll_once s
+  done
 
-(** Main loop for queues. *)
-let queue ?log ?(priorities = fun _ -> true) s name =
-  let log =
-    match log with Some e -> e | None -> Printf.printf "queue %s: %s\n" name
+let start ?domains ?(max_blocking = 64) ?log:logger s =
+  if not (Atomic.compare_and_set s.started false true) then
+    failwith "Duppy.start: scheduler already started";
+  s.log <- logger;
+  let count =
+    match domains with
+      | Some n -> max 1 n
+      | None -> max 1 (Domain.recommended_domain_count ())
   in
-  let c =
-    let c = Condition.create () in
-    Mutex.lock s.queues_m;
-    s.queues <- c :: s.queues;
-    Mutex.unlock s.queues_m;
-    log (Printf.sprintf "Queue #%d starting..." (List.length s.queues));
-    c
+  s.blocking_per_worker <- max 1 (max_blocking / count);
+  let workers =
+    List.init count (fun _ ->
+        {
+          worker_m = Mutex.create ();
+          worker_c = Condition.create ();
+          wake = false;
+          blocking = Atomic.make 0;
+        })
   in
-  (* Try to process ready tasks, otherwise try to become the master,
-   * or be a slave and wait for the master to get some more ready tasks. *)
-  let run () =
-    Mutex.lock s.stop_m;
-    let stop = s.stop in
-    Mutex.unlock s.stop_m;
-    if stop then raise Queue_stopped;
-    (* Lock the ready tasks until the queue has a task to proceed,
-     * *or* is really ready to restart on its condition, see the
-     * Condition.wait call below for the atomic unlock and wait. *)
-    Mutex.lock s.ready_m;
-    log (Printf.sprintf "There are %d ready tasks." (List.length s.ready));
-    if exec s priorities then raise Queue_processed;
-    let wake () =
-      let is_ready =
-        Mutex.lock s.ready_m;
-        let is_ready = s.ready <> [] in
-        Mutex.unlock s.ready_m;
-        is_ready
-      in
-      (* Wake up other queues if there are remaining tasks *)
-      if is_ready then begin
-        Mutex.lock s.queues_m;
-        List.iter (fun x -> if x <> c then Condition.signal x) s.queues;
-        Mutex.unlock s.queues_m
-      end
-    in
-    if Mutex.try_lock s.select_m then begin
-      (* Processing finished for me
-       * I can unlock ready_m now.. *)
-      Mutex.unlock s.ready_m;
-      process s log;
-      Mutex.unlock s.select_m;
-      wake ()
-    end
-    else begin
-      (* We use s.ready_m mutex here.
-       * Hence, we avoid race conditions
-       * with any other queue being processing
-       * a task that would create a new task:
-       * without this mutex, the new task may not be
-       * notified to this queue if it is going to sleep
-       * in concurrency..
-       * It also avoid race conditions when restarting
-       * queues since s.ready_m is locked until all
-       * queues have been signaled. *)
-      Condition.wait c s.ready_m;
-      Mutex.unlock s.ready_m
-    end
+  s.workers <- workers;
+  let spawn fn =
+    Domain.spawn (fun () ->
+        try fn ()
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          s.on_fatal exn bt)
   in
-  let rec f () =
-    begin try run () with Queue_processed -> ()
-    end;
-    (f [@tailcall]) ()
-  in
-  let on_done () =
-    Mutex.lock s.queues_m;
-    s.queues <- List.filter (fun q -> q <> c) s.queues;
-    Condition.signal s.queue_stopped_c;
-    Mutex.unlock s.queues_m
-  in
-  (try f () with
-    | Queue_stopped -> ()
-    | exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        (try on_done () with _ -> ());
-        Printexc.raise_with_backtrace exn bt);
-  on_done ()
+  s.domains <-
+    spawn (fun () -> poller s)
+    :: List.map (fun w -> spawn (fun () -> dispatch s w)) workers;
+  log s (fun () ->
+      Printf.sprintf "Started %d dispatch domains, %d blocking tasks each."
+        count s.blocking_per_worker)
+
+let stop s =
+  if Atomic.get s.started then begin
+    clear_tasks s;
+    Atomic.set s.stopped true;
+    wake_up s;
+    List.iter signal_worker s.workers;
+    List.iter Domain.join s.domains;
+    s.domains <- [];
+    s.workers <- []
+  end
 
 module Async = struct
   (* m is used to make sure that
    * calls to [wake_up] and [stop]
    * are thread-safe. *)
-  type t = { stop : bool ref; mutable fd : fd option; m : Mutex.t }
+  type t = { stop : bool Atomic.t; mutable fd : fd option; m : Mutex.t }
 
   exception Stopped
 
@@ -364,13 +421,13 @@ module Async = struct
        pipe. *)
     let out_pipe, in_pipe = Unix_utils.socketpair () in
     Unix.set_nonblock in_pipe;
-    let stop = ref false in
+    let stop = Atomic.make false in
     let tmp = Bytes.create 1024 in
     let rec task l =
       if List.exists (( = ) (`Read out_pipe)) l then
         (* Consume data from the pipe *)
         ignore (Unix_utils.read out_pipe tmp 0 1024);
-      if !stop then begin
+      if Atomic.get stop then begin
         begin try
           (* This interface is purely asynchronous
            * so we close both sides of the pipe here. *)
@@ -413,7 +470,7 @@ module Async = struct
     try
       begin match t.fd with
         | Some c ->
-            t.stop := true;
+            Atomic.set t.stop true;
             ignore (Unix_utils.write c (Bytes.of_string " ") 0 1)
         | None -> raise Stopped
       end;
@@ -782,12 +839,12 @@ module Monad = struct
          in the scheduler forces [Unix.select] into its worker-thread emulation
          for every call, which leaks native memory. See [create] above. *)
       let x, y = Unix_utils.socketpair ()
-      let stop = ref false
+      let stop = Atomic.make false
       let wake_up () = ignore (Unix_utils.write y (Bytes.of_string " ") 0 1)
       let ctl_m = Mutex_o.create ()
 
       let finalise _ =
-        stop := true;
+        Atomic.set stop true;
         wake_up ()
 
       let mutexes = Queue.create ()
@@ -831,7 +888,7 @@ module Monad = struct
 
       let rec handler _ =
         Mutex_o.lock ctl_m;
-        if not !stop then begin
+        if not (Atomic.get stop) then begin
           let tasks = Queue.fold process_mutex [] mutexes in
           Mutex_o.unlock ctl_m;
           ignore (Unix_utils.read x tmp 0 1024);

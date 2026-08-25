@@ -1,0 +1,13 @@
+(executables
+ (names test_duppy bench_duppy)
+ (libraries duppy unix threads.posix))
+
+(rule
+ (alias citest)
+ (action
+  (run ./test_duppy.exe)))
+
+(rule
+ (alias bench)
+ (action
+  (run ./bench_duppy.exe)))

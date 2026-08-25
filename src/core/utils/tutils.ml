@@ -35,11 +35,10 @@ let conf_scheduler =
         "Finally, \"slow\" tasks are those that are always taking a long time,";
         "like last.fm submission, or user-defined tasks register via";
         "`thread.run`.";
-        "The scheduler consists in a number of queues that process incoming";
-        "tasks. Some queues might only process some kinds of tasks so that";
-        "they are more responsive.";
-        "Having more queues often do not make the program faster in average,";
-        "but affect mostly the order in which tasks are processed.";
+        "The scheduler runs one domain per core and dispatches ready tasks";
+        "onto whichever of them is free. Non-blocking tasks run directly on a";
+        "domain; the other two kinds run on a thread inside one, so that";
+        "waiting on a socket or a file leaves the domain free for other work.";
       ]
 
 type exit_status =
@@ -68,41 +67,17 @@ let exit () =
     | `Done (`Error (bt, err)) -> Printexc.raise_with_backtrace err bt
     | _ -> exit (exit_code ())
 
-let generic_queues =
+let blocking_tasks =
   Dtools.Conf.int
-    ~p:(conf_scheduler#plug "generic_queues")
-    ~d:5 "Generic queues"
+    ~p:(conf_scheduler#plug "blocking_tasks")
+    ~d:64 "Blocking tasks"
     ~comments:
       [
-        "Number of event queues accepting any kind of task.";
-        "There should at least be one. Having more can be useful to make sure";
-        "that trivial request resolutions (local files) are not delayed";
-        "because of a stalled download. But N stalled download can block";
-        "N queues anyway.";
-      ]
-
-let fast_queues =
-  Dtools.Conf.int
-    ~p:(conf_scheduler#plug "fast_queues")
-    ~d:0 "Fast queues"
-    ~comments:
-      [
-        "Number of queues that are dedicated to fast tasks.";
-        "It might be useful to create some if your request resolutions,";
-        "or some user defined tasks (cf `thread.run`), are";
-        "delayed too much because of slow tasks blocking the generic queues,";
-        "such as last.fm submissions or slow `thread.run` handlers.";
-      ]
-
-let non_blocking_queues =
-  Dtools.Conf.int
-    ~p:(conf_scheduler#plug "non_blocking_queues")
-    ~d:2 "Non-blocking queues"
-    ~comments:
-      [
-        "Number of queues dedicated to internal non-blocking tasks.";
-        "These are only started if such tasks are needed.";
-        "There should be at least one.";
+        "Maximum number of blocking tasks running at once, spread evenly over";
+        "the scheduler's domains. Blocking tasks spend most of their time";
+        "waiting on a socket or a file rather than using a core, so this can";
+        "be much larger than the number of cores. Each domain keeps at least";
+        "one slot, so setting this below the number of cores has no effect.";
       ]
 
 let scheduler_log =
@@ -132,7 +107,6 @@ module Set = Set.Make (struct
 end)
 
 let all = ref Set.empty
-let queues = ref Set.empty
 
 let join_all ~set () =
   let rec f () =
@@ -159,9 +133,9 @@ let set_done, wait_done =
 
 exception Exit
 
-let create ~queue f x s =
+let create f x s =
   let c = Condition.create () in
-  let set = if queue then queues else all in
+  let set = all in
   Mutex_utils.mutexify lock
     (fun () ->
       let id =
@@ -185,17 +159,6 @@ let create ~queue f x s =
                 | Failure e as exn ->
                     log#important "Thread %S failed: %s!" s e;
                     Printexc.raise_with_backtrace exn raw_bt
-                | e when queue ->
-                    Dtools.Init.exec Dtools.Log.stop;
-                    Printf.printf "Queue %s crashed with exception %s\n%s" s
-                      (Printexc.to_string e) bt;
-                    Printf.printf
-                      "PANIC: Liquidsoap has crashed, exiting.,\n\
-                       Please report at: https://github.com/savonet/liquidsoap";
-                    Printf.printf "Queue %s crashed with exception %s\n%s" s
-                      (Printexc.to_string e) bt;
-                    flush_all ();
-                    _exit 1
                 | e ->
                     log#important "Thread %S aborts with exception %s!" s
                       (Printexc.to_string e);
@@ -242,12 +205,32 @@ let rec error_handler ~bt exn =
         let bt = Printexc.get_backtrace () in
         error_handler ~bt exn
 
+(* Polymorphic compare orders these by name hash, which is not the order we
+   want: the server must come first, and a request resolution before a last.fm
+   submission. *)
+let priority_rank = function
+  | `Non_blocking -> 0
+  | `Maybe_blocking -> 1
+  | `Blocking -> 2
+
 let scheduler : priority Duppy.scheduler =
   Duppy.create
     ~on_error:(fun exn raw_bt ->
       let bt = Printexc.raw_backtrace_to_string raw_bt in
       if not (error_handler ~bt exn) then
         Printexc.raise_with_backtrace exn raw_bt)
+    ~on_fatal:(fun exn bt ->
+      Dtools.Init.exec Dtools.Log.stop;
+      Printf.printf "Scheduler crashed with exception %s\n%s"
+        (Printexc.to_string exn)
+        (Printexc.raw_backtrace_to_string bt);
+      Printf.printf
+        "PANIC: Liquidsoap has crashed, exiting.,\n\
+         Please report at: https://github.com/savonet/liquidsoap";
+      flush_all ();
+      _exit 1)
+    ~compare:(fun a b -> compare (priority_rank a) (priority_rank b))
+    ~classify:(function `Non_blocking -> `Immediate | _ -> `Blocking)
     ()
 
 let () =
@@ -256,38 +239,20 @@ let () =
       Duppy.stop scheduler;
       log#important "Scheduler shut down.")
 
-let scheduler_log n =
+let scheduler_started () = Duppy.started scheduler
+
+let scheduler_logger () =
   if scheduler_log#get then (
-    let log = Log.make [n] in
-    fun m -> log#info "%s" m)
-  else fun _ -> ()
+    let log = Log.make ["scheduler"] in
+    Some (fun m -> log#info "%s" m))
+  else None
 
-let new_queue ?priorities ~name () =
-  let qlog = scheduler_log name in
-  let queue () =
-    match priorities with
-      | None -> Duppy.queue scheduler ~log:qlog name
-      | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
-  in
-  ignore (create ~queue:true queue () name)
-
-let create f x name = create ~queue:false f x name
 let join_all () = join_all ~set:all ()
 
 let start () =
-  if Atomic.compare_and_set state `Idle `Starting then (
-    for i = 1 to generic_queues#get do
-      let name = Printf.sprintf "Generic Queue #%d" i in
-      new_queue ~name ()
-    done;
-    for i = 1 to fast_queues#get do
-      let name = Printf.sprintf "Fast Queue #%d" i in
-      new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
-    done;
-    for i = 1 to non_blocking_queues#get do
-      let name = Printf.sprintf "Non-Blocking Queue #%d" i in
-      new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
-    done)
+  if Atomic.compare_and_set state `Idle `Starting then
+    Duppy.start ~max_blocking:blocking_tasks#get ?log:(scheduler_logger ())
+      scheduler
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =

@@ -49,44 +49,63 @@
     * Finally, {!Duppy.Monad} and {!Duppy.Monad.Io} provide a monadic interface to
     * program server code that with an implicit return/reply execution flow.
     *
-    * The scheduler can use several queues running concurrently, each queue
-    * processing ready tasks. Of course, a queue should run in its own thread.*)
+    * The scheduler runs a pool of domains, one per core: a task is dispatched
+    * onto whichever domain is free when it becomes ready.*)
 
-(** A scheduler is a device for processing tasks. Several queues might run in *
-    different threads, processing one scheduler's tasks. * * ['a] is the type of
+(** A scheduler is a device for processing tasks. * * ['a] is the type of
     objects used for priorities. *)
 type 'a scheduler
 
-(** Initiate a new scheduler
+(** How a task is run.
+
+    [`Immediate] tasks never block. All the ready ones are taken as a single
+    batch and run in sequence directly on a domain of the pool, which costs less
+    than handing each of them over.
+
+    [`Blocking] tasks may park in a syscall. Each one is run on an auxiliary
+    thread inside its domain, so that parking releases the runtime lock and the
+    domain goes back to dispatching. *)
+type execution_class = [ `Immediate | `Blocking ]
+
+(** Initiate a new scheduler. It has no domains until [start] is called.
+  * @param on_error called when a task raises.
+  * @param on_fatal called when the event loop itself crashes, which should be
+  * considered a MAJOR FAILURE: all non-ready tasks are dropped. Default: print
+  * the backtrace and exit.
   * @param compare the comparison function used to sort tasks according to priorities.
-  * Works as in [List.sort] *)
+  * Works as in [List.sort]
+  * @param classify how each priority is run. Default: [fun _ -> `Blocking] *)
 val create :
   ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
+  ?on_fatal:(exn -> Printexc.raw_backtrace -> unit) ->
   ?compare:('a -> 'a -> int) ->
+  ?classify:('a -> execution_class) ->
   unit ->
   'a scheduler
 
-(** [queue ~log ~priorities s name]
- * starts a queue, on the scheduler [s] only processing priorities [p]
- * for which [priorities p] returns [true].
- *
- * Several queues can be run concurrently against [s].
- * @param log Logging function. Default: [Printf.printf "queue %s: %s\n" name]
- * @param priorities Predicate specifying which priority to process. Default: [fun _ -> _ -> true]
- *
- * An exception is raised from this call when duppy's event loops has
- * crashed. This exception should be considered a MAJOR FAILURE. All current
- * non-ready tasks registered for the calling scheduler are dropped. You may
- * restart Duppy's queues after it is raised but it should only be used to terminate
- * the process diligently!! *)
-val queue :
+(** [start s] spawns the scheduler's domains: one running the event loop, and
+  * [domains] running tasks. Raises [Failure] if [s] is already started.
+  *
+  * Spawning a domain makes [Unix.fork] fail from then on, so this must be
+  * called after any daemonization.
+  * @param domains number of dispatching domains.
+  * Default: [Domain.recommended_domain_count ()]
+  * @param max_blocking the most [`Blocking] tasks that may be in flight at
+  * once, spread evenly over the pool. Each domain keeps at least one slot, so
+  * a value below [domains] gives one per domain. Default: [64]
+  * @param log Logging function. Default: no logging *)
+val start :
+  ?domains:int ->
+  ?max_blocking:int ->
   ?log:(string -> unit) ->
-  ?priorities:('a -> bool) ->
   'a scheduler ->
-  string ->
   unit
 
-(** Stop all queues running on that scheduler and wait for them to return. *)
+(** Whether [start] has been called. *)
+val started : 'a scheduler -> bool
+
+(** Stop the scheduler, let the tasks already running finish, and wait for its
+    domains to return. *)
 val stop : 'a scheduler -> unit
 
 (** Core task registration. * * A task will be a set of events to watch, and a
@@ -375,7 +394,7 @@ module Monad : sig
 
   (** This module implements monadic computations * using [Duppy.Io]. It can be
       used to create * computations that read or write from a socket, * and also
-      to redirect a computation in a different * queue with a new priority. *)
+      to rerun a computation under a different * priority. *)
   module type Monad_io_t = sig
     type socket
 
@@ -399,15 +418,14 @@ module Monad : sig
 
     (** {2 Execution flow} *)
 
-    (** [exec ?delay ~priority h f] redirects computation * [f] into a new queue
-        with priority [priority] and * delay [delay] ([0.] by default). * It can
-        be used to redirect a computation that * has to run under a different
-        priority. For instance, * a computation that reads from a socket is
-        generally * not blocking because the function is executed * only when
-        some data is available for reading. * However, if the data that is read
-        needs to be processed * by a computation that can be blocking, then one
-        may * use [exec] to redirect this computation into an * appropriate
-        queue. *)
+    (** [exec ?delay ~priority h f] reschedules computation * [f] with priority
+        [priority] and delay [delay] * ([0.] by default). * It can be used to
+        run a computation that * has to run under a different priority. For
+        instance, * a computation that reads from a socket is generally * not
+        blocking because the function is executed * only when some data is
+        available for reading. * However, if the data that is read needs to be
+        processed * by a computation that can be blocking, then one may * use
+        [exec] to move this computation to the * appropriate priority. *)
     val exec :
       ?delay:float ->
       priority:'a ->

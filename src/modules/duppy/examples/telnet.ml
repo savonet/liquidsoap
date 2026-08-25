@@ -2,23 +2,13 @@ type priority = Non_blocking | Maybe_blocking
 
 let io_priority = Non_blocking
 
-(* Create scheduler *)
-let scheduler = Duppy.create ()
-
-(* Create two queues,
- * one for non blocking events
- * and another for blocking
- * events *)
-let new_queue ~priority ~name () =
-  let log = Printf.printf "%s: %s\n%!" name in
-  let priorities p = p = priority in
-  let queue () = Duppy.queue scheduler ~log ~priorities name in
-  Thread.create queue ()
-
-let th =
-  ignore (new_queue ~priority:Non_blocking ~name:"Non blocking queue" ());
-  ignore (new_queue ~priority:Maybe_blocking ~name:"Maybe blocking queue #1" ());
-  new_queue ~priority:Maybe_blocking ~name:"Maybe blocking queue #2" ()
+(* Reading and writing to the socket never blocks, so it runs directly on a
+   domain of the pool. Running a command does block, so it gets a thread. *)
+let scheduler =
+  Duppy.create
+    ~classify:(function
+      | Non_blocking -> `Immediate | Maybe_blocking -> `Blocking)
+    ()
 
 let exec_command s () =
   let chan = Unix.open_process_in s in
@@ -147,4 +137,8 @@ let () =
       Duppy.Task.events = [`Read sock];
       Duppy.Task.handler = incoming;
     };
-  Thread.join th
+  Duppy.start ~log:(Printf.printf "telnet: %s\n%!") scheduler;
+  (* The pool runs on its own domains, so this thread has nothing left to do. *)
+  while true do
+    Unix.sleep 3600
+  done

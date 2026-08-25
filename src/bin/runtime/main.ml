@@ -670,6 +670,10 @@ let () =
            daemonization facility such as `systemd` or `launchd` instead.")
 
 let daemonize () =
+  (* Forking is refused by the runtime once a domain exists, and the scheduler
+     spawns its own. *)
+  if Tutils.scheduler_started () then
+    failwith "Cannot daemonize once the scheduler has started!";
   Dtools.Log.conf_stdout#set false;
   (* Change user.. *)
   let conf_daemon_change_user =

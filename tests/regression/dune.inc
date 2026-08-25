@@ -2124,6 +2124,29 @@
   (run %{run_test} replaygain liquidsoap %{test_liq} replaygain.liq)))
 
 (rule
+ (alias test_scheduler_parallel)
+ (package liquidsoap)
+ (deps
+  scheduler_parallel.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   scheduler_parallel
+   liquidsoap
+   %{test_liq}
+   scheduler_parallel.liq)))
+
+(rule
  (alias test_seek_track_map)
  (package liquidsoap)
  (deps
@@ -2633,6 +2656,7 @@
   (alias test_output_reopen_on_error_delay)
   (alias test_playlist-id)
   (alias test_replaygain)
+  (alias test_scheduler_parallel)
   (alias test_seek_track_map)
   (alias test_shoutcast-args)
   (alias test_source_cleanup)

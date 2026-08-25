@@ -50,6 +50,17 @@
 ## Changed:
 
 - Liquidsoap now requires OCaml 5.5 to build.
+
+- The scheduler now runs one domain per core and dispatches tasks onto whichever one is free, so requests,
+  harbor clients, script callbacks and `thread.run` handlers run in parallel instead of taking turns on a single
+  core. This also keeps them from delaying the streaming loop: a CPU-bound task used to hold up every clock
+  thread for as long as a scheduler tick.
+- Removed `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
+  `settings.scheduler.non_blocking_queues`: the scheduler is sized from the machine's core count and no longer
+  has queues to count. Scripts setting them must drop those lines. The new `settings.scheduler.blocking_tasks`
+  caps how many blocking tasks — request resolutions, `thread.run` handlers, last.fm submissions — run at once.
+- Task priorities are ordered explicitly, so a request resolution is picked before a last.fm submission.
+  Polymorphic comparison ordered them by name hash, which happened to prefer the slow ones.
 - Bindings written without `let` accept the same targets as `let` — destructuring patterns, field paths and type
   annotations — so `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid, and an invalid left-hand side
   reports what is allowed instead of a bare syntax error. A leading binding inside the `{ … }` function shorthand
@@ -99,6 +110,7 @@
 
 - `time.zone.set` now takes effect. Setting the time zone was silently ignored once anything had already
   read the local time, which in practice meant always.
+- Log entries written during shutdown are no longer dropped: the logging thread returned without a final flush.
 
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
   `on_leave` and transition functions are now released when the selection or the crossing

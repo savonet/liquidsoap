@@ -1,9 +1,8 @@
 module Pcre = Re.Pcre
 
-let non_blocking_queues = ref 3
-let maybe_blocking_queues = ref 1
 let files_path = ref ""
 let port = ref 8080
+let domains = ref None
 let usage = "usage: http [options] /path/to/files"
 
 let () =
@@ -17,14 +16,9 @@ let () =
   in
   Arg.parse
     [
-      ( "--non_blocking_queues",
-        Arg.Int (fun i -> non_blocking_queues := i),
-        Printf.sprintf "Number of non-blocking queues. (default: %d)"
-          !non_blocking_queues );
-      ( "--maybe_blocking_queues",
-        Arg.Int (fun i -> maybe_blocking_queues := i),
-        Printf.sprintf "Number of maybe-blocking queues. (default: %d)"
-          !maybe_blocking_queues );
+      ( "--domains",
+        Arg.Int (fun i -> domains := Some i),
+        "Number of domains serving requests. (default: one per core)" );
       ( "--port",
         Arg.Int (fun i -> port := i),
         Printf.sprintf "Port used to bind the server. (default: %d)" !port );
@@ -37,7 +31,13 @@ let () =
 
 type priority = Maybe_blocking | Non_blocking
 
-let scheduler = Duppy.create ()
+(* Parsing a request and writing a reply never block, so they run directly on
+   a domain of the pool. Reading the file, or running a CGI, does block. *)
+let scheduler =
+  Duppy.create
+    ~classify:(function
+      | Non_blocking -> `Immediate | Maybe_blocking -> `Blocking)
+    ()
 
 type http_method = Post | Get
 type http_protocol = Http_11 | Http_10
@@ -504,11 +504,6 @@ let handle_client socket =
   let finish _ = try Unix.close socket with _ -> () in
   Duppy.Monad.run ~return:finish ~raise:finish (exec ())
 
-let new_queue ~priority ~name () =
-  let priorities p = p = priority in
-  let queue () = Duppy.queue scheduler ~log:(fun _ -> ()) ~priorities name in
-  Thread.create queue ()
-
 let bind_addr_inet = Unix.inet_addr_of_string "0.0.0.0"
 let bind_addr = Unix.ADDR_INET (bind_addr_inet, !port)
 let max_conn = 100
@@ -545,16 +540,7 @@ let () =
       events = [`Read sock];
       handler = incoming;
     };
-  for i = 1 to !non_blocking_queues do
-    ignore
-      (new_queue ~priority:Non_blocking
-         ~name:(Printf.sprintf "Non blocking queue #%d" i)
-         ())
-  done;
-  for i = 1 to !maybe_blocking_queues do
-    ignore
-      (new_queue ~priority:Maybe_blocking
-         ~name:(Printf.sprintf "Maybe blocking queue #%d" i)
-         ())
-  done;
-  Duppy.queue scheduler ~log:(fun _ -> ()) "root"
+  Duppy.start ?domains:!domains scheduler;
+  while true do
+    Unix.sleep 3600
+  done

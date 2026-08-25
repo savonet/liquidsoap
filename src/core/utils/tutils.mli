@@ -60,6 +60,10 @@ type priority =
 (** task scheduler *)
 val scheduler : priority Duppy.scheduler
 
+(** Whether the scheduler's domains have been spawned. [Unix.fork] fails once
+    they have, so anything that forks must check this first. *)
+val scheduler_started : unit -> bool
+
 (** {1 Misc} *)
 
 (** Waits for [f()] to become true on condition [c]. The mutex [m] protecting
