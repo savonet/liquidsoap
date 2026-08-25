@@ -172,6 +172,59 @@ let test_blocking_cap () =
   Duppy.stop s;
   ok "%d blocking tasks all ran with only 4 slots" count
 
+(* A computation started here parks on the pool and resumes on one of its
+   domains, so the two halves never run on the same one. *)
+let test_effect_resumes_elsewhere () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~domains:2 s;
+  let l = latch () in
+  let before = ref (-1) in
+  let after = ref (-1) in
+  let r, w = Unix.pipe () in
+  Duppy.run (fun () ->
+      before := domain_id ();
+      let events = Duppy.await ~priority:Blocking s [`Read r] in
+      if events <> [`Read r] then fail "await returned the wrong events";
+      ignore (Unix.read r (Bytes.create 4) 0 4);
+      after := domain_id ();
+      bump l);
+  if !after <> -1 then fail "await did not park the computation";
+  ignore (Unix.write w (Bytes.of_string "ping") 0 4);
+  await l 1;
+  Duppy.stop s;
+  Unix.close r;
+  Unix.close w;
+  if !before = !after then
+    fail "computation resumed on its starting domain %d" !before;
+  ok "computation started on domain %d and resumed on %d" !before !after
+
+let test_effect_raises_to_on_error () =
+  let caught = Atomic.make None in
+  let s =
+    Duppy.create ~classify
+      ~on_error:(fun exn _ -> Atomic.set caught (Some exn))
+      ()
+  in
+  Duppy.start ~domains:2 s;
+  let l = latch () in
+  Duppy.run (fun () ->
+      Duppy.reschedule ~priority:Blocking s;
+      bump l;
+      raise Exit);
+  await l 1;
+  Duppy.stop s;
+  match Atomic.get caught with
+    | Some Exit -> ok "an exception after resuming reached on_error"
+    | Some e -> fail "on_error saw %s, expected Exit" (Printexc.to_string e)
+    | None -> fail "an exception after resuming reached nobody"
+
+let test_await_outside_run () =
+  let s = Duppy.create ~classify () in
+  match Duppy.await ~priority:Blocking s [`Delay 0.] with
+    | _ -> fail "await outside run returned instead of raising"
+    | exception Effect.Unhandled _ ->
+        ok "await outside run raises Effect.Unhandled"
+
 let () =
   watchdog 60.;
   test_parallel ();
@@ -179,4 +232,7 @@ let () =
   test_io ();
   test_blocking_cap ();
   test_stop_drains ();
+  test_effect_resumes_elsewhere ();
+  test_effect_raises_to_on_error ();
+  test_await_outside_run ();
   print_endline "all duppy pool checks passed"

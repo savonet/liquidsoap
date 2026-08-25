@@ -133,6 +133,26 @@ module Task : sig
   val add : 'a scheduler -> ('a, [< event ]) task -> unit
 end
 
+(** {2 Direct-style computations}
+
+    [run f] executes [f] so that it can park on {!await} instead of splitting
+    into tasks. It returns as soon as [f] finishes or parks; a parked
+    computation resumes on whichever domain picks up its task, which may not be
+    the one it started on. *)
+val run : (unit -> unit) -> unit
+
+(** [await ~priority s events] parks the calling computation until one of
+    [events] occurs and returns those that did.
+
+    Only a computation running under {!run} can park: calling this from a plain
+    task handler raises [Effect.Unhandled]. *)
+val await :
+  priority:'a -> 'a scheduler -> [< Task.event ] list -> Task.event list
+
+(** [reschedule ?delay ~priority s] parks and resumes the computation under
+    [priority], to leave a priority a computation should no longer hold. *)
+val reschedule : ?delay:float -> priority:'a -> 'a scheduler -> unit
+
 (** Asynchronous task module * * This module implements an asynchronous API to
     {!Duppy.scheduler} * It allows to create a task that will run and then go to
     sleep. *)

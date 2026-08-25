@@ -217,6 +217,52 @@ end
 
 open Task
 
+(** A parked computation and the means to wake it. *)
+type suspension = { park : (event list -> unit) -> unit }
+
+type _ Effect.t += Await : suspension -> event list Effect.t
+
+let await ~priority s events =
+  let events = (events :> event list) in
+  Effect.perform
+    (Await
+       {
+         park =
+           (fun resume ->
+             Task.add s
+               {
+                 priority;
+                 events;
+                 handler =
+                   (fun e ->
+                     resume e;
+                     []);
+               });
+       })
+
+let reschedule ?(delay = 0.) ~priority s =
+  ignore (await ~priority s [`Delay delay])
+
+(* A deep handler is part of the continuation it captures, so resuming
+   reinstates it and the computation can park again. Parking registers an
+   ordinary task whose handler resumes, which is why the task returns no new
+   work of its own. *)
+let run fn =
+  let open Effect.Deep in
+  match_with fn ()
+    {
+      retc = (fun () -> ());
+      exnc = (fun exn -> raise exn);
+      effc =
+        (fun (type a) (e : a Effect.t) ->
+          match e with
+            | Await { park } ->
+                Some
+                  (fun (k : (a, unit) continuation) ->
+                    park (fun events -> continue k events))
+            | _ -> None);
+    }
+
 let tmp = Bytes.create 1024
 
 type 'a work = Batch of (unit -> 'a t list) list | One of (unit -> 'a t list)
