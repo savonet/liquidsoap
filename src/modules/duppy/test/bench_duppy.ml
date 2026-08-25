@@ -103,12 +103,11 @@ let () =
   Printf.printf "\nLateness of a 20ms periodic thread\n";
   List.iter
     (fun load ->
-      if load < cores then begin
-        let l = jitter ~domains:cores ~load in
-        Printf.printf
-          "  busy tasks=%-2d  p50=%6.2fms  p99=%6.2fms  max=%6.2fms\n%!" load
-          (percentile l 0.5 *. 1e3)
-          (percentile l 0.99 *. 1e3)
-          (List.fold_left max 0. l *. 1e3)
-      end)
+      let l = jitter ~domains:cores ~load in
+      Printf.printf
+        "  busy tasks=%-2d  p50=%6.2fms  p99=%6.2fms  max=%6.2fms%s\n%!" load
+        (percentile l 0.5 *. 1e3)
+        (percentile l 0.99 *. 1e3)
+        (List.fold_left max 0. l *. 1e3)
+        (if cores <= load then "  (oversubscribed)" else ""))
     [0; 2; 4; 7]

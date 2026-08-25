@@ -50,6 +50,7 @@ type worker = {
   worker_m : Mutex.t;
   worker_c : Condition.t;
   mutable wake : bool;
+  mutable took_batch : bool;
   blocking : int Atomic.t;
 }
 
@@ -277,24 +278,29 @@ let take_work s w =
   let immediate, blocking =
     List.partition (fun (p, _) -> s.classify p = `Immediate) s.ready
   in
-  match immediate with
-    | _ :: _ ->
+  let can_block =
+    blocking <> [] && Atomic.get w.blocking < s.blocking_per_worker
+  in
+  (* A worker alternates between the two classes. Taking every ready immediate
+     task on every round starves blocking work whenever the ready list refills
+     as fast as it drains, which a lone worker cannot escape by leaving the
+     rest to someone else. *)
+    match immediate with
+    | _ :: _ when not (w.took_batch && can_block) ->
         s.ready <- blocking;
+        w.took_batch <- true;
         ( Some (Batch (List.rev_map snd immediate)),
           take_idle s (List.length blocking) )
-    | [] -> (
-        match blocking with
-          | [] -> (None, [])
-          | _ when s.blocking_per_worker <= Atomic.get w.blocking -> (None, [])
-          | first :: _ ->
-              let best =
-                List.fold_left
-                  (fun best x ->
-                    if s.compare (fst x) (fst best) < 0 then x else best)
-                  first blocking
-              in
-              s.ready <- List.filter (fun x -> x != best) blocking;
-              (Some (One (snd best)), take_idle s (List.length s.ready)))
+    | _ when can_block ->
+        let best =
+          List.fold_left
+            (fun best x -> if s.compare (fst x) (fst best) < 0 then x else best)
+            (List.hd blocking) blocking
+        in
+        s.ready <- List.filter (fun x -> x != best) s.ready;
+        w.took_batch <- false;
+        (Some (One (snd best)), take_idle s (List.length s.ready))
+    | _ -> (None, [])
 
 let run_task s fn =
   match fn () with
@@ -425,6 +431,7 @@ let start ?domains ?(max_blocking = 64) ?log:logger s =
           worker_m = Mutex.create ();
           worker_c = Condition.create ();
           wake = false;
+          took_batch = false;
           blocking = Atomic.make 0;
         })
   in

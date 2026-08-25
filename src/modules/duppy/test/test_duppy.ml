@@ -225,6 +225,40 @@ let test_await_outside_run () =
     | exception Effect.Unhandled _ ->
         ok "await outside run raises Effect.Unhandled"
 
+(* A lone worker facing a ready list that refills as fast as it drains must
+   still dispatch the other class. *)
+let test_no_starvation () =
+  let s = Duppy.create ~classify () in
+  let stop = Atomic.make false in
+  let blocking_ran = Atomic.make false in
+  let l = latch () in
+  let rec churn _ =
+    if Atomic.get stop then []
+    else
+      [
+        {
+          Duppy.Task.priority = Immediate;
+          events = [`Delay (-1.)];
+          handler = churn;
+        };
+      ]
+  in
+  for _ = 1 to 20 do
+    Duppy.Task.add s (task Immediate churn)
+  done;
+  Duppy.Task.add s
+    (task Blocking (fun _ ->
+         Atomic.set blocking_ran true;
+         bump l;
+         []));
+  Duppy.start ~domains:1 s;
+  await l 1;
+  Atomic.set stop true;
+  Duppy.stop s;
+  if not (Atomic.get blocking_ran) then
+    fail "a flood of immediate tasks starved the blocking one";
+  ok "one worker dispatched blocking work under an immediate flood"
+
 let () =
   watchdog 60.;
   test_parallel ();
@@ -235,4 +269,5 @@ let () =
   test_effect_resumes_elsewhere ();
   test_effect_raises_to_on_error ();
   test_await_outside_run ();
+  test_no_starvation ();
   print_endline "all duppy pool checks passed"
