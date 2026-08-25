@@ -86,6 +86,48 @@ let jitter ~domains ~load =
   Duppy.stop s;
   !lateness
 
+(* What one turn of the loop costs while N tasks sit waiting on quiet sockets:
+   the shape of a harbor with that many connected-but-silent clients. *)
+let idle_cost ~idle ~rounds =
+  let s = Duppy.create ~classify () in
+  let keep =
+    List.init idle (fun _ ->
+        let a, b = Unix.socketpair Unix.PF_UNIX Unix.SOCK_STREAM 0 in
+        Duppy.Task.add s
+          {
+            Duppy.Task.priority = Blocking;
+            events = [`Read a];
+            handler = (fun _ -> []);
+          };
+        (a, b))
+  in
+  let l = latch () in
+  let rec ping _ =
+    bump l;
+    if Atomic.get l.n < rounds then
+      [
+        {
+          Duppy.Task.priority = Blocking;
+          events = [`Delay 1e-6];
+          handler = ping;
+        };
+      ]
+    else []
+  in
+  let start = Unix.gettimeofday () in
+  Duppy.Task.add s
+    { Duppy.Task.priority = Blocking; events = [`Delay 1e-6]; handler = ping };
+  Duppy.start ~domains:2 s;
+  await l rounds;
+  let elapsed = Unix.gettimeofday () -. start in
+  Duppy.stop s;
+  List.iter
+    (fun (a, b) ->
+      Unix.close a;
+      Unix.close b)
+    keep;
+  elapsed *. 1e6 /. float_of_int rounds
+
 let () =
   let cores = Domain.recommended_domain_count () in
   Printf.printf "%d cores available\n\n%!" cores;
@@ -110,4 +152,10 @@ let () =
         (percentile l 0.99 *. 1e3)
         (List.fold_left max 0. l *. 1e3)
         (if cores <= load then "  (oversubscribed)" else ""))
-    [0; 2; 4; 7]
+    [0; 2; 4; 7];
+  Printf.printf "\nCost of one loop turn vs waiting tasks\n";
+  List.iter
+    (fun idle ->
+      Printf.printf "  idle tasks=%-5d %6.1f us/turn\n%!" idle
+        (idle_cost ~idle ~rounds:2000))
+    [0; 100; 500; 1000; 2000]

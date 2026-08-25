@@ -23,22 +23,71 @@
 module Pcre = Re.Pcre
 
 type fd = Unix.file_descr
+type event = [ `Delay of float | `Write of fd | `Read of fd | `Exception of fd ]
 
-let select, select_fname =
-  match Sys.os_type with
-    | "Unix" -> (Unix_utils.poll, "poll")
-    | _ -> (Unix_utils.select, "select")
-
-(** Events and tasks from the implementation point-of-view: * we have to hide
-    the 'a parameter. *)
-
-type e = { r : fd list; w : fd list; x : fd list; t : float }
-
+(** A task waiting to run: what it waits on, when its earliest delay elapses and
+    what to run with whichever of its events fired. [dispatched] retires the
+    entry a task leaves behind in the timer index when a descriptor fired first.
+*)
 type 'a t = {
+  id : int;
   prio : 'a;
-  enrich : e -> e;
-  is_ready : e -> (unit -> 'a t list) option;
+  t0 : float;
+  events : event list;
+  deadline : float;
+  fire : event list -> 'a t list;
+  mutable dispatched : bool;
 }
+
+(** Waiting tasks ordered by when they expire, the id breaking ties between
+    tasks sharing a deadline. *)
+module Timers = Map.Make (struct
+  type t = float * int
+
+  let compare = compare
+end)
+
+let next_id = Atomic.make 0
+let time () = Unix.gettimeofday ()
+let no_interest = { Pollset.read = false; write = false; except = false }
+
+let fds_of_events events =
+  List.sort_uniq compare
+    (List.filter_map
+       (function
+         | `Read fd | `Write fd | `Exception fd -> Some fd | `Delay _ -> None)
+       events)
+
+let interest_for fd events =
+  List.fold_left
+    (fun acc ev ->
+      match ev with
+        | `Read f when f = fd -> { acc with Pollset.read = true }
+        | `Write f when f = fd -> { acc with Pollset.write = true }
+        | `Exception f when f = fd -> { acc with Pollset.except = true }
+        | _ -> acc)
+    no_interest events
+
+(** Which of [t]'s events have fired, given what a wait reported. A descriptor
+    in error satisfies whatever it was awaited for, so the task runs and finds
+    out. *)
+let fired_events t ready =
+  let of_fd fd = List.assoc_opt fd ready in
+  List.filter
+    (fun ev ->
+      match ev with
+        | `Delay d -> time () >= t.t0 +. d
+        | `Read fd -> (
+            match of_fd fd with
+              | Some i -> i.Pollset.read || i.Pollset.except
+              | None -> false)
+        | `Write fd -> (
+            match of_fd fd with
+              | Some i -> i.Pollset.write || i.Pollset.except
+              | None -> false)
+        | `Exception fd -> (
+            match of_fd fd with Some i -> i.Pollset.except | None -> false))
+    t.events
 
 type execution_class = [ `Immediate | `Blocking ]
 
@@ -67,7 +116,9 @@ type 'a scheduler = {
   wrapper : wrapper;
   out_pipe : fd;
   in_pipe : fd;
-  mutable tasks : 'a t list;
+  pollset : Pollset.t;
+  by_fd : (fd, 'a t list) Hashtbl.t;
+  mutable timers : 'a t Timers.t;
   tasks_m : Mutex.t;
   mutable ready : ('a * (unit -> 'a t list)) list;
   mutable idle : worker list;
@@ -79,9 +130,54 @@ type 'a scheduler = {
   mutable domains : unit Domain.t list;
 }
 
+(** The interest registered for a descriptor is the union of what the tasks
+    waiting on it want, so dropping one task does not stop watching for the
+    others. [s.tasks_m] must be held. *)
+let rearm s fd =
+  match Hashtbl.find_opt s.by_fd fd with
+    | None | Some [] ->
+        Hashtbl.remove s.by_fd fd;
+        Pollset.remove s.pollset fd
+    | Some tasks ->
+        Pollset.set s.pollset fd
+          (List.fold_left
+             (fun acc t ->
+               let i = interest_for fd t.events in
+               {
+                 Pollset.read = acc.Pollset.read || i.Pollset.read;
+                 write = acc.Pollset.write || i.Pollset.write;
+                 except = acc.Pollset.except || i.Pollset.except;
+               })
+             no_interest tasks)
+
+let register s t =
+  List.iter
+    (fun fd ->
+      Hashtbl.replace s.by_fd fd
+        (t :: Option.value ~default:[] (Hashtbl.find_opt s.by_fd fd));
+      rearm s fd)
+    (fds_of_events t.events);
+  if t.deadline < infinity then
+    s.timers <- Timers.add (t.deadline, t.id) t s.timers
+
+let unregister s t =
+  List.iter
+    (fun fd ->
+      (match Hashtbl.find_opt s.by_fd fd with
+        | None -> ()
+        | Some tasks ->
+            Hashtbl.replace s.by_fd fd
+              (List.filter (fun x -> x.id <> t.id) tasks));
+      rearm s fd)
+    (fds_of_events t.events);
+  if t.deadline < infinity then
+    s.timers <- Timers.remove (t.deadline, t.id) s.timers
+
 let clear_tasks s =
   Mutex.lock s.tasks_m;
-  s.tasks <- [];
+  Hashtbl.iter (fun fd _ -> Pollset.remove s.pollset fd) s.by_fd;
+  Hashtbl.reset s.by_fd;
+  s.timers <- Timers.empty;
   Mutex.unlock s.tasks_m
 
 let default_on_fatal exn bt =
@@ -98,6 +194,9 @@ let create ?(on_error = Printexc.raise_with_backtrace)
      non-blocking, and a blocking wake-up write could hang its caller. *)
   let out_pipe, in_pipe = Unix_utils.socketpair () in
   Unix.set_nonblock in_pipe;
+  let pollset = Pollset.create () in
+  Pollset.set pollset out_pipe
+    { Pollset.read = true; write = false; except = false };
   {
     on_error;
     on_fatal;
@@ -107,7 +206,9 @@ let create ?(on_error = Printexc.raise_with_backtrace)
     wrapper;
     out_pipe;
     in_pipe;
-    tasks = [];
+    pollset;
+    by_fd = Hashtbl.create 64;
+    timers = Timers.empty;
     tasks_m = Mutex.create ();
     ready = [];
     idle = [];
@@ -161,8 +262,7 @@ let wake_worker s w =
 module Task = struct
   (** Events and tasks from the user's point-of-view. *)
 
-  type event =
-    [ `Delay of float | `Write of fd | `Read of fd | `Exception of fd ]
+  type nonrec event = event
 
   type ('a, 'b) task = {
     priority : 'a;
@@ -170,51 +270,41 @@ module Task = struct
     handler : 'b list -> ('a, 'b) task list;
   }
 
-  let time () = Unix.gettimeofday ()
-
   let rec t_of_task (task : ('a, [< event ]) task) =
     let t0 = time () in
+    let events = (task.events :> event list) in
     {
+      id = Atomic.fetch_and_add next_id 1;
       prio = task.priority;
-      enrich =
-        (fun e ->
-          List.fold_left
-            (fun e -> function
-              | `Delay s -> { e with t = min e.t (t0 +. s) }
-              | `Read s -> { e with r = s :: e.r }
-              | `Write s -> { e with w = s :: e.w }
-              | `Exception s -> { e with x = s :: e.x })
-            e task.events);
-      is_ready =
-        (fun e ->
+      t0;
+      events;
+      deadline =
+        List.fold_left
+          (fun d -> function `Delay s -> min d (t0 +. s) | _ -> d)
+          infinity events;
+      fire =
+        (fun fired ->
           let l =
-            List.filter
-              (fun evt ->
-                match (evt :> event) with
-                  | `Delay s when time () > t0 +. s -> true
-                  | `Read s when List.mem s e.r -> true
-                  | `Write s when List.mem s e.w -> true
-                  | `Exception s when List.mem s e.x -> true
-                  | _ -> false)
-              task.events
+            List.filter (fun ev -> List.mem (ev :> event) fired) task.events
           in
-          if l = [] then None
-          else Some (fun () -> List.map t_of_task (task.handler l)));
+          List.map t_of_task (task.handler l));
+      dispatched = false;
     }
 
   let add_t s items =
     let ready = ref 0 in
     let f item =
-      match item.is_ready { r = []; w = []; x = []; t = 0. } with
-        | Some f ->
+      match fired_events item [] with
+        | [] ->
+            Mutex.lock s.tasks_m;
+            register s item;
+            Mutex.unlock s.tasks_m
+        | fired ->
+            item.dispatched <- true;
             Mutex.lock s.ready_m;
-            s.ready <- (item.prio, f) :: s.ready;
+            s.ready <- (item.prio, fun () -> item.fire fired) :: s.ready;
             Mutex.unlock s.ready_m;
             incr ready
-        | None ->
-            Mutex.lock s.tasks_m;
-            s.tasks <- item :: s.tasks;
-            Mutex.unlock s.tasks_m
     in
     List.iter f items;
     if 0 < !ready then wake_idle s !ready;
@@ -365,55 +455,70 @@ let dispatch s w =
 
 (** Wait for events, then move the tasks they woke to the ready list. *)
 let poll_once s =
-  let e =
+  let timeout =
     Mutex.protect s.tasks_m (fun () ->
-        List.fold_left
-          (fun e t -> t.enrich e)
-          { r = [s.out_pipe]; w = []; x = []; t = infinity }
-          s.tasks)
+        match Timers.min_binding_opt s.timers with
+          | None -> -1.
+          | Some ((deadline, _), _) -> max 0. (deadline -. time ()))
   in
-  let r, w, x =
-    try
-      let timeout = if e.t = infinity then -1. else max 0. (e.t -. time ()) in
-      log s (fun () ->
-          Printf.sprintf "Enter %s at %f, timeout %f (%d/%d/%d)." select_fname
-            (time ()) timeout (List.length e.r) (List.length e.w)
-            (List.length e.x));
-      let r, w, x = select e.r e.w e.x timeout in
-      log s (fun () ->
-          Printf.sprintf "Left %s at %f (%d/%d/%d)." select_fname (time ())
-            (List.length r) (List.length w) (List.length x));
-      (r, w, x)
+  log s (fun () ->
+      Printf.sprintf "Waiting on %s at %f, timeout %f."
+        (Pollset.backend s.pollset)
+        (time ()) timeout);
+  let fired =
+    try Pollset.wait s.pollset ~timeout
     with exn ->
-      (* We do not know which socket caused the error, so every task currently
-         in the loop is discarded. *)
+      (* We do not know which descriptor caused the error, so every task
+         currently in the loop is discarded. *)
       clear_tasks s;
       raise exn
   in
+  log s (fun () ->
+      Printf.sprintf "Woke at %f (%d)." (time ()) (List.length fired));
   (* Absorb more than one write: excessive wake-ups would otherwise fill the
      socket's buffer and make [wake_up] block. *)
-  if List.mem s.out_pipe r then ignore (Unix_utils.read s.out_pipe tmp 0 1024);
-  let e = { r; w; x; t = 0. } in
-  let ready =
+  if List.mem_assoc s.out_pipe fired then
+    ignore (Unix_utils.read s.out_pipe tmp 0 1024);
+  let collected =
     Mutex.protect s.tasks_m (fun () ->
-        let ready, waiting =
-          List.fold_left
-            (fun (ready, waiting) t ->
-              match t.is_ready e with
-                | Some fn -> ((t.prio, fn) :: ready, waiting)
-                | None -> (ready, t :: waiting))
-            ([], []) s.tasks
+        let collected = ref [] in
+        let take t =
+          if not t.dispatched then (
+            match fired_events t fired with
+              | [] -> ()
+              | events ->
+                  t.dispatched <- true;
+                  collected := (t, events) :: !collected)
         in
-        s.tasks <- waiting;
-        ready)
+        List.iter
+          (fun (fd, _) ->
+            match Hashtbl.find_opt s.by_fd fd with
+              | None -> ()
+              | Some tasks -> List.iter take tasks)
+          fired;
+        let now = time () in
+        let rec expired () =
+          match Timers.min_binding_opt s.timers with
+            | Some ((deadline, _), t) when deadline <= now ->
+                s.timers <- Timers.remove (deadline, t.id) s.timers;
+                take t;
+                expired ()
+            | _ -> ()
+        in
+        expired ();
+        List.iter (fun (t, _) -> unregister s t) !collected;
+        !collected)
   in
-  match ready with
+  match collected with
     | [] -> ()
     | _ ->
         let wake =
           Mutex.protect s.ready_m (fun () ->
-              s.ready <- List.rev_append ready s.ready;
-              take_idle s (List.length ready))
+              List.iter
+                (fun (t, events) ->
+                  s.ready <- (t.prio, fun () -> t.fire events) :: s.ready)
+                collected;
+              take_idle s (List.length collected))
         in
         List.iter signal_worker wake
 
@@ -465,7 +570,8 @@ let stop s =
     List.iter signal_worker s.workers;
     List.iter Domain.join s.domains;
     s.domains <- [];
-    s.workers <- []
+    s.workers <- [];
+    Pollset.close s.pollset
   end
 
 module Async = struct
