@@ -60,7 +60,8 @@ let percentile l p =
 
 let jitter ~domains ~load =
   let s = Duppy.create ~classify () in
-  let ticks = 300 and period = 0.02 in
+  let ticks = 300 in
+  let period = 0.02 in
   let running = Atomic.make true in
   let rec spin _ =
     burn 200_000;

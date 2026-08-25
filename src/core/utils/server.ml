@@ -160,49 +160,6 @@ let remove ~ns cmd =
     (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
     ()
 
-(* That's if you want to have your command wait. *)
-type condition = {
-  wait : (unit -> string) -> unit;
-  signal : unit -> unit;
-  broadcast : unit -> unit;
-}
-
-module Mutex_control = struct
-  type priority = Tutils.priority
-
-  let scheduler = Tutils.scheduler
-  let priority = `Non_blocking
-end
-
-module Duppy_m = Duppy.Monad.Mutex.Factory (Mutex_control)
-module Duppy_c = Duppy.Monad.Condition.Factory (Duppy_m)
-
-type server_condition = {
-  condition : Duppy_c.condition;
-  mutex : Duppy_m.mutex;
-  resume : unit -> string;
-}
-
-exception Server_wait of server_condition
-
-let condition () =
-  let mutex = Duppy_m.create () in
-  let condition = Duppy_c.create () in
-  let wait resume = raise (Server_wait { mutex; condition; resume }) in
-  let signal () =
-    Duppy.Monad.run
-      ~return:(fun () -> ())
-      ~raise:(fun exn -> raise exn)
-      (Duppy_c.signal condition)
-  in
-  let broadcast () =
-    Duppy.Monad.run
-      ~return:(fun () -> ())
-      ~raise:(fun exn -> raise exn)
-      (Duppy_c.broadcast condition)
-  in
-  { wait; signal; broadcast }
-
 type ('a, 'b) interruption = { payload : 'a; after : 'b -> string }
 type write = (string, unit) interruption
 
@@ -262,7 +219,6 @@ let exec s =
     let command, _, _ = Mutex_utils.mutexify lock (Hashtbl.find commands) s in
     command args
   with
-    | Server_wait opts -> raise (Server_wait opts)
     | Write opts -> raise (Write opts)
     | Read opts -> raise (Read opts)
     | Exit -> raise Exit
@@ -302,9 +258,6 @@ let handle_client socket ip =
     in
     let rec run exec =
       try Duppy.Monad.return (exec ()) with
-        | Server_wait opts ->
-            let* () = Duppy_c.wait opts.condition opts.mutex in
-            run opts.resume
         | Write opts ->
             (* Make sure write are synchronous by setting TCP_NODELAY off and off. *)
             Unix.setsockopt socket Unix.TCP_NODELAY false;

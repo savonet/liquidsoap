@@ -56,16 +56,6 @@ type namespace = string list
 (** Get a string representation of a namespace. *)
 val to_string : namespace -> string
 
-(** Specialized implementation of conditions to use in server commands. *)
-type condition = {
-  wait : (unit -> string) -> unit;
-  signal : unit -> unit;
-  broadcast : unit -> unit;
-}
-
-(** [condition ()] instantiates a server command condition. *)
-val condition : unit -> condition
-
 (** Partial response write without returning. *)
 val write : after:(unit -> string) -> string -> unit
 

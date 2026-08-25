@@ -59,26 +59,33 @@ let ran_on domains =
   Array.iteri (fun i d -> if d < 0 then fail "task %d never ran" i) domains;
   List.length (List.sort_uniq compare (Array.to_list domains))
 
+(* One blocking slot per worker, and every task holds its slot until all of
+   them are running: they can only all make progress if each landed on a
+   different worker, so a pool that dispatches to one domain deadlocks here
+   rather than passing. *)
 let test_parallel () =
   let s = Duppy.create ~classify () in
-  let l = latch () in
-  let count = 16 in
+  let started = latch () in
+  let finished = latch () in
+  let count = 4 in
   let domains = Array.make count (-1) in
   for i = 0 to count - 1 do
     Duppy.Task.add s
       (task Blocking (fun _ ->
-           burn 3_000_000;
            domains.(i) <- domain_id ();
-           bump l;
+           bump started;
+           await started count;
+           bump finished;
            []))
   done;
-  Duppy.start ~domains:4 s;
-  await l count;
+  Duppy.start ~domains:count ~max_blocking:count s;
+  await finished count;
   Duppy.stop s;
   let distinct = ran_on domains in
-  if distinct < 2 then
-    fail "%d tasks all ran on one domain, the pool is not parallel" count;
-  ok "%d blocking tasks ran across %d domains" count distinct
+  if distinct <> count then
+    fail "%d concurrent tasks ran on %d domains, expected %d" count distinct
+      count;
+  ok "%d blocking tasks ran concurrently on %d domains" count distinct
 
 let test_batch () =
   let s = Duppy.create ~classify () in
@@ -127,7 +134,8 @@ let test_stop_drains () =
   let count = 8 in
   for _ = 1 to 5 do
     let s = Duppy.create ~classify () in
-    let started = latch () and finished = latch () in
+    let started = latch () in
+    let finished = latch () in
     for _ = 1 to count do
       Duppy.Task.add s
         (task Blocking (fun _ ->
