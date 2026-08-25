@@ -61,6 +61,8 @@
   caps how many blocking tasks — request resolutions, `thread.run` handlers, last.fm submissions — run at once.
 - Task priorities are ordered explicitly, so a request resolution is picked before a last.fm submission.
   Polymorphic comparison ordered them by name hash, which happened to prefer the slow ones.
+- Harbor and the telnet server read and write their sockets as ordinary sequential code: duppy computations park
+  on an effect and carry on where they left off, replacing the CPS monad that OCaml 4 required.
 - Bindings written without `let` accept the same targets as `let` — destructuring patterns, field paths and type
   annotations — so `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid, and an invalid left-hand side
   reports what is allowed instead of a bare syntax error. A leading binding inside the `{ … }` function shorthand

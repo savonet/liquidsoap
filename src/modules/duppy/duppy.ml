@@ -530,35 +530,22 @@ end
 module type Transport_t = sig
   type t
 
-  type bigarray =
-    (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
   val sock : t -> Unix.file_descr
   val read : t -> Bytes.t -> int -> int -> int
   val write : t -> Bytes.t -> int -> int -> int
-  val ba_write : t -> bigarray -> int -> int -> int
 end
 
 module Unix_transport : Transport_t with type t = Unix.file_descr = struct
   type t = Unix.file_descr
 
-  type bigarray =
-    (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
   let sock s = s
   let read = Unix_utils.read
   let write = Unix_utils.write
-
-  external ba_write : t -> bigarray -> int -> int -> int
-    = "ocaml_duppy_write_ba"
 end
 
 module type Io_t = sig
   type socket
   type marker = Length of int | Split of string
-
-  type bigarray =
-    (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
   type failure =
     | Io_error
@@ -566,29 +553,32 @@ module type Io_t = sig
     | Unknown of exn * Printexc.raw_backtrace
     | Timeout
 
-  val read :
-    ?recursive:bool ->
-    ?init:string ->
-    ?on_error:(string * failure -> unit) ->
-    ?timeout:float ->
-    priority:'a ->
-    'a scheduler ->
-    socket ->
-    marker ->
-    (string * string option -> unit) ->
-    unit
+  (** Raised by [read] and [write]. On a read, whatever had been read before the
+      failure is left in the handle's [data]. *)
+  exception Error of failure
+
+  (** [data] holds what a read consumed past its marker, which the next read on
+      the same socket picks up. *)
+  type 'a handle = {
+    scheduler : 'a scheduler;
+    socket : socket;
+    mutable data : string;
+  }
+
+  val handle : 'a scheduler -> socket -> 'a handle
+
+  (** [read ?timeout ~priority h marker] returns the data up to [marker],
+      parking the computation until enough has arrived. [timeout] applies to
+      each wait rather than to the call. *)
+  val read : ?timeout:float -> priority:'a -> 'a handle -> marker -> string
 
   val write :
-    ?exec:(unit -> unit) ->
-    ?on_error:(failure -> unit) ->
-    ?bigarray:bigarray ->
+    ?timeout:float ->
     ?offset:int ->
     ?length:int ->
-    ?string:Bytes.t ->
-    ?timeout:float ->
     priority:'a ->
-    'a scheduler ->
-    socket ->
+    'a handle ->
+    Bytes.t ->
     unit
 end
 
@@ -603,367 +593,122 @@ struct
     | Unknown of exn * Printexc.raw_backtrace
     | Timeout
 
-  exception Io
-  exception Timeout_exc
+  exception Error of failure
 
-  type bigarray =
-    (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  type 'a handle = {
+    scheduler : 'a scheduler;
+    socket : socket;
+    mutable data : string;
+  }
 
-  let read ?(recursive = false) ?(init = "") ?(on_error = fun _ -> ()) ?timeout
-      ~priority (scheduler : 'a scheduler) socket marker exec =
+  let handle scheduler socket = { scheduler; socket; data = "" }
+
+  (** Split a buffer at [marker], returning what precedes it and what follows,
+      or [None] while the marker has not arrived. The marker is resolved once so
+      that a [Split] pattern is compiled per read rather than per chunk. *)
+  let matcher = function
+    | Split r ->
+        let rex = Pcre.regexp r in
+        let rec find = function
+          | Pcre.Text s :: Pcre.Delim _ :: rest ->
+              let rem = Buffer.create 10 in
+              List.iter
+                (function
+                  | Pcre.Text s | Pcre.Delim s -> Buffer.add_string rem s
+                  | _ -> ())
+                rest;
+              Some (s, Buffer.contents rem)
+          | _ :: rest -> find rest
+          | [] -> None
+        in
+        fun buffer ->
+          find (Pcre.full_split ~max:2 ~rex (Buffer.contents buffer))
+    | Length n ->
+        fun buffer ->
+          if n <= Buffer.length buffer then
+            Some
+              ( Buffer.sub buffer 0 n,
+                Buffer.sub buffer n (Buffer.length buffer - n) )
+          else None
+
+  let wait_events ~timeout socket =
+    match timeout with
+      | None -> ([`Read socket], fun _ -> false)
+      | Some t -> ([`Read socket; `Delay t], List.mem (`Delay t))
+
+  let read ?timeout ~priority h marker =
     let length = 1024 in
-    let b = Buffer.create length in
+    let buffer = Buffer.create length in
     let buf = Bytes.make length ' ' in
-    Buffer.add_string b init;
-    let unix_socket = Transport.sock socket in
-    let events, check_timeout =
-      match timeout with
-        | None -> ([`Read unix_socket], fun _ -> false)
-        | Some f -> ([`Read unix_socket; `Delay f], List.mem (`Delay f))
+    Buffer.add_string buffer h.data;
+    h.data <- "";
+    let socket = Transport.sock h.socket in
+    let events, timed_out = wait_events ~timeout socket in
+    let take = matcher marker in
+    let fail failure =
+      h.data <- Buffer.contents buffer;
+      raise (Error failure)
     in
-    let rec f l =
-      if check_timeout l then raise Timeout_exc;
-      if List.mem (`Read unix_socket) l then begin
-        let input = Transport.read socket buf 0 length in
-        if input <= 0 then raise Io;
-        Buffer.add_subbytes b buf 0 input
-      end;
-      let ret =
-        match marker with
-          | Split r ->
-              let rex = Pcre.regexp r in
-              let acc = Buffer.contents b in
-              let ret = Pcre.full_split ~max:2 ~rex acc in
-              let rec p l =
-                match l with
-                  | Pcre.Text x :: Pcre.Delim _ :: l ->
-                      let f b x =
-                        match x with
-                          | Pcre.Text s | Pcre.Delim s -> Buffer.add_string b s
-                          | _ -> ()
-                      in
-                      if recursive then begin
-                        Buffer.reset b;
-                        List.iter (f b) l;
-                        Some (x, None)
-                      end
-                      else begin
-                        let b = Buffer.create 10 in
-                        List.iter (f b) l;
-                        Some (x, Some (Buffer.contents b))
-                      end
-                  | _ :: l' -> p l'
-                  | [] -> None
-              in
-              p ret
-          | Length n when n <= Buffer.length b ->
-              let s = Buffer.sub b 0 n in
-              let rem = Buffer.sub b n (Buffer.length b - n) in
-              if recursive then begin
-                Buffer.reset b;
-                Buffer.add_string b rem;
-                Some (s, None)
-              end
-              else Some (s, Some rem)
-          | _ -> None
-      in
-      (* Catch all exceptions.. *)
-      let f x =
-        try f x with
-          | Io ->
-              on_error (Buffer.contents b, Io_error);
-              []
-          | Timeout_exc ->
-              on_error (Buffer.contents b, Timeout);
-              []
-          | Unix.Unix_error (x, y, z) ->
-              let bt = Printexc.get_raw_backtrace () in
-              on_error (Buffer.contents b, Unix (x, y, z, bt));
-              []
-          | e ->
-              let bt = Printexc.get_raw_backtrace () in
-              on_error (Buffer.contents b, Unknown (e, bt));
-              []
-      in
-      match ret with
-        | Some x -> (
-            match x with
-              | s, Some _ when recursive ->
-                  exec (s, None);
-                  [{ priority; events; handler = f }]
-              | _ ->
-                  exec x;
-                  [])
-        | None -> [{ priority; events; handler = f }]
+    let rec loop () =
+      match take buffer with
+        | Some (s, rem) ->
+            h.data <- rem;
+            s
+        | None ->
+            let fired = await ~priority h.scheduler events in
+            if timed_out fired then fail Timeout;
+            let n =
+              try Transport.read h.socket buf 0 length with
+                | Unix.Unix_error (x, y, z) ->
+                    fail (Unix (x, y, z, Printexc.get_raw_backtrace ()))
+                | e -> fail (Unknown (e, Printexc.get_raw_backtrace ()))
+            in
+            if n <= 0 then fail Io_error;
+            Buffer.add_subbytes buffer buf 0 n;
+            loop ()
     in
-    (* Catch all exceptions.. *)
-    let f x =
-      try f x with
-        | Io ->
-            on_error (Buffer.contents b, Io_error);
-            []
-        | Timeout_exc ->
-            on_error (Buffer.contents b, Timeout);
-            []
-        | Unix.Unix_error (x, y, z) ->
-            let bt = Printexc.get_raw_backtrace () in
-            on_error (Buffer.contents b, Unix (x, y, z, bt));
-            []
-        | e ->
-            let bt = Printexc.get_raw_backtrace () in
-            on_error (Buffer.contents b, Unknown (e, bt));
-            []
-    in
-    (* First one is without read,
-     * in case init contains the wanted match.
-     * Unless the user sets timeout to 0., this
-     * should not interfere with user-defined timeout.. *)
-    let task =
-      { priority; events = [`Delay 0.; `Read unix_socket]; handler = f }
-    in
-    add scheduler task
+    loop ()
 
-  let write ?(exec = fun () -> ()) ?(on_error = fun _ -> ()) ?bigarray
-      ?(offset = 0) ?length ?string ?timeout ~priority
-      (scheduler : 'a scheduler) socket =
-    let length, write =
-      match (string, bigarray) with
-        | Some s, _ ->
-            let length =
-              match length with Some length -> length | None -> Bytes.length s
-            in
-            (length, Transport.write socket s)
-        | None, Some b ->
-            let length =
-              match length with
-                | Some length -> length
-                | None -> Bigarray.Array1.dim b
-            in
-            (length, Transport.ba_write socket b)
-        | _ -> (0, fun _ _ -> 0)
-    in
-    let unix_socket = Transport.sock (socket : Transport.t) in
-    let exec () =
-      if Sys.os_type = "Win32" then Unix.clear_nonblock unix_socket;
-      exec ()
-    in
-    let events, check_timeout =
+  let write ?timeout ?(offset = 0) ?length ~priority h data =
+    let len = match length with Some len -> len | None -> Bytes.length data in
+    let socket = Transport.sock h.socket in
+    let events, timed_out =
       match timeout with
-        | None -> ([`Write unix_socket], fun _ -> false)
-        | Some f -> ([`Write unix_socket; `Delay f], List.mem (`Delay f))
+        | None -> ([`Write socket], fun _ -> false)
+        | Some t -> ([`Write socket; `Delay t], List.mem (`Delay t))
     in
-    let rec f pos l =
-      try
-        if check_timeout l then raise Timeout_exc;
-        assert (List.exists (( = ) (`Write unix_socket)) l);
-        let len = length - pos in
-        let n = write pos len in
-        if n <= 0 then (
-          on_error Io_error;
-          [])
-        else if n < len then
-          [{ priority; events = [`Write unix_socket]; handler = f (pos + n) }]
-        else (
-          exec ();
-          [])
-      with
-        | Unix.Unix_error (Unix.EWOULDBLOCK, _, _) when Sys.os_type = "Win32" ->
-            [{ priority; events = [`Write unix_socket]; handler = f pos }]
-        | Timeout_exc ->
-            on_error Timeout;
-            []
-        | Unix.Unix_error (x, y, z) ->
-            let bt = Printexc.get_raw_backtrace () in
-            on_error (Unix (x, y, z, bt));
-            []
-        | e ->
-            let bt = Printexc.get_raw_backtrace () in
-            on_error (Unknown (e, bt));
-            []
+    (* Win32 blocks on a blocking socket rather than accepting a partial write,
+       and does not report writability while the socket still has room: there
+       the socket goes non-blocking and we write as much as it takes. *)
+    let win32 = Sys.os_type = "Win32" in
+    let restore () = if win32 then Unix.clear_nonblock socket in
+    let fail failure =
+      restore ();
+      raise (Error failure)
     in
-    let task = { priority; events; handler = f offset } in
-    if length > 0 then
-      (* Win32 is particularly bad with writing on sockets. It is nearly impossible
-       * to write proper non-blocking code. send will block on blocking sockets if
-       * there isn't enough data available instead of returning a partial buffer
-       * and WSAEventSelect will not return if the socket still has available space.
-       * Thus, setting the socket to non-blocking and writing as much as we can. *)
-      if Sys.os_type = "Win32" then begin
-        Unix.set_nonblock unix_socket;
-        List.iter (add scheduler) (f offset [`Write unix_socket])
+    let wait () =
+      let fired = await ~priority h.scheduler events in
+      if timed_out fired then fail Timeout
+    in
+    if win32 then Unix.set_nonblock socket;
+    let rec loop pos =
+      if pos < len then begin
+        if not win32 then wait ();
+        let n =
+          try Transport.write h.socket data pos (len - pos) with
+            | Unix.Unix_error (Unix.EWOULDBLOCK, _, _) when win32 ->
+                wait ();
+                -1
+            | Unix.Unix_error (x, y, z) ->
+                fail (Unix (x, y, z, Printexc.get_raw_backtrace ()))
+            | e -> fail (Unknown (e, Printexc.get_raw_backtrace ()))
+        in
+        if n = 0 then fail Io_error;
+        loop (pos + max 0 n)
       end
-      else add scheduler task
-    else exec ()
+    in
+    loop offset;
+    restore ()
 end
 
 module Io : Io_t with type socket = Unix.file_descr = MakeIo (Unix_transport)
-
-(** A monad for implicit continuations or responses *)
-module Monad = struct
-  type ('a, 'b) handler = { return : 'a -> unit; raise : 'b -> unit }
-  type ('a, 'b) t = ('a, 'b) handler -> unit
-
-  let return x h = h.return x
-  let raise x h = h.raise x
-
-  let bind f g h =
-    let ret x =
-      let process = g x in
-      process h
-    in
-    f { return = ret; raise = h.raise }
-
-  let ( >>= ) = bind
-  let run ~return:ret ~raise f = f { return = ret; raise }
-
-  let catch f g h =
-    let raise x =
-      let process = g x in
-      process h
-    in
-    f { return = h.return; raise }
-
-  let ( =<< ) x y = catch y x
-
-  let rec fold_left f a = function
-    | [] -> a
-    | b :: l -> fold_left f (bind a (fun a -> f a b)) l
-
-  let fold_left f a l = fold_left f (return a) l
-  let iter f l = fold_left (fun () b -> f b) () l
-
-  module type Monad_io_t = sig
-    type socket
-
-    module Io : Io_t with type socket = socket
-
-    type ('a, 'b) handler = {
-      scheduler : 'a scheduler;
-      socket : Io.socket;
-      mutable data : string;
-      on_error : Io.failure -> 'b;
-    }
-
-    val exec :
-      ?delay:float ->
-      priority:'a ->
-      ('a, 'b) handler ->
-      ('c, 'b) t ->
-      ('c, 'b) t
-
-    val delay : priority:'a -> ('a, 'b) handler -> float -> (unit, 'b) t
-
-    val read :
-      ?timeout:float ->
-      priority:'a ->
-      marker:Io.marker ->
-      ('a, 'b) handler ->
-      (string, 'b) t
-
-    val read_all :
-      ?timeout:float ->
-      priority:'a ->
-      'a scheduler ->
-      Io.socket ->
-      (string, string * Io.failure) t
-
-    val write :
-      ?timeout:float ->
-      priority:'a ->
-      ('a, 'b) handler ->
-      ?offset:int ->
-      ?length:int ->
-      Bytes.t ->
-      (unit, 'b) t
-
-    val write_bigarray :
-      ?timeout:float ->
-      priority:'a ->
-      ('a, 'b) handler ->
-      Io.bigarray ->
-      (unit, 'b) t
-  end
-
-  module MakeIo (Io : Io_t) = struct
-    type socket = Io.socket
-
-    module Io = Io
-
-    type ('a, 'b) handler = {
-      scheduler : 'a scheduler;
-      socket : Io.socket;
-      mutable data : string;
-      on_error : Io.failure -> 'b;
-    }
-
-    let exec ?(delay = 0.) ~priority h f h' =
-      let handler _ =
-        begin try f h'
-        with e ->
-          let bt = Printexc.get_raw_backtrace () in
-          h'.raise (h.on_error (Io.Unknown (e, bt)))
-        end;
-        []
-      in
-      Task.add h.scheduler { Task.priority; events = [`Delay delay]; handler }
-
-    let delay ~priority h delay = exec ~delay ~priority h (return ())
-
-    let read ?timeout ~priority ~marker h h' =
-      let process x =
-        let s =
-          match x with
-            | s, None ->
-                h.data <- "";
-                s
-            | s, Some s' ->
-                h.data <- s';
-                s
-        in
-        h'.return s
-      in
-      let init = h.data in
-      h.data <- "";
-      let on_error (s, x) =
-        h.data <- s;
-        h'.raise (h.on_error x)
-      in
-      Io.read ?timeout ~priority ~init ~recursive:false ~on_error h.scheduler
-        h.socket marker process
-
-    let read_all ?timeout ~priority s sock =
-      let handler =
-        { scheduler = s; socket = sock; data = ""; on_error = (fun e -> e) }
-      in
-      let buf = Buffer.create 1024 in
-      let rec f () =
-        let data = read ?timeout ~priority ~marker:(Io.Length 1024) handler in
-        let process data =
-          Buffer.add_string buf data;
-          f ()
-        in
-        data >>= process
-      in
-      let catch_ret e =
-        Buffer.add_string buf handler.data;
-        match e with
-          | Io.Io_error -> return (Buffer.contents buf)
-          | e -> raise (Buffer.contents buf, e)
-      in
-      catch (f ()) catch_ret
-
-    let write ?timeout ~priority h ?offset ?length s h' =
-      let on_error x = h'.raise (h.on_error x) in
-      let exec () = h'.return () in
-      Io.write ?timeout ~priority ~on_error ~exec ?offset ?length ~string:s
-        h.scheduler h.socket
-
-    let write_bigarray ?timeout ~priority h ba h' =
-      let on_error x = h'.raise (h.on_error x) in
-      let exec () = h'.return () in
-      Io.write ?timeout ~priority ~on_error ~exec ~bigarray:ba h.scheduler
-        h.socket
-  end
-
-  module Io = MakeIo (Io)
-end

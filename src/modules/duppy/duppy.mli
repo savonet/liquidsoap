@@ -185,258 +185,64 @@ end
 module type Transport_t = sig
   type t
 
-  type bigarray =
-    (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
   val sock : t -> Unix.file_descr
   val read : t -> Bytes.t -> int -> int -> int
   val write : t -> Bytes.t -> int -> int -> int
-  val ba_write : t -> bigarray -> int -> int -> int
 end
 
-(** Easy parsing of [Unix.file_descr]. * * With {!Duppy.Io.read}, you can pass a
-    file descriptor to the scheduler, * along with a marker, and have it run the
-    associated function when the * marker is found. * * With {!Duppy.Io.write},
-    the schdeduler will try to write recursively to the file descriptor * the
-    given string. *)
+(** Reading and writing a socket from a computation running under {!run}: both
+    park until the socket is ready rather than returning to the scheduler. *)
 module type Io_t = sig
   type socket
 
-  (** Type for markers. * * [Split s] recognizes all regexp allowed by the *
-      [Pcre] module. *)
+  (** Type for markers. [Split s] recognizes all regexp allowed by the [Pcre]
+      module. *)
   type marker = Length of int | Split of string
 
-  (** Type of [Bigarray] used here. *)
-  type bigarray =
-    (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-  (** Different types of failure. * * [Io_error] is raised when reading or
-      writing * returned 0. This usually means that the socket * was closed. *)
+  (** Different types of failure. [Io_error] is raised when reading or writing
+      returned 0, which usually means the socket was closed. *)
   type failure =
     | Io_error
     | Unix of (Unix.error * string * string * Printexc.raw_backtrace)
     | Unknown of exn * Printexc.raw_backtrace
     | Timeout
 
-  (** Wrapper to perform a read on a socket and trigger a function when
-    * a marker has been detected, or enough data has been read.
-    * It reads recursively on a socket, splitting into strings separated
-    * by the marker (if any) and calls the given function on the list of strings.
-    *
-    * Can be used recursively or not, depending on the way you process strings.
-    * Because of Unix's semantic, it is not possible to stop reading
-    * at first marker, so there can be a remaining string. If not used
-    * recursively, the second optional argument may contain a remaining
-    * string. You should then initiate the next read with this value.
-    *
-    * The [on_error] function is used when reading failed on the socket.
-    * Depending on your usage, it can be a hard failure, or simply a lost client.
-    * The string passed to [on_error] contains data read before error
-    * occurred.
-    * @param recursive recursively read and process, default: [true]
-    * @param init initial string for reading, default: [""]
-    * @param on_error function used when read failed, default: [fun _ -> ()]
-    * @param timeout Terminate with [Timeout] failure if nothing has been read
-    *                after the given amount of time in seconds. More precisely,
-    *                the exception is raised when no character have been read
-    *                and the socket was not close while waiting. Default: wait
-    *                forever. *)
-  val read :
-    ?recursive:bool ->
-    ?init:string ->
-    ?on_error:(string * failure -> unit) ->
-    ?timeout:float ->
-    priority:'a ->
-    'a scheduler ->
-    socket ->
-    marker ->
-    (string * string option -> unit) ->
-    unit
+  (** Raised by [read] and [write]. On a read, whatever had been read before the
+      failure is left in the handle's [data]. *)
+  exception Error of failure
 
-  (** Similar to [read] but less complex.
-    * [write ?exec ?on_error ?string ?bigarray ~priority scheduler socket]
-    * write data from [string], or from [bigarray] if no string is given,
-    * to [socket], and executes [exec] or [on_error] if errors occurred.
-    *
-    * Caveat: on Win32, all file descriptors are expected to be in blocking
-    * mode before being passed to this call due to limitations in the emulation
-    * of the unix/posix API. See code comments for more details.
-    *
-    * @param exec function to execute after writing, default: [fun () -> ()]
-    * @param on_error function to execute when an error occurred, default: [fun _ -> ()]
-    * @param string write data from this string
-    * @param bigarray write data from this bigarray, if no [string] is given
-    * @param timeout Terminate with [Timeout] failure if nothing has been written
-    *                after the given amount of time in seconds. More precisely,
-    *                the exception is raised when no character have been written
-    *                and the socket was not close while waiting. Default: wait
-    *                forever. *)
+  (** [data] holds what a read consumed past its marker, which the next read on
+      the same socket picks up. *)
+  type 'a handle = {
+    scheduler : 'a scheduler;
+    socket : socket;
+    mutable data : string;
+  }
+
+  val handle : 'a scheduler -> socket -> 'a handle
+
+  (** [read ?timeout ~priority h marker] returns the data up to [marker],
+      parking the computation until enough of it has arrived.
+      @param timeout
+        applies to each wait rather than to the call. Default: wait forever. *)
+  val read : ?timeout:float -> priority:'a -> 'a handle -> marker -> string
+
+  (** [write ?timeout ~priority h data] writes all of [data], parking until the
+      socket accepts it.
+      @param timeout
+        applies to each wait rather than to the call. Default: wait forever. *)
   val write :
-    ?exec:(unit -> unit) ->
-    ?on_error:(failure -> unit) ->
-    ?bigarray:bigarray ->
+    ?timeout:float ->
     ?offset:int ->
     ?length:int ->
-    ?string:Bytes.t ->
-    ?timeout:float ->
     priority:'a ->
-    'a scheduler ->
-    socket ->
+    'a handle ->
+    Bytes.t ->
     unit
 end
 
 module MakeIo (Transport : Transport_t) : Io_t with type socket = Transport.t
 module Io : Io_t with type socket = Unix.file_descr
-
-(** Monadic interface to {!Duppy.Io}. * * This module can be used to write code
-    * that runs in various Duppy's tasks and * raise values in a completely
-    transparent way. * * You can see examples of its use * in the [examples/]
-    directory of the * source code and in the files *
-    [src/tools/{harbor.camlp4,server.camlp4}] * in liquidsoap's code. * * When a
-    server communicates * with a client, it performs several * computations and,
-    eventually, terminates. * A computation can either return a new * value or
-    terminate. For instance: * * - Client connects. * - Server tries to
-    authenticate the client. * - If authentication is ok, proceed with the next
-    step. * - Otherwise terminate. * * The purpose of the monad is to embed *
-    computations which can either return * a new value or raise a value that is
-    used * to terminate. *)
-module Monad : sig
-  (** Type representing a computation * which returns a value of type ['a] * or
-      raises a value of type ['b] *)
-  type ('a, 'b) t
-
-  (** [return x] create a computation that * returns value [x]. *)
-  val return : 'a -> ('a, 'b) t
-
-  (** [raise x] create a computation that raises * value [x]. *)
-  val raise : 'b -> ('a, 'b) t
-
-  (** Compose two computations. * [bind f g] is equivalent to: *
-      [let x = f in g x] where [x] * has f's return type. *)
-  val bind : ('a, 'b) t -> ('a -> ('c, 'b) t) -> ('c, 'b) t
-
-  (** [>>=] is an alternative notation * for [bind] *)
-  val ( >>= ) : ('a, 'b) t -> ('a -> ('c, 'b) t) -> ('c, 'b) t
-
-  (** [run f ~return ~raise ()] executes [f] and process * returned values with
-      [return] or raised values * with [raise]. *)
-  val run : return:('a -> unit) -> raise:('b -> unit) -> ('a, 'b) t -> unit
-
-  (** [catch f g] redirects values [x] raised during * [f]'s execution to [g].
-      The name suggests the * usual [try .. with ..] exception catching. *)
-  val catch : ('a, 'b) t -> ('b -> ('a, 'c) t) -> ('a, 'c) t
-
-  (** [=<<] is an alternative notation for catch. *)
-  val ( =<< ) : ('b -> ('a, 'c) t) -> ('a, 'b) t -> ('a, 'c) t
-
-  (** [fold_left f a [b1; b2; ..]] returns computation *
-      [ (f a b1) >>= (fun a -> f a b2) >>= ...] *)
-  val fold_left : ('a -> 'b -> ('a, 'c) t) -> 'a -> 'b list -> ('a, 'c) t
-
-  (** [iter f [x1; x2; ..]] returns computation *
-      [f x1 >>= (fun () -> f x2) >>= ...] *)
-  val iter : ('a -> (unit, 'b) t) -> 'a list -> (unit, 'b) t
-
-  (** This module implements monadic computations * using [Duppy.Io]. It can be
-      used to create * computations that read or write from a socket, * and also
-      to rerun a computation under a different * priority. *)
-  module type Monad_io_t = sig
-    type socket
-
-    module Io : Io_t with type socket = socket
-
-    (** {2 Type} *)
-
-    (** A handler for this module * is a record that contains the * required
-        elements. In particular, * [on_error] is a function that transforms * an
-        error raised by [Duppy.Io] to a reply * used to terminate the
-        computation. * [data] is an internal data buffer. It should * be
-        initialized with [""]. It contains the * remaining data that was
-        received when * using [read]. If an error occurred, * [data] contain
-        data read before the * error. *)
-    type ('a, 'b) handler = {
-      scheduler : 'a scheduler;
-      socket : Io.socket;
-      mutable data : string;
-      on_error : Io.failure -> 'b;
-    }
-
-    (** {2 Execution flow} *)
-
-    (** [exec ?delay ~priority h f] reschedules computation * [f] with priority
-        [priority] and delay [delay] * ([0.] by default). * It can be used to
-        run a computation that * has to run under a different priority. For
-        instance, * a computation that reads from a socket is generally * not
-        blocking because the function is executed * only when some data is
-        available for reading. * However, if the data that is read needs to be
-        processed * by a computation that can be blocking, then one may * use
-        [exec] to move this computation to the * appropriate priority. *)
-    val exec :
-      ?delay:float ->
-      priority:'a ->
-      ('a, 'b) handler ->
-      ('c, 'b) t ->
-      ('c, 'b) t
-
-    (** [delay ~priority h d] creates a computation that returns * [unit] after
-        delay [d] in seconds. *)
-    val delay : priority:'a -> ('a, 'b) handler -> float -> (unit, 'b) t
-
-    (** {2 Read/write} *)
-
-    (** [read ?timeout ~priority ~marker h] creates a * computation that reads
-        from [h.socket] * and returns the first string split * according to
-        [marker]. This function * can be used to create a computation that *
-        reads data from a socket. [timeout] parameter * forces the computation
-        to return an error if * nothing has been read for more than [timeout] *
-        seconds. Default: wait forever. *)
-    val read :
-      ?timeout:float ->
-      priority:'a ->
-      marker:Io.marker ->
-      ('a, 'b) handler ->
-      (string, 'b) t
-
-    (** [read_all ?timeout ~priority s sock] creates a * computation that reads
-        all data from [sock] * and returns it. Raised value contains data * read
-        before an error occurred. *)
-    val read_all :
-      ?timeout:float ->
-      priority:'a ->
-      'a scheduler ->
-      Io.socket ->
-      (string, string * Io.failure) t
-
-    (** [write ?timeout ~priority h s] creates a computation * that writes
-        string [s] to [h.socket]. This * function can be used to create a
-        computation * that sends data to a socket. [timeout] parameter * forces
-        the computation to return an error if * nothing has been written for
-        more than [timeout] * seconds. Default: wait forever. *)
-    val write :
-      ?timeout:float ->
-      priority:'a ->
-      ('a, 'b) handler ->
-      ?offset:int ->
-      ?length:int ->
-      Bytes.t ->
-      (unit, 'b) t
-
-    (** [write_bigarray ?timeout ~priority h ba] creates a computation * that
-        writes data from [ba] to [h.socket]. This function * can to create a
-        computation that writes data to a socket. *)
-    val write_bigarray :
-      ?timeout:float ->
-      priority:'a ->
-      ('a, 'b) handler ->
-      Io.bigarray ->
-      (unit, 'b) t
-  end
-
-  module MakeIo (Io : Io_t) :
-    Monad_io_t with type socket = Io.socket and module Io = Io
-
-  module Io : Monad_io_t with type socket = Unix.file_descr and module Io = Io
-end
 
 (** {2 Some culture..}
     * {e Duppy is a Caribbean patois word of West African origin meaning ghost or spirit.
