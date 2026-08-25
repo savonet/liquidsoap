@@ -130,6 +130,28 @@ let test_io () =
   Unix.close w;
   ok "the event loop delivered a socket event"
 
+(* A task that never returns must not keep [stop] from returning: it parks in a
+   syscall on a descriptor the loop has dropped, and stopping joins its domain. *)
+let test_stop_with_stuck_task () =
+  let s = Duppy.create ~classify () in
+  let started = latch () in
+  let release = Atomic.make false in
+  Duppy.Task.add s
+    (task Blocking (fun _ ->
+         bump started;
+         while not (Atomic.get release) do
+           Thread.delay 0.01
+         done;
+         []));
+  Duppy.start ~domains:2 s;
+  await started 1;
+  let t0 = Unix.gettimeofday () in
+  Duppy.stop s;
+  let elapsed = Unix.gettimeofday () -. t0 in
+  Atomic.set release true;
+  if elapsed > 30. then fail "stop took %.1fs with a stuck task" elapsed;
+  ok "stop returned in %.1fs despite a stuck task" elapsed
+
 let test_stop_drains () =
   let count = 8 in
   for _ = 1 to 5 do
@@ -266,6 +288,7 @@ let () =
   test_io ();
   test_blocking_cap ();
   test_stop_drains ();
+  test_stop_with_stuck_task ();
   test_effect_resumes_elsewhere ();
   test_effect_raises_to_on_error ();
   test_await_outside_run ();

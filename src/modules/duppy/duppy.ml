@@ -430,13 +430,8 @@ let wait_for_work s w =
   w.wake <- false;
   Mutex.unlock w.worker_m
 
-(** Let the tasks already parked on this worker finish before it returns. *)
-let drain w =
-  Mutex.lock w.worker_m;
-  while 0 < Atomic.get w.blocking do
-    Condition.wait w.worker_c w.worker_m
-  done;
-  Mutex.unlock w.worker_m
+(** How long [stop] waits for a parked task before giving up on it. *)
+let drain_timeout = 5.
 
 let dispatch s w =
   while not (Atomic.get s.stopped) do
@@ -450,8 +445,7 @@ let dispatch s w =
       | Some (One fn) -> run_blocking s w fn
       | None -> wait_for_work s w
     end
-  done;
-  drain w
+  done
 
 (** Wait for events, then move the tasks they woke to the ready list. *)
 let poll_once s =
@@ -568,7 +562,25 @@ let stop s =
     Atomic.set s.stopped true;
     wake_up s;
     List.iter signal_worker s.workers;
-    List.iter Domain.join s.domains;
+    (* Let the tasks still parked on the workers finish, bounded because a
+       blocking task is under no obligation to return. *)
+    let deadline = time () +. drain_timeout in
+    while
+      List.exists (fun w -> 0 < Atomic.get w.blocking) s.workers
+      && time () < deadline
+    do
+      Thread.delay 0.01
+    done;
+    (* Joining a domain waits for the threads created inside it, so a worker
+       still holding a blocking task cannot be joined: that task is under no
+       obligation to return. Its domain is left to die with the process. *)
+      (match s.domains with
+      | poller :: workers ->
+          Domain.join poller;
+          List.iter2
+            (fun w d -> if Atomic.get w.blocking = 0 then Domain.join d)
+            s.workers workers
+      | [] -> ());
     s.domains <- [];
     s.workers <- [];
     Pollset.close s.pollset
