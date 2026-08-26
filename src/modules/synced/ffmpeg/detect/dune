@@ -37,6 +37,7 @@
   avutil_c_flags
   avutil_c_flags.sexp
   avutil_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run
    ../detect/detect.exe
@@ -58,6 +59,7 @@
   avcodec_c_flags
   avcodec_c_flags.sexp
   avcodec_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run
    ../detect/detect.exe
@@ -75,6 +77,7 @@
 
 (rule
  (targets av_available av_c_flags av_c_flags.sexp av_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run
    ../detect/detect.exe
@@ -96,6 +99,7 @@
   avfilter_c_flags
   avfilter_c_flags.sexp
   avfilter_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run
    ../detect/detect.exe
@@ -117,6 +121,7 @@
   avdevice_c_flags
   avdevice_c_flags.sexp
   avdevice_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run
    ../detect/detect.exe
@@ -138,6 +143,7 @@
   swscale_c_flags
   swscale_c_flags.sexp
   swscale_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run
    ../detect/detect.exe
@@ -159,6 +165,7 @@
   swresample_c_flags
   swresample_c_flags.sexp
   swresample_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run
    ../detect/detect.exe

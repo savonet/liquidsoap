@@ -4,5 +4,6 @@
 
 (rule
  (targets dssi_available dssi_c_flags.sexp dssi_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run ./detect.exe --context %{context_name})))

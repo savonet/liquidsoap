@@ -7,5 +7,6 @@
   pulseaudio_available
   pulseaudio_c_flags.sexp
   pulseaudio_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run ./detect.exe --context %{context_name})))

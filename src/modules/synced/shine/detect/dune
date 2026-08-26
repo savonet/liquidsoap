@@ -16,5 +16,6 @@
   shine_c_flags.sexp
   shine_c_library_flags.sexp
   shine_config)
+ (deps (universe))
  (action
   (run ./detect.exe --context %{context_name})))

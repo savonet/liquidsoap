@@ -13,6 +13,7 @@ let () =
 
 (rule
  (targets srt_available srt_c_flags.sexp srt_c_flags srt_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run ./detect.exe --os-type %{os_type} --context %{context_name} srt)))
 |}

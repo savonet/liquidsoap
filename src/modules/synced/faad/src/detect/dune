@@ -4,5 +4,6 @@
 
 (rule
  (targets faad_available faad_c_flags.sexp faad_c_library_flags.sexp)
+ (deps (universe))
  (action
   (run ./detect.exe --context %{context_name})))

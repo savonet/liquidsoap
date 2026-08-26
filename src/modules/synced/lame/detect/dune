@@ -16,5 +16,6 @@
   lame_c_flags.sexp
   lame_c_library_flags.sexp
   lame_config)
+ (deps (universe))
  (action
   (run ./detect.exe --context %{context_name})))
