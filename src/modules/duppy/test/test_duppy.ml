@@ -152,6 +152,23 @@ let test_stop_with_stuck_task () =
   if elapsed > 30. then fail "stop took %.1fs with a stuck task" elapsed;
   ok "stop returned in %.1fs despite a stuck task" elapsed
 
+(* With nothing to wait for, the loop must still come back on its own: a
+   wake-up is a byte on a socket whose writer drops it when the buffer is full,
+   so a loop that only ever leaves on one can miss [stopped] for good. *)
+let test_idle_loop_wakes_itself () =
+  let s = Duppy.create ~classify () in
+  let wakes = Atomic.make 0 in
+  let log m =
+    if String.length m >= 4 && String.sub m 0 4 = "Woke" then
+      ignore (Atomic.fetch_and_add wakes 1)
+  in
+  Duppy.start ~domains:1 ~log s;
+  Thread.delay 2.5;
+  let n = Atomic.get wakes in
+  Duppy.stop s;
+  if n < 2 then fail "idle loop came back %d times in 2.5s" n;
+  ok "idle loop came back on its own %d times in 2.5s" n
+
 let test_stop_drains () =
   let count = 8 in
   for _ = 1 to 5 do
@@ -288,6 +305,7 @@ let () =
   test_io ();
   test_blocking_cap ();
   test_stop_drains ();
+  test_idle_loop_wakes_itself ();
   test_stop_with_stuck_task ();
   test_effect_resumes_elsewhere ();
   test_effect_raises_to_on_error ();

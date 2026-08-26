@@ -125,6 +125,7 @@ type 'a scheduler = {
   ready_m : Mutex.t;
   started : bool Atomic.t;
   stopped : bool Atomic.t;
+  poller_done : bool Atomic.t;
   mutable blocking_per_worker : int;
   mutable workers : worker list;
   mutable domains : unit Domain.t list;
@@ -215,6 +216,7 @@ let create ?(on_error = Printexc.raise_with_backtrace)
     ready_m = Mutex.create ();
     started = Atomic.make false;
     stopped = Atomic.make false;
+    poller_done = Atomic.make false;
     blocking_per_worker = 1;
     workers = [];
     domains = [];
@@ -433,6 +435,11 @@ let wait_for_work s w =
 (** How long [stop] waits for a parked task before giving up on it. *)
 let drain_timeout = 5.
 
+(** Longest the loop parks in one wait. A wake-up is a byte on a socket the
+    writer drops when its buffer is full, so waiting on one alone risks never
+    looking at [stopped] again. *)
+let idle_timeout = 1.
+
 let dispatch s w =
   while not (Atomic.get s.stopped) do
     Mutex.lock s.ready_m;
@@ -452,8 +459,9 @@ let poll_once s =
   let timeout =
     Mutex.protect s.tasks_m (fun () ->
         match Timers.min_binding_opt s.timers with
-          | None -> -1.
-          | Some ((deadline, _), _) -> max 0. (deadline -. time ()))
+          | None -> idle_timeout
+          | Some ((deadline, _), _) ->
+              min idle_timeout (max 0. (deadline -. time ())))
   in
   log s (fun () ->
       Printf.sprintf "Waiting on %s at %f, timeout %f."
@@ -517,9 +525,12 @@ let poll_once s =
         List.iter signal_worker wake
 
 let poller s =
-  while not (Atomic.get s.stopped) do
-    poll_once s
-  done
+  Fun.protect
+    ~finally:(fun () -> Atomic.set s.poller_done true)
+    (fun () ->
+      while not (Atomic.get s.stopped) do
+        poll_once s
+      done)
 
 let start ?domains ?(max_blocking = 64) ?log:logger s =
   if not (Atomic.compare_and_set s.started false true) then
@@ -566,7 +577,8 @@ let stop s =
        blocking task is under no obligation to return. *)
     let deadline = time () +. drain_timeout in
     while
-      List.exists (fun w -> 0 < Atomic.get w.blocking) s.workers
+      ((not (Atomic.get s.poller_done))
+      || List.exists (fun w -> 0 < Atomic.get w.blocking) s.workers)
       && time () < deadline
     do
       Thread.delay 0.01
@@ -576,7 +588,7 @@ let stop s =
        obligation to return. Its domain is left to die with the process. *)
       (match s.domains with
       | poller :: workers ->
-          Domain.join poller;
+          if Atomic.get s.poller_done then Domain.join poller;
           List.iter2
             (fun w d -> if Atomic.get w.blocking = 0 then Domain.join d)
             s.workers workers
