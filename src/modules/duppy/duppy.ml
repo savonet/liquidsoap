@@ -583,19 +583,18 @@ let stop s =
     do
       Thread.delay 0.01
     done;
-    (* Joining a domain waits for the threads created inside it, so a worker
-       still holding a blocking task cannot be joined: that task is under no
-       obligation to return. Its domain is left to die with the process. *)
-      (match s.domains with
-      | poller :: workers ->
-          if Atomic.get s.poller_done then Domain.join poller;
-          List.iter2
-            (fun w d -> if Atomic.get w.blocking = 0 then Domain.join d)
-            s.workers workers
-      | [] -> ());
+    (* A domain terminates once every thread created inside it has finished, and
+       a task is free to start one that outlives it: a binding logging from its
+       own thread pins the domain that ran it for good. Reaping is handed to a
+       thread of our own so that waiting for one cannot hold up stopping. *)
+    List.iter
+      (fun d -> ignore (Thread.create (fun () -> Domain.join d) ()))
+      s.domains;
     s.domains <- [];
     s.workers <- [];
-    Pollset.close s.pollset
+    (* Freeing what the loop waits on while it is still in there is a use after
+       free, and a descriptor is the cheaper thing to lose. *)
+    if Atomic.get s.poller_done then Pollset.close s.pollset
   end
 
 module Async = struct

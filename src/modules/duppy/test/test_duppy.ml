@@ -169,6 +169,36 @@ let test_idle_loop_wakes_itself () =
   if n < 2 then fail "idle loop came back %d times in 2.5s" n;
   ok "idle loop came back on its own %d times in 2.5s" n
 
+(* A task is free to start a thread that outlives it, which is what a binding
+   logging from its own thread does. That thread belongs to the domain that ran
+   the task, and a domain does not terminate until its threads have, so
+   stopping must not wait on one. *)
+let test_stop_with_thread_outliving_its_task () =
+  let s = Duppy.create ~classify () in
+  let started = latch () in
+  let release = Atomic.make false in
+  Duppy.Task.add s
+    (task Blocking (fun _ ->
+         ignore
+           (Thread.create
+              (fun () ->
+                while not (Atomic.get release) do
+                  Thread.delay 0.01
+                done)
+              ());
+         bump started;
+         []));
+  Duppy.start ~domains:2 s;
+  await started 1;
+  Thread.delay 0.2;
+  let t0 = Unix.gettimeofday () in
+  Duppy.stop s;
+  let elapsed = Unix.gettimeofday () -. t0 in
+  Atomic.set release true;
+  if elapsed > 30. then
+    fail "stop took %.1fs with a thread outliving its task" elapsed;
+  ok "stop returned in %.1fs with a thread pinning a domain" elapsed
+
 let test_stop_drains () =
   let count = 8 in
   for _ = 1 to 5 do
@@ -305,6 +335,7 @@ let () =
   test_io ();
   test_blocking_cap ();
   test_stop_drains ();
+  test_stop_with_thread_outliving_its_task ();
   test_idle_loop_wakes_itself ();
   test_stop_with_stuck_task ();
   test_effect_resumes_elsewhere ();
