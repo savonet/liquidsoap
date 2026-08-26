@@ -116,16 +116,30 @@ let val_cst_fun p c =
     | String { value = i } -> f (mkg Type.String) (`String i)
     | _ -> mk (`FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
-let reference get set =
-  let get = val_fun [] (fun _ -> get ()) in
-  let set =
+let reference ?exchange get set =
+  (* Without one of its own, a reference can only offer the two steps it is
+     built from, which is as indivisible as its [set] already is. *)
+  let exchange =
+    match exchange with
+      | Some fn -> fn
+      | None ->
+          fun v ->
+            let previous = get () in
+            set v;
+            previous
+  in
+  let get_fn = val_fun [] (fun _ -> get ()) in
+  let set_fn =
     val_fun
       [("", "", None)]
       (fun p ->
         List.assoc "" p |> set;
         unit)
   in
-  meth get [("set", set)]
+  let exchange_fn =
+    val_fun [("", "", None)] (fun p -> List.assoc "" p |> exchange)
+  in
+  meth get_fn [("set", set_fn); ("exchange", exchange_fn)]
 
 (** Helpers for defining builtin functions. *)
 

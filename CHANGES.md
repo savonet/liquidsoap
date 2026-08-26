@@ -4,6 +4,10 @@
 
 - Added `getter(t)` type annotation syntax for getter types (#5078).
 - Added `atomic(f)`, which runs `f` without letting any other atomic section run at the same time. Script code now runs on several cores at once, so a group of changes that must not be observed half-done — writing several references together, or checking a flag and setting it — needs to say so.
+- Added `r.exchange(v)`, which sets a reference and returns the value it replaced in one
+  indivisible step. Now that script code runs on several cores at once, a flag guarding
+  work that must happen only once cannot be read and set separately: two threads both see
+  it unset and both do the work.
 - Added `source.content` operator returning an associative list of frame field names to their content format, `track.format` returning the content format of a single track, and `format.description` returning a typed record description of a content format.
 - Renamed the internal video content type from `canvas` to `yuv420p`, which better reflects the
   actual content; the content itself is still organized as a canvas of `yuv420p` layers. Type
@@ -46,6 +50,10 @@
 ## Changed:
 
 - Liquidsoap now requires OCaml 5.5 to build.
+- Removed `ref.make` and `ref.map`. Building a reference from a pair of functions gave one
+  that could not offer `exchange` indivisibly, which is what the rest of the language now
+  assumes of a reference.
+
 - Bindings written without `let` accept the same targets as `let` — destructuring patterns, field paths and type
   annotations — so `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid, and an invalid left-hand side
   reports what is allowed instead of a bare syntax error. A leading binding inside the `{ … }` function shorthand

@@ -176,7 +176,14 @@ val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
-val reference : (unit -> value) -> (value -> unit) -> value
+
+(** Build a reference from a getter and a setter.
+
+    Pass [exchange] whenever the underlying state can do it in one step: the
+    fallback is a get followed by a set, and callers take a reference to be
+    atomic. *)
+val reference :
+  ?exchange:(value -> value) -> (unit -> value) -> (value -> unit) -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate the
     label and optional values. Second string value is used when renaming

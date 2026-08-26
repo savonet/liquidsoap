@@ -30,4 +30,5 @@ let ref =
       let x = List.assoc "" p |> Atomic.make in
       let get () = Atomic.get x in
       let set v = Atomic.set x v in
-      Lang.reference get set)
+      let exchange v = Atomic.exchange x v in
+      Lang.reference ~exchange get set)

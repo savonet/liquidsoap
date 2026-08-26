@@ -17,8 +17,9 @@ def f() =
   test.equal(s(), "b")
   f = ref(id)
   f := incr
-  r = ref.make({0}, fun (x) -> ignore(x + 1))
-  _ = ref.map(float_of_int, int_of_float, r)
+  b = ref(false)
+  test.equal(b.exchange(true), false)
+  test.equal(b.exchange(true), true)
   test.pass()
 end
 
