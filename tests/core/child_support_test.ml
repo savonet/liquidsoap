@@ -18,7 +18,7 @@ class ready_source =
     method abort_track = ()
 
     method private generate_frame =
-      Frame.create ~length:(Lazy.force Frame.size) self#content_type
+      Frame.create ~length:(Lazy.Mutexed.force Frame.size) self#content_type
   end
 
 class test_output ~clock source =
