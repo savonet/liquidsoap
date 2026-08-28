@@ -65,9 +65,14 @@ RUN \
     PACKAGES=`cat /tmp/packages | xargs echo` && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
-    opam pin list --short | xargs -r opam pin remove -y && \
+    opam pin list --short | grep -v '^ocaml-compiler$' | xargs -r opam pin remove -y && \
     rm -rf /tmp/liquidsoap && \
     opam clean
+
+# The compiler pin has to survive the pin cleanup above, or the patched compiler is
+# silently replaced by the release one.
+RUN test -z "$OCAML_PATCH_URL" || \
+    (eval $(opam env) && opam pin list --short | grep -qx ocaml-compiler)
 
 USER root
 
