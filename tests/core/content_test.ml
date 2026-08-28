@@ -21,7 +21,7 @@ let () =
       (Lang.frame_t Lang.unit_t
          (Frame.Fields.make ~audio:(Format_type.audio ()) ()))
   in
-  let frame = Frame.create ~length:(Lazy.force Frame.size) ctype in
+  let frame = Frame.create ~length:(Lazy.Mutexed.force Frame.size) ctype in
   let m = Frame.Metadata.from_list [("foo", "bla")] in
   let frame = Frame.add_metadata frame 123 m in
   let m = Frame.Metadata.from_list [("gni", "gno")] in
@@ -35,7 +35,7 @@ let compare_image (p, img) (p', img') = p = p' && img == img'
    sure that the consolidated content
    contains the first one's data. *)
 let () =
-  let length = Lazy.force Frame.size in
+  let length = Lazy.Mutexed.force Frame.size in
   let chunk_len = length / 3 in
   assert (Frame.video_of_main length = 1);
   let fst = Content.make ~length Content.(default_format Video.kind) in

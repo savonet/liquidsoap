@@ -50,7 +50,7 @@ let () =
   assert (List.length !order = 2);
 
   (* Stream time is ticks * frame duration. *)
-  assert (Clock.time clock = 2. *. Lazy.force Frame.duration);
+  assert (Clock.time clock = 2. *. Lazy.Mutexed.force Frame.duration);
 
   (* Stopping a passive clock is immediate. *)
   Clock.stop clock;

@@ -3,7 +3,8 @@
 let () = exit 0
 
 let _ =
-  Stdlib.Lazy.force Liquidsoap_builtins.Builtins_settings.settings_module;
+  Stdlib.Lazy.Mutexed.force
+    Liquidsoap_builtins.Builtins_settings.settings_module;
   Lang.eval ~cache:true ~typecheck:false ~stdlib:`Disabled
     {|
 %include "../../src/libs/stdlib.liq"

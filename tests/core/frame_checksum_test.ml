@@ -6,7 +6,7 @@ let () =
 
 (* Test that checksum is deterministic for same content *)
 let () =
-  let length = Lazy.force Frame.size in
+  let length = Lazy.Mutexed.force Frame.size in
   let ctype =
     Frame_type.content_type
       (Lang.frame_t Lang.unit_t
@@ -19,7 +19,7 @@ let () =
 
 (* Test that different content produces different checksums *)
 let () =
-  let length = Lazy.force Frame.size in
+  let length = Lazy.Mutexed.force Frame.size in
   let ctype =
     Frame_type.content_type
       (Lang.frame_t Lang.unit_t
@@ -68,7 +68,7 @@ let () =
 
 (* Test that checksum format is a valid hex string *)
 let () =
-  let length = Lazy.force Frame.size in
+  let length = Lazy.Mutexed.force Frame.size in
   let ctype =
     Frame_type.content_type
       (Lang.frame_t Lang.unit_t
@@ -89,7 +89,7 @@ let () =
 
 (* Test that checksum is stable for chunked vs consolidated content *)
 let () =
-  let length = Lazy.force Frame.size in
+  let length = Lazy.Mutexed.force Frame.size in
   let ctype =
     Frame_type.content_type
       (Lang.frame_t Lang.unit_t

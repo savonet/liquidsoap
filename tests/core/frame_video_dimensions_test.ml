@@ -7,12 +7,12 @@ let () =
   assert (not Frame_settings.conf_video_width#is_set);
   assert (not Frame_settings.conf_video_height#is_set);
   let width, height = Frame.video_dimensions () in
-  let width = Lazy.force width in
-  let height = Lazy.force height in
+  let width = Lazy.Mutexed.force width in
+  let height = Lazy.Mutexed.force height in
   assert (0 < width && 0 < height);
   let ideal_size =
     { Frame.width = width + 320; height = height + 180; source = "test" }
   in
   let detected_width, detected_height = Frame.video_dimensions ~ideal_size () in
-  assert (Lazy.force detected_width = width);
-  assert (Lazy.force detected_height = height)
+  assert (Lazy.Mutexed.force detected_width = width);
+  assert (Lazy.Mutexed.force detected_height = height)
