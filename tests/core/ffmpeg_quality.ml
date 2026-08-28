@@ -27,7 +27,7 @@ let () =
                     {
                       pcm_kind = Content.Audio.kind;
                       channels = 2;
-                      samplerate = lazy 44100;
+                      samplerate = Lazy.Mutexed.from_val 44100;
                       sample_format = None;
                     };
                 opts = Hashtbl.create 0;
@@ -60,7 +60,7 @@ let () =
                     {
                       pcm_kind = Content.Audio.kind;
                       channels = 2;
-                      samplerate = lazy 44100;
+                      samplerate = Lazy.Mutexed.from_val 44100;
                       sample_format = None;
                     };
                 opts = Hashtbl.create 0;
@@ -75,7 +75,7 @@ let () =
                     {
                       pcm_kind = Content.Audio.kind;
                       channels = 2;
-                      samplerate = lazy 44100;
+                      samplerate = Lazy.Mutexed.from_val 44100;
                       sample_format = None;
                     };
                 opts =

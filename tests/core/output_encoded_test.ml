@@ -66,7 +66,9 @@ class data_first_test encode_metadata_called encode_called send_called =
 
 let make_frame encoded_test =
   let frame =
-    Frame.create ~length:(Lazy.force Frame.size) encoded_test#content_type
+    Frame.create
+      ~length:(Lazy.Mutexed.force Frame.size)
+      encoded_test#content_type
   in
   let m = Frame.Metadata.from_list [("foo", "bla")] in
   Frame.add_metadata frame 0 m

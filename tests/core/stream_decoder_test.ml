@@ -39,11 +39,11 @@ let () =
     create_encoder ~pos:None "test stream" Frame.Metadata.Export.empty
   in
   write (encoder.Encoder.header ());
-  let size = Lazy.force Frame.size in
+  let size = Lazy.Mutexed.force Frame.size in
   try
     while true do
       try
-        while Generator.length generator < Lazy.force Frame.size do
+        while Generator.length generator < Lazy.Mutexed.force Frame.size do
           decoder.Decoder.decode buffer
         done;
         let frame = Generator.slice generator size in
