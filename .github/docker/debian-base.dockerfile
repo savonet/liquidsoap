@@ -6,6 +6,7 @@ FROM $BASE_IMAGE AS ocaml
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=5.5.0
+ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/4ebecb3902f8f2fcfa0a3eb9f268e51b64d05ea1.tar.gz
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -26,6 +27,13 @@ RUN opam init -y --disable-sandboxing --bare && \
     opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-flambda && \
     opam update -y && \
     opam clean
+
+# The global-root debugging patches, ocaml/ocaml#15027. They are all #ifdef DEBUG,
+# so they only show up in the runtime reached through -runtime-variant d. Build with
+# an empty OCAML_PATCH_URL for a stock compiler.
+RUN test -z "$OCAML_PATCH_URL" || \
+    (opam pin add -y ocaml-compiler.$OCAML_VERSION "$OCAML_PATCH_URL" && \
+     opam clean)
 
 # Stage 2: Clone liquidsoap and pin all synced modules
 FROM ocaml AS pinned
