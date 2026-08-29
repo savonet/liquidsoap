@@ -819,15 +819,21 @@ def playlist.list(
 
   # The reload function
   def reload(~empty_queue=true, p) =
-    is_reloading := true
+    # Claiming the reload and filling the playlist is one section: a `next()`
+    # that reads these in between finds an empty playlist, calls the playlist
+    # finished and sets the stopped flag this function has already cleared.
+    def load() =
+      is_reloading := true
+      playlist_orig := p
+      playlist := randomize(playlist_orig())
+      has_stopped := false
+    end
+    atomic(load)
 
     log.debug(
       label=id,
       "Reloading playlist."
     )
-    playlist_orig := p
-    playlist := randomize(playlist_orig())
-    has_stopped := false
     if
       empty_queue
     then
@@ -848,8 +854,10 @@ def playlist.list(
   failed_count = ref(0)
   failed_time = ref(0.)
 
-  # The (real) next function
-  def rec next() =
+  # Picking the next file runs as one section against `reload`, which fills the
+  # playlist in several steps. Request resolution stays outside it: it blocks,
+  # and a section that waits on a file holds up every other one.
+  def pick_file() =
     if
       is_reloading()
     then
@@ -867,35 +875,39 @@ def playlist.list(
       end
     end
 
-    file =
+    if
+      list.length(playlist()) > 0
+    then
       if
-        list.length(playlist()) > 0
+        mode == "random"
       then
-        if
-          mode == "random"
-        then
-          n = random.int(min=0, max=list.length(playlist()))
-          list.nth(default="", playlist(), n)
-        else
-          ret = list.hd(default="", playlist())
-          playlist := list.tl(playlist())
-          ret
-        end
+        n = random.int(min=0, max=list.length(playlist()))
+        list.nth(default="", playlist(), n)
       else
-        # Playlist finished
-        if
-          not has_stopped()
-        then
-          has_stopped := true
-          log.info(
-            label=id,
-            "Playlist stopped."
-          )
-          on_done()
-        end
-
-        ""
+        ret = list.hd(default="", playlist())
+        playlist := list.tl(playlist())
+        ret
       end
+    else
+      # Playlist finished
+      if
+        not has_stopped()
+      then
+        has_stopped := true
+        log.info(
+          label=id,
+          "Playlist stopped."
+        )
+        on_done()
+      end
+
+      ""
+    end
+  end
+
+  # The (real) next function
+  def rec next() =
+    file = atomic(pick_file)
 
     if
       file == "" or (failed_count() >= max_fail and time() < failed_time() + 1.)
