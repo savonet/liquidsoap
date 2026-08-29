@@ -1,5 +1,8 @@
 (** Leaf utilities every other liquidsoap-lang library needs. *)
 
+(** Locks over shared state. *)
+module Mutex_utils = Mutex_utils
+
 (** Positions in source files. *)
 module Pos = Pos
 
