@@ -41,7 +41,7 @@ class sequence ?(name = "sequence") ?(merge = false) ?(single_track = true)
         ()
 
     method self_sync =
-      ( Lazy.force self_sync_type,
+      ( self_sync_type (),
         match sources with hd :: _ -> snd hd#self_sync | [] -> None )
 
     method fallible =

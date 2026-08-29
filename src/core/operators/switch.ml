@@ -344,7 +344,7 @@ class switch ~all_predicates children =
               | _ -> None)
 
     method self_sync =
-      ( Lazy.force self_sync_type,
+      ( self_sync_type (),
         match self#selected with
           | Some s -> snd s.effective_source#self_sync
           | None -> None )

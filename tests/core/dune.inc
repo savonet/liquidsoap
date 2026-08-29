@@ -92,6 +92,37 @@
   (run %{clock_error_print_test})))
 
 (executable
+ (name clock_self_sync_type_test)
+ (modules clock_self_sync_type_test)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias clock_self_sync_type_test)
+ (package liquidsoap)
+ (deps
+  (:clock_self_sync_type_test clock_self_sync_type_test.exe))
+ (action
+  (run %{clock_self_sync_type_test})))
+
+(executable
  (name clock_tick_test)
  (modules clock_tick_test)
  (flags
@@ -1221,6 +1252,7 @@
   (alias binary_strings_test)
   (alias child_support_test)
   (alias clock_error_print_test)
+  (alias clock_self_sync_type_test)
   (alias clock_tick_test)
   (alias clock_unify_test)
   (alias clock_utils_test)

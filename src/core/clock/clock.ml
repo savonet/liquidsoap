@@ -196,10 +196,21 @@ type source =
   ; on_sync_source_change :
       (old:sync_source option -> sync_source option -> unit) -> unit -> unit >
 
+(* [self_sync] is reached from several threads at once; the value is
+   deterministic, so a racing computation is harmless. *)
 let self_sync_type_of_sources sources =
-  Lazy.from_fun (fun () ->
-      if List.exists (fun s -> fst s#self_sync = `Dynamic) sources then `Dynamic
-      else `Static)
+  let cached = Atomic.make None in
+  fun () ->
+    match Atomic.get cached with
+      | Some self_sync_type -> self_sync_type
+      | None ->
+          let self_sync_type =
+            if List.exists (fun s -> fst s#self_sync = `Dynamic) sources then
+              `Dynamic
+            else `Static
+          in
+          Atomic.set cached (Some self_sync_type);
+          self_sync_type
 
 let self_sync_of_sources sources =
   let self_sync_type = self_sync_type_of_sources sources in
@@ -220,8 +231,8 @@ let self_sync_of_sources sources =
         (fun { sync_source = s } { sync_source = s' } -> Stdlib.compare s s')
         sync_sources
     with
-      | [] -> (Lazy.force self_sync_type, None)
-      | [{ sync_source }] -> (Lazy.force self_sync_type, Some sync_source)
+      | [] -> (self_sync_type (), None)
+      | [{ sync_source }] -> (self_sync_type (), Some sync_source)
       | sync_sources ->
           raise
             (Sync_error { name = source#id; stack = source#stack; sync_sources })
