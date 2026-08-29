@@ -8,7 +8,9 @@ function caml_mutex_new() {}
 function caml_thread_self() {}
 
 //Provides: caml_thread_id
-function caml_thread_id() {}
+function caml_thread_id() {
+  return 0;
+}
 
 //Provides: caml_mutex_lock
 function caml_mutex_lock() {}

@@ -3,6 +3,7 @@
 ## New:
 
 - Added `getter(t)` type annotation syntax for getter types (#5078).
+- Added `atomic(f)`, which runs `f` without letting any other atomic section run at the same time. Script code now runs on several cores at once, so a group of changes that must not be observed half-done — writing several references together, or checking a flag and setting it — needs to say so.
 - Added `source.content` operator returning an associative list of frame field names to their content format, `track.format` returning the content format of a single track, and `format.description` returning a typed record description of a content format.
 - Renamed the internal video content type from `canvas` to `yuv420p`, which better reflects the
   actual content; the content itself is still organized as a canvas of `yuv420p` layers. Type

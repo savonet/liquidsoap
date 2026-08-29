@@ -1,5 +1,8 @@
 (** Leaf utilities every other liquidsoap-lang library needs. *)
 
+(** Running a function with no other atomic section alongside. *)
+module Atomic_section = Atomic_section
+
 (** Locks over shared state. *)
 module Mutex_utils = Mutex_utils
 
