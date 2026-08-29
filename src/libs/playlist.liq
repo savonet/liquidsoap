@@ -595,29 +595,31 @@ let settings.playlist.mime_types.xml =
 let register_playlist_parsers =
   begin
     registered = ref(false)
-    fun () ->
-      begin
-        # Claiming the flag and reading it has to be one step: several threads
-        # reach here for the same parsers, and registering one twice fails.
-        if
-          not registered.exchange(true)
-        then
-          parsers = settings.playlist.mime_types.basic()
+    def register() =
+      # The check and the registration are one section: claiming the flag
+      # alone lets a second thread through while the parsers are still going
+      # in, and it then parses against a half-filled registry.
+      if
+        not registered()
+      then
+        registered := true
+        parsers = settings.playlist.mime_types.basic()
 %ifdef playlist.parse.xml
-          parsers = [...parsers, ...settings.playlist.mime_types.xml()]
+        parsers = [...parsers, ...settings.playlist.mime_types.xml()]
 %endif
-          list.iter(
-            fun ({name, mimes, strict, parser}) ->
-              playlist.parse.register(
-                name=name,
-                mimes=mimes,
-                strict=strict,
-                parser
-              ),
-            parsers
-          )
-        end
+        list.iter(
+          fun ({name, mimes, strict, parser}) ->
+            playlist.parse.register(
+              name=name,
+              mimes=mimes,
+              strict=strict,
+              parser
+            ),
+          parsers
+        )
       end
+    end
+    fun () -> atomic(register)
   end
 on_start(register_playlist_parsers)
 
