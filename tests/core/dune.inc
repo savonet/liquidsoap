@@ -464,6 +464,37 @@
   (run %{frame_test})))
 
 (executable
+ (name frame_video_dimensions_test)
+ (modules frame_video_dimensions_test)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias frame_video_dimensions_test)
+ (package liquidsoap)
+ (deps
+  (:frame_video_dimensions_test frame_video_dimensions_test.exe))
+ (action
+  (run %{frame_video_dimensions_test})))
+
+(executable
  (name generator_test)
  (modules generator_test)
  (flags
@@ -1264,6 +1295,7 @@
   (alias flush_test)
   (alias frame_checksum_test)
   (alias frame_test)
+  (alias frame_video_dimensions_test)
   (alias generator_test)
   (alias http_test)
   (alias is_url)

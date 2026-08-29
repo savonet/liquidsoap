@@ -160,18 +160,24 @@ type ideal_size = { width : int; height : int; source : string }
     allows auto-detection from the first decoded video file. *)
 let video_dimensions =
   (* We don't want to use delayed config here because those are evaluated too early. *)
-  let dimensions =
-    lazy
-      (assert !lazy_config_eval;
-       let w = conf_video_width#get in
-       let h = conf_video_height#get in
-       (w, h))
+  let cached = Atomic.make None in
+  (* The clock and decoder threads read the dimensions concurrently; the value
+     is deterministic, so a racing computation is harmless. *)
+  let dimensions () =
+    match Atomic.get cached with
+      | Some dimensions -> dimensions
+      | None ->
+          assert !lazy_config_eval;
+          let w = conf_video_width#get in
+          let h = conf_video_height#get in
+          Atomic.set cached (Some (w, h));
+          (w, h)
   in
   fun ?ideal_size () ->
     (match ideal_size with
       | Some { width; height; source }
         when conf_video_detect_dimensions#get
-             && (not (Lazy.is_val dimensions))
+             && Atomic.get cached = None
              && (not conf_video_width#is_set)
              && not conf_video_height#is_set ->
           log#important "Auto-detected video dimensions: %dx%d (source: %s)."
@@ -179,8 +185,8 @@ let video_dimensions =
           conf_video_width#set width;
           conf_video_height#set height
       | _ -> ());
-    let width = lazy (fst (Lazy.force dimensions)) in
-    let height = lazy (snd (Lazy.force dimensions)) in
+    let width = lazy (fst (dimensions ())) in
+    let height = lazy (snd (dimensions ())) in
     (width, height)
 
 let audio_rate = delayed_conf ~to_string:string_of_int conf_audio_samplerate
