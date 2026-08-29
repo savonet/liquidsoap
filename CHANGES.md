@@ -50,19 +50,17 @@
 ## Changed:
 
 - Liquidsoap now requires OCaml 5.5 to build.
-
-- The scheduler now runs one domain per core and dispatches tasks onto whichever one is free, so requests,
-  harbor clients, script callbacks and `thread.run` handlers run in parallel instead of taking turns on a single
-  core. This also keeps them from delaying the streaming loop: a CPU-bound task used to hold up every clock
-  thread for as long as a scheduler tick.
+- Scheduled work — requests, harbor clients, script callbacks, `thread.run` handlers — is now fully concurrent,
+  taking advantage of OCaml 5's core-based concurrency, so a busy instance keeps up with much more of it at once.
+  Heavy work in a callback or a request resolution no longer stalls playback either.
 - Removed `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
-  `settings.scheduler.non_blocking_queues`: the scheduler is sized from the machine's core count and no longer
-  has queues to count. Scripts setting them must drop those lines. The new `settings.scheduler.blocking_tasks`
-  caps how many blocking tasks — request resolutions, `thread.run` handlers, last.fm submissions — run at once.
-- Task priorities are ordered explicitly, so a request resolution is picked before a last.fm submission.
-  Polymorphic comparison ordered them by name hash, which happened to prefer the slow ones.
-- Harbor and the telnet server read and write their sockets as ordinary sequential code: duppy computations park
-  on an effect and carry on where they left off, replacing the CPS monad that OCaml 4 required.
+  `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from the number of cores and there is
+  nothing left to tune. Scripts setting them must drop those lines. `settings.scheduler.blocking_tasks` replaces
+  them, limiting how many slow tasks — request resolutions, `thread.run` handlers, last.fm submissions — may
+  run at once.
+- When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then
+  long tasks such as last.fm submissions. The order used to be arbitrary and often favoured the slow ones.
+
 - Bindings written without `let` accept the same targets as `let` — destructuring patterns, field paths and type
   annotations — so `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid, and an invalid left-hand side
   reports what is allowed instead of a bare syntax error. A leading binding inside the `{ … }` function shorthand
@@ -115,6 +113,9 @@
 - Rendering a type no longer goes through `Format.str_formatter`, which is per-domain and shared with whatever else
   formats a value there: a type printed from a scheduler task came out empty.
 - Log entries written during shutdown are no longer dropped: the logging thread returned without a final flush.
+- Error messages naming a type no longer come out with the type missing, which could happen when the error was
+  raised from a callback or a `thread.run` handler.
+- The last lines of the log are no longer lost on shutdown.
 
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
   `on_leave` and transition functions are now released when the selection or the crossing
