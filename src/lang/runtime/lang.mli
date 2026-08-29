@@ -179,9 +179,9 @@ val record : (string * value) list -> value
 
 (** Build a reference from a getter and a setter.
 
-    Pass [exchange] whenever the underlying state can do it in one step: the
-    fallback is a get followed by a set, and callers take a reference to be
-    atomic. *)
+    Pass [exchange] whenever the underlying state can do it in one step: without
+    it every operation runs as an atomic section, which excludes other sections
+    and nothing else. *)
 val reference :
   ?exchange:(value -> value) -> (unit -> value) -> (value -> unit) -> value
 

@@ -117,16 +117,20 @@ let val_cst_fun p c =
     | _ -> mk (`FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
 let reference ?exchange get set =
-  (* Without one of its own, a reference can only offer the two steps it is
-     built from, which is as indivisible as its [set] already is. *)
-  let exchange =
+  (* Without an exchange of its own, the reference runs every operation as an
+     atomic section: an exchange built from a get and a set that another thread
+     can write between buys nothing. *)
+  let get, set, exchange =
     match exchange with
-      | Some fn -> fn
+      | Some fn -> (get, set, fn)
       | None ->
-          fun v ->
-            let previous = get () in
-            set v;
-            previous
+          ( (fun () -> Atomic_section.run get),
+            (fun v -> Atomic_section.run (fun () -> set v)),
+            fun v ->
+              Atomic_section.run (fun () ->
+                  let previous = get () in
+                  set v;
+                  previous) )
   in
   let get_fn = val_fun [] (fun _ -> get ()) in
   let set_fn =
