@@ -53,7 +53,7 @@ let parse_param = Content_audio.Specs.parse_param
 let params d = param_of_channels (Array.length d)
 
 let default_params _ =
-  param_of_channels (Lazy.force Frame_settings.audio_channels)
+  param_of_channels (Lazy.Mutexed.force Frame_settings.audio_channels)
 
 let make ~fmt ?(length = 0) { Content_audio.Specs.channel_layout } =
   let channels =
@@ -74,4 +74,4 @@ let clear_content ~v b ofs len =
 
 let channels_of_format ~get_params p =
   Content_audio.Specs.(
-    channels_of_param (Lazy.force (get_params p).channel_layout))
+    channels_of_param (Lazy.Mutexed.force (get_params p).channel_layout))

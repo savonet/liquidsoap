@@ -92,7 +92,7 @@ module Value : sig
   (** Register documentation under a name. Lazy: building it forces the
       operator's type to be printed, which is wasted work for the common case
       where nobody asks for documentation. *)
-  val add : string -> t Lazy.t -> unit
+  val add : string -> t Lazy.Mutexed.t -> unit
 
   val count : unit -> int
 

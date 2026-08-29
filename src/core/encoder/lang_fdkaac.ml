@@ -42,8 +42,8 @@ let make params =
     ]
   in
   let check_samplerate ~pos i =
-    Lazy.from_fun (fun () ->
-        let i = Lazy.force i in
+    Lazy.Mutexed.from_fun (fun () ->
+        let i = Lazy.Mutexed.force i in
         if not (List.mem i valid_samplerates) then (
           let err =
             Printf.sprintf "invalid samplerate value. Possible values: %s"
@@ -104,7 +104,8 @@ let make params =
         | `Labelled ("samplerate", Value.Int { value = i; pos }) ->
             {
               f with
-              Fdkaac_format.samplerate = check_samplerate ~pos (Lazy.from_val i);
+              Fdkaac_format.samplerate =
+                check_samplerate ~pos (Lazy.Mutexed.from_val i);
             }
         | `Labelled ("sbr_mode", Value.Bool { value = b; _ }) ->
             { f with Fdkaac_format.sbr_mode = b }

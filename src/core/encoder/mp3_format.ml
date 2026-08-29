@@ -64,7 +64,7 @@ type t = {
   stereo_mode : stereo_mode;
   bitrate_control : bitrate_control;
   internal_quality : int;
-  samplerate : int Lazy.t;
+  samplerate : int Lazy.Mutexed.t;
   id3v2 : int option;
 }
 
@@ -78,7 +78,7 @@ let to_string m =
   Printf.sprintf "%s(%s,%s,samplerate=%d,id3v2=%s)" name
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_bitrate_control m.bitrate_control)
-    (Lazy.force m.samplerate)
+    (Lazy.Mutexed.force m.samplerate)
     (match m.id3v2 with None -> "none" | Some v -> string_of_int v)
 
 let bitrate m =

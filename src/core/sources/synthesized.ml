@@ -55,9 +55,9 @@ class virtual source ~name duration =
     method private generate_frame =
       let len =
         match remaining with
-          | Some -1 | None -> Lazy.force Frame.size
+          | Some -1 | None -> Lazy.Mutexed.force Frame.size
           | Some r ->
-              let len = min (Lazy.force Frame.size) r in
+              let len = min (Lazy.Mutexed.force Frame.size) r in
               remaining <- Some (r - len);
               len
       in

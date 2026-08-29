@@ -210,13 +210,13 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method private decode =
       let { decoder; buffer; closed; _ } = self#get_connected_container in
-      while Generator.length self#buffer < Lazy.force Frame.size do
+      while Generator.length self#buffer < Lazy.Mutexed.force Frame.size do
         if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
         decoder.decode buffer
       done
 
     method private generate_frame =
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       try
         self#decode;
         let frame = Generator.slice self#buffer size in

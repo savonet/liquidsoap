@@ -120,7 +120,9 @@ class keyboard =
     method private generate_frame =
       let t = self#get_events in
       Frame.set_data
-        (Frame.create ~length:(Lazy.force Frame.size) Frame.Fields.empty)
+        (Frame.create
+           ~length:(Lazy.Mutexed.force Frame.size)
+           Frame.Fields.empty)
         Frame.Fields.midi Content.Midi.lift_data [| t |]
   end
 

@@ -68,7 +68,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       let pos = AFrame.position frame in
       let buf = Content.Audio.get_data (Frame.get frame field) in
       let chans = Array.length buf in
-      let samplerate = float (Lazy.force Frame.audio_rate) in
+      let samplerate = float (Lazy.Mutexed.force Frame.audio_rate) in
       let threshold = threshold () in
       let knee = knee () in
       let ratio = ratio () in

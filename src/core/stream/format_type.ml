@@ -303,7 +303,7 @@ let audio_n ?(pcm_kind = Content_audio.kind) n =
           (Frame_base.audio_format ~pcm_kind
              {
                channel_layout =
-                 Lazy.from_val (Audio_layout.layout_of_channels n);
+                 Lazy.Mutexed.from_val (Audio_layout.layout_of_channels n);
              })))
 
 let audio_mono ?pcm_kind () = audio_n ?pcm_kind 1

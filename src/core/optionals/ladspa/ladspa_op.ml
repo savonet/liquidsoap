@@ -106,7 +106,7 @@ class ladspa_mono (source : source) plugin descr input output params =
               (Content.Audio.channels_of_format
                  (Option.get
                     (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
-              (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
+              (fun _ -> instantiate d (Lazy.Mutexed.force Frame.audio_rate))
           in
           Array.iter Descriptor.activate i;
           inst <- Some i)
@@ -137,7 +137,7 @@ class ladspa (source : source) plugin descr inputs outputs params =
     val inst =
       let p = Plugin.load plugin in
       let d = Descriptor.descriptor p descr in
-      instantiate d (Lazy.force Frame.audio_rate)
+      instantiate d (Lazy.Mutexed.force Frame.audio_rate)
 
     initializer Descriptor.activate inst
 
@@ -177,7 +177,7 @@ class ladspa_nosource plugin descr outputs params =
     val inst =
       let p = Plugin.load plugin in
       let d = Descriptor.descriptor p descr in
-      instantiate d (Lazy.force Frame.audio_rate)
+      instantiate d (Lazy.Mutexed.force Frame.audio_rate)
 
     initializer Descriptor.activate inst
 
@@ -186,7 +186,7 @@ class ladspa_nosource plugin descr outputs params =
         must_fail <- false;
         self#end_of_track)
       else (
-        let length = Lazy.force Frame.size in
+        let length = Lazy.Mutexed.force Frame.size in
         let buf = Frame.create ~length self#content_type in
         let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
         List.iter

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = lazy (!Hooks.make_log ["math"])
+let log = Lazy.Mutexed.from_fun (fun () -> !Hooks.make_log ["math"])
 
 let () =
   let add op name descr =
@@ -171,7 +171,7 @@ let _ =
       let x = List.assoc "" p |> Lang.to_num in
       let raise = List.assoc "raise" p |> Lang.to_bool in
       let pos = Lang.pos p in
-      let log = Lazy.force log in
+      let log = Lazy.Mutexed.force log in
       let x =
         match x with
           | `Int x -> x

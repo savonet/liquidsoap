@@ -30,7 +30,7 @@ class consumer ~name ~clock buffer =
     method private can_generate_frame = 0 < Generator.length buffer
 
     method private generate_frame =
-      Generator.slice buffer (Lazy.force Frame.size)
+      Generator.slice buffer (Lazy.Mutexed.force Frame.size)
 
     method abort_track = Generator.clear buffer
     method self_sync = (`Static, None)
@@ -68,7 +68,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
     method set_main_duration =
       let duration = duration_getter () in
       let _main_duration = Frame.main_of_seconds duration in
-      let frame_size = Lazy.force Frame.size in
+      let frame_size = Lazy.Mutexed.force Frame.size in
 
       main_duration <-
         (if _main_duration < 0 then (

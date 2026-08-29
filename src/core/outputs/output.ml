@@ -260,7 +260,7 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
         in
         function
         | [] -> assert false
-        | [i] -> assert (i = Lazy.force Frame.size || not infallible)
+        | [i] -> assert (i = Lazy.Mutexed.force Frame.size || not infallible)
         | start :: stop :: l ->
             if start < stop then f start stop else assert (start = stop);
             output_chunks frame (stop :: l)

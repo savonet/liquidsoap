@@ -64,9 +64,9 @@ let type_of_format f =
     | Shine m -> audio_type m.Shine_format.channels
     | NDI { audio = false; video = false } -> assert false
     | NDI { audio = true; video = false } ->
-        audio_type (Lazy.force Frame.audio_channels)
+        audio_type (Lazy.Mutexed.force Frame.audio_channels)
     | NDI { audio = true; video = true } ->
-        audio_video_type (Lazy.force Frame.audio_channels)
+        audio_video_type (Lazy.Mutexed.force Frame.audio_channels)
     | NDI { audio = false; video = true } -> video_type ()
     | Flac m -> audio_type m.Flac_format.channels
     | Ffmpeg m ->
@@ -103,7 +103,7 @@ let type_of_format f =
                     let params =
                       {
                         Content.Audio.channel_layout =
-                          Lazy.from_val
+                          Lazy.Mutexed.from_val
                             (Audio_converter.Channel_layout.layout_of_channels
                                channels);
                       }
@@ -166,7 +166,7 @@ let string_of_format = function
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
-      Some (Lazy.force width, Lazy.force height)
+      Some (Lazy.Mutexed.force width, Lazy.Mutexed.force height)
   | Ffmpeg m -> (
       match
         List.fold_left
@@ -177,7 +177,8 @@ let video_size = function
               | _ -> cur)
           [] m.Ffmpeg_format.streams
       with
-        | (width, height) :: [] -> Some (Lazy.force width, Lazy.force height)
+        | (width, height) :: [] ->
+            Some (Lazy.Mutexed.force width, Lazy.Mutexed.force height)
         | _ -> None)
   | _ -> None
 

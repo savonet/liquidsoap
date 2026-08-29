@@ -101,7 +101,8 @@ let create_encoder ~opus ~comments () =
     {
       Ogg_muxer.offset = 0;
       length = 1;
-      data = Array.make (Lazy.force Frame.audio_channels) (Array.make 1 0.);
+      data =
+        Array.make (Lazy.Mutexed.force Frame.audio_channels) (Array.make 1 0.);
     }
   in
   let end_of_page p =

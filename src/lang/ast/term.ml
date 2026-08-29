@@ -59,7 +59,7 @@ let conf_debug_errors = ref false
 
 (** Are we in debugging mode? *)
 let debug =
-  Lazy.from_fun (fun () ->
+  Lazy.Mutexed.from_fun (fun () ->
       try
         ignore (Sys.getenv "LIQUIDSOAP_DEBUG_LANG");
         true
@@ -485,7 +485,7 @@ end
 let make ?pos ?t ?flags ?methods e =
   let term = make ?pos ?t ?flags ?methods e in
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  if Lazy.force debug then
+  if Lazy.Mutexed.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
       (Pos.Option.to_string t.Type.pos)
       (try to_string term with _ -> "<?>")

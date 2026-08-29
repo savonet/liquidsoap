@@ -28,8 +28,8 @@ type t = Frame.t
 let sot = audio_of_main
 let content b = try Frame.audio b with Not_found -> raise Content.Invalid
 let pcm b = Content.Audio.get_data (content b)
-let duration () = Lazy.force duration
-let size () = sot (Lazy.force size)
+let duration () = Lazy.Mutexed.force duration
+let size () = sot (Lazy.Mutexed.force size)
 let position t = sot (position t)
 let rms b off len = Audio.Analyze.rms (pcm b) off len
 

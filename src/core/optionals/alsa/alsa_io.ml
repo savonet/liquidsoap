@@ -33,7 +33,7 @@ let handle lbl f x =
 
 class virtual base ~buffer_size:buffer_size_seconds ~self_sync
   ?(default_self_sync = fun () -> (`Static, None)) dev mode =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
   let buffer_size = Frame.audio_of_seconds buffer_size_seconds in
   object (self)
@@ -173,7 +173,7 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync
 class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
   val_source =
   let s = Lang.to_source val_source in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
     inherit
@@ -264,7 +264,7 @@ class input ~buffer_size ~self_sync ~start ~fallible dev =
     (* TODO: convert samplerate *)
     method private generate_frame =
       let pcm = Option.get pcm in
-      let length = Lazy.force Frame.size in
+      let length = Lazy.Mutexed.force Frame.size in
       let alsa_buffer_size = self#alsa_buffer_size in
       let gen = self#generator in
       let format = Frame.Fields.find Frame.Fields.audio self#content_type in
@@ -336,7 +336,7 @@ let _ =
         match
           Lang.to_valued_option Lang.to_float (List.assoc "buffer_size" p)
         with
-          | None -> Lazy.force Frame.duration
+          | None -> Lazy.Mutexed.force Frame.duration
           | Some v -> v
       in
       let start = Lang.to_bool (List.assoc "start" p) in
@@ -383,7 +383,7 @@ let _ =
         match
           Lang.to_valued_option Lang.to_float (List.assoc "buffer_size" p)
         with
-          | None -> Lazy.force Frame.duration
+          | None -> Lazy.Mutexed.force Frame.duration
           | Some v -> v
       in
       let start = Lang.to_bool (List.assoc "start" p) in

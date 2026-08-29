@@ -374,11 +374,17 @@ let ffmpeg_gen params =
           args
     | ("samplerate", t) :: args ->
         parse_audio_args ~opts
-          { options with Ffmpeg_format.samplerate = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.samplerate = Lazy.Mutexed.from_val (to_int t);
+          }
           args
     | ("ar", t) :: args ->
         parse_audio_args ~opts
-          { options with Ffmpeg_format.samplerate = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.samplerate = Lazy.Mutexed.from_val (to_int t);
+          }
           args
     | ("sample_format", t) :: args ->
         parse_audio_args ~opts
@@ -392,19 +398,31 @@ let ffmpeg_gen params =
     | [] -> options
     | ("framerate", t) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.framerate = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.framerate = Lazy.Mutexed.from_val (to_int t);
+          }
           args
     | ("r", t) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.framerate = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.framerate = Lazy.Mutexed.from_val (to_int t);
+          }
           args
     | ("width", t) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.width = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.width = Lazy.Mutexed.from_val (to_int t);
+          }
           args
     | ("height", t) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.height = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.height = Lazy.Mutexed.from_val (to_int t);
+          }
           args
     | ("pixel_format", String { value = "guess" }) :: args ->
         parse_video_args ~opts

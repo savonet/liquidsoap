@@ -600,7 +600,7 @@ let id3v2_of_metadata ~version m =
   Metadata.ID3v2.make ~version frames
 
 let is_docker =
-  Lazy.from_fun (fun () ->
+  Lazy.Mutexed.from_fun (fun () ->
       Sys.unix
       && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
 

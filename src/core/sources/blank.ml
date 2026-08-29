@@ -55,7 +55,7 @@ class blank d =
     val mutable frame = None
 
     method private make_frame =
-      let length = Lazy.force Frame.size in
+      let length = Lazy.Mutexed.force Frame.size in
       let audio_len = Frame.audio_of_main length in
       Frame.Fields.fold
         (fun field format frame ->
@@ -105,7 +105,7 @@ class blank d =
 
     method generate_frame =
       let frame = self#blank_frame in
-      let length = Lazy.force Frame.size in
+      let length = Lazy.Mutexed.force Frame.size in
       match (Atomic.get position, self#remaining) with
         | `New_track, _ ->
             Atomic.set position (`Elapsed length);

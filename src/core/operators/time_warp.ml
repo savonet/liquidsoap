@@ -37,7 +37,7 @@ module Buffer = struct
   (* The kind of value shared by a producer and a consumer. *)
   type control = {
     lock : Mutex_utils.state;
-    generator : Generator.t Lazy.t;
+    generator : Generator.t Lazy.Mutexed.t;
     mutable buffering : bool;
     mutable abort : bool;
   }
@@ -55,7 +55,8 @@ module Buffer = struct
       method fallible = true
 
       method remaining =
-        proceed c (fun () -> Generator.remaining (Lazy.force c.generator))
+        proceed c (fun () ->
+            Generator.remaining (Lazy.Mutexed.force c.generator))
 
       method private can_generate_frame =
         proceed c (fun () ->
@@ -63,12 +64,12 @@ module Buffer = struct
             not is_buffering)
 
       method! seek len =
-        let len = min (Generator.length (Lazy.force c.generator)) len in
-        Generator.truncate (Lazy.force c.generator) len;
+        let len = min (Generator.length (Lazy.Mutexed.force c.generator)) len in
+        Generator.truncate (Lazy.Mutexed.force c.generator) len;
         len
 
       method effective_source = (self :> Source.source)
-      method buffer_length = Generator.length (Lazy.force c.generator)
+      method buffer_length = Generator.length (Lazy.Mutexed.force c.generator)
 
       (* Returns true if metadata should be replayed. *)
       method private save_metadata frame =
@@ -102,11 +103,13 @@ module Buffer = struct
             let was_buffering = is_buffering in
             is_buffering <- false;
             let frame =
-              Generator.slice (Lazy.force c.generator) (Lazy.force Frame.size)
+              Generator.slice
+                (Lazy.Mutexed.force c.generator)
+                (Lazy.Mutexed.force Frame.size)
             in
             if
               Frame.is_partial frame
-              && Generator.length (Lazy.force c.generator) = 0
+              && Generator.length (Lazy.Mutexed.force c.generator) = 0
             then (
               self#log#important "Buffer emptied, start buffering...";
               c.buffering <- true);
@@ -144,12 +147,13 @@ module Buffer = struct
             if c.abort then (
               c.abort <- false;
               source#abort_track);
-            Generator.append (Lazy.force c.generator) frame;
-            if Generator.length (Lazy.force c.generator) > prebuf then (
+            Generator.append (Lazy.Mutexed.force c.generator) frame;
+            if Generator.length (Lazy.Mutexed.force c.generator) > prebuf then (
               c.buffering <- false;
-              if Generator.length (Lazy.force c.generator) > maxbuf then
-                Generator.truncate (Lazy.force c.generator)
-                  (Generator.length (Lazy.force c.generator) - maxbuf)))
+              if Generator.length (Lazy.Mutexed.force c.generator) > maxbuf then
+                Generator.truncate
+                  (Lazy.Mutexed.force c.generator)
+                  (Generator.length (Lazy.Mutexed.force c.generator) - maxbuf)))
     end
 
   let create ~id ~autostart ~infallible ~pre_buffer ~max_buffer ~add_track_mark
@@ -157,7 +161,7 @@ module Buffer = struct
     let control =
       {
         generator =
-          Lazy.from_fun (fun () ->
+          Lazy.Mutexed.from_fun (fun () ->
               Generator.create (Lang.to_source source_val)#content_type);
         lock = Mutex_utils.mk_state ();
         buffering = true;
@@ -371,7 +375,7 @@ module AdaptativeBuffer = struct
             let scaling = c.rb_length /. prebuf in
             let scale n = int_of_float (float n *. scaling) in
             let unscale n = int_of_float (float n /. scaling) in
-            let length = Lazy.force Frame.size in
+            let length = Lazy.Mutexed.force Frame.size in
             let frame = Frame.create ~length self#content_type in
             let alen = Frame.audio_of_main length in
             let buf =

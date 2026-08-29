@@ -46,7 +46,7 @@ let run_streams = ref true
 let allow_root =
   Dtools.Conf.bool
     ~p:(Configure.conf_init#plug "allow_root")
-    ~d:(Lazy.force Utils.is_docker)
+    ~d:(Lazy.Mutexed.force Utils.is_docker)
     "Do not warn when liquidsoap is run as root"
     ~comments:
       [
@@ -135,7 +135,8 @@ let eval () =
   Lifecycle.load ();
   (* Register settings module. Needs to be done last to make sure every
      dependent OCaml module has been linked. *)
-  Stdlib.Lazy.force Liquidsoap_builtins.Builtins_settings.settings_module;
+  Stdlib.Lazy.Mutexed.force
+    Liquidsoap_builtins.Builtins_settings.settings_module;
   let scripts = Queue.flush_elements to_load in
   let script =
     String.concat "\n"

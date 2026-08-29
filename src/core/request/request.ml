@@ -593,7 +593,9 @@ let get_decoder ~ctype r =
                       (Frame.seconds_of_main cue_out);
                     Frame.slice buf (cue_out - old_pos))
                   else (
-                    if filled < len && Lazy.force Frame.size < cue_out - new_pos
+                    if
+                      filled < len
+                      && Lazy.Mutexed.force Frame.size < cue_out - new_pos
                     then
                       r.logger#important
                         "End of track reached at %.02f before cue-out point at \

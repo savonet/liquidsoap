@@ -41,14 +41,14 @@ type sender = { handler : Ndi.Send.sender; mutable position : int64 }
 class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
   ~format source start =
   let s = Lang.to_source source in
-  let sample_rate = Lazy.force Frame.audio_rate in
-  let frame_rate = Lazy.force Frame.video_rate in
+  let sample_rate = Lazy.Mutexed.force Frame.audio_rate in
+  let frame_rate = Lazy.Mutexed.force Frame.video_rate in
   let video_width, video_height = Frame.video_dimensions () in
-  let video_height = Lazy.force video_height in
-  let video_width = Lazy.force video_width in
+  let video_height = Lazy.Mutexed.force video_height in
+  let video_width = Lazy.Mutexed.force video_width in
   (* Timecode is in increment of 100 ns *)
   let timecode_base =
-    Int64.div 10_000_000L (Int64.of_int (Lazy.force Frame.main_rate))
+    Int64.div 10_000_000L (Int64.of_int (Lazy.Mutexed.force Frame.main_rate))
   in
   let clock_audio, clock_video =
     match (self_sync, format.audio, format.video) with

@@ -84,7 +84,7 @@ let mk_audio_decoder ~channels ~field ~pcm_kind codec =
   let in_sample_rate = ref (Avcodec.Audio.get_sample_rate codec) in
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
-  let target_sample_rate = Lazy.force Frame.audio_rate in
+  let target_sample_rate = Lazy.Mutexed.force Frame.audio_rate in
   let target_channel_layout = Avutil.Channel_layout.get_default channels in
   let mk_converter () =
     Converter.create !in_channel_layout ~in_sample_format:!in_sample_format
@@ -132,7 +132,7 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
   let target_height = height in
   let width = Avcodec.Video.get_width codec in
   let height = Avcodec.Video.get_height codec in
-  let target_fps = Lazy.force Frame.video_rate in
+  let target_fps = Lazy.Mutexed.force Frame.video_rate in
   let target_pixel_format =
     if alpha then Ffmpeg_utils.liq_frame_pixel_format_with_alpha
     else Ffmpeg_utils.liq_frame_pixel_format
@@ -277,8 +277,8 @@ let mk_bitmap_subtitle_decoder ~field ~width ~height =
   let generator =
     Content.Video.make_generator
       {
-        Content.Video.width = Some (lazy width);
-        height = Some (lazy height);
+        Content.Video.width = Some (Lazy.Mutexed.from_fun (fun () -> width));
+        height = Some (Lazy.Mutexed.from_fun (fun () -> height));
         alpha = Unifier.make (Some true);
       }
   in

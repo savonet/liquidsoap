@@ -38,14 +38,14 @@ let string_of_hwaccel = function
 type audio_options = {
   pcm_kind : Content.kind;
   channels : int;
-  samplerate : int Lazy.t;
+  samplerate : int Lazy.Mutexed.t;
   sample_format : string option;
 }
 
 type video_options = {
-  framerate : int Lazy.t;
-  width : int Lazy.t;
-  height : int Lazy.t;
+  framerate : int Lazy.Mutexed.t;
+  width : int Lazy.Mutexed.t;
+  height : int Lazy.Mutexed.t;
   pixel_format : string option;
   alpha : bool option;
   hwaccel : hwaccel;
@@ -133,11 +133,11 @@ let to_string m =
                      Hashtbl.replace stream_opts "codec" (`String codec))
                    codec);
               Hashtbl.replace stream_opts "framerate"
-                (`Int (Lazy.force options.framerate));
+                (`Int (Lazy.Mutexed.force options.framerate));
               Hashtbl.replace stream_opts "width"
-                (`Int (Lazy.force options.width));
+                (`Int (Lazy.Mutexed.force options.width));
               Hashtbl.replace stream_opts "height"
-                (`Int (Lazy.force options.height));
+                (`Int (Lazy.Mutexed.force options.height));
               Hashtbl.replace stream_opts "hwaccel"
                 (`Var (string_of_hwaccel options.hwaccel));
               Hashtbl.replace stream_opts "hwaccel_device"
@@ -158,7 +158,7 @@ let to_string m =
                    codec);
               Hashtbl.replace stream_opts "channels" (`Int options.channels);
               Hashtbl.replace stream_opts "samplerate"
-                (`Int (Lazy.force options.samplerate));
+                (`Int (Lazy.Mutexed.force options.samplerate));
               Printf.sprintf "%s(%s%s)" name
                 (if Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "audio") name then ""
                  else "audio_content,")
