@@ -5,6 +5,7 @@ ENTRYPOINT bash
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=5.5.0
+ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/b62191b568d80253b882b4702a1b2f5272c3d595.tar.gz
 
 USER root
 
@@ -25,6 +26,13 @@ RUN \
     opam init -y --disable-sandboxing --compiler=$OCAML_VERSION && \
     opam update -y && \
     opam clean
+
+# The global-root debugging patches, ocaml/ocaml#15027. They are all #ifdef DEBUG,
+# so they only show up in the runtime reached through -runtime-variant d. Build with
+# an empty OCAML_PATCH_URL for a stock compiler.
+RUN test -z "$OCAML_PATCH_URL" || \
+    (opam pin add -y ocaml-compiler.$OCAML_VERSION "$OCAML_PATCH_URL" && \
+     opam clean)
 
 ARG LIQUIDSOAP_SHA=main
 
@@ -57,9 +65,14 @@ RUN \
     PACKAGES=`cat /tmp/packages | xargs echo` && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
-    opam pin list --short | xargs -r opam pin remove -y && \
+    opam pin list --short | grep -v '^ocaml-compiler$' | xargs -r opam pin remove -y && \
     rm -rf /tmp/liquidsoap && \
     opam clean
+
+# The compiler pin has to survive the pin cleanup above, or the patched compiler is
+# silently replaced by the release one.
+RUN test -z "$OCAML_PATCH_URL" || \
+    (eval $(opam env) && opam pin list --short | grep -qx ocaml-compiler)
 
 USER root
 

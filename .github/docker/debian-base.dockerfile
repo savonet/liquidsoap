@@ -1,4 +1,5 @@
 ARG BASE_IMAGE
+ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/b62191b568d80253b882b4702a1b2f5272c3d595.tar.gz
 
 # Stage 1: OCaml compiler
 FROM $BASE_IMAGE AS ocaml
@@ -6,6 +7,7 @@ FROM $BASE_IMAGE AS ocaml
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=5.5.0
+ARG OCAML_PATCH_URL
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -26,6 +28,13 @@ RUN opam init -y --disable-sandboxing --bare && \
     opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-flambda && \
     opam update -y && \
     opam clean
+
+# The global-root debugging patches, ocaml/ocaml#15027. They are all #ifdef DEBUG,
+# so they only show up in the runtime reached through -runtime-variant d. Build with
+# an empty OCAML_PATCH_URL for a stock compiler.
+RUN test -z "$OCAML_PATCH_URL" || \
+    (opam pin add -y ocaml-compiler.$OCAML_VERSION "$OCAML_PATCH_URL" && \
+     opam clean)
 
 # Stage 2: Clone liquidsoap and pin all synced modules
 FROM ocaml AS pinned
@@ -90,6 +99,8 @@ USER root
 # Stage 4: Install remaining external and opam dependencies
 FROM static-packages AS build
 
+ARG OCAML_PATCH_URL
+
 ENV EXT_PACKAGES="camomile-embedded ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 odoc"
 
 USER opam
@@ -120,9 +131,14 @@ RUN eval $(opam env) && \
     PACKAGES=$(cat /tmp/packages | grep -Ev "^(speex|theora)$" | xargs echo) && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
-    opam pin list --short | xargs -r opam pin remove -y && \
+    opam pin list --short | grep -v '^ocaml-compiler$' | xargs -r opam pin remove -y && \
     rm -rf /tmp/liquidsoap && \
     opam clean
+
+# The compiler pin has to survive the pin cleanup above, or the patched compiler is
+# silently replaced by the release one.
+RUN test -z "$OCAML_PATCH_URL" || \
+    (eval $(opam env) && opam pin list --short | grep -qx ocaml-compiler)
 
 USER root
 
