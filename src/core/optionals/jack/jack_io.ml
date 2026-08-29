@@ -196,7 +196,7 @@ class jack_port ~source ~is_input ~(unregister : unit -> unit) ~sample_rate
   end
 
 class jack_client ~id (server : string option) =
-  let liq_rate = Lazy.force Frame.audio_rate in
+  let liq_rate = Lazy.Mutexed.force Frame.audio_rate in
   object
     val mutable client : Jack.client option = None
     val mutable activated = false
@@ -252,14 +252,14 @@ class jack_client ~id (server : string option) =
       int_of_float
         (Float.floor
            (float frames
-           *. float (Lazy.force Frame.audio_rate)
+           *. float (Lazy.Mutexed.force Frame.audio_rate)
            /. float sample_rate))
 
     method frames_of_main ticks =
       int_of_float
         (Float.floor
            (float ticks *. float sample_rate
-           /. float (Lazy.force Frame.audio_rate)))
+           /. float (Lazy.Mutexed.force Frame.audio_rate)))
   end
 
 type port_content = {
@@ -365,7 +365,7 @@ module Jack_output_port_value =
 
 class virtual base ~server () =
   let { server_state; sync_source } = get_server_data server in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   object (self)
     method virtual log : Log.t
     method virtual audio_channels : int
@@ -433,7 +433,8 @@ class virtual base ~server () =
     method private prefill_silence =
       let jack_client = self#jack_client in
       let n_samples =
-        int_of_float (Lazy.force Frame.duration *. float jack_client#sample_rate)
+        int_of_float
+          (Lazy.Mutexed.force Frame.duration *. float jack_client#sample_rate)
       in
       (* Add one JACK buffer of padding to cover reads and writes that land in
          the middle of a JACK buffer. This can be skipped when the sample rates
@@ -489,7 +490,7 @@ class input ~server ~autostart =
     method private can_generate_frame =
       if active_source#started then begin
         self#drain_ringbuffer;
-        Generator.length self#buffer >= Lazy.force Frame.size
+        Generator.length self#buffer >= Lazy.Mutexed.force Frame.size
       end
       else false
 
@@ -531,7 +532,7 @@ class input ~server ~autostart =
       end
 
     method private generate_frame =
-      let frame_size = Lazy.force Frame.size in
+      let frame_size = Lazy.Mutexed.force Frame.size in
       while Generator.length self#buffer < frame_size do
         if self#jack_stopped then raise Clock.Has_stopped;
         self#drain_ringbuffer;

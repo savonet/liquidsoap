@@ -35,7 +35,7 @@ exception Unsupported_encoder of (Pos.t option * string)
 
 val conf_debug : bool ref
 val conf_debug_errors : bool ref
-val debug : bool Lazy.t
+val debug : bool Lazy.Mutexed.t
 val profile : bool ref
 val ref_t : ?pos:Pos.t -> Type.t -> Type.t
 

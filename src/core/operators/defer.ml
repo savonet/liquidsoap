@@ -40,7 +40,7 @@ type state = { offset : int; position : int }
 class defer ~delay ~overhead ~field source =
   let overhead =
     match overhead with
-      | None -> Lazy.force Frame.size
+      | None -> Lazy.Mutexed.force Frame.size
       | Some v -> Frame.main_of_seconds v
   in
   let delay = Frame.main_of_seconds delay in
@@ -138,7 +138,7 @@ class defer ~delay ~overhead ~field source =
       (not deferred) && Generator.length self#generator > 0
 
     method private generate_frame =
-      Generator.slice self#generator (Lazy.force Frame.size)
+      Generator.slice self#generator (Lazy.Mutexed.force Frame.size)
   end
 
 let _ =

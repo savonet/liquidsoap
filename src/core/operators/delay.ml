@@ -83,7 +83,7 @@ class delay ~initial (source : source) delay =
       in_track <- false
 
     method private generate_frame =
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       let append frame =
         if Frame.position frame > 0 then in_track <- true;
         Generator.append self#buffer frame

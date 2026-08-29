@@ -103,7 +103,7 @@ let position frame =
          | Some p -> Some (Int.min p (Content_base.length c)))
        frame None)
 
-let remaining b = Lazy.force Frame_settings.size - position b
+let remaining b = Lazy.Mutexed.force Frame_settings.size - position b
 let is_partial b = 0 < remaining b
 
 (** Metadata of a frame. *)
@@ -125,7 +125,7 @@ let format_of_channels ~pcm_kind n =
   audio_format ~pcm_kind
     {
       Content_audio.Specs.channel_layout =
-        Lazy.from_val (Audio_layout.layout_of_channels n);
+        Lazy.Mutexed.from_val (Audio_layout.layout_of_channels n);
     }
 
 let add_timed_content ?length content =

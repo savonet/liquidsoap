@@ -255,7 +255,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
       }
     (* to_plugin_doc category flags examples descr proto return_t *)
   in
-  let doc = Lazy.from_fun doc in
+  let doc = Lazy.Mutexed.from_fun doc in
   let generalized = Typing.filter_vars (fun _ -> true) t in
   Environment.add_builtin ~doc
     (String.split_on_char '.' name)
@@ -281,7 +281,8 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
         composition = [];
       }
   in
-  Environment.add_builtin ~doc:(Lazy.from_fun doc)
+  Environment.add_builtin
+    ~doc:(Lazy.Mutexed.from_fun doc)
     (String.split_on_char '.' name)
     ((generalized, t), value);
   name

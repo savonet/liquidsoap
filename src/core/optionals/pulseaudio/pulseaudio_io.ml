@@ -77,7 +77,7 @@ class output ~infallible ~register_telnet ~start p =
       (match device with None -> "(default)" | Some s -> s)
   in
   let val_source = List.assoc "" p in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
     inherit
@@ -164,7 +164,7 @@ class input p =
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let start = Lang.to_bool (List.assoc "start" p) in
   let fallible = Lang.to_bool (List.assoc "fallible" p) in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
@@ -220,7 +220,7 @@ class input p =
 
     method generate_frame =
       try
-        let size = Lazy.force Frame.size in
+        let size = Lazy.Mutexed.force Frame.size in
         let frame = Frame.create ~length:size self#content_type in
         let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
         let stream = Option.get stream in

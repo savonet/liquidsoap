@@ -45,7 +45,7 @@ let force f fd x =
 
 class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
   let s = Lang.to_source val_source in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
     inherit
@@ -88,7 +88,7 @@ class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
   end
 
 class input ~self_sync ~start ~fallible dev =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
@@ -121,7 +121,7 @@ class input ~self_sync ~start ~fallible dev =
       fd <- None
 
     method generate_frame =
-      let length = Lazy.force Frame.size in
+      let length = Lazy.Mutexed.force Frame.size in
       let frame = Frame.create ~length self#content_type in
       let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let fd = Option.get fd in

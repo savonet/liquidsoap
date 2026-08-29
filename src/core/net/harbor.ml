@@ -996,11 +996,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let f (verb, regex, handler) =
       let rex = regex.Liquidsoap_lang.Lang_regexp.regexp in
       let sub =
-        Lazy.from_fun (fun () ->
+        Lazy.Mutexed.from_fun (fun () ->
             try Some (Re.Pcre.exec ~rex base_uri) with _ -> None)
       in
-      if (verb :> verb) = hmethod && Lazy.force sub <> None then (
-        let sub = Option.get (Lazy.force sub) in
+      if (verb :> verb) = hmethod && Lazy.Mutexed.force sub <> None then (
+        let sub = Option.get (Lazy.Mutexed.force sub) in
         let groups =
           List.fold_left
             (fun groups name ->

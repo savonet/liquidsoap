@@ -23,7 +23,7 @@
 open Source
 
 class rms ~tau source =
-  let samplerate = float (Lazy.force Frame.audio_rate) in
+  let samplerate = float (Lazy.Mutexed.force Frame.audio_rate) in
   object (self)
     inherit operator [source] ~name:"rms"
     method fallible = source#fallible

@@ -332,7 +332,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private samplerate =
       match samplerate with
         | -1. ->
-            let s = float_of_int (Lazy.force Frame.audio_rate) in
+            let s = float_of_int (Lazy.Mutexed.force Frame.audio_rate) in
             samplerate <- s;
             s
         | s -> s
@@ -589,7 +589,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             List.iter (fun fn -> fn ()) on_before_streaming_cycle;
             consumed <- 0;
             let cache_pos = self#cache_pos in
-            let size = Lazy.force Frame.size in
+            let size = Lazy.Mutexed.force Frame.size in
             let can_generate_frame = self#can_generate_frame in
             if cache_pos > 0 || can_generate_frame then
               Atomic.set streaming_state
@@ -1020,7 +1020,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       let s = Option.get ready_source in
       assert s#is_ready;
       let buf = self#continue_frame s in
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       let rec f ~last_source ~last_chunk buf =
         let pos = Frame.position buf in
         let last_chunk_pos = Frame.position last_chunk in

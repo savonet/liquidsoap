@@ -40,7 +40,7 @@ module Audio = struct
   include Content_audio
 
   type audio_params = Content_audio.Specs.params = {
-    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.Mutexed.t;
   }
 end
 
@@ -54,8 +54,8 @@ module Video = struct
   }
 
   type video_params = Content_video.Specs.params = {
-    width : int Lazy.t option;
-    height : int Lazy.t option;
+    width : int Lazy.Mutexed.t option;
+    height : int Lazy.Mutexed.t option;
     alpha : bool option Unifier.t;
   }
 
@@ -67,8 +67,8 @@ module Video = struct
         length = Frame_settings.main_of_video 1;
         params =
           {
-            height = Some (Lazy.from_val height);
-            width = Some (Lazy.from_val width);
+            height = Some (Lazy.Mutexed.from_val height);
+            width = Some (Lazy.Mutexed.from_val width);
             alpha = Unifier.make (Some (Video.Canvas.Image.has_alpha img));
           };
         data = [(0, img)];
@@ -93,18 +93,18 @@ module Video = struct
   let make_generator params =
     let default_width, default_height = Frame_settings.video_dimensions () in
     let width =
-      Lazy.force
+      Lazy.Mutexed.force
         (Option.value ~default:default_width params.Content_video.Specs.width)
     in
     let height =
-      Lazy.force
+      Lazy.Mutexed.force
         (Option.value ~default:default_height params.Content_video.Specs.height)
     in
     {
       params =
         {
-          Content_video.Specs.width = Some (Lazy.from_val width);
-          height = Some (Lazy.from_val height);
+          Content_video.Specs.width = Some (Lazy.Mutexed.from_val width);
+          height = Some (Lazy.Mutexed.from_val height);
           alpha = params.Content_video.Specs.alpha;
         };
       width;

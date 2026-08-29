@@ -27,7 +27,8 @@ type t = Frame.t
 let vot ?round x =
   match round with
     | None | Some `Down -> Frame.video_of_main x
-    | Some `Up -> Frame.video_of_main (x + Lazy.force Frame.video_rate - 1)
+    | Some `Up ->
+        Frame.video_of_main (x + Lazy.Mutexed.force Frame.video_rate - 1)
 
 let content ?(field = Frame.Fields.video) b =
   try Frame.get b field with Not_found -> raise Content.Invalid

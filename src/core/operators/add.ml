@@ -282,8 +282,8 @@ let tile_pos n =
           (!x, y, dx, y' - y)))
   in
   let video_width, video_height = Frame.video_dimensions () in
-  let x' = Lazy.force video_width in
-  let y' = Lazy.force video_height in
+  let x' = Lazy.Mutexed.force video_width in
+  let y' = Lazy.Mutexed.force video_height in
   let horiz m n =
     Array.append (vert m 0 0 x' (y' / 2)) (vert n 0 (y' / 2) x' y')
   in

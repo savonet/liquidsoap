@@ -31,7 +31,7 @@ let relay_metadata generator frame =
   List.iter
     (fun (pos, m) -> Generator.add_metadata ~pos generator m)
     (Frame.get_all_metadata frame);
-  let size = Lazy.force Frame.size in
+  let size = Lazy.Mutexed.force Frame.size in
   List.iter
     (fun pos -> Generator.add_track_mark ~pos generator)
     (List.filter (fun pos -> pos < size) (Frame.track_marks frame))

@@ -34,12 +34,12 @@ class virtual base ~field ~handler (source : Source.source) =
     method virtual log : Log.t
 
     val config =
-      Lazy.from_fun (fun () ->
+      Lazy.Mutexed.from_fun (fun () ->
           (* This is computed first to inject some audio data. *)
           let latency =
             Frame.seconds_of_audio
               (Stereotool.latency
-                 ~samplerate:(Lazy.force Frame.audio_rate)
+                 ~samplerate:(Lazy.Mutexed.force Frame.audio_rate)
                  ~feed_silence:true handler)
           in
           {
@@ -51,7 +51,7 @@ class virtual base ~field ~handler (source : Source.source) =
             software_version = Stereotool.software_version handler;
           })
 
-    method config = Lazy.force config
+    method config = Lazy.Mutexed.force config
 
     initializer
       self#on_wake_up (fun () ->
@@ -83,7 +83,7 @@ class virtual base ~field ~handler (source : Source.source) =
     method private generate_frame =
       let b = Content.Audio.get_data (source#get_mutable_content field) in
       Stereotool.process
-        ~samplerate:(Lazy.force Frame.audio_rate)
+        ~samplerate:(Lazy.Mutexed.force Frame.audio_rate)
         handler b 0 source#frame_audio_position;
       source#set_frame_data field Content.Audio.lift_data b
   end

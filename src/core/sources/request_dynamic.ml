@@ -166,7 +166,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
             else buf
 
     method private generate_frame =
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       let rec fill buf =
         let pos = Frame.position buf in
         if pos < size then (

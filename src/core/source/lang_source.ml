@@ -676,7 +676,7 @@ let source_methods : source_meth list =
           val_fun [] (fun _ ->
               let ticks = Clock.ticks s#clock in
               let frame_position =
-                Lazy.force Frame.duration *. float_of_int ticks
+                Lazy.Mutexed.force Frame.duration *. float_of_int ticks
               in
               let in_frame_position =
                 if s#is_ready then

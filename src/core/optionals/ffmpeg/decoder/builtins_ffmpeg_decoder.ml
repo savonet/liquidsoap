@@ -37,9 +37,9 @@ let log = Log.make ["ffmpeg"; "internal"; "decoder"]
 
 let decode_audio_frame ~field ~mode generator =
   let internal_channel_layout =
-    Avutil.Channel_layout.get_default (Lazy.force Frame.audio_channels)
+    Avutil.Channel_layout.get_default (Lazy.Mutexed.force Frame.audio_channels)
   in
-  let internal_samplerate = Lazy.force Frame.audio_rate in
+  let internal_samplerate = Lazy.Mutexed.force Frame.audio_rate in
 
   let mk_converter ~in_sample_format ~channel_layout ~samplerate =
     let converter =
@@ -195,9 +195,9 @@ let decode_audio_frame ~field ~mode generator =
 
 let decode_video_frame ~field ~mode generator =
   let video_width, video_height = Frame.video_dimensions () in
-  let internal_width = Lazy.force video_width in
-  let internal_height = Lazy.force video_height in
-  let target_fps = Lazy.force Frame.video_rate in
+  let internal_width = Lazy.Mutexed.force video_width in
+  let internal_height = Lazy.Mutexed.force video_height in
+  let target_fps = Lazy.Mutexed.force Frame.video_rate in
 
   let mk_converter () =
     let converter = ref None in

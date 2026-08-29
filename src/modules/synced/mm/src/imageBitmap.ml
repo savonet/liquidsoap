@@ -75,8 +75,16 @@ let blit src ?(x = 0) ?(y = 0) dst =
     done
   done
 
-(** Bitmap fonts. *)
-module Font = struct
+(** What [Font.Make] needs of a suspension: enough to defer building the
+    character map. *)
+module type Lazy_t = sig
+  type 'a t
+
+  val from_fun : (unit -> 'a) -> 'a t
+  val force : 'a t -> 'a
+end
+
+module Font_make (Lazy : Lazy_t) = struct
   module CharMap = Map.Make (struct
     type t = char
 
@@ -215,4 +223,10 @@ module Font = struct
         xoff := !xoff + font.width + font.char_space)
     done;
     rescale height font.height img
+end
+
+(** Bitmap fonts. *)
+module Font = struct
+  module Make = Font_make
+  include Font_make (Stdlib.Lazy)
 end

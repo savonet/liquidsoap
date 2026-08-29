@@ -40,7 +40,7 @@ class delay (source : source) duration =
        otherwise an unused delay line (e.g. inside an unselected [switch]
        branch) grows without bound. *)
     method private drop_expired_data =
-      let max_length = duration () + Lazy.force Frame.size in
+      let max_length = duration () + Lazy.Mutexed.force Frame.size in
       let excess = Generator.length self#buffer - max_length in
       if 0 < excess then Generator.truncate self#buffer excess
 
@@ -65,7 +65,7 @@ class delay (source : source) duration =
       (not deferred) && Generator.length self#buffer > 0
 
     method private generate_frame =
-      Generator.slice self#buffer (Lazy.force Frame.size)
+      Generator.slice self#buffer (Lazy.Mutexed.force Frame.size)
   end
 
 let _ =

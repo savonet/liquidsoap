@@ -24,6 +24,11 @@ open Mm
 open Extralib
 
 let log = Log.make ["video"; "text"; "native"]
+
+(* The font's character map is shared, and rendering happens on whichever
+   domain runs the source. *)
+module Font = Image.Bitmap.Font.Make (Lazy.Mutexed)
+
 let warned_custom_font = ref false
 
 let render_text ~font ~size text =
@@ -31,11 +36,11 @@ let render_text ~font ~size text =
     warned_custom_font := true;
     log#important "video.text.native does not support custom fonts yet!");
   let () = ignore font in
-  let font = Image.Bitmap.Font.native in
-  let bmp = Image.Bitmap.Font.render text in
+  let font = Font.native in
+  let bmp = Font.render text in
   let w = Image.Bitmap.width bmp in
   let h = Image.Bitmap.height bmp in
-  let char_height = Image.Bitmap.Font.height font in
+  let char_height = Font.height font in
   let get_pixel x y =
     let x = x * char_height / size in
     let y = y * char_height / size in

@@ -146,7 +146,7 @@ val position : t -> int
 val remaining : t -> int
 
 (** Is the frame partially filled, i.e. is its end [position] strictly before
-    [Lazy.force Frame.size]? *)
+    [Lazy.Mutexed.force Frame.size]? *)
 val is_partial : t -> bool
 
 (** {3 Track marks} *)
@@ -210,13 +210,13 @@ val compatible : content_type -> content_type -> bool
     they are really useful. *)
 
 (** Default number of audio channels. *)
-val audio_channels : int Lazy.t
+val audio_channels : int Lazy.Mutexed.t
 
 (** Is video enabled? *)
-val default_video_enabled : bool Lazy.t
+val default_video_enabled : bool Lazy.Mutexed.t
 
 (** Default number of MIDI channels. *)
-val midi_channels : int Lazy.t
+val midi_channels : int Lazy.Mutexed.t
 
 (** Ideal video size for auto-detection. *)
 type ideal_size = { width : int; height : int; source : string }
@@ -224,23 +224,24 @@ type ideal_size = { width : int; height : int; source : string }
 (** Get video dimensions as a pair of lazy values. Forcing one forces the other.
     If [~ideal_size] is provided and the dimensions haven't been explicitly set
     by the user or forced yet, use the ideal dimensions as the default. *)
-val video_dimensions : ?ideal_size:ideal_size -> unit -> int Lazy.t * int Lazy.t
+val video_dimensions :
+  ?ideal_size:ideal_size -> unit -> int Lazy.Mutexed.t * int Lazy.Mutexed.t
 
 (** Rate of audio (in samples per second). *)
-val audio_rate : int Lazy.t
+val audio_rate : int Lazy.Mutexed.t
 
 (** Video rate (in images per second). *)
-val video_rate : int Lazy.t
+val video_rate : int Lazy.Mutexed.t
 
-val midi_rate : int Lazy.t
+val midi_rate : int Lazy.Mutexed.t
 
 (** Ticks per second. *)
-val main_rate : int Lazy.t
+val main_rate : int Lazy.Mutexed.t
 
-val size : int Lazy.t
+val size : int Lazy.Mutexed.t
 
 (** Duration of a frame in seconds. *)
-val duration : float Lazy.t
+val duration : float Lazy.Mutexed.t
 
 (** {2 Time and frequency conversions} *)
 

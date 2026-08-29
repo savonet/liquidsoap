@@ -52,7 +52,7 @@ let make params =
         | `Labelled ("duration", Float { value = d }) ->
             { f with Wav_format.duration = Some d }
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Wav_format.samplerate = Lazy.from_val i }
+            { f with Wav_format.samplerate = Lazy.Mutexed.from_val i }
         | `Labelled ("samplesize", Int { value = i; pos }) ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
               Lang_encoder.raise_error ~pos "invalid sample size";

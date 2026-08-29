@@ -29,8 +29,8 @@ let log = Log.make ["image"; "decoder"]
 (** Function to retrieve width an height from parameters. *)
 let wh iw ih w h =
   let frame_w, frame_h = Frame.video_dimensions () in
-  let frame_w = Lazy.force frame_w in
-  let frame_h = Lazy.force frame_h in
+  let frame_w = Lazy.Mutexed.force frame_w in
+  let frame_h = Lazy.Mutexed.force frame_h in
   match (w, h) with
     | None, None ->
         (* By default resize anamorphically to the maximum size wrt the frame *)
@@ -50,8 +50,8 @@ let wh iw ih w h =
 
 let wh_string iw ih w h =
   let frame_w, frame_h = Frame.video_dimensions () in
-  let frame_w = Lazy.force frame_w in
-  let frame_h = Lazy.force frame_h in
+  let frame_w = Lazy.Mutexed.force frame_w in
+  let frame_h = Lazy.Mutexed.force frame_h in
   let f d i l =
     if l = "" then None
     else if l.[String.length l - 1] = '%' then (
@@ -70,8 +70,8 @@ let wh_string iw ih w h =
    anymore (for instance to have a scrolling image). *)
 let off_string iw ih ox oy =
   let frame_w, frame_h = Frame.video_dimensions () in
-  let frame_w = Lazy.force frame_w in
-  let frame_h = Lazy.force frame_h in
+  let frame_w = Lazy.Mutexed.force frame_w in
+  let frame_h = Lazy.Mutexed.force frame_h in
   let f d frame l =
     if l = "" then d
     else if l.[String.length l - 1] = '%' then (

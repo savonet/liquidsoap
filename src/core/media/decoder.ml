@@ -222,7 +222,8 @@ let test_file ~(log : Log.t) ~extension ~mime ~mimes ~extensions fname =
   ext_ok || mime_ok
 
 let channel_layout audio =
-  Lazy.force Content.(Audio.(get_params audio).Content.Audio.channel_layout)
+  Lazy.Mutexed.force
+    Content.(Audio.(get_params audio).Content.Audio.channel_layout)
 
 let can_decode_type decoded_type target_type =
   let map_convertible cur (field, target_field) =
@@ -444,12 +445,12 @@ let mk_buffer ~ctype generator =
                   (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
               with Content.Invalid ->
                 (* We might have encoded contents *)
-                (Lazy.force video_width, Lazy.force video_height)
+                (Lazy.Mutexed.force video_width, Lazy.Mutexed.force video_height)
             in
             Decoder_utils.video_scale ~width ~height ()
           in
           let out_freq =
-            Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
+            Decoder_utils.{ num = Lazy.Mutexed.force Frame.video_rate; den = 1 }
           in
           let params =
             {

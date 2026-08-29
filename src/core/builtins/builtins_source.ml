@@ -149,7 +149,7 @@ let _ =
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
       let ticks = Clock.ticks s#clock in
-      let frame_position = Lazy.force Frame.duration *. float ticks in
+      let frame_position = Lazy.Mutexed.force Frame.duration *. float ticks in
       Lang.float frame_position)
 
 let _ =

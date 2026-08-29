@@ -42,7 +42,9 @@ class insert_subtitles ~field (s : source option) =
       let buf =
         opt
           (fun s -> s#get_frame)
-          (Frame.create ~length:(Lazy.force Frame.size) self#content_type)
+          (Frame.create
+             ~length:(Lazy.Mutexed.force Frame.size)
+             self#content_type)
       in
       let length = Frame.position buf in
       let existing =

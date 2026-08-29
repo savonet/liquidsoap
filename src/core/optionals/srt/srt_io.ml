@@ -540,27 +540,27 @@ module Poll = struct
 end
 
 let init =
-  lazy
-    (Lifecycle.on_start ~name:"srt initialization" (fun () ->
-         Srt.startup ();
-         if conf_log#get then (
-           let level =
-             match conf_verbosity#get with
-               | "critical" -> `Critical
-               | "error" -> `Error
-               | "warning" -> `Warning
-               | "notice" -> `Notice
-               | "debug" -> `Debug
-               | _ ->
-                   log#severe "Invalid value for \"srt.log.verbosity\"!";
-                   `Error
-           in
-           Srt.Log.setloglevel level;
-           Srt.Log.set_handler log_handler));
+  Lazy.Mutexed.from_fun (fun () ->
+      Lifecycle.on_start ~name:"srt initialization" (fun () ->
+          Srt.startup ();
+          if conf_log#get then (
+            let level =
+              match conf_verbosity#get with
+                | "critical" -> `Critical
+                | "error" -> `Error
+                | "warning" -> `Warning
+                | "notice" -> `Notice
+                | "debug" -> `Debug
+                | _ ->
+                    log#severe "Invalid value for \"srt.log.verbosity\"!";
+                    `Error
+            in
+            Srt.Log.setloglevel level;
+            Srt.Log.set_handler log_handler));
 
-     Lifecycle.on_final_cleanup ~name:"set cleanup" (fun () ->
-         Srt.Poll.release Poll.t.Poll.p;
-         Srt.cleanup ()))
+      Lifecycle.on_final_cleanup ~name:"set cleanup" (fun () ->
+          Srt.Poll.release Poll.t.Poll.p;
+          Srt.cleanup ()))
 
 let string_of_address = function
   | Unix.ADDR_UNIX _ -> assert false
@@ -591,7 +591,7 @@ let id =
   fun () -> Atomic.fetch_and_add counter 1
 
 class virtual base () =
-  let () = Lazy.force init in
+  let () = Lazy.Mutexed.force init in
   object
     val should_stop = Atomic.make false
     val id = id ()
@@ -970,7 +970,7 @@ class virtual input_base ~max ~self_sync ~payload_size ~dump ~autostart format =
       create_decoder { Decoder.read; tell = None; length = None; lseek = None }
 
     method private generate_frame =
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       try
         let _, socket = self#get_socket in
         let decoder, buffer =

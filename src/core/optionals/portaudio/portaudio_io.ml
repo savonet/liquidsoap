@@ -92,7 +92,7 @@ class virtual base =
 
     method get_device ~(mode : [ `Input | `Output ]) ~latency ~channels ~buflen
         ~device_name ~device_id =
-      let samples_per_second = Lazy.force Frame.audio_rate in
+      let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
       let device_id =
         let device_name_value = device_name in
         let device_name = Lang.to_valued_option Lang.to_string device_name in
@@ -270,7 +270,7 @@ class input ~self_sync ~start ~fallible ~device_name ~device_id ~latency buflen
       stream <- None
 
     method generate_frame =
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       let frame = Frame.create ~length:size self#content_type in
       let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let stream = Option.get stream in

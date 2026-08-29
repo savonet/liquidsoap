@@ -101,6 +101,14 @@ module Bitmap : sig
   val set_pixel : t -> int -> int -> bool -> unit
   val scale : t -> t -> unit
 
+  (** What [Font.Make] needs of a suspension. *)
+  module type Lazy_t = sig
+    type 'a t
+
+    val from_fun : (unit -> 'a) -> 'a t
+    val force : 'a t -> 'a
+  end
+
   (** Operations on bitmap fonts. *)
   module Font : sig
     (** A font. *)
@@ -115,6 +123,16 @@ module Bitmap : sig
     (** Render text with given font, at given size (height of characters in
         pixels). *)
     val render : ?font:t -> ?size:int -> string -> bitmap
+
+    (** The character map is built on first use, so a program sharing a font
+        across domains instantiates this with a suspension of its own. *)
+    module Make (Lazy : Lazy_t) : sig
+      type t
+
+      val native : t
+      val height : t -> int
+      val render : ?font:t -> ?size:int -> string -> bitmap
+    end
   end
 end
 

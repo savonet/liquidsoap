@@ -129,7 +129,7 @@ class muxer ~pos ~base tracks =
             tracks
 
     method generate_frame =
-      let length = Lazy.force Frame.size in
+      let length = Lazy.Mutexed.force Frame.size in
       let pos, frame =
         List.fold_left
           (fun (pos, frame) { fields; source } ->

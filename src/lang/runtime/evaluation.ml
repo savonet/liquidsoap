@@ -486,7 +486,7 @@ let toplevel_add ?doc pat ~t v =
               composition_description;
             }
           in
-          Some (Lazy.from_fun doc)
+          Some (Lazy.Mutexed.from_fun doc)
   in
   let env, pa = Typechecking.type_of_pat ~level:max_int ~pos:None pat in
   Typing.(t <: pa);
@@ -516,7 +516,7 @@ let rec eval_toplevel ?(interactive = false) t =
               | `PTuple _ -> assert false)
         in
         toplevel_add ?doc pat ~t:(generalized, def_t) def;
-        if Lazy.force debug then
+        if Lazy.Mutexed.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (Type.to_string ~generalized def_t);
         let var = string_of_pat pat in

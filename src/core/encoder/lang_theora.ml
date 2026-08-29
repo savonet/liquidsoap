@@ -62,8 +62,8 @@ let make params =
               "invalid frame width value (should be a multiple of 16)";
           {
             f with
-            Theora_format.width = Lazy.from_val i;
-            picture_width = Lazy.from_val i;
+            Theora_format.width = Lazy.Mutexed.from_val i;
+            picture_width = Lazy.Mutexed.from_val i;
           }
       | `Labelled ("height", Value.Int { value = i; pos }) ->
           (* According to the doc: must be a multiple of 16, and less than 1048576. *)
@@ -72,29 +72,29 @@ let make params =
               "invalid frame height value (should be a multiple of 16)";
           {
             f with
-            Theora_format.height = Lazy.from_val i;
-            picture_height = Lazy.from_val i;
+            Theora_format.height = Lazy.Mutexed.from_val i;
+            picture_height = Lazy.Mutexed.from_val i;
           }
       | `Labelled ("picture_width", Value.Int { value = i; pos }) ->
           (* According to the doc: must not be larger than width. *)
-          if i > Lazy.force f.Theora_format.width then
+          if i > Lazy.Mutexed.force f.Theora_format.width then
             Lang_encoder.raise_error ~pos
               "picture width must not be larger than width";
-          { f with Theora_format.picture_width = Lazy.from_val i }
+          { f with Theora_format.picture_width = Lazy.Mutexed.from_val i }
       | `Labelled ("picture_height", Value.Int { value = i; pos }) ->
           (* According to the doc: must not be larger than height. *)
-          if i > Lazy.force f.Theora_format.height then
+          if i > Lazy.Mutexed.force f.Theora_format.height then
             Lang_encoder.raise_error ~pos
               "picture height must not be larger than height";
-          { f with Theora_format.picture_height = Lazy.from_val i }
+          { f with Theora_format.picture_height = Lazy.Mutexed.from_val i }
       | `Labelled ("picture_x", Value.Int { value = i; pos }) ->
           (* According to the doc: must be no larger than width-picture_width
            * or 255, whichever is smaller. *)
           if
             i
             > min
-                (Lazy.force f.Theora_format.width
-                - Lazy.force f.Theora_format.picture_width)
+                (Lazy.Mutexed.force f.Theora_format.width
+                - Lazy.Mutexed.force f.Theora_format.picture_width)
                 255
           then
             Lang_encoder.raise_error ~pos
@@ -106,12 +106,12 @@ let make params =
            * and frame_height-pic_height-pic_y must be no larger than 255. *)
           if
             i
-            > Lazy.force f.Theora_format.height
-              - Lazy.force f.Theora_format.picture_height
+            > Lazy.Mutexed.force f.Theora_format.height
+              - Lazy.Mutexed.force f.Theora_format.picture_height
           then
             Lang_encoder.raise_error ~pos
               "picture y must not be larger than height - picture height";
-          if Lazy.force f.Theora_format.picture_height - i > 255 then
+          if Lazy.Mutexed.force f.Theora_format.picture_height - i > 255 then
             Lang_encoder.raise_error ~pos
               "picture height - picture y must not be larger than 255";
           { f with Theora_format.picture_y = i }
