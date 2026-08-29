@@ -1,4 +1,4 @@
-FROM ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.4.0
+FROM ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.0
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 

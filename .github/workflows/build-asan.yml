@@ -6,13 +6,13 @@ on:
       ocaml_version:
         description: "OCaml version"
         required: false
-        default: "5.4.0"
+        default: "5.5.0"
         type: string
   workflow_call:
     inputs:
       ocaml_version:
         required: false
-        default: "5.4.0"
+        default: "5.5.0"
         type: string
     secrets:
       DEPOT_TOKEN:
@@ -22,12 +22,12 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-asan-${{ inputs.ocaml_version || '5.4.0' }}
+      image: ghcr.io/savonet/liquidsoap:ci-asan-${{ inputs.ocaml_version || '5.5.0' }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/artifacts
     env:
       HOME: /home/opam
       LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL: "true"
-      OCAML_VERSION: ${{ inputs.ocaml_version || '5.4.0' }}
+      OCAML_VERSION: ${{ inputs.ocaml_version || '5.5.0' }}
       BRANCH: ${{ github.head_ref || github.ref_name }}
       ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0:protect_shadow_gap=0:verify_asan_link_order=0"
       SKIP_SDL: "true"
@@ -52,7 +52,7 @@ jobs:
         id: build_deb
         env:
           GITHUB_SHA: ${{ github.sha }}
-          DOCKER_TAG: debian-testing-asan-ocaml${{ inputs.ocaml_version || '5.4.0' }}
+          DOCKER_TAG: debian-testing-asan-ocaml${{ inputs.ocaml_version || '5.5.0' }}
           BRANCH: ${{ github.head_ref || github.ref_name }}
           LIQ_TMP_DIR: /tmp/artifacts
           PLATFORM: amd64

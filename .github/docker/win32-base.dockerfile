@@ -1,4 +1,4 @@
-ARG OCAML_VERSION=5.4.1
+ARG OCAML_VERSION=5.5.0
 FROM ghcr.io/ocaml-cross/windows-x64-base:${OCAML_VERSION} AS builder
 
 # Install missing build-time prerequisites for MXE packages.

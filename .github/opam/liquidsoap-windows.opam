@@ -16,7 +16,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.23"}
-  "ocaml-windows" {>= "5.4"}
+  "ocaml-windows" {>= "5.5"}
   "re" {>= "1.11.0" & < "1.14.0"}
   "re-windows" {>= "1.11.0" & < "1.14.0"}
   "curl-windows"

@@ -6,7 +6,7 @@ on:
       ocaml_versions:
         description: "OCaml versions (JSON array)"
         required: false
-        default: '["5.4.1"]'
+        default: '["5.5.0"]'
         type: string
       no_cache:
         description: "Disable Docker layer cache"

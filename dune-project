@@ -21,7 +21,7 @@
 (package
   (name liquidsoap)
    (depends
-    (ocaml (>= 5.4))
+    (ocaml (>= 5.5))
     base-bytes
     (mm (>= 0.8.6))
     (re (and (>= 1.11.0) (< 1.14.0)))
@@ -126,7 +126,7 @@
 (package
   (name liquidsoap-lang)
   (depends
-    (ocaml (>= 5.4))
+    (ocaml (>= 5.5))
     dune-site
     (re (>= 1.11.0))
     (ppx_string :build)
@@ -142,7 +142,7 @@
 (package
   (name liquidsoap-js)
   (depends
-    (ocaml (>= 5.4))
+    (ocaml (>= 5.5))
     (liquidsoap-lang (= :version))
     js_of_ocaml-ppx
     (js_of_ocaml (>= 5.7.2)))
