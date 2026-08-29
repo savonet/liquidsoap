@@ -20,18 +20,17 @@ echo "::group::Build liquidsoap-windows"
 
 eval "$(opam env)"
 
-# The CI image lacks the local opam overlay and predates crunch 4.1.0, which
-# camomile-embedded needs to build. Refreshing the windows repo there forces a
-# cross recompile that fails, hence default only; delete both lines once the
-# image is rebuilt.
-opam repo add liquidsoap-devel "${BASE_DIR}/.github/opam"
-opam update --repositories default
-
-# Diagnostic: surface the full dune error, which opam elides from the
-# combined install output.
-opam install -y -v camomile-embedded-windows
+# The image ships the overlay it was built against. Point it at this checkout
+# so a branch changing .github/opam is built with its own packages.
+opam repository set-url liquidsoap-devel "${BASE_DIR}/.github/opam"
+opam update liquidsoap-devel
 
 opam install -y --deps-only .github/opam/liquidsoap-windows.opam
+
+# The image sets PKG_CONFIG_PATH so that the opam packages configure against
+# mxe. Building liquidsoap goes through the dune context instead, and leaving
+# it set enables optional modules whose transitive libraries are not linked.
+unset PKG_CONFIG_PATH
 
 export LIQUIDSOAP_BUILD_VERSION="${TAG}${VERSION}"
 export LIQUIDSOAP_BUILD_TARGET=standalone
