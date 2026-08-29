@@ -38,15 +38,14 @@ s =
 # 1. `preempted` plays and is cut into by `at_boundary`  -> expect `false`.
 # 2. `at_boundary` reaches the end of its track and is left -> expect `true`.
 thread.run(delay=1., {use_boundary := true})
-thread.run(
-  delay=2.,
-  {
-    begin
-      use_boundary := false
-      use_preempted := false
-    end
-  }
-)
+def stop_both() =
+  use_boundary := false
+  use_preempted := false
+end
+
+# The switch reads its predicates as one snapshot, so it never gets a round
+# where `preempted` alone is eligible and cuts into `at_boundary` mid-track.
+thread.run(delay=2., {atomic(stop_both)})
 
 thread.run(
   delay=4.,
