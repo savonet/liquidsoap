@@ -140,7 +140,7 @@ val kind_of_string : string -> kind
 
 module Audio : sig
   type audio_params = Content_audio.Specs.params = {
-    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.Mutexed.t;
   }
 
   include
@@ -162,8 +162,8 @@ module Video : sig
   }
 
   type video_params = Content_video.Specs.params = {
-    width : int Lazy.t option;
-    height : int Lazy.t option;
+    width : int Lazy.Mutexed.t option;
+    height : int Lazy.Mutexed.t option;
     alpha : bool option Unifier.t;
   }
 

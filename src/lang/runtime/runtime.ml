@@ -302,7 +302,8 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
   match cached_term with
     | Some term -> term
     | None ->
-        if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+        if Lazy.Mutexed.force Term.debug then
+          Printf.eprintf "Type checking...\n%!";
         (* Type checking *)
         let time fn =
           match name with
@@ -342,7 +343,7 @@ let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
                 Typechecking.check ?env
                   ~check_top_level_override:(stdlib <> None) ~throw checked_term));
 
-        if Lazy.force Term.debug then
+        if Lazy.Mutexed.force Term.debug then
           Printf.eprintf "Checking for unused variables...\n%!";
         (* Check for unused variables, relies on types *)
         report ~lexbuf:None
@@ -362,7 +363,7 @@ let eval_term ?name ~toplevel ast =
       (fun ~throw:_ () ->
         if toplevel then Evaluation.eval_toplevel ast else Evaluation.eval ast)
   in
-  if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
+  if Lazy.Mutexed.force Term.debug then Printf.eprintf "Evaluating...\n%!";
   match name with
     | None -> eval ()
     | Some name ->

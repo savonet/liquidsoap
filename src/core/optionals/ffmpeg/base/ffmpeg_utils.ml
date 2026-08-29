@@ -97,13 +97,13 @@ let () =
             log#f conf_level#get "%s" (String.trim s)))
 
 let liq_main_ticks_time_base () =
-  { Avutil.num = 1; den = Lazy.force Frame.main_rate }
+  { Avutil.num = 1; den = Lazy.Mutexed.force Frame.main_rate }
 
 let liq_audio_sample_time_base () =
-  { Avutil.num = 1; den = Lazy.force Frame.audio_rate }
+  { Avutil.num = 1; den = Lazy.Mutexed.force Frame.audio_rate }
 
 let liq_video_sample_time_base () =
-  { Avutil.num = 1; den = Lazy.force Frame.video_rate }
+  { Avutil.num = 1; den = Lazy.Mutexed.force Frame.video_rate }
 
 (* Callers report an unknown value their own way: the container encoder can
    point at the script position, the inline one cannot. *)

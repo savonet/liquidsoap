@@ -87,8 +87,8 @@ module Specs = struct
      value) is required so that refinement still propagates across formats
      unified by [merge]. *)
   type params = {
-    width : int Lazy.t option;
-    height : int Lazy.t option;
+    width : int Lazy.Mutexed.t option;
+    height : int Lazy.Mutexed.t option;
     alpha : bool option Unifier.t;
   }
 
@@ -122,7 +122,7 @@ module Specs = struct
       | "width" ->
           Some
             {
-              width = Some (Lazy.from_val (int_of_string value));
+              width = Some (Lazy.Mutexed.from_val (int_of_string value));
               height = None;
               alpha = Unifier.make None;
             }
@@ -130,7 +130,7 @@ module Specs = struct
           Some
             {
               width = None;
-              height = Some (Lazy.from_val (int_of_string value));
+              height = Some (Lazy.Mutexed.from_val (int_of_string value));
               alpha = Unifier.make None;
             }
       | "alpha" ->
@@ -150,13 +150,15 @@ module Specs = struct
     Unifier.(p.alpha <-- p'.alpha);
     {
       width =
-        Option.map Lazy.from_val
+        Option.map Lazy.Mutexed.from_val
           (merge_param ~name:"width"
-             (Option.map Lazy.force p.width, Option.map Lazy.force p'.width));
+             ( Option.map Lazy.Mutexed.force p.width,
+               Option.map Lazy.Mutexed.force p'.width ));
       height =
-        Option.map Lazy.from_val
+        Option.map Lazy.Mutexed.from_val
           (merge_param ~name:"height"
-             (Option.map Lazy.force p.height, Option.map Lazy.force p'.height));
+             ( Option.map Lazy.Mutexed.force p.height,
+               Option.map Lazy.Mutexed.force p'.height ));
       alpha = p.alpha;
     }
 
@@ -222,8 +224,12 @@ module Specs = struct
   let params_to_value { width; height; alpha } =
     let open Liquidsoap_lang in
     let default_width, default_height = Frame_settings.video_dimensions () in
-    let width = Lazy.force (Option.value ~default:default_width width) in
-    let height = Lazy.force (Option.value ~default:default_height height) in
+    let width =
+      Lazy.Mutexed.force (Option.value ~default:default_width width)
+    in
+    let height =
+      Lazy.Mutexed.force (Option.value ~default:default_height height)
+    in
     Lang_core.record
       [
         ("width", Lang_core.mk (`Int width));
@@ -242,8 +248,12 @@ let kind = lift_kind `Canvas
 let dimensions_of_format p =
   let p = get_params p in
   let default_width, default_height = Frame_settings.video_dimensions () in
-  let width = Lazy.force (Option.value ~default:default_width p.width) in
-  let height = Lazy.force (Option.value ~default:default_height p.height) in
+  let width =
+    Lazy.Mutexed.force (Option.value ~default:default_width p.width)
+  in
+  let height =
+    Lazy.Mutexed.force (Option.value ~default:default_height p.height)
+  in
   (width, height)
 
 let alpha_of_format p = Unifier.deref (get_params p).alpha = Some true
@@ -256,8 +266,9 @@ let lift_canvas ?(offset = 0) ?length data =
       | [] -> { Specs.width = None; height = None; alpha = Unifier.make None }
       | (_, i) :: _ ->
           {
-            Specs.width = Some (Lazy.from_val (Video.Canvas.Image.width i));
-            height = Some (Lazy.from_val (Video.Canvas.Image.height i));
+            Specs.width =
+              Some (Lazy.Mutexed.from_val (Video.Canvas.Image.width i));
+            height = Some (Lazy.Mutexed.from_val (Video.Canvas.Image.height i));
             alpha = Unifier.make (Some (Video.Canvas.Image.has_alpha i));
           }
   in

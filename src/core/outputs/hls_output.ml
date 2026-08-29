@@ -329,9 +329,9 @@ type stream = {
   name : string;
   format : Encoder.format;
   encoder : Encoder.encoder;
-  video_size : (int * int) option Lazy.t;
-  bandwidth : int Lazy.t;
-  codecs : string Lazy.t;  (** codecs (see RFC 6381) *)
+  video_size : (int * int) option Lazy.Mutexed.t;
+  bandwidth : int Lazy.Mutexed.t;
+  codecs : string Lazy.Mutexed.t;  (** codecs (see RFC 6381) *)
   extname : string;
   id3_enabled : bool;
   replay_id3 : bool;
@@ -388,10 +388,11 @@ class hls_output p =
                (fun stream ->
                  Lang.meth (Lang.string stream.name)
                    [
-                     ("bandwidth", Lang.int (Lazy.force stream.bandwidth));
-                     ("codecs", Lang.string (Lazy.force stream.codecs));
+                     ( "bandwidth",
+                       Lang.int (Lazy.Mutexed.force stream.bandwidth) );
+                     ("codecs", Lang.string (Lazy.Mutexed.force stream.codecs));
                      ( "video_size",
-                       match Lazy.force stream.video_size with
+                       match Lazy.Mutexed.force stream.video_size with
                          | None -> Lang.null
                          | Some (w, h) -> Lang.product (Lang.int w) (Lang.int h)
                      );
@@ -465,9 +466,9 @@ class hls_output p =
   (* better choice? *)
   let segment_duration = Lang.to_float (List.assoc "segment_duration" p) in
   let segment_ticks =
-    Frame.main_of_seconds segment_duration / Lazy.force Frame.size
+    Frame.main_of_seconds segment_duration / Lazy.Mutexed.force Frame.size
   in
-  let segment_main_duration = segment_ticks * Lazy.force Frame.size in
+  let segment_main_duration = segment_ticks * Lazy.Mutexed.force Frame.size in
   let segment_duration = Frame.seconds_of_main segment_main_duration in
   let segment_name = Lang.to_fun (List.assoc "segment_name" p) in
   let segment_name ~position ~extname ~duration ~ticks sname =
@@ -509,7 +510,7 @@ class hls_output p =
           Frame.Metadata.Export.empty
       in
       let bandwidth =
-        Lazy.from_fun (fun () ->
+        Lazy.Mutexed.from_fun (fun () ->
             try Lang.to_int (List.assoc "bandwidth" stream_info)
             with Not_found -> (
               match Encoder.(encoder.hls.bitrate ()) with
@@ -528,7 +529,7 @@ class hls_output p =
                              [] )))))
       in
       let codecs =
-        Lazy.from_fun (fun () ->
+        Lazy.Mutexed.from_fun (fun () ->
             try Lang.to_string (List.assoc "codecs" stream_info)
             with Not_found -> (
               match Encoder.(encoder.hls.codec_attrs ()) with
@@ -563,7 +564,7 @@ class hls_output p =
       in
       let extname = if extname = "mp4" then "m4s" else extname in
       let video_size =
-        Lazy.from_fun (fun () ->
+        Lazy.Mutexed.from_fun (fun () ->
             try
               let w, h =
                 Lang.to_product (List.assoc "video_size" stream_info)
@@ -1147,7 +1148,7 @@ class hls_output p =
     method encode frame =
       let len = Frame.position frame in
       let frame_pos, samples_pos = current_position in
-      let frame_size = Lazy.force Frame.size in
+      let frame_size = Lazy.Mutexed.force Frame.size in
       let samples_pos = samples_pos + len in
       current_position <-
         (frame_pos + (samples_pos / frame_size), samples_pos mod frame_size);
@@ -1270,12 +1271,12 @@ let value_of_stream
       ("name", Lang.string name);
       ("encoder", Lang_encoder.L.format format);
       ( "video_size",
-        match Lazy.force video_size with
+        match Lazy.Mutexed.force video_size with
           | None -> Lang.null
           | Some (w, h) ->
               Lang.record [("width", Lang.int w); ("height", Lang.int h)] );
-      ("bandwidth", Lang.int (Lazy.force bandwidth));
-      ("codecs", Lang.string (Lazy.force codecs));
+      ("bandwidth", Lang.int (Lazy.Mutexed.force bandwidth));
+      ("codecs", Lang.string (Lazy.Mutexed.force codecs));
       ("extname", Lang.string extname);
       ("id3_enabled", Lang.bool id3_enabled);
       ("replay_id3", Lang.bool replay_id3);

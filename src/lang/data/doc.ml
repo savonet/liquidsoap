@@ -197,13 +197,13 @@ module Value = struct
 
   let db = ref Map.empty
 
-  let add (name : string) (doc : t Lazy.t) =
+  let add (name : string) (doc : t Lazy.Mutexed.t) =
     let name =
       Re.replace ~all:true ~f:(fun _ -> "null") (Re.Pcre.regexp "^_null") name
     in
     db := Map.add name doc !db
 
-  let get name = Lazy.force (Map.find name !db)
+  let get name = Lazy.Mutexed.force (Map.find name !db)
   let count () = Map.cardinal !db
 
   (** Only print function names. *)
@@ -223,7 +223,7 @@ module Value = struct
         print ("# " ^ category_name ^ "\n\n");
         Map.iter
           (fun f d ->
-            let d = Lazy.force d in
+            let d = Lazy.Mutexed.force d in
             if d.category = category && not (List.mem `Hidden d.flags) then
               print ("- " ^ f ^ "\n"))
           !db;
@@ -350,7 +350,7 @@ module Value = struct
   let to_json () : Json.t =
     !db |> Map.to_seq
     |> Seq.map (fun (l, f) ->
-        let f = Lazy.force f in
+        let f = Lazy.Mutexed.force f in
         let arguments =
           List.map
             (fun (l, a) ->
@@ -414,7 +414,7 @@ module Value = struct
 
   let print_functions_md ?extra ?deprecated print =
     let should_show ~category d =
-      let d = Lazy.force d in
+      let d = Lazy.Mutexed.force d in
       (not (List.mem `Hidden d.flags))
       && ((not (deprecated = Some true)) || List.mem `Deprecated d.flags)
       && (deprecated = Some true || not (List.mem `Deprecated d.flags))
@@ -445,7 +445,7 @@ module Value = struct
         Map.iter
           (fun f d ->
             if should_show ~category d then (
-              let d = Lazy.force d in
+              let d = Lazy.Mutexed.force d in
               print ("### `" ^ f ^ "`\n\n");
               print d.description;
               print "\n\n";
@@ -534,7 +534,7 @@ module Value = struct
     print "(defconst liquidsoap-completions '(\n";
     Map.iter
       (fun name f ->
-        let f = Lazy.force f in
+        let f = Lazy.Mutexed.force f in
         if not (List.mem `Hidden f.flags || List.mem `Deprecated f.flags) then (
           let t = String.map (fun c -> if c = '\n' then ' ' else c) f.typ in
           Printf.ksprintf print

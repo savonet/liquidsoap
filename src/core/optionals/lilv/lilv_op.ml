@@ -75,7 +75,7 @@ class lilv_mono (source : source) plugin input output params =
                     (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
               (fun _ ->
                 Plugin.instantiate plugin
-                  (float_of_int (Lazy.force Frame.audio_rate)))
+                  (float_of_int (Lazy.Mutexed.force Frame.audio_rate)))
           in
           Array.iter Plugin.Instance.activate i;
           inst <- Some i)
@@ -107,7 +107,8 @@ class lilv (source : source) plugin inputs outputs params =
     inherit base source
 
     val inst =
-      Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
+      Plugin.instantiate plugin
+        (float_of_int (Lazy.Mutexed.force Frame.audio_rate))
 
     initializer Plugin.Instance.activate inst
 
@@ -156,7 +157,8 @@ class lilv_nosource plugin outputs params =
     method self_sync = (`Static, None)
 
     val inst =
-      Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
+      Plugin.instantiate plugin
+        (float_of_int (Lazy.Mutexed.force Frame.audio_rate))
 
     initializer Plugin.Instance.activate inst
 
@@ -165,7 +167,7 @@ class lilv_nosource plugin outputs params =
         must_fail <- false;
         self#end_of_track)
       else (
-        let length = Lazy.force Frame.size in
+        let length = Lazy.Mutexed.force Frame.size in
         let buf = Frame.create ~length self#content_type in
         let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
         let chans = Array.length b in
@@ -191,7 +193,8 @@ class lilv_noout source plugin inputs params =
     inherit base source
 
     val inst =
-      Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
+      Plugin.instantiate plugin
+        (float_of_int (Lazy.Mutexed.force Frame.audio_rate))
 
     initializer Plugin.Instance.activate inst
 

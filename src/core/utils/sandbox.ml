@@ -82,15 +82,15 @@ let conf_shell_path =
      otherwise."
 
 let has_binary =
-  Lazy.from_fun (fun () ->
+  Lazy.Mutexed.from_fun (fun () ->
       Utils.which_opt ~path:(Configure.path ()) conf_binary#get <> None)
 
 let () =
   Lifecycle.before_start ~name:"sandbox start" (fun () ->
-      if Lazy.force Utils.is_docker then (
+      if Lazy.Mutexed.force Utils.is_docker then (
         log#important "Running inside a docker container, disabling sandboxing.";
         conf_sandbox#set false)
-      else if not (Lazy.force has_binary) then (
+      else if not (Lazy.Mutexed.force has_binary) then (
         log#important "Could not find binary %s, disabling sandboxing."
           conf_binary#get;
         conf_sandbox#set false)

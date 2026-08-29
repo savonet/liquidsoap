@@ -37,7 +37,7 @@ let sync_source = SyncSource.make ()
 
 class output ~self_sync ~driver ~register_telnet ~infallible ~options
   ?channels_matrix source start =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   let bytes_per_sample = 2 in
   let s = Lang.to_source source in
   object (self)

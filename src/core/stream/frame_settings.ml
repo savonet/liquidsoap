@@ -123,8 +123,8 @@ let lazy_config_eval = ref false
 let delayed_eval = Queue.create ()
 
 let delayed f =
-  let ret = Lazy.from_fun f in
-  Queue.push (fun () -> ignore (Lazy.force ret)) delayed_eval;
+  let ret = Lazy.Mutexed.from_fun f in
+  Queue.push (fun () -> ignore (Lazy.Mutexed.force ret)) delayed_eval;
   ret
 
 let () =
@@ -139,7 +139,7 @@ let delayed_conf ~to_string x =
       log#info "frame.%s set to: %s" (String.concat "." routes) (to_string ret);
       ret)
 
-let ( !! ) = Lazy.force
+let ( !! ) = Lazy.Mutexed.force
 
 (** The channel numbers are only defaults, used when channel numbers cannot be
     inferred / are not forced from the context. I'm currently unsure how much
@@ -185,8 +185,8 @@ let video_dimensions =
           conf_video_width#set width;
           conf_video_height#set height
       | _ -> ());
-    let width = lazy (fst (dimensions ())) in
-    let height = lazy (snd (dimensions ())) in
+    let width = Lazy.Mutexed.from_fun (fun () -> fst (dimensions ())) in
+    let height = Lazy.Mutexed.from_fun (fun () -> snd (dimensions ())) in
     (width, height)
 
 let audio_rate = delayed_conf ~to_string:string_of_int conf_audio_samplerate

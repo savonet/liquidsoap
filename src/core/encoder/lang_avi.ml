@@ -40,11 +40,11 @@ let make params =
         | `Labelled ("channels", Int { value = c }) ->
             { f with Avi_format.channels = c }
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Avi_format.samplerate = Lazy.from_val i }
+            { f with Avi_format.samplerate = Lazy.Mutexed.from_val i }
         | `Labelled ("width", Int { value = i; _ }) ->
-            { f with Avi_format.width = Lazy.from_val i }
+            { f with Avi_format.width = Lazy.Mutexed.from_val i }
         | `Labelled ("height", Int { value = i; _ }) ->
-            { f with Avi_format.height = Lazy.from_val i }
+            { f with Avi_format.height = Lazy.Mutexed.from_val i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in

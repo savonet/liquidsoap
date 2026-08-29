@@ -30,8 +30,8 @@ let allowed_bitrates =
   ]
 
 let check_samplerate ~pos i =
-  Lazy.from_fun (fun () ->
-      let i = Lazy.force i in
+  Lazy.Mutexed.from_fun (fun () ->
+      let i = Lazy.Mutexed.force i in
       let allowed =
         [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
       in
@@ -69,7 +69,10 @@ let mp3_base f = function
           "internal quality must be a value between 0 and 9";
       { f with Mp3_format.internal_quality = q }
   | `Labelled ("samplerate", Value.Int { value = i; pos }) ->
-      { f with Mp3_format.samplerate = check_samplerate ~pos (Lazy.from_val i) }
+      {
+        f with
+        Mp3_format.samplerate = check_samplerate ~pos (Lazy.Mutexed.from_val i);
+      }
   | `Labelled ("id3v2", Bool { value = true; _ }) ->
       { f with Mp3_format.id3v2 = Some 3 }
   | `Labelled ("id3v2", Bool { value = false; _ }) ->

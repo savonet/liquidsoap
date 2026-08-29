@@ -213,7 +213,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
        to stop at a track boundary: only the returned frame's length is
        consumed from the buffer. *)
     method child_get_frame ?(get_partial_frame = fun frame -> frame) () =
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       while child#is_ready && Generator.length child_buffer < size do
         self#child_tick
       done;

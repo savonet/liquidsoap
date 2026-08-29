@@ -65,7 +65,10 @@ let make params =
         | `Labelled ("channels", Value.Int { value = c }) ->
             { f with External_encoder_format.channels = c }
         | `Labelled ("samplerate", Value.Int { value = i; _ }) ->
-            { f with External_encoder_format.samplerate = Lazy.from_val i }
+            {
+              f with
+              External_encoder_format.samplerate = Lazy.Mutexed.from_val i;
+            }
         | `Labelled ("video", Value.Bool { value = b; _ }) ->
             let w, h =
               match f.External_encoder_format.video with
@@ -82,7 +85,7 @@ let make params =
                 | None -> Frame.video_dimensions ()
                 | Some (w, h) -> (w, h)
             in
-            let w = Lazy.from_val w in
+            let w = Lazy.Mutexed.from_val w in
             { f with External_encoder_format.video = Some (w, h) }
         | `Labelled ("height", Int { value = h }) ->
             let w, _ =
@@ -90,7 +93,7 @@ let make params =
                 | None -> Frame.video_dimensions ()
                 | Some (w, h) -> (w, h)
             in
-            let h = Lazy.from_val h in
+            let h = Lazy.Mutexed.from_val h in
             { f with External_encoder_format.video = Some (w, h) }
         | `Labelled ("header", Bool { value = h }) ->
             { f with External_encoder_format.header = h }

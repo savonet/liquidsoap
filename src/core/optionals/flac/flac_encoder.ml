@@ -30,7 +30,7 @@ let encoder flac meta =
   in
   let channels = flac.Flac_format.channels in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
-  let samplerate = Lazy.force flac.Flac_format.samplerate in
+  let samplerate = Lazy.Mutexed.force flac.Flac_format.samplerate in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   let p =

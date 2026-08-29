@@ -42,7 +42,7 @@ class bpm (source : source) =
                     (Option.get
                        (Frame.Fields.find_opt Frame.Fields.audio
                           self#content_type)))
-                 (Lazy.force Frame.audio_rate)))
+                 (Lazy.Mutexed.force Frame.audio_rate)))
 
     method private generate_frame =
       let buf =

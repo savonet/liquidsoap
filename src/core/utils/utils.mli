@@ -92,7 +92,7 @@ val select :
   Unix.file_descr list * Unix.file_descr list * Unix.file_descr list
 
 val log_exception : log:Log.t -> bt:string -> string -> unit
-val is_docker : bool Lazy.t
+val is_docker : bool Lazy.Mutexed.t
 
 (** {1 Time} *)
 

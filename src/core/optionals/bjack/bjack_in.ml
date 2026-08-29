@@ -26,7 +26,7 @@ let log = Log.make ["input"; "jack"]
 
 class jack_in ~fallible ~autostart ~server =
   let samples_per_frame = AFrame.size () in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = Lazy.Mutexed.force Frame.audio_rate in
   let bytes_per_sample = 2 in
 
   object (self)
@@ -80,7 +80,7 @@ class jack_in ~fallible ~autostart ~server =
       done
 
     method private generate_frame =
-      let length = Lazy.force Frame.size in
+      let length = Lazy.Mutexed.force Frame.size in
       let alen = Frame.audio_of_main length in
       let blen = Audio.S16LE.size self#audio_channels alen in
       self#read_data blen;

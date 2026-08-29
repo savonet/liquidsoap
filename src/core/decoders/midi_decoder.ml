@@ -50,7 +50,7 @@ let decoder ~ctype file =
     let m = Content.Midi.get_data (Frame.get frame Frame.Fields.midi) in
     let r =
       close_on_err
-        (fun () -> fd#read (Lazy.force Frame.midi_rate) m 0 length)
+        (fun () -> fd#read (Lazy.Mutexed.force Frame.midi_rate) m 0 length)
         ()
     in
     Frame.set_data (Frame.slice frame r) Frame.Fields.midi

@@ -806,7 +806,8 @@ let create_decoder ~ctype ~metadata fname =
       Ffmpeg_decoder_conf.image_file_extensions#get
   then (
     Hashtbl.replace opts "loop" (`Int 1);
-    Hashtbl.replace opts "framerate" (`Int (Lazy.force Frame.video_rate)));
+    Hashtbl.replace opts "framerate"
+      (`Int (Lazy.Mutexed.force Frame.video_rate)));
   let container = open_decoding_input ?format ~opts fname in
   check_opts opts;
   mk_decoder_record ~ctype ~decode_first_metadata:false container
@@ -831,7 +832,8 @@ let create_stream_decoder ~ctype mime input =
   if List.exists (fun s -> mime = s) Ffmpeg_decoder_conf.image_mime_types#get
   then (
     Hashtbl.replace opts "loop" (`Int 1);
-    Hashtbl.replace opts "framerate" (`Int (Lazy.force Frame.video_rate)));
+    Hashtbl.replace opts "framerate"
+      (`Int (Lazy.Mutexed.force Frame.video_rate)));
   let container =
     Av.open_input_stream ?seek:seek_input ~opts ?format input.Decoder.read
   in

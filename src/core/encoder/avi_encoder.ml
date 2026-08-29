@@ -31,7 +31,7 @@ let log = Log.make ["avi"; "encoder"]
 let encode_frame ~channels ~samplerate ~width ~height ~converter frame =
   let target_width = width in
   let target_height = height in
-  let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
+  let ratio = float samplerate /. float (Lazy.Mutexed.force Frame.audio_rate) in
   let audio =
     let alen = AFrame.position frame in
     let pcm = AFrame.pcm frame in
@@ -90,10 +90,10 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame =
 
 let encoder avi =
   let channels = avi.channels in
-  let samplerate = Lazy.force avi.samplerate in
+  let samplerate = Lazy.Mutexed.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
-  let width = Lazy.force avi.width in
-  let height = Lazy.force avi.height in
+  let width = Lazy.Mutexed.force avi.width in
+  let height = Lazy.Mutexed.force avi.height in
   log#info "Encoding at %dx%d, %d channels, %d Hz.%!" width height channels
     samplerate;
   (* TODO: use duration *)

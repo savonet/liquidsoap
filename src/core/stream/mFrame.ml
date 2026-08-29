@@ -25,7 +25,7 @@ open Frame
 type t = Frame.t
 
 let mot = midi_of_main
-let size () = mot (Lazy.force Frame.size)
+let size () = mot (Lazy.Mutexed.force Frame.size)
 
 let content ?(field = Frame.Fields.midi) b =
   try Frame.get b field with Not_found -> raise Content.Invalid

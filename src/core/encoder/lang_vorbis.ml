@@ -39,7 +39,7 @@ let make_cbr params =
     List.fold_left
       (fun f -> function
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Vorbis_format.samplerate = Lazy.from_val i }
+            { f with Vorbis_format.samplerate = Lazy.Mutexed.from_val i }
         | `Labelled ("bitrate", Int { value = i; _ }) ->
             { f with Vorbis_format.mode = Vorbis_format.CBR i }
         | `Labelled ("stereo", Bool { value = b; _ }) ->
@@ -77,7 +77,7 @@ let make_abr params =
     List.fold_left
       (fun f -> function
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Vorbis_format.samplerate = Lazy.from_val i }
+            { f with Vorbis_format.samplerate = Lazy.Mutexed.from_val i }
         | `Labelled ("bitrate", Int { value = i; _ }) ->
             let x, _, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, Some i, y) }
@@ -117,7 +117,7 @@ let make params =
     List.fold_left
       (fun f -> function
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Vorbis_format.samplerate = Lazy.from_val i }
+            { f with Vorbis_format.samplerate = Lazy.Mutexed.from_val i }
         | `Labelled ("quality", Float { value = q; pos }) ->
             if q < -0.2 || q > 1. then
               Lang_encoder.raise_error ~pos "quality should be in [(-0.2)..1]";

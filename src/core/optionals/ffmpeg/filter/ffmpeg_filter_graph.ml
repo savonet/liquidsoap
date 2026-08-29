@@ -66,7 +66,8 @@ class source ~name ~pull ~is_ready ~flush_inputs ~reset ~self_sync () =
     (* Readiness must not tick anything: this is called from
        [before_streaming_cycle], where a clock tick is not ours to make. *)
     method private can_generate_frame =
-      Lazy.force Frame.size <= Generator.length self#buffer || is_ready ()
+      Lazy.Mutexed.force Frame.size <= Generator.length self#buffer
+      || is_ready ()
 
     (* One output can legitimately run ahead of another while a filter fills
        its lookahead, so we wait on the slowest. If they never converge the
@@ -91,7 +92,7 @@ class source ~name ~pull ~is_ready ~flush_inputs ~reset ~self_sync () =
     (* Ticking the inputs is what makes the outputs produce, hence the
        alternation. *)
     method private fill_buffer =
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       let drain () =
         List.iter (fun sink -> sink.drain ~generator:self#buffer) sinks;
         self#check_buffer
@@ -132,7 +133,7 @@ class source ~name ~pull ~is_ready ~flush_inputs ~reset ~self_sync () =
       with Exit -> ()
 
     method private generate_frame =
-      let size = Lazy.force Frame.size in
+      let size = Lazy.Mutexed.force Frame.size in
       if Generator.length self#buffer < size then self#fill_buffer;
       Generator.slice self#buffer size
   end

@@ -1267,7 +1267,7 @@ let rec _start ?force ~c clock =
   let module Time = (val time_implementation : Liq_time.T) in
   let params =
     {
-      frame_duration = Lazy.force Frame.duration;
+      frame_duration = Lazy.Mutexed.force Frame.duration;
       current_sync_source = None;
       sync_source_entries = [];
       log_delay = conf_log_delay#get;

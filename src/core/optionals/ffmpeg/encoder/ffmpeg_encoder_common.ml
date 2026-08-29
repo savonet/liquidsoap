@@ -272,7 +272,7 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
                   let position =
                     Int64.of_int
                       (Frame.audio_of_main
-                         ((frame_position * Lazy.force Frame.size)
+                         ((frame_position * Lazy.Mutexed.force Frame.size)
                          + sample_position))
                   in
                   Avcodec.Packet.set_pts packet (Some position);

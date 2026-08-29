@@ -68,7 +68,7 @@ class soundtouch source_val rate tempo pitch =
           st <-
             Some
               (Soundtouch.make self#audio_channels
-                 (Lazy.force Frame.audio_rate));
+                 (Lazy.Mutexed.force Frame.audio_rate));
           self#log#important "Using soundtouch %s."
             (Soundtouch.get_version_string (Option.get st));
           self#child#set_process_frame (fun generator -> function

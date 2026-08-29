@@ -43,7 +43,7 @@ let plugin_dirs =
   with Not_found -> Frei0r.default_paths
 
 class frei0r_filter ~name bgra instance params (source : source) =
-  let fps = Lazy.force Frame.video_rate in
+  let fps = Lazy.Mutexed.force Frame.video_rate in
   let dt = 1. /. float fps in
   object (self)
     inherit operator ~name:("frei0r." ^ name) [source]
@@ -82,7 +82,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
   end
 
 class frei0r_mixer ~name bgra instance params (source : source) source2 =
-  let fps = Lazy.force Frame.video_rate in
+  let fps = Lazy.Mutexed.force Frame.video_rate in
   let dt = 1. /. float fps in
   let self_sync = Clock.self_sync_of_sources [source; source2] in
   object (self)
@@ -164,7 +164,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
   end
 
 class frei0r_source ~name bgra instance params =
-  let fps = Lazy.force Frame.video_rate in
+  let fps = Lazy.Mutexed.force Frame.video_rate in
   let dt = 1. /. float fps in
   object (self)
     inherit source ~name:("frei0r." ^ name) ()
@@ -193,7 +193,7 @@ class frei0r_source ~name bgra instance params =
         self#end_of_track)
       else (
         params ();
-        let length = Lazy.force Frame.size in
+        let length = Lazy.Mutexed.force Frame.size in
         let buf = Frame.create ~length self#content_type in
         let rgb = self#generate_video ~field:Frame.Fields.video length in
         let data =
@@ -333,8 +333,8 @@ let register_plugin fname =
        ~category:`Video ~flags:[`Extra] ~descr (fun p ->
          let instance =
            let video_width, video_height = Frame.video_dimensions () in
-           let width = Lazy.force video_width in
-           let height = Lazy.force video_height in
+           let width = Lazy.Mutexed.force video_width in
+           let height = Lazy.Mutexed.force video_height in
            Frei0r.create plugin width height
          in
          let f v = List.assoc v p in
