@@ -86,3 +86,22 @@ let atomic_lock ~state fn v =
     let bt = Printexc.get_raw_backtrace () in
     Atomic.set state.lock `None;
     Printexc.raise_with_backtrace exn bt
+
+type reentrant = { state : state; owner : int Atomic.t }
+
+let mk_reentrant () = { state = mk_state (); owner = Atomic.make (-1) }
+
+(* Reading [owner] outside the lock is safe: no other thread can leave this
+   thread's own id there. *)
+let reentrant_lock ~fast ~state fn v =
+  let self = Thread.id (Thread.self ()) in
+  if Atomic.get state.owner = self then fn v
+  else (
+    let lock = if fast then atomic_lock else mutable_lock in
+    lock ~state:state.state
+      (fun v ->
+        Atomic.set state.owner self;
+        Fun.protect
+          ~finally:(fun () -> Atomic.set state.owner (-1))
+          (fun () -> fn v))
+      v)
