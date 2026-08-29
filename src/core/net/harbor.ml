@@ -970,7 +970,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       log_args;
 
     (* First, try with a registered handler. *)
-    let { handler; _ } = find_handler port in
+    let { handler; _ } =
+      (* Closing a port removes it while requests can still be in flight, and
+         this lookup is lock-free by design. *)
+        match Concurrent_hashtbl.find_opt opened_ports port with
+        | Some p -> p
+        | None -> ans_404 base_uri
+    in
     let f (verb, regex, handler) =
       let rex = regex.Liquidsoap_lang.Lang_regexp.regexp in
       let sub =
