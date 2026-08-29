@@ -141,7 +141,7 @@ val self_sync_of_sources :
 
 (** [`Dynamic] as soon as one of the sources is, [`Static] otherwise. *)
 val self_sync_type_of_sources :
-  < self_sync : self_sync ; .. > list -> [ `Static | `Dynamic ] Lazy.t
+  < self_sync : self_sync ; .. > list -> unit -> [ `Static | `Dynamic ]
 
 (** Sync mode of a clock:
     - [`Automatic]: the clock delegates latency control to its current sync
