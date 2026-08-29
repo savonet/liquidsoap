@@ -9,7 +9,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.23"}
-  "ocaml" {>= "5.4"}
+  "ocaml" {>= "5.5"}
   "dune-site"
   "re" {>= "1.11.0"}
   "ppx_string" {build}
