@@ -967,7 +967,8 @@ class virtual active_source ?stack ?clock ~name () =
    captures. *)
 type reselect = [ `Ok | `Force | `After_position of int ]
 
-class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
+class virtual generate_from_multiple_sources
+  ?(new_track_on_source_switch = fun () -> true) ~merge ~track_sensitive () =
   object (self)
     method virtual get_source : reselect:reselect -> unit -> source option
     method virtual split_frame : Frame.t -> Frame.t * Frame.t option
@@ -1004,6 +1005,13 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
         self#execute_on_track buf;
         buf)
 
+    (* A source switch carries potentially different content, so it begins a
+       track unless the operator knows better. *)
+    method private on_source_switch buf =
+      if new_track_on_source_switch () then self#begin_track buf
+      else if merge () then Frame.drop_track_marks buf
+      else buf
+
     method private can_reselect ~(reselect : reselect) (s : source) =
       s#is_ready
       &&
@@ -1021,7 +1029,11 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                 match current_source with
                   | Some s' when s == s' -> self#empty_frame
                   | _ -> self#begin_track next_track)
-            | buf, _ -> buf)
+            | buf, _ -> (
+                match current_source with
+                  | Some s' when s != s' && Frame.position buf > 0 ->
+                      self#on_source_switch buf
+                  | _ -> buf))
 
     method private generate_frame =
       let s = Option.get ready_source in
@@ -1067,7 +1079,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                         | buf, _ -> Frame.slice buf rem)
                 in
                 f ~last_source:s ~last_chunk:new_track
-                  (Frame.append buf (self#begin_track new_track))
+                  (Frame.append buf (self#on_source_switch new_track))
             | _ -> (last_source, buf))
         else (last_source, buf)
       in

@@ -236,6 +236,42 @@
   (run %{run_test} cross.liq liquidsoap %{test_liq} cross.liq)))
 
 (rule
+ (alias test_cross_on_track)
+ (package liquidsoap)
+ (deps
+  cross_on_track.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   cross_on_track.liq
+   liquidsoap
+   %{test_liq}
+   cross_on_track.liq)))
+
+(rule
  (alias test_crossfade)
  (package liquidsoap)
  (deps
@@ -2440,6 +2476,7 @@
   (alias test_cross-override)
   (alias test_cross-persist-override)
   (alias test_cross-sequence-transition)
+  (alias test_cross_on_track)
   (alias test_crossfade)
   (alias test_crossfade2)
   (alias test_ctype1)
