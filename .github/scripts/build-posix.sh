@@ -52,6 +52,9 @@ for pkg in ogg vorbis opus flac; do
   opam pin -y -n add "$pkg" ./ocaml-xiph
 done
 opam pin -ny git+https://github.com/savonet/ocaml-ffmpeg.git#v1.3.1
+# camomile 2.1.0 requires a `get` data-file reader in Config.Type and no longer
+# ships Config.Default. Keep 2.0.0, which also holds dune below 3.24.
+opam pin -y -n add camomile 2.0.0
 opam install -y --no-depexts ogg vorbis opus flac ffmpeg.1.3.1
 
 opam pin -y add re 1.13.2
