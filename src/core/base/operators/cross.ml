@@ -57,11 +57,22 @@ class cross val_source ~end_duration_getter ~override_end_duration
   let s = Lang.to_source val_source in
   let original_end_duration_getter = end_duration_getter in
   let original_start_duration_getter = start_duration_getter in
+  let status :
+      [ `Idle
+      | `Before of Clock.activation * Source.source
+      | `After of Clock.activation * Source.source ]
+      ref =
+    ref `Idle
+  in
   object (self)
     inherit source ~name:"cross" ()
 
+    (* Switching to the transition is where the new track begins; switching back
+       to a buffering source at the end of it continues that same track. *)
     inherit
       generate_from_multiple_sources
+        ~new_track_on_source_switch:(fun () ->
+          match !status with `After _ -> true | _ -> false)
         ~merge:(fun () -> false)
         ~track_sensitive:(fun () -> false)
         ()
@@ -228,17 +239,11 @@ class cross val_source ~end_duration_getter ~override_end_duration
           s#sleep (Option.get a);
           source <- (None, s))
 
-    val mutable status
-        : [ `Idle
-          | `Before of Clock.activation * Source.source
-          | `After of Clock.activation * Source.source ] =
-      `Idle
-
     method set_status v =
-      (match status with
+      (match !status with
         | `Idle -> ()
         | `Before (a, s) | `After (a, s) -> s#sleep a);
-      status <- v
+      status := v
 
     method! child_clock_controller =
       Some (`Other ("source", (self :> < id : string >)))
@@ -334,18 +339,18 @@ class cross val_source ~end_duration_getter ~override_end_duration
       let a = self#prepare_source before in
       self#set_status (`Before (a, (before :> Source.source)));
       self#buffer_before ~is_first:true ();
-      match status with
+      match !status with
         | `After (_, s) | `Before (_, s) -> if s#is_ready then Some s else None
         | _ -> assert false
 
     method private get_source ~reselect () =
       let reselect = match reselect with `Force -> `Ok | _ -> reselect in
-      match status with
+      match !status with
         | `Idle when self#source#is_ready -> self#prepare_before
         | `Idle -> None
         | `Before _ -> (
             self#buffer_before ~is_first:false ();
-            match status with
+            match !status with
               | `Idle -> assert false
               | `Before (_, before_source)
                 when self#can_reselect ~reselect before_source ->
@@ -557,12 +562,13 @@ class cross val_source ~end_duration_getter ~override_end_duration
             | Some s, None ->
                 (new Sequence.sequence
                    ~name:(Printf.sprintf "%s.before_head" self#id)
-                   ~merge:true [s; compound]
+                   ~merge:true ~new_track_on_source_switch:false [s; compound]
                   :> Source.source)
             | None, Some s ->
                 (new Sequence.sequence
                    ~name:(Printf.sprintf "%s.after_tail" self#id)
-                   ~single_track:false [compound; s]
+                   ~new_track_on_source_switch:false ~single_track:false
+                   [compound; s]
                   :> Source.source)
             | Some _, Some _ -> assert false
         in
@@ -574,7 +580,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
       self#set_status (`After (a, compound))
 
     method remaining =
-      match status with
+      match !status with
         | `Idle -> self#source#remaining
         | `Before (_, s) -> (
             match (s#remaining, self#source#remaining) with
@@ -583,7 +589,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
         | `After (_, s) -> s#remaining
 
     method effective_source =
-      match status with
+      match !status with
         | `Idle -> self#source#effective_source
         | `Before (_, s) | `After (_, s) -> s#effective_source
 
@@ -592,7 +598,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
     initializer
       self#on_before_streaming_cycle (fun () ->
           if Atomic.exchange pending_abort_track false then (
-            match status with
+            match !status with
               | `Idle -> ()
               | `Before _ | `After _ -> ignore self#prepare_before))
 

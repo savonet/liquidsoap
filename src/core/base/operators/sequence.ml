@@ -27,8 +27,8 @@ open Source
     sequence. The [merge] flag will *not* merge tracks while looping on the last
     source -- this behavior would not be suited to the current use of [sequence]
     in transitions. *)
-class sequence ?(name = "sequence") ?(merge = false) ?(single_track = true)
-  sources =
+class sequence ?(name = "sequence") ?(merge = false)
+  ?(new_track_on_source_switch = true) ?(single_track = true) sources =
   let self_sync_type = Clock_base.self_sync_type sources in
   let seq_sources = Atomic.make sources in
   object (self)
@@ -36,6 +36,7 @@ class sequence ?(name = "sequence") ?(merge = false) ?(single_track = true)
 
     inherit
       generate_from_multiple_sources
+        ~new_track_on_source_switch:(fun () -> new_track_on_source_switch)
         ~merge:(fun () -> merge && List.length (Atomic.get seq_sources) <> 1)
         ~track_sensitive:(fun () -> true)
         ()

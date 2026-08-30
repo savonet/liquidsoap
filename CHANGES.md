@@ -2,6 +2,9 @@
 
 ## Fixed:
 
+- `cross` and `crossfade` now fire `on_track` on every crossing. The default
+  transition mixes the two tracks and carries no track mark of its own, so
+  handlers registered after a crossfade only ever saw the first track (#5379)
 - Fixed a synchronous callback hanging or looping forever when it reads the
   frame of the source it is registered on, e.g. calling `s.time()` inside
   `s.on_metadata(synchronous=true, ...)` (#5361)
