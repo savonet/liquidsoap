@@ -2,6 +2,10 @@
 
 ## Fixed:
 
+- Fixed `metadata.deduplicate`, and so `cross` and `crossfade` with their default
+  `deduplicate=true`, dropping the metadata of every track that repeats the previous
+  one, e.g. a single file on a loop. Handlers registered after the operator stopped
+  being called after the first track (#5360)
 - Fixed a synchronous callback hanging or looping forever when it reads the
   frame of the source it is registered on, e.g. calling `s.time()` inside
   `s.on_metadata(synchronous=true, ...)` (#5361)
