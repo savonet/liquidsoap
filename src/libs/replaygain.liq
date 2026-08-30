@@ -111,19 +111,25 @@ end
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing replaygain tags.
 # @category Liquidsoap
 def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
-  def replaygain_metadata(~metadata:_, file_name) =
-    gain = file.replaygain(compute=compute, ratio=ratio, file_name)
+  def replaygain_metadata(~metadata, file_name) =
     if
-      gain != null
+      list.assoc.mem(settings.normalize_track_gain_metadata(), metadata)
     then
-      [
-        (
-          settings.normalize_track_gain_metadata(),
-          "#{null.get(gain)} dB"
-        )
-      ]
-    else
       []
+    else
+      gain = file.replaygain(compute=compute, ratio=ratio, file_name)
+      if
+        gain != null
+      then
+        [
+          (
+            settings.normalize_track_gain_metadata(),
+            "#{null.get(gain)} dB"
+          )
+        ]
+      else
+        []
+      end
     end
   end
 

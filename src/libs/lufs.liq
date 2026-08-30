@@ -125,19 +125,25 @@ end
 # @category Liquidsoap
 def enable_lufs_track_gain_metadata(~compute=true, ~ratio=null) =
   ratio = ratio ?? settings.lufs.decoding_ratio()
-  def lufs_metadata(~metadata:_, file_name) =
-    gain = file.lufs(compute=compute, ratio=ratio, file_name)
+  def lufs_metadata(~metadata, file_name) =
     if
-      gain != null
+      list.assoc.mem(settings.normalize_track_gain_metadata(), metadata)
     then
-      [
-        (
-          settings.normalize_track_gain_metadata(),
-          "#{settings.lufs.track_gain_target() - null.get(gain)} dB"
-        )
-      ]
-    else
       []
+    else
+      gain = file.lufs(compute=compute, ratio=ratio, file_name)
+      if
+        gain != null
+      then
+        [
+          (
+            settings.normalize_track_gain_metadata(),
+            "#{settings.lufs.track_gain_target() - null.get(gain)} dB"
+          )
+        ]
+      else
+        []
+      end
     end
   end
 
