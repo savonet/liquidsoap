@@ -25,19 +25,20 @@ open Extralib
 
 let log = Log.make ["video"; "text"; "native"]
 
-(* The font's character map is shared, and rendering happens on whichever
-   domain runs the source. *)
-module Font = Image.Bitmap.Font.Make (Lazy.Mutexed)
+module Font = Image.Bitmap.Font
 
 let warned_custom_font = ref false
+
+(* The native font, computed on first use. *)
+let native_font = Lazy.Mutexed.from_fun Font.native
 
 let render_text ~font ~size text =
   if font <> Configure.conf_default_font#get && not !warned_custom_font then (
     warned_custom_font := true;
     log#important "video.text.native does not support custom fonts yet!");
   let () = ignore font in
-  let font = Font.native in
-  let bmp = Font.render text in
+  let font = Lazy.Mutexed.force native_font in
+  let bmp = Font.render ~font text in
   let w = Image.Bitmap.width bmp in
   let h = Image.Bitmap.height bmp in
   let char_height = Font.height font in
