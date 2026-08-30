@@ -16,7 +16,7 @@ jobs:
             extra-packages: alsa ao mad pulseaudio theora
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ocaml/setup-ocaml@f92e0606b7ae4873dd1238465ea4bf6f8e40d85c # v3
+      - uses: ocaml/setup-ocaml@e89b2ded52a6e13f50162220cf5fe47290162032 # v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
       - run: opam pin add -n .
