@@ -2,6 +2,9 @@
 
 ## Fixed:
 
+- Fixed a synchronous callback hanging or looping forever when it reads the
+  frame of the source it is registered on, e.g. calling `s.time()` inside
+  `s.on_metadata(synchronous=true, ...)` (#5361)
 - Fixed `file.watch` losing track of a file that gets replaced rather than
   written in place: an inotify watch follows the inode, so a writer doing the
   usual write-to-temporary-then-rename silenced the watcher for good. The
