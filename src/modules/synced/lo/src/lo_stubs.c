@@ -149,17 +149,14 @@ static void error_msg(int num, const char *msg, const char *path) {
   fprintf(stderr, "liblo server error %d in path %s: %s\n", num, path, msg);
 }
 
-static int generic_handler(const char *path, const char *types, lo_arg **argv,
-                           int argc, lo_message msg, void *user_data) {
-  server_t *s = (server_t *)user_data;
+/* The roots are the runtime's to unwind: an unhandled type raises out of here,
+   and so may the handler, which would leave a root pointing into this frame
+   long after it is gone. */
+static void generic_handler_locked(server_t *s, const char *path,
+                                   const char *types, lo_arg **argv, int argc) {
+  CAMLparam0();
+  CAMLlocal2(arg, v);
   int i;
-  value arg = 0;
-  value v = 0;
-
-  caml_leave_blocking_section();
-
-  caml_register_global_root(&arg);
-  caml_register_global_root(&v);
 
   arg = caml_alloc_tuple(argc);
 
@@ -222,9 +219,15 @@ static int generic_handler(const char *path, const char *types, lo_arg **argv,
 
   caml_callback2(s->handler, caml_copy_string(path), arg);
 
-  caml_remove_global_root(&v);
-  caml_remove_global_root(&arg);
+  CAMLreturn0;
+}
 
+static int generic_handler(const char *path, const char *types, lo_arg **argv,
+                           int argc, lo_message msg, void *user_data) {
+  server_t *s = (server_t *)user_data;
+
+  caml_leave_blocking_section();
+  generic_handler_locked(s, path, types, argv, argc);
   caml_enter_blocking_section();
 
   return 0;

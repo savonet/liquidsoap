@@ -50,7 +50,6 @@
 ## Changed:
 
 - Liquidsoap now requires OCaml 5.5 to build.
-
 - Bindings written without `let` accept the same targets as `let` — destructuring patterns, field paths and type
   annotations — so `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid, and an invalid left-hand side
   reports what is allowed instead of a bare syntax error. A leading binding inside the `{ … }` function shorthand
@@ -97,6 +96,9 @@
   YAML support always available. YAML integers parse as `int` instead of `float` (#5233).
 
 ## Fixed:
+
+- `time.zone.set` now takes effect. Setting the time zone was silently ignored once anything had already
+  read the local time, which in practice meant always.
 
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
   `on_leave` and transition functions are now released when the selection or the crossing
