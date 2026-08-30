@@ -24,7 +24,7 @@
     (mm (>= 0.8.6))
     (re (and (>= 1.11.0) (< 1.14.0)))
     curl
-    (camomile (>= 2.0.0))
+    (camomile (and (>= 2.0.0) (< 2.1.0)))
     uri
     menhirLib
     domain_shims
