@@ -623,13 +623,20 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
       Atomic.set streaming_state `Pending
 
+    (* Frame generation executes script callbacks which may read the source's
+       frame again. Such a re-entrant call must not restart the generation, so
+       it reports the data left over from the previous cycle instead. *)
+    val mutable generating = false
+
     method peek_frame =
       match Atomic.get streaming_state with
         | `Pending | `Unavailable ->
             log#critical "source called while not ready!";
             raise Unavailable
+        | `Ready _ when generating -> self#cache
         | `Ready fn ->
-            fn ();
+            generating <- true;
+            Fun.protect ~finally:(fun () -> generating <- false) fn;
             self#peek_frame
         | `Done data -> data
 
