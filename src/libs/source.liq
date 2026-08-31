@@ -65,7 +65,7 @@ def track.metadata.deduplicate(
     strip=true,
     f,
     t
-  )
+  ).{reset=fun () -> last_meta := []}
 end
 
 # Remove duplicate metadata in a source.
@@ -76,10 +76,12 @@ end
 # @param s source
 def metadata.deduplicate(~id=null("metadata.deduplicate"), ~using=null, s) =
   tracks = source.tracks(s)
-  source(
-    id=id,
-    tracks.{metadata=track.metadata.deduplicate(using=using, tracks.metadata)}
-  )
+  metadata = track.metadata.deduplicate(using=using, tracks.metadata)
+
+  # Comparing across a track mark would drop the metadata of a track that
+  # repeats the previous one, e.g. a single file on a loop.
+  source.methods(s).on_track(synchronous=true, fun (_) -> metadata.reset())
+  source(id=id, tracks.{metadata=metadata})
 end
 
 # Rewrite metadata on the fly using a function.

@@ -2,6 +2,14 @@
 
 ## Fixed:
 
+- `cross` and `crossfade` with their default `deduplicate=true` no longer drop
+  the metadata of a track that repeats the one before it, e.g. a single file on
+  a loop, which silenced the handlers a script registers after the operator.
+  `cross` now marks the outgoing track's metadata where it replays it into the
+  transition, so the repeat it is meant to remove is told apart from a fresh
+  announcement rather than guessed at by comparing values (#5360)
+- `metadata.deduplicate` no longer compares across a track mark, for the same
+  reason (#5360)
 - `cross` and `crossfade` now fire `on_track` on every crossing. The default
   transition mixes the two tracks and carries no track mark of its own, so
   handlers registered after a crossfade only ever saw the first track (#5379)
