@@ -92,6 +92,15 @@
 
 ## Fixed:
 
+- `cross` no longer replays the outgoing track's metadata into the transition. A transition
+  keeping the outgoing source announced that track a second time, and with an `add`-shaped
+  transition both replays landed at the same frame position, so only one survived and the
+  incoming track's own announcement was dropped. The transition still receives that metadata
+  as the `metadata` field of its argument (#5360).
+
+- `metadata.deduplicate` no longer compares across a track mark, which dropped the metadata of
+  a track repeating the one before it, e.g. a single file on a loop (#5360).
+
 - `time.zone.set` now takes effect. Setting the time zone was silently ignored once anything had already
   read the local time, which in practice meant always.
 
