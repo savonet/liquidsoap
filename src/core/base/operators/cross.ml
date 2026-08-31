@@ -498,7 +498,13 @@ class cross val_source ~end_duration_getter ~override_end_duration
         let before =
           new Replay_metadata.replay
             ~name:(Printf.sprintf "%s.before_metadata" self#id)
-            before_metadata
+            (* The outgoing track was already announced downstream. Mark the
+               replay so `deduplicate` can tell it from a fresh announcement
+               that happens to repeat it. *)
+            (if before_metadata = Frame.Metadata.empty then before_metadata
+             else
+               Frame.Metadata.add "liq_cross_replayed_metadata" "true"
+                 before_metadata)
             (new consumer
                ~name:(Printf.sprintf "%s.before_buffer" self#id)
                ~clock:self#clock gen_before)
