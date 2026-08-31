@@ -2,18 +2,6 @@
 
 ## Fixed:
 
-- `cross` no longer replays either track's metadata into the transition. The
-  outgoing one was announced a second time by a transition keeping that source.
-  The incoming one is already inside the buffered data it was replayed into, so
-  it only ever fired when there was nothing to replay, announcing an empty
-  metadata. The transition still receives both as the `metadata` field of its
-  arguments, so a transition that read a track's fade overrides off the stream
-  must now read them from that argument, as `cross.simple` and `cross.plot` do
-  (#5360)
-- Fixed `metadata.deduplicate`, and so `cross` and `crossfade` with their default
-  `deduplicate=true`, dropping the metadata of every track that repeats the previous
-  one, e.g. a single file on a loop. Handlers registered after the operator stopped
-  being called after the first track (#5360)
 - `cross` and `crossfade` now fire `on_track` on every crossing. The default
   transition mixes the two tracks and carries no track mark of its own, so
   handlers registered after a crossfade only ever saw the first track (#5379)

@@ -61,12 +61,7 @@ def cross.plot(~png=null, ~dir=null, ~font=null, ~font_size=10, s) =
   plotted = ref(false)
 
   def transition(old, new) =
-    # The buffered data `cross` hands us for the incoming track starts at that
-    # track, so its metadata is in the stream and `fade.in` reads it there. The
-    # outgoing one holds the end of its track, long past its metadata, so
-    # `fade.out` only gets the overrides from the argument.
-    old =
-      store_rms(id="old", fade.out(initial_metadata=old.metadata, old.source))
+    old = store_rms(id="old", fade.out(old.source))
     new = store_rms(id="new", fade.in(new.source))
 
     s = blank(duration=0.1)
