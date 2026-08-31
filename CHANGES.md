@@ -92,11 +92,13 @@
 
 ## Fixed:
 
-- `cross` no longer replays the outgoing track's metadata into the transition. A transition
-  keeping the outgoing source announced that track a second time, and with an `add`-shaped
+- `cross` no longer replays either track's metadata into the transition. The outgoing one was
+  announced a second time by a transition keeping that source, and with an `add`-shaped
   transition both replays landed at the same frame position, so only one survived and the
-  incoming track's own announcement was dropped. The transition still receives that metadata
-  as the `metadata` field of its argument (#5360).
+  incoming track's own announcement was dropped. The incoming one is already inside the
+  buffered data it was replayed into, so it only ever fired when there was nothing to replay,
+  announcing an empty metadata. The transition still receives both as the `metadata` field of
+  its arguments (#5360).
 
 - `metadata.deduplicate` no longer compares across a track mark, which dropped the metadata of
   a track repeating the one before it, e.g. a single file on a loop (#5360).

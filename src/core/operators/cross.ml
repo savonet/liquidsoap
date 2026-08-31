@@ -409,12 +409,10 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
           else None
         in
         let after =
-          new Replay_metadata.replay
-            ~name:(Printf.sprintf "%s.after_metadata" self#id)
-            after_metadata
-            (new consumer
-               ~name:(Printf.sprintf "%s.after_buffer" self#id)
-               ~clock:self#clock gen_after)
+          (new consumer
+             ~name:(Printf.sprintf "%s.after_buffer" self#id)
+             ~clock:self#clock gen_after
+            :> Source.source)
         in
         Typing.(after#frame_type <: self#frame_type);
         self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)" db_before

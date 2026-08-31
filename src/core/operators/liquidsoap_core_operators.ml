@@ -69,7 +69,6 @@ module On_subtitle = On_subtitle
 module Pan = Pan
 module Pipe = Pipe
 module Pitch = Pitch
-module Replay_metadata = Replay_metadata
 module Replaygain_op = Replaygain_op
 module Resample = Resample
 module Rms_smooth = Rms_smooth
