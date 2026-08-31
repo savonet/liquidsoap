@@ -205,6 +205,42 @@
    cross-sequence-transition.liq)))
 
 (rule
+ (alias test_cross-transition-arguments)
+ (package liquidsoap)
+ (deps
+  cross-transition-arguments.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   cross-transition-arguments.liq
+   liquidsoap
+   %{test_liq}
+   cross-transition-arguments.liq)))
+
+(rule
  (alias test_cross-transition-metadata)
  (package liquidsoap)
  (deps
@@ -2512,6 +2548,7 @@
   (alias test_cross-override)
   (alias test_cross-persist-override)
   (alias test_cross-sequence-transition)
+  (alias test_cross-transition-arguments)
   (alias test_cross-transition-metadata)
   (alias test_cross_on_track)
   (alias test_crossfade)
