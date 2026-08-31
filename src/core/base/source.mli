@@ -418,8 +418,11 @@ type reselect = [ `Ok | `Force | `After_position of int ]
 (* Helper to generate data from a sequence of source.
    Data generation calls [get_source] on track marks.
    When frame is partial, a track mark is added unless [merge] is
-   set to [true]. *)
+   set to [true]. Switching to a different source begins a track unless
+   [new_track_on_source_switch] says otherwise, for operators such as [cross]
+   that know which of their switches is a real track boundary. *)
 class virtual generate_from_multiple_sources :
+  ?new_track_on_source_switch:(unit -> bool) ->
   merge:(unit -> bool) ->
   track_sensitive:(unit -> bool) ->
   unit ->
@@ -431,6 +434,7 @@ object
   method virtual private set_last_metadata : Frame.t -> unit
   method virtual log : Log.t
   method virtual id : string
+  method private on_source_switch : Frame.t -> Frame.t
   method private can_reselect : reselect:reselect -> source -> bool
   method private can_generate_frame : bool
   method private generate_frame : Frame.t
