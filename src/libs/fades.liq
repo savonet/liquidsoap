@@ -866,20 +866,40 @@ end
 # @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
 #                      removes duplicate metadata from the returned source.
 def replaces cross(%argsof(cross), ~deduplicate=true, transition, s) =
-  if
-    not deduplicate
-  then
-    cross(%argsof(cross), transition, s)
-  else
-    s = cross(%argsof(cross[!id]), transition, s)
-    dedup = metadata.deduplicate(s)
+  s = cross(%argsof(cross[!id]), transition, s)
 
-    dedup.{
-      buffered = s.buffered,
-      duration = s.duration,
-      cross_duration = s.cross_duration
-    }
+  # `cross` marks a metadata it announces as a fallback, for a track whose own
+  # announcement the transition did not carry through. Keep it only when
+  # nothing else announced that track: a crossing begins a track, so what
+  # matters is whether anything was announced since the track mark, not whether
+  # it repeats an earlier value. This is delivery, not deduplication, so it
+  # does not depend on `deduplicate`. The mark never leaves the operator.
+  announced = ref(false)
+  source.methods(s).on_track(synchronous=true, fun (_) -> announced := false)
+
+  def f(m) =
+    replayed = list.assoc.mem("liq_cross_replayed_metadata", m)
+    m = list.assoc.remove("liq_cross_replayed_metadata", m)
+    if
+      replayed and announced()
+    then
+      []
+    else
+      announced := true
+      m
+    end
   end
+
+  delivered =
+    metadata.map(id=id, insert_missing=false, update=false, strip=true, f, s)
+
+  dedup = if deduplicate then metadata.deduplicate(delivered) else delivered end
+
+  dedup.{
+    buffered = s.buffered,
+    duration = s.duration,
+    cross_duration = s.cross_duration
+  }
 end
 
 # Crossfade between tracks, taking the respective volume levels into account in
