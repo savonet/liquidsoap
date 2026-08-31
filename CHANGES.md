@@ -98,7 +98,8 @@
   incoming track's own announcement was dropped. The incoming one is already inside the
   buffered data it was replayed into, so it only ever fired when there was nothing to replay,
   announcing an empty metadata. The transition still receives both as the `metadata` field of
-  its arguments (#5360).
+  its arguments, so a transition that read a track's fade overrides off the stream must now
+  read them from that argument, as `cross.simple` and `cross.plot` do (#5360).
 
 - `metadata.deduplicate` no longer compares across a track mark, which dropped the metadata of
   a track repeating the one before it, e.g. a single file on a loop (#5360).

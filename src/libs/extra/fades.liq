@@ -61,8 +61,13 @@ def cross.plot(~png=null, ~dir=null, ~font=null, ~font_size=10, s) =
   plotted = ref(false)
 
   def transition(old, new) =
-    old = store_rms(id="old", fade.out(old.source))
-    new = store_rms(id="new", fade.in(new.source))
+    # `cross` hands each side's metadata as an argument, not through the stream,
+    # so the fade overrides have to be passed in the same way `cross.simple`
+    # does.
+    old =
+      store_rms(id="old", fade.out(initial_metadata=old.metadata, old.source))
+    new =
+      store_rms(id="new", fade.in(initial_metadata=new.metadata, new.source))
 
     s = blank(duration=0.1)
     s.on_frame(
