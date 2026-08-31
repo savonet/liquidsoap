@@ -2,6 +2,12 @@
 
 ## Fixed:
 
+- `cross` no longer replays the outgoing track's metadata into the transition. A
+  transition keeping the outgoing source announced that track a second time, and
+  with an `add`-shaped transition both replays landed at the same frame
+  position, so only one survived and the incoming track's own announcement was
+  dropped. The transition still receives that metadata as the `metadata` field
+  of its argument (#5360)
 - Fixed `metadata.deduplicate`, and so `cross` and `crossfade` with their default
   `deduplicate=true`, dropping the metadata of every track that repeats the previous
   one, e.g. a single file on a loop. Handlers registered after the operator stopped
