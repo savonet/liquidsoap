@@ -58,6 +58,35 @@
  (action (run %{run_test} autostart.liq liquidsoap %{test_liq} autostart.liq)))
   
 (rule
+ (alias cross-no-empty-metadata)
+ (package liquidsoap)
+ (deps
+  cross-no-empty-metadata.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} cross-no-empty-metadata.liq liquidsoap %{test_liq} cross-no-empty-metadata.liq)))
+  
+(rule
  (alias cross-override-end)
  (package liquidsoap)
  (deps
@@ -259,6 +288,35 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross-sequence-transition.liq liquidsoap %{test_liq} cross-sequence-transition.liq)))
+  
+(rule
+ (alias cross-transition-arguments)
+ (package liquidsoap)
+ (deps
+  cross-transition-arguments.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} cross-transition-arguments.liq liquidsoap %{test_liq} cross-transition-arguments.liq)))
   
 (rule
  (alias cross)
@@ -2034,6 +2092,7 @@
     (alias 195)
     (alias autostart)
     (alias cross)
+    (alias cross-no-empty-metadata)
     (alias cross-override)
     (alias cross-override-end)
     (alias cross-override-start)
@@ -2041,6 +2100,7 @@
     (alias cross-persist-override)
     (alias cross-persist-start-override)
     (alias cross-sequence-transition)
+    (alias cross-transition-arguments)
     (alias cross_on_track)
     (alias crossfade)
     (alias crossfade2)
