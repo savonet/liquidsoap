@@ -72,6 +72,7 @@ module Pitch = Pitch
 module Replaygain_op = Replaygain_op
 module Resample = Resample
 module Rms_smooth = Rms_smooth
+module Replay_metadata = Replay_metadata
 module Sequence = Sequence
 module Server_builtins = Server_builtins
 module Stereo = Stereo

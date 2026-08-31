@@ -455,6 +455,24 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
                    ~merge:true ~new_track_on_source_switch:false [s; compound]
                   :> Source.source)
             | None, Some s ->
+                (* The rest of the incoming track. Its metadata went into the
+                   buffered head, so a transition that drops the incoming
+                   source leaves it unannounced. Replay it here, marked, so it
+                   is dropped again when the transition did announce it. *)
+                let s =
+                  if after_metadata = Frame.Metadata.empty then
+                    (s :> Source.source)
+                  else (
+                    let s =
+                      new Replay_metadata.replay
+                        ~name:(Printf.sprintf "%s.after_tail_metadata" self#id)
+                        (Frame.Metadata.add "liq_cross_replayed_metadata" "true"
+                           after_metadata)
+                        (s :> Source.source)
+                    in
+                    Typing.(s#frame_type <: self#frame_type);
+                    (s :> Source.source))
+                in
                 (new Sequence.sequence
                    ~name:(Printf.sprintf "%s.after_tail" self#id)
                    ~new_track_on_source_switch:false ~single_track:false

@@ -92,6 +92,12 @@
 
 ## Fixed:
 
+- A transition that drops the incoming source no longer drops that track's announcement with
+  it. `cross` had already consumed the metadata into the buffer it hands the transition, so
+  the track played on, audible and unannounced, once the transition was over. It is now
+  announced on the tail, where that audio starts, and only when the transition did not
+  announce it itself (#5360).
+
 - `cross` no longer replays either track's metadata into the transition. The outgoing one was
   announced a second time by a transition keeping that source, and with an `add`-shaped
   transition both replays landed at the same frame position, so only one survived and the
