@@ -1,0 +1,42 @@
+name: Synced mirror cleanup
+
+on:
+  schedule:
+    - cron: "0 3,15 * * *"
+  workflow_dispatch:
+
+jobs:
+  mirror-cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Drop mirrors whose pull request no longer needs them
+        env:
+          GH_TOKEN: ${{ secrets.SUBTREE_PUSH_TOKEN }}
+        run: |
+          for dir in src/modules/synced/*/; do
+            name=$(basename "$dir")
+            repo="savonet/ocaml-$name"
+
+            for ref in $(gh api "/repos/$repo/git/matching-refs/heads/mirror/pr-" --jq '.[].ref'); do
+              branch="${ref#refs/heads/}"
+              pr_number="${branch#mirror/pr-}"
+
+              state=$(gh pr view "$pr_number" --repo savonet/liquidsoap --json state --jq '.state' 2>/dev/null || echo MISSING)
+
+              if [ "$state" != "OPEN" ]; then
+                .github/scripts/drop-mirror.sh "$name" "$branch" \
+                  "savonet/liquidsoap#${pr_number} is no longer open."
+                continue
+              fi
+
+              if ! gh api "/repos/savonet/liquidsoap/pulls/$pr_number/files" --paginate --jq '.[].filename' |
+                   grep -q "^src/modules/synced/$name/"; then
+                .github/scripts/drop-mirror.sh "$name" "$branch" \
+                  "savonet/liquidsoap#${pr_number} no longer changes this module."
+              fi
+            done
+          done
