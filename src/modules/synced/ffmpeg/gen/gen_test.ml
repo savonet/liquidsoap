@@ -14,6 +14,7 @@ let () =
         "test_info";
         "test_subtitle_read";
         "test_unhandled_packet";
+        "test_seek";
         "test_codec";
         "test_options";
         "test_swscale";
@@ -55,6 +56,7 @@ let () =
   (:read_metadata ../examples/read_metadata.exe)
   (:subtitle_read test_subtitle_read.exe)
   (:unhandled_packet test_unhandled_packet.exe)
+  (:seek test_seek.exe)
   (:subtitle_remux ../examples/subtitle_remux.exe)
   (:normalize normalize_line_endings.exe)
   (:srt fixtures/sample.srt))
@@ -116,6 +118,20 @@ let () =
     test_with_subs.mkv)
    (run %{runner} "subtitle_read" %{subtitle_read} test_with_subs.mkv)
    (run %{runner} "unhandled_packet" %{unhandled_packet} test_with_subs.mkv)
+   ; B-frames make the decoder buffer, which is what a seek has to drop.
+   (run
+    ffmpeg
+    -y
+    -f
+    lavfi
+    -i
+    "color=c=blue:s=320x240:d=25"
+    -c:v
+    mpeg4
+    -bf
+    2
+    test_seek.mkv)
+   (run %{runner} "seek" %{seek} test_seek.mkv)
    (run %{subtitle_remux} test_with_subs.mkv raw_remuxed_subs.srt subrip)
    (run %{normalize} raw_remuxed_subs.srt remuxed_subs.srt)
    (run diff fixtures/sample.srt remuxed_subs.srt))))

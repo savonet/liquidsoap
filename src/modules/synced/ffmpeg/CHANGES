@@ -1,6 +1,8 @@
 1.4.0 (unreleased)
 ======
 * TODO: rename ffmpeg-av into ffmpeg-avformat
+* `Av.seek` drops the frames its decoders had buffered, which used to be
+  returned after the seek carrying their pre-seek timestamps.
 * Add version API
 * `mk_audio_opts` and `mk_video_opts` keep the options they derive (channel
   layout, sample format, time base, ...) to themselves, so that
