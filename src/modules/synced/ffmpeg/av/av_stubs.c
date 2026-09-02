@@ -1441,6 +1441,15 @@ CAMLprim value ocaml_av_seek_native(value _flags, value _stream, value _min_ts,
   if (ret < 0)
     ocaml_avutil_raise_error(ret);
 
+  /* Frames buffered by a decoder still carry pre-seek timestamps and would be
+     handed to the caller as if they came from the new position. */
+  if (av->streams) {
+    for (i = 0; i < av->format_context->nb_streams; i++)
+      if (av->streams[i] && av->streams[i]->codec_context)
+        avcodec_flush_buffers(av->streams[i]->codec_context);
+  }
+  av->pending_stream_idx = -1;
+
   CAMLreturn(Val_unit);
 }
 
