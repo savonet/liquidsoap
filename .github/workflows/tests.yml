@@ -38,6 +38,16 @@ jobs:
           cd /tmp/liquidsoap
           sudo -u opam git fetch --depth 1 origin ${{ inputs.sha }}
           sudo -u opam git checkout ${{ inputs.sha }}
+      - name: Restore test fixture cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.HOME }}/.cache/liquidsoap-test-fixtures
+          key: test-fixtures-${{ matrix.target }}-
+          restore-keys: test-fixtures-${{ matrix.target }}-
+      - name: Make test fixture cache writable
+        run: |
+          mkdir -p ${{ env.HOME }}/.cache/liquidsoap-test-fixtures
+          chown -R opam ${{ env.HOME }}/.cache/liquidsoap-test-fixtures
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
         id: cpu_cores
@@ -72,6 +82,19 @@ jobs:
         run: |
           cd /tmp/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
+      # The stamp files name what the cache holds, so a run that downloaded
+      # nothing new keeps the existing key and skips the upload.
+      - name: Compute test fixture cache key
+        if: success() || failure()
+        id: fixtures
+        run: |
+          echo "key=test-fixtures-${{ matrix.target }}-$(cat ${{ env.HOME }}/.cache/liquidsoap-test-fixtures/*.url 2>/dev/null | sha256sum | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+      - name: Save test fixture cache
+        if: success() || failure()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.HOME }}/.cache/liquidsoap-test-fixtures
+          key: ${{ steps.fixtures.outputs.key }}
       - name: Finalize metrics
         run: |
           cd /tmp/liquidsoap
