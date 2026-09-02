@@ -47,9 +47,18 @@ module Make (I : VideoData) (O : VideoData) : sig
   type t = (I.t, O.t) ctx
 
   (** [Swscale.create flags in_w in_h in_pf out_w out_h out_pf] do the same as
-      {!Swscale.create}. *)
+      {!Swscale.create}. [threads] is the number of threads scaling a frame is
+      split over, defaulting to [1]. [0] lets swscale pick one per core. *)
   val create :
-    flag list -> int -> int -> pixel_format -> int -> int -> pixel_format -> t
+    ?threads:int ->
+    flag list ->
+    int ->
+    int ->
+    pixel_format ->
+    int ->
+    int ->
+    pixel_format ->
+    t
 
   (*
   val from_codec : flag list -> video Avcodec.t -> int -> int -> pixel_format -> t

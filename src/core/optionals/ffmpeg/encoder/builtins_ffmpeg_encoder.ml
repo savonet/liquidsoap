@@ -224,7 +224,9 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
     chosen_pixel_format := target_pixel_format;
     scaler :=
       Some
-        (InternalScaler.create [flag] internal_width internal_height
+        (InternalScaler.create
+           ~threads:(Ffmpeg_utils.scaling_threads ())
+           [flag] internal_width internal_height
            (Ffmpeg_utils.liq_frame_pixel_format_for target_pixel_format)
            target_width target_height target_pixel_format)
   in

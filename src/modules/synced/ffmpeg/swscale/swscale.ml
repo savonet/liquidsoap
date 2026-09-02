@@ -66,6 +66,7 @@ module Make (I : VideoData) (O : VideoData) = struct
   type t = (I.t, O.t) ctx
 
   external create :
+    int ->
     flag array ->
     vector_kind ->
     int ->
@@ -77,10 +78,10 @@ module Make (I : VideoData) (O : VideoData) = struct
     pixel_format ->
     t = "ocaml_swscale_create_byte" "ocaml_swscale_create"
 
-  let create flags in_width in_height in_pixel_format out_width out_height
-      out_pixel_format =
-    create (Array.of_list flags) I.vk in_width in_height in_pixel_format O.vk
-      out_width out_height out_pixel_format
+  let create ?(threads = 1) flags in_width in_height in_pixel_format out_width
+      out_height out_pixel_format =
+    create threads (Array.of_list flags) I.vk in_width in_height in_pixel_format
+      O.vk out_width out_height out_pixel_format
 
   (*
      let from_codec flags in_codec out_width out_height out_pixel_format =
