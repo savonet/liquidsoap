@@ -87,8 +87,13 @@
   buffer and one set of track marks, so a track boundary cuts all of them, `id`
   on any output names the graph, and outputs consumed at diverging rates raise
   past `settings.ffmpeg.filter_max_buffer`.
-- `xml-light` and `yamlx` are now required dependencies of `liquidsoap-lang`, making XML and
+- `xml-light` and `miniyaml` are now required dependencies of `liquidsoap-lang`, making XML and
   YAML support always available. YAML integers parse as `int` instead of `float` (#5233).
+- YAML parsing and rendering now go through `miniyaml`, which covers the subset of YAML usually
+  hand-written in configuration files. Block scalars (`|` and `>`), anchors, aliases, tags and
+  multi-document streams are now rejected with an explicit error instead of being parsed, and
+  `yaml.stringify` lost its `scalar_style` and `layout_style` arguments: it always renders in
+  block style with plain scalars, quoting only where needed.
 
 ## Fixed:
 

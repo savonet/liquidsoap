@@ -1,0 +1,9 @@
+(executable
+ (name test)
+ (libraries yaml))
+
+(rule
+ (alias citest)
+ (deps test.yaml)
+ (action
+  (run ./test.exe)))

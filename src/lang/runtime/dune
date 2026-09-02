@@ -38,4 +38,4 @@
   str
   unix
   xml-light
-  yamlx))
+  miniyaml))
