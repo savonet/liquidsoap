@@ -1,0 +1,55 @@
+# An example document exercising the subset of YAML that miniyaml supports.
+---
+name: miniyaml
+version: 0.1
+stable: false
+description: "a minimal YAML parser"
+homepage: ~
+
+# Block sequences, indented under their key or at its own indentation.
+authors:
+  - Alice
+  - Bob
+tags:
+- yaml
+- parser
+
+# Flow collections.
+ports: [80, 443, 8080]
+limits: {retries: 3, timeout: 1.5}
+empty_seq: []
+empty_map: {}
+
+# Nested mappings, and mappings written compactly after a dash.
+server:
+  host: local#host
+  tls:
+    enabled: true
+    ciphers: [aes, chacha]
+  routes:
+    - path: /
+      handler: index
+      cache: ~
+    - path: /api
+      handler: api
+      cache: 60
+
+# Scalars of every kind.
+scalars:
+  null_tilde: ~
+  null_word: null
+  truth: true
+  integer: 42
+  negative: -17
+  float: 3.14
+  exponent: 2.5e-3
+  infinity: .inf
+  quoted_number: "42"
+  quoted_bool: 'true'
+  escaped: "tab\there\nnewline"
+  apostrophe: 'it''s'
+  unicode: "é€"
+  not_a_comment: "# hash"
+  plain_with_colon: a:b
+  empty: ""
+...
