@@ -26,11 +26,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SUBTREE_PUSH_TOKEN }}
         run: |
-          pr_number=$(git log -1 --pretty=format:"%s" | grep -oP '\(#\K[0-9]+' | head -1)
-          if [ -z "$pr_number" ]; then
-            pr_number=$(gh api /repos/savonet/liquidsoap/commits/${{ github.sha }}/pulls --jq '.[0].number // empty')
-          fi
-
           selected_modules="${{ inputs.modules }}"
 
           for dir in src/modules/synced/*/; do
@@ -55,17 +50,6 @@ jobs:
             fi
 
             git push origin main
-
-            if [ -n "$pr_number" ]; then
-              mirror_branch="mirror/pr-${pr_number}"
-              if git ls-remote --exit-code origin "refs/heads/$mirror_branch" > /dev/null 2>&1; then
-                mirror_pr=$(gh pr list --repo "savonet/ocaml-$name" --head "$mirror_branch" --json number --jq '.[0].number // empty')
-                if [ -n "$mirror_pr" ]; then
-                  gh pr close --repo "savonet/ocaml-$name" "$mirror_pr" --comment "Merged in savonet/liquidsoap@${{ github.sha }}" || true
-                fi
-                git push origin --delete "$mirror_branch" || true
-              fi
-            fi
 
             cd -
           done

@@ -1,13 +1,13 @@
 name: Synced mirror PR
 
+# No `paths` filter: a rebase that drops the synced changes must still run, so
+# that the mirror it left behind gets closed.
 on:
   pull_request:
-    types: [opened, synchronize]
-    paths:
-      - "src/modules/synced/**"
+    types: [opened, synchronize, reopened, closed]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -25,13 +25,28 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          PR_ACTION: ${{ github.event.action }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           branch="mirror/pr-${PR_NUMBER}"
 
+          if [ "$PR_ACTION" = "closed" ]; then
+            if [ "$PR_MERGED" = "true" ]; then
+              reason="Merged in savonet/liquidsoap#${PR_NUMBER}."
+            else
+              reason="savonet/liquidsoap#${PR_NUMBER} was closed."
+            fi
+          else
+            reason="savonet/liquidsoap#${PR_NUMBER} no longer changes this module."
+          fi
+
           for dir in src/modules/synced/*/; do
             name=$(basename "$dir")
-            if git diff --quiet "origin/${BASE_REF}" HEAD -- "src/modules/synced/$name/"; then
+
+            if [ "$PR_ACTION" = "closed" ] ||
+               git diff --quiet "origin/${BASE_REF}" HEAD -- "src/modules/synced/$name/"; then
+              .github/scripts/drop-mirror.sh "$name" "$branch" "$reason"
               continue
             fi
 
