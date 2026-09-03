@@ -116,6 +116,48 @@
    content/liq/archive-cleaner.liq)))
 
 (rule
+ (alias test-doc-atomic-now-playing)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/atomic-now-playing.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/atomic-now-playing.liq)))
+
+(rule
+ (alias test-doc-atomic-once)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/atomic-once.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/atomic-once.liq)))
+
+(rule
+ (alias test-doc-atomic-record)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/atomic-record.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/atomic-record.liq)))
+
+(rule
  (alias test-doc-basic-radio)
  (package liquidsoap)
  (deps
@@ -2180,6 +2222,9 @@
  (deps
   (alias test-doc-append-silence)
   (alias test-doc-archive-cleaner)
+  (alias test-doc-atomic-now-playing)
+  (alias test-doc-atomic-once)
+  (alias test-doc-atomic-record)
   (alias test-doc-basic-radio)
   (alias test-doc-beets-amplify)
   (alias test-doc-beets-protocol)

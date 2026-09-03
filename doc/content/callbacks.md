@@ -39,7 +39,9 @@ external program. In exchange you give up three things:
   asking the source what it is doing now.
 - **Ordering.** Firings are scheduled independently and run in parallel, one per
   core, so they can overlap and complete out of order. Several copies of a slow
-  callback can be running at once.
+  callback can be running at once, and a callback writing several references
+  can be read half-done; see [sharing state between
+  tasks](./scheduling.md#sharing-state-between-tasks).
 - **Room for other work.** The scheduler also resolves requests — downloads,
   playlist reloads. A callback slower than the events feeding it builds a
   backlog and crowds them out. `settings.scheduler.blocking_tasks` caps how many

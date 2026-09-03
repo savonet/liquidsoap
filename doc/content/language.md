@@ -561,6 +561,11 @@ operations are available.
 
   which used to be the syntax for some reference manipulations.
 
+Each read or write of a reference is indivisible, so a reference can be shared
+between tasks running at the same time. A group of reads or writes that must be
+seen together is not; see [sharing state between
+tasks](./scheduling.md#sharing-state-between-tasks).
+
 ### Loops
 
 The usual looping constructions are available in Liquidsoap. The `for` loop
