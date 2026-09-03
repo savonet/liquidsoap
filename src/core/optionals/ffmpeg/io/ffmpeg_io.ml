@@ -106,15 +106,16 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private connect_task () =
       Generator.set_max_length self#buffer max_length;
       try
-        if self#source_status = `Stopping then raise Stopped;
-        assert (self#source_status = `Starting);
-        Atomic.set source_status `Polling;
+        if not (Atomic.compare_and_set source_status `Starting `Polling) then
+          raise Stopped;
         let opts = Hashtbl.copy opts in
         let url = self#url in
         let closed = Atomic.make false in
         let container =
           Av.open_input
-            ~interrupt:(fun () -> Atomic.get shutdown || Atomic.get closed)
+            ~interrupt:(fun () ->
+              Atomic.get shutdown || Atomic.get closed
+              || self#source_status <> `Polling)
             ?format ~opts
             ~configure_audio_stream:Ffmpeg_decoder_common.configure_audio_stream
             ~configure_video_stream:Ffmpeg_decoder_common.configure_video_stream
@@ -142,11 +143,23 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         List.iter (fun fn -> fn m) (Callbacks.elements on_connect);
         Generator.add_track_mark self#buffer;
         let container = { decoder; remaining; buffer; closed } in
-        Atomic.set source_status (`Connected (url, container));
+        if
+          not
+            (Atomic.compare_and_set source_status `Polling
+               (`Connected (url, container)))
+        then (
+          decoder.close ();
+          List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect);
+          raise Stopped);
         -1.
       with
         | Stopped ->
-            Atomic.set source_status `Stopped;
+            ignore (Atomic.compare_and_set source_status `Stopping `Stopped);
+            -1.
+        | _ when not (Atomic.compare_and_set source_status `Polling `Starting)
+          ->
+            (* [disconnect] interrupted the connection. *)
+            ignore (Atomic.compare_and_set source_status `Stopping `Stopped);
             -1.
         | e ->
             let bt = Printexc.get_raw_backtrace () in
@@ -156,31 +169,27 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             let err = Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" e in
             List.iter (fun fn -> fn err) (Callbacks.elements on_error);
             if debug then Printexc.raise_with_backtrace e bt;
-            Atomic.set source_status `Starting;
             poll_delay
 
     method private connect =
       match self#source_status with
         | `Starting | `Polling | `Connected _ -> ()
-        | `Stopping | `Stopped -> (
+        | `Stopping | `Stopped ->
             Atomic.set source_status `Starting;
-            match Atomic.get connect_task with
-              | Some t -> Duppy.Async.wake_up t
-              | None ->
-                  let t =
-                    Duppy.Async.add ~priority:`Blocking Tutils.scheduler
-                      self#connect_task
-                  in
-                  Atomic.set connect_task (Some t);
-                  Duppy.Async.wake_up t)
+            let t =
+              Duppy.Async.add ~priority:`Blocking Tutils.scheduler
+                self#connect_task
+            in
+            Atomic.set connect_task (Some t);
+            Duppy.Async.wake_up t
 
     method private disconnect =
       let stop_task () =
-        match Atomic.get connect_task with
-          | None -> Atomic.set source_status `Stopped
-          | Some t ->
-              Atomic.set source_status `Stopping;
-              Duppy.Async.wake_up t
+        (* A task mid-connection sees [`Stopping] and finalizes itself. The
+           stopped task no longer retains this source. *)
+        if not (Atomic.compare_and_set source_status `Polling `Stopping) then
+          Atomic.set source_status `Stopped;
+        Option.iter Duppy.Async.stop (Atomic.exchange connect_task None)
       in
       match self#source_status with
         | `Stopping | `Stopped -> ()
