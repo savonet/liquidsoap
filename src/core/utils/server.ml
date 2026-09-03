@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-let ( let* ) = Duppy.Monad.bind
-
 module Http = Liq_http
 
 exception Bind_error of string
@@ -123,8 +121,6 @@ let conf_log_level =
   Dtools.Conf.int ~p:(conf_log#plug "level") ~d:3
     "Default log level for messages."
 
-exception Duppy of Duppy.Io.failure
-
 (* {1 Manage available commands} *)
 
 type namespace = string list
@@ -159,49 +155,6 @@ let remove ~ns cmd =
   Mutex_utils.mutexify lock
     (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
     ()
-
-(* That's if you want to have your command wait. *)
-type condition = {
-  wait : (unit -> string) -> unit;
-  signal : unit -> unit;
-  broadcast : unit -> unit;
-}
-
-module Mutex_control = struct
-  type priority = Tutils.priority
-
-  let scheduler = Tutils.scheduler
-  let priority = `Non_blocking
-end
-
-module Duppy_m = Duppy.Monad.Mutex.Factory (Mutex_control)
-module Duppy_c = Duppy.Monad.Condition.Factory (Duppy_m)
-
-type server_condition = {
-  condition : Duppy_c.condition;
-  mutex : Duppy_m.mutex;
-  resume : unit -> string;
-}
-
-exception Server_wait of server_condition
-
-let condition () =
-  let mutex = Duppy_m.create () in
-  let condition = Duppy_c.create () in
-  let wait resume = raise (Server_wait { mutex; condition; resume }) in
-  let signal () =
-    Duppy.Monad.run
-      ~return:(fun () -> ())
-      ~raise:(fun exn -> raise exn)
-      (Duppy_c.signal condition)
-  in
-  let broadcast () =
-    Duppy.Monad.run
-      ~return:(fun () -> ())
-      ~raise:(fun exn -> raise exn)
-      (Duppy_c.broadcast condition)
-  in
-  { wait; signal; broadcast }
 
 type ('a, 'b) interruption = { payload : 'a; after : 'b -> string }
 type write = (string, unit) interruption
@@ -262,7 +215,6 @@ let exec s =
     let command, _, _ = Mutex_utils.mutexify lock (Hashtbl.find commands) s in
     command args
   with
-    | Server_wait opts -> raise (Server_wait opts)
     | Write opts -> raise (Write opts)
     | Read opts -> raise (Read opts)
     | Exit -> raise Exit
@@ -271,107 +223,75 @@ let exec s =
     | e -> Printf.sprintf "ERROR: %s" (Printexc.to_string e)
 
 let handle_client socket ip =
-  let on_error e =
-    (match e with
-      | Duppy.Io.Io_error -> ()
-      | Duppy.Io.Timeout ->
-          log#f (conf_log_level#get + 1)
-            "Timeout reached while communicating to client %s." ip
-      | Duppy.Io.Unix (c, p, m, bt) ->
-          log#f (conf_log_level#get + 1) "%s%s"
-            (Printexc.to_string (Unix.Unix_error (c, p, m)))
-            (if conf_log_level#get > 4 then
-               "\n" ^ Printexc.raw_backtrace_to_string bt
-             else "")
-      | Duppy.Io.Unknown (e, bt) ->
-          log#f (conf_log_level#get + 1) "%s%s" (Printexc.to_string e)
-            (if conf_log_level#get > 4 then
-               "\n" ^ Printexc.raw_backtrace_to_string bt
-             else ""));
-    Duppy e
+  let log_failure = function
+    | Duppy.Io.Io_error -> ()
+    | Duppy.Io.Timeout ->
+        log#f (conf_log_level#get + 1)
+          "Timeout reached while communicating to client %s." ip
+    | Duppy.Io.Unix (c, p, m, bt) ->
+        log#f (conf_log_level#get + 1) "%s%s"
+          (Printexc.to_string (Unix.Unix_error (c, p, m)))
+          (if conf_log_level#get > 4 then
+             "\n" ^ Printexc.raw_backtrace_to_string bt
+           else "")
+    | Duppy.Io.Unknown (e, bt) ->
+        log#f (conf_log_level#get + 1) "%s%s" (Printexc.to_string e)
+          (if conf_log_level#get > 4 then
+             "\n" ^ Printexc.raw_backtrace_to_string bt
+           else "")
   in
-  let h =
-    { Duppy.Monad.Io.scheduler = Tutils.scheduler; socket; data = ""; on_error }
+  let h = Duppy.Io.handle Tutils.scheduler socket in
+  let read marker =
+    Duppy.Io.read ~timeout:(get_timeout ()) ~priority:`Non_blocking h marker
   in
-  (* Read and process lines *)
-  let process =
-    let* req =
-      Duppy.Monad.Io.read
-        ?timeout:(Some (get_timeout ()))
-        ~priority:`Non_blocking ~marker:(Duppy.Io.Split "[\r\n]+") h
-    in
-    let rec run exec =
-      try Duppy.Monad.return (exec ()) with
-        | Server_wait opts ->
-            let* () = Duppy_c.wait opts.condition opts.mutex in
-            run opts.resume
-        | Write opts ->
-            (* Make sure write are synchronous by setting TCP_NODELAY off and off. *)
-            Unix.setsockopt socket Unix.TCP_NODELAY false;
-            let* () =
-              Duppy.Monad.Io.write
-                ?timeout:(Some (get_timeout ()))
-                ~priority:`Non_blocking h
-                (Bytes.of_string opts.payload)
-            in
-            Unix.setsockopt socket Unix.TCP_NODELAY true;
-            run opts.after
-        | Read opts ->
-            let* ret =
-              Duppy.Monad.Io.read
-                ?timeout:(Some (get_timeout ()))
-                ~priority:`Non_blocking ~marker:opts.payload h
-            in
-            run (fun () -> opts.after ret)
-        | e -> Duppy.Monad.raise e
-    in
-    let* ans =
-      Duppy.Monad.Io.exec ~priority:`Maybe_blocking h (run (fun () -> exec req))
-    in
-    let* () =
-      let* () =
-        Duppy.Monad.Io.write
-          ?timeout:(Some (* "BEGIN\r\n"; *) (get_timeout ()))
-          ~priority:`Non_blocking h (Bytes.of_string ans)
-      in
-      Duppy.Monad.Io.write
-        ?timeout:(Some (get_timeout ()))
-        ~priority:`Non_blocking h
-        (Bytes.of_string "\r\nEND\r\n")
-    in
-    Duppy.Monad.return ()
+  let write s =
+    Duppy.Io.write ~timeout:(get_timeout ()) ~priority:`Non_blocking h
+      (Bytes.of_string s)
   in
   let close () = try Unix.close socket with _ -> () in
-  let rec run () =
-    let raise = function
-      | (Exit | Duppy Duppy.Io.Timeout) as e ->
-          let on_error e =
-            ignore (on_error e);
-            log#f conf_log_level#get
-              "Client %s disconnected while saying goodbye..!" ip;
-            close ()
-          in
-          let msg =
-            match e with
-              | Exit -> "Bye!\r\n"
-              | Duppy Duppy.Io.Timeout -> "Connection timed out.. Bye!\r\n"
-              | _ -> assert false
-          in
-          let exec () =
-            log#f conf_log_level#get "Client %s disconnected." ip;
-            close ()
-          in
-          Duppy.Io.write ~timeout:(get_timeout ()) ~priority:`Non_blocking
-            ~on_error ~exec Tutils.scheduler ~string:(Bytes.of_string msg)
-            socket
-      | _ ->
-          log#f conf_log_level#get
-            "Client %s disconnected without saying goodbye..!" ip;
-          close ()
-    in
-    Duppy.Monad.run ~return:run ~raise process
+  let rec answer exec =
+    try exec () with
+      | Write opts ->
+          (* Make writes synchronous by turning TCP_NODELAY off and on. *)
+          Unix.setsockopt socket Unix.TCP_NODELAY false;
+          write opts.payload;
+          Unix.setsockopt socket Unix.TCP_NODELAY true;
+          answer opts.after
+      | Read opts ->
+          let ret = read opts.payload in
+          answer (fun () -> opts.after ret)
   in
-  run ()
+  let rec process () =
+    let req = read (Duppy.Io.Split "[\r\n]+") in
+    (* A command can block, and holds a non-blocking priority until here. *)
+    Duppy.reschedule ~priority:`Maybe_blocking Tutils.scheduler;
+    let ans = answer (fun () -> exec req) in
+    write ans;
+    write "\r\nEND\r\n";
+    process ()
+  in
+  let goodbye msg =
+    try
+      write msg;
+      log#f conf_log_level#get "Client %s disconnected." ip
+    with Duppy.Io.Error failure ->
+      log_failure failure;
+      log#f conf_log_level#get "Client %s disconnected while saying goodbye..!"
+        ip
+  in
+  Duppy.run (fun () ->
+      (try process () with
+        | Exit -> goodbye "Bye!\r\n"
+        | Duppy.Io.Error Duppy.Io.Timeout ->
+            goodbye "Connection timed out.. Bye!\r\n"
+        | Duppy.Io.Error failure ->
+            log_failure failure;
+            log#f conf_log_level#get
+              "Client %s disconnected without saying goodbye..!" ip
+        | _ ->
+            log#f conf_log_level#get
+              "Client %s disconnected without saying goodbye..!" ip);
+      close ())
 
 (* {1 The server} *)
 let start_socket () =

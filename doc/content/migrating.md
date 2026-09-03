@@ -305,6 +305,32 @@ announce.release()
 
 Nothing to change in existing scripts: the value is still `unit` underneath and can be ignored. It matters if you register callbacks repeatedly on long-lived sources, typically when handling dynamic sources — see [source callbacks](./callbacks.md).
 
+### Scheduled work runs concurrently
+
+Request resolutions, harbor clients, `thread.run` handlers and asynchronous source callbacks used to run on a handful of queue threads, one at a time each. They now run on several cores at once, and in parallel with the streaming loop.
+
+Most scripts need no change. A script that reads and writes shared state from several handlers can now observe it half-done: a reader sees one of two references updated and not the other, or two handlers both see a flag unset and both do the work.
+
+Group such writes with `atomic`. The reads need grouping too: `atomic` only holds back other atomic sections, so a reader outside one still sees the writes land one at a time.
+
+```{.liquidsoap include="atomic-now-playing.liq"}
+
+```
+
+A single reference holding a record needs none of this, since the update and the read are each one operation. Prefer it when the values can live together.
+
+For a check-and-set, `r.exchange(v)` writes and returns the previous value in one step:
+
+```{.liquidsoap include="atomic-once.liq"}
+
+```
+
+See [sharing state between tasks](./scheduling.md#sharing-state-between-tasks) for the rules a section must follow.
+
+`settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and `settings.scheduler.non_blocking_queues` are deprecated: the scheduler sizes itself from the number of cores. Setting them logs a warning. `settings.scheduler.blocking_tasks` caps how many slow tasks run at once.
+
+If concurrent execution breaks a script and it cannot be fixed right away, `settings.scheduler.legacy := true` brings back the previous behavior, threads and queues included. It is a fail-safe and will be removed in a later version.
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation

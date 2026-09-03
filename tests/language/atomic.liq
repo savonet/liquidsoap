@@ -1,5 +1,50 @@
 #!../../liquidsoap ../test.liq
 
+# A one-shot guard: a thread that finds the work already claimed must also find
+# it finished. Claiming the flag indivisibly is not enough on its own, which is
+# how a half-registered playlist parser table got read.
+def once_guard() =
+  claimed = ref(false)
+  steps = ref(0)
+  torn = ref(false)
+  callers = ref(0)
+
+  def init() =
+    def body() =
+      if
+        claimed()
+      then
+        if steps() != 20000 then torn := true end
+      else
+        claimed := true
+        for _ = 1 to 20000 do steps := steps() + 1  end
+      end
+    end
+    atomic(body)
+    ref.incr(callers)
+    (-1.)
+  end
+
+  for _ = 1 to 6 do
+    thread.run.recurrent(fast=true, delay=0., on_error=null, init)
+
+  end
+
+  def check() =
+    if
+      callers() >= 6
+    then
+      test.equal(torn(), false)
+      test.equal(steps(), 20000)
+      test.pass()
+      (-1.)
+    else
+      0.
+    end
+  end
+  thread.run.recurrent(fast=true, delay=0., on_error=null, check)
+end
+
 # Two writers keep `a` and `b` equal; a reader that ever sees them apart proves
 # the sections interleaved. Each task does a batch, so the run is dominated by
 # the sections rather than by scheduling them.
@@ -26,7 +71,7 @@ def concurrent() =
     if
       batches() >= 20
     then
-      test.pass()
+      once_guard()
       (-1.)
     else
       0.

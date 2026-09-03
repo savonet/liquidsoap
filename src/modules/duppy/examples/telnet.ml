@@ -2,23 +2,13 @@ type priority = Non_blocking | Maybe_blocking
 
 let io_priority = Non_blocking
 
-(* Create scheduler *)
-let scheduler = Duppy.create ()
-
-(* Create two queues,
- * one for non blocking events
- * and another for blocking
- * events *)
-let new_queue ~priority ~name () =
-  let log = Printf.printf "%s: %s\n%!" name in
-  let priorities p = p = priority in
-  let queue () = Duppy.queue scheduler ~log ~priorities name in
-  Thread.create queue ()
-
-let th =
-  ignore (new_queue ~priority:Non_blocking ~name:"Non blocking queue" ());
-  ignore (new_queue ~priority:Maybe_blocking ~name:"Maybe blocking queue #1" ());
-  new_queue ~priority:Maybe_blocking ~name:"Maybe blocking queue #2" ()
+(* Reading and writing to the socket never blocks, so it runs directly on a
+   domain of the pool. Running a command does block, so it gets a thread. *)
+let scheduler =
+  Duppy.create
+    ~classify:(function
+      | Non_blocking -> `Immediate | Maybe_blocking -> `Blocking)
+    ()
 
 let exec_command s () =
   let chan = Unix.open_process_in s in
@@ -29,18 +19,20 @@ let exec_command s () =
   in
   let l = aux () in
   ignore (Unix.close_process_in chan);
-  Duppy.Monad.return (String.concat "\r\n" l)
+  String.concat "\r\n" l
+
+exception Quit
 
 let commands = Hashtbl.create 10
 
 let () =
-  Hashtbl.add commands "hello" (false, fun () -> Duppy.Monad.return "world");
-  Hashtbl.add commands "foo" (false, fun () -> Duppy.Monad.return "bar");
+  Hashtbl.add commands "hello" (false, fun () -> "world");
+  Hashtbl.add commands "foo" (false, fun () -> "bar");
   Hashtbl.add commands "uptime" (true, exec_command "uptime");
   Hashtbl.add commands "date" (true, exec_command "date");
   Hashtbl.add commands "whoami" (true, exec_command "whoami");
   Hashtbl.add commands "sleep" (true, exec_command "sleep 15");
-  Hashtbl.add commands "exit" (true, fun () -> Duppy.Monad.raise ())
+  Hashtbl.add commands "exit" (true, fun () -> raise Quit)
 
 (* Add commands here *)
 let help = Buffer.create 10
@@ -50,61 +42,43 @@ let () =
   Hashtbl.iter
     (fun x _ -> Buffer.add_string help (Printf.sprintf "\r\n%s" x))
     commands;
-  Hashtbl.add commands "help"
-    (false, fun () -> Duppy.Monad.return (Buffer.contents help))
+  Hashtbl.add commands "help" (false, fun () -> Buffer.contents help)
 
 let handle_client socket =
-  let on_error e =
-    match e with
-      | Duppy.Io.Io_error -> Printf.printf "Client disconnected"
-      | Duppy.Io.Unix (c, p, m, _) ->
-          Printf.printf "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
-      | Duppy.Io.Unknown (e, _) -> Printf.printf "%s" (Printexc.to_string e)
-      | Duppy.Io.Timeout -> Printf.printf "Timeout"
+  let report = function
+    | Duppy.Io.Io_error -> Printf.printf "Client disconnected"
+    | Duppy.Io.Unix (c, p, m, _) ->
+        Printf.printf "%s" (Printexc.to_string (Unix.Unix_error (c, p, m)))
+    | Duppy.Io.Unknown (e, _) -> Printf.printf "%s" (Printexc.to_string e)
+    | Duppy.Io.Timeout -> Printf.printf "Timeout"
   in
-  let h = { Duppy.Monad.Io.scheduler; socket; data = ""; on_error } in
-  (* Read and process lines *)
-  let rec exec () =
-    let __pa_duppy_0 =
-      Duppy.Monad.Io.read ?timeout:None ~priority:io_priority
-        ~marker:(Duppy.Io.Split "[\r\n]+") h
-    in
-    Duppy.Monad.bind __pa_duppy_0 (fun req ->
-        let __pa_duppy_0 =
-          try
-            let blocking, command = Hashtbl.find commands req in
-            if not blocking then command ()
-            else Duppy.Monad.Io.exec ~priority:Maybe_blocking h (command ())
-          with Not_found ->
-            Duppy.Monad.return
-              "ERROR: unknown command, type \"help\" to get a list of commands."
-        in
-        Duppy.Monad.bind __pa_duppy_0 (fun ans ->
-            Duppy.Monad.bind
-              (Duppy.Monad.bind
-                 (Duppy.Monad.Io.write ?timeout:None ~priority:io_priority h
-                    (Bytes.unsafe_of_string "BEGIN\r\n"))
-                 (fun () ->
-                   Duppy.Monad.bind
-                     (Duppy.Monad.Io.write ?timeout:None ~priority:io_priority h
-                        (Bytes.unsafe_of_string ans))
-                     (fun () ->
-                       Duppy.Monad.Io.write ?timeout:None ~priority:io_priority
-                         h
-                         (Bytes.unsafe_of_string "\r\nEND\r\n"))))
-              (fun () -> exec ())))
+  let h = Duppy.Io.handle scheduler socket in
+  let write s =
+    Duppy.Io.write ~priority:io_priority h (Bytes.unsafe_of_string s)
   in
   let close () = try Unix.close socket with _ -> () in
-  let return () =
-    let on_error e =
-      on_error e;
-      close ()
+  let rec exec () =
+    let req =
+      Duppy.Io.read ~priority:io_priority h (Duppy.Io.Split "[\r\n]+")
     in
-    Duppy.Io.write ~priority:io_priority ~on_error ~exec:close scheduler
-      ~string:(Bytes.unsafe_of_string "Bye!\r\n")
-      socket
+    let ans =
+      match Hashtbl.find_opt commands req with
+        | Some (blocking, command) ->
+            if blocking then Duppy.reschedule ~priority:Maybe_blocking scheduler;
+            command ()
+        | None ->
+            "ERROR: unknown command, type \"help\" to get a list of commands."
+    in
+    write "BEGIN\r\n";
+    write ans;
+    write "\r\nEND\r\n";
+    exec ()
   in
-  Duppy.Monad.run ~return ~raise:close (exec ())
+  Duppy.run (fun () ->
+      (try exec () with
+        | Quit -> ( try write "Bye!\r\n" with Duppy.Io.Error e -> report e)
+        | Duppy.Io.Error e -> report e);
+      close ())
 
 open Unix
 
@@ -147,4 +121,8 @@ let () =
       Duppy.Task.events = [`Read sock];
       Duppy.Task.handler = incoming;
     };
-  Thread.join th
+  Duppy.start ~log:(Printf.printf "telnet: %s\n%!") scheduler;
+  (* The pool runs on its own domains, so this thread has nothing left to do. *)
+  while true do
+    Unix.sleep 3600
+  done

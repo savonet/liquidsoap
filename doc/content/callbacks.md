@@ -37,13 +37,15 @@ external program. In exchange you give up three things:
 - **Timing.** The callback runs shortly after the event, not at it. By then the
   source may have moved on, so use what the callback is handed rather than
   asking the source what it is doing now.
-- **Ordering.** Firings are queued independently and the queues run in parallel,
-  so they can overlap and complete out of order. With the default five generic
-  queues, five copies of a slow callback can be running at once.
-- **Room for other work.** Those queues also resolve requests — downloads,
+- **Ordering.** Firings are scheduled independently and run in parallel, one per
+  core, so they can overlap and complete out of order. Several copies of a slow
+  callback can be running at once, and a callback writing several references
+  can be read half-done; see [sharing state between
+  tasks](./scheduling.md#sharing-state-between-tasks).
+- **Room for other work.** The scheduler also resolves requests — downloads,
   playlist reloads. A callback slower than the events feeding it builds a
-  backlog and crowds them out. `settings.scheduler.generic_queues` and
-  `settings.scheduler.fast_queues` control how many queues there are.
+  backlog and crowds them out. `settings.scheduler.blocking_tasks` caps how many
+  such tasks run at once.
 
 When in doubt, ask what the callback does: if it only reads its arguments and
 sets a variable, `synchronous=true`; if it talks to anything outside

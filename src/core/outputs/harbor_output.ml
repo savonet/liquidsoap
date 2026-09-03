@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-let ( let* ) = Duppy.Monad.bind
-
 module Http = Liq_http
 
 let log = Log.make ["harbor"; "output"]
@@ -34,7 +32,6 @@ let () =
 (** Output to harbor listeners. *)
 
 module Task = Duppy.Task
-module Duppy = Harbor.Http_transport.Duppy
 
 module Icecast = struct
   type protocol = unit
@@ -427,7 +424,7 @@ class virtual ['a] base p =
           metadata_interval:int option ->
           stream_url:string option ->
           timeout:float ->
-          ('a listener, Harbor.reply) Duppy.Monad.t
+          'a listener
 
     (* Called when a listener disconnects. Subclasses stop any per-listener
        encoder. *)
@@ -640,47 +637,38 @@ class virtual ['a] base p =
           encoder_data.format icy_header extra_headers_str
       in
       let close () = try Harbor.close socket with _ -> () in
-      let handler =
-        {
-          Duppy.Monad.Io.scheduler = Tutils.scheduler;
-          socket;
-          data = "";
-          on_error =
-            (fun e ->
-              let error_msg =
-                match e with
-                  | Duppy.Io.Timeout ->
-                      Printf.sprintf "Timeout for %s" client_id
-                  | Duppy.Io.Io_error ->
-                      Printf.sprintf "I/O error for %s" client_id
-                  | Duppy.Io.Unix (c, p, m, _) ->
-                      Printf.sprintf "Unix error for %s: %s" client_id
-                        (Printexc.to_string (Unix.Unix_error (c, p, m)))
-                  | Duppy.Io.Unknown (e, _) -> Printexc.to_string e
-              in
-              self#log#info "%s" error_msg;
-              List.find_opt (fun l -> l.id = client_id) (Atomic.get listeners)
-              |> Option.iter self#handle_disconnect;
-              Harbor.Close (Harbor.mk_simple ""));
-        }
+      let on_failure exn =
+        let error_msg =
+          match exn with
+            | Duppy.Io.Error Duppy.Io.Timeout ->
+                Printf.sprintf "Timeout for %s" client_id
+            | Duppy.Io.Error Duppy.Io.Io_error ->
+                Printf.sprintf "I/O error for %s" client_id
+            | Duppy.Io.Error (Duppy.Io.Unix (c, p, m, _)) ->
+                Printf.sprintf "Unix error for %s: %s" client_id
+                  (Printexc.to_string (Unix.Unix_error (c, p, m)))
+            | e -> Printexc.to_string e
+        in
+        self#log#info "%s" error_msg;
+        List.find_opt (fun l -> l.id = client_id) (Atomic.get listeners)
+        |> Option.iter self#handle_disconnect;
+        Harbor.simple_reply ""
       in
       self#log#info "New listener connection from %s" client_id;
-      let* () =
-        match login with
-          | Some login ->
-              Duppy.Monad.catch
-                (Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-                   (Harbor.http_auth_check ~query ~meth:"GET" ~uri:request_uri
-                      ~login socket headers))
-                (function
-                  | Harbor.Close s ->
-                      self#log#info "Listener %s failed to authenticate"
-                        client_id;
-                      Harbor.reply s
-                  | _ -> assert false)
-          | None -> Duppy.Monad.return ()
-      in
-      let* listener =
+      (match login with
+        | Some login -> (
+            Duppy.reschedule ~priority:`Maybe_blocking Tutils.scheduler;
+            try
+              Harbor.http_auth_check ~query ~meth:"GET" ~uri:request_uri ~login
+                socket headers
+            with
+              | Harbor.Reply (Harbor.Close s) ->
+                  self#log#info "Listener %s failed to authenticate" client_id;
+                  Harbor.reply s
+              | Harbor.Reply _ as e -> raise e
+              | e -> on_failure e)
+        | None -> ());
+      let listener =
         self#create_listener ~protocol ~id:client_id ~socket ~close
           ~metadata_interval ~stream_url ~timeout
       in
@@ -701,7 +689,8 @@ class virtual ['a] base p =
       List.iter
         (fun fn -> fn ~headers ~uri:request_uri ~protocol client_id)
         (Callbacks.elements on_connect_callbacks);
-      Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler (Harbor.custom ())
+      Duppy.reschedule ~priority:`Maybe_blocking Tutils.scheduler;
+      Harbor.custom ()
 
     method private register_http_handler =
       Harbor.add_http_handler ~pos ~transport ~port ~verb:`Get ~uri
@@ -729,9 +718,8 @@ class shared_output p =
             Harbor.reply (fun () ->
                 Printf.sprintf "HTTP/%s 404 Not found\r\n" protocol)
         | Some _ ->
-            Duppy.Monad.return
-              (create_listener ~encoder:() ~id ~socket ~close ~metadata_interval
-                 ~stream_url ~timeout)
+            create_listener ~encoder:() ~id ~socket ~close ~metadata_interval
+              ~stream_url ~timeout
 
     method private connect_listener listener =
       let e = Option.get enc in
@@ -836,9 +824,8 @@ class dedicated_output p =
                 Printf.sprintf "HTTP/%s 404 Not found\r\n" protocol)
         | Some factory ->
             let encoder = factory Frame.Metadata.Export.empty in
-            Duppy.Monad.return
-              (create_listener ~encoder ~id ~socket ~close ~metadata_interval
-                 ~stream_url ~timeout)
+            create_listener ~encoder ~id ~socket ~close ~metadata_interval
+              ~stream_url ~timeout
 
     method private connect_listener listener =
       let burst =

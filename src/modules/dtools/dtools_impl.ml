@@ -837,6 +837,9 @@ module Log = struct
           Condition.signal log_condition;
           Thread.join th
     end;
+    (* The thread returns as soon as it sees [log_stop], so entries queued
+       during shutdown are still pending here. *)
+    flush_queue ();
     match !log_ch with
       | None -> ()
       | Some ch ->

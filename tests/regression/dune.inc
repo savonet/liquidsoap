@@ -1581,6 +1581,29 @@
    callback_counts.liq)))
 
 (rule
+ (alias test_callback_from_task)
+ (package liquidsoap)
+ (deps
+  callback_from_task.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   callback_from_task
+   liquidsoap
+   %{test_liq}
+   callback_from_task.liq)))
+
+(rule
  (alias test_callback_release)
  (package liquidsoap)
  (deps
@@ -1932,6 +1955,29 @@
    ffmpeg_seek_preroll.liq)))
 
 (rule
+ (alias test_harbor_source_relay)
+ (package liquidsoap)
+ (deps
+  harbor_source_relay.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_source_relay
+   liquidsoap
+   %{test_liq}
+   harbor_source_relay.liq)))
+
+(rule
  (alias test_infallible-shutdown)
  (package liquidsoap)
  (deps
@@ -2158,6 +2204,52 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} replaygain liquidsoap %{test_liq} replaygain.liq)))
+
+(rule
+ (alias test_scheduler_legacy)
+ (package liquidsoap)
+ (deps
+  scheduler_legacy.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   scheduler_legacy
+   liquidsoap
+   %{test_liq}
+   scheduler_legacy.liq)))
+
+(rule
+ (alias test_scheduler_parallel)
+ (package liquidsoap)
+ (deps
+  scheduler_parallel.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   scheduler_parallel
+   liquidsoap
+   %{test_liq}
+   scheduler_parallel.liq)))
 
 (rule
  (alias test_seek_track_map)
@@ -2514,6 +2606,29 @@
    track_sensitive.liq)))
 
 (rule
+ (alias test_type_printing_from_task)
+ (package liquidsoap)
+ (deps
+  type_printing_from_task.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   type_printing_from_task
+   liquidsoap
+   %{test_liq}
+   type_printing_from_task.liq)))
+
+(rule
  (alias test_unified-pcm-types)
  (package liquidsoap)
  (deps
@@ -2644,6 +2759,7 @@
   (alias test_append-merge)
   (alias test_append-merge2)
   (alias test_callback_counts)
+  (alias test_callback_from_task)
   (alias test_callback_release)
   (alias test_callback_release_mixed_content)
   (alias test_cleanup)
@@ -2660,6 +2776,7 @@
   (alias test_ffmpeg-copy-input-http)
   (alias test_ffmpeg-naming-convention)
   (alias test_ffmpeg_seek_preroll)
+  (alias test_harbor_source_relay)
   (alias test_infallible-shutdown)
   (alias test_init-error)
   (alias test_initial_request_queue)
@@ -2671,6 +2788,8 @@
   (alias test_output_reopen_on_error_delay)
   (alias test_playlist-id)
   (alias test_replaygain)
+  (alias test_scheduler_legacy)
+  (alias test_scheduler_parallel)
   (alias test_seek_track_map)
   (alias test_shoutcast-args)
   (alias test_source_cleanup)
@@ -2687,5 +2806,6 @@
   (alias test_switch_reselect_after_idle)
   (alias test_switch_skipped_track_metadata)
   (alias test_track_sensitive)
+  (alias test_type_printing_from_task)
   (alias test_unified-pcm-types)
   (alias test_video-only)))

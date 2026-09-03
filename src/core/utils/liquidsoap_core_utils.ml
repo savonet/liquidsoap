@@ -22,6 +22,7 @@
 
 (* See liquidsoap_core_utils.mli. *)
 
+module Atomic_section = Atomic_section
 module Charset = Charset
 module Charset_base = Charset_base
 module Concurrent_hashtbl = Concurrent_hashtbl

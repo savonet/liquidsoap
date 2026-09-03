@@ -84,12 +84,7 @@ let conf_accept_timeout =
 
 let log = Log.make ["harbor"]
 
-module Monad = Duppy.Monad
 module Http = Liq_http
-
-let ( let* ) = Duppy.Monad.bind
-
-module type Monad_t = module type of Monad with module Io := Monad.Io
 
 type login_args = {
   socket : Http.socket;
@@ -108,17 +103,7 @@ module type Transport_t = sig
   val write : socket -> bytes -> int -> int -> int
   val close : socket -> unit
 
-  module Duppy : sig
-    module Io : Duppy.Io_t with type socket = socket
-
-    module Monad : sig
-      module Io :
-        Duppy.Monad.Monad_io_t with type socket = socket and module Io = Io
-
-      include Monad_t
-    end
-  end
-
+  module Io : Duppy.Io_t with type socket = socket
   module Websocket : Websocket.Websocket_t with type socket = socket
 end
 
@@ -133,23 +118,12 @@ module Http_transport = struct
   module Duppy_transport : Duppy.Transport_t with type t = Http.socket = struct
     type t = Http.socket
 
-    type bigarray =
-      (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
     let sock socket = socket#file_descr
     let read = read
     let write = write
-    let ba_write _ _ _ _ = failwith "Not implemented!"
   end
 
-  module Duppy = struct
-    module Io = Duppy.MakeIo (Duppy_transport)
-
-    module Monad = struct
-      module Io = Duppy.Monad.MakeIo (Io)
-      include (Monad : Monad_t)
-    end
-  end
+  module Io = Duppy.MakeIo (Duppy_transport)
 
   module Websocket_transport = struct
     type socket = Http.socket
@@ -185,6 +159,8 @@ module type T = sig
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
   type reply = Close of (unit -> string) | Relay of string | Custom
 
+  exception Reply of reply
+
   type http_handler =
     protocol:string ->
     meth:http_verb ->
@@ -193,14 +169,14 @@ module type T = sig
     query:(string * string) list ->
     socket:socket ->
     string ->
-    (reply, reply) Duppy.Monad.t
+    reply
 
   val verb_of_string : string -> http_verb
   val string_of_verb : http_verb -> string
   val mk_simple : string -> unit -> string
-  val simple_reply : string -> ('a, reply) Duppy.Monad.t
-  val reply : (unit -> string) -> ('a, reply) Duppy.Monad.t
-  val custom : unit -> ('a, reply) Duppy.Monad.t
+  val simple_reply : string -> 'a
+  val reply : (unit -> string) -> 'a
+  val custom : unit -> 'a
 
   val add_http_handler :
     pos:Liquidsoap_lang_prelude.Pos.t list ->
@@ -251,9 +227,9 @@ module type T = sig
     login:string * (login_args -> bool) ->
     socket ->
     (string * string) list ->
-    (unit, reply) Duppy.Monad.t
+    unit
 
-  val relayed : string -> ('a, reply) Duppy.Monad.t
+  val relayed : string -> 'a
 
   val add_source :
     pos:Liquidsoap_lang_prelude.Pos.t list ->
@@ -270,7 +246,7 @@ end
 module Make (T : Transport_t) : T with type socket = T.socket = struct
   module Websocket = T.Websocket
   module Task = Duppy.Task
-  module Duppy = T.Duppy
+  module Io = T.Io
 
   type socket = T.socket
 
@@ -280,8 +256,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let close = T.close
 
   let protocol_name h =
-    Printf.sprintf "%s/%s" h.Duppy.Monad.Io.socket#transport#protocol
-      h.Duppy.Monad.Io.socket#transport#name
+    Printf.sprintf "%s/%s" h.Io.socket#transport#protocol
+      h.Io.socket#transport#name
 
   (* Define what we need as a source *)
 
@@ -380,10 +356,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let ret = Atomic.make s in
     fun () -> Atomic.exchange ret ""
 
-  let simple_reply s = Duppy.Monad.raise (Close (mk_simple s))
-  let reply s = Duppy.Monad.raise (Close s)
-  let relayed s = Duppy.Monad.raise (Relay s)
-  let custom () = Duppy.Monad.raise Custom
+  exception Reply of reply
+
+  let simple_reply s = raise (Reply (Close (mk_simple s)))
+  let reply s = raise (Reply (Close s))
+  let relayed s = raise (Reply (Relay s))
+  let custom () = raise (Reply Custom)
 
   type http_handler =
     protocol:string ->
@@ -393,7 +371,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     query:(string * string) list ->
     socket:socket ->
     string ->
-    (reply, reply) Duppy.Monad.t
+    reply
 
   type http_handlers = (http_verb * Lang.regexp * http_handler) list Atomic.t
   type handler = { sources : sources; http : http_handlers }
@@ -478,30 +456,30 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       try Liq_http.parse_auth r
       with Not_found -> { Liq_http.user = ""; password = r }
     in
-    let* s, _ =
-      try Duppy.Monad.return (find_source "/" (port - 1))
+    let s, _ =
+      try find_source "/" (port - 1)
       with Not_found ->
         log#info "ICY error: no / mountpoint";
         simple_reply "No / mountpoint\r\n\r\n"
     in
     (* Authentication can be blocking. *)
-    Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-      (let user, auth_f = s.login in
-       let user = if requested_user = "" then user else requested_user in
-       if
-         auth_f
-           {
-             socket = h.Duppy.Monad.Io.socket;
-             meth = "ICY";
-             uri = "/";
-             query = [];
-             user;
-             password;
-           }
-       then Duppy.Monad.return (`Shout, "/", `Icy)
-       else (
-         log#info "ICY error: invalid password";
-         simple_reply "Invalid password\r\n\r\n"))
+    Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
+    let user, auth_f = s.login in
+    let user = if requested_user = "" then user else requested_user in
+    if
+      auth_f
+        {
+          socket = h.Io.socket;
+          meth = "ICY";
+          uri = "/";
+          query = [];
+          user;
+          password;
+        }
+    then (`Shout, "/", `Icy)
+    else (
+      log#info "ICY error: invalid password";
+      simple_reply "Invalid password\r\n\r\n")
 
   exception Protocol_not_supported of string
 
@@ -509,15 +487,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     try
       let data = Re.Pcre.split ~rex:(Re.Pcre.regexp "[ \t]+") r in
       let protocol = verb_or_source_of_string (List.nth data 0) in
-      Duppy.Monad.return
-        ( protocol,
-          List.nth data 1,
-          match String.uppercase_ascii (List.nth data 2) with
-            | "HTTP/1.0" -> `Http_10
-            | "HTTP/1.1" -> `Http_11
-            | "ICE/1.0" -> `Ice_10
-            | s when protocol = `Source -> `Xaudiocast_uri s
-            | s -> raise (Protocol_not_supported s) )
+      ( protocol,
+        List.nth data 1,
+        match String.uppercase_ascii (List.nth data 2) with
+          | "HTTP/1.0" -> `Http_10
+          | "HTTP/1.1" -> `Http_11
+          | "ICE/1.0" -> `Ice_10
+          | s when protocol = `Source -> `Xaudiocast_uri s
+          | s -> raise (Protocol_not_supported s) )
     with
       | Protocol_not_supported p ->
           log#info "Protocol not supported for request %s: %s" r p;
@@ -554,7 +531,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     try
       if not (auth_f args) then raise Not_authenticated else ();
       log#info "Client logged in.";
-      Duppy.Monad.return ()
+      ()
     with
     | Runtime_error.Runtime_error { kind; _ }
     when kind = "error.icecast.server.mount_taken"
@@ -621,14 +598,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) query [])
         args
     in
-    Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-      (http_auth_check ?query ~meth ~uri ~login h.Duppy.Monad.Io.socket headers)
+    Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
+    http_auth_check ?query ~meth ~uri ~login h.Io.socket headers
 
   let socket_with_remaining h =
-    let rem_data = h.Duppy.Monad.Io.data in
+    let rem_data = h.Io.data in
     let rem_len = String.length rem_data in
     let rem_ofs = Atomic.make 0 in
-    let socket = h.Duppy.Monad.Io.socket in
+    let socket = h.Io.socket in
     object
       method typ = socket#typ
       method transport = socket#transport
@@ -663,14 +640,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let handle_source_request ~port ~auth ~smethod hprotocol h uri headers =
     (* ICY request are on port+1 *)
     let source_port = if smethod = `Shout then port - 1 else port in
-    let* s, groups =
-      try Duppy.Monad.return (find_source uri source_port)
+    let s, groups =
+      try find_source uri source_port
       with Not_found ->
         log#info "Request failed: no mountpoint '%s'!" uri;
         simple_reply
           (http_error_page 404 "Not found" "This mountpoint isn't available.")
     in
-    let* () =
+    let () =
       if
         (* ICY and Xaudiocast auth check was done before.. *)
         not auth
@@ -684,7 +661,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               | `Xaudiocast -> "SOURCE"
               | `Shout -> "ICY")
           ~uri ~login:s.login h headers
-      else Duppy.Monad.return ()
+      else ()
     in
     try
       let sproto =
@@ -748,6 +725,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           simple_reply
             (http_error_page 501 "Not Implemented"
                "This stream's format is not recognized.")
+      | Reply _ as e -> raise e
       | e ->
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
@@ -792,34 +770,35 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                     let password =
                       json_string_of (List.assoc "password" data)
                     in
-                    Duppy.Monad.return (mime, mount, user, password)
+                    (mime, mount, user, password)
                 | _ -> error ())
           | _ -> error ()
-      with _ -> error ()
+      with
+        | Reply _ as e -> raise e
+        | _ -> error ()
     in
-    let* () =
-      Duppy.Monad.Io.write ?timeout:(Some conf_timeout#get)
-        ~priority:`Non_blocking h
+    let () =
+      Io.write ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
         (Bytes.of_string (Websocket.upgrade headers))
     in
-    let* stype, huri, user, password =
-      Duppy.Monad.Io.exec ~priority:`Blocking h
-        (read_hello h.Duppy.Monad.Io.socket)
+    let stype, huri, user, password =
+      Duppy.reschedule ~priority:`Blocking h.Io.scheduler;
+      read_hello h.Io.socket
     in
     log#info "Mime type: %s" stype;
     log#info "Mount point: %s" huri;
-    let* source, groups =
-      try Duppy.Monad.return (find_source huri port)
+    let source, groups =
+      try find_source huri port
       with Not_found ->
         log#info "Request failed: no mountpoint '%s'!" huri;
         simple_reply (websocket_error 1011 "This mountpoint isn't available.")
     in
     let _, auth_f = source.login in
-    let* () =
+    let () =
       try
         auth_check ~auth_f
           {
-            socket = h.Duppy.Monad.Io.socket;
+            socket = h.Io.socket;
             meth = "WEBSOCKET";
             uri = huri;
             query = [];
@@ -861,7 +840,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         stype;
         headers;
         read = Some read;
-        socket = h.Duppy.Monad.Io.socket;
+        socket = h.Io.socket;
       };
     relayed ""
 
@@ -882,18 +861,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     simple_reply (http_error_page 400 "Bad Request" s)
 
   let admin ~icy ~port ~uri ~headers ~args h =
-    let* mode =
-      try Duppy.Monad.return (Hashtbl.find args "mode")
+    let mode =
+      try Hashtbl.find args "mode"
       with Not_found -> ans_400 ~uri "unrecognised command"
     in
     let len =
       try int_of_string (assoc_uppercase "CONTENT-LENGTH" headers) with _ -> 0
     in
-    let* data =
+    let data =
       if len > 0 then
-        Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-          ~priority:`Non_blocking ~marker:(Duppy.Io.Length len) h
-      else Duppy.Monad.return ""
+        Io.read ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
+          (Io.Length len)
+      else ""
     in
     (try
        if
@@ -906,14 +885,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let mount = try Hashtbl.find args "mount" with Not_found -> "/" in
           log#info "Request to update metadata for mount %s on port %i" mount
             port;
-          let* s, _ =
-            try Duppy.Monad.return (find_source mount port)
+          let s, _ =
+            try find_source mount port
             with Not_found -> ans_400 ~uri "Source is not available"
           in
-          let* () =
+          let () =
             exec_http_auth_check ~args ~meth:"GET" ~uri ~login:s.login h headers
           in
-          let* () =
+          let () =
             match s.get_mime_type ~mount with
               | None ->
                   log#critical
@@ -923,8 +902,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   simple_reply
                     (http_error_page 500 "Internal Server Error"
                        "Internal Server Error")
-              | Some f when List.mem f conf_icy_metadata#get ->
-                  Duppy.Monad.return ()
+              | Some f when List.mem f conf_icy_metadata#get -> ()
               | Some f ->
                   log#info
                     "Returned 405 for '%s': Source format %s does not support \
@@ -992,7 +970,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       log_args;
 
     (* First, try with a registered handler. *)
-    let { handler; _ } = find_handler port in
+    let { handler; _ } =
+      (* Closing a port removes it while requests can still be in flight, and
+         this lookup is lock-free by design. *)
+        match Concurrent_hashtbl.find_opt opened_ports port with
+        | Some p -> p
+        | None -> ans_404 base_uri
+    in
     let f (verb, regex, handler) =
       let rex = regex.Liquidsoap_lang.Lang_regexp.regexp in
       let sub =
@@ -1077,8 +1061,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   fun timeout -> fst (Http.read_chunked ~timeout socket)
               | _ -> fun _ -> ""
           in
-          Duppy.Monad.Io.exec ~priority:`Maybe_blocking h
-            (handler ~protocol ~meth ~headers ~data ~socket ~query base_uri)
+          Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
+          handler ~protocol ~meth ~headers ~data ~socket ~query base_uri
+      | Reply _ as e -> raise e
       | e ->
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
@@ -1088,17 +1073,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let handle_client ~port ~icy h =
     (* Read and process lines *)
-    let* s =
-      Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-        ~priority:`Non_blocking
-        ~marker:
-          (match icy with
-            | true -> Duppy.Io.Split "[\r]?\n"
-            | false -> Duppy.Io.Split "[\r]?\n[\r]?\n")
-        h
+    let s =
+      Io.read ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
+        (match icy with
+          | true -> Io.Split "[\r]?\n"
+          | false -> Io.Split "[\r]?\n[\r]?\n")
     in
     let lines = Re.Pcre.split ~rex:(Re.Pcre.regexp "[\r]?\n") s in
-    let* hmethod, huri, hprotocol =
+    let hmethod, huri, hprotocol =
       let s = List.hd lines in
       if icy then parse_icy_request_line ~port h s
       else parse_http_request_line s
@@ -1126,42 +1108,39 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       with Not_found -> false
     in
     let handle_source smethod =
-      let* auth, huri, smethod =
+      let auth, huri, smethod =
         (* X-audiocast sends lines of the form:
            [SOURCE password path] *)
           match hprotocol with
           | `Xaudiocast_uri uri ->
               let password = huri in
               (* We check authentication here *)
-              let* s, _ =
-                try Duppy.Monad.return (find_source uri port)
+              let s, _ =
+                try find_source uri port
                 with Not_found ->
                   log#info "Request failed: no mountpoint '%s'!" uri;
                   simple_reply
                     (http_error_page 404 "Not found"
                        "This mountpoint isn't available.")
               in
-              (* Authentication can be blocking *)
-              Duppy.Monad.Io.exec
-                ~priority:
-                  (* ICY = true means that authentication has already
-                     happened *)
-                  `Maybe_blocking h
-                (let valid_user, auth_f = s.login in
-                 if
-                   not
-                     (auth_f
-                        {
-                          socket = h.Duppy.Monad.Io.socket;
-                          meth = "SOURCE";
-                          uri;
-                          query = [];
-                          user = valid_user;
-                          password;
-                        })
-                 then simple_reply "Invalid password!"
-                 else Duppy.Monad.return (true, uri, `Xaudiocast))
-          | _ -> Duppy.Monad.return (false, huri, smethod)
+              (* Authentication can be blocking. ICY = true means that
+                 authentication has already happened. *)
+              Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
+              let valid_user, auth_f = s.login in
+              if
+                not
+                  (auth_f
+                     {
+                       socket = h.Io.socket;
+                       meth = "SOURCE";
+                       uri;
+                       query = [];
+                       user = valid_user;
+                       password;
+                     })
+              then simple_reply "Invalid password!"
+              else (true, uri, `Xaudiocast)
+          | _ -> (false, huri, smethod)
       in
       handle_source_request ~port ~auth ~smethod hprotocol h huri headers
     in
@@ -1176,16 +1155,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | (`Get | `Post | `Put | `Delete | `Options | `Head) when not icy ->
           handle_http_request ~hmethod ~hprotocol ~port h huri headers
       | `Shout when icy ->
-          let* () =
-            Duppy.Monad.Io.write ?timeout:(Some conf_timeout#get)
-              ~priority:`Non_blocking h
+          let () =
+            Io.write ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
               (Bytes.of_string "OK2\r\nicy-caps:11\r\n\r\n")
           in
           (* Now parsing headers *)
-          let* s =
-            Duppy.Monad.Io.read ?timeout:(Some conf_timeout#get)
-              ~priority:`Non_blocking ~marker:(Duppy.Io.Split "[\r]?\n[\r]?\n")
-              h
+          let s =
+            Io.read ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
+              (Io.Split "[\r]?\n[\r]?\n")
           in
           let lines = Re.Pcre.split ~rex:(Re.Pcre.regexp "[\r]?\n") s in
           let headers = parse_headers lines in
@@ -1214,57 +1191,59 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Unix.setsockopt unix_socket Unix.TCP_NODELAY true;
         let on_error e =
           (match e with
-            | Duppy.Io.Io_error -> log#info "Client %s disconnected" ip
-            | Duppy.Io.Timeout ->
+            | Io.Io_error -> log#info "Client %s disconnected" ip
+            | Io.Timeout ->
                 log#info "Timeout while communicating with client %s." ip
-            | Duppy.Io.Unix (c, p, m, bt) ->
+            | Io.Unix (c, p, m, bt) ->
                 Utils.log_exception ~log
                   ~bt:(Printexc.raw_backtrace_to_string bt)
                   (Printf.sprintf "Unix error: %s"
                      (Printexc.to_string (Unix.Unix_error (c, p, m))))
-            | Duppy.Io.Unknown (exn, bt) ->
+            | Io.Unknown (exn, bt) ->
                 Utils.log_exception ~log
                   ~bt:(Printexc.raw_backtrace_to_string bt)
                   (Printf.sprintf "Unknown error: %s" (Printexc.to_string exn)));
 
           (* Sending an HTTP response in case of timeout
            * even though ICY connections are not HTTP.. *)
-          if e = Duppy.Io.Timeout then
+          if e = Io.Timeout then
             Close
               (mk_simple
                  (http_error_page 408 "Request Time-out"
                     "The server timed out waiting for the request."))
           else Close (mk_simple "")
         in
-        let h =
-          {
-            Duppy.Monad.Io.scheduler = Tutils.scheduler;
-            socket;
-            data = "";
-            on_error;
-          }
-        in
-        let rec reply r =
+        let h = Io.handle Tutils.scheduler socket in
+        let send r =
           let close () = try close socket with _ -> () in
-          let s, exec =
-            match r with
-              | Custom -> ("", fun () -> ())
-              | Relay s -> (s, fun () -> ())
-              | Close fn ->
-                  let s = fn () in
-                  let exec =
-                    if s = "" then close else fun () -> reply (Close fn)
-                  in
-                  (s, exec)
+          let write s =
+            Io.write ~timeout:conf_timeout#get ~priority:`Non_blocking h
+              (Bytes.of_string s)
           in
-          let on_error e =
+          try
+            match r with
+              | Custom -> ()
+              | Relay s -> write s
+              | Close fn ->
+                  (* A reply is sent in as many chunks as [fn] hands over, and
+                     an empty one ends it. *)
+                  let rec flush () =
+                    match fn () with
+                      | "" -> close ()
+                      | s ->
+                          write s;
+                          flush ()
+                  in
+                  flush ()
+          with Io.Error e ->
             ignore (on_error e);
             close ()
-          in
-          Duppy.Io.write ~timeout:conf_timeout#get ~priority:`Non_blocking
-            ~on_error ~string:(Bytes.of_string s) ~exec Tutils.scheduler socket
         in
-        Duppy.Monad.run ~return:reply ~raise:reply (handle_client ~port ~icy h)
+        Duppy.run (fun () ->
+            send
+              (try handle_client ~port ~icy h with
+                | Reply r -> r
+                | Io.Error e -> on_error e))
       with e ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log ~bt

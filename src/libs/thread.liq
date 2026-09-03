@@ -1,6 +1,6 @@
 # Run a function in a separate thread.
 # @category Programming
-# @param ~fast Whether the thread is supposed to return quickly or not. Typically, blocking tasks (e.g. fetching data over the internet) should not be considered to be fast. When set to `false` its priority will be lowered below that of request resolutions and fast timeouts. This is only effective if you set a dedicated queue for fast tasks, see the "scheduler" settings for more details.
+# @param ~fast Whether the thread is supposed to return quickly or not. Typically, blocking tasks (e.g. fetching data over the internet) should not be considered to be fast. When set to `false` its priority will be lowered below that of request resolutions and fast timeouts.
 # @param ~delay Delay (in seconds) after which the thread should be launched.
 # @param ~every How often (in seconds) the thread should be run. If negative or `null`, run once.
 # @param ~on_error Error callback executed when an error occurred while running the given function. When passed, \
