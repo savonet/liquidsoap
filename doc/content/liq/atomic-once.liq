@@ -1,4 +1,3 @@
-#!../../../liquidsoap
 def connect() =
   ()
 end

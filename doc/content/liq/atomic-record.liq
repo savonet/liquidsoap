@@ -1,4 +1,3 @@
-#!../../../liquidsoap
 music = playlist("~/Music")
 
 now_playing = ref({title = "", artist = ""})
