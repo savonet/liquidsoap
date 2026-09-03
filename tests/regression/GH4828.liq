@@ -1,6 +1,6 @@
 log.level := 4
 
-expected_checksum = "5122ca63495343bed07dfa27b900d79d"
+expected_checksum = "6ccbccf00fb31c68bfe457b5eab01a6b"
 
 settings.frame.checksum.metadata := true
 settings.frame.checksum.track_marks := true

@@ -42,8 +42,6 @@ depends: [
   "fileutils-windows"
   "xml-light"
   "xml-light-windows"
-  "yamlx"
-  "yamlx-windows"
   "xmlm"
   "xmlm-windows"
   "winsvc-windows"

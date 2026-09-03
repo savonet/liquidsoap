@@ -44,11 +44,22 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
   ~rms_width transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
+  let status :
+      [ `Idle
+      | `Before of Clock.activation * Source.source
+      | `After of Clock.activation * Source.source ]
+      ref =
+    ref `Idle
+  in
   object (self)
     inherit source ~name:"cross" ()
 
+    (* Switching to the transition is where the new track begins; switching back
+       to a buffering source at the end of it continues that same track. *)
     inherit
       generate_from_multiple_sources
+        ~new_track_on_source_switch:(fun () ->
+          match !status with `After _ -> true | _ -> false)
         ~merge:(fun () -> false)
         ~track_sensitive:(fun () -> false)
         ()
@@ -138,22 +149,16 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
           s#sleep (Option.get a);
           source <- (None, s))
 
-    val mutable status
-        : [ `Idle
-          | `Before of Clock.activation * Source.source
-          | `After of Clock.activation * Source.source ] =
-      `Idle
-
     (* Releases what the transition registered, if we are holding one. *)
     val mutable release_transition = fun () -> ()
 
     method set_status v =
-      (match status with
+      (match !status with
         | `Idle -> ()
         | `Before (a, s) | `After (a, s) -> s#sleep a);
       release_transition ();
       release_transition <- (fun () -> ());
-      status <- v
+      status := v
 
     method! child_clock_controller =
       Some (`Other ("source", (self :> < id : string >)))
@@ -212,18 +217,18 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
       let a = self#prepare_source before in
       self#set_status (`Before (a, (before :> Source.source)));
       self#buffer_before ~is_first:true ();
-      match status with
+      match !status with
         | `After (_, s) | `Before (_, s) -> if s#is_ready then Some s else None
         | _ -> assert false
 
     method private get_source ~reselect () =
       let reselect = match reselect with `Force -> `Ok | _ -> reselect in
-      match status with
+      match !status with
         | `Idle when self#child_is_ready -> self#prepare_before
         | `Idle -> None
         | `Before _ -> (
             self#buffer_before ~is_first:false ();
-            match status with
+            match !status with
               | `Idle -> assert false
               | `Before (_, before_source)
                 when self#can_reselect ~reselect before_source ->
@@ -380,12 +385,10 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
           else None
         in
         let before =
-          new Replay_metadata.replay
-            ~name:(Printf.sprintf "%s.before_metadata" self#id)
-            before_metadata
-            (new consumer
-               ~name:(Printf.sprintf "%s.before_buffer" self#id)
-               ~clock:self#clock gen_before)
+          (new consumer
+             ~name:(Printf.sprintf "%s.before_buffer" self#id)
+             ~clock:self#clock gen_before
+            :> Source.source)
         in
         Typing.(before#frame_type <: self#frame_type);
         let after_tail =
@@ -406,12 +409,10 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
           else None
         in
         let after =
-          new Replay_metadata.replay
-            ~name:(Printf.sprintf "%s.after_metadata" self#id)
-            after_metadata
-            (new consumer
-               ~name:(Printf.sprintf "%s.after_buffer" self#id)
-               ~clock:self#clock gen_after)
+          (new consumer
+             ~name:(Printf.sprintf "%s.after_buffer" self#id)
+             ~clock:self#clock gen_after
+            :> Source.source)
         in
         Typing.(after#frame_type <: self#frame_type);
         self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)" db_before
@@ -451,12 +452,31 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
             | Some s, None ->
                 (new Sequence.sequence
                    ~name:(Printf.sprintf "%s.before_head" self#id)
-                   ~merge:true [s; compound]
+                   ~merge:true ~new_track_on_source_switch:false [s; compound]
                   :> Source.source)
             | None, Some s ->
+                (* The rest of the incoming track. Its metadata went into the
+                   buffered head, so a transition that drops the incoming
+                   source leaves it unannounced. Replay it here, marked, so it
+                   is dropped again when the transition did announce it. *)
+                let s =
+                  if after_metadata = Frame.Metadata.empty then
+                    (s :> Source.source)
+                  else (
+                    let s =
+                      new Replay_metadata.replay
+                        ~name:(Printf.sprintf "%s.after_tail_metadata" self#id)
+                        (Frame.Metadata.add "liq_cross_replayed_metadata" "true"
+                           after_metadata)
+                        (s :> Source.source)
+                    in
+                    Typing.(s#frame_type <: self#frame_type);
+                    (s :> Source.source))
+                in
                 (new Sequence.sequence
                    ~name:(Printf.sprintf "%s.after_tail" self#id)
-                   ~single_track:false [compound; s]
+                   ~new_track_on_source_switch:false ~single_track:false
+                   [compound; s]
                   :> Source.source)
             | Some _, Some _ -> assert false
         in
@@ -469,7 +489,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
       release_transition <- release_callbacks
 
     method remaining =
-      match status with
+      match !status with
         | `Idle -> self#source#remaining
         | `Before (_, s) -> (
             match (s#remaining, self#source#remaining) with
@@ -478,7 +498,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         | `After (_, s) -> s#remaining
 
     method effective_source =
-      match status with
+      match !status with
         | `Idle -> self#source#effective_source
         | `Before (_, s) | `After (_, s) -> s#effective_source
 
@@ -487,7 +507,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
     initializer
       self#on_before_streaming_cycle (fun () ->
           if Atomic.exchange pending_abort_track false then (
-            match status with
+            match !status with
               | `Idle -> ()
               | `Before _ | `After _ -> ignore self#prepare_before))
 

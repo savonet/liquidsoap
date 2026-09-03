@@ -74,11 +74,12 @@
  (target Stereo_Tool_Generic_plugin.zip)
  (action
   (run
+   sh
+   %{dep:../fetch.sh}
    curl
-   -L
-   -o
+   https://download.thimeo.com/Stereo_Tool_Generic_plugin.zip
    %{target}
-   https://download.thimeo.com/Stereo_Tool_Generic_plugin.zip)))
+   "unzip -qt")))
 
 (rule
  (target libStereoTool_64.dylib)

@@ -30,6 +30,8 @@ repos:
     hooks:
       - id: liquidsoap-prettier
       - id: prettier
+        # Parser test fixture: prettier would normalize away the syntax it covers.
+        exclude: ^src/modules/synced/miniyaml/test/test\.yaml$
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
@@ -52,7 +54,7 @@ repos:
         entry: .github/scripts/gen-release-table.sh
         additional_dependencies: ["prettier@3.6.0"]
         pass_filenames: false
-        files: (\.github/release-matrix\.json|\.github/scripts/gen-release-table\.sh|README\.md)$
+        files: ^(\.github/release-matrix\.json|\.github/scripts/gen-release-table\.sh|README\.md)$
 
       - id: shfmt
         name: shfmt

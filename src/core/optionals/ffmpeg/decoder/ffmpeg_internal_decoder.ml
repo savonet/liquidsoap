@@ -146,7 +146,9 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
       scale_proportional (width, height) (target_width, target_height)
     in
     let scaler =
-      Scaler.create [] width height pixel_format aw ah target_pixel_format
+      Scaler.create
+        ~threads:(Ffmpeg_utils.scaling_threads ())
+        [] width height pixel_format aw ah target_pixel_format
     in
     fun frame : Video.Canvas.Image.t ->
       let img =
@@ -252,8 +254,9 @@ let mk_bitmap_subtitle_decoder ~field ~width ~height =
       | Some (w', h', scaler) when w = w' && h = h' -> scaler
       | _ ->
           let scaler =
-            SubScaler.create [] w h `Pal8 w h
-              Ffmpeg_utils.liq_frame_pixel_format_with_alpha
+            SubScaler.create
+              ~threads:(Ffmpeg_utils.scaling_threads ())
+              [] w h `Pal8 w h Ffmpeg_utils.liq_frame_pixel_format_with_alpha
           in
           cached_scaler := Some (w, h, scaler);
           scaler

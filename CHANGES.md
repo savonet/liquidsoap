@@ -106,10 +106,41 @@
   buffer and one set of track marks, so a track boundary cuts all of them, `id`
   on any output names the graph, and outputs consumed at diverging rates raise
   past `settings.ffmpeg.filter_max_buffer`.
-- `xml-light` and `yamlx` are now required dependencies of `liquidsoap-lang`, making XML and
+- `xml-light` and `miniyaml` are now required dependencies of `liquidsoap-lang`, making XML and
   YAML support always available. YAML integers parse as `int` instead of `float` (#5233).
+- YAML parsing and rendering now go through `miniyaml`, which covers the subset of YAML usually
+  hand-written in configuration files. Block scalars (`|` and `>`), anchors, aliases, tags and
+  multi-document streams are now rejected with an explicit error instead of being parsed, and
+  `yaml.stringify` lost its `scalar_style` and `layout_style` arguments: it always renders in
+  block style with plain scalars, quoting only where needed.
+- FFmpeg encoders and decoders now pick their thread count automatically, as the `ffmpeg`
+  command-line tools do, instead of running on a single thread. Transcoding no longer
+  bottlenecks on one core: an `%ffmpeg` output using `libx265` and a 4K input is about 2.5
+  times faster. Pass `threads=1` to an `%ffmpeg` encoder to get the previous behavior back
+  (#5014).
+- Video scaling is now split over one thread per core, as `ffmpeg` does through its filter
+  graphs. `settings.ffmpeg.scaling_threads` sets the count, `1` restoring the single-threaded
+  scaling of previous versions (#5014).
 
 ## Fixed:
+
+- A transition that drops the incoming source no longer drops that track's announcement with
+  it. `cross` had already consumed the metadata into the buffer it hands the transition, so
+  the track played on, audible and unannounced, once the transition was over. It is now
+  announced on the tail, where that audio starts, and only when the transition did not
+  announce it itself (#5360).
+
+- `cross` no longer replays either track's metadata into the transition. The outgoing one was
+  announced a second time by a transition keeping that source, and with an `add`-shaped
+  transition both replays landed at the same frame position, so only one survived and the
+  incoming track's own announcement was dropped. The incoming one is already inside the
+  buffered data it was replayed into, so it only ever fired when there was nothing to replay,
+  announcing an empty metadata. The transition still receives both as the `metadata` field of
+  its arguments, so a transition that read a track's fade overrides off the stream must now
+  read them from that argument, as `cross.simple` and `cross.plot` do (#5360).
+
+- `metadata.deduplicate` no longer compares across a track mark, which dropped the metadata of
+  a track repeating the one before it, e.g. a single file on a loop (#5360).
 
 - `time.zone.set` now takes effect. Setting the time zone was silently ignored once anything had already
   read the local time, which in practice meant always.

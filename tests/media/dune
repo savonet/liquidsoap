@@ -485,8 +485,9 @@
  (target fate-suite-filter-242_4.mkv)
  (action
   (run
+   sh
+   %{dep:../fetch.sh}
    rsync
-   -avL
    rsync://fate-suite.ffmpeg.org/fate-suite/filter/242_4.mkv
    %{target})))
 
@@ -571,11 +572,11 @@
  (target alarm-clock-alpha.webm)
  (action
   (run
+   sh
+   %{dep:../fetch.sh}
    curl
-   -L
-   -o
-   %{target}
-   "https://upload.wikimedia.org/wikipedia/commons/a/a7/Alarm_Clock_Animation_High_Res_alpha_transparency.webm")))
+   "https://upload.wikimedia.org/wikipedia/commons/a/a7/Alarm_Clock_Animation_High_Res_alpha_transparency.webm"
+   %{target})))
 
 (rule
  (alias test_ffmpeg_vp9_alpha)

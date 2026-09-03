@@ -58,9 +58,7 @@ static AVCodecContext *create_AVCodecContext(AVCodecParameters *params,
   }
 
   // Open the codec
-  caml_release_runtime_system();
-  ret = avcodec_open2(codec_context, codec, NULL);
-  caml_acquire_runtime_system();
+  ret = ocaml_avcodec_open_codec(codec_context, codec, NULL);
 
   if (ret < 0) {
     avcodec_free_context(&codec_context);
@@ -566,9 +564,7 @@ CAMLprim value ocaml_avcodec_create_audio_encoder(value _sample_fmt,
   }
 
   // Open the codec
-  caml_release_runtime_system();
-  err = avcodec_open2(ctx->codec_context, ctx->codec, &options);
-  caml_acquire_runtime_system();
+  err = ocaml_avcodec_open_codec(ctx->codec_context, ctx->codec, &options);
 
   if (err < 0) {
     av_dict_free(&options);
@@ -643,9 +639,7 @@ CAMLprim value ocaml_avcodec_create_video_encoder(value _device_context,
   }
 
   // Open the codec
-  caml_release_runtime_system();
-  err = avcodec_open2(ctx->codec_context, ctx->codec, &options);
-  caml_acquire_runtime_system();
+  err = ocaml_avcodec_open_codec(ctx->codec_context, ctx->codec, &options);
 
   if (err < 0) {
     av_dict_free(&options);
