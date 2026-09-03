@@ -215,8 +215,9 @@ let decode_video_frame ~field ~mode generator =
             color_range,
             stream_idx );
       let scaler =
-        InternalScaler.create [] width height pixel_format internal_width
-          internal_height
+        InternalScaler.create
+          ~threads:(Ffmpeg_utils.scaling_threads ())
+          [] width height pixel_format internal_width internal_height
           (Ffmpeg_utils.liq_frame_pixel_format_for pixel_format)
       in
       let fps_converter =

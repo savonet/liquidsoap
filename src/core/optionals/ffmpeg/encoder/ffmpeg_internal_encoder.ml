@@ -509,7 +509,9 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
           | Some s -> s
           | None ->
               let s =
-                InternalScaler.create [flag] src_width src_height
+                InternalScaler.create
+                  ~threads:(Ffmpeg_utils.scaling_threads ())
+                  [flag] src_width src_height
                   (Ffmpeg_utils.liq_frame_pixel_format_for target_pixel_format)
                   target_width target_height target_pixel_format
               in
@@ -549,9 +551,10 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
               let f =
                 if src_width <> target_width || src_height <> target_height then (
                   let scaler =
-                    RawScaler.create [flag] src_width src_height
-                      src_pixel_format target_width target_height
-                      src_pixel_format
+                    RawScaler.create
+                      ~threads:(Ffmpeg_utils.scaling_threads ())
+                      [flag] src_width src_height src_pixel_format target_width
+                      target_height src_pixel_format
                   in
                   fun frame ->
                     let scaled = RawScaler.convert scaler frame in
