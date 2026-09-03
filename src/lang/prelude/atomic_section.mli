@@ -20,15 +20,7 @@
 
  *****************************************************************************)
 
-let ref =
-  let a = Lang.univ_t () in
-  Lang.add_builtin "ref" ~category:`Programming
-    ~descr:"Create a reference, i.e. a value which can be modified."
-    [("", a, None, None)]
-    (Lang.ref_t a)
-    (fun p ->
-      let x = List.assoc "" p |> Atomic.make in
-      let get () = Atomic.get x in
-      let set v = Atomic.set x v in
-      let exchange v = Atomic.exchange x v in
-      Lang.reference ~exchange get set)
+(** The process-wide lock behind the [atomic] builtin. Sections exclude each
+    other and nothing else, so both sides of a race have to take it. *)
+
+val run : ?fast:bool -> (unit -> 'a) -> 'a

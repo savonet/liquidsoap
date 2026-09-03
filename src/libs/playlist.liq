@@ -597,8 +597,10 @@ let register_playlist_parsers =
     registered = ref(false)
     fun () ->
       begin
+        # Claiming the flag and reading it has to be one step: several threads
+        # reach here for the same parsers, and registering one twice fails.
         if
-          not registered()
+          not registered.exchange(true)
         then
           parsers = settings.playlist.mime_types.basic()
 %ifdef playlist.parse.xml
@@ -615,7 +617,6 @@ let register_playlist_parsers =
             parsers
           )
         end
-        registered := true
       end
   end
 on_start(register_playlist_parsers)

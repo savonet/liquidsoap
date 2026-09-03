@@ -50,18 +50,23 @@ let[@inline always] on_mutex_done state =
   Atomic.set state.lock `None;
   Mutex.unlock state.mutex
 
-let rec mutable_wait state =
-  if not (Atomic.compare_and_set state.lock `None `Mutating) then (
+(* The recheck under the mutex is what keeps the wait from being lost: the
+   holder can release between the read above and this lock, and only a
+   [`Mutating] holder ever broadcasts. *)
+let rec wait state held =
+  if not (Atomic.compare_and_set state.lock `None held) then (
     (match Atomic.get state.lock with
       | `Mutating ->
           mutexify state.mutex
-            (fun () -> Condition.wait state.condition state.mutex)
+            (fun () ->
+              if Atomic.get state.lock = `Mutating then
+                Condition.wait state.condition state.mutex)
             ()
       | _ -> Domain.cpu_relax ());
-    mutable_wait state)
+    wait state held)
 
 let mutable_lock ~state fn v =
-  mutable_wait state;
+  wait state `Mutating;
   try
     let v = fn v in
     on_mutex_done state;
@@ -70,19 +75,9 @@ let mutable_lock ~state fn v =
     let bt = Printexc.get_raw_backtrace () in
     on_mutex_done state;
     Printexc.raise_with_backtrace exn bt
-
-let rec atomic_wait state =
-  if not (Atomic.compare_and_set state.lock `None `Locked) then (
-    (match Atomic.get state.lock with
-      | `Mutating ->
-          mutexify state.mutex
-            (fun () -> Condition.wait state.condition state.mutex)
-            ()
-      | _ -> Domain.cpu_relax ());
-    atomic_wait state)
 
 let atomic_lock ~state fn v =
-  atomic_wait state;
+  wait state `Locked;
   try
     let v = fn v in
     Atomic.set state.lock `None;
@@ -91,3 +86,22 @@ let atomic_lock ~state fn v =
     let bt = Printexc.get_raw_backtrace () in
     Atomic.set state.lock `None;
     Printexc.raise_with_backtrace exn bt
+
+type reentrant = { state : state; owner : int Atomic.t }
+
+let mk_reentrant () = { state = mk_state (); owner = Atomic.make (-1) }
+
+(* Reading [owner] outside the lock is safe: no other thread can leave this
+   thread's own id there. *)
+let reentrant_lock ~fast ~state fn v =
+  let self = Thread.id (Thread.self ()) in
+  if Atomic.get state.owner = self then fn v
+  else (
+    let lock = if fast then atomic_lock else mutable_lock in
+    lock ~state:state.state
+      (fun v ->
+        Atomic.set state.owner self;
+        Fun.protect
+          ~finally:(fun () -> Atomic.set state.owner (-1))
+          (fun () -> fn v))
+      v)

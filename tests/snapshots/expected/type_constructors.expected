@@ -122,7 +122,7 @@ getter = "another"
 400e47ff308e750430db503ff900ee85
 --- term ---
 r = ref(1)
-ignore((r : (() -> int).{set : (int) -> unit}))
+ignore((r : (() -> int).{exchange : (int) -> int, set : (int) -> unit}))
 ignore((1 : {int}))
 ref = "a variable"
 getter = "another"

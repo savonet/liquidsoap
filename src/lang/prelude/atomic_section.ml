@@ -20,15 +20,5 @@
 
  *****************************************************************************)
 
-let ref =
-  let a = Lang.univ_t () in
-  Lang.add_builtin "ref" ~category:`Programming
-    ~descr:"Create a reference, i.e. a value which can be modified."
-    [("", a, None, None)]
-    (Lang.ref_t a)
-    (fun p ->
-      let x = List.assoc "" p |> Atomic.make in
-      let get () = Atomic.get x in
-      let set v = Atomic.set x v in
-      let exchange v = Atomic.exchange x v in
-      Lang.reference ~exchange get set)
+let state = Mutex_utils.mk_reentrant ()
+let run ?(fast = false) fn = Mutex_utils.reentrant_lock ~fast ~state fn ()
