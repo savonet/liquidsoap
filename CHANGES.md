@@ -87,8 +87,21 @@
   buffer and one set of track marks, so a track boundary cuts all of them, `id`
   on any output names the graph, and outputs consumed at diverging rates raise
   past `settings.ffmpeg.filter_max_buffer`.
-- `xml-light` and `yamlx` are now required dependencies of `liquidsoap-lang`, making XML and
+- `xml-light` and `miniyaml` are now required dependencies of `liquidsoap-lang`, making XML and
   YAML support always available. YAML integers parse as `int` instead of `float` (#5233).
+- YAML parsing and rendering now go through `miniyaml`, which covers the subset of YAML usually
+  hand-written in configuration files. Block scalars (`|` and `>`), anchors, aliases, tags and
+  multi-document streams are now rejected with an explicit error instead of being parsed, and
+  `yaml.stringify` lost its `scalar_style` and `layout_style` arguments: it always renders in
+  block style with plain scalars, quoting only where needed.
+- FFmpeg encoders and decoders now pick their thread count automatically, as the `ffmpeg`
+  command-line tools do, instead of running on a single thread. Transcoding no longer
+  bottlenecks on one core: an `%ffmpeg` output using `libx265` and a 4K input is about 2.5
+  times faster. Pass `threads=1` to an `%ffmpeg` encoder to get the previous behavior back
+  (#5014).
+- Video scaling is now split over one thread per core, as `ffmpeg` does through its filter
+  graphs. `settings.ffmpeg.scaling_threads` sets the count, `1` restoring the single-threaded
+  scaling of previous versions (#5014).
 
 ## Fixed:
 

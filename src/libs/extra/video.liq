@@ -16,11 +16,11 @@ def video.add_cover(
   ~x=getter(0),
   ~y=getter(0),
   ~mime_types=[
-    ("image/gif", "gif"),
-    ("image/jpg", "jpeg"),
-    ("image/jpeg", "jpeg"),
-    ("image/png", "png"),
-    ("image/webp", "webp")
+    ("image/gif", ".gif"),
+    ("image/jpg", ".jpeg"),
+    ("image/jpeg", ".jpeg"),
+    ("image/png", ".png"),
+    ("image/webp", ".webp")
   ],
   ~default,
   s

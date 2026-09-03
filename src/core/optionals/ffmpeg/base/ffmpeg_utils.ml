@@ -73,6 +73,17 @@ let conf_scaling_algorithm =
         "\"bilinear\" or \"bicubic\".";
       ]
 
+let conf_scaling_threads =
+  Dtools.Conf.int
+    ~p:(conf_ffmpeg#plug "scaling_threads")
+    "Scaling threads" ~d:0
+    ~comments:
+      [
+        "Number of threads a video frame is scaled over. `0`, the default,";
+        "uses one per core. Scaling is a small part of what a video stream";
+        "costs, so the extra cores buy little once the codecs are using them.";
+      ]
+
 let () =
   Lifecycle.on_start ~name:"ffmpeg utils initialization" (fun () ->
       let verbosity =
@@ -114,6 +125,7 @@ let scaling_algorithm () =
     | "bicubic" -> Some Swscale.Bicubic
     | _ -> None
 
+let scaling_threads () = max 0 conf_scaling_threads#get
 let liq_frame_pixel_format = `Yuv420p
 let liq_frame_pixel_format_with_alpha = `Yuva420p
 

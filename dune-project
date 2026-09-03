@@ -135,7 +135,7 @@
     (menhir (>= 20240715))
     fileutils
     xml-light
-    yamlx)
+    miniyaml)
   (sites (share libs) (share bin) (share cache) (lib_root lib_root))
   (synopsis "Liquidsoap language library"))
 

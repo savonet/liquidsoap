@@ -50,7 +50,7 @@
  (action
   (progn
    (run rm -rf json)
-   (run git clone --depth 1 https://github.com/nst/JSONTestSuite json)
+   (run sh %{dep:../fetch.sh} git https://github.com/nst/JSONTestSuite json)
    (system "cd json && mv test_parsing/*.json .")
    (system
     "cd json && find . -maxdepth 1 -type d | grep -v '^\\.$' | xargs rm -rf"))))
@@ -61,7 +61,12 @@
  (action
   (progn
    (run rm -rf json5)
-   (run git clone --depth 1 https://github.com/json5/json5-tests.git json5)
+   (run
+    sh
+    %{dep:../fetch.sh}
+    git
+    https://github.com/json5/json5-tests.git
+    json5)
    (system
     "cd json5 && find . -type f | egrep '\\.json|\\.js|\\.txt' | xargs -I % mv % .")
    (system "cd json5 && find . -type d | grep -v '^\\.$' | xargs rm -rf"))))
@@ -73,11 +78,11 @@
   (progn
    (run rm -rf big-list-of-naughty-strings)
    (run
+    sh
+    %{dep:../fetch.sh}
     git
-    clone
-    --depth
-    1
-    https://github.com/minimaxir/big-list-of-naughty-strings.git))))
+    https://github.com/minimaxir/big-list-of-naughty-strings.git
+    big-list-of-naughty-strings))))
 
 (executable
  (name ffmpeg_stream_description_test)

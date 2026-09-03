@@ -2,12 +2,31 @@
 #define _AVCODEC_STUBS_H_
 
 #include <caml/mlvalues.h>
+#include <caml/threads.h>
 #include <libavcodec/avcodec.h>
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 26, 100)
 #define AV_PROFILE_UNKNOWN FF_PROFILE_UNKNOWN
 #define AV_LEVEL_UNKNOWN FF_LEVEL_UNKNOWN
 #endif
+
+/* libavcodec runs a codec on a single thread unless told otherwise, ffmpeg's
+   own tools raise that to automatic before opening one: do the same. Codecs
+   that thread badly opt out through their own defaults, and [options], which
+   avcodec_open2 applies itself, still wins over ours. */
+static inline int ocaml_avcodec_open_codec(AVCodecContext *codec_context,
+                                           const AVCodec *codec,
+                                           AVDictionary **options) {
+  int ret;
+
+  codec_context->thread_count = 0;
+
+  caml_release_runtime_system();
+  ret = avcodec_open2(codec_context, codec, options);
+  caml_acquire_runtime_system();
+
+  return ret;
+}
 
 /***** AVCodec *****/
 

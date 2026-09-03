@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
 #include <libswscale/swscale.h>
 
 #include "avutil_stubs.h"
@@ -80,6 +81,32 @@ static struct custom_operations context_ops = {
     custom_serialize_default,   custom_deserialize_default,
     custom_compare_ext_default, custom_fixed_length_default};
 
+static struct SwsContext *get_context(int src_w, int src_h,
+                                      enum AVPixelFormat src_format, int dst_w,
+                                      int dst_h, enum AVPixelFormat dst_format,
+                                      int flags, int threads) {
+  struct SwsContext *context = sws_alloc_context();
+
+  if (!context)
+    return NULL;
+
+  av_opt_set_int(context, "srcw", src_w, 0);
+  av_opt_set_int(context, "srch", src_h, 0);
+  av_opt_set_int(context, "src_format", src_format, 0);
+  av_opt_set_int(context, "dstw", dst_w, 0);
+  av_opt_set_int(context, "dsth", dst_h, 0);
+  av_opt_set_int(context, "dst_format", dst_format, 0);
+  av_opt_set_int(context, "sws_flags", flags, 0);
+  av_opt_set_int(context, "threads", threads, 0);
+
+  if (sws_init_context(context, NULL, NULL) < 0) {
+    sws_freeContext(context);
+    return NULL;
+  }
+
+  return context;
+}
+
 CAMLprim value ocaml_swscale_get_context(value flags_, value src_w_,
                                          value src_h_, value src_format_,
                                          value dst_w_, value dst_h_,
@@ -101,8 +128,7 @@ CAMLprim value ocaml_swscale_get_context(value flags_, value src_w_,
     flags |= Flag_val(Field(flags_, i));
 
   caml_release_runtime_system();
-  c = sws_getContext(src_w, src_h, src_format, dst_w, dst_h, dst_format, flags,
-                     NULL, NULL, NULL);
+  c = get_context(src_w, src_h, src_format, dst_w, dst_h, dst_format, flags, 1);
   caml_acquire_runtime_system();
 
   if (!c)
@@ -190,8 +216,8 @@ typedef struct sws_t sws_t;
 
 struct sws_t {
   struct SwsContext *context;
-  int srcSliceY;
-  int srcSliceH;
+  AVFrame *in_frame;
+  AVFrame *out_frame;
   struct video_t in;
   struct video_t out;
 
@@ -377,6 +403,69 @@ static int alloc_out_packed_ba(sws_t *sws, value *out_vect, value *tmp) {
   return 0;
 }
 
+static void free_nothing(void *opaque, uint8_t *data) {
+  (void)opaque;
+  (void)data;
+}
+
+/* Slice threading is only reachable through sws_scale_frame, which wants
+   frames holding refcounted buffers: wrap the planes, owned by the caller, in
+   buffers that free nothing. Both frames are unref'ed once the scaling is
+   done, leaving nothing pointing at them. */
+static int wrap_planes(AVFrame *frame, struct video_t *video) {
+  ptrdiff_t linesizes[4];
+  size_t plane_sizes[4];
+  int i, ret;
+
+  frame->width = video->width;
+  frame->height = video->height;
+  frame->format = video->pixel_format;
+
+  for (i = 0; i < 4; i++)
+    linesizes[i] = video->stride[i];
+
+  ret = av_image_fill_plane_sizes(plane_sizes, video->pixel_format,
+                                  video->height, linesizes);
+
+  if (ret < 0)
+    return ret;
+
+  for (i = 0; i < 4; i++) {
+    /* A zero size means the format has no buffer at that index. Paletted
+       formats do have one, holding the palette rather than a plane. */
+    if (!plane_sizes[i])
+      continue;
+
+    if (!video->slice[i])
+      return AVERROR(EINVAL);
+
+    frame->data[i] = video->slice[i];
+    frame->linesize[i] = video->stride[i];
+    frame->buf[i] = av_buffer_create(video->slice[i], plane_sizes[i],
+                                     free_nothing, NULL, 0);
+
+    if (!frame->buf[i])
+      return AVERROR(ENOMEM);
+  }
+
+  return 0;
+}
+
+static int scale(sws_t *sws) {
+  int ret = wrap_planes(sws->in_frame, &sws->in);
+
+  if (ret >= 0)
+    ret = wrap_planes(sws->out_frame, &sws->out);
+
+  if (ret >= 0)
+    ret = sws_scale_frame(sws->context, sws->out_frame, sws->in_frame);
+
+  av_frame_unref(sws->in_frame);
+  av_frame_unref(sws->out_frame);
+
+  return ret;
+}
+
 CAMLprim value ocaml_swscale_convert(value _sws, value _in_vector) {
   CAMLparam2(_sws, _in_vector);
   CAMLlocal2(out_vect, tmp);
@@ -393,9 +482,7 @@ CAMLprim value ocaml_swscale_convert(value _sws, value _in_vector) {
 
   // Scale and convert input data to output data
   caml_release_runtime_system();
-  ret = sws_scale(sws->context, (const uint8_t *const *)sws->in.slice,
-                  sws->in.stride, sws->srcSliceY, sws->srcSliceH,
-                  sws->out.slice, sws->out.stride);
+  ret = scale(sws);
   caml_acquire_runtime_system();
 
   if (ret < 0)
@@ -415,6 +502,9 @@ void swscale_free(sws_t *sws) {
 
   if (sws->context)
     sws_freeContext(sws->context);
+
+  av_frame_free(&sws->in_frame);
+  av_frame_free(&sws->out_frame);
 
   /* slice points at a 4-slot table, zero-initialised: walking it until a NULL
      runs into stride_tab for a 4-plane format, so bound by the table size and
@@ -440,14 +530,15 @@ static struct custom_operations sws_ops = {
     custom_serialize_default,   custom_deserialize_default,
     custom_compare_ext_default, custom_fixed_length_default};
 
-CAMLprim value ocaml_swscale_create(value flags_, value in_vector_kind_,
-                                    value in_width_, value in_height_,
-                                    value in_pixel_format_,
+CAMLprim value ocaml_swscale_create(value threads_, value flags_,
+                                    value in_vector_kind_, value in_width_,
+                                    value in_height_, value in_pixel_format_,
                                     value out_vect_kind_, value out_width_,
                                     value out_height_,
                                     value out_pixel_format_) {
-  CAMLparam5(flags_, in_vector_kind_, in_width_, in_height_, in_pixel_format_);
-  CAMLxparam4(out_vect_kind_, out_width_, out_height_, out_pixel_format_);
+  CAMLparam5(threads_, flags_, in_vector_kind_, in_width_, in_height_);
+  CAMLxparam5(in_pixel_format_, out_vect_kind_, out_width_, out_height_,
+              out_pixel_format_);
   CAMLlocal1(ans);
   vector_kind in_vector_kind = Int_val(in_vector_kind_);
   vector_kind out_vect_kind = Int_val(out_vect_kind_);
@@ -465,7 +556,13 @@ CAMLprim value ocaml_swscale_create(value flags_, value in_vector_kind_,
   sws->in.height = Int_val(in_height_);
   sws->in.pixel_format = PixelFormat_val(in_pixel_format_);
 
-  sws->srcSliceH = sws->in.height;
+  sws->in_frame = av_frame_alloc();
+  sws->out_frame = av_frame_alloc();
+
+  if (!sws->in_frame || !sws->out_frame) {
+    swscale_free(sws);
+    caml_raise_out_of_memory();
+  }
 
   sws->out.slice = sws->out.slice_tab;
   sws->out.stride = sws->out.stride_tab;
@@ -478,13 +575,13 @@ CAMLprim value ocaml_swscale_create(value flags_, value in_vector_kind_,
     flags |= Flag_val(Field(flags_, i));
 
   caml_release_runtime_system();
-  sws->context = sws_getContext(
+  sws->context = get_context(
       sws->in.width, sws->in.height, sws->in.pixel_format, sws->out.width,
-      sws->out.height, sws->out.pixel_format, flags, NULL, NULL, NULL);
+      sws->out.height, sws->out.pixel_format, flags, Int_val(threads_));
   caml_acquire_runtime_system();
 
   if (!sws->context) {
-    av_free(sws);
+    swscale_free(sws);
     Fail("Failed to create Swscale context");
   }
 
@@ -542,5 +639,5 @@ CAMLprim value ocaml_swscale_create(value flags_, value in_vector_kind_,
 CAMLprim value ocaml_swscale_create_byte(value *argv, int argn) {
   (void)argn;
   return ocaml_swscale_create(argv[0], argv[1], argv[2], argv[3], argv[4],
-                              argv[5], argv[6], argv[7], argv[8]);
+                              argv[5], argv[6], argv[7], argv[8], argv[9]);
 }

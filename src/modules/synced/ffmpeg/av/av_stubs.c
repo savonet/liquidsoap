@@ -1116,9 +1116,7 @@ static stream_t *open_stream_index(av_t *av, int index, const AVCodec *dec) {
   }
 
   // Open the decoder
-  caml_release_runtime_system();
-  err = avcodec_open2(stream->codec_context, dec, NULL);
-  caml_acquire_runtime_system();
+  err = ocaml_avcodec_open_codec(stream->codec_context, dec, NULL);
 
   if (err < 0) {
     av_free(stream);
@@ -1881,9 +1879,7 @@ static void init_stream_encoder(AVBufferRef *device_ctx, AVBufferRef *frame_ctx,
     }
   }
 
-  caml_release_runtime_system();
-  ret = avcodec_open2(enc_ctx, enc_ctx->codec, options);
-  caml_acquire_runtime_system();
+  ret = ocaml_avcodec_open_codec(enc_ctx, enc_ctx->codec, options);
 
   if (ret < 0) {
     av_dict_free(options);

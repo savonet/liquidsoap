@@ -66,7 +66,9 @@ let decode_image fname =
       let height = Avcodec.Video.get_height codec in
       let out_pixel_format = Ffmpeg_utils.liq_frame_pixel_format_with_alpha in
       let scaler =
-        Scaler.create [] width height pixel_format width height out_pixel_format
+        Scaler.create
+          ~threads:(Ffmpeg_utils.scaling_threads ())
+          [] width height pixel_format width height out_pixel_format
       in
       match Av.read_input ~video_frame:[stream] container with
         | `Video_frame (_, frame) ->
