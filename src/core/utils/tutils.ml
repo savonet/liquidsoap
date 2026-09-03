@@ -80,6 +80,41 @@ let blocking_tasks =
         "one slot, so setting this below the number of cores has no effect.";
       ]
 
+let legacy =
+  Dtools.Conf.bool
+    ~p:(conf_scheduler#plug "legacy")
+    ~d:false "Legacy scheduler"
+    ~comments:
+      [
+        "Run tasks on threads rather than domains, one at a time as before";
+        "2.5: no task runs in parallel with another or with the streaming";
+        "loop. A fail-safe for a script that concurrent execution breaks,";
+        "which will be removed in a later version. The threads are the queues";
+        "configured by `generic_queues`, `fast_queues` and";
+        "`non_blocking_queues`.";
+      ]
+
+let deprecated_queue name ~d descr comments =
+  Dtools.Conf.int ~p:(conf_scheduler#plug name) ~d descr
+    ~comments:
+      (comments
+      @ [
+          "Deprecated: this only applies when `settings.scheduler.legacy` is";
+          "set and goes away with it.";
+        ])
+
+let generic_queues =
+  deprecated_queue "generic_queues" ~d:5 "Generic queues"
+    ["Number of legacy queues accepting any kind of task."]
+
+let fast_queues =
+  deprecated_queue "fast_queues" ~d:0 "Fast queues"
+    ["Number of legacy queues dedicated to fast tasks."]
+
+let non_blocking_queues =
+  deprecated_queue "non_blocking_queues" ~d:2 "Non-blocking queues"
+    ["Number of legacy queues dedicated to internal non-blocking tasks."]
+
 let scheduler_log =
   Dtools.Conf.bool
     ~p:(conf_scheduler#plug "log")
@@ -252,10 +287,31 @@ let scheduler_logger () =
 
 let join_all () = join_all ~set:all ()
 
+let legacy_pool () =
+  let queues n accepts = List.init n#get (fun _ -> accepts) in
+  `Threads
+    (queues generic_queues (fun _ -> true)
+    @ queues fast_queues (fun p -> p = `Maybe_blocking)
+    @ queues non_blocking_queues (fun p -> p = `Non_blocking))
+
 let start () =
-  if Atomic.compare_and_set state `Idle `Starting then
-    Duppy.start ~max_blocking:blocking_tasks#get ?log:(scheduler_logger ())
-      scheduler
+  if Atomic.compare_and_set state `Idle `Starting then (
+    let pool =
+      if legacy#get then Some (legacy_pool ())
+      else (
+        if
+          List.exists
+            (fun q -> q#is_set)
+            [generic_queues; fast_queues; non_blocking_queues]
+        then
+          log#important
+            "settings.scheduler.generic_queues, fast_queues and \
+             non_blocking_queues are deprecated and ignored unless \
+             settings.scheduler.legacy is set.";
+        None)
+    in
+    Duppy.start ?pool ~max_blocking:blocking_tasks#get
+      ?log:(scheduler_logger ()) scheduler)
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =

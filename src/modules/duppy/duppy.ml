@@ -95,17 +95,20 @@ type execution_class = [ `Immediate | `Blocking ]
     dispatched to, so a caller whose tasks need one installs it here. *)
 type wrapper = { wrap : 'a. (unit -> 'a) -> 'a }
 
-(** One domain of the pool. [wake] carries a signal across the window between
-    registering as idle and blocking on [worker_c], so a wake-up sent in that
-    window is not lost. [blocking] counts the tasks parked on this worker's
+(** One domain or thread of the pool. [wake] carries a signal across the window
+    between registering as idle and blocking on [worker_c], so a wake-up sent in
+    that window is not lost. [blocking] counts the tasks parked on this worker's
     auxiliary threads. *)
-type worker = {
+type 'a worker = {
   worker_m : Mutex.t;
   worker_c : Condition.t;
   mutable wake : bool;
   mutable took_batch : bool;
   blocking : int Atomic.t;
+  accepts : 'a -> bool;
 }
+
+type member = [ `Domain of unit Domain.t | `Thread of Thread.t ]
 
 type 'a scheduler = {
   on_error : exn -> Printexc.raw_backtrace -> unit;
@@ -121,14 +124,15 @@ type 'a scheduler = {
   mutable timers : 'a t Timers.t;
   tasks_m : Mutex.t;
   mutable ready : ('a * (unit -> 'a t list)) list;
-  mutable idle : worker list;
+  mutable idle : 'a worker list;
   ready_m : Mutex.t;
   started : bool Atomic.t;
   stopped : bool Atomic.t;
   poller_done : bool Atomic.t;
   mutable blocking_per_worker : int;
-  mutable workers : worker list;
-  mutable domains : unit Domain.t list;
+  mutable threaded : bool;
+  mutable workers : 'a worker list;
+  mutable members : member list;
 }
 
 (** The interest registered for a descriptor is the union of what the tasks
@@ -218,8 +222,9 @@ let create ?(on_error = Printexc.raise_with_backtrace)
     stopped = Atomic.make false;
     poller_done = Atomic.make false;
     blocking_per_worker = 1;
+    threaded = false;
     workers = [];
-    domains = [];
+    members = [];
   }
 
 let started s = Atomic.get s.started
@@ -239,8 +244,12 @@ let signal_worker w =
   Condition.signal w.worker_c;
   Mutex.unlock w.worker_m
 
-(** Detach up to [n] idle workers. [s.ready_m] must be held. *)
+(** Detach up to [n] idle workers. [s.ready_m] must be held.
+
+    Threads each accept a subset of priorities, so a wake-up may land on one
+    that has nothing to take: wake them all. *)
 let take_idle s n =
+  let n = if s.threaded then max_int else n in
   let rec f n acc =
     if n <= 0 then acc
     else (
@@ -374,8 +383,9 @@ type 'a work = Batch of (unit -> 'a t list) list | One of (unit -> 'a t list)
     sequence on the calling domain costs less than a hand-off each. Blocking
     tasks go one at a time, so they spread over the pool. *)
 let take_work s w =
+  let mine, others = List.partition (fun (p, _) -> w.accepts p) s.ready in
   let immediate, blocking =
-    List.partition (fun (p, _) -> s.classify p = `Immediate) s.ready
+    List.partition (fun (p, _) -> s.classify p = `Immediate) mine
   in
   let can_block =
     blocking <> [] && Atomic.get w.blocking < s.blocking_per_worker
@@ -386,10 +396,10 @@ let take_work s w =
      rest to someone else. *)
     match immediate with
     | _ :: _ when not (w.took_batch && can_block) ->
-        s.ready <- blocking;
+        s.ready <- blocking @ others;
         w.took_batch <- true;
         ( Some (Batch (List.rev_map snd immediate)),
-          take_idle s (List.length blocking) )
+          take_idle s (List.length s.ready) )
     | _ when can_block ->
         let best =
           List.fold_left
@@ -412,17 +422,25 @@ let run_task s fn =
 (** Blocking tasks run on an auxiliary systhread inside the worker's domain:
     once the task parks in a syscall it releases the runtime lock and the domain
     goes back to dispatching. One thread per task rather than a pool, since a
-    task in this class is long enough that the spawn does not show. *)
+    task in this class is long enough that the spawn does not show.
+
+    A worker that is itself a thread already releases the lock when it parks, so
+    it runs the task in place. *)
 let run_blocking s w fn =
   Atomic.incr w.blocking;
-  ignore
-    (Thread.create
-       (fun () ->
-         let tasks = run_task s fn in
-         Atomic.decr w.blocking;
-         add_t s tasks;
-         wake_worker s w)
-       ())
+  let run () =
+    let tasks = run_task s fn in
+    Atomic.decr w.blocking;
+    add_t s tasks
+  in
+  if s.threaded then run ()
+  else
+    ignore
+      (Thread.create
+         (fun () ->
+           run ();
+           wake_worker s w)
+         ())
 
 let wait_for_work s w =
   Mutex.lock w.worker_m;
@@ -532,40 +550,54 @@ let poller s =
         poll_once s
       done)
 
-let start ?domains ?(max_blocking = 64) ?log:logger s =
+let start ?pool ?(max_blocking = 64) ?log:logger s =
   if not (Atomic.compare_and_set s.started false true) then
     failwith "Duppy.start: scheduler already started";
   s.log <- logger;
-  let count =
-    match domains with
-      | Some n -> max 1 n
-      | None -> max 1 (Domain.recommended_domain_count ())
+  let accepts =
+    match pool with
+      | Some (`Threads accepts) -> accepts
+      | Some (`Domains n) -> List.init (max 1 n) (fun _ _ -> true)
+      | None ->
+          List.init
+            (max 1 (Domain.recommended_domain_count ()))
+            (fun _ _ -> true)
   in
+  s.threaded <- (match pool with Some (`Threads _) -> true | _ -> false);
+  let count = List.length accepts in
   s.blocking_per_worker <- max 1 (max_blocking / count);
   let workers =
-    List.init count (fun _ ->
+    List.map
+      (fun accepts ->
         {
           worker_m = Mutex.create ();
           worker_c = Condition.create ();
           wake = false;
           took_batch = false;
           blocking = Atomic.make 0;
+          accepts;
         })
+      accepts
   in
   s.workers <- workers;
-  let spawn fn =
-    Domain.spawn (fun () ->
-        try fn ()
-        with exn ->
-          let bt = Printexc.get_raw_backtrace () in
-          s.on_fatal exn bt)
+  let guard fn () =
+    try fn ()
+    with exn ->
+      let bt = Printexc.get_raw_backtrace () in
+      s.on_fatal exn bt
   in
-  s.domains <-
+  let spawn fn =
+    if s.threaded then `Thread (Thread.create (guard fn) ())
+    else `Domain (Domain.spawn (guard fn))
+  in
+  s.members <-
     spawn (fun () -> poller s)
     :: List.map (fun w -> spawn (fun () -> dispatch s w)) workers;
   log s (fun () ->
-      Printf.sprintf "Started %d dispatch domains, %d blocking tasks each."
-        count s.blocking_per_worker)
+      if s.threaded then Printf.sprintf "Started %d dispatch threads." count
+      else
+        Printf.sprintf "Started %d dispatch domains, %d blocking tasks each."
+          count s.blocking_per_worker)
 
 let stop s =
   if Atomic.get s.started then begin
@@ -587,10 +619,12 @@ let stop s =
        a task is free to start one that outlives it: a binding logging from its
        own thread pins the domain that ran it for good. Reaping is handed to a
        thread of our own so that waiting for one cannot hold up stopping. *)
-    List.iter
-      (fun d -> ignore (Thread.create (fun () -> Domain.join d) ()))
-      s.domains;
-    s.domains <- [];
+    let join = function
+      | `Domain d -> Domain.join d
+      | `Thread t -> Thread.join t
+    in
+    List.iter (fun m -> ignore (Thread.create (fun () -> join m) ())) s.members;
+    s.members <- [];
     s.workers <- [];
     (* Freeing what the loop waits on while it is still in there is a use after
        free, and a descriptor is the cheaper thing to lose. *)

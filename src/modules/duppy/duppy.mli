@@ -50,7 +50,9 @@
     * program server code that with an implicit return/reply execution flow.
     *
     * The scheduler runs a pool of domains, one per core: a task is dispatched
-    * onto whichever domain is free when it becomes ready.*)
+    * onto whichever domain is free when it becomes ready. It can also run a
+    * pool of threads instead, for a program that must not run tasks in
+    * parallel.*)
 
 (** A scheduler is a device for processing tasks. * * ['a] is the type of
     objects used for priorities. *)
@@ -90,19 +92,25 @@ val create :
   unit ->
   'a scheduler
 
-(** [start s] spawns the scheduler's domains: one running the event loop, and
-  * [domains] running tasks. Raises [Failure] if [s] is already started.
+(** [start s] spawns the scheduler's pool: one member running the event loop,
+  * and the others running tasks. Raises [Failure] if [s] is already started.
   *
+  * With [`Domains n], the pool is [n] domains and tasks run in parallel.
   * Spawning a domain makes [Unix.fork] fail from then on, so this must be
   * called after any daemonization.
-  * @param domains number of dispatching domains.
-  * Default: [Domain.recommended_domain_count ()]
+  *
+  * With [`Threads accepts], the pool is one systhread per predicate, each
+  * taking only the tasks whose priority it accepts, and a [`Blocking] task runs
+  * in place on the thread that took it. Nothing runs in parallel and
+  * [Unix.fork] stays usable.
+  * @param pool Default: [`Domains (Domain.recommended_domain_count ())]
   * @param max_blocking the most [`Blocking] tasks that may be in flight at
-  * once, spread evenly over the pool. Each domain keeps at least one slot, so
-  * a value below [domains] gives one per domain. Default: [64]
+  * once, spread evenly over the domains. Each domain keeps at least one slot,
+  * so a value below their number gives one per domain. Unused by a thread
+  * pool. Default: [64]
   * @param log Logging function. Default: no logging *)
 val start :
-  ?domains:int ->
+  ?pool:[ `Domains of int | `Threads of ('a -> bool) list ] ->
   ?max_blocking:int ->
   ?log:(string -> unit) ->
   'a scheduler ->

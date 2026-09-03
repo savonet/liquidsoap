@@ -484,7 +484,7 @@ let () =
       events = [`Read sock];
       handler = incoming;
     };
-  Duppy.start ?domains:!domains scheduler;
+  Duppy.start ?pool:(Option.map (fun n -> `Domains n) !domains) scheduler;
   while true do
     Unix.sleep 3600
   done

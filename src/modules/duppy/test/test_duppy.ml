@@ -78,7 +78,7 @@ let test_parallel () =
            bump finished;
            []))
   done;
-  Duppy.start ~domains:count ~max_blocking:count s;
+  Duppy.start ~pool:(`Domains count) ~max_blocking:count s;
   await finished count;
   Duppy.stop s;
   let distinct = ran_on domains in
@@ -99,7 +99,7 @@ let test_batch () =
            bump l;
            []))
   done;
-  Duppy.start ~domains:4 s;
+  Duppy.start ~pool:(`Domains 4) s;
   await l count;
   Duppy.stop s;
   let distinct = ran_on domains in
@@ -122,7 +122,7 @@ let test_io () =
           bump l;
           []);
     };
-  Duppy.start ~domains:2 s;
+  Duppy.start ~pool:(`Domains 2) s;
   ignore (Unix.write w (Bytes.of_string "ping") 0 4);
   await l 1;
   Duppy.stop s;
@@ -143,7 +143,7 @@ let test_stop_with_stuck_task () =
            Thread.delay 0.01
          done;
          []));
-  Duppy.start ~domains:2 s;
+  Duppy.start ~pool:(`Domains 2) s;
   await started 1;
   let t0 = Unix.gettimeofday () in
   Duppy.stop s;
@@ -162,7 +162,7 @@ let test_idle_loop_wakes_itself () =
     if String.length m >= 4 && String.sub m 0 4 = "Woke" then
       ignore (Atomic.fetch_and_add wakes 1)
   in
-  Duppy.start ~domains:1 ~log s;
+  Duppy.start ~pool:(`Domains 1) ~log s;
   Thread.delay 2.5;
   let n = Atomic.get wakes in
   Duppy.stop s;
@@ -188,7 +188,7 @@ let test_stop_with_thread_outliving_its_task () =
               ());
          bump started;
          []));
-  Duppy.start ~domains:2 s;
+  Duppy.start ~pool:(`Domains 2) s;
   await started 1;
   Thread.delay 0.2;
   let t0 = Unix.gettimeofday () in
@@ -213,7 +213,7 @@ let test_stop_drains () =
              bump finished;
              []))
     done;
-    Duppy.start ~domains:4 s;
+    Duppy.start ~pool:(`Domains 4) s;
     await started count;
     Duppy.stop s;
     let done_ = Atomic.get finished.n in
@@ -236,7 +236,7 @@ let test_blocking_cap () =
            bump l;
            []))
   done;
-  Duppy.start ~domains:4 ~max_blocking:4 s;
+  Duppy.start ~pool:(`Domains 4) ~max_blocking:4 s;
   await l count;
   Duppy.stop s;
   ok "%d blocking tasks all ran with only 4 slots" count
@@ -245,7 +245,7 @@ let test_blocking_cap () =
    domains, so the two halves never run on the same one. *)
 let test_effect_resumes_elsewhere () =
   let s = Duppy.create ~classify () in
-  Duppy.start ~domains:2 s;
+  Duppy.start ~pool:(`Domains 2) s;
   let l = latch () in
   let before = ref (-1) in
   let after = ref (-1) in
@@ -274,7 +274,7 @@ let test_effect_raises_to_on_error () =
       ~on_error:(fun exn _ -> Atomic.set caught (Some exn))
       ()
   in
-  Duppy.start ~domains:2 s;
+  Duppy.start ~pool:(`Domains 2) s;
   let l = latch () in
   Duppy.run (fun () ->
       Duppy.reschedule ~priority:Blocking s;
@@ -320,7 +320,7 @@ let test_no_starvation () =
          Atomic.set blocking_ran true;
          bump l;
          []));
-  Duppy.start ~domains:1 s;
+  Duppy.start ~pool:(`Domains 1) s;
   await l 1;
   Atomic.set stop true;
   Duppy.stop s;
@@ -328,8 +328,44 @@ let test_no_starvation () =
     fail "a flood of immediate tasks starved the blocking one";
   ok "one worker dispatched blocking work under an immediate flood"
 
+(* A thread pool spawns no domain, and each thread takes only the priorities
+   it accepts. *)
+let test_threads () =
+  let s = Duppy.create ~classify () in
+  let l = latch () in
+  let count = 4 in
+  let ran = Array.make (2 * count) (-1, -1) in
+  let record i _ =
+    ran.(i) <- (domain_id (), Thread.id (Thread.self ()));
+    bump l;
+    []
+  in
+  for i = 0 to count - 1 do
+    Duppy.Task.add s (task Immediate (record i));
+    Duppy.Task.add s (task Blocking (record (count + i)))
+  done;
+  Duppy.start
+    ~pool:(`Threads [(fun p -> p = Immediate); (fun p -> p = Blocking)])
+    s;
+  await l (2 * count);
+  Duppy.stop s;
+  let threads_of prio =
+    List.sort_uniq compare
+      (List.map snd (Array.to_list (Array.sub ran (prio * count) count)))
+  in
+  Array.iter
+    (fun (d, _) ->
+      if d <> domain_id () then
+        fail "a task ran on domain %d, not the main one" d)
+    ran;
+  (match (threads_of 0, threads_of 1) with
+    | [a], [b] when a <> b -> ()
+    | _ -> fail "tasks did not each stay on the thread accepting their priority");
+  ok "%d tasks ran on the main domain, one thread per priority" (2 * count)
+
 let () =
   watchdog 60.;
+  test_threads ();
   test_parallel ();
   test_batch ();
   test_io ();

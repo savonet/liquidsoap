@@ -53,11 +53,14 @@
 - Scheduled work — requests, harbor clients, script callbacks, `thread.run` handlers — is now fully concurrent,
   taking advantage of OCaml 5's core-based concurrency, so a busy instance keeps up with much more of it at once.
   Heavy work in a callback or a request resolution no longer stalls playback either.
-- Removed `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
+- Added `settings.scheduler.legacy`, a fail-safe for a script that concurrent execution breaks: tasks run on
+  threads, one at a time, as they did before. It will be removed in a later version once the concurrent
+  scheduler has settled.
+- Deprecated `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
   `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from the number of cores and there is
-  nothing left to tune. Scripts setting them must drop those lines. `settings.scheduler.blocking_tasks` replaces
-  them, limiting how many slow tasks — request resolutions, `thread.run` handlers, last.fm submissions — may
-  run at once.
+  nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
+  warning. `settings.scheduler.blocking_tasks` replaces them, limiting how many slow tasks — request
+  resolutions, `thread.run` handlers, last.fm submissions — may run at once.
 - When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then
   long tasks such as last.fm submissions. The order used to be arbitrary and often favoured the slow ones.
 

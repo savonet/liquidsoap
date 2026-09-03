@@ -47,7 +47,7 @@ let scaling ~domains ~tasks ~work =
       }
   done;
   let start = Unix.gettimeofday () in
-  Duppy.start ~domains s;
+  Duppy.start ~pool:(`Domains domains) s;
   await l tasks;
   let elapsed = Unix.gettimeofday () -. start in
   Duppy.stop s;
@@ -73,7 +73,7 @@ let jitter ~domains ~load =
     Duppy.Task.add s
       { Duppy.Task.priority = Blocking; events = [`Delay 0.]; handler = spin }
   done;
-  Duppy.start ~domains s;
+  Duppy.start ~pool:(`Domains domains) s;
   let start = Unix.gettimeofday () in
   let lateness = ref [] in
   for i = 1 to ticks do
@@ -117,7 +117,7 @@ let idle_cost ~idle ~rounds =
   let start = Unix.gettimeofday () in
   Duppy.Task.add s
     { Duppy.Task.priority = Blocking; events = [`Delay 1e-6]; handler = ping };
-  Duppy.start ~domains:2 s;
+  Duppy.start ~pool:(`Domains 2) s;
   await l rounds;
   let elapsed = Unix.gettimeofday () -. start in
   Duppy.stop s;
