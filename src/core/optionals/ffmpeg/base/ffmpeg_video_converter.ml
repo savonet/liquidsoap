@@ -61,38 +61,12 @@ let format_of frame =
           | P.YUVJ422 -> `Yuvj422p
           | P.YUVJ444 -> `Yuvj444p)
 
-type fmt = Avutil.Pixel_format.t * int * int
-
-module HT = struct
-  type t = (fmt * fmt) * Swscale.t option
-
-  let equal (fmt, _) (fmt', _) = fmt = fmt'
-  let hash (fmt, _) = Hashtbl.hash fmt
-end
-
-module WH = struct
-  include Weak.Make (HT)
-
-  (* Number of converters to always keep in memory. *)
-  let n = 2
-  let keep = Array.make n None
-
-  let add h fmt conv =
-    let conv = (fmt, Some conv) in
-    for i = 1 to n - 1 do
-      keep.(i - 1) <- keep.(i)
-    done;
-    keep.(n - 1) <- Some conv;
-    add h conv
-
-  let assoc h fmt = Option.get (snd (find h (fmt, None)))
-end
-
-(* Weak hashtable containing converters already created. *)
-let converters = WH.create 5
 let is_rgb = function P.RGB _ -> true | _ -> false
 
 let create () =
+  (* A [SwsContext] is not reentrant, so it belongs to the converter that uses
+     it rather than to a table every converter shares. *)
+  let context = ref None in
   let convert src dst =
     let src_f = format_of src in
     let dst_f = format_of dst in
@@ -100,16 +74,18 @@ let create () =
     let src_h = Img.height src in
     let dst_w = Img.width dst in
     let dst_h = Img.height dst in
+    let formats = ((src_f, src_w, src_h), (dst_f, dst_w, dst_h)) in
     let conv =
-      try WH.assoc converters ((src_f, src_w, src_h), (dst_f, dst_w, dst_h))
-      with Not_found ->
-        let conv =
-          Swscale.create
-            [Swscale.Bilinear; Swscale.Print_info]
-            src_w src_h src_f dst_w dst_h dst_f
-        in
-        WH.add converters ((src_f, src_w, src_h), (dst_f, dst_w, dst_h)) conv;
-        conv
+      match !context with
+        | Some (formats', conv) when formats' = formats -> conv
+        | _ ->
+            let conv =
+              Swscale.create
+                [Swscale.Bilinear; Swscale.Print_info]
+                src_w src_h src_f dst_w dst_h dst_f
+            in
+            context := Some (formats, conv);
+            conv
     in
     let data f =
       match Img.pixel_format f with
