@@ -268,7 +268,7 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 | ------------------------------------- | --------------- | ----------------------------------------------------------------------------------------- |
 | `basedir`                             | Not implemented |                                                                                           |
 | `logdir`                              | Supported       | Enables log file and sets path to `#{logdir}/<script>.log`                                |
-| `pidfile`                             | Supported       | Enables pidfile and sets path to the value                                                |
+| `pidfile`                             | Not supported   |                                                                                           |
 | `tls-certificate` / `ssl-certificate` | Supported       | Path to TLS certificate file (required when TLS is enabled). May include the private key. |
 | `tls-key`                             | Supported       | Path to separate TLS private key file (icecast 2.5 only)                                  |
 | `webroot`                             | Not implemented | No built-in web interface                                                                 |

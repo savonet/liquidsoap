@@ -277,8 +277,6 @@ let () =
       Duppy.stop scheduler;
       log#important "Scheduler shut down.")
 
-let scheduler_started () = Duppy.started scheduler
-
 let scheduler_logger () =
   if scheduler_log#get then (
     let log = Log.make ["scheduler"] in

@@ -4,8 +4,6 @@
 log.file := true
 log.file.path := "/var/log/liquidsoap/pi.log"
 log.stdout := false
-init.daemon := true
-init.daemon.pidfile.path := "/var/run/liquidsoap/pi.pid"
 
 # Enable telnet server
 settings.server.telnet.set(true)
