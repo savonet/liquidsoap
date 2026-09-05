@@ -121,6 +121,11 @@
 - Video scaling is now split over one thread per core, as `ffmpeg` does through its filter
   graphs. `settings.ffmpeg.scaling_threads` sets the count, `1` restoring the single-threaded
   scaling of previous versions (#5014).
+- Removed daemon mode: the `-d`/`--daemon` command-line option, the `settings.init.daemon`
+  settings and the pidfile they wrote. Detaching from the terminal meant forking, which is
+  unsafe now that liquidsoap runs on several cores. Use a service manager such as `systemd`
+  or `launchd` to run liquidsoap in the background; both handle pidfiles, log redirection and
+  privilege dropping.
 
 ## Fixed:
 

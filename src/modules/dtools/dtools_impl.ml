@@ -343,41 +343,6 @@ end
 module Init = struct
   let conf = Conf.void "initialization configuration"
 
-  (* Unix.fork is not implemented in Win32. *)
-  let daemon_conf =
-    if Sys.os_type <> "Win32" then conf else Conf.void "dummy conf"
-
-  let conf_daemon =
-    Conf.bool ~p:(daemon_conf#plug "daemon") ~d:false "run in daemon mode"
-
-  let conf_daemon_pidfile =
-    Conf.bool
-      ~p:(conf_daemon#plug "pidfile")
-      ~d:false "support for pidfile generation"
-
-  let conf_daemon_pidfile_path =
-    Conf.string ~p:(conf_daemon_pidfile#plug "path") "path to pidfile"
-
-  let conf_daemon_pidfile_perms =
-    Conf.int ~d:0o640
-      ~p:(conf_daemon_pidfile#plug "perms")
-      "Unix file permissions for pidfile. Default: `0o640`."
-
-  let conf_daemon_drop_user =
-    Conf.bool
-      ~p:(conf_daemon#plug "change_user")
-      ~d:false "Changes the effective user (drops privileges)."
-
-  let conf_daemon_user =
-    Conf.string
-      ~p:(conf_daemon_drop_user#plug "user")
-      ~d:"daemon" "User used to run the daemon."
-
-  let conf_daemon_group =
-    Conf.string
-      ~p:(conf_daemon_drop_user#plug "group")
-      ~d:"daemon" "Group used to run the daemon."
-
   let conf_trace =
     Conf.bool ~p:(conf#plug "trace") ~d:false "dump an initialization trace"
 
@@ -499,70 +464,9 @@ module Init = struct
           clean ();
           exit (-1)
 
-  (** A function to reopen a file descriptor * Thanks to Xavier Leroy! * Ref:
-      http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/ *
-      a7e3bbdfaab33603320d75dbdcd40c37.en.html *)
-  let reopen_out outchan filename =
-    flush outchan;
-    let fd1 = Unix.descr_of_out_channel outchan in
-    let fd2 = Unix.openfile filename [Unix.O_WRONLY] 0o666 in
-    Unix.dup2 fd2 fd1;
-    Unix.close fd2
-
-  (** The same for inchan *)
-  let reopen_in inchan filename =
-    let fd1 = Unix.descr_of_in_channel inchan in
-    let fd2 = Unix.openfile filename [Unix.O_RDONLY] 0o666 in
-    Unix.dup2 fd2 fd1;
-    Unix.close fd2
-
-  let daemonize () =
-    if Unix.fork () <> 0 then exit 0;
-    (* Detach from the console *)
-    if Unix.setsid () < 0 then exit 1;
-    (* Refork.. *)
-    if Unix.fork () <> 0 then exit 0;
-    (* Change umask to 0 *)
-    ignore (Unix.umask 0);
-    (* chdir to / *)
-    Unix.chdir "/";
-    if conf_daemon_pidfile#get then begin
-      (* Write PID to file *)
-      let filename = conf_daemon_pidfile_path#get in
-      let f =
-        open_out_gen
-          [Open_wronly; Open_creat; Open_trunc]
-          conf_daemon_pidfile_perms#get filename
-      in
-      let pid = Unix.getpid () in
-      output_string f (string_of_int pid);
-      output_char f '\n';
-      close_out f
-    end;
-    (* Reopen usual file descriptor *)
-    reopen_in stdin "/dev/null";
-    reopen_out stdout "/dev/null";
-    reopen_out stderr "/dev/null"
-
-  let cleanup_daemon () =
-    if conf_daemon_pidfile#get then (
-      try
-        let filename = conf_daemon_pidfile_path#get in
-        Sys.remove filename
-      with _ -> ())
-
   exception Root_prohibited of [ `User | `Group | `Both ]
 
   let exit_when_root () =
-    (* Change user.. *)
-    if conf_daemon_drop_user#get then begin
-      let grd = Unix.getgrnam conf_daemon_group#get in
-      let gid = grd.Unix.gr_gid in
-      if Unix.getegid () <> gid then Unix.setgid gid;
-      let pwd = Unix.getpwnam conf_daemon_user#get in
-      let uid = pwd.Unix.pw_uid in
-      if Unix.geteuid () <> uid then Unix.setuid uid
-    end;
     match (Unix.geteuid (), Unix.getegid ()) with
       | 0, 0 -> raise (Root_prohibited `Both)
       | 0, _ -> raise (Root_prohibited `User)
@@ -571,7 +475,6 @@ module Init = struct
 
   let init ?(prohibit_root = false) f =
     if prohibit_root then exit_when_root ();
-    if conf_daemon#get && Sys.os_type <> "Win32" then daemonize ();
     let signal_h _ = () in
     Sys.set_signal Sys.sigterm (Sys.Signal_handle signal_h);
     Sys.set_signal Sys.sigint (Sys.Signal_handle signal_h);
@@ -581,20 +484,7 @@ module Init = struct
      * to shutdown is to terminate the main function [f]. *)
     if Sys.os_type <> "Win32" then
       ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigterm; Sys.sigint]);
-    let cleanup =
-      if conf_daemon#get && Sys.os_type <> "Win32" then cleanup_daemon
-      else fun () -> ()
-    in
-    catch (main f) cleanup
-
-  let args =
-    if Sys.os_type <> "Win32" then
-      [
-        ( ["-d"; "--daemon"],
-          Arg.Unit (fun () -> conf_daemon#set true),
-          "Run in daemon mode." );
-      ]
-    else []
+    catch (main f) (fun () -> ())
 end
 
 module Log = struct

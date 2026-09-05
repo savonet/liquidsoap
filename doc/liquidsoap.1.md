@@ -170,10 +170,6 @@ rather than to a file.
 \--check
 : Parse, type\-check but do not evaluate the script.
 
-\-d
-\--daemon
-: Run in daemon mode.
-
 \-f
 \--force-start
 : For advanced dynamic uses: force liquidsoap to start even when no active source is initially defined.

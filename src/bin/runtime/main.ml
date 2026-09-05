@@ -357,7 +357,7 @@ let options =
           translated into user-friendly errors. Use this option to let the \
           original error surface. This is useful when debugging." );
      ]
-    @ Dtools.Init.args @ Extra_args.args ()
+    @ Extra_args.args ()
     @ [
         ( ["-t"; "--enable-telnet"],
           Arg.Unit (fun _ -> Server.conf_telnet#set true),
@@ -552,9 +552,6 @@ let () =
 
       (* Set the default values. *)
       Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
-      Dtools.Init.conf_daemon_pidfile#set_d (Some true);
-      Dtools.Init.conf_daemon_pidfile_path#set_d
-        (Some "<sysrundir>/<script>.pid");
 
       Utils.add_subst "<sysrundir>" (Liquidsoap_paths.rundir ());
       Utils.add_subst "<syslogdir>" (Liquidsoap_paths.logdir ());
@@ -636,12 +633,11 @@ let () =
 
 (** Main procedure *)
 
-(** When the log/pid paths have their definitive values, expand substitutions
-    and check directories. This should be ran just before Dtools init. *)
+(** When the log path has its definitive value, expand substitutions and check
+    directories. This should be ran just before Dtools init. *)
 let check_directories () =
   (* Now that the paths have their definitive value, expand <shortcuts>. *)
   let subst conf = conf#set (Utils.subst_vars conf#get) in
-  subst Dtools.Init.conf_daemon_pidfile_path;
   let check_dir conf_path kind =
     let path = conf_path#get in
     let dir = Filename.dirname path in
@@ -658,67 +654,7 @@ To change it, add the following to your script:
   in
   if Dtools.Log.conf_file#get then (
     subst Dtools.Log.conf_file_path;
-    check_dir Dtools.Log.conf_file_path "Log");
-  if Dtools.Init.conf_daemon#get && Dtools.Init.conf_daemon_pidfile#get then
-    check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
-
-let () =
-  Dtools.Init.conf_daemon#on_change (fun v ->
-      if v then
-        log#important
-          "Script-base daemonization is DEPRECATED! Please use a modern \
-           daemonization facility such as `systemd` or `launchd` instead.")
-
-let daemonize () =
-  (* Forking is refused by the runtime once a domain exists, and the scheduler
-     spawns its own. *)
-  if Tutils.scheduler_started () then
-    failwith "Cannot daemonize once the scheduler has started!";
-  Dtools.Log.conf_stdout#set false;
-  (* Change user.. *)
-  let conf_daemon_change_user =
-    Dtools.Conf.as_bool (Dtools.Init.conf_daemon#path ["change_user"])
-  in
-  let conf_daemon_user =
-    Dtools.Conf.as_string (conf_daemon_change_user#path ["user"])
-  in
-  let conf_daemon_group =
-    Dtools.Conf.as_string (conf_daemon_change_user#path ["group"])
-  in
-  if conf_daemon_change_user#get then begin
-    let grd = Unix.getgrnam conf_daemon_group#get in
-    let gid = grd.Unix.gr_gid in
-    if Unix.getegid () <> gid then Unix.setgid gid;
-    let pwd = Unix.getpwnam conf_daemon_user#get in
-    let uid = pwd.Unix.pw_uid in
-    if Unix.geteuid () <> uid then Unix.setuid uid
-  end;
-  if Unix.fork () <> 0 then exit 0;
-  (* Detach from the console *)
-  if Unix.setsid () < 0 then exit 1;
-  (* Refork.. *)
-  if Unix.fork () <> 0 then exit 0;
-  (* Change umask to 0 *)
-  ignore (Unix.umask 0);
-  (* chdir to / *)
-  Unix.chdir "/";
-  if Dtools.Init.conf_daemon_pidfile#get then begin
-    (* Write PID to file *)
-    let filename = Dtools.Init.conf_daemon_pidfile_path#get in
-    let f =
-      open_out_gen
-        [Open_wronly; Open_creat; Open_trunc]
-        Dtools.Init.conf_daemon_pidfile_perms#get filename
-    in
-    let pid = Unix.getpid () in
-    output_string f (string_of_int pid);
-    output_char f '\n';
-    close_out f
-  end;
-  (* Reopen usual file descriptor *)
-  Utils.reopen_in stdin "/dev/null";
-  Utils.reopen_out stdout "/dev/null";
-  Utils.reopen_out stderr "/dev/null"
+    check_dir Dtools.Log.conf_file_path "Log")
 
 let () =
   Lifecycle.before_start ~name:"main application before start" (fun () ->
@@ -736,8 +672,6 @@ let () =
         Printf.printf "No output defined, nothing to do.\n";
         flush_all ();
         exit 1);
-
-      if Dtools.Init.conf_daemon#get then daemonize ();
 
       check_directories ();
       start_log ();

@@ -331,6 +331,12 @@ See [sharing state between tasks](./scheduling.md#sharing-state-between-tasks) f
 
 If concurrent execution breaks a script and it cannot be fixed right away, `settings.scheduler.legacy := true` brings back the previous behavior, threads and queues included. It is a fail-safe and will be removed in a later version.
 
+### Daemon mode removed
+
+The `-d`/`--daemon` option and the `settings.init.daemon` settings are gone, pidfile writing included. Detaching from the terminal required forking, which is not safe now that liquidsoap runs on several cores.
+
+Run liquidsoap in the foreground under a service manager instead — `systemd` on Linux, `launchd` on macOS. Both keep track of the process, restart it, and capture its output, so a pidfile is not needed. A script still setting `init.daemon`, `init.daemon.pidfile` or `init.daemon.change_user` no longer typechecks (`this value has no method daemon`); drop those lines, and let the service manager set user and group.
+
 ## From 2.3.x to 2.4.x
 
 See our [2.4.0 blog post](https://www.liquidsoap.info/blog/2025-08-11-liquidsoap-2.4.0/) for a detailed presentation
