@@ -124,6 +124,9 @@
 
 ## Fixed:
 
+- Active inputs such as `input.ffmpeg` replaced through `source.dynamic` are now stopped and
+  released. They used to keep their connection, decoder and threads alive for the lifetime of
+  the script (#5389).
 - A transition that drops the incoming source no longer drops that track's announcement with
   it. `cross` had already consumed the metadata into the buffer it hands the transition, so
   the track played on, audible and unannounced, once the transition was over. It is now

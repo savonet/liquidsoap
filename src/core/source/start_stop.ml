@@ -91,7 +91,9 @@ class virtual active_source ~name ~fallible ~autostart () =
 
     initializer
       self#on_wake_up (fun () -> if autostart then base#transition_to `Started);
-      self#on_sleep (fun () -> base#transition_to `Stopped)
+      (* A sleeping source gets no further streaming cycle, so a queued
+         transition would never run. *)
+      self#on_sleep (fun () -> base#execute_transition `Stopped)
 
     method fallible = fallible
     method private started = state = `Started

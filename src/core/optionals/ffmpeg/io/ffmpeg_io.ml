@@ -50,7 +50,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     val source_status
         : [ `Stopped
           | `Starting
-          | `Polling
+          | `Polling of bool Atomic.t
           | `Connected of string * container
           | `Stopping ]
           Atomic.t =
@@ -105,13 +105,16 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     method private connect_task () =
       Generator.set_max_length self#buffer max_length;
+      (* [closed] belongs to this attempt only: [disconnect] raises it to
+         interrupt [open_input], then it keeps interrupting the container's
+         reads once connected. *)
+      let closed = Atomic.make false in
+      let polling = `Polling closed in
       try
-        if self#source_status = `Stopping then raise Stopped;
-        assert (self#source_status = `Starting);
-        Atomic.set source_status `Polling;
+        if not (Atomic.compare_and_set source_status `Starting polling) then
+          raise Stopped;
         let opts = Hashtbl.copy opts in
         let url = self#url in
-        let closed = Atomic.make false in
         let container =
           Av.open_input
             ~interrupt:(fun () -> Atomic.get shutdown || Atomic.get closed)
@@ -142,11 +145,22 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         List.iter (fun fn -> fn m) (Callbacks.elements on_connect);
         Generator.add_track_mark self#buffer;
         let container = { decoder; remaining; buffer; closed } in
-        Atomic.set source_status (`Connected (url, container));
+        if
+          not
+            (Atomic.compare_and_set source_status polling
+               (`Connected (url, container)))
+        then (
+          decoder.close ();
+          List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect);
+          raise Stopped);
         -1.
       with
         | Stopped ->
-            Atomic.set source_status `Stopped;
+            ignore (Atomic.compare_and_set source_status `Stopping `Stopped);
+            -1.
+        | _ when not (Atomic.compare_and_set source_status polling `Starting) ->
+            (* [disconnect] interrupted the connection. *)
+            ignore (Atomic.compare_and_set source_status `Stopping `Stopped);
             -1.
         | e ->
             let bt = Printexc.get_raw_backtrace () in
@@ -156,35 +170,36 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             let err = Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" e in
             List.iter (fun fn -> fn err) (Callbacks.elements on_error);
             if debug then Printexc.raise_with_backtrace e bt;
-            Atomic.set source_status `Starting;
             poll_delay
 
     method private connect =
       match self#source_status with
-        | `Starting | `Polling | `Connected _ -> ()
-        | `Stopping | `Stopped -> (
+        | `Starting | `Polling _ | `Connected _ -> ()
+        | `Stopping | `Stopped ->
             Atomic.set source_status `Starting;
-            match Atomic.get connect_task with
-              | Some t -> Duppy.Async.wake_up t
-              | None ->
-                  let t =
-                    Duppy.Async.add ~priority:`Blocking Tutils.scheduler
-                      self#connect_task
-                  in
-                  Atomic.set connect_task (Some t);
-                  Duppy.Async.wake_up t)
+            let t =
+              Duppy.Async.add ~priority:`Blocking Tutils.scheduler
+                self#connect_task
+            in
+            Atomic.set connect_task (Some t);
+            Duppy.Async.wake_up t
 
     method private disconnect =
+      (* The stopped task no longer retains this source. *)
       let stop_task () =
-        match Atomic.get connect_task with
-          | None -> Atomic.set source_status `Stopped
-          | Some t ->
-              Atomic.set source_status `Stopping;
-              Duppy.Async.wake_up t
+        Option.iter Duppy.Async.stop (Atomic.exchange connect_task None)
       in
       match self#source_status with
         | `Stopping | `Stopped -> ()
-        | `Polling | `Starting -> stop_task ()
+        | `Starting ->
+            Atomic.set source_status `Stopped;
+            stop_task ()
+        | `Polling closed as polling ->
+            Atomic.set closed true;
+            (* The interrupted task sees [`Stopping] and finalizes itself. *)
+            if not (Atomic.compare_and_set source_status polling `Stopping) then
+              Atomic.set source_status `Stopped;
+            stop_task ()
         | `Connected (_, { decoder; closed }) ->
             Atomic.set closed true;
             (try decoder.close ()
@@ -194,11 +209,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                  (Printf.sprintf "Error while disconnecting: %s"
                     (Printexc.to_string exn)));
             List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect);
+            Atomic.set source_status `Stopped;
             stop_task ()
 
     method private reconnect =
       match self#source_status with
-        | `Stopping | `Stopped | `Polling | `Starting -> ()
+        | `Stopping | `Stopped | `Polling _ | `Starting -> ()
         | `Connected _ ->
             self#disconnect;
             self#connect
@@ -517,7 +533,7 @@ let register_input protocol =
                              | `Stopped -> "stopped"
                              | `Starting -> "starting"
                              | `Stopping -> "stopping"
-                             | `Polling -> "polling"
+                             | `Polling _ -> "polling"
                              | `Connected (url, _) ->
                                  Printf.sprintf "connected %s" url)));
                };
