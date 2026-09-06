@@ -966,7 +966,7 @@ let _ =
                    callback [("", Lang.string ip)]));
          };
        ]
-      @ Start_stop.callbacks ~label:"output")
+      @ Start_stop.output_callbacks ())
     ~meth:(Start_stop.meth ()) ~base:Modules.output "harbor" (proto return_t)
     ~return_t
     (fun p ->

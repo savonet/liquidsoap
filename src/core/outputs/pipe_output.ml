@@ -226,7 +226,7 @@ let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "url" (url_proto return_t) ~return_t
     ~category:`Output ~meth:(Start_stop.meth ())
-    ~callbacks:(url_callbacks @ Start_stop.callbacks ~label:"output")
+    ~callbacks:(url_callbacks @ Start_stop.output_callbacks ())
     ~descr:
       "Encode and let encoder handle data output. Useful with encoder with no \
        expected output or to encode to files that need full control from the \
@@ -616,7 +616,7 @@ let output_file =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "file" (file_proto return_t) ~return_t
     ~category:`Output ~meth:pipe_meth
-    ~callbacks:(pipe_callbacks @ Start_stop.callbacks ~label:"output")
+    ~callbacks:(pipe_callbacks @ Start_stop.output_callbacks ())
     ~descr:"Output the source stream to a file."
     (fun p -> new_file_output p)
 
@@ -660,6 +660,6 @@ let _ =
   Lang.add_operator ~base:output "external"
     (pipe_proto return_t "Process to pipe data to.")
     ~return_t ~category:`Output ~meth:pipe_meth
-    ~callbacks:(pipe_callbacks @ Start_stop.callbacks ~label:"output")
+    ~callbacks:(pipe_callbacks @ Start_stop.output_callbacks ())
     ~descr:"Send the stream to a process' standard input."
     (fun p -> (new external_output p :> piped_output))

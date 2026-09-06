@@ -1347,7 +1347,7 @@ let _ =
                s#register_on_file_change on_file_change);
          };
        ]
-      @ Start_stop.callbacks ~label:"output")
+      @ Start_stop.output_callbacks ())
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \
        directory."

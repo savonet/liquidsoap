@@ -165,7 +165,22 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
       Frame.map_metadata source#get_frame (fun (pos, m) ->
           Some (pos, self#add_on_air m))
 
+    val on_output : (before:bool -> unit -> unit) Callbacks.t =
+      Callbacks.create ()
+
+    method register_on_output fn = Callbacks.register on_output fn
+    method on_output fn = Callbacks.add on_output fn
+
+    method private fire_on_output ~before () =
+      List.iter (fun fn -> fn ~before ()) (Callbacks.elements on_output)
+
     method output =
+      self#fire_on_output ~before:true ();
+      Fun.protect
+        ~finally:(fun () -> self#fire_on_output ~before:false ())
+        (fun () -> self#do_output)
+
+    method private do_output =
       if self#is_ready && state = `Idle then
         start_stop#execute_transition `Started;
       if start_stop#state = `Started then (
@@ -210,7 +225,7 @@ let _ =
     ~category:`Output
     ~descr:"Dummy output: computes the stream, without actually using it."
     ~meth:(Start_stop.meth ())
-    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~callbacks:(Start_stop.output_callbacks ())
     ~return_t
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in

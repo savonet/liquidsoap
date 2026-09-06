@@ -98,7 +98,7 @@ let _ =
         ("", Lang.source_t frame_t, None, None);
       ])
     ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
-    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~callbacks:(Start_stop.output_callbacks ())
     ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in

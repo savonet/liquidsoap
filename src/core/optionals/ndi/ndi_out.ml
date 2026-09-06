@@ -195,7 +195,7 @@ let _ =
         ("", Lang.source_t return_t, None, None);
       ])
     ~category:`Output ~meth:(Start_stop.meth ())
-    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~callbacks:(Start_stop.output_callbacks ())
     ~self_sync_description:
       "This output uses the NDI sender clock as synchronization source when \
        `self_sync=true` and the sender is active. Otherwise, the \

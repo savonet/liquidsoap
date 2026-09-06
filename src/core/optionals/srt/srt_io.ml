@@ -1288,7 +1288,7 @@ let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~base:Modules.output "srt" ~return_t ~category:`Output
     ~meth:(meth () @ Start_stop.meth ())
-    ~callbacks:(callbacks @ Start_stop.callbacks ~label:"output")
+    ~callbacks:(callbacks @ Start_stop.output_callbacks ())
     ~descr:"Send a SRT stream to a distant agent."
     (Output.proto
     @ common_options ~mode:`Caller

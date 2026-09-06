@@ -146,6 +146,33 @@ let callbacks ~label =
       };
     ]
 
+let output_callbacks () =
+  callbacks ~label:"output"
+  @ Lang_source.
+      [
+        {
+          name = "on_output";
+          params =
+            [
+              {
+                name = "before";
+                typ = Lang.bool_t;
+                default = Some (Lang.bool true);
+              };
+            ];
+          descr =
+            "on output. Unlike `on_frame`, this brackets the whole output \
+             cycle, encoding and sending included.";
+          register_deprecated_argument = false;
+          arg_t = [];
+          register =
+            (fun ~params:p s f ->
+              let before = Lang.to_bool (List.assoc "before" p) in
+              s#register_on_output (fun ~before:b () ->
+                  if b = before then ignore (f [])));
+        };
+      ]
+
 let meth :
     unit ->
     (< state : state

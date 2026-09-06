@@ -692,7 +692,7 @@ let _ =
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
     ~meth:(Start_stop.meth ())
     ~callbacks:
-      (Start_stop.callbacks ~label:"output"
+      (Start_stop.output_callbacks ()
       @ [
           {
             Lang_source.name = "on_connect";
