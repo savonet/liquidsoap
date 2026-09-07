@@ -98,7 +98,7 @@ type wrapper = { wrap : 'a. (unit -> 'a) -> 'a }
 (** One domain or thread of the pool. [wake] carries a signal across the window
     between registering as idle and blocking on [worker_c], so a wake-up sent in
     that window is not lost. [blocking] counts the tasks parked on this worker's
-    auxiliary threads. *)
+    auxiliary threads, which live in [aux_pending] and the fields around it. *)
 type 'a worker = {
   worker_m : Mutex.t;
   worker_c : Condition.t;
@@ -106,6 +106,11 @@ type 'a worker = {
   mutable took_batch : bool;
   blocking : int Atomic.t;
   accepts : 'a -> bool;
+  aux_m : Mutex.t;
+  aux_c : Condition.t;
+  mutable aux_pending : (unit -> unit) list;
+  mutable aux_busy : int;
+  mutable aux_total : int;
 }
 
 type member = [ `Domain of unit Domain.t | `Thread of Thread.t ]
@@ -419,10 +424,39 @@ let run_task s fn =
         []
     | v -> v
 
+(** Auxiliary threads are kept parked between tasks, since a task in this class
+    can be shorter than the spawn it would otherwise pay for.
+
+    Finishing a job leads back into the queue check under the same lock, so a
+    thread with work waiting never parks and is never counted idle in the window
+    where a submission would pick it. *)
+let aux_loop s w =
+  let rec loop () =
+    while w.aux_pending = [] && not (Atomic.get s.stopped) do
+      Condition.wait w.aux_c w.aux_m
+    done;
+    match w.aux_pending with
+      | [] ->
+          w.aux_total <- w.aux_total - 1;
+          Mutex.unlock w.aux_m
+      | job :: rest ->
+          w.aux_pending <- rest;
+          w.aux_busy <- w.aux_busy + 1;
+          Mutex.unlock w.aux_m;
+          (try job ()
+           with exn ->
+             let bt = Printexc.get_raw_backtrace () in
+             s.on_error exn bt);
+          Mutex.lock w.aux_m;
+          w.aux_busy <- w.aux_busy - 1;
+          loop ()
+  in
+  Mutex.lock w.aux_m;
+  loop ()
+
 (** Blocking tasks run on an auxiliary systhread inside the worker's domain:
     once the task parks in a syscall it releases the runtime lock and the domain
-    goes back to dispatching. One thread per task rather than a pool, since a
-    task in this class is long enough that the spawn does not show.
+    goes back to dispatching.
 
     A worker that is itself a thread already releases the lock when it parks, so
     it runs the task in place. *)
@@ -434,13 +468,23 @@ let run_blocking s w fn =
     add_t s tasks
   in
   if s.threaded then run ()
-  else
-    ignore
-      (Thread.create
-         (fun () ->
-           run ();
-           wake_worker s w)
-         ())
+  else begin
+    let job () =
+      run ();
+      wake_worker s w
+    in
+    Mutex.lock w.aux_m;
+    w.aux_pending <- w.aux_pending @ [job];
+    if
+      w.aux_total - w.aux_busy < List.length w.aux_pending
+      && w.aux_total < s.blocking_per_worker
+    then begin
+      w.aux_total <- w.aux_total + 1;
+      ignore (Thread.create (fun () -> aux_loop s w) ())
+    end
+    else Condition.signal w.aux_c;
+    Mutex.unlock w.aux_m
+  end
 
 let wait_for_work s w =
   Mutex.lock w.worker_m;
@@ -576,6 +620,11 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
           took_batch = false;
           blocking = Atomic.make 0;
           accepts;
+          aux_m = Mutex.create ();
+          aux_c = Condition.create ();
+          aux_pending = [];
+          aux_busy = 0;
+          aux_total = 0;
         })
       accepts
   in
@@ -605,6 +654,9 @@ let stop s =
     Atomic.set s.stopped true;
     wake_up s;
     List.iter signal_worker s.workers;
+    List.iter
+      (fun w -> Mutex.protect w.aux_m (fun () -> Condition.broadcast w.aux_c))
+      s.workers;
     (* Let the tasks still parked on the workers finish, bounded because a
        blocking task is under no obligation to return. *)
     let deadline = time () +. drain_timeout in
