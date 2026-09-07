@@ -70,14 +70,17 @@ let exit () =
 let blocking_tasks =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "blocking_tasks")
-    ~d:64 "Blocking tasks"
+    ~d:(max 5 (Domain.recommended_domain_count ()))
+    "Blocking tasks"
     ~comments:
       [
         "Maximum number of blocking tasks running at once, spread evenly over";
-        "the scheduler's domains. Blocking tasks spend most of their time";
-        "waiting on a socket or a file rather than using a core, so this can";
-        "be much larger than the number of cores. Each domain keeps at least";
-        "one slot, so setting this below the number of cores has no effect.";
+        "the scheduler's domains. Defaults to one per domain, and never fewer";
+        "than 5. Raising it helps when the tasks truly wait, on a socket or a";
+        "slow mount. A task that uses a core instead of waiting on one, such as";
+        "probing a file for its decoder, gains nothing from extra slots and";
+        "takes cores the streaming threads need. Each domain keeps at least one";
+        "slot, so setting this below the number of domains has no effect.";
       ]
 
 let legacy =
