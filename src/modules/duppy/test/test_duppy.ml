@@ -1,9 +1,13 @@
 (* The pool dispatches across domains, batches immediate tasks onto one of
    them, delivers socket events, and lets running tasks finish on stop. *)
 
-type priority = Immediate | Blocking
+type priority = Immediate | Direct | Blocking
 
-let classify = function Immediate -> `Immediate | Blocking -> `Blocking
+let classify = function
+  | Immediate -> `Immediate
+  | Direct -> `Direct
+  | Blocking -> `Blocking
+
 let domain_id () = (Domain.self () :> int)
 
 let fail fmt =
@@ -393,6 +397,28 @@ let test_capacity_hands_off () =
   ok "a worker at capacity hands ready blocking work to a free one";
   Duppy.stop s
 
+(* A batch of immediate tasks is taken while a direct task is ready. The direct
+   one is neither run nor left behind by a ready list rebuilt from the classes
+   the batch did not cover. *)
+let test_direct_survives_a_batch () =
+  let s = Duppy.create ~classify () in
+  let ran = latch () in
+  Duppy.Task.add s
+    (task Direct (fun _ ->
+         bump ran;
+         []));
+  for _ = 1 to 20 do
+    Duppy.Task.add s (task Immediate (fun _ -> []))
+  done;
+  Duppy.start ~pool:(`Domains 1) s;
+  let deadline = Unix.gettimeofday () +. 2. in
+  while Atomic.get ran.n = 0 && Unix.gettimeofday () < deadline do
+    Thread.delay 0.01
+  done;
+  if Atomic.get ran.n = 0 then fail "a direct task was dropped by a batch";
+  ok "a direct task survives an immediate batch";
+  Duppy.stop s
+
 let () =
   watchdog 60.;
   test_threads ();
@@ -409,4 +435,5 @@ let () =
   test_await_outside_run ();
   test_no_starvation ();
   test_capacity_hands_off ();
+  test_direct_survives_a_batch ();
   print_endline "all duppy pool checks passed"

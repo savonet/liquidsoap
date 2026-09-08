@@ -89,7 +89,7 @@ let fired_events t ready =
             match of_fd fd with Some i -> i.Pollset.except | None -> false))
     t.events
 
-type execution_class = [ `Immediate | `Blocking ]
+type execution_class = [ `Immediate | `Direct | `Blocking ]
 
 (** Wraps every task body. Effect handlers do not cross the thread a task is
     dispatched to, so a caller whose tasks need one installs it here. *)
@@ -379,29 +379,40 @@ let run fn =
 
 let tmp = Bytes.create 1024
 
-type 'a work = Batch of (unit -> 'a t list) list | One of (unit -> 'a t list)
+type 'a work =
+  | Batch of (unit -> 'a t list) list
+  | Direct of (unit -> 'a t list)
+  | One of (unit -> 'a t list)
 
 (** Pick this worker's next unit of work and the idle workers to signal for what
     is left behind. [s.ready_m] must be held.
 
     Immediate tasks go as one batch: they do not block, so running them in
-    sequence on the calling domain costs less than a hand-off each. Blocking
-    tasks go one at a time, so they spread over the pool. *)
+    sequence on the calling domain costs less than a hand-off each. Direct and
+    blocking tasks go one at a time, so they spread over the pool: batching them
+    would run several long tasks in sequence on one domain. A direct task holds
+    no blocking slot, since it runs on the domain rather than on one of its
+    auxiliary threads. *)
 let take_work s w =
   let mine, others = List.partition (fun (p, _) -> w.accepts p) s.ready in
+  let direct, rest =
+    List.partition (fun (p, _) -> s.classify p = `Direct) mine
+  in
   let immediate, blocking =
-    List.partition (fun (p, _) -> s.classify p = `Immediate) mine
+    List.partition (fun (p, _) -> s.classify p = `Immediate) rest
   in
-  let can_block =
-    blocking <> [] && Atomic.get w.blocking < s.blocking_per_worker
+  let singles =
+    if Atomic.get w.blocking < s.blocking_per_worker then direct @ blocking
+    else direct
   in
-  (* A worker alternates between the two classes. Taking every ready immediate
-     task on every round starves blocking work whenever the ready list refills
+  let can_block = singles <> [] in
+  (* A worker alternates between a batch and a single task. Taking every ready
+     immediate task on every round starves the rest whenever the ready list refills
      as fast as it drains, which a lone worker cannot escape by leaving the
      rest to someone else. *)
     match immediate with
     | _ :: _ when not (w.took_batch && can_block) ->
-        s.ready <- blocking @ others;
+        s.ready <- direct @ blocking @ others;
         w.took_batch <- true;
         ( Some (Batch (List.rev_map snd immediate)),
           take_idle s (List.length s.ready) )
@@ -409,11 +420,15 @@ let take_work s w =
         let best =
           List.fold_left
             (fun best x -> if s.compare (fst x) (fst best) < 0 then x else best)
-            (List.hd blocking) blocking
+            (List.hd singles) singles
         in
         s.ready <- List.filter (fun x -> x != best) s.ready;
         w.took_batch <- false;
-        (Some (One (snd best)), take_idle s (List.length s.ready))
+        let work =
+          if s.classify (fst best) = `Direct then Direct (snd best)
+          else One (snd best)
+        in
+        (Some work, take_idle s (List.length s.ready))
     (* Blocking work is ready but this worker is at its own capacity for it:
        leaving it there would strand the task until a worker happens to look
        for an unrelated reason, so hand it to the ones that are idle. *)
@@ -515,6 +530,7 @@ let dispatch s w =
     List.iter signal_worker wake;
     begin match work with
       | Some (Batch fns) -> List.iter (fun fn -> add_t s (run_task s fn)) fns
+      | Some (Direct fn) -> add_t s (run_task s fn)
       | Some (One fn) -> run_blocking s w fn
       | None -> wait_for_work s w
     end

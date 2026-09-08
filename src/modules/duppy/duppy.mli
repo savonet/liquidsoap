@@ -66,8 +66,12 @@ type 'a scheduler
 
     [`Blocking] tasks may park in a syscall. Each one is run on an auxiliary
     thread inside its domain, so that parking releases the runtime lock and the
-    domain goes back to dispatching. *)
-type execution_class = [ `Immediate | `Blocking ]
+    domain goes back to dispatching.
+
+    [`Direct] tasks are long but do not block: each one runs on a domain by
+    itself, one at a time, so several of them spread over the pool rather than
+    running in sequence on one domain. *)
+type execution_class = [ `Immediate | `Direct | `Blocking ]
 
 (** Wraps every task body. Effect handlers do not cross the thread a task is
     dispatched to, so a caller whose tasks need one installs it here rather than
