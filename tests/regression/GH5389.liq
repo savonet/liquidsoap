@@ -49,7 +49,7 @@ def on_track(_) =
   if
     tracks() == 2
   then
-    thread.run(every={collected() ? -1. : 0.1}, runtime.gc.compact)
+    thread.run(every={(collected() ? -1. : 0.1)}, runtime.gc.compact)
   end
 end
 
