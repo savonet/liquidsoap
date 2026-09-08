@@ -241,8 +241,8 @@ fallback.
 
 ## Parallel encoding with `clock.assign_new`
 
-Each clock runs in its own thread, which means sources assigned to different
-clocks can run on separate CPU cores. This matters most for video encoding,
+Each clock is animated on its own, as a scheduler task by default, which means
+sources assigned to different clocks can run on separate CPU cores. This matters most for video encoding,
 which is typically the most CPU-intensive part of a streaming workflow.
 
 When two outputs share the same default clock, they encode sequentially:

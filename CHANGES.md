@@ -64,6 +64,12 @@
   domain and never fewer than 8, so a machine with few cores keeps room to run several at once. Raising it pays off
   when those tasks truly wait. A task that uses a core instead of waiting on one, such as probing a
   file for its decoder, only takes cores the streaming threads need.
+- Clocks run as scheduler tasks rather than each on a thread of its own. A clock that is ahead
+  of real time parks and is resumed by the scheduler's timer, so a machine running many outputs
+  has as many busy threads as cores instead of one per clock competing for them. A clock
+  catching up yields its domain to the others after each burst of frames. Ticks run directly on
+  a scheduler domain, one at a time, ahead of request resolution.
+  `settings.clock.task := false` restores a thread per clock.
 - When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then
   long tasks such as last.fm submissions. The order used to be arbitrary and often favoured the slow ones.
 
