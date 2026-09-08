@@ -106,8 +106,9 @@ val create :
   * @param pool Default: [`Domains (Domain.recommended_domain_count ())]
   * @param max_blocking the most [`Blocking] tasks that may be in flight at
   * once, spread evenly over the domains. Each domain keeps at least one slot,
-  * so a value below their number gives one per domain. Unused by a thread
-  * pool. Default: [64]
+  * rounded up, so the whole budget is available even when it does not divide
+  * evenly and a value below their number gives one per domain. Unused by a
+  * thread pool. Default: [64]
   * @param log Logging function. Default: no logging *)
 val start :
   ?pool:[ `Domains of int | `Threads of ('a -> bool) list ] ->

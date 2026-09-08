@@ -60,7 +60,10 @@
   `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from the number of cores and there is
   nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
   warning. `settings.scheduler.blocking_tasks` replaces them, limiting how many slow tasks — request
-  resolutions, `thread.run` handlers, last.fm submissions — may run at once.
+  resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to one per
+  domain and never fewer than 8, so a machine with few cores keeps room to run several at once. Raising it pays off
+  when those tasks truly wait. A task that uses a core instead of waiting on one, such as probing a
+  file for its decoder, only takes cores the streaming threads need.
 - When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then
   long tasks such as last.fm submissions. The order used to be arbitrary and often favoured the slow ones.
 
@@ -118,9 +121,11 @@
   bottlenecks on one core: an `%ffmpeg` output using `libx265` and a 4K input is about 2.5
   times faster. Pass `threads=1` to an `%ffmpeg` encoder to get the previous behavior back
   (#5014).
-- Video scaling is now split over one thread per core, as `ffmpeg` does through its filter
-  graphs. `settings.ffmpeg.scaling_threads` sets the count, `1` restoring the single-threaded
-  scaling of previous versions (#5014).
+- Video scaling can be split across cores through `settings.ffmpeg.scaling_threads`, as
+  `ffmpeg` does through its filter graphs. It defaults to `1`, scaling on the calling thread:
+  splitting a frame costs a fan-out and a join every frame, which a stream held to real time
+  pays continuously and, on our measurements, does not earn back. `0` uses one thread per
+  core (#5014).
 - Removed daemon mode: the `-d`/`--daemon` command-line option, the `settings.init.daemon`
   settings and the pidfile they wrote. Detaching from the terminal meant forking, which is
   unsafe now that liquidsoap runs on several cores. Use a service manager such as `systemd`

@@ -2,6 +2,8 @@
 # collectable.
 
 stopped = ref(false)
+collected = ref(false)
+tracks = ref(0)
 
 current = ref(source.fail())
 dynamic =
@@ -27,12 +29,30 @@ def install() =
   first.on_stop(synchronous=true, fun () -> stopped := true)
   first.on_collect(
     synchronous=true,
-    fun () -> if stopped() then test.pass() else test.fail() end
+    fun () ->
+      begin
+        collected := true
+        if stopped() then test.pass() else test.fail() end
+      end
   )
   first.on_connect(synchronous=true, fun () -> thread.run(delay=0.2, replace))
   current := first
 end
 
+# The second track is the switch away from `first`, whose last reference is
+# dropped a cycle or so later, so collection is asked for until it happens.
+#
+# Compacting from the clock thread would deadlock, since the finaliser passes
+# the test and that shuts down the clock it is running on.
+def on_track(_) =
+  tracks := tracks() + 1
+  if
+    tracks() == 2
+  then
+    thread.run(every={(collected() ? -1. : 0.1)}, runtime.gc.compact)
+  end
+end
+
+dynamic.on_track(synchronous=true, on_track)
+
 thread.run(delay=0.1, install)
-thread.run(delay=2., runtime.gc.compact)
-thread.run(delay=4., test.fail)
