@@ -61,7 +61,7 @@
   nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
   warning. `settings.scheduler.blocking_tasks` replaces them, limiting how many slow tasks — request
   resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to one per
-  domain and never fewer than 5, which is what the generic queues allowed before. Raising it pays off
+  domain and never fewer than 8, so a machine with few cores keeps room to run several at once. Raising it pays off
   when those tasks truly wait. A task that uses a core instead of waiting on one, such as probing a
   file for its decoder, only takes cores the streaming threads need.
 - When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then

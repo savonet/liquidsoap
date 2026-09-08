@@ -414,6 +414,10 @@ let take_work s w =
         s.ready <- List.filter (fun x -> x != best) s.ready;
         w.took_batch <- false;
         (Some (One (snd best)), take_idle s (List.length s.ready))
+    (* Blocking work is ready but this worker is at its own capacity for it:
+       leaving it there would strand the task until a worker happens to look
+       for an unrelated reason, so hand it to the ones that are idle. *)
+    | _ when blocking <> [] -> (None, take_idle s (List.length blocking))
     | _ -> (None, [])
 
 let run_task s fn =
@@ -609,7 +613,7 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
   in
   s.threaded <- (match pool with Some (`Threads _) -> true | _ -> false);
   let count = List.length accepts in
-  s.blocking_per_worker <- max 1 (max_blocking / count);
+  s.blocking_per_worker <- max 1 ((max_blocking + count - 1) / count);
   let workers =
     List.map
       (fun accepts ->

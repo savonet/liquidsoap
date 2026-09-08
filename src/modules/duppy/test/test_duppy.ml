@@ -363,6 +363,36 @@ let test_threads () =
     | _ -> fail "tasks did not each stay on the thread accepting their priority");
   ok "%d tasks ran on the main domain, one thread per priority" (2 * count)
 
+(* A worker that takes a blocking task goes back to idle while its auxiliary
+   thread runs it, so it sits at the front of the idle list at its own
+   capacity. The next blocking task must not be stranded on it while other
+   workers are free. *)
+let test_capacity_hands_off () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 4) ~max_blocking:4 s;
+  let held = latch () in
+  let extra = latch () in
+  Duppy.Task.add s
+    (task Blocking (fun _ ->
+         bump held;
+         Thread.delay 2.;
+         []));
+  await held 1;
+  (* Let the worker finish declining and settle at the front of the idle list. *)
+  Thread.delay 0.3;
+  Duppy.Task.add s
+    (task Blocking (fun _ ->
+         bump extra;
+         []));
+  let deadline = Unix.gettimeofday () +. 1. in
+  while Atomic.get extra.n = 0 && Unix.gettimeofday () < deadline do
+    Thread.delay 0.01
+  done;
+  if Atomic.get extra.n = 0 then
+    fail "a blocking task was stranded on a worker already at its capacity";
+  ok "a worker at capacity hands ready blocking work to a free one";
+  Duppy.stop s
+
 let () =
   watchdog 60.;
   test_threads ();
@@ -378,4 +408,5 @@ let () =
   test_effect_raises_to_on_error ();
   test_await_outside_run ();
   test_no_starvation ();
+  test_capacity_hands_off ();
   print_endline "all duppy pool checks passed"
