@@ -69,7 +69,8 @@
   has as many busy threads as cores instead of one per clock competing for them. A clock
   catching up yields its domain to the others after each burst of frames. Ticks run directly on
   a scheduler domain, one at a time, ahead of request resolution.
-  `settings.clock.task := false` restores a thread per clock.
+  A clock driving JACK input or output keeps a thread of its own, since it rests by waiting on the
+  JACK server. `settings.clock.task := false` restores a thread per clock everywhere.
 - When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then
   long tasks such as last.fm submissions. The order used to be arbitrary and often favoured the slow ones.
 

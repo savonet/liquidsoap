@@ -252,6 +252,26 @@ type main_conflict = {
 
 exception Main_conflict of main_conflict
 
+type animator_conflict = { pos : Pos.Option.t; clock : string }
+
+exception Animator_conflict of animator_conflict
+
+let () =
+  Printexc.register_printer (function
+    | Animator_conflict { pos; clock } ->
+        let buf = Buffer.create Utils.buflen in
+        let formatter = Format.formatter_of_buffer buf in
+        Liquidsoap_lang.Runtime.error_header ~formatter 18 pos;
+        Format.fprintf formatter
+          "Clock %s has already started as a scheduler task.@ A source that \
+           rests by waiting on an external server, such as JACK input or \
+           output,@ needs a clock animated by a thread of its own and cannot \
+           join a clock that is already running.@]@."
+          clock;
+        Format.pp_print_flush formatter ();
+        Some (Buffer.contents buf)
+    | _ -> None)
+
 let () =
   Liquidsoap_lang.Runtime.on_error_print (fun ~formatter -> function
     | Conflict (pos, a, b) ->
@@ -457,6 +477,10 @@ type clock = {
      tick (unless already ticked during it, e.g. by an operator pulling data
      from them) and stopped when this clock stops. *)
   sub_clocks : t Queue.t;
+  (* Set by a source whose sync rests by blocking in a foreign call, which a
+     clock animated by a scheduler task cannot do without holding a domain for
+     the whole rest. *)
+  needs_thread : bool Atomic.t;
   on_error : (exn -> Printexc.raw_backtrace -> unit) Queue.t;
 }
 
@@ -700,6 +724,18 @@ let deregister_sub_clock parent sub =
   Queue.filter_out (Unifier.deref parent).sub_clocks (fun c ->
       Unifier.deref c == clock)
 
+(* The animator is picked once, when the clock starts, so a source declaring
+   this has to do it from its initializer. *)
+let _force_thread ~pos clock =
+  if Atomic.get clock.state <> `Stopped then
+    raise (Animator_conflict { pos; clock = _descr clock });
+  Atomic.set clock.needs_thread true
+
+let force_thread c =
+  let clock = Unifier.deref c in
+  let pos = match Atomic.get clock.stack with p :: _ -> Some p | [] -> None in
+  _force_thread ~pos clock
+
 (* {1 Source attachment} *)
 
 let attach c s =
@@ -836,6 +872,7 @@ let unify =
     Queue.flush_iter clock.pending_activations
       (Queue.push clock'.pending_activations);
     Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
+    if Atomic.get clock.needs_thread then _force_thread ~pos clock';
     Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
     (match (Atomic.get clock.id, Atomic.get clock'.id) with
       | Some _, Some id ->
@@ -1249,7 +1286,7 @@ let _start_animator ~clock ~c params =
       on_stop ()
     with Has_stopped -> on_stop ()
   in
-  if conf_task#get then (
+  if conf_task#get && not (Atomic.get clock.needs_thread) then (
     params.animator <- `Task;
     Duppy.Task.add Tutils.scheduler
       {
@@ -1400,6 +1437,7 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id
         stack = Atomic.make stack;
         pending_activations = Queue.create ();
         sub_clocks = Queue.create ();
+        needs_thread = Atomic.make false;
         state = Atomic.make `Stopped;
         on_error = on_error_queue;
       }
