@@ -767,15 +767,14 @@ and stop c =
            current tick and calls [has_stopped]. *)
         Atomic.set clock.state (`Stopping params)
 
+(* A clock reports back at the end of its tick, so stopping is asynchronous in
+   both animator modes. The steps that follow tear down the sources a tick
+   reads from, and a clock task is not in the set [Tutils.cleanup] joins, so
+   the wait belongs here, ahead of every [on_core_shutdown]. *)
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
       Atomic.set global_stop true;
-      Registry.iter_started (fun c -> if sync c <> `Passive then stop c))
-
-(* A clock parked as a task wakes on its timer to find it has been stopped, so
-   the scheduler has to stay up until every started clock has reported back. *)
-let () =
-  Lifecycle.before_scheduler_shutdown ~name:"Clocks drain" (fun () ->
+      Registry.iter_started (fun c -> if sync c <> `Passive then stop c);
       let module Time = (val Liq_time.unix : Liq_time.T) in
       let now () = Time.to_float (Time.time ()) in
       let deadline = now () +. conf_max_latency#get in
@@ -785,7 +784,7 @@ let () =
       let left = ref [] in
       Registry.iter_started (fun c -> left := id c :: !left);
       if !left <> [] then
-        log#important "Clocks still running at scheduler shutdown: %s"
+        log#important "Clocks still running at shutdown: %s"
           (String.concat ", " !left))
 
 (* {1 Unification}
