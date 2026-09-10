@@ -122,8 +122,11 @@ def mkfade(
     if start_time() < 0. then start_time := source.time(s) end
 
     t = source.time(s) - start_time() - delay
+
+    # While the delay is pending, do not touch `duration`: a zero duration
+    # would divide by zero and amplify by inf.
     if
-      0. < duration and t <= 0.
+      t < 0.
     then
       start
     elsif
