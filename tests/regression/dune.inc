@@ -1434,6 +1434,23 @@
  (action (run %{run_test} external-encoder liquidsoap %{test_liq} external-encoder.liq)))
   
 (rule
+ (alias fade-zero-duration-delay)
+ (package liquidsoap)
+ 
+ (deps
+  fade-zero-duration-delay.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} fade-zero-duration-delay liquidsoap %{test_liq} fade-zero-duration-delay.liq)))
+  
+(rule
  (alias fallible_ogg)
  (package liquidsoap)
  
@@ -1893,6 +1910,7 @@
     (alias double-nullable)
     (alias eval-check-demeth)
     (alias external-encoder)
+    (alias fade-zero-duration-delay)
     (alias fallible_ogg)
     (alias ffmpeg-copy-encode)
     (alias ffmpeg-copy-input-http)

@@ -2,6 +2,8 @@
 
 ## Fixed:
 
+- Fixed `fade.in`/`fade.out` amplifying by infinity while a `liq_fade_*_delay` was
+  pending on a track whose fade duration is `0.`.
 - `cross` and `crossfade` with their default `deduplicate=true` no longer drop
   the metadata of a track that repeats the one before it, e.g. a single file on
   a loop, which silenced the handlers a script registers after the operator.
