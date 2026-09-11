@@ -23,6 +23,19 @@
 let runtime = Modules.runtime
 let runtime_gc = Lang.add_module ~base:runtime "gc"
 
+(* Which domain the calling code runs on. The major heap is per-domain, so a
+   task that wants every domain collected has to notice which one it landed on
+   and repeat until it has seen them all. *)
+let _ =
+  Lang.add_builtin ~base:runtime "domain" ~category:`Liquidsoap
+    ~descr:"Index of the domain the calling code is running on." [] Lang.int_t
+    (fun _ -> Lang.int (Domain.self () :> int))
+
+let _ =
+  Lang.add_builtin ~base:runtime "domain_count" ~category:`Liquidsoap
+    ~descr:"Number of domains the runtime recommends for this machine." []
+    Lang.int_t (fun _ -> Lang.int (Domain.recommended_domain_count ()))
+
 let _ =
   Lang.add_builtin ~base:runtime_gc "full_major" ~category:`Liquidsoap
     ~descr:"Trigger full major garbage collection." [] Lang.unit_t (fun _ ->
