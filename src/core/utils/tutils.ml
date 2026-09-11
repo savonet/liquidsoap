@@ -319,7 +319,7 @@ let start () =
              settings.scheduler.legacy is set.";
         None)
     in
-    Duppy.start ?pool ~max_blocking:blocking_tasks#get
+    Duppy.start ?pool ~current_domain:true ~max_blocking:blocking_tasks#get
       ?log:(scheduler_logger ()) scheduler)
 
 (** Waits for [f()] to become true on condition [c]. *)

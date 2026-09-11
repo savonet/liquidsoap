@@ -2,10 +2,9 @@ log.level := 5
 
 collected = ref(false)
 
-# An object is collected only by a GC on the domain that allocated it, and the
-# script itself runs on the main domain where no task ever does. So the source
-# is created from a task, on whichever worker takes it, and everything after
-# runs pinned to that same domain.
+# An object is collected only by a GC on the domain that allocated it, so the
+# source is created from a task and everything after runs pinned to that
+# task's domain, whichever worker took it.
 def setup() =
   home = runtime.domain()
   b = blank(id="first")

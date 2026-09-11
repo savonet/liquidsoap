@@ -4,6 +4,7 @@
 stopped = ref(false)
 collected = ref(false)
 tracks = ref(0)
+home = ref(-1)
 
 current = ref(source.fail())
 dynamic =
@@ -20,6 +21,7 @@ def replace() =
 end
 
 def install() =
+  home := runtime.domain()
   first =
     input.ffmpeg(
       id="first",
@@ -40,7 +42,8 @@ def install() =
 end
 
 # The second track is the switch away from `first`, whose last reference is
-# dropped a cycle or so later, so collection is asked for until it happens.
+# dropped a cycle or so later, so collection is asked for until it happens, on
+# the domain that allocated it since a GC only reclaims its own domain's heap.
 #
 # Compacting from the clock thread would deadlock, since the finaliser passes
 # the test and that shuts down the clock it is running on.
@@ -49,7 +52,11 @@ def on_track(_) =
   if
     tracks() == 2
   then
-    thread.run(every={(collected() ? -1. : 0.1)}, runtime.gc.compact)
+    thread.run(
+      domain=home(),
+      every={(collected() ? -1. : 0.1)},
+      runtime.gc.compact
+    )
   end
 end
 

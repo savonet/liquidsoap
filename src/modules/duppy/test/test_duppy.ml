@@ -458,6 +458,31 @@ let test_pinned () =
   ok "a pinned task and its %d reruns all ran on domain %d" (runs - 1) home;
   Duppy.stop s
 
+(* The calling domain joins the pool as a thread when asked, so a task can be
+   pinned to it; without asking, that domain has no worker. *)
+let test_current_domain () =
+  let here = domain_id () in
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 2) s;
+  (match Duppy.Task.add ~domain:here s (task Immediate (fun _ -> [])) with
+    | () -> fail "the calling domain had a worker without asking for one"
+    | exception Duppy.Unknown_domain _ -> ());
+  Duppy.stop s;
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 2) ~current_domain:true s;
+  let ran_on = Atomic.make (-1) in
+  let seen = latch () in
+  Duppy.Task.add ~domain:here s
+    (task Immediate (fun _ ->
+         Atomic.set ran_on (domain_id ());
+         bump seen;
+         []));
+  await seen 1;
+  if Atomic.get ran_on <> here then
+    fail "pinned to the calling domain %d, ran on %d" here (Atomic.get ran_on);
+  ok "the calling domain %d takes tasks as a pool worker" here;
+  Duppy.stop s
+
 let () =
   watchdog 60.;
   test_threads ();
@@ -476,4 +501,5 @@ let () =
   test_capacity_hands_off ();
   test_direct_survives_a_batch ();
   test_pinned ();
+  test_current_domain ();
   print_endline "all duppy pool checks passed"
