@@ -668,7 +668,7 @@ let poller s =
         poll_once s
       done)
 
-let start ?pool ?(max_blocking = 64) ?log:logger s =
+let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
   if not (Atomic.compare_and_set s.started false true) then
     failwith "Duppy.start: scheduler already started";
   s.log <- logger;
@@ -682,27 +682,36 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
             (fun _ _ -> true)
   in
   s.threaded <- (match pool with Some (`Threads _) -> true | _ -> false);
-  let count = List.length accepts in
-  s.blocking_per_worker <- max 1 ((max_blocking + count - 1) / count);
-  let workers =
-    List.map
-      (fun accepts ->
-        {
-          worker_m = Mutex.create ();
-          worker_c = Condition.create ();
-          wake = false;
-          took_batch = false;
-          blocking = Atomic.make 0;
-          accepts;
-          domain = -1;
-          aux_m = Mutex.create ();
-          aux_c = Condition.create ();
-          aux_pending = [];
-          aux_busy = 0;
-          aux_total = 0;
-        })
-      accepts
+  let make_worker accepts =
+    {
+      worker_m = Mutex.create ();
+      worker_c = Condition.create ();
+      wake = false;
+      took_batch = false;
+      blocking = Atomic.make 0;
+      accepts;
+      domain = -1;
+      aux_m = Mutex.create ();
+      aux_c = Condition.create ();
+      aux_pending = [];
+      aux_busy = 0;
+      aux_total = 0;
+    }
   in
+  let workers = List.map make_worker accepts in
+  (* A thread on the calling domain, so the domain that evaluated the script
+     takes tasks too and collects what it allocated: a GC only reclaims the
+     heap of the domain it runs on. A thread pool already sits there. *)
+  let current =
+    if current_domain && not s.threaded then (
+      let w = make_worker (fun _ -> true) in
+      w.domain <- (Domain.self () :> int);
+      Some w)
+    else None
+  in
+  let workers = workers @ Option.to_list current in
+  let count = List.length workers in
+  s.blocking_per_worker <- max 1 ((max_blocking + count - 1) / count);
   s.workers <- workers;
   let guard fn () =
     try fn ()
@@ -722,6 +731,12 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
       | `Domain d -> w.domain <- (Domain.get_id d :> int)
       | `Thread _ -> ());
     m
+  in
+  let spawn_worker w =
+    match current with
+      | Some c when c == w ->
+          `Thread (Thread.create (guard (fun () -> dispatch s w)) ())
+      | _ -> spawn_worker w
   in
   s.members <- spawn (fun () -> poller s) :: List.map spawn_worker workers;
   log s (fun () ->

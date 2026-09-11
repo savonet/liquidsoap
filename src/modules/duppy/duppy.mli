@@ -110,6 +110,10 @@ val create :
   * in place on the thread that took it. Nothing runs in parallel and
   * [Unix.fork] stays usable.
   * @param pool Default: [`Domains (Domain.recommended_domain_count ())]
+  * @param current_domain also run one worker as a thread on the calling
+  * domain, so that domain takes tasks too and a GC there reclaims what it
+  * allocated. Ignored for a thread pool, which is on the calling domain
+  * already. Default: [false]
   * @param max_blocking the most [`Blocking] tasks that may be in flight at
   * once, spread evenly over the domains. Each domain keeps at least one slot,
   * rounded up, so the whole budget is available even when it does not divide
@@ -118,6 +122,7 @@ val create :
   * @param log Logging function. Default: no logging *)
 val start :
   ?pool:[ `Domains of int | `Threads of ('a -> bool) list ] ->
+  ?current_domain:bool ->
   ?max_blocking:int ->
   ?log:(string -> unit) ->
   'a scheduler ->
