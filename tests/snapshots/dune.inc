@@ -1048,6 +1048,25 @@
   (diff expected/type_constructors.expected type_constructors.actual)))
 
 (rule
+ (target unary_minus_after_operator.actual)
+ (deps
+  (:case cases/unary_minus_after_operator.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected/unary_minus_after_operator.expected
+   unary_minus_after_operator.actual)))
+
+(rule
  (target while_loop.actual)
  (deps
   (:case cases/while_loop.liq)

@@ -1,0 +1,164 @@
+=== unary_minus_after_operator.liq ===
+# A "-" right after an operator is a sign, whatever came before the operator.
+b = true
+y = 2
+n = null
+a = b ? -y : 0
+c = (b) ? -y : 0
+d = n ?? -y
+e = fun (z) -> -z
+f = b ? -1 : -2
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "b" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "true" }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "y" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "ground", "value": "2" }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "n" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "null" }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "a" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "if",
+      "condition": { "type": "var", "value": "b" },
+      "then": [
+        {
+        "type": "negative",
+        "value": { "type": "var", "value": "y" }
+      }
+      ],
+      "elsif": [],
+      "else": [ { "type": "ground", "value": "0" } ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "c" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "if",
+      "condition": {
+        "type": "parenthesis",
+        "value": { "type": "var", "value": "b" }
+      },
+      "then": [
+        {
+        "type": "negative",
+        "value": { "type": "var", "value": "y" }
+      }
+      ],
+      "elsif": [],
+      "else": [ { "type": "ground", "value": "0" } ]
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "d" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "coalesce",
+      "left": { "type": "var", "value": "n" },
+      "right": {
+        "type": "negative",
+        "value": { "type": "var", "value": "y" }
+      }
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "e" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "fun",
+      "arguments": [
+        {
+        "type": "term",
+        "value": {
+          "type": "fun_arg",
+          "label": "",
+          "as_variable": { "type": "pvar", "value": [ "z" ] },
+          "typ": null,
+          "default": null
+        }
+      }
+      ],
+      "body": {
+        "type": "negative",
+        "value": { "type": "var", "value": "z" }
+      }
+    }
+  },
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "f" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "if",
+      "condition": { "type": "var", "value": "b" },
+      "then": [
+        {
+        "type": "negative",
+        "value": { "type": "ground", "value": "1" }
+      }
+      ],
+      "elsif": [],
+      "else": [
+        {
+        "type": "negative",
+        "value": { "type": "ground", "value": "2" }
+      }
+      ]
+    }
+  }
+  ]
+}
+--- hash ---
+01c95b31070bd6091f24ff01487cbc1c
+--- term ---
+b = true
+y = 2
+n = null
+a = if(b, then=fun () -> ~-(y), else={0})
+c = if(b, then=fun () -> ~-(y), else={0})
+d = _null.default(n, fun () -> ~-(y))
+e = fun (z) -> ~-(z)
+f = if(b, then=fun () -> ~-(1), else=fun () -> ~-(2))
+()
+--- doc ---
+b: A "-" right after an operator is a sign, whatever came before the operator.
+--- type ---
+unit
+--- value ---
+()
