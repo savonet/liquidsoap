@@ -78,6 +78,8 @@ type execution_class = [ `Immediate | `Direct | `Blocking ]
     at each of its own entry points. *)
 type wrapper = { wrap : 'a. (unit -> 'a) -> 'a }
 
+exception Unknown_domain of int
+
 (** Initiate a new scheduler. It has no domains until [start] is called.
   * @param on_error called when a task raises.
   * @param on_fatal called when the event loop itself crashes, which should be
@@ -149,8 +151,11 @@ module Task : sig
     | `Read of Unix.file_descr
     | `Exception of Unix.file_descr ]
 
-  (** Schedule a task. *)
-  val add : 'a scheduler -> ('a, [< event ]) task -> unit
+  (** Schedule a task. With [domain], only the worker on that domain runs it,
+      and so does every task its handler returns. Raises [Unknown_domain] when
+      no started worker is on that domain or accepts the task's priority, and
+      always on a thread pool, where workers share a domain. *)
+  val add : ?domain:int -> 'a scheduler -> ('a, [< event ]) task -> unit
 end
 
 (** {2 Direct-style computations}

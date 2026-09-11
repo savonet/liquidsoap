@@ -46,6 +46,9 @@
   one is expected, so sources of different content can be held together, for instance in a list,
   without unifying their content types, while nothing can be assumed about what a `source(_)`
   streams.
+- Added `domain` to `thread.run`, pinning the function and every rerun to the
+  scheduler worker on that domain. An object is only collected by a GC on the
+  domain that allocated it, which makes this the way to ask for one.
 
 ## Changed:
 

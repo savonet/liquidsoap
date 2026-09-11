@@ -3,10 +3,18 @@
 # @param ~fast Whether the thread is supposed to return quickly or not. Typically, blocking tasks (e.g. fetching data over the internet) should not be considered to be fast. When set to `false` its priority will be lowered below that of request resolutions and fast timeouts.
 # @param ~delay Delay (in seconds) after which the thread should be launched.
 # @param ~every How often (in seconds) the thread should be run. If negative or `null`, run once.
+# @param ~domain Domain to run on, as reported by `runtime.domain()`. Every rerun stays there.
 # @param ~on_error Error callback executed when an error occurred while running the given function. When passed, \
 #                  all raised errors are silenced unless re-raised by the callback.
 # @param f Function to execute.
-def replaces thread.run(~fast=true, ~delay=0., ~on_error=null, ~every=null, f) =
+def replaces thread.run(
+  ~fast=true,
+  ~delay=0.,
+  ~on_error=null,
+  ~every=null,
+  ~domain=null,
+  f
+) =
   every = every ?? getter(-1.)
 
   def f() =
@@ -25,7 +33,13 @@ def replaces thread.run(~fast=true, ~delay=0., ~on_error=null, ~every=null, f) =
       on_error
     )
 
-  thread.run.recurrent(fast=fast, delay=delay, on_error=on_error, f)
+  thread.run.recurrent(
+    fast=fast,
+    delay=delay,
+    on_error=on_error,
+    domain=domain,
+    f
+  )
 end
 
 # Unless told not to, we want to batch thread.when calls when the getter is a fixed

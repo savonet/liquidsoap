@@ -37,7 +37,13 @@ type 'a t = {
   deadline : float;
   fire : event list -> 'a t list;
   mutable dispatched : bool;
+  (* The one worker allowed to run it, by domain. *)
+  pinned : int option;
 }
+
+(** A task whose events fired, waiting for a worker. [target] is the domain of
+    the one worker that may take it. *)
+type 'a ready = { prio : 'a; run : unit -> 'a t list; target : int option }
 
 (** Waiting tasks ordered by when they expire, the id breaking ties between
     tasks sharing a deadline. *)
@@ -106,6 +112,8 @@ type 'a worker = {
   mutable took_batch : bool;
   blocking : int Atomic.t;
   accepts : 'a -> bool;
+  (* Set by [start] from the spawned domain; stays [-1] on a thread pool. *)
+  mutable domain : int;
   aux_m : Mutex.t;
   aux_c : Condition.t;
   mutable aux_pending : (unit -> unit) list;
@@ -128,7 +136,7 @@ type 'a scheduler = {
   by_fd : (fd, 'a t list) Hashtbl.t;
   mutable timers : 'a t Timers.t;
   tasks_m : Mutex.t;
-  mutable ready : ('a * (unit -> 'a t list)) list;
+  mutable ready : 'a ready list;
   mutable idle : 'a worker list;
   ready_m : Mutex.t;
   started : bool Atomic.t;
@@ -270,10 +278,18 @@ let wake_idle s n =
   let workers = Mutex.protect s.ready_m (fun () -> take_idle s n) in
   List.iter signal_worker workers
 
+(** Take one worker off the idle list. [s.ready_m] must be held. *)
+let claim_worker s w =
+  s.idle <- List.filter (fun x -> x != w) s.idle;
+  w
+
 let wake_worker s w =
-  Mutex.protect s.ready_m (fun () ->
-      s.idle <- List.filter (fun x -> x != w) s.idle);
+  Mutex.protect s.ready_m (fun () -> ignore (claim_worker s w));
   signal_worker w
+
+let worker_for s domain = List.find_opt (fun w -> w.domain = domain) s.workers
+
+exception Unknown_domain of int
 
 module Task = struct
   (** Events and tasks from the user's point-of-view. *)
@@ -286,7 +302,7 @@ module Task = struct
     handler : 'b list -> ('a, 'b) task list;
   }
 
-  let rec t_of_task (task : ('a, [< event ]) task) =
+  let rec t_of_task ?domain (task : ('a, [< event ]) task) =
     let t0 = time () in
     let events = (task.events :> event list) in
     {
@@ -303,12 +319,14 @@ module Task = struct
           let l =
             List.filter (fun ev -> List.mem (ev :> event) fired) task.events
           in
-          List.map t_of_task (task.handler l));
+          List.map (t_of_task ?domain) (task.handler l));
       dispatched = false;
+      pinned = domain;
     }
 
   let add_t s items =
     let ready = ref 0 in
+    let pinned = ref [] in
     let f item =
       match fired_events item [] with
         | [] ->
@@ -318,15 +336,34 @@ module Task = struct
         | fired ->
             item.dispatched <- true;
             Mutex.lock s.ready_m;
-            s.ready <- (item.prio, fun () -> item.fire fired) :: s.ready;
+            s.ready <-
+              {
+                prio = item.prio;
+                run = (fun () -> item.fire fired);
+                target = item.pinned;
+              }
+              :: s.ready;
             Mutex.unlock s.ready_m;
-            incr ready
+            incr ready;
+            Option.iter (fun d -> pinned := d :: !pinned) item.pinned
     in
     List.iter f items;
     if 0 < !ready then wake_idle s !ready;
+    List.iter (fun d -> Option.iter (wake_worker s) (worker_for s d)) !pinned;
     wake_up s
 
-  let add s t = add_t s [t_of_task t]
+  (* A pin names a worker that has to exist and accept the task, so a wrong one
+     fails here rather than leaving a task nobody will ever take. *)
+  let add ?domain s t =
+    (match domain with
+      | None -> ()
+      | Some d -> (
+          if (not (Atomic.get s.started)) || s.threaded then
+            raise (Unknown_domain d);
+          match worker_for s d with
+            | Some w when w.accepts t.priority -> ()
+            | _ -> raise (Unknown_domain d)));
+    add_t s [t_of_task ?domain t]
 end
 
 open Task
@@ -394,12 +431,17 @@ type 'a work =
     no blocking slot, since it runs on the domain rather than on one of its
     auxiliary threads. *)
 let take_work s w =
-  let mine, others = List.partition (fun (p, _) -> w.accepts p) s.ready in
+  let mine, others =
+    List.partition
+      (fun e ->
+        w.accepts e.prio && (e.target = None || e.target = Some w.domain))
+      s.ready
+  in
   let direct, rest =
-    List.partition (fun (p, _) -> s.classify p = `Direct) mine
+    List.partition (fun e -> s.classify e.prio = `Direct) mine
   in
   let immediate, blocking =
-    List.partition (fun (p, _) -> s.classify p = `Immediate) rest
+    List.partition (fun e -> s.classify e.prio = `Immediate) rest
   in
   let singles =
     if Atomic.get w.blocking < s.blocking_per_worker then direct @ blocking
@@ -414,19 +456,19 @@ let take_work s w =
     | _ :: _ when not (w.took_batch && can_block) ->
         s.ready <- direct @ blocking @ others;
         w.took_batch <- true;
-        ( Some (Batch (List.rev_map snd immediate)),
+        ( Some (Batch (List.rev_map (fun e -> e.run) immediate)),
           take_idle s (List.length s.ready) )
     | _ when can_block ->
         let best =
           List.fold_left
-            (fun best x -> if s.compare (fst x) (fst best) < 0 then x else best)
+            (fun best x -> if s.compare x.prio best.prio < 0 then x else best)
             (List.hd singles) singles
         in
         s.ready <- List.filter (fun x -> x != best) s.ready;
         w.took_batch <- false;
         let work =
-          if s.classify (fst best) = `Direct then Direct (snd best)
-          else One (snd best)
+          if s.classify best.prio = `Direct then Direct best.run
+          else One best.run
         in
         (Some work, take_idle s (List.length s.ready))
     (* Blocking work is ready but this worker is at its own capacity for it:
@@ -598,11 +640,23 @@ let poll_once s =
     | _ ->
         let wake =
           Mutex.protect s.ready_m (fun () ->
+              let targets =
+                List.filter_map
+                  (fun ((t : _ t), _) -> Option.bind t.pinned (worker_for s))
+                  collected
+              in
               List.iter
-                (fun (t, events) ->
-                  s.ready <- (t.prio, fun () -> t.fire events) :: s.ready)
+                (fun ((t : _ t), events) ->
+                  s.ready <-
+                    {
+                      prio = t.prio;
+                      run = (fun () -> t.fire events);
+                      target = t.pinned;
+                    }
+                    :: s.ready)
                 collected;
-              take_idle s (List.length collected))
+              List.map (claim_worker s) targets
+              @ take_idle s (List.length collected))
         in
         List.iter signal_worker wake
 
@@ -640,6 +694,7 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
           took_batch = false;
           blocking = Atomic.make 0;
           accepts;
+          domain = -1;
           aux_m = Mutex.create ();
           aux_c = Condition.create ();
           aux_pending = [];
@@ -659,9 +714,16 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
     if s.threaded then `Thread (Thread.create (guard fn) ())
     else `Domain (Domain.spawn (guard fn))
   in
-  s.members <-
-    spawn (fun () -> poller s)
-    :: List.map (fun w -> spawn (fun () -> dispatch s w)) workers;
+  (* The parent reads the spawned domain's id directly, so a pin can be
+     validated before the worker has run a single instruction. *)
+  let spawn_worker w =
+    let m = spawn (fun () -> dispatch s w) in
+    (match m with
+      | `Domain d -> w.domain <- (Domain.get_id d :> int)
+      | `Thread _ -> ());
+    m
+  in
+  s.members <- spawn (fun () -> poller s) :: List.map spawn_worker workers;
   log s (fun () ->
       if s.threaded then Printf.sprintf "Started %d dispatch threads." count
       else
