@@ -52,6 +52,12 @@ let _ =
         Lang.float_t,
         Some (Lang.float 0.),
         Some "Delay (in sec.) after which the thread should be launched." );
+      ( "domain",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some
+          "Domain to run on, as reported by `runtime.domain()`. Every rerun \
+           stays there. Only meaningful once the scheduler is started." );
       ( "on_error",
         Lang.nullable_t (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t),
         Some Lang.null,
@@ -74,6 +80,9 @@ let _ =
       let priority =
         if Lang.to_bool (List.assoc "fast" p) then `Maybe_blocking
         else `Blocking
+      in
+      let domain =
+        Option.map Lang.to_int (Lang.to_option (List.assoc "domain" p))
       in
       let on_error = Lang.to_option (List.assoc "on_error" p) in
       let on_error =
@@ -106,7 +115,15 @@ let _ =
         }
       in
       Lifecycle.after_start ~name:"thread start" (fun () ->
-          Duppy.Task.add Tutils.scheduler (task delay));
+          try Duppy.Task.add ?domain Tutils.scheduler (task delay)
+          with Duppy.Unknown_domain d ->
+            Lang.raise_error ~pos:(Lang.pos p)
+              ~message:
+                (Printf.sprintf
+                   "No scheduler worker runs on domain %d. Use a value from \
+                    runtime.domain() taken inside a task."
+                   d)
+              "invalid");
       Lang.unit)
 
 let _ =

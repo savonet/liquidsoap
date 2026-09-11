@@ -223,7 +223,8 @@ let create f x s =
     ()
 
 type priority =
-  [ `Blocking  (** For example a last.fm submission. *)
+  [ `Clock  (** A clock resuming to produce its next frames. *)
+  | `Blocking  (** For example a last.fm submission. *)
   | `Maybe_blocking  (** Request resolutions vary a lot. *)
   | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
@@ -244,12 +245,13 @@ let rec error_handler ~bt exn =
         error_handler ~bt exn
 
 (* Polymorphic compare orders these by name hash, which is not the order we
-   want: the server must come first, and a request resolution before a last.fm
-   submission. *)
+   want: the server must come first, then a clock holding a stream to real
+   time, then a request resolution before a last.fm submission. *)
 let priority_rank = function
   | `Non_blocking -> 0
-  | `Maybe_blocking -> 1
-  | `Blocking -> 2
+  | `Clock -> 1
+  | `Maybe_blocking -> 2
+  | `Blocking -> 3
 
 let scheduler : priority Duppy.scheduler =
   Duppy.create
@@ -268,7 +270,13 @@ let scheduler : priority Duppy.scheduler =
       flush_all ();
       _exit 1)
     ~compare:(fun a b -> compare (priority_rank a) (priority_rank b))
-    ~classify:(function `Non_blocking -> `Immediate | _ -> `Blocking)
+    ~classify:(function
+      | `Non_blocking -> `Immediate
+      (* A clock tick is long and holds a stream to real time: it runs on the
+         domain, alone, so ticks spread rather than queueing behind each
+         other. *)
+      | `Clock -> `Direct
+      | _ -> `Blocking)
       (* Tasks run script code, which registers its callbacks through an
          effect. *)
     ~wrapper:{ Duppy.wrap = Script_callback.uncollected }

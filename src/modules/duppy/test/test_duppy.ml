@@ -1,9 +1,13 @@
 (* The pool dispatches across domains, batches immediate tasks onto one of
    them, delivers socket events, and lets running tasks finish on stop. *)
 
-type priority = Immediate | Blocking
+type priority = Immediate | Direct | Blocking
 
-let classify = function Immediate -> `Immediate | Blocking -> `Blocking
+let classify = function
+  | Immediate -> `Immediate
+  | Direct -> `Direct
+  | Blocking -> `Blocking
+
 let domain_id () = (Domain.self () :> int)
 
 let fail fmt =
@@ -393,6 +397,67 @@ let test_capacity_hands_off () =
   ok "a worker at capacity hands ready blocking work to a free one";
   Duppy.stop s
 
+(* A batch of immediate tasks is taken while a direct task is ready. The direct
+   one is neither run nor left behind by a ready list rebuilt from the classes
+   the batch did not cover. *)
+let test_direct_survives_a_batch () =
+  let s = Duppy.create ~classify () in
+  let ran = latch () in
+  Duppy.Task.add s
+    (task Direct (fun _ ->
+         bump ran;
+         []));
+  for _ = 1 to 20 do
+    Duppy.Task.add s (task Immediate (fun _ -> []))
+  done;
+  Duppy.start ~pool:(`Domains 1) s;
+  let deadline = Unix.gettimeofday () +. 2. in
+  while Atomic.get ran.n = 0 && Unix.gettimeofday () < deadline do
+    Thread.delay 0.01
+  done;
+  if Atomic.get ran.n = 0 then fail "a direct task was dropped by a batch";
+  ok "a direct task survives an immediate batch";
+  Duppy.stop s
+
+(* A pinned task and every task its handler returns run on the worker for that
+   domain, found the way script code finds it: by asking from inside an
+   unpinned task. A pin naming no worker is refused rather than left waiting. *)
+let test_pinned () =
+  let s = Duppy.create ~classify () in
+  (match Duppy.Task.add ~domain:0 s (task Immediate (fun _ -> [])) with
+    | () -> fail "a pin was accepted before the pool started"
+    | exception Duppy.Unknown_domain _ -> ());
+  Duppy.start ~pool:(`Domains 4) s;
+  (match Duppy.Task.add ~domain:9999 s (task Immediate (fun _ -> [])) with
+    | () -> fail "a pin to a domain with no worker was accepted"
+    | exception Duppy.Unknown_domain 9999 -> ());
+  let home = Atomic.make (-1) in
+  let seen = latch () in
+  Duppy.Task.add s
+    (task Direct (fun _ ->
+         Atomic.set home (domain_id ());
+         bump seen;
+         []));
+  await seen 1;
+  let home = Atomic.get home in
+  (* Immediate tasks are the ones a batch could carry off to the wrong worker. *)
+  let runs = 20 in
+  let where = Array.make runs (-1) in
+  let finished = latch () in
+  let rec hop i _ =
+    where.(i) <- domain_id ();
+    bump finished;
+    if i + 1 < runs then [task Immediate (hop (i + 1))] else []
+  in
+  Duppy.Task.add ~domain:home s (task Immediate (hop 0));
+  await finished runs;
+  Array.iteri
+    (fun i d ->
+      if d <> home then fail "rerun %d ran on domain %d instead of %d" i d home)
+    where;
+  ok "a pinned task and its %d reruns all ran on domain %d" (runs - 1) home;
+  Duppy.stop s
+
 let () =
   watchdog 60.;
   test_threads ();
@@ -409,4 +474,6 @@ let () =
   test_await_outside_run ();
   test_no_starvation ();
   test_capacity_hands_off ();
+  test_direct_survives_a_batch ();
+  test_pinned ();
   print_endline "all duppy pool checks passed"

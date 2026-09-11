@@ -252,6 +252,26 @@ type main_conflict = {
 
 exception Main_conflict of main_conflict
 
+type animator_conflict = { pos : Pos.Option.t; clock : string }
+
+exception Animator_conflict of animator_conflict
+
+let () =
+  Printexc.register_printer (function
+    | Animator_conflict { pos; clock } ->
+        let buf = Buffer.create Utils.buflen in
+        let formatter = Format.formatter_of_buffer buf in
+        Liquidsoap_lang.Runtime.error_header ~formatter 18 pos;
+        Format.fprintf formatter
+          "Clock %s has already started as a scheduler task.@ A source that \
+           rests by waiting on an external server, such as JACK input or \
+           output,@ needs a clock animated by a thread of its own and cannot \
+           join a clock that is already running.@]@."
+          clock;
+        Format.pp_print_flush formatter ();
+        Some (Buffer.contents buf)
+    | _ -> None)
+
 let () =
   Liquidsoap_lang.Runtime.on_error_print (fun ~formatter -> function
     | Conflict (pos, a, b) ->
@@ -342,6 +362,16 @@ let conf_latency =
         "we wait until re-starting the streaming loop.";
       ]
 
+let conf_task =
+  Dtools.Conf.bool ~p:(conf_clock#plug "task") ~d:true
+    "Run clocks as scheduler tasks"
+    ~comments:
+      [
+        "A clock that is ahead of real time rests by parking as a scheduler";
+        "task and is resumed by the scheduler's timer, instead of sleeping on";
+        "a thread of its own.";
+      ]
+
 let conf_leak_warning =
   Dtools.Conf.int
     ~p:(conf_clock#plug "leak_warning")
@@ -392,6 +422,12 @@ type active_params = {
   (* Time implementation used for latency control. Re-anchored whenever the
      sync source changes so that [time () = 0] at tick [0]. *)
   mutable time_implementation : Liq_time.implementation;
+  (* What animates the clock: parking only makes sense from inside a
+     scheduler task, and a clock can also be ticked from outside. *)
+  mutable animator : [ `None | `Thread | `Task ];
+  (* Ticks taken in a row without getting ahead, for pacing yields while a
+     task-animated clock catches up. *)
+  mutable catchup_ticks : int;
   log_delay : float;
   log_delay_threshold : float;
   frame_duration : float;
@@ -441,6 +477,10 @@ type clock = {
      tick (unless already ticked during it, e.g. by an operator pulling data
      from them) and stopped when this clock stops. *)
   sub_clocks : t Queue.t;
+  (* Set by a source whose sync rests by blocking in a foreign call, which a
+     clock animated by a scheduler task cannot do without holding a domain for
+     the whole rest. *)
+  needs_thread : bool Atomic.t;
   on_error : (exn -> Printexc.raw_backtrace -> unit) Queue.t;
 }
 
@@ -638,6 +678,7 @@ module Registry = struct
     WeakQueue.filter_out all_clocks (fun el -> el == c)
 
   let iter_started fn = Queue.iter started fn
+  let none_started () = Queue.is_empty started
 
   let managed () =
     Queue.elements retained @ WeakQueue.elements pending
@@ -682,6 +723,18 @@ let deregister_sub_clock parent sub =
   let clock = Unifier.deref sub in
   Queue.filter_out (Unifier.deref parent).sub_clocks (fun c ->
       Unifier.deref c == clock)
+
+(* The animator is picked once, when the clock starts, so a source declaring
+   this has to do it from its initializer. *)
+let _force_thread ~pos clock =
+  if Atomic.get clock.state <> `Stopped then
+    raise (Animator_conflict { pos; clock = _descr clock });
+  Atomic.set clock.needs_thread true
+
+let force_thread c =
+  let clock = Unifier.deref c in
+  let pos = match Atomic.get clock.stack with p :: _ -> Some p | [] -> None in
+  _force_thread ~pos clock
 
 (* {1 Source attachment} *)
 
@@ -750,10 +803,25 @@ and stop c =
            current tick and calls [has_stopped]. *)
         Atomic.set clock.state (`Stopping params)
 
+(* A clock reports back at the end of its tick, so stopping is asynchronous in
+   both animator modes. The steps that follow tear down the sources a tick
+   reads from, and a clock task is not in the set [Tutils.cleanup] joins, so
+   the wait belongs here, ahead of every [on_core_shutdown]. *)
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
       Atomic.set global_stop true;
-      Registry.iter_started (fun c -> if sync c <> `Passive then stop c))
+      Registry.iter_started (fun c -> if sync c <> `Passive then stop c);
+      let module Time = (val Liq_time.unix : Liq_time.T) in
+      let now () = Time.to_float (Time.time ()) in
+      let deadline = now () +. conf_max_latency#get in
+      while (not (Registry.none_started ())) && now () < deadline do
+        Thread.delay 0.01
+      done;
+      let left = ref [] in
+      Registry.iter_started (fun c -> left := id c :: !left);
+      if !left <> [] then
+        log#important "Clocks still running at shutdown: %s"
+          (String.concat ", " !left))
 
 (* {1 Unification}
 
@@ -804,6 +872,7 @@ let unify =
     Queue.flush_iter clock.pending_activations
       (Queue.push clock'.pending_activations);
     Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
+    if Atomic.get clock.needs_thread then _force_thread ~pos clock';
     Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
     (match (Atomic.get clock.id, Atomic.get clock'.id) with
       | Some _, Some id ->
@@ -966,17 +1035,29 @@ let _set_time { time_implementation; frame_duration; ticks } t =
   let module Time = (val time_implementation : Liq_time.T) in
   Atomic.set ticks (int_of_float (Time.to_float t /. frame_duration))
 
+(* Give the animating domain up for [delay], returning [false] when there is
+   no handler to park on: a tick driven from outside the clock's own task. *)
+let _park params ~delay =
+  match params.animator with
+    | `Thread | `None -> false
+    | `Task -> (
+        try
+          Duppy.reschedule ~delay ~priority:`Clock Tutils.scheduler;
+          true
+        with Effect.Unhandled _ -> false)
+
+let _latency params =
+  match params.current_sync_source with
+    | Some { latency } -> latency
+    | None -> conf_latency#get
+
 (* The clock is ahead of its target time: rest until the target time, but
    only when far enough ahead. *)
 let _sleep_until_target params ~end_time ~target_time =
   let module Time = (val params.time_implementation : Liq_time.T) in
-  let latency =
-    match params.current_sync_source with
-      | Some { latency } -> latency
-      | None -> conf_latency#get
-  in
-  if Time.(of_float latency |<=| (target_time |-| end_time)) then
-    Time.sleep_until target_time
+  if Time.(of_float (_latency params) |<=| (target_time |-| end_time)) then (
+    let delay = Time.(to_float (target_time |-| time ())) in
+    if not (0. < delay && _park params ~delay) then Time.sleep_until target_time)
 
 (* The clock is behind its target time: reset the sources when latency
    exceeds the maximum, otherwise log periodic catchup warnings. *)
@@ -1013,6 +1094,18 @@ let _handle_latency params ~end_time ~target_time =
        info."
       Time.(to_float (end_time |-| target_time)))
 
+(* Catching up means ticking without rest, which would hold the animating
+   domain for as long as it takes, so the clock yields to the other clocks on
+   the pool. It first runs the ticks it takes to earn a rest, one latency's
+   worth: yielding more often than that means fighting for a domain several
+   times over for what is naturally a single burst. *)
+let _yield_while_catching_up params =
+  let turn = max 1 (int_of_float (_latency params /. params.frame_duration)) in
+  params.catchup_ticks <- params.catchup_ticks + 1;
+  if turn <= params.catchup_ticks then (
+    params.catchup_ticks <- 0;
+    ignore (_park params ~delay:0.))
+
 let _after_tick params =
   (* [Queue.flush_iter] takes the queue's mutation lock even when empty:
      check emptiness lock-free first, this runs on every tick. *)
@@ -1025,10 +1118,16 @@ let _after_tick params =
   let target_time = _target_time params in
   check_stopped ();
   match (params.sync, Time.(end_time |<| target_time)) with
-    | `Unsynced, _ | `Passive, _ -> ()
+    | `Passive, _ -> ()
+    (* Never ahead by construction, so it yields the same way a clock catching
+       up does. *)
+    | `Unsynced, _ -> _yield_while_catching_up params
     | `Automatic, true | `CPU, true ->
+        params.catchup_ticks <- 0;
         _sleep_until_target params ~end_time ~target_time
-    | _ -> _handle_latency params ~end_time ~target_time
+    | _ ->
+        _handle_latency params ~end_time ~target_time;
+        _yield_while_catching_up params
 
 (* {1 Streaming loop} *)
 
@@ -1154,7 +1253,7 @@ let rec _tick ?(pull = false) ~clock params =
   _after_tick params;
   check_stopped ()
 
-let _clock_thread ~clock ~c params =
+let _start_animator ~clock ~c params =
   let has_sources_to_process () =
     0 < Queue.length clock.pending_activations
     || 0 < Queue.length params.outputs
@@ -1174,8 +1273,7 @@ let _clock_thread ~clock ~c params =
           ("no more sources to process", not (has_sources_to_process ()));
         ]
     in
-    params.log#important "Clock thread has stopped: %s."
-      (String.concat ", " reasons);
+    params.log#important "Clock has stopped: %s." (String.concat ", " reasons);
     has_stopped ~clear_controller:true ~clock ~c params
   in
   let run () =
@@ -1188,12 +1286,31 @@ let _clock_thread ~clock ~c params =
       on_stop ()
     with Has_stopped -> on_stop ()
   in
-  Tutils.create
-    (fun () ->
-      params.log#info "Clock thread is starting";
-      run ())
-    ()
-    ("Clock " ^ _id clock)
+  if conf_task#get && not (Atomic.get clock.needs_thread) then (
+    params.animator <- `Task;
+    Duppy.Task.add Tutils.scheduler
+      {
+        Duppy.Task.priority = `Clock;
+        events = [`Delay 0.];
+        handler =
+          (fun _ ->
+            Duppy.run (fun () ->
+                params.log#info "Clock task is starting";
+                run ());
+            []);
+      };
+    ("task", "task-" ^ string_of_int clock.unique_id))
+  else (
+    params.animator <- `Thread;
+    let th =
+      Tutils.create
+        (fun () ->
+          params.log#info "Clock thread is starting";
+          run ())
+        ()
+        ("Clock " ^ _id clock)
+    in
+    ("thread", string_of_int (Thread.id th)))
 
 (* {1 Starting}
 
@@ -1284,20 +1401,22 @@ let rec _start ?force ~c clock =
       outputs = Queue.create ();
       ticks = Atomic.make 0;
       pulled = Atomic.make false;
+      animator = `None;
+      catchup_ticks = 0;
     }
   in
   Queue.iter clock.sub_clocks (fun c -> start ?force c);
   Atomic.set clock.state (`Started params);
   if sync <> `Passive then (
-    let th = _clock_thread ~clock ~c params in
+    let kind, id = _start_animator ~clock ~c params in
     match controller with
       | `None ->
           let controller =
             object
-              method id = string_of_int (Thread.id th)
+              method id = id
             end
           in
-          Atomic.set clock.controller (`Other ("thread", controller))
+          Atomic.set clock.controller (`Other (kind, controller))
       | _ -> raise Invalid_state)
 
 and start ?force c =
@@ -1318,6 +1437,7 @@ let create ?(stack = []) ?(controller = `None) ?on_error ?id
         stack = Atomic.make stack;
         pending_activations = Queue.create ();
         sub_clocks = Queue.create ();
+        needs_thread = Atomic.make false;
         state = Atomic.make `Stopped;
         on_error = on_error_queue;
       }
