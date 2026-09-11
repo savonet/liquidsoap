@@ -75,16 +75,7 @@ let blit src ?(x = 0) ?(y = 0) dst =
     done
   done
 
-(** What [Font.Make] needs of a suspension: enough to defer building the
-    character map. *)
-module type Lazy_t = sig
-  type 'a t
-
-  val from_fun : (unit -> 'a) -> 'a t
-  val force : 'a t -> 'a
-end
-
-module Font_make (Lazy : Lazy_t) = struct
+module Font = struct
   module CharMap = Map.Make (struct
     type t = char
 
@@ -93,7 +84,7 @@ module Font_make (Lazy : Lazy_t) = struct
 
   (** A fixed-size font. *)
   type nonrec t = {
-    map : t CharMap.t Lazy.t;
+    map : t CharMap.t;  (** image associated to each pixel *)
     width : int;  (** width of a char in pixels *)
     height : int;  (** height of a char in pixels *)
     default : t;  (** default displayed character when not supported *)
@@ -105,7 +96,7 @@ module Font_make (Lazy : Lazy_t) = struct
   let height font = font.height
 
   (** Our native font. *)
-  let native : t =
+  let native () : t =
     let prebitmap =
       [
         ('A', [| " * "; "* *"; "***"; "* *"; "* *" |]);
@@ -160,12 +151,11 @@ module Font_make (Lazy : Lazy_t) = struct
     let width = 3 in
     let height = 5 in
     let map =
-      Lazy.from_fun (fun () ->
-          List.fold_left
-            (fun f (c, b) ->
-              let bmp = init width height (fun i j -> b.(j).[i] <> ' ') in
-              CharMap.add c bmp f)
-            CharMap.empty prebitmap)
+      List.fold_left
+        (fun f (c, b) ->
+          let bmp = init width height (fun i j -> b.(j).[i] <> ' ') in
+          CharMap.add c bmp f)
+        CharMap.empty prebitmap
     in
     let default = create_white width height in
     {
@@ -178,7 +168,7 @@ module Font_make (Lazy : Lazy_t) = struct
       line_space = 2;
     }
 
-  let render ?(font = native) ?size text =
+  let render ~font ?size text =
     let height = Option.value ~default:font.height size in
     let text_height, text_width =
       let h = ref 1 in
@@ -215,7 +205,7 @@ module Font_make (Lazy : Lazy_t) = struct
       else (
         let c = if font.uppercase then Char.uppercase_ascii c else c in
         let c =
-          match CharMap.find_opt c (Lazy.force font.map) with
+          match CharMap.find_opt c font.map with
             | Some c -> c
             | None -> font.default
         in
@@ -223,10 +213,4 @@ module Font_make (Lazy : Lazy_t) = struct
         xoff := !xoff + font.width + font.char_space)
     done;
     rescale height font.height img
-end
-
-(** Bitmap fonts. *)
-module Font = struct
-  module Make = Font_make
-  include Font_make (Stdlib.Lazy)
 end
