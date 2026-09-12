@@ -20,7 +20,7 @@ let settings.audioscrobbler.api_secret =
 audioscrobbler = ()
 
 def audioscrobbler.request(
-  ~base_url="http://ws.audioscrobbler.com/2.0",
+  ~base_url="https://ws.audioscrobbler.com/2.0",
   ~api_key=null,
   ~api_secret=null,
   params

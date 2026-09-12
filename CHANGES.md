@@ -67,6 +67,7 @@
   switching child, leaving the clock synced on the source they just left
 - Fixed the type unifier retaining collapsed variables forever, by merging
   unified variables using union by rank (#5342)
+- Fixed Audioscrobbler base url (#5404, @iibaranov-IG)
 
 ---
 
