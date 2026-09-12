@@ -76,16 +76,20 @@ When ICY is enabled on port `n`, Shoutcast clients should connect to port `n+1`.
 
 ### SSL / HTTPS
 
-SSL support requires one of the following opam packages: `ssl` or
-`osx-secure-transport`. When available via `ssl`, use `input.harbor.ssl`;
-when available via `osx-secure-transport`, use `input.harbor.secure_transport`.
+SSL support requires the `ssl` opam package. Every harbor operator takes a
+`transport` argument; pass it `http.transport.ssl`:
 
-The corresponding settings are under `harbor.ssl.*` or
-`harbor.secure_transport.*`:
+```liquidsoap
+transport =
+  http.transport.ssl(
+    certificate="/path/to/cert.pem", key="/path/to/key.pem"
+  )
+s = input.harbor(transport=transport, port=8005, "live")
+```
 
-- `harbor.ssl.certificate`: Path to the SSL certificate.
-- `harbor.ssl.private_key`: Path to the SSL private key.
-- `harbor.ssl.password`: Optional password to unlock the private key.
+The `key` argument can be omitted when the certificate file also contains the
+private key. The same transport is accepted by `output.harbor` and
+`harbor.http.register`.
 
 For a free, valid certificate, see [Let's Encrypt](https://letsencrypt.org/).
 For local testing, a self-signed certificate can be generated with:

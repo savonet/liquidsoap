@@ -35,7 +35,7 @@ The `video.canvas` API (for positioning video elements) is unaffected by this ch
 
 Video dimensions (`video.frame.width`/`height`) are now automatically detected from the first decoded video file. This means you no longer need to manually set dimensions in most cases.
 
-To disable this behavior, either set `settings.video.detect_dimensions` to `false` or explicitly set the video dimensions yourself.
+To disable this behavior, either set `settings.frame.video.detect_dimensions` to `false` or explicitly set the video dimensions yourself.
 
 ### Implicit integer to float casting
 

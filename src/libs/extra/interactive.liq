@@ -470,7 +470,7 @@ end
 # @category Interaction
 # @flag extra
 # @param ~port Port of the server.
-# @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
+# @param ~transport Http transport. Use `http.transport.ssl`, when available, to enable HTTPS output
 # @param ~uri URI of the server.
 def interactive.harbor(
   ~transport=http.transport.unix,

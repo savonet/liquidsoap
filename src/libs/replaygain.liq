@@ -104,8 +104,10 @@ def replaces file.replaygain(~id=null, ~compute=true, ~ratio=50., file_name) =
 end
 
 # Enable ReplayGain metadata resolver. This resolver will process any file
-# decoded by Liquidsoap and add a `replaygain_track_gain` metadata when this
-# value could be computed. For a finer-grained replay gain processing, use the
+# decoded by Liquidsoap and add the metadata named by
+# `settings.normalize_track_gain_metadata` (`liq_normalize_track_gain` by
+# default) when the value could be computed, so that `normalize_track_gain`
+# applies it. For a finer-grained replay gain processing, use the
 # `replaygain:` protocol.
 # @param ~compute Compute replaygain if metadata tag is empty.
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing replaygain tags.

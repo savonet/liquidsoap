@@ -2329,6 +2329,29 @@
   (run %{run_test} seek_track_map liquidsoap %{test_liq} seek_track_map.liq)))
 
 (rule
+ (alias test_server.insert_metadata)
+ (package liquidsoap)
+ (deps
+  server.insert_metadata.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   server.insert_metadata
+   liquidsoap
+   %{test_liq}
+   server.insert_metadata.liq)))
+
+(rule
  (alias test_shoutcast-args)
  (package liquidsoap)
  (deps
@@ -2853,6 +2876,7 @@
   (alias test_scheduler_legacy)
   (alias test_scheduler_parallel)
   (alias test_seek_track_map)
+  (alias test_server.insert_metadata)
   (alias test_shoutcast-args)
   (alias test_source_cleanup)
   (alias test_source_dynamic)

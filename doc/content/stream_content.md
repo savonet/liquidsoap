@@ -77,14 +77,14 @@ settings, shown here with their default values:
 
 ```liquidsoap
 audio.samplerate := 44100
-video.frame.width := 320
-video.frame.height := 240
+video.frame.width := 1280
+video.frame.height := 720
 video.frame.rate := 25
 ```
 
 By default, video dimensions are automatically detected from the first decoded
 video file. This behavior can be disabled by setting
-`settings.video.detect_dimensions` to `false` or by explicitly setting
+`settings.frame.video.detect_dimensions` to `false` or by explicitly setting
 `video.frame.width` or `video.frame.height`.
 
 ## Checking stream contents
