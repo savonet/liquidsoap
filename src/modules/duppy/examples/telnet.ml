@@ -7,7 +7,7 @@ let io_priority = Non_blocking
 let scheduler =
   Duppy.create
     ~classify:(function
-      | Non_blocking -> `Immediate | Maybe_blocking -> `Blocking)
+      | Non_blocking -> `Immediate | Maybe_blocking -> `Threaded)
     ()
 
 let exec_command s () =

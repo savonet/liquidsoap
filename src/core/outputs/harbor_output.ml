@@ -444,7 +444,7 @@ class virtual ['a] base p =
            the non-blocking write task. *)
         Task.add Tutils.scheduler
           {
-            Task.priority = `Maybe_blocking;
+            Task.priority = `Threaded;
             events = [`Delay 0.];
             handler =
               (fun _ ->
@@ -656,7 +656,7 @@ class virtual ['a] base p =
       self#log#info "New listener connection from %s" client_id;
       (match login with
         | Some login -> (
-            Duppy.reschedule ~priority:`Maybe_blocking Tutils.scheduler;
+            Duppy.reschedule ~priority:`Threaded Tutils.scheduler;
             try
               Harbor.http_auth_check ~query ~meth:"GET" ~uri:request_uri ~login
                 socket headers
@@ -688,7 +688,7 @@ class virtual ['a] base p =
       List.iter
         (fun fn -> fn ~headers ~uri:request_uri ~protocol client_id)
         (Callbacks.elements on_connect_callbacks);
-      Duppy.reschedule ~priority:`Maybe_blocking Tutils.scheduler;
+      Duppy.reschedule ~priority:`Threaded Tutils.scheduler;
       Harbor.custom ()
 
     method private register_http_handler =

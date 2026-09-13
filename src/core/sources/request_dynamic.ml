@@ -27,7 +27,7 @@ let conf_prefetch =
   Dtools.Conf.int ~p:(Request.conf#plug "prefetch") ~d:1 "Default prefetch"
 
 (* Scheduler priority for request resolutions. *)
-let priority = `Maybe_blocking
+let priority = `Threaded
 
 type queue_item = {
   request : Request.t;

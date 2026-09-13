@@ -178,7 +178,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | `Stopping | `Stopped ->
             Atomic.set source_status `Starting;
             let t =
-              Duppy.Async.add ~priority:`Blocking Tutils.scheduler
+              Duppy.Async.add ~priority:`Threaded Tutils.scheduler
                 self#connect_task
             in
             Atomic.set connect_task (Some t);

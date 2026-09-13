@@ -36,7 +36,7 @@ type priority = Maybe_blocking | Non_blocking
 let scheduler =
   Duppy.create
     ~classify:(function
-      | Non_blocking -> `Immediate | Maybe_blocking -> `Blocking)
+      | Non_blocking -> `Immediate | Maybe_blocking -> `Threaded)
     ~on_error:(fun exn _ ->
       Printf.printf "Task failed: %s\n%!" (Printexc.to_string exn))
     ()

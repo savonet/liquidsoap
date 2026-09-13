@@ -463,7 +463,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         simple_reply "No / mountpoint\r\n\r\n"
     in
     (* Authentication can be blocking. *)
-    Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
+    Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
     let user, auth_f = s.login in
     let user = if requested_user = "" then user else requested_user in
     if
@@ -598,7 +598,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) query [])
         args
     in
-    Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
+    Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
     http_auth_check ?query ~meth ~uri ~login h.Io.socket headers
 
   let socket_with_remaining h =
@@ -782,7 +782,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         (Bytes.of_string (Websocket.upgrade headers))
     in
     let stype, huri, user, password =
-      Duppy.reschedule ~priority:`Blocking h.Io.scheduler;
+      Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
       read_hello h.Io.socket
     in
     log#info "Mime type: %s" stype;
@@ -1061,7 +1061,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   fun timeout -> fst (Http.read_chunked ~timeout socket)
               | _ -> fun _ -> ""
           in
-          Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
+          Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
           handler ~protocol ~meth ~headers ~data ~socket ~query base_uri
       | Reply _ as e -> raise e
       | e ->
@@ -1125,7 +1125,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               in
               (* Authentication can be blocking. ICY = true means that
                  authentication has already happened. *)
-              Duppy.reschedule ~priority:`Maybe_blocking h.Io.scheduler;
+              Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
               let valid_user, auth_f = s.login in
               if
                 not

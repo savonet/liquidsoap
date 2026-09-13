@@ -4,7 +4,7 @@
 
 type priority = Immediate | Blocking
 
-let classify = function Immediate -> `Immediate | Blocking -> `Blocking
+let classify = function Immediate -> `Immediate | Blocking -> `Threaded
 
 let burn n =
   let x = ref 0.0 in

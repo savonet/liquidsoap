@@ -3,7 +3,7 @@
 
 type prio = Blocking
 
-let classify (_ : prio) = `Blocking
+let classify (_ : prio) = `Threaded
 
 let quantiles xs =
   let xs = List.sort compare xs in

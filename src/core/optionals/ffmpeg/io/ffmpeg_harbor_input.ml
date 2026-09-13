@@ -145,7 +145,7 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
     method private open_container =
       let task =
         {
-          Duppy.Task.priority = `Blocking;
+          Duppy.Task.priority = `Threaded;
           events = [`Delay 0.];
           handler =
             (fun _ ->

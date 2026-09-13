@@ -264,7 +264,7 @@ let handle_client socket ip =
   let rec process () =
     let req = read (Duppy.Io.Split "[\r\n]+") in
     (* A command can block, and holds a non-blocking priority until here. *)
-    Duppy.reschedule ~priority:`Maybe_blocking Tutils.scheduler;
+    Duppy.reschedule ~priority:`Threaded Tutils.scheduler;
     let ans = answer (fun () -> exec req) in
     write ans;
     write "\r\nEND\r\n";
