@@ -17,6 +17,24 @@
    harbor_output_auth.liq)))
 
 (rule
+ (alias test_harbor_output_burst)
+ (package liquidsoap)
+ (deps
+  harbor_output_burst.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_burst.liq
+   liquidsoap
+   %{test_liq}
+   harbor_output_burst.liq)))
+
+(rule
  (alias test_harbor_output_burst_null)
  (package liquidsoap)
  (deps
@@ -51,6 +69,42 @@
    liquidsoap
    %{test_liq}
    harbor_output_dedicated_encoder.liq)))
+
+(rule
+ (alias test_harbor_output_icy_metaint)
+ (package liquidsoap)
+ (deps
+  harbor_output_icy_metaint.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_icy_metaint.liq
+   liquidsoap
+   %{test_liq}
+   harbor_output_icy_metaint.liq)))
+
+(rule
+ (alias test_harbor_output_many_listeners)
+ (package liquidsoap)
+ (deps
+  harbor_output_many_listeners.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_many_listeners.liq
+   liquidsoap
+   %{test_liq}
+   harbor_output_many_listeners.liq)))
 
 (rule
  (alias test_harbor_output_on_connect_disconnect)
@@ -139,8 +193,11 @@
  (name citest)
  (deps
   (alias test_harbor_output_auth)
+  (alias test_harbor_output_burst)
   (alias test_harbor_output_burst_null)
   (alias test_harbor_output_dedicated_encoder)
+  (alias test_harbor_output_icy_metaint)
+  (alias test_harbor_output_many_listeners)
   (alias test_harbor_output_on_connect_disconnect)
   (alias test_http)
   (alias test_http2)

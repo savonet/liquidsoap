@@ -44,10 +44,8 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool true),
         Some
-          "Whether the thread is supposed to return quickly or not. Typically, \
-           blocking tasks (e.g. fetching data over the internet) should not be \
-           considered to be fast. When set to `false` its priority will be \
-           lowered below that of request resolutions and fast timeouts." );
+          "Kept for compatibility: every task runs on a thread of the \
+           scheduler, whether it returns quickly or not." );
       ( "delay",
         Lang.float_t,
         Some (Lang.float 0.),
@@ -77,9 +75,7 @@ let _ =
     (fun p ->
       let delay = Lang.to_float (List.assoc "delay" p) in
       let f = List.assoc "" p in
-      let priority =
-        if Lang.to_bool (List.assoc "fast" p) then `Threaded else `Threaded
-      in
+      let priority = `Threaded in
       let domain =
         Option.map Lang.to_int (Lang.to_option (List.assoc "domain" p))
       in

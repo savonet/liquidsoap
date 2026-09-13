@@ -30,6 +30,37 @@
   (run %{binary_strings_test})))
 
 (executable
+ (name byteRing_test)
+ (modules byteRing_test)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias byteRing_test)
+ (package liquidsoap)
+ (deps
+  (:byteRing_test byteRing_test.exe))
+ (action
+  (run %{byteRing_test})))
+
+(executable
  (name child_support_test)
  (modules child_support_test)
  (flags
@@ -1281,6 +1312,7 @@
  (name citest)
  (deps
   (alias binary_strings_test)
+  (alias byteRing_test)
   (alias child_support_test)
   (alias clock_error_print_test)
   (alias clock_self_sync_type_test)
