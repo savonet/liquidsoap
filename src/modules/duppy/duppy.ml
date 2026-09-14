@@ -95,7 +95,7 @@ let fired_events t ready =
             match of_fd fd with Some i -> i.Pollset.except | None -> false))
     t.events
 
-type execution_class = [ `Immediate | `Direct | `Blocking ]
+type execution_class = [ `Immediate | `Direct | `Threaded ]
 
 (** Wraps every task body. Effect handlers do not cross the thread a task is
     dispatched to, so a caller whose tasks need one installs it here. *)
@@ -206,7 +206,7 @@ let default_on_fatal exn bt =
 
 let create ?(on_error = Printexc.raise_with_backtrace)
     ?(on_fatal = default_on_fatal) ?(compare = compare)
-    ?(classify : 'a -> execution_class = fun _ -> `Blocking)
+    ?(classify : 'a -> execution_class = fun _ -> `Threaded)
     ?(wrapper = { wrap = (fun fn -> fn ()) }) () =
   (* A socket pair rather than a pipe: on Windows only sockets can be made
      non-blocking, and a blocking wake-up write could hang its caller. *)

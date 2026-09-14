@@ -54,8 +54,12 @@ val join_all : unit -> unit
 (** Priorities for the different scheduler usages. *)
 type priority =
   [ `Clock  (** A clock resuming to produce its next frames. *)
-  | `Blocking  (** For example a last.fm submission. *)
-  | `Maybe_blocking  (** Request resolutions vary a lot. *)
+  | `Blocking
+    (** Keeps its domain busy until done and never parks, such as a listener
+        writer. *)
+  | `Threaded
+    (** May wait on a socket or a file, such as a request resolution or a
+        last.fm submission. *)
   | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
 (** task scheduler *)

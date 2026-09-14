@@ -27,18 +27,17 @@ let conf_scheduler =
     ~comments:
       [
         "The scheduler is used to process various tasks in liquidsoap.";
-        "There are three kinds of tasks:";
-        "\"Non-blocking\" ones are instantaneous to process, these are only";
-        "internal processes of liquidsoap like its server.";
-        "\"Fast\" tasks are those that can be long but are often not,";
-        "such as request resolution (audio file downloading and checking).";
-        "Finally, \"slow\" tasks are those that are always taking a long time,";
-        "like last.fm submission, or user-defined tasks register via";
-        "`thread.run`.";
-        "The scheduler runs one domain per core and dispatches ready tasks";
-        "onto whichever of them is free. Non-blocking tasks run directly on a";
-        "domain; the other two kinds run on a thread inside one, so that";
-        "waiting on a socket or a file leaves the domain free for other work.";
+        "It runs one domain per core and dispatches ready tasks onto";
+        "whichever of them is free. A task is one of three kinds, named after";
+        "what it does to the domain running it:";
+        "\"Non-blocking\" tasks are instantaneous, such as the server's";
+        "internal processes; they run in batches directly on a domain.";
+        "\"Blocking\" tasks keep a domain busy until they finish, such as a";
+        "clock tick or a listener writer; each one runs on a domain by itself.";
+        "\"Threaded\" tasks may wait on a socket or a file, such as request";
+        "resolution, last.fm submission, or user-defined tasks registered via";
+        "`thread.run`; each one runs on a thread inside a domain, so that";
+        "waiting leaves the domain free for other work.";
       ]
 
 type exit_status =
@@ -71,10 +70,10 @@ let blocking_tasks =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "blocking_tasks")
     ~d:(max 8 (Domain.recommended_domain_count ()))
-    "Blocking tasks"
+    "Threaded tasks"
     ~comments:
       [
-        "Maximum number of blocking tasks running at once, spread evenly over";
+        "Maximum number of threaded tasks running at once, spread evenly over";
         "the scheduler's domains. Defaults to one per domain, and never fewer";
         "than 8. Raising it helps when the tasks truly wait, on a socket or a";
         "slow mount. A task that uses a core instead of waiting on one, such as";
@@ -224,8 +223,12 @@ let create f x s =
 
 type priority =
   [ `Clock  (** A clock resuming to produce its next frames. *)
-  | `Blocking  (** For example a last.fm submission. *)
-  | `Maybe_blocking  (** Request resolutions vary a lot. *)
+  | `Blocking
+    (** Keeps its domain busy until done and never parks, such as a listener
+        writer. *)
+  | `Threaded
+    (** May wait on a socket or a file, such as a request resolution or a
+        last.fm submission. *)
   | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
 let error_handlers = Stack.create ()
@@ -246,12 +249,12 @@ let rec error_handler ~bt exn =
 
 (* Polymorphic compare orders these by name hash, which is not the order we
    want: the server must come first, then a clock holding a stream to real
-   time, then a request resolution before a last.fm submission. *)
+   time, then a writer before a task that may wait. *)
 let priority_rank = function
   | `Non_blocking -> 0
   | `Clock -> 1
-  | `Maybe_blocking -> 2
-  | `Blocking -> 3
+  | `Blocking -> 2
+  | `Threaded -> 3
 
 let scheduler : priority Duppy.scheduler =
   Duppy.create
@@ -275,8 +278,8 @@ let scheduler : priority Duppy.scheduler =
       (* A clock tick is long and holds a stream to real time: it runs on the
          domain, alone, so ticks spread rather than queueing behind each
          other. *)
-      | `Clock -> `Direct
-      | _ -> `Blocking)
+      | `Clock | `Blocking -> `Direct
+      | `Threaded -> `Threaded)
       (* Tasks run script code, which registers its callbacks through an
          effect. *)
     ~wrapper:{ Duppy.wrap = Script_callback.uncollected }
@@ -300,7 +303,7 @@ let legacy_pool () =
   let queues n accepts = List.init n#get (fun _ -> accepts) in
   `Threads
     (queues generic_queues (fun _ -> true)
-    @ queues fast_queues (fun p -> p = `Maybe_blocking)
+    @ queues fast_queues (fun p -> p = `Threaded)
     @ queues non_blocking_queues (fun p -> p = `Non_blocking))
 
 let start () =

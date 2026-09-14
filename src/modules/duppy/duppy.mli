@@ -64,14 +64,14 @@ type 'a scheduler
     batch and run in sequence directly on a domain of the pool, which costs less
     than handing each of them over.
 
-    [`Blocking] tasks may park in a syscall. Each one is run on an auxiliary
+    [`Threaded] tasks may park in a syscall. Each one is run on an auxiliary
     thread inside its domain, so that parking releases the runtime lock and the
     domain goes back to dispatching.
 
     [`Direct] tasks are long but do not block: each one runs on a domain by
     itself, one at a time, so several of them spread over the pool rather than
     running in sequence on one domain. *)
-type execution_class = [ `Immediate | `Direct | `Blocking ]
+type execution_class = [ `Immediate | `Direct | `Threaded ]
 
 (** Wraps every task body. Effect handlers do not cross the thread a task is
     dispatched to, so a caller whose tasks need one installs it here rather than
@@ -87,7 +87,7 @@ exception Unknown_domain of int
   * the backtrace and exit.
   * @param compare the comparison function used to sort tasks according to priorities.
   * Works as in [List.sort]
-  * @param classify how each priority is run. Default: [fun _ -> `Blocking]
+  * @param classify how each priority is run. Default: [fun _ -> `Threaded]
   * @param wrapper wraps every task body. Default: run it as is *)
 val create :
   ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
@@ -106,7 +106,7 @@ val create :
   * called after any daemonization.
   *
   * With [`Threads accepts], the pool is one systhread per predicate, each
-  * taking only the tasks whose priority it accepts, and a [`Blocking] task runs
+  * taking only the tasks whose priority it accepts, and a [`Threaded] task runs
   * in place on the thread that took it. Nothing runs in parallel and
   * [Unix.fork] stays usable.
   * @param pool Default: [`Domains (Domain.recommended_domain_count ())]
@@ -114,7 +114,7 @@ val create :
   * domain, so that domain takes tasks too and a GC there reclaims what it
   * allocated. Ignored for a thread pool, which is on the calling domain
   * already. Default: [false]
-  * @param max_blocking the most [`Blocking] tasks that may be in flight at
+  * @param max_blocking the most [`Threaded] tasks that may be in flight at
   * once, spread evenly over the domains. Each domain keeps at least one slot,
   * rounded up, so the whole budget is available even when it does not divide
   * evenly and a value below their number gives one per domain. Unused by a

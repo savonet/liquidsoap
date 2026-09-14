@@ -70,7 +70,7 @@ let rec watchdog () =
           events;
         [watchdog ()])
   in
-  { Duppy.Task.priority = `Maybe_blocking; events = [`Read fd]; handler }
+  { Duppy.Task.priority = `Threaded; events = [`Read fd]; handler }
 
 let watch : watch =
  fun ~pos e file f ->

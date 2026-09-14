@@ -248,7 +248,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
             Some
               (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
                  ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
-                 ~priority:`Blocking ~on_stderr:self#on_stderr ~log process));
+                 ~priority:`Threaded ~on_stderr:self#on_stderr ~log process));
       self#on_sleep (fun () ->
           source#sleep (Option.get !a);
           a := None;

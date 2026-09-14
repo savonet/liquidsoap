@@ -48,6 +48,7 @@ module Sha1 = Sha1
 module Startup = Startup
 module StringView = StringView
 module Strings = Strings
+module ByteRing = ByteRing
 module Tutils = Tutils
 module Unifier = Unifier
 module Utils = Utils

@@ -6,7 +6,7 @@ type priority = Immediate | Direct | Blocking
 let classify = function
   | Immediate -> `Immediate
   | Direct -> `Direct
-  | Blocking -> `Blocking
+  | Blocking -> `Threaded
 
 let domain_id () = (Domain.self () :> int)
 

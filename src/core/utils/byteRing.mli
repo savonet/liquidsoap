@@ -20,35 +20,24 @@
 
  *****************************************************************************)
 
-(* See liquidsoap_core_utils.mli. *)
+(** A byte ring with one writer and any number of readers, none of them locking.
+    The writer appends and publishes the tail; a reader copies a range behind
+    the tail and learns whether the writer overtook it. *)
 
-module Atomic_section = Atomic_section
-module Charset = Charset
-module Charset_base = Charset_base
-module Concurrent_hashtbl = Concurrent_hashtbl
-module Configure = Configure
-module Doc = Doc
-module Extra_args = Extra_args
-module Extralib = Extralib
-module Lang_string = Lang_string
-module Lifecycle = Lifecycle
-module Liq_http = Liq_http
-module Liq_time = Liq_time
-module Liquidsoap_paths = Liquidsoap_paths
-module Log = Log
-module Mutex_utils = Mutex_utils
-module Plug = Plug
-module Pool = Pool
-module Process_handler = Process_handler
-module Queues = Queues
-module Sandbox = Sandbox
-module Script_callback = Script_callback
-module Server = Server
-module Sha1 = Sha1
-module Startup = Startup
-module StringView = StringView
-module Strings = Strings
-module ByteRing = ByteRing
-module Tutils = Tutils
-module Unifier = Unifier
-module Utils = Utils
+type t
+
+val create : capacity:int -> t
+
+(** Absolute offset of the next byte to be appended. *)
+val tail : t -> int
+
+val capacity : t -> int
+
+(** Writer only. A chunk larger than the capacity grows the ring to twice the
+    chunk. *)
+val append : t -> Strings.t -> unit
+
+(** [read t ~ofs dst dst_ofs len] copies the bytes at absolute offsets
+    [ofs, ofs + len) into [dst]. Returns [false] when they are not all
+    available: not yet written, or overwritten before or during the copy. *)
+val read : t -> ofs:int -> Bytes.t -> int -> int -> bool
