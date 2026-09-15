@@ -184,6 +184,36 @@ def f() =
   test.equal(empty_test.root.self_closing, "")
   test.equal(empty_test.root.with_child, "")
 
+  # Round trips: untyped values and `(string * _)` children keep whole subtrees
+  s4 =
+    '<a x="1"><b>1</b><c><d k="v"/><d>text</d></c></a>'
+  let xml.parse (untyped : _) = s4
+  test.equal(xml.stringify(compact=true, untyped), s4)
+  let xml.parse (root : (string * {xml_children: [(string * _)]})) = s4
+  let (_, root) = root
+  test.equal(
+    list.map(
+      fun (child) -> xml.stringify(compact=true, child),
+      root.xml_children
+    ),
+    [
+      "<b>1</b>",
+      "<c><d k=\"v\"/><d>text</d></c>"
+    ]
+  )
+
+  # A missing element is null, a malformed one is an error
+  let xml.parse (missing : {root: {n: int?}}) = "<root/>"
+  test.equal(missing.root.n, null)
+  malformed =
+    try
+      let xml.parse (v : {root: {n: int?}}) = "<root><n>abc</n></root>"
+      string(v.root.n)
+    catch _ : [error.xml] do
+      "error"
+    end
+  test.equal(malformed, "error")
+
   test.pass()
 end
 
