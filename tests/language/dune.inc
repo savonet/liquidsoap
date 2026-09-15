@@ -275,6 +275,44 @@
   (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
 
 (rule
+ (alias test_icecast_server_config)
+ (package liquidsoap)
+ (deps
+  icecast_server_config.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_config.liq
+   liquidsoap
+   %{test_liq}
+   icecast_server_config.liq)))
+
+(rule
+ (alias test_icecast_server_tables)
+ (package liquidsoap)
+ (deps
+  icecast_server_tables.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_tables.liq
+   liquidsoap
+   %{test_liq}
+   icecast_server_tables.liq)))
+
+(rule
  (alias test_implicit_float_casting)
  (package liquidsoap)
  (deps
@@ -834,6 +872,8 @@
   (alias test_file_protocol)
   (alias test_functions)
   (alias test_getter)
+  (alias test_icecast_server_config)
+  (alias test_icecast_server_tables)
   (alias test_implicit_float_casting)
   (alias test_interactive)
   (alias test_json)
