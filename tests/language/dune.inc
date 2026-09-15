@@ -607,6 +607,25 @@
   (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
 
 (rule
+ (alias test_settings_default)
+ (package liquidsoap)
+ (deps
+  settings_default.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   settings_default.liq
+   liquidsoap
+   %{test_liq}
+   settings_default.liq)))
+
+(rule
  (alias test_socket)
  (package liquidsoap)
  (deps
@@ -838,6 +857,7 @@
   (alias test_ref)
   (alias test_regexp)
   (alias test_replaygain)
+  (alias test_settings_default)
   (alias test_socket)
   (alias test_source_content)
   (alias test_sqlite)
