@@ -1604,6 +1604,8 @@ def icecast.server(
   ~serve_json=null,
   ~serve_html=null
 ) =
+  settings.frame.duration.set_default(0.2)
+
   empty_mount =
     {
       mount_name = null,
