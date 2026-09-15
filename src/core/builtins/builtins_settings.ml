@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-exception Found of (Lang.value * Lang.value option)
+exception Found of (Lang.value * (string * Lang.value) list option)
 
 let settings = ref Lang.null
 
@@ -84,6 +84,12 @@ let settings_module =
             ( "set",
               ([], Lang.fun_t [(false, "", ty)] Lang.unit_t),
               "Set configuration value" );
+            ( "set_default",
+              ([], Lang.fun_t [(false, "", Lang.nullable_t ty)] Lang.unit_t),
+              "Set default configuration value" );
+            ( "get_default",
+              ([], Lang.fun_t [] (Lang.nullable_t ty)),
+              "Get default configuration value" );
           ]
       in
       let get_t ~has_default_value ty =
@@ -120,7 +126,27 @@ let settings_module =
               (fn conf)#set (conv_from (List.assoc "" p));
               Lang.unit)
         in
-        (get, Some set)
+        let set_default =
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              (fn conf)#set_d
+                (Lang.to_valued_option conv_from (List.assoc "" p));
+              Lang.unit)
+        in
+        let get_default =
+          Lang.val_fun [] (fun _ ->
+              match (fn conf)#get_d with
+                | Some v -> conv_to v
+                | None -> Lang.null)
+        in
+        ( get,
+          Some
+            [
+              ("set", set);
+              ("set_default", set_default);
+              ("get_default", get_default);
+            ] )
       in
       let rec get_value ?(sub = []) conf =
         let to_v fn conv_to conv_from =
@@ -144,7 +170,7 @@ let settings_module =
           with Found v -> v
         in
         Lang.meth get_v
-          ((if set_v <> None then [("set", Option.get set_v)] else [])
+          (Option.value ~default:[] set_v
           @ [
               ("description", Lang.string (String.trim conf#descr));
               ( "comments",
@@ -194,8 +220,17 @@ let print_settings () =
       children =
         Value.Methods.fold
           (fun key meth children ->
-            if key <> "comments" && key <> "description" && key <> "set" then
-              (key, grab_descr meth) :: children
+            if
+              not
+                (List.mem key
+                   [
+                     "comments";
+                     "description";
+                     "set";
+                     "set_default";
+                     "get_default";
+                   ])
+            then (key, grab_descr meth) :: children
             else children)
           (Value.methods v) [];
       value = v;
