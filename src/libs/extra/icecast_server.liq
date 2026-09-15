@@ -75,10 +75,40 @@ let settings.icecast.server.default_muxer_options =
     ]
   )
 
+let icecast.server.config = ()
+let icecast.server.config.mount = ()
+
 # @flag hidden
-def icecast.server.parse_headers(node) =
-  # Defaults mirror icecast 2.5 behaviour. Access-Control-Allow-Origin is
-  # set to * because we cannot echo back the request Origin dynamically.
+def icecast.server.config.warn_unsupported(section, options) =
+  list.iter(
+    fun ((option, present)) ->
+      if
+        present
+      then
+        log.important(
+          label="icecast.server",
+          "Config option '#{option}' in <#{section}> is not supported"
+        )
+      end,
+    options
+  )
+end
+
+# @flag hidden
+def icecast.server.config.section(section, doc, parse) =
+  try
+    parse(doc)
+  catch err : [error.xml] do
+    error.raise(
+      error.invalid,
+      "Invalid <#{section}> section in icecast config: #{err.message}"
+    )
+  end
+end
+
+# Headers from the `<header>` children of a `<http-headers>` element. CORS headers without an explicit value take the icecast 2.5 defaults. Access-Control-Allow-Origin is `*` because the request origin cannot be echoed back.
+# @flag hidden
+def icecast.server.config.headers_of_nodes(nodes) =
   cors_defaults =
     [
       ("Access-Control-Allow-Origin", "*"),
@@ -94,423 +124,419 @@ def icecast.server.parse_headers(node) =
       ("Access-Control-Max-Age", "300")
     ]
 
-  list.filter_map(
-    fun (child) ->
-      begin
-        let (name, props) = child
-        if
-          name == "header"
-        then
-          header_name = list.assoc(default="", "name", props.xml_params)
-          header_type = list.assoc(default="", "type", props.xml_params)
-          header_value = list.assoc(default="", "value", props.xml_params)
-          if
-            header_name == ""
-          then
-            null
-          elsif
-            header_type == "cors"
-          then
-            if
-              list.assoc.mem(header_name, cors_defaults)
-            then
-              value =
-                if
-                  header_value != ""
-                then
-                  header_value
-                else
-                  list.assoc(header_name, cors_defaults)
-                end
-              (header_name, value)
-            else
-              log.important(
-                label="icecast.server",
-                "Unknown CORS header '#{header_name}', skipping"
-              )
-              null
-            end
-          else
-            (header_name, header_value)
-          end
-        else
-          null
-        end
-      end,
-    node.xml_children
-  )
-end
-
-# @flag hidden
-def icecast.server.get_child_string(children, name) =
-  if
-    list.assoc.mem(name, children)
-  then
-    let (_, node) = list.find(fun (n) -> fst(n) == name, children)
-    node.xml_text
-  else
-    null
-  end
-end
-
-# @flag hidden
-def icecast.server.get_child_int(children, name) =
-  s = icecast.server.get_child_string(children, name)
-  if null.defined(s) then int_of_string(null.get(s)) else null end
-end
-
-# @flag hidden
-def icecast.server.get_child_float(children, name) =
-  s = icecast.server.get_child_string(children, name)
-  if null.defined(s) then float_of_string(null.get(s)) else null end
-end
-
-# @flag hidden
-def icecast.server.warn_unsupported(children) =
-  list.iter(
-    fun (opt) ->
+  def header((tag, node)) =
+    let {name, type, value} = node.xml_params
+    name = name ?? ""
+    if
+      tag != "header" or name == ""
+    then
+      null
+    elsif
+      type == "cors"
+    then
       if
-        list.assoc.mem(opt, children)
+        list.assoc.mem(name, cors_defaults)
       then
+        (name, value ?? list.assoc(name, cors_defaults))
+      else
         log.important(
           label="icecast.server",
-          "Mount config option '#{opt}' is not currently supported"
+          "Unknown CORS header '#{name}', skipping"
         )
-      end,
-    ["public", "intro", "max-listener-duration", "authentication"]
-  )
+        null
+      end
+    else
+      (name, value ?? "")
+    end
+  end
 
-  list.iter(
-    fun (opt) ->
-      begin
-        v = icecast.server.get_child_string(children, opt)
-        if
-          null.defined(v) and null.get(v) == "0"
-        then
-          log.critical(
-            label="icecast.server",
-            "Mount config '#{opt}=0' is not supported (internal logic differs)"
-          )
-        end
-      end,
-    ["fallback-override", "fallback-when-full"]
-  )
+  list.filter_map(header, nodes)
 end
 
+# Parse a `<http-headers>` element.
 # @flag hidden
-def icecast.server.parse_mount_config(mount) =
-  children = mount.xml_children
-  icecast.server.warn_unsupported(children)
+def icecast.server.config.headers(doc) =
+  let xml.parse (parsed :
+    {
+      "http-headers" as headers: {
+        xml_children: [
+          (string * {xml_params: {name: string?, type: string?, value: string?}}
+          )
+        ]
+      }
+    }
+  ) = doc
+  icecast.server.config.headers_of_nodes(parsed.headers.xml_children)
+end
+
+# Mount configuration with nothing set. Also the shape of every parsed mount.
+# @flag hidden
+let icecast.server.config.mount.empty =
+  {
+    type = "normal",
+    mount_name = (null : string?),
+    username = (null : string?),
+    password = (null : string?),
+    max_listeners = (null : int?),
+    dump_file = (null : string?),
+    burst_size = (null : int?),
+    fallback_mount = (null : string?),
+    hidden = false,
+    on_connect_cmd = (null : string?),
+    on_disconnect_cmd = (null : string?),
+    http_headers = ([] : [(string * string)])
+  }
+
+# Parse one `<mount>` element.
+# @flag hidden
+def icecast.server.config.mount.parse(doc) =
+  let xml.parse (parsed :
+    {
+      mount: {
+        "mount-name" as mount_name: string?,
+        username: string?,
+        password: string?,
+        "max-listeners" as max_listeners: int?,
+        "dump-file" as dump_file: string?,
+        "burst-size" as burst_size: int?,
+        "fallback-mount" as fallback_mount: string?,
+        hidden: int?,
+        "on-connect" as on_connect: string?,
+        "on-disconnect" as on_disconnect: string?,
+        "http-headers" as http_headers?: {
+          xml_children: [
+            (
+              string
+              *
+              {xml_params: {name: string?, type: string?, value: string?}}
+            )
+          ]
+        },
+        "fallback-override" as fallback_override: int?,
+        "fallback-when-full" as fallback_when_full: int?,
+        public: string?,
+        intro: string?,
+        "max-listener-duration" as max_listener_duration: string?,
+        authentication?: {xml_params: [(string * string)]},
+        xml_params: {type: string?}
+      }
+    }
+  ) = doc
+  m = parsed.mount
+
+  icecast.server.config.warn_unsupported(
+    "mount",
+    [
+      ("public", null.defined(m.public)),
+      ("intro", null.defined(m.intro)),
+      ("max-listener-duration", null.defined(m.max_listener_duration)),
+      ("authentication", null.defined(m?.authentication))
+    ]
+  )
+  list.iter(
+    fun ((option, value)) ->
+      if
+        value == 0
+      then
+        log.critical(
+          label="icecast.server",
+          "Mount config '#{option}=0' is not supported (internal logic differs)"
+        )
+      end,
+    [
+      ("fallback-override", m.fallback_override),
+      ("fallback-when-full", m.fallback_when_full)
+    ]
+  )
 
   http_headers =
-    if
-      list.assoc.mem("http-headers", children)
-    then
-      icecast.server.parse_headers(list.assoc("http-headers", children))
-    else
-      []
-    end
+    icecast.server.config.headers_of_nodes(
+      null.map(fun (h) -> h.xml_children, m?.http_headers) ?? []
+    )
 
   {
-    mount_name = icecast.server.get_child_string(children, "mount-name"),
-    username = icecast.server.get_child_string(children, "username"),
-    password = icecast.server.get_child_string(children, "password"),
-    max_listeners = icecast.server.get_child_int(children, "max-listeners"),
-    dump_file = icecast.server.get_child_string(children, "dump-file"),
-    burst_size = icecast.server.get_child_int(children, "burst-size"),
-    fallback_mount =
-      icecast.server.get_child_string(children, "fallback-mount"),
-    hidden = icecast.server.get_child_string(children, "hidden") == "1",
-    on_connect_cmd = icecast.server.get_child_string(children, "on-connect"),
-    on_disconnect_cmd =
-      icecast.server.get_child_string(children, "on-disconnect"),
+    type = m.xml_params.type ?? "normal",
+    mount_name = m.mount_name,
+    username = m.username,
+    password = m.password,
+    max_listeners = m.max_listeners,
+    dump_file = m.dump_file,
+    burst_size = m.burst_size,
+    fallback_mount = m.fallback_mount,
+    hidden = m.hidden == 1,
+    on_connect_cmd = m.on_connect,
+    on_disconnect_cmd = m.on_disconnect,
     http_headers = http_headers
   }
 end
 
+# Effective configuration for `mount`: its own `<mount>` entry, with the `type="default"` mount filling every unset option. Headers accumulate, default first.
 # @flag hidden
-def icecast.server.parser(path) =
-  contents = file.contents(path)
-
-  let xml.parse config = contents
-  children = config.icecast.xml_children
-
-  def get_child(name) =
-    list.assoc.mem(name, children) ? list.assoc(name, children) : null
-  end
-
-  def get_children(name) =
-    if
-      null.defined(get_child(name))
-    then
-      null.get(get_child(name)).xml_children
-    else
-      []
-    end
-  end
-
-  def listen_socket() =
-    listen_sockets =
-      list.filter_map(
-        fun (child) ->
-          begin
-            let (name, props) = child
-            if name == "listen-socket" then props else null end
-          end,
-        children
-      )
-
-    if
-      list.length(listen_sockets) > 1
-    then
-      log.important(
-        label="icecast.server",
-        "Multiple listen-socket entries found, only the first one will be used"
-      )
-    end
-
-    c =
-      if
-        list.length(listen_sockets) > 0
-      then
-        list.hd(listen_sockets).xml_children
-      else
-        []
-      end
-
-    if
-      null.defined(icecast.server.get_child_string(c, "shoutcast-mount"))
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'shoutcast-mount' is not implemented"
-      )
-    end
-
-    tls_val =
-      icecast.server.get_child_string(c, "tls")
-        ?? (icecast.server.get_child_string(c, "ssl") ?? "0")
-    tls =
-      if
-        tls_val == "1" or tls_val == "auto_no_plain"
-      then
-        true
-      elsif
-        tls_val == "0" or tls_val == "disabled"
-      then
-        false
-      else
-        log.important(
-          label="icecast.server",
-          "Unsupported <tls> value '#{tls_val}'; TLS disabled. Use \
-           'auto_no_plain' (icecast 2.5) or '1' (icecast 2.4) to enable TLS."
-        )
-        false
-      end
-
-    {
-      port = icecast.server.get_child_int(c, "port"),
-      bind_address = icecast.server.get_child_string(c, "bind-address"),
-      tls = tls
-    }
-  end
-
-  def authentication() =
-    c = get_children("authentication")
-    {password = icecast.server.get_child_string(c, "source-password")}
-  end
-
-  def limits() =
-    c = get_children("limits")
-
-    if
-      null.defined(icecast.server.get_child_string(c, "queue-size"))
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'queue-size' is not used"
-      )
-    end
-    if
-      null.defined(icecast.server.get_child_string(c, "header-timeout"))
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'header-timeout' is not used"
-      )
-    end
-
-    {
-      max_sources = icecast.server.get_child_int(c, "sources"),
-      max_clients = icecast.server.get_child_int(c, "clients"),
-      client_timeout = icecast.server.get_child_float(c, "client-timeout"),
-      source_timeout = icecast.server.get_child_float(c, "source-timeout"),
-      burst_on_connect = icecast.server.get_child_int(c, "burst-on-connect"),
-      burst_size = icecast.server.get_child_int(c, "burst-size")
-    }
-  end
-
-  def paths() =
-    c = get_children("paths")
-
-    basedir = icecast.server.get_child_string(c, "basedir")
-    if
-      null.defined(basedir)
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'basedir' is not implemented"
-      )
-    end
-
-    logdir = icecast.server.get_child_string(c, "logdir")
-    if
-      null.defined(logdir)
-    then
-      settings.log.file := true
-      settings.log.file.path := "#{null.get(logdir)}/<script>.log"
-
-      # Keep log to stdout by default
-      settings.log.stdout := true
-    end
-
-    pidfile = icecast.server.get_child_string(c, "pidfile")
-    if
-      null.defined(pidfile)
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'pidfile' is not supported"
-      )
-    end
-
-    if
-      null.defined(icecast.server.get_child_string(c, "webroot"))
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'webroot' is not implemented"
-      )
-    end
-    if
-      null.defined(icecast.server.get_child_string(c, "adminroot"))
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'adminroot' is not implemented"
-      )
-    end
-    if
-      null.defined(icecast.server.get_child_string(c, "allow-ip"))
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'allow-ip' is not implemented"
-      )
-    end
-    if
-      null.defined(icecast.server.get_child_string(c, "deny-ip"))
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'deny-ip' is not implemented"
-      )
-    end
-    if
-      null.defined(icecast.server.get_child_string(c, "ssl-allowed-ciphers"))
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'ssl-allowed-ciphers' is not implemented"
-      )
-    end
-    if
-      list.exists(fun (child) -> fst(child) == "alias", c)
-    then
-      log.important(
-        label="icecast.server",
-        "Config option 'alias' is not implemented"
-      )
-    end
-
-    tls_certificate =
-      icecast.server.get_child_string(c, "tls-certificate")
-        ?? icecast.server.get_child_string(c, "ssl-certificate")
-    tls_key = icecast.server.get_child_string(c, "tls-key")
-
-    {tls_certificate = tls_certificate, tls_key = tls_key}
-  end
-
-  def http_headers() =
-    h = get_child("http-headers")
-    if
-      null.defined(h)
-    then
-      icecast.server.parse_headers(null.get(h))
-    else
-      []
-    end
-  end
-
-  def mounts() =
-    raw_mounts =
-      list.filter_map(
-        fun (child) ->
-          begin
-            let (name, props) = child
-            if name == "mount" then props else null end
-          end,
-        children
-      )
-
-    default_mount =
-      list.find(
-        default={xml_params = [], xml_children = []},
-        fun (m) -> list.assoc(default="", "type", m.xml_params) == "default",
-        raw_mounts
-      )
-
-    default_config = icecast.server.parse_mount_config(default_mount)
-
-    mount_configs =
-      list.filter_map(
-        fun (m) ->
-          begin
-            mount_type = list.assoc(default="normal", "type", m.xml_params)
-            if
-              mount_type == "normal"
-            then
-              icecast.server.parse_mount_config(m)
-            else
-              null
-            end
-          end,
-        raw_mounts
-      )
-
-    {default = default_config, configs = mount_configs}
-  end
+def icecast.server.config.mount.resolve(~default, ~mounts, (mount:string)) =
+  config =
+    list.find(
+      default=icecast.server.config.mount.empty,
+      fun (m) -> m.mount_name == mount,
+      mounts
+    )
 
   {
-    listen_socket = listen_socket,
-    authentication = authentication,
-    limits = limits,
-    paths = paths,
-    http_headers = http_headers,
-    mounts = mounts
+    mount_name = config.mount_name,
+    username = config.username ?? default.username,
+    password = config.password ?? default.password,
+    max_listeners = config.max_listeners ?? default.max_listeners,
+    dump_file = config.dump_file ?? default.dump_file,
+    burst_size = config.burst_size ?? default.burst_size,
+    fallback_mount = config.fallback_mount ?? default.fallback_mount,
+    hidden = config.hidden or default.hidden,
+    on_connect_cmd = config.on_connect_cmd ?? default.on_connect_cmd,
+    on_disconnect_cmd = config.on_disconnect_cmd ?? default.on_disconnect_cmd,
+    http_headers = [...default.http_headers, ...config.http_headers]
   }
 end
 
+# Parse a `<listen-socket>` element.
 # @flag hidden
-def icecast.server.parse_config(path) =
-  parser = icecast.server.parser(path)
+def icecast.server.config.listen_socket(doc) =
+  let xml.parse (parsed :
+    {
+      "listen-socket" as socket: {
+        port: int?,
+        "bind-address" as bind_address: string?,
+        tls: string?,
+        ssl: string?,
+        "shoutcast-mount" as shoutcast_mount: string?
+      }
+    }
+  ) = doc
+  s = parsed.socket
 
-  listen_socket = parser.listen_socket()
-  authentication = parser.authentication()
-  limits = parser.limits()
-  paths = parser.paths()
-  http_headers = parser.http_headers()
-  mounts = parser.mounts()
+  icecast.server.config.warn_unsupported(
+    "listen-socket",
+    [("shoutcast-mount", null.defined(s.shoutcast_mount))]
+  )
+
+  tls_value = s.tls ?? (s.ssl ?? "0")
+  tls =
+    if
+      tls_value == "1" or tls_value == "auto_no_plain"
+    then
+      true
+    elsif
+      tls_value == "0" or tls_value == "disabled"
+    then
+      false
+    else
+      log.important(
+        label="icecast.server",
+        "Unsupported <tls> value '#{tls_value}'; TLS disabled. Use \
+         'auto_no_plain' (icecast 2.5) or '1' (icecast 2.4) to enable TLS."
+      )
+      false
+    end
+
+  {port = s.port, bind_address = s.bind_address, tls = tls}
+end
+
+# Parse a `<limits>` element.
+# @flag hidden
+def icecast.server.config.limits(doc) =
+  let xml.parse (parsed :
+    {
+      limits: {
+        sources: int?,
+        clients: int?,
+        "client-timeout" as client_timeout: float?,
+        "source-timeout" as source_timeout: float?,
+        "burst-on-connect" as burst_on_connect: int?,
+        "burst-size" as burst_size: int?,
+        "queue-size" as queue_size: string?,
+        "header-timeout" as header_timeout: string?
+      }
+    }
+  ) = doc
+  l = parsed.limits
+
+  icecast.server.config.warn_unsupported(
+    "limits",
+    [
+      ("queue-size", null.defined(l.queue_size)),
+      ("header-timeout", null.defined(l.header_timeout))
+    ]
+  )
+
+  {
+    max_sources = l.sources,
+    max_clients = l.clients,
+    client_timeout = l.client_timeout,
+    source_timeout = l.source_timeout,
+    burst_on_connect = l.burst_on_connect,
+    burst_size = l.burst_size
+  }
+end
+
+# Parse a `<paths>` element.
+# @flag hidden
+def icecast.server.config.paths(doc) =
+  let xml.parse (parsed :
+    {
+      paths: {
+        logdir: string?,
+        "tls-certificate" as tls_certificate: string?,
+        "ssl-certificate" as ssl_certificate: string?,
+        "tls-key" as tls_key: string?,
+        basedir: string?,
+        pidfile: string?,
+        webroot: string?,
+        adminroot: string?,
+        "allow-ip" as allow_ip: string?,
+        "deny-ip" as deny_ip: string?,
+        "ssl-allowed-ciphers" as ssl_allowed_ciphers: string?,
+        alias?: {xml_params: [(string * string)]}
+      }
+    }
+  ) = doc
+  p = parsed.paths
+
+  icecast.server.config.warn_unsupported(
+    "paths",
+    [
+      ("basedir", null.defined(p.basedir)),
+      ("pidfile", null.defined(p.pidfile)),
+      ("webroot", null.defined(p.webroot)),
+      ("adminroot", null.defined(p.adminroot)),
+      ("allow-ip", null.defined(p.allow_ip)),
+      ("deny-ip", null.defined(p.deny_ip)),
+      ("ssl-allowed-ciphers", null.defined(p.ssl_allowed_ciphers)),
+      ("alias", null.defined(p?.alias))
+    ]
+  )
+
+  {
+    logdir = p.logdir,
+    tls_certificate = p.tls_certificate ?? p.ssl_certificate,
+    tls_key = p.tls_key
+  }
+end
+
+# Parse an `<authentication>` element.
+# @flag hidden
+def icecast.server.config.authentication(doc) =
+  let xml.parse (parsed :
+    {authentication: {"source-password" as source_password: string?}}
+  ) = doc
+  {password = parsed.authentication.source_password}
+end
+
+# Burst for a mount: its own `<burst-size>`, else the global one. A `0` at either level, or `<burst-on-connect>0</burst-on-connect>`, disables bursting.
+# @flag hidden
+def icecast.server.config.burst_size(~limits, (burst_size:int?)) =
+  def disabled(value) =
+    null.defined(value) and null.get(value) == 0
+  end
+  burst_on_connect = (limits.burst_on_connect : int?)
+  if
+    disabled(burst_on_connect) or disabled(burst_size)
+  then
+    null
+  else
+    burst_size ?? (limits.burst_size : int?)
+  end
+end
+
+# Configuration with nothing set, used when no config file is given.
+# @flag hidden
+let icecast.server.config.empty =
+  {
+    port = (null : int?),
+    bind_address = (null : string?),
+    tls = false,
+    tls_certificate = (null : string?),
+    tls_key = (null : string?),
+    logdir = (null : string?),
+    password = (null : string?),
+    max_sources = (null : int?),
+    max_clients = (null : int?),
+    client_timeout = (null : float?),
+    source_timeout = (null : float?),
+    burst_on_connect = (null : int?),
+    burst_size = (null : int?),
+    http_headers = ([] : [(string * string)]),
+    default_mount = icecast.server.config.mount.empty,
+    mounts = []
+  }
+
+# Parse an icecast XML configuration. Repeated elements (`<mount>`, `<listen-socket>`) are split off the root untyped, then every section is parsed against its own annotation. Pure: applying the result (log directory, bind address) is the caller's job.
+# @flag hidden
+def icecast.server.config.parse(doc) =
+  let xml.parse (doc : (string * {xml_children: [(string * _)]})) = doc
+  let (root_name, root) = doc
+  if
+    root_name != "icecast"
+  then
+    error.raise(
+      error.invalid,
+      "Invalid icecast config: root element is <#{root_name}>, expected \
+       <icecast>"
+    )
+  end
+
+  def sections(name) =
+    list.filter_map(
+      fun ((tag, node)) ->
+        if
+          tag == name
+        then
+          xml.stringify(compact=true, (tag, node))
+        else
+          null
+        end,
+      root.xml_children
+    )
+  end
+
+  # An absent section parses as an empty element.
+  def section(name, parse) =
+    icecast.server.config.section(
+      name,
+      list.hd(default="<#{name}/>", sections(name)),
+      parse
+    )
+  end
+
+  listen_sockets = sections("listen-socket")
+  if
+    list.length(listen_sockets) > 1
+  then
+    log.important(
+      label="icecast.server",
+      "Multiple listen-socket entries found, only the first one will be used"
+    )
+  end
+  listen_socket = section("listen-socket", icecast.server.config.listen_socket)
+  authentication =
+    section("authentication", icecast.server.config.authentication)
+  limits = section("limits", icecast.server.config.limits)
+  paths = section("paths", icecast.server.config.paths)
+  http_headers = section("http-headers", icecast.server.config.headers)
+
+  mounts =
+    list.map(
+      fun (m) ->
+        icecast.server.config.section(
+          "mount",
+          m,
+          icecast.server.config.mount.parse
+        ),
+      sections("mount")
+    )
+  default_mount =
+    list.find(
+      default=icecast.server.config.mount.empty,
+      fun (m) -> m.type == "default",
+      mounts
+    )
+  mounts = list.filter(fun (m) -> m.type == "normal", mounts)
 
   {
     port = listen_socket.port,
@@ -518,6 +544,7 @@ def icecast.server.parse_config(path) =
     tls = listen_socket.tls,
     tls_certificate = paths.tls_certificate,
     tls_key = paths.tls_key,
+    logdir = paths.logdir,
     password = authentication.password,
     max_sources = limits.max_sources,
     max_clients = limits.max_clients,
@@ -525,16 +552,22 @@ def icecast.server.parse_config(path) =
     source_timeout = limits.source_timeout,
     burst_on_connect = limits.burst_on_connect,
     burst_size = limits.burst_size,
-    http_headers = [...http_headers, ...mounts.default.http_headers],
-    default_mount = mounts.default,
-    mounts = mounts.configs
+    http_headers = http_headers,
+    default_mount = default_mount,
+    mounts = mounts
   }
 end
 
 # @flag hidden
+def icecast.server.config.load(path) =
+  icecast.server.config.parse(file.contents(path))
+end
+
+# @flag hidden
 def icecast.server.log_mount_config(label, prefix, config) =
-  mount_name = config.mount_name ?? "(default)"
-  username = config.username ?? "source"
+  def show(value, ~default) =
+    if null.defined(value) then string(null.get(value)) else default end
+  end
   password_info =
     if
       null.defined(config.password)
@@ -543,74 +576,25 @@ def icecast.server.log_mount_config(label, prefix, config) =
     else
       "(global)"
     end
-  max_listeners =
-    if
-      null.defined(config.max_listeners)
-    then
-      string(null.get(config.max_listeners))
-    else
-      "unlimited"
-    end
-  burst_size =
-    if
-      null.defined(config.burst_size)
-    then
-      string(null.get(config.burst_size))
-    else
-      "default"
-    end
-  fallback_mount = config.fallback_mount ?? "none"
-  on_connect = config.on_connect_cmd ?? "none"
-  on_disconnect = config.on_disconnect_cmd ?? "none"
-
-  log.info(
-    label=label,
-    "#{prefix}mount-name: #{mount_name}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}username: #{username}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}password: #{password_info}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}max-listeners: #{max_listeners}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}burst-size: #{burst_size}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}fallback-mount: #{fallback_mount}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}hidden: #{config.hidden}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}on-connect: #{on_connect}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}on-disconnect: #{on_disconnect}"
-  )
-  log.info(
-    label=label,
-    "#{prefix}http-headers: #{list.length(config.http_headers)} header(s)"
-  )
-  list.iter(
-    fun (h) ->
-      log.info(
-        label=label,
-        "#{prefix}  #{fst(h)}: #{snd(h)}"
-      ),
-    config.http_headers
-  )
+  lines =
+    [
+      "mount-name: #{config.mount_name ?? "(default)"}",
+      "username: #{config.username ?? "source"}",
+      "password: #{password_info}",
+      "max-listeners: #{show(config.max_listeners, default="unlimited")}",
+      "burst-size: #{show(config.burst_size, default="default")}",
+      "fallback-mount: #{config.fallback_mount ?? "none"}",
+      "hidden: #{config.hidden}",
+      "on-connect: #{config.on_connect_cmd ?? "none"}",
+      "on-disconnect: #{config.on_disconnect_cmd ?? "none"}",
+      "http-headers: #{list.length(config.http_headers)} header(s)",
+      ...list.map(
+        fun ((k, v)) ->
+          "  #{k}: #{v}",
+        config.http_headers
+      )
+    ]
+  list.iter(fun (line) -> log.info(label=label, "#{prefix}#{line}"), lines)
 end
 
 # @flag hidden
@@ -648,14 +632,13 @@ def icecast.server.log_config(
     "Global HTTP headers: #{list.length(global_headers)} header(s)"
   )
   list.iter(
-    fun (h) ->
+    fun ((k, v)) ->
       log.info(
         label=label,
-        "  #{fst(h)}: #{snd(h)}"
+        "  #{k}: #{v}"
       ),
     global_headers
   )
-
   log.info(
     label=label,
     "Default mount configuration:"
@@ -665,9 +648,8 @@ def icecast.server.log_config(
     "  ",
     default_mount
   )
-
   if
-    list.length(mount_configs) > 0
+    mount_configs != []
   then
     log.info(
       label=label,
@@ -676,10 +658,9 @@ def icecast.server.log_config(
     list.iter(
       fun (config) ->
         begin
-          mount_name = config.mount_name ?? "?"
           log.info(
             label=label,
-            "- Mount: #{mount_name}"
+            "- Mount: #{config.mount_name ?? "?"}"
           )
           icecast.server.log_mount_config(
             label,
@@ -696,72 +677,113 @@ def icecast.server.log_config(
   )
 end
 
+# Table of live mounts and the fallback links between them. An entry holds the mount's current source, the source it falls back to, and caller data built once when the entry is created (the output, stats).
 # @flag hidden
-def icecast.server.mount_entries() =
+def icecast.server.mount_table() =
   entries = ref([])
-
-  def get(mount) =
-    (list.assoc(mount, entries()) :
-      {
-        output: _,
-        source: ref(source?),
-        fallback_mount: string?,
-        fallback: ref(source?),
-        format: ref(_),
-        streams: ref(_),
-        source_name: ref(string),
-        mime_type: ref(string?),
-        start_time: ref(float),
-        listeners: ref([{ip: string, protocol: string, uri: string}]),
-        peak_listeners: ref(int)
-      }
-    )
-  end
 
   def has(mount) =
     list.assoc.mem(mount, entries())
   end
 
-  def set(mount, entry) =
-    entries :=
-      [(mount, entry), ...list.filter(fun (m) -> fst(m) != mount, entries())]
-  end
-
-  def remove(mount) =
-    entries := list.filter(fun (m) -> fst(m) != mount, entries())
+  def get(mount) =
+    list.assoc(mount, entries())
   end
 
   def all() =
     entries()
   end
 
-  def find_by_mount(mount) =
-    if list.assoc.mem(mount, entries()) then [(mount, get(mount))] else [] end
-  end
-
-  def find_by_fallback_mount(mount) =
-    list.filter_map(
-      fun ((entry_mount, entry)) ->
-        if
-          null.defined(entry.fallback_mount)
-          and null.get(entry.fallback_mount) == mount
-        then
-          (entry_mount, entry)
-        else
-          null
-        end,
+  def dependents((mount:string)) =
+    list.filter(
+      fun ((_, e)) ->
+        null.defined(e.fallback_mount) and null.get(e.fallback_mount) == mount,
       entries()
     )
   end
 
+  # Attach `source` to `mount`. On the first connection the entry is created with `create`, which receives the two refs an output should follow. Every mount falling back on this one now sees `source`.
+  def connect(
+    ~(mount:string),
+    ~(fallback_mount:string?),
+    ~(source:source),
+    create
+  ) =
+    if
+      has(mount)
+    then
+      get(mount).source := source
+    else
+      source_ref = ref((source : source?))
+      fallback_ref = ref((null : source?))
+      if
+        null.defined(fallback_mount) and has(null.get(fallback_mount))
+      then
+        fallback_ref := get(null.get(fallback_mount)).source()
+      end
+      entry =
+        {
+          source = source_ref,
+          fallback = fallback_ref,
+          fallback_mount = fallback_mount,
+          data = create({source = source_ref, fallback = fallback_ref})
+        }
+      entries := [(mount, entry), ...entries()]
+    end
+    list.iter(fun ((_, e)) -> e.fallback := source, dependents(mount))
+    get(mount)
+  end
+
+  # Detach the source from `mount`. Entries left with neither a source nor a fallback are removed and returned so the caller can shut their output down.
+  def disconnect(mount) =
+    if has(mount) then get(mount).source := null end
+    list.iter(fun ((_, e)) -> e.fallback := null, dependents(mount))
+    orphans =
+      list.filter(
+        fun ((_, e)) ->
+          not null.defined(e.source()) and not null.defined(e.fallback()),
+        entries()
+      )
+    entries :=
+      list.filter(fun ((m, _)) -> not list.assoc.mem(m, orphans), entries())
+    orphans
+  end
+
+  # The live source on `mount`, null when there is none or no such mount.
+  def source((mount:string)) =
+    if has(mount) then get(mount).source() else null end
+  end
+
   {
-    get = get,
     has = has,
-    set = set,
-    remove = remove,
+    get = get,
     all = all,
-    find_by_mount = find_by_mount,
-    find_by_fallback_mount = find_by_fallback_mount
+    source = source,
+    connect = connect,
+    disconnect = disconnect
+  }
+end
+
+# Listeners of one mount. `output.harbor` reports a disconnect by connection IP only, so one disconnect drops one listener with that connection IP.
+# @flag hidden
+def icecast.server.listener_table() =
+  listeners = ref([])
+  peak = ref(0)
+
+  def connect(~connection_ip, listener) =
+    listeners := [(connection_ip, listener), ...listeners()]
+    peak := max(peak(), list.length(listeners()))
+  end
+
+  def disconnect(connection_ip) =
+    listeners := list.assoc.remove(connection_ip, listeners())
+  end
+
+  {
+    connect = connect,
+    disconnect = disconnect,
+    all = fun () -> list.map(snd, listeners()),
+    peak = peak
   }
 end
 
@@ -780,9 +802,7 @@ def icecast.server.default_prepare(
     transport,
     dumpfile,
     dedicated_encoder,
-    muxer_opts,
-    streams = _,
-    source_headers = _
+    muxer_opts
   }
 ) =
   mount_id = r/^\//.replace(fun (_) -> "", mount)
@@ -875,6 +895,96 @@ def icecast.server.x_forwarded_for({ip, headers, proxy_ips}) =
   end
 end
 
+# Source authorization for `icecast.server`. Listener requests are always accepted. `is_taken` says whether a mount currently has a source, `active_sources` counts them.
+# @flag hidden
+def icecast.server.authorize(
+  ~label,
+  ~password,
+  ~max_sources,
+  ~mount_config,
+  ~is_taken,
+  ~active_sources,
+  {user, password = provided_password, uri, method}
+) =
+  is_source =
+    method == "PUT" or method == "POST" or method == "SOURCE" or method == "ICY"
+
+  if
+    not is_source
+  then
+    true
+  elsif
+    r/^\/admin(\/|\.cgi|$)/.test(uri)
+  then
+    log.important(
+      label=label,
+      "Rejecting source connection to reserved admin mountpoint #{uri}"
+    )
+    false
+  elsif
+    is_taken(uri)
+  then
+    log.important(
+      label=label,
+      "Mountpoint #{uri} already in use, rejecting"
+    )
+    error.raise(
+      error.icecast.server.mount_taken,
+      "Mountpoint in use"
+    )
+  else
+    config = mount_config(uri)
+    expected_user = config.username ?? "source"
+    expected_pass = config.password ?? password
+    if
+      expected_pass != ""
+      and not (user == expected_user and provided_password == expected_pass)
+    then
+      false
+    elsif
+      null.defined(max_sources) and active_sources() >= null.get(max_sources)
+    then
+      log.important(
+        label=label,
+        "Maximum number of sources (#{null.get(max_sources)}) reached, rejecting \
+         connection"
+      )
+      false
+    else
+      true
+    end
+  end
+end
+
+# Listener IP as reported in stats: the connection IP unless X-Forwarded-For handling is configured.
+# @flag hidden
+def icecast.server.listener_ip(
+  ~x_forwarded_for,
+  ~proxy_ips,
+  (
+  info:
+  {headers: [(string * string)], ip: string, protocol: string, uri: string}
+  )
+) =
+  if
+    null.defined(x_forwarded_for) or null.defined(proxy_ips)
+  then
+    callback = x_forwarded_for ?? icecast.server.x_forwarded_for
+    callback(
+      {
+        ip = info.ip,
+        headers = info.headers,
+        protocol = info.protocol,
+        uri = info.uri,
+        proxy_ips = proxy_ips ?? []
+      }
+    )
+      ?? info.ip
+  else
+    info.ip
+  end
+end
+
 # @flag hidden
 def icecast.server.source_manager(
   ~(name:string),
@@ -884,7 +994,7 @@ def icecast.server.source_manager(
   ~max_sources,
   ~max_clients,
   ~client_timeout,
-  ~burst_size,
+  ~limits,
   ~dedicated_encoder=false,
   ~x_forwarded_for_proxy_ips=null,
   ~x_forwarded_for=null,
@@ -895,302 +1005,169 @@ def icecast.server.source_manager(
 ) =
   # TODO: max_clients not yet implemented
   ignore(max_clients)
-  empty_mount =
-    {
-      mount_name = null,
-      username = null,
-      password = null,
-      max_listeners = null,
-      dump_file = null,
-      burst_size = null,
-      fallback_mount = null,
-      hidden = false,
-      on_connect_cmd = null,
-      on_disconnect_cmd = null,
-      http_headers = []
-    }
 
   server_clock = clock.create(id=name)
-
-  def get_mount_config(mount_path) =
-    config =
-      list.find(
-        default=empty_mount,
-        fun (m) ->
-          null.defined(m.mount_name) and null.get(m.mount_name) == mount_path,
-        mount_configs
-      )
-
-    {
-      mount_name = config.mount_name,
-      username = config.username ?? default_mount.username,
-      password = config.password ?? default_mount.password,
-      max_listeners = config.max_listeners ?? default_mount.max_listeners,
-      dump_file = config.dump_file ?? default_mount.dump_file,
-      burst_size = config.burst_size ?? default_mount.burst_size,
-      fallback_mount = config.fallback_mount ?? default_mount.fallback_mount,
-      hidden = config.hidden or default_mount.hidden,
-      on_connect_cmd = config.on_connect_cmd ?? default_mount.on_connect_cmd,
-      on_disconnect_cmd =
-        config.on_disconnect_cmd ?? default_mount.on_disconnect_cmd,
-      http_headers = [...default_mount.http_headers, ...config.http_headers]
-    }
-  end
-
-  entries = icecast.server.mount_entries()
+  mounts = icecast.server.mount_table()
   on_connect_handlers = ref([])
   on_disconnect_handlers = ref([])
 
-  def update_fallbacks(mount, source) =
-    list.iter(
-      fun ((_, entry)) ->
-        if
-          null.defined(entry.fallback_mount)
-          and null.get(entry.fallback_mount) == mount
-        then
-          entry.fallback := source
-        end,
-      entries.all()
+  def mount_config(mount) =
+    icecast.server.config.mount.resolve(
+      default=default_mount,
+      mounts=mount_configs,
+      mount
     )
   end
 
-  def on_shutdown(find_and_clear) =
-    list.iter(
-      fun ((mount, entry)) ->
-        if
-          not null.defined(entry.source())
-          and not null.defined(entry.fallback())
-        then
-          log.info(
-            label=name,
-            "Shutting down output for mount #{mount}"
+  def muxer_options(format) =
+    if
+      not null.defined(format)
+    then
+      []
+    elsif
+      null.defined(format_options)
+    then
+      format_options_fn = null.get(format_options)
+      format_options_fn(null.get(format))
+    else
+      list.assoc(
+        default=[],
+        null.get(format),
+        settings.icecast.server.default_muxer_options()
+      )
+    end
+  end
+
+  def run_command(cmd) =
+    if
+      null.defined(cmd)
+    then
+      cmd = null.get(cmd)
+      thread.run(fun () -> ignore(process.run(cmd)))
+    end
+  end
+
+  # Build the output and stats for a mount on its first connection.
+  def create_entry(
+    ~mount,
+    ~config,
+    ~format,
+    ~mime_type,
+    ~streams,
+    ~copy_encoder
+  ) =
+    fun ({source = main, fallback = backup}) ->
+      begin
+        mount_id = r/^\//.replace(fun (_) -> "", mount)
+        listeners = icecast.server.listener_table()
+
+        def on_listener_connect(
+          (
+          info:
+          {
+            headers: [(string * string)],
+            ip: string,
+            protocol: string,
+            uri: string
+          }
           )
-          entry.output.shutdown()
-          entries.remove(mount)
-        end,
-      find_and_clear()
-    )
+        ) =
+          ip =
+            icecast.server.listener_ip(
+              x_forwarded_for=x_forwarded_for,
+              proxy_ips=x_forwarded_for_proxy_ips,
+              info
+            )
+          listeners.connect(
+            connection_ip=info.ip,
+            {ip = ip, protocol = info.protocol, uri = info.uri}
+          )
+        end
+
+        connector =
+          icecast.server.default_prepare(
+            {
+              copy_encoder = copy_encoder,
+              format = format,
+              mount = mount,
+              headers = [...global_headers, ...config.http_headers],
+              burst =
+                icecast.server.config.burst_size(
+                  limits=limits,
+                  config.burst_size
+                ),
+              timeout = client_timeout ?? 30.,
+              port = port,
+              transport = transport,
+              dumpfile = config.dump_file,
+              dedicated_encoder = dedicated_encoder,
+              muxer_opts = muxer_options(format)
+            }
+          )
+        output =
+          connector(
+            {
+              source = source.dynamic(id="#{mount_id}.source", main),
+              fallback =
+                if
+                  null.defined(config.fallback_mount)
+                then
+                  (source.dynamic(id="#{mount_id}.fallback", backup) : source?)
+                else
+                  null
+                end,
+              mime_type = mime_type,
+              on_listener_connect = on_listener_connect,
+              on_listener_disconnect = listeners.disconnect
+            }
+          )
+        server_clock.unify(output.clock)
+
+        {
+          output = output,
+          listeners = listeners,
+          format = ref(format),
+          streams = ref(streams),
+          source_name = ref(""),
+          mime_type = ref(mime_type),
+          start_time = ref(time())
+        }
+      end
   end
 
   def handle_connection(c) =
-    let {copy_encoder, query, uri, format, mime_type, streams, headers} = c
+    let {copy_encoder, uri = mount, format, mime_type, streams, headers} = c
     fun (s) ->
       begin
         on_source_disconnect = s.on_disconnect
-
-        mount = query["mount"]
-        mount = if r/^\//.test(mount) then mount else "/#{mount}" end
-        mount_config = get_mount_config(mount)
+        config = mount_config(mount)
 
         log.important(
           label=name,
           "New source connected on mount #{mount}"
         )
 
-        if
-          entries.has(mount)
-        then
-          entry = entries.get(mount)
-          log.info(
-            label=name,
-            "Reusing existing output for mount #{mount}"
+        entry =
+          mounts.connect(
+            mount=mount,
+            fallback_mount=config.fallback_mount,
+            source=s,
+            create_entry(
+              mount=mount,
+              config=config,
+              format=format,
+              mime_type=mime_type,
+              streams=streams,
+              copy_encoder=copy_encoder
+            )
           )
-          entry.source := s
-          entry.format := format
-          entry.streams := streams
-          entry.source_name := list.assoc(default="", "icy-name", headers)
-          entry.mime_type := mime_type
-          entry.start_time := time()
-        else
-          source_ref = ref((s : source?))
-          fallback_ref = ref(null)
-          format_ref = ref(format)
-          streams_ref = ref(streams)
-          source_name_ref = ref(list.assoc(default="", "icy-name", headers))
-          mime_type_ref = ref(mime_type)
-          start_time_ref = ref(time())
-          listeners_ref = ref([])
-          peak_listeners_ref = ref(0)
+        entry.data.format := format
+        entry.data.streams := streams
+        entry.data.source_name := list.assoc(default="", "icy-name", headers)
+        entry.data.mime_type := mime_type
+        entry.data.start_time := time()
 
-          fallback_mount_config = mount_config.fallback_mount
-
-          if
-            null.defined(fallback_mount_config)
-            and entries.has(null.get(fallback_mount_config))
-          then
-            fb_entry = entries.get(null.get(fallback_mount_config))
-            fallback_ref := fb_entry.source()
-          end
-
-          mount_id = r/^\//.replace(fun (_) -> "", mount)
-          main_dyn = source.dynamic(id="#{mount_id}.source", source_ref)
-          fallback_dyn =
-            if
-              null.defined(fallback_mount_config)
-            then
-              (source.dynamic(id="#{mount_id}.fallback", fallback_ref) :
-                source?
-              )
-            else
-              null
-            end
-
-          http_headers = [...global_headers, ...mount_config.http_headers]
-
-          effective_burst =
-            if
-              null.defined(mount_config.burst_size)
-            then
-              let b = null.get(mount_config.burst_size)
-              if b == 0 then null else b end
-            else
-              burst_size
-            end
-
-          def real_ip_map() =
-            entries = ref([])
-            def add((connection_ip:string), (real_ip:string)) =
-              entries := [(connection_ip, real_ip), ...entries()]
-            end
-            def get(connection_ip) =
-              list.assoc(default=connection_ip, connection_ip, entries())
-            end
-            def remove(connection_ip) =
-              entries :=
-                list.filter(fun (e) -> fst(e) != connection_ip, entries())
-            end
-            {add = add, get = get, remove = remove}
-          end
-
-          ip_map = real_ip_map()
-
-          def on_listener_connect(
-            (
-            info:
-            {
-              headers: [(string * string)],
-              ip: string,
-              protocol: string,
-              uri: string
-            }
-            )
-          ) =
-            real_ip =
-              if
-                null.defined(x_forwarded_for)
-                or null.defined(x_forwarded_for_proxy_ips)
-              then
-                callback = x_forwarded_for ?? icecast.server.x_forwarded_for
-                proxy_ips = x_forwarded_for_proxy_ips ?? []
-                callback(
-                  {
-                    ip = info.ip,
-                    headers = info.headers,
-                    protocol = info.protocol,
-                    uri = info.uri,
-                    proxy_ips = proxy_ips
-                  }
-                )
-                  ?? info.ip
-              else
-                info.ip
-              end
-            ip_map.add(info.ip, real_ip)
-            listener = {ip = real_ip, protocol = info.protocol, uri = info.uri}
-            listeners_ref := [listener, ...listeners_ref()]
-            if
-              list.length(listeners_ref()) > peak_listeners_ref()
-            then
-              peak_listeners_ref := list.length(listeners_ref())
-            end
-          end
-
-          def on_listener_disconnect((connection_ip:string)) =
-            real_ip = ip_map.get(connection_ip)
-            ip_map.remove(connection_ip)
-            listeners_ref :=
-              list.filter(fun (l) -> l.ip != real_ip, listeners_ref())
-          end
-
-          muxer_opts =
-            if
-              null.defined(format)
-            then
-              if
-                null.defined(format_options)
-              then
-                format_options_fn = null.get(format_options)
-                format_options_fn(null.get(format))
-              else
-                list.assoc(
-                  default=[],
-                  null.get(format),
-                  settings.icecast.server.default_muxer_options()
-                )
-              end
-            else
-              []
-            end
-          prepare = icecast.server.default_prepare
-          connector =
-            prepare(
-              {
-                copy_encoder = copy_encoder,
-                format = format,
-                streams = streams,
-                source_headers = headers,
-                mount = mount,
-                headers = http_headers,
-                burst = effective_burst,
-                timeout = client_timeout ?? 30.,
-                port = port,
-                transport = transport,
-                dumpfile = mount_config.dump_file,
-                dedicated_encoder = dedicated_encoder,
-                muxer_opts = muxer_opts
-              }
-            )
-          o =
-            connector(
-              {
-                source = main_dyn,
-                fallback = fallback_dyn,
-                mime_type = mime_type,
-                on_listener_connect = on_listener_connect,
-                on_listener_disconnect = on_listener_disconnect
-              }
-            )
-
-          server_clock.unify(o.clock)
-
-          entries.set(
-            mount,
-            {
-              output = o,
-              source = source_ref,
-              fallback_mount = fallback_mount_config,
-              fallback = fallback_ref,
-              format = format_ref,
-              streams = streams_ref,
-              source_name = source_name_ref,
-              mime_type = mime_type_ref,
-              start_time = start_time_ref,
-              listeners = listeners_ref,
-              peak_listeners = peak_listeners_ref
-            }
-          )
-        end
-
-        update_fallbacks(mount, s)
-
-        on_connect_cmd = mount_config.on_connect_cmd
-        if
-          null.defined(on_connect_cmd)
-        then
-          cmd = null.get(on_connect_cmd)
-          thread.run(fun () -> ignore(process.run(cmd)))
-        end
-
+        run_command(config.on_connect_cmd)
         arg =
           {
             mount = mount,
@@ -1209,144 +1186,71 @@ def icecast.server.source_manager(
                 label=name,
                 "Source disconnected from mount #{mount}"
               )
-
-              on_shutdown(
-                fun () ->
-                  list.map(
-                    fun ((m, e)) ->
-                      begin
-                        e.source := null
-                        (m, e)
-                      end,
-                    entries.find_by_mount(mount)
-                  )
+              list.iter(
+                fun ((orphan, e)) ->
+                  begin
+                    log.info(
+                      label=name,
+                      "Shutting down output for mount #{orphan}"
+                    )
+                    e.data.output.shutdown()
+                  end,
+                mounts.disconnect(mount)
               )
-              on_shutdown(
-                fun () ->
-                  list.map(
-                    fun ((m, e)) ->
-                      begin
-                        e.fallback := null
-                        (m, e)
-                      end,
-                    entries.find_by_fallback_mount(mount)
-                  )
-              )
-
-              on_disconnect_cmd = mount_config.on_disconnect_cmd
-              if
-                null.defined(on_disconnect_cmd)
-              then
-                cmd = null.get(on_disconnect_cmd)
-                thread.run(fun () -> ignore(process.run(cmd)))
-              end
-
-              arg = {mount = mount}
-              list.iter(fun (h) -> h(arg), on_disconnect_handlers())
+              run_command(config.on_disconnect_cmd)
+              list.iter(fun (h) -> h({mount = mount}), on_disconnect_handlers())
             end
         )
       end
   end
 
   def auth(args) =
-    let {user, password = provided_password, uri, method, ..._} = args
-    is_source_connection =
-      method == "PUT"
-      or method == "POST"
-      or method == "SOURCE"
-      or method == "ICY"
+    icecast.server.authorize(
+      label=name,
+      password=password,
+      max_sources=max_sources,
+      mount_config=mount_config,
+      is_taken=fun (uri) -> null.defined(mounts.source(uri)),
+      active_sources=fun () ->
+        list.length(
+          list.filter(
+            fun ((mount, _)) -> null.defined(mounts.source(mount)),
+            mounts.all()
+          )
+        ),
+      args
+    )
+  end
 
-    if
-      is_source_connection and r/^\/admin(\/|\.cgi|$)/.test(uri)
-    then
-      log.important(
-        label=name,
-        "Rejecting source connection to reserved admin mountpoint #{uri}"
-      )
-      false
-    elsif
-      is_source_connection
-      and entries.has(uri)
-      and null.defined(entries.get(uri).source())
-    then
-      log.important(
-        label=name,
-        "Mountpoint #{uri} already in use, rejecting"
-      )
-      error.raise(
-        error.icecast.server.mount_taken,
-        "Mountpoint in use"
-      )
-    else
-      mount_config = get_mount_config(uri)
-
-      expected_user = mount_config.username ?? "source"
-      expected_pass = mount_config.password ?? password
-
+  def add_handler(handlers, ~synchronous, handler) =
+    wrapped =
       if
-        is_source_connection
-        and expected_pass != ""
-        and not (user == expected_user and provided_password == expected_pass)
+        synchronous
       then
-        false
-      elsif
-        is_source_connection
-        and null.defined(max_sources)
-        and list.length(entries.all()) >= null.get(max_sources)
-      then
-        log.important(
-          label=name,
-          "Maximum number of sources (#{null.get(max_sources)}) reached, \
-           rejecting connection"
-        )
-        false
+        handler
       else
-        true
+        fun (arg) -> thread.run(fun () -> handler(arg))
       end
-    end
+    handlers := [...handlers(), wrapped]
   end
 
   def on_connect(~synchronous=false, handler) =
-    wrapped =
-      if
-        synchronous
-      then
-        handler
-      else
-        fun (arg) -> thread.run(fun () -> handler(arg))
-      end
-    on_connect_handlers := [...on_connect_handlers(), wrapped]
+    add_handler(on_connect_handlers, synchronous=synchronous, handler)
   end
 
   def on_disconnect(~synchronous=false, handler) =
-    wrapped =
-      if
-        synchronous
-      then
-        handler
-      else
-        fun (arg) -> thread.run(fun () -> handler(arg))
-      end
-    on_disconnect_handlers := [...on_disconnect_handlers(), wrapped]
+    add_handler(on_disconnect_handlers, synchronous=synchronous, handler)
   end
 
   def get_config(mount) =
     if
-      entries.has(mount)
+      mounts.has(mount)
     then
-      entry = entries.get(mount)
-      {format = entry.format(), streams = entry.streams()}
+      entry = mounts.get(mount)
+      {format = entry.data.format(), streams = entry.data.streams()}
     else
       null
     end
-  end
-
-  def mounts() =
-    list.map(fst, entries.all())
-  end
-
-  def get_source(mount) =
-    if entries.has(mount) then entries.get(mount).source() else null end
   end
 
   def stats() =
@@ -1355,16 +1259,16 @@ def icecast.server.source_manager(
         (
           mount,
           {
-            name = entry.source_name(),
-            content_type = entry.format() ?? "",
-            mime_type = entry.mime_type(),
-            started = entry.start_time(),
-            listeners = entry.listeners(),
-            peak_listeners = entry.peak_listeners(),
-            current_metadata = entry.output.last_metadata() ?? []
+            name = entry.data.source_name(),
+            content_type = entry.data.format() ?? "",
+            mime_type = entry.data.mime_type(),
+            started = entry.data.start_time(),
+            listeners = entry.data.listeners.all(),
+            peak_listeners = entry.data.listeners.peak(),
+            current_metadata = entry.data.output.last_metadata() ?? []
           }
         ),
-      entries.all()
+      mounts.all()
     )
   end
 
@@ -1374,38 +1278,24 @@ def icecast.server.source_manager(
     "mounts",
     fun (_) ->
       begin
-        all_entries = entries.all()
+        def status(s) =
+          if null.defined(s()) then "connected" else "disconnected" end
+        end
+        lines =
+          list.map(
+            fun ((mount, entry)) ->
+              "#{mount}: source=#{status(entry.source)}, fallback=#{
+                status(entry.fallback)
+              }, format=#{entry.data.format()}, streams=#{
+                entry.data.streams()
+              }",
+            mounts.all()
+          )
         if
-          list.length(all_entries) == 0
+          lines == []
         then
           "No active mounts"
         else
-          lines =
-            list.map(
-              fun ((mount, entry)) ->
-                begin
-                  source_status =
-                    if
-                      null.defined(entry.source())
-                    then
-                      "connected"
-                    else
-                      "disconnected"
-                    end
-                  fallback_status =
-                    if
-                      null.defined(entry.fallback())
-                    then
-                      "connected"
-                    else
-                      "disconnected"
-                    end
-                  "#{mount}: source=#{source_status}, fallback=#{
-                    fallback_status
-                  }, format=#{entry.format()}, streams=#{entry.streams()}"
-                end,
-              all_entries
-            )
           string.concat(separator="\n", lines)
         end
       end
@@ -1415,8 +1305,8 @@ def icecast.server.source_manager(
     auth = auth,
     handle_connection = handle_connection,
     get_config = get_config,
-    mounts = mounts,
-    get_source = get_source,
+    mounts = fun () -> list.map(fst, mounts.all()),
+    get_source = mounts.source,
     on_connect = on_connect,
     on_disconnect = on_disconnect,
     stats = stats
@@ -1590,7 +1480,7 @@ end
 # @callback on_connect Called when a source connects. Receives a record with mount, source, format, streams, and headers fields.
 # @callback on_disconnect Called when a source disconnects. Receives a record with a mount field.
 # @method stats Returns a list of `(mount, stats)` pairs. Each stats record contains: name, content_type, started, listeners, peak_listeners, and current_metadata.
-def icecast.server(
+def replaces icecast.server(
   ~name="icecast.server",
   ~port=8000,
   ~password="hackme",
@@ -1606,71 +1496,26 @@ def icecast.server(
 ) =
   settings.frame.duration.set_default(0.2)
 
-  empty_mount =
-    {
-      mount_name = null,
-      username = null,
-      password = null,
-      max_listeners = null,
-      dump_file = null,
-      burst_size = null,
-      fallback_mount = null,
-      hidden = false,
-      on_connect_cmd = null,
-      on_disconnect_cmd = null,
-      http_headers = []
-    }
-
   parsed =
     if
       null.defined(config)
     then
-      icecast.server.parse_config(null.get(config))
+      icecast.server.config.load(null.get(config))
     else
-      {
-        port = null,
-        bind_address = null,
-        tls = false,
-        tls_certificate = null,
-        tls_key = null,
-        password = null,
-        max_sources = null,
-        max_clients = null,
-        client_timeout = null,
-        source_timeout = null,
-        burst_on_connect = null,
-        burst_size = null,
-        http_headers = [],
-        default_mount = empty_mount,
-        mounts = []
-      }
+      icecast.server.config.empty
     end
 
+  port = parsed.port ?? port
+  password = parsed.password ?? password
   max_sources = parsed.max_sources
-  max_clients = parsed.max_clients
-  client_timeout = parsed.client_timeout
-  source_timeout = parsed.source_timeout
-  burst_on_connect = parsed.burst_on_connect
-  burst_size =
-    if
-      null.defined(burst_on_connect) and null.get(burst_on_connect) == 0
-    then
-      null
-    else
-      parsed.burst_size
-    end
-  port = if null.defined(parsed.port) then null.get(parsed.port) else port end
-  password =
-    if
-      null.defined(parsed.password)
-    then
-      null.get(parsed.password)
-    else
-      password
-    end
-  global_headers = parsed.http_headers
-  default_mount = parsed.default_mount
-  mount_configs = parsed.mounts
+
+  if
+    null.defined(parsed.logdir)
+  then
+    settings.log.file := true
+    settings.log.file.path := "#{null.get(parsed.logdir)}/<script>.log"
+    settings.log.stdout := true
+  end
 
   if
     null.defined(parsed.bind_address)
@@ -1713,11 +1558,11 @@ def icecast.server(
     )
   end
   if
-    list.length(mount_configs) > 0
+    parsed.mounts != []
   then
     log.important(
       label=name,
-      "Loaded #{list.length(mount_configs)} mount configuration(s)"
+      "Loaded #{list.length(parsed.mounts)} mount configuration(s)"
     )
   end
 
@@ -1727,9 +1572,9 @@ def icecast.server(
       port = port,
       password = password,
       max_sources = max_sources,
-      global_headers = global_headers,
-      default_mount = default_mount,
-      mount_configs = mount_configs
+      global_headers = parsed.http_headers,
+      default_mount = parsed.default_mount,
+      mount_configs = parsed.mounts
     }
   )
 
@@ -1740,16 +1585,16 @@ def icecast.server(
       transport=transport,
       password=password,
       max_sources=max_sources,
-      max_clients=max_clients,
-      client_timeout=client_timeout,
-      burst_size=burst_size,
+      max_clients=parsed.max_clients,
+      client_timeout=parsed.client_timeout,
+      limits=parsed,
       dedicated_encoder=dedicated_encoder,
       x_forwarded_for_proxy_ips=x_forwarded_for_proxy_ips,
       x_forwarded_for=x_forwarded_for,
       format_options=format_options,
-      global_headers=global_headers,
-      default_mount=default_mount,
-      mount_configs=mount_configs
+      global_headers=parsed.http_headers,
+      default_mount=parsed.default_mount,
+      mount_configs=parsed.mounts
     )
 
   input.harbor.dynamic(
@@ -1757,7 +1602,7 @@ def icecast.server(
     icy=true,
     port=port,
     transport=transport,
-    timeout=source_timeout ?? 30.,
+    timeout=parsed.source_timeout ?? 30.,
     auth=manager.auth,
     on_connect=manager.handle_connection
   )
@@ -1776,27 +1621,20 @@ def icecast.server(
           else
             "unlimited"
           end
-
         lines =
           [
             "Port: #{port}",
             "Password: #{string.length(password)} characters",
             "Max sources: #{max_sources_str}",
-            "Global HTTP headers: #{list.length(global_headers)}",
-            "Mount configurations: #{list.length(mount_configs)}"
+            "Global HTTP headers: #{list.length(parsed.http_headers)}",
+            "Mount configurations: #{list.length(parsed.mounts)}",
+            ...list.map(
+              fun (config) ->
+                "  - #{config.mount_name ?? "(default)"}",
+              parsed.mounts
+            )
           ]
-
-        mount_lines =
-          list.map(
-            fun (config) ->
-              begin
-                mount_name = config.mount_name ?? "(default)"
-                "  - #{mount_name}"
-              end,
-            mount_configs
-          )
-
-        string.concat(separator="\n", [...lines, ...mount_lines])
+        string.concat(separator="\n", lines)
       end
   )
 
