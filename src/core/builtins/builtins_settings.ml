@@ -148,7 +148,7 @@ let settings_module =
           @ [
               ("description", Lang.string (String.trim conf#descr));
               ( "comments",
-                Lang.string (String.trim (String.concat "" conf#comments)) );
+                Lang.string (String.trim (String.concat " " conf#comments)) );
             ]
           @ leaf_values conf @ sub)
       and leaf_values conf =
