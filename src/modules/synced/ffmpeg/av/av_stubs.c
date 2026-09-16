@@ -51,7 +51,9 @@ typedef struct {
 typedef struct av_t {
   AVFormatContext *format_context;
   stream_t **streams;
+  unsigned int nb_allocated_streams;
   const AVCodec **stream_decoders;
+  unsigned int nb_stream_decoders;
   value control_message_callback;
   int is_input;
   value interrupt_cb;
@@ -119,12 +121,13 @@ static void close_av(av_t *av) {
   if (av->format_context) {
     if (av->streams) {
       unsigned int i;
-      for (i = 0; i < av->format_context->nb_streams; i++) {
+      for (i = 0; i < av->nb_allocated_streams; i++) {
         if (av->streams[i])
           free_stream(av->streams[i]);
       }
       av_free(av->streams);
       av->streams = NULL;
+      av->nb_allocated_streams = 0;
     }
 
     av_freep(&av->stream_decoders);
@@ -796,6 +799,7 @@ CAMLprim value ocaml_av_open_input(value _url, value _format, value _interrupt,
   // avformat_find_stream_info
   int nb_streams = av->format_context->nb_streams;
   av->stream_decoders = av_calloc(nb_streams, sizeof(const AVCodec *));
+  av->nb_stream_decoders = nb_streams;
   AVDictionary **stream_opts = av_calloc(nb_streams, sizeof(AVDictionary *));
 
   // Track format-level codec overrides for avformat_find_stream_info.
@@ -1035,17 +1039,30 @@ CAMLprim value ocaml_av_get_duration(value _av, value _stream_index,
   CAMLreturn(ret);
 }
 
+/* Demuxers without a header, e.g. MPEG-PS, keep adding streams while packets
+   are read, so the array is grown to the current stream count on each use
+   rather than sized once. */
 static stream_t **allocate_input_context(av_t *av) {
   if (!av->format_context)
     Fail("Failed to read closed input");
 
-  // Allocate streams context array
-  av->streams = (stream_t **)av_calloc(av->format_context->nb_streams,
-                                       sizeof(stream_t *));
-  if (!av->streams)
+  unsigned int nb_streams = av->format_context->nb_streams;
+
+  if (av->streams && nb_streams <= av->nb_allocated_streams)
+    return av->streams;
+
+  stream_t **streams = (stream_t **)av_realloc_array(av->streams, nb_streams,
+                                                     sizeof(stream_t *));
+  if (!streams)
     caml_raise_out_of_memory();
 
-  return av->streams;
+  memset(streams + av->nb_allocated_streams, 0,
+         (nb_streams - av->nb_allocated_streams) * sizeof(stream_t *));
+
+  av->streams = streams;
+  av->nb_allocated_streams = nb_streams;
+
+  return streams;
 }
 
 static stream_t *allocate_stream_context(av_t *av, int index,
@@ -1087,12 +1104,12 @@ static stream_t *open_stream_index(av_t *av, int index, const AVCodec *dec) {
   if (index < 0 || (unsigned int)index >= av->format_context->nb_streams)
     Fail("Failed to open stream %d : index out of bounds", index);
 
-  if (!av->streams && !allocate_input_context(av))
-    caml_raise_out_of_memory();
+  allocate_input_context(av);
 
   // find decoder for the stream
   AVCodecParameters *dec_param = av->format_context->streams[index]->codecpar;
-  if (!dec && av->stream_decoders)
+  if (!dec && av->stream_decoders &&
+      (unsigned int)index < av->nb_stream_decoders)
     dec = av->stream_decoders[index];
   if (!dec) {
     caml_release_runtime_system();
@@ -1260,10 +1277,6 @@ CAMLprim value ocaml_av_read_input(value _unhandled_packet, value _packet,
   mlsize_t i;
   int ret, kind;
 
-  if (!av->streams && !allocate_input_context(av))
-    caml_raise_out_of_memory();
-
-  stream_t **streams = av->streams;
   stream_t *stream;
 
   while (1) {
@@ -1310,7 +1323,7 @@ CAMLprim value ocaml_av_read_input(value _unhandled_packet, value _packet,
       for (i = 0; i < Wosize_val(_frame) && !stream; i++) {
         if (Int_val(Field(_frame, i)) == av->packet->stream_index) {
           packet = av->packet;
-          stream = streams[av->packet->stream_index];
+          stream = allocate_input_context(av)[av->packet->stream_index];
 
           if (stream == NULL)
             stream = open_stream_index(av, av->packet->stream_index, NULL);
@@ -1329,7 +1342,7 @@ CAMLprim value ocaml_av_read_input(value _unhandled_packet, value _packet,
         continue;
       }
     } else {
-      stream = streams[av->pending_stream_idx];
+      stream = av->streams[av->pending_stream_idx];
     }
 
     if (stream->codec_context->codec_type == AVMEDIA_TYPE_SUBTITLE) {
@@ -1442,7 +1455,7 @@ CAMLprim value ocaml_av_seek_native(value _flags, value _stream, value _min_ts,
   /* Frames buffered by a decoder still carry pre-seek timestamps and would be
      handed to the caller as if they came from the new position. */
   if (av->streams) {
-    for (i = 0; i < av->format_context->nb_streams; i++)
+    for (i = 0; i < av->nb_allocated_streams; i++)
       if (av->streams[i] && av->streams[i]->codec_context)
         avcodec_flush_buffers(av->streams[i]->codec_context);
   }
@@ -1835,6 +1848,7 @@ static stream_t *new_stream(av_t *av, const AVCodec *codec) {
 
   streams[av->format_context->nb_streams] = NULL;
   av->streams = streams;
+  av->nb_allocated_streams = av->format_context->nb_streams + 1;
 
   stream_t *stream =
       allocate_stream_context(av, av->format_context->nb_streams, codec);
